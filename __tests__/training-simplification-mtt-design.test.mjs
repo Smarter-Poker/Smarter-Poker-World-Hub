@@ -1133,6 +1133,234 @@ test('Phase 22 Poker Arena Parity, 6 Matched Comparison Cases, Worked Pot-Limit 
   checkForbiddenTextHexInFile('pages/hub/training/live-hud-sync.js');
 });
 
+test('Phase 23 deep forensic root-cause hardening: Practice Again spot replay, Customize unlock, table config propagation, uncalled bet return, fixed-limit cap, 9-max positions, and full-estate #SMARTERDESIGN text color gate', async () => {
+  const {
+    computeMainAndSidePots,
+    computeClubArenaParityState,
+    applyClubArenaAction,
+    rotateDealerButtonPosition,
+  } = await import('../src/lib/training/clubArenaTableParity.js');
+  const {
+    validateTrainingPreset,
+    buildThreeHandLeakReceipt,
+    encodeSharedDrillPack,
+    decodeSharedDrillPack,
+  } = await import('../src/lib/training/trainingPresets.mjs');
+  const {
+    evaluateFullHandLineAndBranchComparison,
+    evaluateDoubleBoardBombPot,
+  } = await import('../src/lib/training/horseBrainTrainingAdapter.js');
+  const {
+    normalizeTrainingVariant,
+    normalizeLaunchBettingStructure,
+    normalizeLaunchFormat,
+  } = await import('../src/lib/training/customTrainingLaunchContract.mjs');
+  const { analyzeVerifiedTrainingWeaknesses } = await import('../src/lib/training/weaknessAnalysis.mjs');
+
+  // 1. Practice Again / Spot Replay wiring in useGTOTrainer, GodModeArena, UniversalDynamicTable, GTOQuestionCard
+  const trainerHookSrc = read('src/hooks/useGTOTrainer.js');
+  const godModeSrc = read('src/components/training/GodModeArena.jsx');
+  const routerSrc = read('src/components/training/GameUIRouter.jsx');
+  const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  const qCardSrc = read('src/components/training/GTOQuestionCard.jsx');
+
+  assert.ok(
+    trainerHookSrc.includes('const nextQuestion = useCallback(async (options = null) =>') &&
+      trainerHookSrc.includes('if (options && typeof options === \'object\' && options.retry === true)') &&
+      trainerHookSrc.includes('Number(publicQuestion?._retryCount) > 0 && publicQuestion?.correctAnswer'),
+    'useGTOTrainer must support nextQuestion({ retry: true }) and local practice replay grading without advancing questionNumber or re-posting sealed submissionId',
+  );
+  assert.ok(
+    godModeSrc.includes('const handleNextQuestion = useCallback((arg) =>') &&
+      godModeSrc.includes('if (arg && typeof arg === \'object\' && arg.retry === true)'),
+    'GodModeArena.handleNextQuestion must forward retry payload immediately to nextQuestion(arg)',
+  );
+  assert.ok(
+    udtSrc.includes('presetOnly: presetOnlyProp = false') &&
+      udtSrc.includes('const presetOnly = Boolean(presetOnlyProp && !customizeOpen);') &&
+      udtSrc.includes('onTableConfigChange') &&
+      routerSrc.includes('onTableConfigChange={onTableConfigChange}') &&
+      godModeSrc.includes('onTableConfigChange={handleTableConfigChange}'),
+    'UniversalDynamicTable Customize toggle must unlock study tools and propagate variant/structure/format changes via onTableConfigChange',
+  );
+  assert.ok(
+    udtSrc.includes(':${question?._retryCount || 0}') &&
+      qCardSrc.includes('showFeedback, question?._gradingContext?.submissionId'),
+    'UniversalDynamicTable decisionKey and GTOQuestionCard selection reset must react to Practice Again replay',
+  );
+
+  // 2. Uncalled bet return when opponents fold with 0 committed on current street
+  const uncalledPostflop = computeMainAndSidePots(
+    [
+      { position: 'BTN', committedBb: 4, stackRemainingBb: 90, folded: false },
+      { position: 'BB', committedBb: 0, stackRemainingBb: 94, folded: true },
+    ],
+    6.5,
+  );
+  assert.equal(uncalledPostflop.uncalledReturnBb, 4, 'Uncalled opening bet on street must be returned to bettor');
+  assert.equal(uncalledPostflop.uncalledSeatPosition, 'BTN');
+  assert.equal(uncalledPostflop.mainPotBb, 6.5, 'Main pot must remain the 6.5 BB dead pot after returning uncalled 4 BB bet');
+  assert.equal(uncalledPostflop.resultingStacks.BTN, 94, 'Returned uncalled bet must be credited back to Hero resulting stack');
+
+  // 3. Fixed-Limit 4-bet raise cap enforcement in applyClubArenaAction
+  const flCappedState = computeClubArenaParityState({
+    variant: 'nlh',
+    bettingStructure: 'fixed_limit',
+    format: 'cash',
+    street: 'turn',
+    potBb: 18,
+    heroPosition: 'BTN',
+    heroStackBb: 80,
+    heroCommittedBb: 6,
+    facingBetBb: 8,
+    numRaisesOnStreet: 4,
+    maxRaisesPerRound: 4,
+  });
+  assert.equal(flCappedState.raiseCapReached, true);
+  assert.throws(
+    () => applyClubArenaAction(flCappedState, { type: 'raise', amountBb: 10 }),
+    /Fixed-Limit raise cap/,
+    'applyClubArenaAction must throw when attempting to raise at the Fixed-Limit 4-bet cap',
+  );
+  const flAllInAtCap = applyClubArenaAction(flCappedState, { type: 'all_in' });
+  assert.equal(flAllInAtCap.submittedTotalBb, 8, 'Fixed-Limit all_in at raise cap must cap at call amount');
+
+  // 4. 9-Max dealer button rotation with MP / LJ / UTG+1 / UTG+2
+  assert.equal(rotateDealerButtonPosition('MP', '9max'), 'LJ', '9-max rotation from MP (UTG+2 alias) must advance to LJ');
+  assert.equal(rotateDealerButtonPosition('UTG+1', '9max'), 'UTG+2');
+
+  // 5. validateTrainingPreset villainPosition preservation & buildThreeHandLeakReceipt canonical gameId
+  const customVillainPreset = validateTrainingPreset({
+    format: 'cash',
+    variant: 'nlh',
+    heroPosition: 'CO',
+    villainPosition: 'BTN',
+  }).preset;
+  assert.equal(customVillainPreset.heroPosition, 'CO');
+  assert.equal(customVillainPreset.villainPosition, 'BTN', 'validateTrainingPreset must preserve explicit valid villainPosition');
+
+  const plo8Receipt = buildThreeHandLeakReceipt({ variant: 'plo8', format: 'cash' });
+  assert.equal(plo8Receipt.gameId, 'cash-005', 'buildThreeHandLeakReceipt must use canonical cash-005 for plo8');
+  const decodedPack = decodeSharedDrillPack(plo8Receipt.packToken);
+  assert.equal(decodedPack.questionsCount, 10, 'Shared drill pack questionsCount must conform to 10-hand custom session contract');
+
+  // 6. Horse Brain adapter engineModule & double-board bomb pot card deduplication
+  const plo8BranchEval = evaluateFullHandLineAndBranchComparison({
+    gameId: 'cash-005',
+    variant: 'plo8',
+    heroCards: ['As', '2s', '3h', 'Kh'],
+    fullBoardCards: ['Qs', '7d', '2c', '4s', '8h'],
+  });
+  assert.equal(plo8BranchEval.engineModule, 'plo8-brain.js', 'evaluateFullHandLineAndBranchComparison must report plo8-brain.js for plo8');
+
+  const dbPlo5 = evaluateDoubleBoardBombPot({ variant: 'plo5' });
+  const allPlo5Cards = [
+    ...dbPlo5.heroCards,
+    ...dbPlo5.boardACards,
+    ...dbPlo5.boardBCards,
+  ].map((c) => c.toLowerCase());
+  assert.equal(new Set(allPlo5Cards).size, allPlo5Cards.length, 'evaluateDoubleBoardBombPot must never deal duplicate cards across heroCards, Board A, and Board B');
+
+  // 7. Launch contract alias normalization & 9-max weakness analysis
+  assert.equal(normalizeTrainingVariant('omaha8'), 'plo8');
+  assert.equal(normalizeLaunchBettingStructure('fl'), 'fixed_limit');
+  assert.equal(normalizeLaunchFormat('9-max'), '9max');
+
+  const nineMaxWeakness = analyzeVerifiedTrainingWeaknesses({
+    sessions: [
+      { id: 's1', game_id: 'cash-001', hands_played: 20, correct_count: 18 },
+    ],
+    recentAnswers: [
+      { game_id: 'mtt-001', question_id: 'q1', is_correct: false, variant: 'nlh', street: 'preflop', hero_position: 'UTG+1' },
+      { game_id: 'mtt-001', question_id: 'q2', is_correct: false, variant: 'nlh', street: 'preflop', hero_position: 'UTG+1' },
+      { game_id: 'mtt-001', question_id: 'q3', is_correct: false, variant: 'nlh', street: 'preflop', hero_position: 'UTG+1' },
+    ],
+  });
+  assert.ok(
+    nineMaxWeakness.spotLeaks.some((l) => l.position === 'UTG+1'),
+    'weaknessAnalysis must preserve 9-max UTG+1 position in spotLeaks',
+  );
+  assert.ok(
+    nineMaxWeakness.leaks.some((l) => l.gameId === 'mtt-001'),
+    'weaknessAnalysis must include unfinished-session recentAnswers games in leaks even when another game has a completed session',
+  );
+
+  // 8. Full-estate #SMARTERDESIGN text color gate across all Training pages, components, and CSS
+  const walkFiles = (dir, out = []) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walkFiles(full, out);
+      else if (/\.(js|jsx|ts|tsx|css|mjs)$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  };
+  const allTrainingFiles = [
+    ...walkFiles(path.join(ROOT, 'pages/hub/training')),
+    path.join(ROOT, 'pages/hub/training.js'),
+    ...walkFiles(path.join(ROOT, 'src/components/training')),
+    ...walkFiles(path.join(ROOT, 'src/styles/training')),
+    path.join(ROOT, 'src/styles/worlds/training.css'),
+  ];
+  const forbiddenVars = [
+    'var(--sp-warn)',
+    'var(--sp-accent-amber)',
+    'var(--sp-accent-orange)',
+    'var(--sp-accent-purple)',
+    'var(--dc-gold)',
+    'var(--ch-gold)',
+  ];
+  const colorViolations = [];
+  for (const absFile of allTrainingFiles) {
+    if (!fs.existsSync(absFile)) continue;
+    const rel = path.relative(ROOT, absFile);
+    const lines = fs.readFileSync(absFile, 'utf8').split('\n');
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
+      const isTextColorProp = /\b(color|WebkitTextFillColor|accent)\s*[:=]/.test(line)
+        && !/\b(background|border|outline|boxShadow|shadow|stroke|stopColor|linear-gradient|radial-gradient)/i.test(
+          line.split(/\b(color|WebkitTextFillColor|accent)\s*[:=]/)[0],
+        );
+      if (!isTextColorProp) continue;
+      const hexes = line.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+      for (const hx of hexes) {
+        if (hx.length === 8 && hx.slice(6).toLowerCase() !== 'ff') continue;
+        const hRaw = hx.slice(1);
+        const rgb = hRaw.length === 3 || hRaw.length === 4
+          ? [parseInt(hRaw[0] + hRaw[0], 16), parseInt(hRaw[1] + hRaw[1], 16), parseInt(hRaw[2] + hRaw[2], 16)]
+          : (hRaw.length === 6 || hRaw.length === 8
+              ? [parseInt(hRaw.slice(0, 2), 16), parseInt(hRaw.slice(2, 4), 16), parseInt(hRaw.slice(4, 6), 16)]
+              : null);
+        if (!rgb) continue;
+        const [r, g, b] = rgb;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const chroma = max - min;
+        if (chroma < 12) continue;
+        let hue = 0;
+        if (max === r) hue = ((g - b) / chroma) % 6;
+        else if (max === g) hue = (b - r) / chroma + 2;
+        else hue = (r - g) / chroma + 4;
+        hue = (hue * 60 + 360) % 360;
+        if ((hue >= 20 && hue < 80) || (hue >= 250 && hue < 348)) {
+          colorViolations.push(`${rel}:${i + 1} (${hx})`);
+        }
+      }
+      for (const fv of forbiddenVars) {
+        if (line.includes(fv)) {
+          colorViolations.push(`${rel}:${i + 1} (${fv})`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(
+    colorViolations,
+    [],
+    `Forbidden #SMARTERDESIGN text colors detected across Training estate:\n${colorViolations.slice(0, 25).join('\n')}`,
+  );
+});
+
+
 
 
 

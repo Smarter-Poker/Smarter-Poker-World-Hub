@@ -17,7 +17,7 @@ const STACK_DEPTHS = [
     openRange: '~55% from SB, ~40% from BB defense',
     notes: 'Start incorporating open-shoves with hands like A2-A9, KT+, suited connectors.',
     pushRange: 'Shove any pocket pair, A2+, K8+, Q9+, JTs from SB' },
-  { bb: 10, label: '10bb', phase: 'Push/Fold', color: '#f59e0b', icon: '●',
+  { bb: 10, label: '10bb', phase: 'Push/Fold', color: '#86daff', icon: '●',
     strategy: 'Primarily push or fold. Open-raising is rarely correct at 10bb.',
     openRange: 'N/A - push or fold',
     notes: 'The Nash push/fold zone. Every hand is either a shove or a fold from SB.',
@@ -87,7 +87,7 @@ export default function HUSNGSolver() {
             {[
               { label: 'PUSH RANGE (SB)', value: depth.pushRange, color: '#ef4444' },
               { label: 'OPEN RANGE', value: depth.openRange, color: '#3b82f6' },
-              { label: 'NOTES', value: depth.notes, color: '#f59e0b' },
+              { label: 'NOTES', value: depth.notes, color: '#86daff' },
             ].map((item, i) => (
               <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: `3px solid ${item.color}` }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: item.color }}>{item.label}</div>

@@ -9,7 +9,7 @@ const MW_RULES = [
   { rule: 'Tighten Your C-Bet Range', icon: '◆', color: '#ef4444',
     detail: 'C-bet only 25-35% of flops multi-way vs 65%+ heads-up. Multiple players = someone has something.',
     example: 'HU: C-bet AK on J74 for value. Multi-way: Check AK - too many players can have Jx.' },
-  { rule: 'Top Pair Isn\'t Always Good', icon: '▲', color: '#f59e0b',
+  { rule: 'Top Pair Isn\'t Always Good', icon: '▲', color: '#86daff',
     detail: 'In HU pots, top pair is strong. In 4-way pots, top pair weak kicker is often second-best.',
     example: '4-way on K♠9♦4♣: Your K8 is borderline. Check-call at best, often check-fold to big action.' },
   { rule: 'Set Mine More Aggressively', icon: '◆', color: '#22c55e',
@@ -18,7 +18,7 @@ const MW_RULES = [
   { rule: 'Draws Need Better Odds', icon: '■', color: '#3b82f6',
     detail: 'In multi-way pots, draws face more players who might have the same draw. Your flush might lose to a bigger flush.',
     example: 'Multi-way with 8♥7♥ on flush draw: call if price is right, but be aware of nut flush possibilities.' },
-  { rule: 'Position Matters Even More', icon: '·', color: '#8b5cf6',
+  { rule: 'Position Matters Even More', icon: '·', color: '#86daff',
     detail: 'Acting last in a 4-way pot gives you information from 3 players. IP multi-way = massive edge.',
     example: 'If 3 players check to you multi-way, stab with any reasonable hand. Dead money is yours.' },
 ];

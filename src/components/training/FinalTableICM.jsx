@@ -63,7 +63,7 @@ function StackBar({ stack, maxStack, label, color, equity, isHero }) {
   const pct = (stack / maxStack) * 100;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-      <div style={{ width: 40, fontSize: 12, fontWeight: isHero ? 800 : 600, color: isHero ? '#f59e0b' : '#fff', textAlign: 'right' }}>{label}</div>
+      <div style={{ width: 40, fontSize: 12, fontWeight: isHero ? 800 : 600, color: isHero ? '#86daff' : '#fff', textAlign: 'right' }}>{label}</div>
       <div style={{ flex: 1, height: 20, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, border: isHero ? '1px solid #f59e0b' : 'none' }} />
         <span style={{ position: 'absolute', left: 8, top: 2, fontSize: 12, fontWeight: 700, color: '#fff' }}>
@@ -105,7 +105,7 @@ function FinalTableICM() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#f97316' }}>Final Table ICM</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Final Table ICM</h3>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
             <input type="checkbox" checked={showEquity} onChange={e => setShowEquity(e.target.checked)} style={{ accentColor: '#f97316' }} />
             Show $EV
@@ -158,7 +158,7 @@ function FinalTableICM() {
               }}>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{i + 1}{i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>${payout.toLocaleString()}</div>
-                {jump > 0 && <div style={{ fontSize: 12, color: '#f59e0b' }}>+${jump.toLocaleString()}</div>}
+                {jump > 0 && <div style={{ fontSize: 12, color: '#86daff' }}>+${jump.toLocaleString()}</div>}
               </div>
             );
           })}
@@ -169,9 +169,9 @@ function FinalTableICM() {
           {[
             { label: 'Hero Chip EV', value: `$${((scenario.stacks[scenario.heroSeat] / totalChips) * totalPrizePool).toFixed(0)}`, color: '#3b82f6' },
             { label: 'Hero $EV (ICM)', value: `$${equities[scenario.heroSeat]?.toFixed(0) || '-'}`, color: '#10b981' },
-            { label: 'Bubble Factor', value: bubbleFactor.toFixed(2), color: bubbleFactor > 1.3 ? '#ef4444' : '#f59e0b' },
-            { label: 'ICM Tax', value: `${((1 - (equities[scenario.heroSeat] / ((scenario.stacks[scenario.heroSeat] / totalChips) * totalPrizePool))) * 100).toFixed(1)}%`, color: '#ec4899' },
-            { label: 'Players Left', value: scenario.stacks.length, color: '#8b5cf6' },
+            { label: 'Bubble Factor', value: bubbleFactor.toFixed(2), color: bubbleFactor > 1.3 ? '#ef4444' : '#86daff' },
+            { label: 'ICM Tax', value: `${((1 - (equities[scenario.heroSeat] / ((scenario.stacks[scenario.heroSeat] / totalChips) * totalPrizePool))) * 100).toFixed(1)}%`, color: '#86daff' },
+            { label: 'Players Left', value: scenario.stacks.length, color: '#86daff' },
             { label: 'Hero BBs', value: Math.round(scenario.stacks[scenario.heroSeat] / parseInt(scenario.blinds.split('/')[1])), color: '#22d3ee' },
           ].map(m => (
             <div key={m.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>

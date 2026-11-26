@@ -62,7 +62,7 @@ export default function PotOddsTrainer() {
           </div>
           <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Outs ({s.cards === 2 ? '2 cards' : '1 card'})</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>{s.outs}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#86daff' }}>{s.outs}</div>
           </div>
         </div>
 

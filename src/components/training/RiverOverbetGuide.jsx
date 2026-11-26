@@ -50,7 +50,7 @@ export default function RiverOverbetGuide() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 4, background: `${typeColor}15`, color: typeColor }}>{spot.type}</span>
-          <span style={{ fontSize: 16, fontWeight: 800, color: '#f59e0b' }}>{spot.sizing}</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: '#86daff' }}>{spot.sizing}</span>
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>{spot.scenario}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{spot.reason}</p>

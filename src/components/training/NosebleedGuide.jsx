@@ -10,11 +10,11 @@ const NOSEBLEED_TOPICS = [
     detail: 'At nosebleed stakes, every regular has studied thousands of solver sims. Knowing approximate GTO for every common spot is table stakes.',
     depth: 'You need to know not just the solver\'s preferred action, but WHY - which blockers matter, how frequencies shift with stack depth, and how board texture changes the equilibrium.',
     reality: 'Players at NL5k+ will exploit any systematic deviation from GTO within a few hundred hands.' },
-  { title: 'Heads-Up Dynamics', icon: '»', color: '#f59e0b',
+  { title: 'Heads-Up Dynamics', icon: '»', color: '#86daff',
     detail: 'Most nosebleed action is heads-up. You must have a deep HU game - opening 70%+ from the button, defending 60%+ from the BB.',
     depth: 'HU poker at this level is a constant adjustment war. Limping from the button, overbetting, check-raise bombing - everything is in play.',
     reality: 'The best HU nosebleed players have studied tens of thousands of solver outputs and can approximate GTO in real-time.' },
-  { title: 'Bankroll & Mental Game', icon: '◇', color: '#8b5cf6',
+  { title: 'Bankroll & Mental Game', icon: '◇', color: '#86daff',
     detail: 'A single session at NL10k can swing $50k+. You need 50+ buy-ins, ironclad emotional control, and a support system.',
     depth: 'Professional nosebleed players have coaches, therapists, and structured routines. The mental game is 50% of the battle.',
     reality: 'Most nosebleed players who go broke do so from tilt, not from being outplayed. Emotional discipline is THE edge.' },
@@ -59,7 +59,7 @@ export default function NosebleedGuide() {
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.depth}</div>
         </div>
         <div style={{ background: 'rgba(139,92,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #8b5cf6' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6' }}>REALITY CHECK</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>REALITY CHECK</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.reality}</div>
         </div>
       </motion.div>

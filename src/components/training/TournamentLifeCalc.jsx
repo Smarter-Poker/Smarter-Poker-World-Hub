@@ -105,12 +105,12 @@ function TournamentLifeCalc() {
         {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8, marginBottom: 16 }}>
           {[
-            { label: 'BB Stack', value: stats.bbStack, color: stats.bbStack > 30 ? '#10b981' : stats.bbStack > 15 ? '#f59e0b' : '#ef4444' },
+            { label: 'BB Stack', value: stats.bbStack, color: stats.bbStack > 30 ? '#10b981' : stats.bbStack > 15 ? '#86daff' : '#ef4444' },
             { label: 'M-Ratio', value: stats.mRatio, color: stats.zoneColor },
-            { label: 'Chip Ratio', value: `${(stats.chipRatio * 100).toFixed(0)}%`, color: stats.chipRatio >= 1 ? '#10b981' : '#f59e0b' },
-            { label: 'Field Done', value: `${stats.pctField.toFixed(0)}%`, color: '#8b5cf6' },
+            { label: 'Chip Ratio', value: `${(stats.chipRatio * 100).toFixed(0)}%`, color: stats.chipRatio >= 1 ? '#10b981' : '#86daff' },
+            { label: 'Field Done', value: `${stats.pctField.toFixed(0)}%`, color: '#86daff' },
             { label: 'ITM Prob', value: `${(stats.survivalToMoney * 100).toFixed(0)}%`, color: '#3b82f6' },
-            { label: 'FT Prob', value: `${(stats.survivalToFT * 100).toFixed(0)}%`, color: '#ec4899' },
+            { label: 'FT Prob', value: `${(stats.survivalToFT * 100).toFixed(0)}%`, color: '#86daff' },
             { label: 'Exp Finish', value: `#${stats.expectedFinish}`, color: '#22c55e' },
             { label: 'Proj ROI', value: `${stats.roi > 0 ? '+' : ''}${stats.roi}%`, color: stats.roi >= 0 ? '#10b981' : '#ef4444' },
           ].map(s => (

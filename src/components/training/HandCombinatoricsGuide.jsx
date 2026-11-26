@@ -35,7 +35,7 @@ const COMBOS = [
     ],
   },
   {
-    category: 'Total Combos', color: '#f59e0b',
+    category: 'Total Combos', color: '#86daff',
     hands: [
       { hand: 'AK total', total: 16, note: '4 suited + 12 offsuit = 16 combos of AK' },
       { hand: 'Total starting hands', total: 1326, note: '52 choose 2 = 1,326 unique starting hands' },
@@ -57,7 +57,7 @@ function HandCombinatoricsGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#a78bfa' }}>Hand Combinatorics</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Hand Combinatorics</h3>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {COMBOS.map((c, i) => (
@@ -86,11 +86,11 @@ function HandCombinatoricsGuide() {
 
         {/* Blocker examples */}
         <div style={{ padding: 10, background: 'rgba(167,139,250,0.06)', borderRadius: 8, border: '1px solid rgba(167,139,250,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', marginBottom: 8 }}>Blocker Effects</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>Blocker Effects</div>
           {BLOCKERS_EXAMPLES.map((b, i) => (
             <div key={i} style={{ marginBottom: i < BLOCKERS_EXAMPLES.length - 1 ? 8 : 0, paddingBottom: i < BLOCKERS_EXAMPLES.length - 1 ? 8 : 0, borderBottom: i < BLOCKERS_EXAMPLES.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Hero: {b.hero}</div>
-              <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 2 }}>Blocks: {b.blocks}</div>
+              <div style={{ fontSize: 12, color: '#86daff', marginBottom: 2 }}>Blocks: {b.blocks}</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{b.significance}</div>
             </div>
           ))}

@@ -11,7 +11,7 @@ const RIO_SPOTS = [
     problem: 'You made a flush, but it\'s the 5th nut. Anyone with a higher heart CRUSHES you.',
     rio: 'When you bet and get raised, you lose a huge pot. When villain bets big, you can\'t fold your flush.',
     solution: 'Check-call small bets. Fold to big raises. Your flush is a bluff-catcher, not a value hand.' },
-  { spot: 'Dominated Kicker', icon: '▲', color: '#f59e0b',
+  { spot: 'Dominated Kicker', icon: '▲', color: '#86daff',
     hand: 'A3o on A♠K♦8♣ 5♥ → 2♦',
     problem: 'You have top pair but the weakest kicker. Every Ax with a better kicker dominates you.',
     rio: 'When you bet and get called, villain usually has AK, AQ, AJ, AT. You\'re crushed.',
@@ -21,7 +21,7 @@ const RIO_SPOTS = [
     problem: 'Bottom set but board has straight AND flush possible. Your set may already be behind.',
     rio: 'Betting big only gets called by hands that beat you (78, flush, A2). Worse hands fold.',
     solution: 'Check-call medium bets. Don\'t raise into the completed draws. Control the pot.' },
-  { spot: 'Second Nut Straight', icon: '·', color: '#8b5cf6',
+  { spot: 'Second Nut Straight', icon: '·', color: '#86daff',
     hand: 'JT on Q♠9♦8♣ 2♥ → 5♦',
     problem: 'You have a straight (J-high), but KT makes a higher straight. Board also pairs for boats.',
     rio: 'If villain raises your bet, they always have KT or a set-turned-boat. You lose the maximum.',
@@ -71,7 +71,7 @@ export default function ReverseImpliedOdds() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.problem}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Reverse Implied Odds</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Reverse Implied Odds</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.rio}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>

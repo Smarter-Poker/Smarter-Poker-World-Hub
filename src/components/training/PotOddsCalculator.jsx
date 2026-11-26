@@ -85,7 +85,7 @@ export default function PotOddsCalculator() {
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Pot Size</span>
-              <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 800 }}>{potSize}</span>
+              <span style={{ color: '#86daff', fontSize: 12, fontWeight: 800 }}>{potSize}</span>
             </div>
             <input type="range" min={10} max={500} value={potSize} onChange={e => setPotSize(Number(e.target.value))}
               style={{ width: '100%', accentColor: '#f59e0b', height: 4, cursor: 'pointer' }} />
@@ -104,7 +104,7 @@ export default function PotOddsCalculator() {
         <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Implied Odds (Extra Value On Future Streets)</span>
-            <span style={{ color: '#a78bfa', fontSize: 12, fontWeight: 800 }}>+{impliedExtra}</span>
+            <span style={{ color: '#86daff', fontSize: 12, fontWeight: 800 }}>+{impliedExtra}</span>
           </div>
           <input type="range" min={0} max={500} value={impliedExtra} onChange={e => setImpliedExtra(Number(e.target.value))}
             style={{ width: '100%', accentColor: '#a78bfa', height: 4, cursor: 'pointer' }} />
@@ -115,8 +115,8 @@ export default function PotOddsCalculator() {
           {[
             { label: 'Pot Odds', value: `${calculations.potOdds.toFixed(1)}%`, color: '#22c55e' },
             { label: 'Ratio', value: `${calculations.potOddsRatio}:1`, color: '#3b82f6' },
-            { label: 'Break-Even Eq', value: `${calculations.breakEven.toFixed(1)}%`, color: '#f59e0b' },
-            { label: 'Implied Odds', value: `${calculations.impliedOdds.toFixed(1)}%`, color: '#a78bfa' },
+            { label: 'Break-Even Eq', value: `${calculations.breakEven.toFixed(1)}%`, color: '#86daff' },
+            { label: 'Implied Odds', value: `${calculations.impliedOdds.toFixed(1)}%`, color: '#86daff' },
           ].map((r, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
               <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{r.label}</div>
@@ -182,7 +182,7 @@ export default function PotOddsCalculator() {
                   <span style={{
                     padding: '1px 5px', borderRadius: 3, fontSize: 12, fontWeight: 700,
                     background: profitable ? 'rgba(34,197,94,0.1)' : withImplied ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)',
-                    color: profitable ? '#22c55e' : withImplied ? '#f59e0b' : '#ef4444',
+                    color: profitable ? '#22c55e' : withImplied ? '#86daff' : '#ef4444',
                   }}>
                     {profitable ? 'CALL' : withImplied ? 'IMPLIED' : 'FOLD'}
                   </span>

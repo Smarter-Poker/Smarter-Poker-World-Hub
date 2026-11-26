@@ -112,7 +112,7 @@ export default function OddsOracleWidget() {
                 <span style={{ color: '#94a3b8', fontSize: 12 }}>{m.type}</span>
                 <div style={{ textAlign: 'right' }}>
                   <span style={{
-                    color: m.equity >= 60 ? '#22c55e' : m.equity >= 50 ? '#f59e0b' : '#ef4444',
+                    color: m.equity >= 60 ? '#22c55e' : m.equity >= 50 ? '#86daff' : '#ef4444',
                     fontSize: 12, fontWeight: 800,
                   }}>{m.equity}%</span>
                 </div>
@@ -125,10 +125,10 @@ export default function OddsOracleWidget() {
           <>
             {/* Rule of 2 & 4 calculator */}
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ color: '#f59e0b', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>RULE OF 2 & 4 CALCULATOR</div>
+              <div style={{ color: '#86daff', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>RULE OF 2 & 4 CALCULATOR</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Number Of Outs</span>
-                <span style={{ color: '#f59e0b', fontSize: 18, fontWeight: 800 }}>{outsInput}</span>
+                <span style={{ color: '#86daff', fontSize: 18, fontWeight: 800 }}>{outsInput}</span>
               </div>
               <input type="range" min={1} max={20} value={outsInput}
                 onChange={e => setOutsInput(Number(e.target.value))}
@@ -162,7 +162,7 @@ export default function OddsOracleWidget() {
                   padding: '4px 6px', borderRadius: 4,
                   background: outsInput === o.outs ? 'rgba(59,130,246,0.08)' : 'transparent',
                 }}>
-                  <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 800 }}>{o.outs}</span>
+                  <span style={{ color: '#86daff', fontSize: 12, fontWeight: 800 }}>{o.outs}</span>
                   <span style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>{o.flop}%</span>
                   <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>{o.turn}%</span>
                   <span style={{ color: '#64748b', fontSize: 12 }}>{o.desc}</span>
@@ -188,7 +188,7 @@ export default function OddsOracleWidget() {
                   }} />
                 </div>
                 <span style={{
-                  color: p.prob > 30 ? '#22c55e' : p.prob > 10 ? '#f59e0b' : '#ef4444',
+                  color: p.prob > 30 ? '#22c55e' : p.prob > 10 ? '#86daff' : '#ef4444',
                   fontSize: 12, fontWeight: 800, width: 40, textAlign: 'right', flexShrink: 0,
                 }}>{p.prob}%</span>
               </div>

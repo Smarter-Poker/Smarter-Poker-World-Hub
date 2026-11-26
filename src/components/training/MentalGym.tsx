@@ -103,14 +103,14 @@ const getTriggerBadge = (scriptName: string): { label: string; color: string; ic
             return { label: 'TILT ALERT', color: '#ff4444', icon: '▲'};
         case 'bubble_pressure':
         case 'fear_test':
-            return { label: 'FEAR TEST', color: '#ffaa00', icon: ''};
+            return { label: 'FEAR TEST', color: '#86daff', icon: ''};
         case 'winning_streaks':
         case 'greed_test':
             return { label: 'GREED CHECK', color: '#00ff88', icon: ''};
         case 'patience':
             return { label: 'PATIENCE TEST', color: '#00d4ff', icon: '⏳' };
         default:
-            return { label: 'MENTAL GAME', color: '#aa66ff', icon: ''};
+            return { label: 'MENTAL GAME', color: '#86daff', icon: ''};
     }
 };
 
@@ -490,7 +490,7 @@ const styles: Record<string, React.CSSProperties> = {
         borderRadius: 12,
         border: '1px solid rgba(255, 215, 0, 0.3)',
         fontSize: 14,
-        color: '#ffd700',
+        color: '#86daff',
         fontStyle: 'italic',
     },
 };

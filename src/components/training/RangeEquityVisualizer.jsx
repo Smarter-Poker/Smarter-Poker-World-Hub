@@ -144,7 +144,7 @@ const EquityCell = memo(({ hand, equity, inHeroRange, inVilRange, isSelected, on
             {equity !== null && inHeroRange && (
                 <div style={{
                     fontSize: 7, fontWeight: 600, lineHeight: 1, marginTop: 1,
-                    color: equity >= 0.55 ? '#86efac' : equity >= 0.45 ? '#fcd34d' : '#fca5a5',
+                    color: equity >= 0.55 ? '#86efac' : equity >= 0.45 ? '#86daff' : '#fca5a5',
                 }}>
                     {(equity * 100).toFixed(0)}%
                 </div>
@@ -183,7 +183,7 @@ const EquityDistribution = memo(({ equityData }) => {
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 50 }}>
                 {bins.map((count, i) => {
                     const pct = i * 10;
-                    const color = pct >= 60 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#ef4444';
+                    const color = pct >= 60 ? '#22c55e' : pct >= 40 ? '#86daff' : '#ef4444';
                     return (
                         <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <motion.div
@@ -220,8 +220,8 @@ const BoardTextureSummary = memo(({ board }) => {
 
     const tags = [];
     if (texture.flushDraw) tags.push({ label: texture.monotone ? 'Monotone' : 'Two-tone', color: '#3b82f6' });
-    if (texture.paired) tags.push({ label: 'Paired', color: '#a855f7' });
-    if (texture.connected) tags.push({ label: 'Connected', color: '#f59e0b' });
+    if (texture.paired) tags.push({ label: 'Paired', color: '#86daff' });
+    if (texture.connected) tags.push({ label: 'Connected', color: '#86daff' });
     if (texture.highCard) tags.push({ label: `High: ${texture.highCard}`, color: '#22d3ee' });
     if (texture.dry) tags.push({ label: 'Dry', color: '#22c55e' });
     if (texture.wet) tags.push({ label: 'Wet', color: '#ef4444' });
@@ -332,7 +332,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                     </div>
                     {stats && (
                         <div style={{
-                            fontSize: 12, fontWeight: 700, color: stats.avgEquity >= 0.55 ? '#22c55e' : stats.avgEquity >= 0.45 ? '#f59e0b' : '#ef4444',
+                            fontSize: 12, fontWeight: 700, color: stats.avgEquity >= 0.55 ? '#22c55e' : stats.avgEquity >= 0.45 ? '#86daff' : '#ef4444',
                             fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
                             Avg: {(stats.avgEquity * 100).toFixed(1)}%
@@ -392,8 +392,8 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                         <span style={{ color: '#22c55e', fontWeight: 700 }}>{stats.crushers}</span>
                     </div>
                     <div style={{ fontSize: 12 }}>
-                        <span style={{ color: '#f59e0b' }}>Marginal: </span>
-                        <span style={{ color: '#f59e0b', fontWeight: 700 }}>{stats.marginal}</span>
+                        <span style={{ color: '#86daff' }}>Marginal: </span>
+                        <span style={{ color: '#86daff', fontWeight: 700 }}>{stats.marginal}</span>
                     </div>
                     <div style={{ fontSize: 12 }}>
                         <span style={{ color: '#ef4444' }}>Weak: </span>
@@ -436,8 +436,8 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                     }}>
                         {[
                             { label: '>65%', color: '#22c55e' },
-                            { label: '50-65%', color: '#f59e0b' },
-                            { label: '35-50%', color: '#fb923c' },
+                            { label: '50-65%', color: '#86daff' },
+                            { label: '35-50%', color: '#86daff' },
                             { label: '<35%', color: '#ef4444' },
                         ].map(l => (
                             <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>

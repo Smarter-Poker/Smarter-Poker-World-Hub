@@ -113,7 +113,7 @@ export default function PositionStatsPanel({ handHistory }) {
 
                             {/* Stats */}
                             <div style={styles.posStats}>
-                                <span style={{ color: accuracy >= 70 ? '#22c55e' : accuracy >= 40 ? '#fbbf24' : '#ef4444', fontWeight: 'bold' }}>
+                                <span style={{ color: accuracy >= 70 ? '#22c55e' : accuracy >= 40 ? '#86daff' : '#ef4444', fontWeight: 'bold' }}>
                                     {accuracy}%
                                 </span>
                             </div>

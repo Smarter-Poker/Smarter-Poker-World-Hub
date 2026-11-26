@@ -19,7 +19,7 @@ const PLANS = [
   },
   {
     hand: '8♥ 7♥', board: 'T♥ 6♣ 2♥', position: 'CO vs BB (SRP)',
-    pot: 6, stack: 100, color: '#e879f9',
+    pot: 6, stack: 100, color: '#86daff',
     streets: [
       { street: 'Flop', plan: 'Bet 66% (4 bb)', potAfter: 14, reasoning: 'Semi-bluff with flush draw + gutshot (12 outs). Betting builds the pot for when you hit. If called, you have ~45% equity.' },
       { street: 'Turn (miss)', plan: 'Bet 75% (10.5 bb) on blank turn', potAfter: 35, reasoning: 'Double barrel as semi-bluff. Still 9 flush outs. If villain folds, great. If called, you have ~20% equity for a big river pot.' },

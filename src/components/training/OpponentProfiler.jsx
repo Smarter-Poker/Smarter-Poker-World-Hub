@@ -37,7 +37,7 @@ const ARCHETYPES = {
         label: 'LAG',
         fullName: 'Loose-Aggressive',
         icon: '▲',
-        color: '#f59e0b',
+        color: '#86daff',
         stats: { vpip: 30, pfr: 24, threeBet: 12, aggPct: 48, wtsd: 30 },
         description: 'Plays many hands and applies constant pressure. Harder to read - can have anything.',
         adjustments: [
@@ -79,7 +79,7 @@ const ARCHETYPES = {
         label: 'Maniac',
         fullName: 'Ultra-Aggressive',
         icon: '▲',
-        color: '#a855f7',
+        color: '#86daff',
         stats: { vpip: 55, pfr: 40, threeBet: 20, aggPct: 60, wtsd: 35 },
         description: 'Raises and re-raises with a huge range. Creates massive pots with weak holdings. Volatile.',
         adjustments: [

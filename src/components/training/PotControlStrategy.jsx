@@ -10,7 +10,7 @@ const SPOTS = [
     title: 'Overpair on Wet Board',
     hand: 'QQ on J♥ T♥ 5♣',
     action: 'Check Turn',
-    color: '#f59e0b',
+    color: '#86daff',
     category: 'Control',
     reasoning: 'QQ is strong but vulnerable. The board has straight and flush draws. If you bet flop and get called, checking turn controls the pot. You avoid building a huge pot where you\'re often behind on bad rivers.',
     doList: ['Bet flop for value + protection', 'Check back turn to control', 'Call reasonable river bets'],
@@ -30,7 +30,7 @@ const SPOTS = [
     title: 'Second Pair Good Board',
     hand: 'K♥ Q♥ on A♣ Q♦ 7♠',
     action: 'Check Flop',
-    color: '#8b5cf6',
+    color: '#86daff',
     category: 'Control',
     reasoning: 'Second pair on an ace-high board. Many hands that bet have you beat (Ax). Checking keeps the pot small. You can call a small bet but should avoid inflating the pot yourself.',
     doList: ['Check flop - you\'re not strong enough to bet', 'Call one small bet if villain bets', 'Consider folding to large multi-street aggression'],
@@ -50,7 +50,7 @@ const SPOTS = [
     title: 'Nut Flush Draw IP',
     hand: 'A♥ 8♥ on K♥ 5♥ 3♣',
     action: 'Call or Raise',
-    color: '#e879f9',
+    color: '#86daff',
     category: 'Semi-Aggro',
     reasoning: 'Nut flush draw has great equity (~35% vs top pair). In position, you can call to keep the pot controlled, or raise as a semi-bluff. Checking back is wasting equity - you have fold equity + draw equity.',
     doList: ['Call a bet to see turn cheaply', 'Raise as semi-bluff if you want fold equity', 'Bet if checked to - charge weaker draws'],
@@ -66,7 +66,7 @@ function PotControlStrategy() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f59e0b' }}>Pot Control Strategy</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Pot Control Strategy</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {SPOTS.map((s, i) => (

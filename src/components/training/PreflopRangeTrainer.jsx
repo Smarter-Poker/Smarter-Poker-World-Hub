@@ -587,7 +587,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                             fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
                             whiteSpace: 'nowrap', flexShrink: 0,
                             background: spotCategory === cat.id ? 'rgba(168,85,247,0.15)' : 'transparent',
-                            color: spotCategory === cat.id ? '#a855f7' : '#64748b',
+                            color: spotCategory === cat.id ? '#86daff' : '#64748b',
                             borderBottom: spotCategory === cat.id ? '2px solid #a855f7' : '2px solid transparent',
                             transition: 'all 0.2s ease',
                         }}
@@ -678,7 +678,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                         </div>
                         <div style={S.handNotation}>{currentHand}</div>
                         {streak >= 3 && (
-                            <div style={{ fontSize: 12, color: '#f97316' }}>
+                            <div style={{ fontSize: 12, color: '#86daff' }}>
                                 {streak} Streak
                             </div>
                         )}
@@ -858,7 +858,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                         >
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 8 }}>
                                 <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", color: rangeScore.f1 >= 80 ? '#22c55e' : rangeScore.f1 >= 60 ? '#fbbf24' : '#ef4444' }}>
+                                    <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", color: rangeScore.f1 >= 80 ? '#22c55e' : rangeScore.f1 >= 60 ? '#86daff' : '#ef4444' }}>
                                         {rangeScore.f1}%
                                     </div>
                                     <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 1 }}>SCORE</div>
@@ -871,7 +871,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(251,146,60,0.5)' }} />
-                                    <span style={{ color: '#fb923c' }}>Missed: {rangeScore.missed}</span>
+                                    <span style={{ color: '#86daff' }}>Missed: {rangeScore.missed}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(239,68,68,0.5)' }} />

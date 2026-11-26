@@ -21,12 +21,12 @@ const COVERAGE_SPOTS = [
     callerCoverage: '50% - Caller has K9s, 99, 44, some Kx. But PFR has more combos of strong Kx.',
     strategy: 'PFR should c-bet 55-65% at 50% pot. Standard favorable texture.',
     adjustment: 'As caller: defend Kx, 99, 44, some backdoor draws. Fold most air.' },
-  { board: 'J♣J♦8♠ (Paired)', type: 'PFR Strong', color: '#f59e0b', icon: '●',
+  { board: 'J♣J♦8♠ (Paired)', type: 'PFR Strong', color: '#86daff', icon: '●',
     pfrCoverage: '80% - PFR has JJ, AJ, KJ, QJ, 88. Very strong coverage on paired boards.',
     callerCoverage: '35% - Caller rarely has Jx (would have 3-bet KJ+). Mostly 88, small pairs.',
     strategy: 'PFR should range-bet small (25-33%). Almost no one in caller\'s range has a J.',
     adjustment: 'As caller: fold immediately with most hands. Only continue with 88, strong 8x, or Jx.' },
-  { board: 'T♥9♥8♣ (Wet Dynamic)', type: 'Shared', color: '#8b5cf6', icon: '·',
+  { board: 'T♥9♥8♣ (Wet Dynamic)', type: 'Shared', color: '#86daff', icon: '·',
     pfrCoverage: '55% - PFR has JT, QJ, overpairs, some sets. Good but vulnerable.',
     callerCoverage: '60% - Caller has J7s, 76s, 89s, TT-88 sets, many 2-pair combos.',
     strategy: 'Use multiple sizings. Big bets with nutted hands, checks with medium hands.',
@@ -77,7 +77,7 @@ export default function BoardCoverageMap() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.strategy}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Adjustment</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Adjustment</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.adjustment}</div>
           </div>
         </div>

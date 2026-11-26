@@ -25,7 +25,7 @@ const SCENARIOS = [
   },
   {
     board: 'Q♣ J♦ T♣', street: 'Flop', context: 'BTN vs BB SRP',
-    nutAdvantage: 'Shared', score: 50, color: '#f59e0b',
+    nutAdvantage: 'Shared', score: 50, color: '#86daff',
     pfrNuts: ['AK', 'K9', 'QQ', 'JJ', 'TT', 'QJ', 'QT'],
     defNuts: ['K9', 'QJ', 'QT', 'JT', '98', 'QQ', 'JJ', 'TT'],
     explanation: 'Both players have strong hands on this connected broadway board. Straights, sets, and two pairs exist in both ranges. Nut advantage is roughly equal.',
@@ -49,7 +49,7 @@ const SCENARIOS = [
   },
   {
     board: 'T♣ 8♣ 3♦ | 5♣', street: 'Turn', context: 'CO vs BB SRP',
-    nutAdvantage: 'Shared', score: 48, color: '#f59e0b',
+    nutAdvantage: 'Shared', score: 48, color: '#86daff',
     pfrNuts: ['A♣x', 'T♣x', 'Flush made', 'TT', '88'],
     defNuts: ['Flush combos', '87', '65', '53', 'T8', '88', '33', '55'],
     explanation: 'Flush completes and both players have flush draws in their range. BB has more suited connectors. PFR has more suited broadways. Roughly equal.',
@@ -64,7 +64,7 @@ function NutAdvantageTracker() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f472b6' }}>Nut Advantage Tracker</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Nut Advantage Tracker</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {SCENARIOS.map((sc, i) => (
@@ -111,7 +111,7 @@ function NutAdvantageTracker() {
         </div>
 
         <div style={{ padding: 10, background: 'rgba(244,114,182,0.06)', borderRadius: 8, border: '1px solid rgba(244,114,182,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f472b6', marginBottom: 2 }}>Strategic Implication</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 2 }}>Strategic Implication</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{s.implication}</div>
         </div>
       </div>

@@ -90,7 +90,7 @@ function SqueezeTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#7c3aed' }}>Squeeze Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Squeeze Trainer</h3>
           <div style={{ display: 'flex', gap: 8 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
               <input type="checkbox" checked={quizMode} onChange={e => { setQuizMode(e.target.checked); setGuess(null); }} style={{ accentColor: '#7c3aed' }} />Quiz
@@ -115,13 +115,13 @@ function SqueezeTrainer() {
         {/* Spot Header */}
         <div style={{ padding: 14, background: 'rgba(124,58,237,0.06)', borderRadius: 10, border: '1px solid rgba(124,58,237,0.15)', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#7c3aed' }}>{spot.name}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#86daff' }}>{spot.name}</span>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{spot.stackDepth}</span>
           </div>
           <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
             <span>Opener: <span style={{ color: '#fff', fontWeight: 600 }}>{spot.opener}</span></span>
             <span>Callers: <span style={{ color: '#fff', fontWeight: 600 }}>{spot.callers.join(', ')}</span></span>
-            <span>Hero: <span style={{ color: '#7c3aed', fontWeight: 600 }}>{spot.hero}</span></span>
+            <span>Hero: <span style={{ color: '#86daff', fontWeight: 600 }}>{spot.hero}</span></span>
           </div>
         </div>
 
@@ -159,7 +159,7 @@ function SqueezeTrainer() {
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
               <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#7c3aed' }}>{spot.squeezeFreq}%</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#86daff' }}>{spot.squeezeFreq}%</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Squeeze Freq</div>
               </div>
               <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
@@ -174,7 +174,7 @@ function SqueezeTrainer() {
 
             {/* Strategy */}
             <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginBottom: 4 }}>Strategy</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Strategy</div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{spot.reasoning}</div>
             </div>
 
@@ -182,7 +182,7 @@ function SqueezeTrainer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: showRanges ? 12 : 0 }}>
               {spot.tips.map((tip, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', paddingLeft: 12, position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 0, color: '#7c3aed' }}>•</span>{tip}
+                  <span style={{ position: 'absolute', left: 0, color: '#86daff' }}>•</span>{tip}
                 </div>
               ))}
             </div>
@@ -192,7 +192,7 @@ function SqueezeTrainer() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {[
                   { label: 'Value Squeeze', range: spot.valueRange, color: '#10b981' },
-                  { label: 'Bluff Squeeze', range: spot.bluffRange, color: '#f59e0b' },
+                  { label: 'Bluff Squeeze', range: spot.bluffRange, color: '#86daff' },
                   { label: 'Flat Call', range: spot.flatRange, color: '#3b82f6' },
                   { label: 'Fold', range: spot.foldRange, color: '#ef4444' },
                 ].map(r => (

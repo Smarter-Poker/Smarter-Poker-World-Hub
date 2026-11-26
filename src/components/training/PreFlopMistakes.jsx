@@ -11,12 +11,12 @@ const PF_MISTAKES = [
     why: 'Limping gives up initiative. You can\'t win the pot preflop and you play guessing games postflop.',
     fix: 'Raise or fold. Every hand you\'d limp, either raise it (if good enough) or muck it.',
     exception: 'The ONLY acceptable limp is completing the SB in a limped pot with a speculative hand.' },
-  { mistake: 'Calling 3-Bets OOP', severity: 'High', color: '#f59e0b', icon: '▲',
+  { mistake: 'Calling 3-Bets OOP', severity: 'High', color: '#86daff', icon: '▲',
     cost: '~3 BB/100',
     why: 'Calling 3-bets out of position creates bloated pots where you have no informational advantage.',
     fix: '4-bet or fold. If your hand isn\'t strong enough to 4-bet, it\'s probably a fold vs a 3-bet.',
     exception: 'Calling with pocket pairs (set-mining) when the 3-bet is small and stacks are deep.' },
-  { mistake: 'Too Wide from EP', severity: 'High', color: '#f59e0b', icon: '',
+  { mistake: 'Too Wide from EP', severity: 'High', color: '#86daff', icon: '',
     cost: '~2 BB/100',
     why: 'Opening K9o from UTG means playing OOP vs 5 players. You\'ll face 3-bets and tough postflop spots.',
     fix: 'Use a tight UTG range: 77+, ATs+, KQs, AJo+. Add hands as you move closer to the button.',
@@ -80,7 +80,7 @@ export default function PreFlopMistakes() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.fix}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Exception</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Exception</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.exception}</div>
           </div>
         </div>

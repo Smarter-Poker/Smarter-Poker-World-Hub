@@ -118,7 +118,7 @@ export default function PreflopRangeCharts() {
             <button key={pos} onClick={() => setPosition(pos)} style={{
               padding: '5px 12px', borderRadius: 5, cursor: 'pointer', flex: 1,
               background: position === pos ? 'rgba(245,158,11,0.15)' : 'rgba(0,0,0,0.15)',
-              color: position === pos ? '#f59e0b' : '#94a3b8', fontSize: 12, fontWeight: 700,
+              color: position === pos ? '#86daff' : '#94a3b8', fontSize: 12, fontWeight: 700,
               border: position === pos ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent',
             }}>{pos}</button>
           ))}
@@ -127,7 +127,7 @@ export default function PreflopRangeCharts() {
         {/* Summary stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
           {[
-            { label: 'Range %', value: `${rangePercent}%`, color: '#f59e0b' },
+            { label: 'Range %', value: `${rangePercent}%`, color: '#86daff' },
             { label: 'Active Combos', value: totalCombos, color: '#3b82f6' },
             { label: 'Avg Frequency', value: `${avgFreq}%`, color: '#22c55e' },
           ].map((s, i) => (
@@ -202,7 +202,7 @@ export default function PreflopRangeCharts() {
                   {selectedHand.isPair ? 'Pocket Pair' : selectedHand.isSuited ? 'Suited' : 'Offsuit'}
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-                  <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 600 }}>Freq: {selectedHand.freq}%</span>
+                  <span style={{ color: '#86daff', fontSize: 12, fontWeight: 600 }}>Freq: {selectedHand.freq}%</span>
                   <span style={{ color: '#3b82f6', fontSize: 12, fontWeight: 600 }}>Strength: {selectedHand.strength}</span>
                   {chartType === 'vs3bet' && (
                     <span style={{ color: selectedHand.action === 'raise' ? '#ef4444' : selectedHand.action === 'call' ? '#3b82f6' : '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>
@@ -213,7 +213,7 @@ export default function PreflopRangeCharts() {
               </div>
               <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                 <div style={{ color: '#94a3b8', fontSize: 12 }}>{position} • {CHART_TYPES.find(c => c.id === chartType)?.label}</div>
-                <div style={{ color: selectedHand.freq >= 50 ? '#22c55e' : selectedHand.freq > 0 ? '#f59e0b' : '#ef4444', fontSize: 12, fontWeight: 700 }}>
+                <div style={{ color: selectedHand.freq >= 50 ? '#22c55e' : selectedHand.freq > 0 ? '#86daff' : '#ef4444', fontSize: 12, fontWeight: 700 }}>
                   {selectedHand.freq >= 50 ? 'In Range' : selectedHand.freq > 0 ? 'Mixed' : 'Not in Range'}
                 </div>
               </div>

@@ -226,7 +226,7 @@ export const PotDisplay: React.FC<PotDisplayProps> = ({
             <span style={{
                 fontSize: 16,
                 fontWeight: 700,
-                color: '#ffd700',
+                color: '#86daff',
             }}>
                 POT {formatChipAmount(amount)}
             </span>

@@ -21,12 +21,12 @@ const EQUITY_BOARDS = [
     strategy: 'High-frequency small bets. Villain almost never has trips, so they fold a lot.',
     imbalance: 'Massive range advantage for PFR. Caller must fold most of their range.',
     sizing: '25-33% pot. Range bet the whole board - your Qx crushes and your air gets folds.' },
-  { board: '6♠5♦4♣ (Low, Connected)', type: 'Dynamic', color: '#f59e0b', icon: '·',
+  { board: '6♠5♦4♣ (Low, Connected)', type: 'Dynamic', color: '#86daff', icon: '·',
     distribution: 'Caller has MORE equity here! Low connected boards favor the BB/caller\'s range.',
     strategy: 'PFR should check frequently. Caller has 67s, 78s, 54s, sets of low pairs.',
     imbalance: 'PFR\'s overpairs (AA-TT) have equity but are vulnerable. BB has the range advantage.',
     sizing: 'When PFR does bet, go large (66%+) to protect overpairs and deny equity.' },
-  { board: 'K♠9♥3♦ (Rainbow, Mid)', type: 'Static', color: '#8b5cf6', icon: '◇',
+  { board: 'K♠9♥3♦ (Rainbow, Mid)', type: 'Static', color: '#86daff', icon: '◇',
     distribution: 'PFR has clear range advantage (all Kx). Caller has some Kx but mostly mid-pairs.',
     strategy: 'Standard c-bet frequency (55-65%). Value bet Kx, bluff with overcards and backdoors.',
     imbalance: 'Caller has 99, 33 for sets. PFR has KK, K9s rarely. Respect check-raises.',
@@ -77,7 +77,7 @@ export default function EquityDistribution() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.imbalance}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Sizing</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Sizing</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.sizing}</div>
           </div>
         </div>

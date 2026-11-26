@@ -52,7 +52,7 @@ function RangeConstructionGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#a78bfa' }}>Range Construction Guide</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Range Construction Guide</h3>
 
         {/* Type Selector */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>

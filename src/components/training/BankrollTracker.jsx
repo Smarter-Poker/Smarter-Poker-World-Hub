@@ -238,7 +238,7 @@ export default function BankrollTracker() {
           {[
             { label: 'Current Bankroll', value: `$${stats.currentBR.toLocaleString()}`, color: stats.currentBR >= startingBR ? '#22c55e' : '#ef4444' },
             { label: 'Total Profit', value: `${stats.totalProfit >= 0 ? '+' : ''}$${stats.totalProfit.toLocaleString()}`, color: stats.totalProfit >= 0 ? '#22c55e' : '#ef4444' },
-            { label: 'Hourly Rate', value: `$${stats.hourlyRate.toFixed(1)}/hr`, color: stats.hourlyRate >= 0 ? '#34d399' : '#f97316' },
+            { label: 'Hourly Rate', value: `$${stats.hourlyRate.toFixed(1)}/hr`, color: stats.hourlyRate >= 0 ? '#34d399' : '#86daff' },
             { label: 'Win Rate', value: `${Math.round(stats.winSessions / stats.sessions * 100)}%`, color: '#3b82f6' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
@@ -258,7 +258,7 @@ export default function BankrollTracker() {
           <RiskOfRuin sessions={sessions} bankroll={stats.currentBR} />
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
             <div style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Stake Recommendation</div>
-            <div style={{ color: '#f59e0b', fontSize: 12, marginBottom: 8 }}>
+            <div style={{ color: '#86daff', fontSize: 12, marginBottom: 8 }}>
               Max Recommended: <strong>{stats.maxStake.label} NL</strong>
             </div>
             {STAKES.map((s, i) => {

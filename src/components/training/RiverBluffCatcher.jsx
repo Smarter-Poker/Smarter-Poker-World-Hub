@@ -16,7 +16,7 @@ const BLUFFCATCH_SPOTS = [
     decision: 'FOLD', confidence: 'Medium',
     reason: 'Small river bets on static boards are almost always thin value. Villain wants a call with Ax.',
     checklist: 'Small bets = value at low stakes. Does villain ever bluff this size? Usually no.' },
-  { spot: 'Overbet on Scary River', color: '#f59e0b', icon: '▲',
+  { spot: 'Overbet on Scary River', color: '#86daff', icon: '▲',
     board: 'Q♠J♦T♣ 5♥ → 9♠', betSize: '150% pot',
     decision: 'DEPENDS', confidence: 'Low',
     reason: 'Four-to-a-straight on board. Overbets are polarized - either the nuts or air. MDF says call ~40%.',
@@ -61,7 +61,7 @@ export default function RiverBluffCatcher() {
           <div style={{ fontSize: 15, fontWeight: 800, color: spot.color }}>{spot.spot}</div>
           <div style={{ background: spot.decision === 'CALL' ? 'rgba(34,197,94,0.2)' : spot.decision === 'FOLD' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
             borderRadius: 6, padding: '3px 10px' }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: spot.decision === 'CALL' ? '#22c55e' : spot.decision === 'FOLD' ? '#ef4444' : '#f59e0b' }}>{spot.decision}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: spot.decision === 'CALL' ? '#22c55e' : spot.decision === 'FOLD' ? '#ef4444' : '#86daff' }}>{spot.decision}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
@@ -76,7 +76,7 @@ export default function RiverBluffCatcher() {
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{spot.reason}</p>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Decision Checklist</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Decision Checklist</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.checklist}</div>
         </div>
       </motion.div>

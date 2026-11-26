@@ -434,7 +434,19 @@ export function computeMainAndSidePots(seats = [], deadPotBb = 0) {
     );
 
     // If only 1 player contributed at the highest tier and nobody else matched it (nor has chips left to call), that slice is an uncalled bet
-    if (contributors.length === 1 && eligible.length === 1 && i === nonZeroLevels.length - 1 && pots.length > 0 && !otherActiveCanCall) {
+    if (contributors.length === 1 && eligible.length === 1 && i === nonZeroLevels.length - 1 && !otherActiveCanCall) {
+      if (pots.length === 0) {
+        const initialDeadAndFoldedBb = roundTableUnit(baseDeadBb + partialFoldedContributions, 2);
+        if (initialDeadAndFoldedBb > 0) {
+          pots.push({
+            name: 'Main Pot',
+            amountBb: initialDeadAndFoldedBb,
+            capPerPlayerBb: prevCap,
+            eligiblePositions: eligible,
+            eligibleSeatIds: eligible,
+          });
+        }
+      }
       uncalledReturnBb = slice;
       uncalledSeatPosition = eligible[0];
       resultingStacks[uncalledSeatPosition] = roundTableUnit((resultingStacks[uncalledSeatPosition] || 0) + slice, 2);
@@ -814,13 +826,20 @@ export function applyClubArenaAction(parityInput = {}, action = {}) {
   } else if (actionType === 'call') {
     targetTotalCommittedBb = roundTableUnit(preState.heroCommittedBb + preState.callAmountBb, 2);
   } else if (actionType === 'all_in') {
-    const maxAllowed = preState.isPotLimit
-      ? preState.maxRaiseToBb
-      : roundTableUnit(preState.heroCommittedBb + preState.heroStackBb, 2);
-    targetTotalCommittedBb = maxAllowed;
+    if (preState.isFixedLimit && preState.raiseCapReached) {
+      targetTotalCommittedBb = roundTableUnit(preState.heroCommittedBb + preState.callAmountBb, 2);
+    } else {
+      const maxAllowed = (preState.isPotLimit || preState.isFixedLimit)
+        ? preState.maxRaiseToBb
+        : roundTableUnit(preState.heroCommittedBb + preState.heroStackBb, 2);
+      targetTotalCommittedBb = maxAllowed;
+    }
   } else if (actionType === 'bet' || actionType === 'raise') {
     if (!preState.reopensAction && preState.facingBetBb > 0) {
       throw new Error('Action does not reopen raising after a short all-in.');
+    }
+    if (preState.raiseCapReached) {
+      throw new Error('Fixed-Limit raise cap (4 bets) reached on this street.');
     }
     const requestedToBb = Number(action.amountBb ?? action.raiseToBb ?? preState.minRaiseToBb);
     targetTotalCommittedBb = roundTableUnit(
@@ -853,6 +872,7 @@ export function applyClubArenaAction(parityInput = {}, action = {}) {
     seats: updatedSeats,
     currentActorPosition: heroPos,
     street: preState.street,
+    format: preState.format,
     highestBetBb: highestBetAfterBb,
     actedPositions: [...(preState.actedPositions || []), heroPos],
   });
@@ -1452,7 +1472,12 @@ export function evaluateRunItTwiceShowdown({
 
 export function rotateDealerButtonPosition(currentButtonPosition = 'BTN', format = 'cash') {
   const normFormat = normalizeGameFormat(format);
-  const curr = String(currentButtonPosition || 'BTN').trim().toUpperCase();
+  const rawCurr = String(currentButtonPosition || 'BTN').trim().toUpperCase();
+  const curr = normFormat === '9max' && rawCurr === 'MP'
+    ? 'UTG+2'
+    : normFormat === '9max' && rawCurr === 'MP+1'
+      ? 'LJ'
+      : rawCurr;
   const ring = normFormat === 'hu'
     ? HEADS_UP_POSITIONS
     : normFormat === 'spins'

@@ -1103,7 +1103,7 @@ export default function useGTOTrainer(
         if (trainerConfig.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())) {
           params.set('bettingStructure', String(trainerConfig.bettingStructure).toLowerCase());
         }
-        if (trainerConfig.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())) {
+        if (trainerConfig.format && ['cash', 'mtt', 'spins', 'hu', '9max'].includes(String(trainerConfig.format).toLowerCase())) {
           params.set('format', String(trainerConfig.format).toLowerCase());
         }
         apiUrl = `/api/training/custom-train?${params}`;
@@ -1159,7 +1159,7 @@ export default function useGTOTrainer(
         if (trainerConfig?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())) {
           params.set('bettingStructure', String(trainerConfig.bettingStructure).toLowerCase());
         }
-        if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())) {
+        if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu', '9max'].includes(String(trainerConfig.format).toLowerCase())) {
           params.set('format', String(trainerConfig.format).toLowerCase());
         }
         if (trainerConfig?.duelToken && typeof trainerConfig.duelToken === 'string') {
@@ -1180,13 +1180,16 @@ export default function useGTOTrainer(
 
       let data;
       let response = null;
+      const isCatalogPresetDefault = trainerConfig?.configType === 'catalog-preset'
+        && (!trainerConfig?.variant || trainerConfig.variant === 'nlh')
+        && (!trainerConfig?.bettingStructure || trainerConfig.bettingStructure === 'no_limit');
       const isStandardSession = !isCustomTrainerConfig(trainerConfig)
         && !trainerConfig?.syncedHandId
         && !trainerConfig?.duelToken
         && !trainerConfig?.targetStreet
         && !trainerConfig?.targetPositions
-        && !trainerConfig?.bettingStructure
-        && !trainerConfig?.format
+        && (!trainerConfig?.bettingStructure || isCatalogPresetDefault)
+        && (!trainerConfig?.format || isCatalogPresetDefault)
         && (!trainerConfig?.variant || trainerConfig.variant === 'nlh');
       const browserIsOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 
@@ -1476,6 +1479,9 @@ export default function useGTOTrainer(
         selectedAnswer,
         gradingMode: submission.gradingMode,
         rng: submission.rng,
+        variant: submission.variant || trainerConfig?.variant || null,
+        bettingStructure: submission.bettingStructure || trainerConfig?.bettingStructure || null,
+        format: submission.format || trainerConfig?.format || null,
         timeSpentMs: Number.isFinite(Number(submission.timeSpentMs))
           ? Math.max(50, Math.round(Number(submission.timeSpentMs)))
           : null,
@@ -1509,6 +1515,9 @@ export default function useGTOTrainer(
                 selectedAnswer,
                 gradingMode: submission.gradingMode,
                 rng: submission.rng,
+                variant: submissionPayload.variant,
+                bettingStructure: submissionPayload.bettingStructure,
+                format: submissionPayload.format,
                 timeSpentMs: submissionPayload.timeSpentMs,
               }),
             });
@@ -1680,6 +1689,41 @@ export default function useGTOTrainer(
   const submitAnswer = useCallback(
     async (selectedOptionId, meta) => {
       if (!currentQuestion || showFeedback) return;
+      const publicQuestion = currentQuestion;
+      const options = publicQuestion.options || [];
+      const scenario = publicQuestion.scenario || {};
+      const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
+
+      if (Number(publicQuestion?._retryCount) > 0 && publicQuestion?.correctAnswer) {
+        const retryCorrectAnswer = publicQuestion.correctAnswer;
+        const retryFrequencies = publicQuestion.gtoFrequencies || publicQuestion.frequencies || lastGTOFrequencies || {};
+        const selectedFreq = Number(retryFrequencies?.[selectedOptionId]);
+        const optimalFreq = Number(retryFrequencies?.[retryCorrectAnswer]);
+        const isRetryCorrect = String(selectedOptionId) === String(retryCorrectAnswer)
+          || (Number.isFinite(selectedFreq) && Number.isFinite(optimalFreq) && optimalFreq > 0 && selectedFreq >= optimalFreq - 0.5);
+        const retryClassification = isRetryCorrect
+          ? 'best'
+          : (Number.isFinite(selectedFreq) && selectedFreq >= 20 ? 'inaccuracy' : 'wrong');
+        const retryActionEvs = publicQuestion.actionEVs || publicQuestion?.evData?.actionEVs || null;
+        const retryEvLoss = isRetryCorrect
+          ? 0
+          : (retryActionEvs && Number.isFinite(Number(retryActionEvs[retryCorrectAnswer])) && Number.isFinite(Number(retryActionEvs[selectedOptionId]))
+              ? Math.max(0, Number((Number(retryActionEvs[retryCorrectAnswer]) - Number(retryActionEvs[selectedOptionId])).toFixed(2)))
+              : null);
+        setLastMoveClassification(retryClassification);
+        setLastEVLoss(retryEvLoss);
+        setLastEVLossMeasured(retryEvLoss !== null);
+        setLastGTOFrequencies(retryFrequencies);
+        setFeedbackResult(isRetryCorrect ? 'correct' : 'wrong');
+        if (publicQuestion.explanation) setExplanation(publicQuestion.explanation);
+        setShowFeedback(true);
+        setLastSelectedAction(selectedOptionId);
+        try {
+          trainingSounds.play(isRetryCorrect ? 'correct' : 'incorrect');
+        } catch (_) { /* non-critical audio */ }
+        return;
+      }
+
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
         setAnswerSaveError(
           'Reconnect before submitting. Offline hands remain visible, but cannot be graded or credited.'
@@ -1691,10 +1735,6 @@ export default function useGTOTrainer(
         return;
       }
 
-      const publicQuestion = currentQuestion;
-      const options = publicQuestion.options || [];
-      const scenario = publicQuestion.scenario || {};
-      const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
       const gradingContext = publicQuestion?._gradingContext || null;
       if (
         !gradingContext?.receipt
@@ -1741,6 +1781,9 @@ export default function useGTOTrainer(
         selectedAnswer: selectedOptionId,
         gradingMode: gradingContext.difficultyMode || resolveDifficultyMode(),
         rng: submittedRng,
+        variant: trainerConfig?.variant || publicQuestion?.variant || scenario?.variant || null,
+        bettingStructure: trainerConfig?.bettingStructure || publicQuestion?.bettingStructure || scenario?.bettingStructure || null,
+        format: trainerConfig?.format || publicQuestion?.format || scenario?.format || null,
         timeSpentMs: Math.max(50, Date.now() - (questionActivatedAtRef.current || Date.now())),
       };
       const submissionLease = captureTrainingLease();
@@ -2766,7 +2809,7 @@ export default function useGTOTrainer(
    * 🚀 MULTI-STREET: First tries to advance the street within same hand
    * If no next street → advance to next hand from pre-loaded array
    */
-  const nextQuestion = useCallback(async () => {
+  const nextQuestion = useCallback(async (options = null) => {
     if (nextQuestionInFlightRef.current) return;
     const transitionLease = captureTrainingLease();
     if (!isTrainingLeaseActive(transitionLease)) return;
@@ -2784,6 +2827,33 @@ export default function useGTOTrainer(
       ? await persistPendingAnswer(pendingPersistence)
       : { ok: true };
     if (!isTrainingLeaseActive(transitionLease)) return;
+
+    if (options && typeof options === 'object' && options.retry === true) {
+      if (persistenceResult?.ok !== true) {
+        setAnswerSaveError(
+          persistenceResult?.error || 'Your answer could not be saved. Check your connection, then retry.'
+        );
+        return;
+      }
+      pendingAnswerPersistenceRef.current = null;
+      setAnswerSaveError(null);
+      setTransitionError(null);
+      const baseQ = currentQuestion || options.retryQuestion;
+      if (baseQ) {
+        questionActivatedAtRef.current = Date.now();
+        setCurrentQuestion((prev) => {
+          const active = prev || baseQ;
+          return {
+            ...active,
+            _retryCount: (Number(active?._retryCount) || 0) + 1,
+          };
+        });
+      }
+      setShowFeedback(false);
+      setFeedbackResult(null);
+      setLastSelectedAction(null);
+      return;
+    }
 
     const answeredQuestionId = String(currentQuestion?.id || '');
     if (answeredQuestionId && refreshRequiredQuestionIdsRef.current.has(answeredQuestionId)) {

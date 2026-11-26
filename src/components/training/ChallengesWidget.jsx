@@ -107,7 +107,7 @@ export default function ChallengesWidget({ userId }) {
                         <div style={styles.challengeReward}>
                             {challenge.completed && !challenge.claimed ? (
                                 <span
-                                    style={{ ...styles.statusBadge, color: '#f2b84b', borderColor: 'rgba(242,184,75,0.45)' }}
+                                    style={{ ...styles.statusBadge, color: '#86daff', borderColor: 'rgba(242,184,75,0.45)' }}
                                     title="Claims Reopen After Verified Challenge Settlement Is Certified"
                                 >
                                     Verified Claim Pending
@@ -151,7 +151,7 @@ const styles = {
         fontWeight: 700,
         letterSpacing: '0.14em',
         textTransform: 'uppercase',
-        color: '#f2b84b',
+        color: '#86daff',
         fontFamily: 'var(--font-orbitron), Orbitron, sans-serif'
     },
     title: {
@@ -223,7 +223,7 @@ const styles = {
     },
     challengeType: {
         fontSize: '10px',
-        color: '#f2b84b',
+        color: '#86daff',
         textTransform: 'uppercase',
         letterSpacing: '0.08em'
     },

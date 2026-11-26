@@ -144,7 +144,7 @@ export function JarvisDashboard({ userId, compact = false }) {
                         <div key={idx} style={styles.gameRow}>
                             <div style={styles.gameName}>{game.gameName}</div>
                             <div style={styles.gameStats}>
-                                <span style={{ color: parseFloat(game.accuracy) >= 80 ? '#22c55e' : '#f59e0b' }}>
+                                <span style={{ color: parseFloat(game.accuracy) >= 80 ? '#22c55e' : '#86daff' }}>
                                     {game.accuracy}%
                                 </span>
                                 <span style={{ color: '#888' }}>Level {game.highestLevel}</span>
@@ -297,7 +297,7 @@ const styles = {
         borderBottom: '1px solid rgba(255,255,255,0.05)'
     },
     leakName: {
-        color: '#f59e0b',
+        color: '#86daff',
         fontSize: 13
     },
     leakCount: {

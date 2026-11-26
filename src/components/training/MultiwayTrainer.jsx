@@ -274,7 +274,7 @@ export default function MultiwayTrainer() {
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 60 }}>
                         {[2, 3, 4, 5, 6].map(n => {
                             const freq = strategies[n]?.betFrequency || 0;
-                            const color = n === 2 ? '#3b82f6' : freq >= 0.5 ? '#22c55e' : freq >= 0.25 ? '#f59e0b' : '#ef4444';
+                            const color = n === 2 ? '#3b82f6' : freq >= 0.5 ? '#22c55e' : freq >= 0.25 ? '#86daff' : '#ef4444';
                             return (
                                 <div key={n} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <motion.div

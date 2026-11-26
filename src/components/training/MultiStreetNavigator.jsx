@@ -27,9 +27,9 @@ import { getPostflopStrategy } from '../../engines/PostflopStrategyEngine';
 
 const STREET_ORDER = ['preflop', 'flop', 'turn', 'river'];
 const STREET_META = {
-    preflop: { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', label: 'Preflop', boardCards: 0 },
+    preflop: { color: '#86daff', bg: 'rgba(167,139,250,0.12)', label: 'Preflop', boardCards: 0 },
     flop: { color: '#4ade80', bg: 'rgba(74,222,128,0.12)', label: 'Flop', boardCards: 3 },
-    turn: { color: '#fb923c', bg: 'rgba(251,146,60,0.12)', label: 'Turn', boardCards: 4 },
+    turn: { color: '#86daff', bg: 'rgba(251,146,60,0.12)', label: 'Turn', boardCards: 4 },
     river: { color: '#f87171', bg: 'rgba(248,113,113,0.12)', label: 'River', boardCards: 5 },
 };
 
@@ -168,7 +168,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                 </div>
                 {potSize > 0 && (
                     <div style={{
-                        fontSize: 12, fontWeight: 700, color: '#f59e0b',
+                        fontSize: 12, fontWeight: 700, color: '#86daff',
                         fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         {potSize.toFixed(1)} BB
@@ -545,7 +545,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                                     </div>
                                     {sd ? (
                                         <>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: isOk ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: isOk ? '#22c55e' : '#86daff', marginTop: 2 }}>
                                                 {sd.action || '-'}
                                             </div>
                                             {sd.evLoss > 0 && (

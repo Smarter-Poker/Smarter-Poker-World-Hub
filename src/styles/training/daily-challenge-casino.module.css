@@ -256,7 +256,7 @@
 }
 
 .rewardMetric strong {
-  color: var(--dc-gold);
+  color: #86daff;
   text-shadow: 0 0 16px rgba(242, 184, 75, 0.25);
 }
 
@@ -384,7 +384,7 @@
 }
 
 .completedStamp {
-  color: var(--dc-gold);
+  color: #86daff;
   border-color: rgba(242, 184, 75, 0.72);
 }
 
@@ -417,7 +417,7 @@
 }
 
 .heroZone > span {
-  color: var(--dc-gold);
+  color: #86daff;
 }
 
 .decisionWell {
@@ -505,7 +505,7 @@
 }
 
 .panelHeading strong {
-  color: var(--dc-gold);
+  color: #86daff;
   font: 800 13px/1 var(--font-orbitron), "Arial Narrow", sans-serif;
 }
 
@@ -534,7 +534,7 @@
 
 .streakDayToday {
   border-color: var(--dc-gold);
-  color: var(--dc-gold);
+  color: #86daff;
   box-shadow: 0 0 10px rgba(242, 184, 75, 0.22);
 }
 
@@ -657,7 +657,7 @@
 .rewardWin {
   padding: 12px;
   border: 1px solid rgba(242, 184, 75, 0.75);
-  color: var(--dc-gold);
+  color: #86daff;
   background: linear-gradient(90deg, #241b0a, #0d0e0d);
   font: 800 13px/1.3 var(--font-orbitron), "Arial Narrow", sans-serif;
   text-align: center;

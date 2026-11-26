@@ -452,7 +452,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                     <h1 style={{
                         fontSize: 28,
                         fontWeight: 'bold',
-                        color: passed ? '#4ade80' : '#f97316',
+                        color: passed ? '#4ade80' : '#86daff',
                         marginBottom: 20,
                         margin: 0
                     }}>
@@ -463,7 +463,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                     <div style={{
                         fontSize: 56,
                         fontWeight: 'bold',
-                        color: passed ? '#4ade80' : '#f97316',
+                        color: passed ? '#4ade80' : '#86daff',
                         marginBottom: 4
                     }}>
                         {accuracy}%
@@ -682,7 +682,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                     transform: 'translate(-50%, -50%)',
                     textAlign: 'center'
                 }}>
-                    <div style={{ color: '#facc15', fontSize: 24, fontWeight: 'bold' }}>
+                    <div style={{ color: '#86daff', fontSize: 24, fontWeight: 'bold' }}>
                         POT: {pot}BB
                     </div>
                 </div>
@@ -861,7 +861,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                         {isCorrect && (
                             <div style={{
                                 fontSize: 18,
-                                color: '#fbbf24',
+                                color: '#86daff',
                                 marginBottom: 16
                             }}>
                                 +{diamondsEarned}

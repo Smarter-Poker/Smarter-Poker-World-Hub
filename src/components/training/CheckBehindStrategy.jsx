@@ -29,7 +29,7 @@ const SPOTS = [
     hand: 'J♥ J♣ on T♥ 8♥ 3♣ | 7♥',
     street: 'Turn',
     action: 'Check Behind',
-    color: '#f59e0b',
+    color: '#86daff',
     reason: 'Flush completes + straight gets there. Your overpair is now a bluff-catcher. Don\'t put more money in - check and evaluate river.',
     benefit: 'Avoid bloating pot when your hand is now marginal',
   },
@@ -38,7 +38,7 @@ const SPOTS = [
     hand: 'A♣ A♦ on K♠ Q♦ J♣',
     street: 'Flop',
     action: 'Check Behind',
-    color: '#8b5cf6',
+    color: '#86daff',
     reason: 'Board smashes villain\'s calling range (KQ, KJ, QJ, JT, AT). Your aces are vulnerable. Check back some % of the time to protect your checking range and avoid getting check-raised.',
     benefit: 'Balanced strategy - prevents villain from exploiting your check range',
   },
@@ -64,14 +64,14 @@ function CheckBehindStrategy() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#8b5cf6' }}>Check Behind Strategy</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Check Behind Strategy</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{idx + 1}/{SPOTS.length}</span>
         </div>
 
         <div style={{ padding: 14, background: 'rgba(139,92,246,0.06)', borderRadius: 10, border: '1px solid rgba(139,92,246,0.15)', marginBottom: 12, textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{spot.street} - In Position</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{spot.hand}</div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#8b5cf6' }}>{spot.title}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#86daff' }}>{spot.title}</div>
         </div>
 
         {!revealed ? (

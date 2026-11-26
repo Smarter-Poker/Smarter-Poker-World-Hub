@@ -10,7 +10,7 @@ const FORMATS = [
     rules: ['30+ buy-ins minimum', 'Move down at 20 buy-ins', 'Move up at 40+ buy-ins', 'Never risk more than 5% of roll'] },
   { name: 'MTT / SNG', buyins: 100, color: '#3b82f6', risk: 'High',
     rules: ['100+ buy-ins minimum', 'Variance is extreme in tournaments', 'Even winners have 50+ BI downswings', 'Fire one bullet per tournament max'] },
-  { name: 'Sit & Go', buyins: 50, color: '#f59e0b', risk: 'Medium',
+  { name: 'Sit & Go', buyins: 50, color: '#86daff', risk: 'Medium',
     rules: ['50+ buy-ins minimum', 'Lower variance than MTTs', 'ICM mastery reduces variance further', 'Stay disciplined near the bubble'] },
   { name: 'Spin & Go', buyins: 200, color: '#ef4444', risk: 'Very High',
     rules: ['200+ buy-ins (hyper turbo)', 'Extremely high variance', 'Jackpot hits are rare - grind the base', 'ROI is slim, volume is key'] },
@@ -67,7 +67,7 @@ export default function BankrollManagement() {
           </div>
           <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Buy-Ins</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#f59e0b' }}>{analysis.buyinsAtRec}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#86daff' }}>{analysis.buyinsAtRec}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Move Down</div>

@@ -62,7 +62,7 @@ export default function CappedRangeDetector() {
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '6px 16px' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Max Hand</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>{spot.maxHand}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>{spot.maxHand}</div>
           </div>
         </div>
 

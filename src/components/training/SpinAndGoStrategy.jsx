@@ -11,7 +11,7 @@ const SPIN_PHASES = [
     opens: 'BTN: Open 50-60% of hands (2-2.5x). SB: Open 40-50% (2.5x). BB: Defend 40-50% vs BTN, tighter vs SB.',
     strategy: 'Avoid big pots without big hands. No need to gamble early. Let opponents make mistakes.',
     tip: 'At 50bb deep in a Spin, you can still play "real poker." Don\'t panic into push/fold yet.' },
-  { phase: 'Mid Game (15-25bb)', icon: '●', color: '#f59e0b',
+  { phase: 'Mid Game (15-25bb)', icon: '●', color: '#86daff',
     detail: 'The transition zone. Start widening your opening ranges and apply pressure on shorter stacks.',
     opens: 'BTN: Open 60-70% (2-2.2x). SB: Open 50-60% (2.2x). BB: Defend wider, start shoving over opens with 18bb.',
     strategy: 'Pick up blind steals aggressively. 3-bet shove with pairs 66+, ATs+, KQs from any position.',
@@ -21,7 +21,7 @@ const SPIN_PHASES = [
     opens: 'BTN: Shove 50-60% of hands. SB: Shove 40-50%. BB: Call shoves with top 30-40% vs BTN, wider vs SB.',
     strategy: 'Pure push/fold. No limping, no min-raising. Maximize fold equity before the blinds eat you.',
     tip: 'At 12bb in a Spin, you\'re shoving any Ace, any pair, most Kings, and suited connectors 56s+.' },
-  { phase: 'Heads-Up Phase', icon: '●', color: '#8b5cf6',
+  { phase: 'Heads-Up Phase', icon: '●', color: '#86daff',
     detail: 'Once one player busts, it\'s heads-up with varying stack depths. Adjust based on stack sizes and payout multiplier.',
     opens: 'SB: Open 80%+ (2x). BB: 3-bet 25-30%, call 40-50%. At <15bb: pure push/fold.',
     strategy: 'Aggression wins HU. Raise relentlessly from the button. Only slow down with extremely short stacks.',
@@ -69,7 +69,7 @@ export default function SpinAndGoStrategy() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.strategy}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>PRO TIP</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>PRO TIP</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.tip}</div>
           </div>
         </div>

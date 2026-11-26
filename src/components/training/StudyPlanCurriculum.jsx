@@ -43,7 +43,7 @@ const CURRICULUM = [
   {
     level: 3,
     name: 'Intermediate',
-    color: '#8b5cf6',
+    color: '#86daff',
     icon: '3',
     desc: 'Multi-street play and range thinking',
     modules: [
@@ -56,7 +56,7 @@ const CURRICULUM = [
   {
     level: 4,
     name: 'Advanced',
-    color: '#f59e0b',
+    color: '#86daff',
     icon: '4',
     desc: 'GTO concepts and solver-based play',
     modules: [
@@ -82,7 +82,7 @@ const CURRICULUM = [
   {
     level: 6,
     name: 'Elite',
-    color: '#ec4899',
+    color: '#86daff',
     icon: '6',
     desc: 'Mastering the meta - solver-level play',
     modules: [

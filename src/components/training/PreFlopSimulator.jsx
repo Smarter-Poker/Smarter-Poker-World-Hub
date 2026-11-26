@@ -76,7 +76,7 @@ function PreFlopSimulator() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#e879f9' }}>Preflop Simulator</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Preflop Simulator</h3>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {ACTION_TREES.map(t => (
@@ -104,7 +104,7 @@ function PreFlopSimulator() {
 
         {/* Opener Range */}
         <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16, borderLeft: '3px solid #e879f9' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Opening Range</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Opening Range</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{tree.openerRange}</div>
         </div>
 
@@ -142,7 +142,7 @@ function PreFlopSimulator() {
 
         {/* Postflop Notes */}
         <div style={{ padding: 10, background: 'rgba(232,121,249,0.06)', borderRadius: 8, border: '1px solid rgba(232,121,249,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Postflop Notes</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Postflop Notes</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{tree.postflopNotes}</div>
         </div>
       </div>

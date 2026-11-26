@@ -16,12 +16,12 @@ const SIMPLIFY_RULES = [
     simplified: 'Pick 2 sizes: 33% (range bet) and 75% (polar bet). Use one or the other per board.',
     evLoss: '<1 BB/100 - minimal EV loss. Simplicity > perfection in real-time.',
     howTo: 'Dry boards → 33% range bet. Wet boards → 75% with polar range. River → pot-sized when polarized.' },
-  { rule: 'Categorize Boards into 3 Types', icon: '', color: '#f59e0b',
+  { rule: 'Categorize Boards into 3 Types', icon: '', color: '#86daff',
     solver: 'Solver has unique strategy for each of 1,755 possible flops.',
     simplified: 'Group boards: (1) Dry/High = range bet. (2) Wet/Connected = check more. (3) Low = check most.',
     evLoss: '<2 BB/100 - significant simplification with minimal cost.',
     howTo: 'Before each flop, ask: Is this board dry, wet, or low? Then apply the matching template.' },
-  { rule: 'IP vs OOP Templates', icon: '', color: '#8b5cf6',
+  { rule: 'IP vs OOP Templates', icon: '', color: '#86daff',
     solver: 'Solver has different strategies for every position combination.',
     simplified: 'IP: bet more often, use smaller sizes. OOP: bet less, use bigger sizes when you do bet.',
     evLoss: '<1.5 BB/100 - position-based templates cover 90% of spots.',
@@ -72,7 +72,7 @@ export default function SolverSimplify() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{rule.evLoss}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>How To Implement</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>How To Implement</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{rule.howTo}</div>
           </div>
         </div>

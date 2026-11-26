@@ -25,7 +25,7 @@ const FACTORS = [
     ],
   },
   {
-    factor: 'Stack Depth', color: '#f59e0b',
+    factor: 'Stack Depth', color: '#86daff',
     scenarios: [
       { label: 'Deep (100bb+)', eqr: 100, raw: 50, realized: 50, note: 'Full equity realization possible. Multi-street play allows strong hands to get paid and draws to develop.' },
       { label: 'Medium (40-60bb)', eqr: 90, raw: 50, realized: 45, note: 'Slightly reduced EQR. Fewer streets to play means less room for implied odds. Speculative hands suffer.' },
@@ -33,7 +33,7 @@ const FACTORS = [
     ],
   },
   {
-    factor: 'Multiway', color: '#e879f9',
+    factor: 'Multiway', color: '#86daff',
     scenarios: [
       { label: '3-Way Pot', eqr: 70, raw: 33, realized: 23, note: 'EQR drops significantly multiway. More players = more likely someone has you beat. Bluffing becomes nearly impossible.' },
       { label: '4-Way Pot', eqr: 55, raw: 25, realized: 14, note: 'Terrible EQR for most hands. Only nut hands realize equity. Bluffs fail, draws are competed, and reverse implied odds spike.' },
@@ -67,7 +67,7 @@ function EquityRealizationGuide() {
             <div key={i} style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 10, borderLeft: `4px solid ${factor.color}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{s.label}</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: s.eqr >= 95 ? '#10b981' : s.eqr >= 70 ? '#f59e0b' : '#ef4444' }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: s.eqr >= 95 ? '#10b981' : s.eqr >= 70 ? '#86daff' : '#ef4444' }}>
                   EQR: {s.eqr}%
                 </span>
               </div>

@@ -20,7 +20,7 @@ const TILT_TYPES = [
     severity: 'High',
   },
   {
-    type: 'Entitlement Tilt', emoji: 'Arrogance', color: '#f59e0b',
+    type: 'Entitlement Tilt', emoji: 'Arrogance', color: '#86daff',
     trigger: 'Feeling you deserve to win because youre better',
     symptoms: ['Underestimating opponents', 'Playing fancy for ego', 'Getting tilted when "fish" win', 'Refusing to adjust strategy'],
     recovery: [
@@ -32,7 +32,7 @@ const TILT_TYPES = [
     severity: 'Medium',
   },
   {
-    type: 'Revenge Tilt', emoji: 'Vendetta', color: '#e879f9',
+    type: 'Revenge Tilt', emoji: 'Vendetta', color: '#86daff',
     trigger: 'One specific player has won multiple pots against you',
     symptoms: ['Targeting one player specifically', 'Playing hands you wouldnt normally play against them', 'Trying to bluff them more than usual', 'Ignoring better spots at the table'],
     recovery: [
@@ -89,7 +89,7 @@ function TiltRecoverySystem() {
             <span style={{ fontSize: 13, fontWeight: 800, color: tiltColors[tiltLevel] }}>{tiltLabels[tiltLevel]}</span>
           </div>
           <input type="range" min={0} max={6} value={tiltLevel} onChange={e => setTiltLevel(parseInt(e.target.value))} style={{ width: '100%', accentColor: tiltColors[tiltLevel] }} />
-          <div style={{ textAlign: 'center', fontSize: 12, marginTop: 4, color: tiltLevel >= 4 ? '#ef4444' : tiltLevel >= 2 ? '#f59e0b' : '#10b981', fontWeight: 600 }}>
+          <div style={{ textAlign: 'center', fontSize: 12, marginTop: 4, color: tiltLevel >= 4 ? '#ef4444' : tiltLevel >= 2 ? '#86daff' : '#10b981', fontWeight: 600 }}>
             {tiltLevel >= 5 ? 'STOP PLAYING. Take a break immediately.' :
              tiltLevel >= 4 ? 'Warning: Your decisions are likely compromised.' :
              tiltLevel >= 2 ? 'Monitor closely. Slow down your decisions.' :

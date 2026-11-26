@@ -89,7 +89,7 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
       >
         {/* Lock indicator */}
         {isLocked && (
-          <span style={{ color: '#f59e0b', fontSize: 12 }}>■</span>
+          <span style={{ color: '#86daff', fontSize: 12 }}>■</span>
         )}
 
         {/* Player badge */}
@@ -104,7 +104,7 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
 
         {/* Action */}
         <span style={{
-          color: isBoard ? '#f59e0b' : '#f1f5f9', fontSize: 12,
+          color: isBoard ? '#86daff' : '#f1f5f9', fontSize: 12,
           fontWeight: isBoard ? 700 : 500, fontFamily: isBoard ? 'monospace' : 'inherit',
         }}>
           {node.action}
@@ -113,7 +113,7 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
         {/* Frequency */}
         {!isBoard && node.freq !== undefined && (
           <span style={{
-            marginLeft: 'auto', color: isLocked ? '#f59e0b' : '#64748b',
+            marginLeft: 'auto', color: isLocked ? '#86daff' : '#64748b',
             fontSize: 12, fontWeight: 600,
           }}>
             {displayFreq}%
@@ -187,7 +187,7 @@ export default function NodeLockEditor() {
         </h3>
         {lockCount > 0 && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 600 }}>
+            <span style={{ color: '#86daff', fontSize: 12, fontWeight: 600 }}>
               {lockCount} node{lockCount !== 1 ? 's' : ''} Locked
             </span>
             <button onClick={() => setLocks({})} style={{
@@ -236,7 +236,7 @@ export default function NodeLockEditor() {
                         style={{ flex: 1, accentColor: locks[selected.id] ? '#f59e0b' : '#3b82f6' }}
                       />
                       <span style={{
-                        color: locks[selected.id] ? '#f59e0b' : '#f1f5f9',
+                        color: locks[selected.id] ? '#86daff' : '#f1f5f9',
                         fontSize: 16, fontWeight: 800, minWidth: 40, textAlign: 'right',
                       }}>
                         {locks[selected.id]?.freq ?? selected.freq ?? 50}%
@@ -274,7 +274,7 @@ export default function NodeLockEditor() {
                   <button onClick={() => toggleLock(selected.id)} style={{
                     width: '100%', padding: '8px', borderRadius: 6, border: 'none', cursor: 'pointer',
                     background: locks[selected.id] ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                    color: locks[selected.id] ? '#ef4444' : '#f59e0b',
+                    color: locks[selected.id] ? '#ef4444' : '#86daff',
                     fontSize: 12, fontWeight: 700,
                   }}>
                     {locks[selected.id] ? 'Unlock Node' : 'Lock Node'}

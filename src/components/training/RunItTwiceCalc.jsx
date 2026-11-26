@@ -14,11 +14,11 @@ const RIT_SCENARIOS = [
     explain: 'Massive favorite. You\'ll win both runs most of the time, but occasionally split.',
     varianceReduction: '~50% less variance. Fewer cooler moments where you lose an 82% spot.',
     shouldRun: 'Optional - you\'re a big favorite. RIT slightly reduces your upside but protects downside.' },
-  { spot: 'Coinflip (AKs vs QQ)', equity: 46, potSize: 500, color: '#f59e0b',
+  { spot: 'Coinflip (AKs vs QQ)', equity: 46, potSize: 500, color: '#86daff',
     explain: 'Near 50/50. Running it twice means you\'ll split the pot very frequently.',
     varianceReduction: '~50% less variance. Coinflips become half-pots much more often.',
     shouldRun: 'Strong yes - coinflips are the highest variance spots. RIT smooths them out.' },
-  { spot: 'Combo Draw vs Two Pair', equity: 42, potSize: 280, color: '#8b5cf6',
+  { spot: 'Combo Draw vs Two Pair', equity: 42, potSize: 280, color: '#86daff',
     explain: 'Slight underdog with many outs. Good chance to win at least one run.',
     varianceReduction: '~50% less variance. You\'ll win one board more often than winning or losing both.',
     shouldRun: 'Yes - with 42% equity and lots of outs, you\'ll frequently split instead of losing all.' },
@@ -67,7 +67,7 @@ export default function RunItTwiceCalc() {
           </div>
           <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Your EV</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#f59e0b' }}>${evOnce}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#86daff' }}>${evOnce}</div>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default function RunItTwiceCalc() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(139,92,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #8b5cf6' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6' }}>Variance Impact</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Variance Impact</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{scen.varianceReduction}</div>
           </div>
           <div style={{ background: `${scen.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${scen.color}` }}>
@@ -86,7 +86,7 @@ export default function RunItTwiceCalc() {
       </motion.div>
 
       <div style={{ background: 'rgba(139,92,246,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#8b5cf6', marginBottom: 4 }}>Key Insight</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Key Insight</div>
         <div style={{ fontSize: 12, color: '#94a3b8' }}>Running It Twice NEVER Changes Your EV - Only Your Variance. Always Accept RIT As The Underdog.</div>
       </div>
     </div>

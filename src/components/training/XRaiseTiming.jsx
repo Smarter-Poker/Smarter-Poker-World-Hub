@@ -12,7 +12,7 @@ const STREETS = [
     { hand: 'Top pair top kicker', action: 'CHECK-CALL', sizing: 'N/A', reason: 'Too strong to fold, not strong enough to raise for value. Trap and re-evaluate.' },
     { hand: 'Gutshot only', action: 'CHECK-FOLD', sizing: 'N/A', reason: 'Only 4 outs, no fold equity implied. Save chips for better spots.' },
   ]},
-  { name: 'Turn', icon: '↻', color: '#f59e0b', scenarios: [
+  { name: 'Turn', icon: '↻', color: '#86daff', scenarios: [
     { hand: 'Made straight on turn', action: 'CHECK-RAISE', sizing: '2.5-3x', reason: 'Delayed check-raise on turn looks super strong. Extract max from overpairs and draws.' },
     { hand: 'Flush completed', action: 'DONK BET or X/R', sizing: '66-75%', reason: 'Either lead or check-raise. Don\'t risk a check-check with the nuts.' },
     { hand: 'Turned two pair', action: 'CHECK-RAISE', sizing: '2.5x', reason: 'Strong but vulnerable. Raise to deny redraws and build pot vs villain\'s barrel range.' },
@@ -59,7 +59,7 @@ export default function XRaiseTiming() {
                 <div style={{ display: 'flex', gap: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color: actionColor, background: `${actionColor}15`, padding: '2px 8px', borderRadius: 4 }}>{s.action}</span>
                   {s.sizing !== 'N/A' && (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.sizing}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#86daff', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.sizing}</span>
                   )}
                 </div>
               </div>

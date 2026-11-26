@@ -64,7 +64,7 @@ function MultiStreetPlanner() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#a78bfa' }}>Multi-Street Planner</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Multi-Street Planner</h3>
 
         {/* Setup */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
@@ -102,7 +102,7 @@ function MultiStreetPlanner() {
           {[
             { label: 'Flop Bet %', value: flopPct, set: setFlopPct, color: '#3b82f6' },
             { label: 'Turn Bet %', value: turnPct, set: setTurnPct, color: '#10b981' },
-            { label: 'River Bet %', value: riverPct, set: setRiverPct, color: '#f59e0b' },
+            { label: 'River Bet %', value: riverPct, set: setRiverPct, color: '#86daff' },
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{s.label}</div>
@@ -120,7 +120,7 @@ function MultiStreetPlanner() {
               padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8,
               borderLeft: `3px solid ${['#3b82f6', '#10b981', '#f59e0b'][i]}`,
             }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: ['#3b82f6', '#10b981', '#f59e0b'][i] }}>{s.street}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: ['#3b82f6', '#10b981', '#86daff'][i] }}>{s.street}</span>
               <div style={{ height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${Math.min((s.bet / effectiveStack) * 100 * 3, 100)}%`, background: ['#3b82f6', '#10b981', '#f59e0b'][i], borderRadius: 4 }} />
               </div>
@@ -140,8 +140,8 @@ function MultiStreetPlanner() {
         {/* Summary */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
           {[
-            { label: 'Total Invested', value: `${plan.totalInvested.toFixed(1)} bb`, color: '#a78bfa' },
-            { label: 'Stack Committed', value: `${plan.commitPct}%`, color: plan.commitPct > 80 ? '#ef4444' : plan.commitPct > 50 ? '#f59e0b' : '#10b981' },
+            { label: 'Total Invested', value: `${plan.totalInvested.toFixed(1)} bb`, color: '#86daff' },
+            { label: 'Stack Committed', value: `${plan.commitPct}%`, color: plan.commitPct > 80 ? '#ef4444' : plan.commitPct > 50 ? '#86daff' : '#10b981' },
             { label: 'Stack Remaining', value: `${Math.max(0, effectiveStack - plan.totalInvested).toFixed(1)} bb`, color: '#3b82f6' },
             { label: 'All-In?', value: plan.isAllIn ? 'YES' : 'No', color: plan.isAllIn ? '#ef4444' : '#10b981' },
           ].map(s => (

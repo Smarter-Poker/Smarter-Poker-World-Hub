@@ -91,7 +91,7 @@ function VarianceSimulator() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#ec4899' }}>Variance Simulator</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Variance Simulator</h3>
           <button onClick={runSim} style={{
             padding: '6px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 700,
             cursor: 'pointer', background: '#ec4899', color: '#fff',
@@ -134,9 +134,9 @@ function VarianceSimulator() {
             { label: 'Avg Result', value: `${stats.avg >= 0 ? '+' : ''}${stats.avg.toFixed(1)} bb`, color: stats.avg >= 0 ? '#10b981' : '#ef4444' },
             { label: 'Best Run', value: `+${stats.best.toFixed(1)} bb`, color: '#10b981' },
             { label: 'Worst Run', value: `${stats.worst.toFixed(1)} bb`, color: '#ef4444' },
-            { label: 'Avg Drawdown', value: `${stats.avgDD.toFixed(1)} bb`, color: '#f59e0b' },
+            { label: 'Avg Drawdown', value: `${stats.avgDD.toFixed(1)} bb`, color: '#86daff' },
             { label: 'Max Drawdown', value: `${stats.maxDD.toFixed(1)} bb`, color: '#ef4444' },
-            { label: 'Losing Sims', value: `${stats.losingSims}/${simCount} (${stats.losingPct}%)`, color: stats.losingPct > 30 ? '#ef4444' : '#f59e0b' },
+            { label: 'Losing Sims', value: `${stats.losingSims}/${simCount} (${stats.losingPct}%)`, color: stats.losingPct > 30 ? '#ef4444' : '#86daff' },
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -147,7 +147,7 @@ function VarianceSimulator() {
 
         {/* Insights */}
         <div style={{ padding: 12, background: 'rgba(236,72,153,0.06)', borderRadius: 8, border: '1px solid rgba(236,72,153,0.15)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#ec4899', marginBottom: 6 }}>Key Insights</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Key Insights</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
             At {winRate} BB/100 With {stdDev} BB/100 Std Dev Over {numHands.toLocaleString()} Hands:
             {' '}{stats.losingPct > 0

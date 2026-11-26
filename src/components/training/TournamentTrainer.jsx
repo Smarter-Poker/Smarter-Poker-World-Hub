@@ -17,10 +17,10 @@ import React, { useState, useCallback, useMemo } from 'react';
 const STAGES = [
   { id: 'early', label: 'Early Game', blinds: '25/50', avgStack: '150bb', desc: 'Deep stacks, speculative hands gain value', color: '#22c55e' },
   { id: 'middle', label: 'Middle Stage', blinds: '200/400', avgStack: '40bb', desc: 'Antes kick in, stealing blinds becomes key', color: '#3b82f6' },
-  { id: 'bubble', label: 'Bubble', blinds: '500/1000', avgStack: '25bb', desc: 'ICM pressure at maximum - survival vs accumulation', color: '#f59e0b' },
-  { id: 'itm', label: 'In the Money', blinds: '800/1600', avgStack: '20bb', desc: 'Pay jumps matter - ladder vs gamble for the win', color: '#8b5cf6' },
+  { id: 'bubble', label: 'Bubble', blinds: '500/1000', avgStack: '25bb', desc: 'ICM pressure at maximum - survival vs accumulation', color: '#86daff' },
+  { id: 'itm', label: 'In the Money', blinds: '800/1600', avgStack: '20bb', desc: 'Pay jumps matter - ladder vs gamble for the win', color: '#86daff' },
   { id: 'final_table', label: 'Final Table', blinds: '2000/4000', avgStack: '25bb', desc: 'Maximum ICM - every decision is magnified', color: '#ef4444' },
-  { id: 'heads_up', label: 'Heads Up', blinds: '5000/10000', avgStack: '30bb', desc: 'Winner takes all - ICM gone, pure chip EV', color: '#ec4899' },
+  { id: 'heads_up', label: 'Heads Up', blinds: '5000/10000', avgStack: '30bb', desc: 'Winner takes all - ICM gone, pure chip EV', color: '#86daff' },
 ];
 
 // ●●● SCENARIO DATA ●●●
@@ -294,7 +294,7 @@ export default function TournamentTrainer() {
           <div>
             <span style={{
               padding: '3px 8px', borderRadius: 4, background: 'rgba(139,92,246,0.2)',
-              color: '#a78bfa', fontSize: 12, fontWeight: 700,
+              color: '#86daff', fontSize: 12, fontWeight: 700,
             }}>
               {scenario.position}
             </span>
@@ -385,14 +385,14 @@ export default function TournamentTrainer() {
               <div key={i} style={{
                 padding: '3px 8px', borderRadius: 4,
                 background: i === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
-                color: i === 0 ? '#f59e0b' : '#94a3b8', fontSize: 12, fontWeight: 600,
+                color: i === 0 ? '#86daff' : '#94a3b8', fontSize: 12, fontWeight: 600,
               }}>
                 {i + 1}st: ${p}
               </div>
             ))}
           </div>
           {scenario.bubbleSize && (
-            <div style={{ color: '#f59e0b', fontSize: 12, marginTop: 6 }}>
+            <div style={{ color: '#86daff', fontSize: 12, marginTop: 6 }}>
               Bubble: {scenario.playersLeft} Remain, {scenario.bubbleSize} Get Paid
             </div>
           )}

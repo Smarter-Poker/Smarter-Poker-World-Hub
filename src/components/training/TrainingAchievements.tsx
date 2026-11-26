@@ -150,7 +150,7 @@ const styles = {
         margin: 0,
         fontSize: 18,
         fontWeight: 700,
-        color: '#8b5cf6'
+        color: '#86daff'
     },
     progress: {
         fontSize: 12,
@@ -173,7 +173,7 @@ const styles = {
     },
     catBtnActive: {
         background: 'rgba(139,92,246,0.2)',
-        color: '#8b5cf6'
+        color: '#86daff'
     },
     grid: {
         padding: 12,

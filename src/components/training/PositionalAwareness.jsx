@@ -11,7 +11,7 @@ const POSITIONS = [
     advantage: 'When you open UTG and get called, your range is perceived as very strong. Easy to value bet.',
     disadvantage: 'You\'re OOP vs everyone. 5-8 players can wake up with a hand behind you.',
     keyTip: 'Play tight and aggressive. Every hand you open should be one you\'re comfortable 4-betting with.' },
-  { pos: 'Middle Position (MP)', seats: '9-max: Seat 2-3', color: '#f59e0b', icon: '·',
+  { pos: 'Middle Position (MP)', seats: '9-max: Seat 2-3', color: '#86daff', icon: '·',
     openRange: '~17% (66+, A9s+, KJs+, QJs, ATo+, KQo)',
     advantage: 'Slightly wider range than UTG. Still perceived as strong when opening.',
     disadvantage: 'Still OOP vs late position. Can get squeezed by CO/BTN.',
@@ -26,7 +26,7 @@ const POSITIONS = [
     advantage: 'Best seat at the table. Always in position postflop (except vs BB). Maximum information advantage.',
     disadvantage: 'Blinds know you\'re stealing. Expect wider 3-bets.',
     keyTip: 'Steal relentlessly. If blinds don\'t fight back, open any two cards. Adjust to defenders.' },
-  { pos: 'Blinds (SB/BB)', seats: '9-max: Seat 6-7', color: '#8b5cf6', icon: '■',
+  { pos: 'Blinds (SB/BB)', seats: '9-max: Seat 6-7', color: '#86daff', icon: '■',
     openRange: 'SB: 3-bet or fold ~35%. BB: defend ~40% vs opens.',
     advantage: 'BB gets a discount to see flops. SB can squeeze effectively.',
     disadvantage: 'Always OOP postflop (SB). Already invested chips. Hardest positions to play.',
@@ -75,7 +75,7 @@ export default function PositionalAwareness() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{pos.disadvantage}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key Tip</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{pos.keyTip}</div>
           </div>
         </div>

@@ -10,7 +10,7 @@ const BUCKETS = [
     hands: 'Unimproved air, missed draws, no backdoors',
     action: 'Fold or bluff (if fold equity exists). Never call.',
     strategy: 'Check-fold most of the time. Bluff only with good blockers or scare cards.' },
-  { name: 'Marginal', range: '20-35%', color: '#f59e0b', icon: '▲', width: 15,
+  { name: 'Marginal', range: '20-35%', color: '#86daff', icon: '▲', width: 15,
     hands: 'Weak draws, bottom pair, A-high no pair',
     action: 'Fold to bets or semi-bluff with best draws.',
     strategy: 'These hands need improvement. Don\'t invest heavily unless you have a clear plan.' },
@@ -18,7 +18,7 @@ const BUCKETS = [
     hands: 'Middle pair, top pair weak kicker, decent draws',
     action: 'Check/call or bet for thin value. Don\'t build big pots.',
     strategy: 'Pot control zone. Check for free cards, call reasonable bets, fold to big pressure.' },
-  { name: 'Strong', range: '55-75%', color: '#8b5cf6', icon: '▲', width: 20,
+  { name: 'Strong', range: '55-75%', color: '#86daff', icon: '▲', width: 20,
     hands: 'Top pair good kicker, overpairs, strong draws',
     action: 'Bet for value and protection. Build the pot.',
     strategy: 'Bet every street for value. Size to get called by worse. Protect against draws.' },
@@ -80,7 +80,7 @@ export default function EquityBucketGuide() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{bucket.hands}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>DEFAULT ACTION</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>DEFAULT ACTION</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{bucket.action}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>

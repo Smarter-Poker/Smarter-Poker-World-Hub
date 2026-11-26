@@ -11,16 +11,16 @@ const CC_SCENARIOS = [
     vs: 'Against aggressive players who bluff c-bets frequently', color: '#3b82f6' },
   { street: 'Turn', hand: 'Overpair on draw-completing board', board: 'J♥ 8♥ 5♣ 7♥',
     why: 'Flush completed. Your overpair may still be best but betting into a scary board is risky. Check-call to control pot.',
-    vs: 'Against players who bet draws aggressively', color: '#f59e0b' },
+    vs: 'Against players who bet draws aggressively', color: '#86daff' },
   { street: 'River', hand: 'Second pair', board: 'A♠ T♦ 6♣ 2♥ 8♠',
     why: 'Second pair can beat bluffs but loses to Ax. Checking lets villain bluff with missed draws.',
     vs: 'Against players who bluff rivers at high frequency', color: '#22c55e' },
   { street: 'Flop', hand: 'Disguised monster (set)', board: 'Q♠ 8♦ 3♣',
     why: 'Check-call to trap. On dry boards, villain will keep barreling thinking you\'re weak. Let them hang themselves.',
-    vs: 'Against aggressive barrelors who interpret checks as weakness', color: '#8b5cf6' },
+    vs: 'Against aggressive barrelors who interpret checks as weakness', color: '#86daff' },
   { street: 'Turn', hand: 'Nut flush draw', board: 'K♣ 9♣ 5♦ 2♠',
     why: 'You have 9 clean outs. Check-calling is cheaper than check-raising. If you hit the river, you can raise for value.',
-    vs: 'When you\'re OOP and don\'t have fold equity for a check-raise', color: '#ec4899' },
+    vs: 'When you\'re OOP and don\'t have fold equity for a check-raise', color: '#86daff' },
 ];
 
 const CC_RULES = [

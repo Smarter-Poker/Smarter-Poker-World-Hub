@@ -81,7 +81,7 @@ function BubbleFactorCalc() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#fbbf24' }}>Bubble Factor Calculator</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Bubble Factor Calculator</h3>
 
         {/* Payout Structure */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -117,8 +117,8 @@ function BubbleFactorCalc() {
 
         {/* Bubble Factor Display */}
         <div style={{ textAlign: 'center', padding: 16, background: calc.isBubble ? 'rgba(239,68,68,0.08)' : 'rgba(251,191,36,0.08)', borderRadius: 10, border: `1px solid ${calc.isBubble ? 'rgba(239,68,68,0.25)' : 'rgba(251,191,36,0.25)'}`, marginBottom: 16 }}>
-          <div style={{ fontSize: 36, fontWeight: 900, color: calc.isBubble ? '#ef4444' : '#fbbf24' }}>{calc.bubbleFactor}x</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: calc.isBubble ? '#ef4444' : '#fbbf24' }}>Bubble Factor</div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: calc.isBubble ? '#ef4444' : '#86daff' }}>{calc.bubbleFactor}x</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: calc.isBubble ? '#ef4444' : '#86daff' }}>Bubble Factor</div>
           {calc.isBubble && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>ON THE BUBBLE - Tighten Up!</div>}
         </div>
 
@@ -143,7 +143,7 @@ function BubbleFactorCalc() {
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{s.name}</span>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{s.note}</span>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>{s.bf}x</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>{s.bf}x</span>
             </div>
           ))}
         </div>

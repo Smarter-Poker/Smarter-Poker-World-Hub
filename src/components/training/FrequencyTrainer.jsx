@@ -284,12 +284,12 @@ function MixingTips({ analysis }) {
         if (worst.deviationDirection === 'over') {
             tips.push({
                 text: `You're ${worst.action.toLowerCase()}ing too often (${worst.actualPct}% vs ${worst.targetPct}% GTO). Try to ${worst.action.toLowerCase()} less.`,
-                color: '#fbbf24',
+                color: '#86daff',
             });
         } else {
             tips.push({
                 text: `You're ${worst.action.toLowerCase()}ing too rarely (${worst.actualPct}% vs ${worst.targetPct}% GTO). Mix in more ${worst.action.toLowerCase()}s.`,
-                color: '#fbbf24',
+                color: '#86daff',
             });
         }
     }
@@ -297,7 +297,7 @@ function MixingTips({ analysis }) {
     if (analysis.entropyScore < 50) {
         tips.push({
             text: 'Your play is too predictable. Try using a mental randomizer (e.g., use the second hand on your watch).',
-            color: '#f97316',
+            color: '#86daff',
         });
     }
 

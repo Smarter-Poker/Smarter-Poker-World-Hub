@@ -35,7 +35,7 @@ const SCENARIOS = [
     line: 'Bet → Bet → Bluff',
     sizing: ['33%', '50%', '75%'],
     verdict: 'Risky Barrel',
-    color: '#f59e0b',
+    color: '#86daff',
     reason: 'Open-ended on flop, bricked turn and river. Triple barrel bluff can work if villain has Ax with no pair, but you need to commit significant chips with zero equity.',
     keys: ['Blockers to QJ, KJ straights help', 'Must commit large river sizing', 'Only profitable vs disciplined opponents'],
   },
@@ -57,7 +57,7 @@ const SCENARIOS = [
     line: 'Bet → Bet → Overbet',
     sizing: ['33%', '66%', '150%'],
     verdict: 'Polarized Barrel',
-    color: '#8b5cf6',
+    color: '#86daff',
     reason: 'Gutshot on flop, picked up flush draw on turn, hit flush on river. Overbet river - you have the nuts and need to maximize value from strong Ax hands.',
     keys: ['Had equity every street', 'River overbet is optimal with nuts', 'Polarized = either nuts or air'],
   },
@@ -75,13 +75,13 @@ function TripleBarrelTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#f59e0b' }}>Triple Barrel Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Triple Barrel Trainer</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{idx + 1}/{SCENARIOS.length}</span>
         </div>
 
         <div style={{ padding: 14, background: 'rgba(245,158,11,0.06)', borderRadius: 10, border: '1px solid rgba(245,158,11,0.15)', marginBottom: 12, textAlign: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: 2, marginBottom: 4 }}>{s.board}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 2 }}>Hero: {s.hero}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', marginBottom: 2 }}>Hero: {s.hero}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Line: {s.line}</div>
         </div>
 

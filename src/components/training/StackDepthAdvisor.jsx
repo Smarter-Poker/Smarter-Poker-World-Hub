@@ -37,7 +37,7 @@ const DEPTH_PROFILES = [
     range: [15, 25],
     name: 'Short Stack',
     label: '15-25 BB',
-    color: '#f97316',
+    color: '#86daff',
     spr: '1-3',
     preflop: 'Open-raise to 2-2.5x. 3-bet shove range is wide. Avoid flatting 3-bets.',
     postflop: 'SPR is low - commit with top pair+ on most boards. Check-raise all-in frequently.',
@@ -55,7 +55,7 @@ const DEPTH_PROFILES = [
     range: [25, 50],
     name: 'Medium Stack',
     label: '25-50 BB',
-    color: '#f59e0b',
+    color: '#86daff',
     spr: '3-6',
     preflop: 'Standard open-raising (2.5x). Can 3-bet non-all-in. Wider flatting ranges.',
     postflop: 'More room for post-flop play. Can make 2-barrel bluffs. Sets and overpairs are strong commits.',
@@ -180,7 +180,7 @@ export default function StackDepthAdvisor() {
             style={{ width: '100%', accentColor: activeProfile.color, height: 6, cursor: 'pointer' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
             <span style={{ color: '#ef4444', fontSize: 12 }}>5 BB</span>
-            <span style={{ color: '#f59e0b', fontSize: 12 }}>50 BB</span>
+            <span style={{ color: '#86daff', fontSize: 12 }}>50 BB</span>
             <span style={{ color: '#22c55e', fontSize: 12 }}>100 BB</span>
             <span style={{ color: '#3b82f6', fontSize: 12 }}>200 BB</span>
           </div>
@@ -237,7 +237,7 @@ export default function StackDepthAdvisor() {
 
         {/* Key Adjustments */}
         <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10, marginBottom: 16 }}>
-          <div style={{ color: '#f59e0b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>KEY ADJUSTMENTS</div>
+          <div style={{ color: '#86daff', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>KEY ADJUSTMENTS</div>
           {activeProfile.keyAdjustments.map((adj, i) => (
             <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'flex-start' }}>
               <span style={{ color: activeProfile.color, fontSize: 12, flexShrink: 0, marginTop: 1 }}>•</span>

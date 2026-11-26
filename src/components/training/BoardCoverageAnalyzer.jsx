@@ -58,7 +58,7 @@ function BoardCoverageAnalyzer() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f472b6' }}>Board Coverage Analyzer</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Board Coverage Analyzer</h3>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {POSITIONS.map((p, i) => (
@@ -77,7 +77,7 @@ function BoardCoverageAnalyzer() {
             <div key={c.board} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{c.board}</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: c.pct >= 70 ? '#10b981' : c.pct >= 50 ? '#f59e0b' : '#ef4444' }}>{c.pct}%</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: c.pct >= 70 ? '#10b981' : c.pct >= 50 ? '#86daff' : '#ef4444' }}>{c.pct}%</span>
               </div>
               <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 4 }}>
                 <div style={{ height: '100%', width: `${c.pct}%`, borderRadius: 4, background: c.pct >= 70 ? '#10b981' : c.pct >= 50 ? '#f59e0b' : '#ef4444', transition: 'width 0.3s' }} />
@@ -99,9 +99,9 @@ function BoardCoverageAnalyzer() {
               <div key={b.type} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{b.type}</span>
-                  <span style={{ fontSize: 12, color: '#f472b6', fontWeight: 600 }}>{b.example}</span>
+                  <span style={{ fontSize: 12, color: '#86daff', fontWeight: 600 }}>{b.example}</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 2 }}>Favors: {b.favors}</div>
+                <div style={{ fontSize: 12, color: '#86daff', marginBottom: 2 }}>Favors: {b.favors}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{b.reason}</div>
               </div>
             ))}

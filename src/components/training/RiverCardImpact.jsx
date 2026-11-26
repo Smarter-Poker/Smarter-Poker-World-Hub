@@ -26,7 +26,7 @@ const RIVER_IMPACTS = [
     valueLine: 'Continue your story. If you barreled flop+turn, bet river for thin value.',
     bluffLine: 'Missed draws need to bluff now or give up. Choose combos with no showdown value.',
     trapAlert: 'Brick rivers = straightforward spots. Trust your read from earlier streets.' },
-  { card: 'Straight Completing River', icon: '5→9', color: '#f59e0b',
+  { card: 'Straight Completing River', icon: '5→9', color: '#86daff',
     whoItHelps: 'Player in position (wider calling range on earlier streets)',
     valueLine: 'Bet for value with made straights. Size up if board is not flush-possible.',
     bluffLine: 'If you can credibly represent the straight, overbet as a bluff.',
@@ -63,7 +63,7 @@ export default function RiverCardImpact() {
         <div style={{ display: 'grid', gap: 8 }}>
           {[
             { label: 'Value Line', text: card.valueLine, color: '#22c55e' },
-            { label: 'Bluff Line', text: card.bluffLine, color: '#f59e0b' },
+            { label: 'Bluff Line', text: card.bluffLine, color: '#86daff' },
             { label: 'Trap Alert', text: card.trapAlert, color: '#ef4444' },
           ].map((s, i) => (
             <div key={i} style={{ background: `${s.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${s.color}` }}>

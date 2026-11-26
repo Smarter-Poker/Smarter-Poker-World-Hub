@@ -505,6 +505,15 @@ export function validateTrainingPreset(config = {}) {
     ? String(config.handSelection).toLowerCase()
     : 'all';
 
+  const resolvedHeroPosition = formatMeta.positions.includes(String(config.heroPosition || '').toUpperCase())
+    ? String(config.heroPosition).toUpperCase()
+    : 'BTN';
+  const requestedVillainPosition = String(config.villainPosition || '').toUpperCase();
+  const resolvedVillainPosition = formatMeta.positions.includes(requestedVillainPosition)
+    && requestedVillainPosition !== resolvedHeroPosition
+    ? requestedVillainPosition
+    : (resolvedHeroPosition === 'BB' ? 'BTN' : 'BB');
+
   const normalized = Object.freeze({
     id: config.id || `${format}_${variant}_${bettingStructure}`,
     title: config.title || `${formatMeta.label} · ${variantMeta.label}`,
@@ -519,12 +528,8 @@ export function validateTrainingPreset(config = {}) {
     blindsLabel: config.blindsLabel || formatMeta.blindsLabel,
     legalSizingLabel: STRUCTURE_METADATA[bettingStructure].legalSizingLabel,
     ruleSummary: variantMeta.ruleSummary,
-    heroPosition: formatMeta.positions.includes(String(config.heroPosition || '').toUpperCase())
-      ? String(config.heroPosition).toUpperCase()
-      : 'BTN',
-    villainPosition: (formatMeta.positions.includes(String(config.heroPosition || '').toUpperCase())
-      ? String(config.heroPosition).toUpperCase()
-      : 'BTN') === 'BB' ? 'BTN' : 'BB',
+    heroPosition: resolvedHeroPosition,
+    villainPosition: resolvedVillainPosition,
     difficulty,
     timer,
     scope,
@@ -671,6 +676,9 @@ export function saveResumableTrainingSession(sessionInfo = {}, userId = null) {
       variant: preset.variant,
       bettingStructure: preset.bettingStructure,
       format: preset.format,
+      stackDepthBb: preset.stackDepthBb,
+      heroPosition: preset.heroPosition,
+      targetStreet: preset.targetStreet,
       difficulty: preset.difficulty,
       timer: preset.timer,
       scope: preset.scope,
@@ -865,7 +873,7 @@ export function decodeCoopStudyRoom(token = '') {
  */
 export function buildThreeHandLeakReceipt(input = {}) {
   const validated = validateTrainingPreset(input).preset;
-  const gameId = String(input.gameId || (validated.format === 'mtt' ? 'mtt-005' : validated.variant === 'plo8' ? 'omaha-002' : 'cash-002'));
+  const gameId = String(input.gameId || (validated.format === 'mtt' ? 'mtt-005' : validated.variant === 'plo8' ? 'cash-005' : 'cash-002'));
   const title = String(input.title || `${validated.format.toUpperCase()} ${validated.variant.toUpperCase()} 3-Hand Leak Receipt`);
   const packToken = encodeSharedDrillPack({
     title,
@@ -876,7 +884,7 @@ export function buildThreeHandLeakReceipt(input = {}) {
     stackDepthBb: validated.stackDepthBb,
     heroPosition: validated.heroPosition,
     targetStreet: validated.targetStreet,
-    questionsCount: 5,
+    questionsCount: 10,
   });
   const spots = Array.isArray(input.spots) && input.spots.length === 3
     ? input.spots

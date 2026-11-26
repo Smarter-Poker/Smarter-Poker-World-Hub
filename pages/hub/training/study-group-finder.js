@@ -519,7 +519,7 @@ export default function StudyGroupFinderPage() {
                   borderRadius: 4,
                   border: `1px solid ${filterLevel === l ? 'var(--sp-accent-purple)' : 'transparent'}`,
                   background: filterLevel === l ? 'rgba(168,85,247,0.06)' : 'transparent',
-                  color: filterLevel === l ? 'var(--sp-accent-purple)' : 'var(--sp-fg-faint)',
+                  color: filterLevel === l ? '#86daff' : 'var(--sp-fg-faint)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -637,7 +637,7 @@ export default function StudyGroupFinderPage() {
                           style={{
                             fontSize: 20,
                             fontWeight: 900,
-                            color: isFull ? 'var(--sp-accent-red)' : slotsLeft <= 2 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
+                            color: isFull ? 'var(--sp-accent-red)' : slotsLeft <= 2 ? '#86daff' : 'var(--sp-accent-green)',
                           }}
                         >
                           {g.members}/{g.max}

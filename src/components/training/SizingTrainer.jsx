@@ -15,8 +15,8 @@ import React, { useState, useCallback, useMemo } from 'react';
 const SIZINGS = [
   { id: 'third', label: '33%', fraction: 0.33, color: '#22c55e' },
   { id: 'half', label: '50%', fraction: 0.50, color: '#3b82f6' },
-  { id: 'twothirds', label: '67%', fraction: 0.67, color: '#8b5cf6' },
-  { id: 'pot', label: '100%', fraction: 1.00, color: '#f59e0b' },
+  { id: 'twothirds', label: '67%', fraction: 0.67, color: '#86daff' },
+  { id: 'pot', label: '100%', fraction: 1.00, color: '#86daff' },
   { id: 'overbet', label: '150%+', fraction: 1.50, color: '#ef4444' },
 ];
 
@@ -227,7 +227,7 @@ export default function SizingTrainer() {
           </div>
           <div>
             <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Pot</div>
-            <div style={{ color: '#f59e0b', fontSize: 18, fontWeight: 700 }}>{scenario.pot}bb</div>
+            <div style={{ color: '#86daff', fontSize: 18, fontWeight: 700 }}>{scenario.pot}bb</div>
           </div>
         </div>
 

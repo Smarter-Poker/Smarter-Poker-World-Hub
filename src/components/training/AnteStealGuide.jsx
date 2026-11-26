@@ -12,7 +12,7 @@ const ANTE_MATH = [
     explain: '0.6 BB extra dead money. You risk 2.2x to win 2.1 BB. Opens become much more profitable.' },
   { scenario: '12.5% BB Ante (MTT)', deadMoney: '2.25 BB', stealProfit: '+2.25 BB', openPct: '~38% CO', color: '#22c55e',
     explain: 'Common MTT format. Tons of dead money. Open wider and steal aggressively.' },
-  { scenario: '25% Ante (Hyper)', deadMoney: '3.0 BB', stealProfit: '+3.0 BB', openPct: '~45% CO', color: '#f59e0b',
+  { scenario: '25% Ante (Hyper)', deadMoney: '3.0 BB', stealProfit: '+3.0 BB', openPct: '~45% CO', color: '#86daff',
     explain: 'Huge antes = massive dead money. You should be stealing extremely wide in late position.' },
 ];
 
@@ -42,7 +42,7 @@ export default function AnteStealGuide() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
           {[
             { label: 'Dead Money', val: scen.deadMoney, color: '#22c55e' },
-            { label: 'Steal Profit', val: scen.stealProfit, color: '#f59e0b' },
+            { label: 'Steal Profit', val: scen.stealProfit, color: '#86daff' },
             { label: 'CO Open %', val: scen.openPct, color: '#3b82f6' },
           ].map((s, i) => (
             <div key={i} style={{ background: `${s.color}10`, borderRadius: 8, padding: 8, textAlign: 'center' }}>
@@ -55,7 +55,7 @@ export default function AnteStealGuide() {
       </motion.div>
 
       <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Rule Of Thumb</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Rule Of Thumb</div>
         <div style={{ fontSize: 12, color: '#94a3b8' }}>For Every 1 BB Of Extra Dead Money, Widen Your CO Open Range By ~5-7%.</div>
       </div>
     </div>

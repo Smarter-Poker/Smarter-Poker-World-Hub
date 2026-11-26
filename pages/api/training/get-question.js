@@ -361,6 +361,7 @@ export default async function handler(req, res) {
       gameMode: rawGameMode,
       handSelection: rawHandSelection,
       targetStreet: rawTargetStreet,
+      targetPositions: rawTargetPositions,
       variant: rawVariant,
       bettingStructure: rawBettingStructure,
       format: rawFormat,
@@ -411,10 +412,17 @@ export default async function handler(req, res) {
         code: 'TRAINING_ATTEMPT_SELECTION_INVALID',
       });
     }
+    const targetPositions = rawTargetPositions
+      ? String(rawTargetPositions)
+          .split(',')
+          .map((p) => p.trim().toUpperCase())
+          .filter((p) => ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB', 'HJ', 'LJ', 'UTG+1', 'UTG+2', 'MP+1'].includes(p))
+      : null;
     const attemptSelection = {
       gameMode,
       handSelection,
       targetStreet,
+      ...(targetPositions && targetPositions.length > 0 ? { targetPositions } : {}),
       ...(requestedVariant ? { variant: requestedVariant } : {}),
       ...(requestedBettingStructure ? { bettingStructure: requestedBettingStructure } : {}),
       ...(requestedFormat ? { format: requestedFormat } : {}),
@@ -631,6 +639,10 @@ export default async function handler(req, res) {
         })).filter((row) => {
           const q = row.question_data;
           if (!q || !trainingQuestionMatchesSelection(q, attemptSelection)) return false;
+          if (Array.isArray(targetPositions) && targetPositions.length > 0) {
+            const heroPos = String(q.scenario?.heroPosition || q.scenario?.position || '').toUpperCase();
+            if (heroPos && !targetPositions.includes(heroPos)) return false;
+          }
           if (expectedHoleCardCount !== null) {
             const cards = Array.isArray(q.heroCards) ? q.heroCards : [];
             if (cards.length !== expectedHoleCardCount) return false;
@@ -691,7 +703,7 @@ export default async function handler(req, res) {
             seenIds: seenQuestionIds,
             gameConfig: pioConfig,
             targetStreet: targetStreet || undefined,
-            targetPositions: scenarioConfig?.positions || undefined,
+            targetPositions: (targetPositions && targetPositions.length > 0 ? targetPositions : scenarioConfig?.positions) || undefined,
             scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
             spotTypes: scenarioConfig?.spotTypes || undefined,
             stackDepths: scenarioConfig?.stackDepths || undefined,

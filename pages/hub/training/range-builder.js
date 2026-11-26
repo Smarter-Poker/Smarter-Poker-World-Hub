@@ -428,7 +428,7 @@ export default function RangeBuilder() {
             <span
               style={{
                 fontSize: 12,
-                color: 'var(--sp-accent-orange)',
+                color: '#86daff',
                 background: 'rgba(249,115,22,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -671,9 +671,9 @@ export default function RangeBuilder() {
                     BREAKDOWN
                   </div>
                   <StatRow label="Matched" value={result.stats?.matchedCount} color="#22c55e" />
-                  <StatRow label="Omitted" value={result.stats?.omittedCount} color="#fbbf24" />
+                  <StatRow label="Omitted" value={result.stats?.omittedCount} color="#86daff" />
                   <StatRow label="Extra" value={result.stats?.extraCount} color="#ef4444" />
-                  <StatRow label="Mixed" value={result.stats?.mixedCount} color="#f97316" />
+                  <StatRow label="Mixed" value={result.stats?.mixedCount} color="#86daff" />
 
                   <div
                     style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }}
@@ -704,9 +704,9 @@ export default function RangeBuilder() {
                     LEGEND
                   </div>
                   <LegendItem color="#22c55e" label="Match - Included in both ranges" />
-                  <LegendItem color="#fbbf24" label="Omitted - Included in the authored reference" />
+                  <LegendItem color="#86daff" label="Omitted - Included in the authored reference" />
                   <LegendItem color="#ef4444" label="Extra - Outside the authored reference" />
-                  <LegendItem color="#f97316" label="Partial - Mixed authored frequency" />
+                  <LegendItem color="#86daff" label="Partial - Mixed authored frequency" />
 
                   <button
                     onClick={() => {
@@ -743,7 +743,7 @@ export default function RangeBuilder() {
                     style={{
                       fontSize: 12,
                       fontWeight: 800,
-                      color: 'var(--sp-accent-orange)',
+                      color: '#86daff',
                       letterSpacing: 1.5,
                       textTransform: 'uppercase',
                       marginBottom: 12,
@@ -797,7 +797,7 @@ export default function RangeBuilder() {
 
                   {/* Category breakdown */}
                   <StatRow label="Hands" value={selectionStats.handCount} color="#e2e8f0" />
-                  <StatRow label="Pairs" value={`${selectionStats.pairs} combos`} color="#a855f7" />
+                  <StatRow label="Pairs" value={`${selectionStats.pairs} combos`} color="#86daff" />
                   <StatRow
                     label="Suited"
                     value={`${selectionStats.suited} combos`}

@@ -37,7 +37,7 @@ function PreFlopAllInEquity() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#e879f9' }}>Preflop All-In Equity</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Preflop All-In Equity</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {CATEGORIES.map(c => (
@@ -91,7 +91,7 @@ function PreFlopAllInEquity() {
         </div>
 
         <div style={{ marginTop: 12, padding: 10, background: 'rgba(232,121,249,0.06)', borderRadius: 8, border: '1px solid rgba(232,121,249,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Quick Rules</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Quick Rules</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
             Overpair Vs Underpair: ~80/20. Pair Vs Two Overcards: ~55/45 (Coin Flip). Dominated Hand (AK Vs AQ): ~70/30. Pair Vs Random Hand: ~82/18. The Closer In Rank, The Closer To 50/50.
           </div>

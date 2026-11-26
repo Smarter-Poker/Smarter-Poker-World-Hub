@@ -59,7 +59,7 @@ function AlertIcon({ size=14 })       { return <_Svg size={size}><path d="M10.29
 function ClockIcon({ size=18 })       { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></_Svg>; }
 function TrendDot({ kind, size=14 }) {
   // green / red / yellow filled circle (replaces ●●●)
-  const color = kind === 'green' ? 'var(--sp-accent-green)' : kind === 'red' ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)';
+  const color = kind === 'green' ? 'var(--sp-accent-green)' : kind === 'red' ? 'var(--sp-accent-red)' : '#86daff';
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
       <circle cx="12" cy="12" r="9" fill={color} stroke={color} />

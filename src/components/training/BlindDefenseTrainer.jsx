@@ -64,7 +64,7 @@ function BlindDefenseTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#f472b6' }}>Blind Defense Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Blind Defense Trainer</h3>
           <div style={{ display: 'flex', gap: 4 }}>
             {['bb', 'sb'].map(v => (
               <button key={v} onClick={() => setView(v)} style={{
@@ -90,7 +90,7 @@ function BlindDefenseTrainer() {
         {/* Opener Info */}
         <div style={{ padding: 10, background: 'rgba(244,114,182,0.06)', borderRadius: 8, marginBottom: 16, borderLeft: '3px solid #f472b6' }}>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
-            <span style={{ fontWeight: 700, color: '#f472b6' }}>{data.opener}</span> Opens {data.openSize} ({data.openPct}% Range) → {view === 'bb' ? 'BB' : 'SB'} Defends
+            <span style={{ fontWeight: 700, color: '#86daff' }}>{data.opener}</span> Opens {data.openSize} ({data.openPct}% Range) → {view === 'bb' ? 'BB' : 'SB'} Defends
           </div>
         </div>
 
@@ -149,7 +149,7 @@ function BlindDefenseTrainer() {
 
         {/* Notes */}
         <div style={{ padding: 10, background: 'rgba(244,114,182,0.06)', borderRadius: 8, border: '1px solid rgba(244,114,182,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f472b6', marginBottom: 4 }}>Key Concept</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Key Concept</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{data.notes}</div>
         </div>
       </div>

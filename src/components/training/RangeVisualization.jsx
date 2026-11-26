@@ -16,7 +16,7 @@ const RANGE_CONCEPTS = [
     tip: 'A cell that\'s half green/half blue means you should raise that hand 50% and call 50%.',
     practice: 'Look at BB defense vs BTN open. Notice how much blue (calling) there is.',
     key: 'Dark cells = always take that action. Light cells = sometimes. Mixed cells = both actions are close in EV.' },
-  { concept: 'Range Density', icon: '▲', color: '#f59e0b',
+  { concept: 'Range Density', icon: '▲', color: '#86daff',
     detail: 'A "tight" range looks like a small cluster in the top-left corner. A "wide" range fills most of the grid.',
     tip: 'UTG opens ~13% (tiny cluster). BTN opens ~40% (huge green area). BB defends ~40% (lots of blue).',
     practice: 'Compare UTG vs BTN opening ranges side by side. The difference is dramatic.',
@@ -26,7 +26,7 @@ const RANGE_CONCEPTS = [
     tip: 'On A♠K♦7♣: PFR still has lots of green (AK, AQ, AA, KK). Caller\'s grid is much thinner.',
     practice: 'Use GTO Wizard\'s range filter. See how villain\'s range changes on each street.',
     key: 'By the river, both ranges are very narrow. This is where hand-reading matters most.' },
-  { concept: 'Building Your Own Ranges', icon: '■', color: '#8b5cf6',
+  { concept: 'Building Your Own Ranges', icon: '■', color: '#86daff',
     detail: 'Start with GTO ranges, then adjust for your opponents. Add exploits as notes on each cell.',
     tip: 'Build ranges position by position: UTG first, then MP, CO, BTN, SB, BB.',
     practice: 'Print out a blank grid. Color in your opening range for each position. Memorize them.',
@@ -72,7 +72,7 @@ export default function RangeVisualization() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.practice}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Insight</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key Insight</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.key}</div>
           </div>
         </div>

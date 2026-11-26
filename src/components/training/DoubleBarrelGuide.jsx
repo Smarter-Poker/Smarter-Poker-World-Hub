@@ -79,11 +79,11 @@ export default function DoubleBarrelGuide() {
       </div>
 
       {/* Key factors */}
-      <h4 style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 8 }}>Key Decision Factors</h4>
+      <h4 style={{ fontSize: 14, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>Key Decision Factors</h4>
       <div style={{ display: 'grid', gap: 6 }}>
         {FACTORS.map((f, i) => (
           <div key={i} style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: '8px 12px', borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>{f.name}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff' }}>{f.name}</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{f.desc}</div>
           </div>
         ))}

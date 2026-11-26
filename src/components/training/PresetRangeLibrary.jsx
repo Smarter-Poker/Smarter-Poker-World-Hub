@@ -156,8 +156,8 @@ function PresetRangeLibrary() {
               <div style={{ flex: 1, minWidth: 150 }}>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Combos: <span style={{ color: '#fff', fontWeight: 700 }}>{selected.hands.split(',').length}</span></div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Position: <span style={{ color: '#06b6d4', fontWeight: 700 }}>{selected.position}</span></div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Category: <span style={{ color: '#8b5cf6', fontWeight: 700 }}>{selected.category}</span></div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Game: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{selected.gameType}</span></div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Category: <span style={{ color: '#86daff', fontWeight: 700 }}>{selected.category}</span></div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Game: <span style={{ color: '#86daff', fontWeight: 700 }}>{selected.gameType}</span></div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'rgba(239,68,68,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Pairs</span>
                   <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'rgba(59,130,246,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Suited</span>

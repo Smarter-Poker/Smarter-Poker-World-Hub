@@ -21,12 +21,12 @@ const COMBO_LESSONS = [
     onBoard: 'Across a 3-card flop, there are 9 possible set combos (3 per card).',
     why: 'Sets are rare! Only 3 combos each. Don\'t overweight them in villain\'s range.',
     exercise: 'Board: Q♠J♦T♣. Total set combos? Answer: 9 (3 for QQ + 3 for JJ + 3 for TT).' },
-  { topic: 'Suited vs Offsuit', icon: '♠♥', color: '#f59e0b',
+  { topic: 'Suited vs Offsuit', icon: '♠♥', color: '#86daff',
     combos: 'Suited hands: 4 combos. Offsuit hands: 12 combos. Ratio is always 1:3.',
     onBoard: 'Suited combos matter for flush draws. On a two-heart board, only hearts-hearts combos make flush draws.',
     why: 'When counting flush draw combos, each suited combo has only 1 relevant suit.',
     exercise: 'How many combos of A♥x♥ (nut flush draw)? Answer: 12 combos (A♥ paired with each non-heart).' },
-  { topic: 'Blocker Math', icon: '✕', color: '#8b5cf6',
+  { topic: 'Blocker Math', icon: '✕', color: '#86daff',
     combos: 'Holding a card removes combos. Holding A♠ removes 3 combos of AA, 4 combos of AK, etc.',
     onBoard: 'Blockers are most powerful on the river when ranges are narrow.',
     why: 'If you hold the A♠ on a 3-spade board, villain has ZERO combos of the nut flush.',
@@ -71,7 +71,7 @@ export default function HandCombinatorics() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{topic.onBoard}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Why It Matters</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Why It Matters</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{topic.why}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>

@@ -221,8 +221,8 @@ function SpotTypeBreakdown({ handHistory }) {
     const spotData = useMemo(() => {
         const types = {
             'C-Bet': { evLoss: 0, hands: 0, color: '#3b82f6' },
-            'Check-Raise': { evLoss: 0, hands: 0, color: '#a855f7' },
-            'Facing Bet': { evLoss: 0, hands: 0, color: '#f97316' },
+            'Check-Raise': { evLoss: 0, hands: 0, color: '#86daff' },
+            'Facing Bet': { evLoss: 0, hands: 0, color: '#86daff' },
             'Barrel': { evLoss: 0, hands: 0, color: '#06b6d4' },
             'Other': { evLoss: 0, hands: 0, color: '#64748b' },
         };
@@ -301,8 +301,8 @@ function MistakeSeverityChart({ handHistory }) {
         const bins = [
             { label: '0 BB', min: 0, max: 0.001, count: 0, color: '#22c55e' },
             { label: '<0.5', min: 0.001, max: 0.5, count: 0, color: '#4ade80' },
-            { label: '0.5-1', min: 0.5, max: 1, count: 0, color: '#fbbf24' },
-            { label: '1-2', min: 1, max: 2, count: 0, color: '#f97316' },
+            { label: '0.5-1', min: 0.5, max: 1, count: 0, color: '#86daff' },
+            { label: '1-2', min: 1, max: 2, count: 0, color: '#86daff' },
             { label: '2-5', min: 2, max: 5, count: 0, color: '#ef4444' },
             { label: '5+', min: 5, max: Infinity, count: 0, color: '#dc2626' },
         ];
@@ -431,7 +431,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
                 </div>
                 <div style={{ display: 'flex', gap: 16, textAlign: 'center' }}>
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {summary.avgLoss.toFixed(2)}
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>BB/Hand</div>

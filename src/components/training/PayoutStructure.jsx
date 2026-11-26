@@ -21,12 +21,12 @@ const PAYOUT_TYPES = [
     strategy: 'Survival matters more. Each pay jump is significant. Tighter play is rewarded.',
     adjust: 'ICM impact is extreme. Avoid marginal spots. Let short stacks bust. Ladder up.',
     examples: 'Satellite tournaments (all qualifiers get equal prize), some invitational formats.' },
-  { structure: 'Progressive Knockout (PKO)', icon: '»', color: '#f59e0b',
+  { structure: 'Progressive Knockout (PKO)', icon: '»', color: '#86daff',
     distribution: '50% to bounties, 50% to prizes. Each knockout = cash in your pocket.',
     strategy: 'Bounties change the math. Call wider when you can win a bounty. Your own bounty grows with each KO.',
     adjust: 'Adjust calling ranges based on bounty size vs risk. Large bounties = call much wider.',
     examples: 'PKO format on PokerStars, GGPoker Progressive KO tournaments.' },
-  { structure: 'Turbo / Hyper-Turbo', icon: '⌁', color: '#8b5cf6',
+  { structure: 'Turbo / Hyper-Turbo', icon: '⌁', color: '#86daff',
     distribution: 'Same as standard, but blind levels are fast (3-5 min each).',
     strategy: 'Push/fold comes much earlier. Less postflop play. Preflop ranges and shove/fold math are critical.',
     adjust: 'Study push/fold charts extensively. You\'ll be in shove/fold mode by level 5-6.',
@@ -75,7 +75,7 @@ export default function PayoutStructure() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{struct.adjust}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Examples</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Examples</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{struct.examples}</div>
           </div>
         </div>

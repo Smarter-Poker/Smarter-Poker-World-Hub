@@ -76,14 +76,14 @@ function DonkBetTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#f97316' }}>Donk Bet Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Donk Bet Trainer</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{stats.correct}/{stats.total} ({accuracy}%) • Spot {currentIdx + 1}/{SPOTS.length}</span>
         </div>
 
         {/* Scenario */}
         <div style={{ padding: 14, background: 'rgba(249,115,22,0.06)', borderRadius: 10, border: '1px solid rgba(249,115,22,0.15)', marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: 4, marginBottom: 6 }}>{spot.board}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#f97316', marginBottom: 6 }}>Hero: {spot.hero}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Hero: {spot.hero}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>{spot.position} • {spot.street}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, maxWidth: 400, margin: '0 auto' }}>{spot.context}</div>
         </div>
@@ -107,7 +107,7 @@ function DonkBetTrainer() {
 
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, padding: 10, background: 'rgba(249,115,22,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'donk' ? '1px solid rgba(249,115,22,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#f97316' }}>{spot.evDonk}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#86daff' }}>{spot.evDonk}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Of Donk</div>
               </div>
               <div style={{ flex: 1, padding: 10, background: 'rgba(107,114,128,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'check' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>

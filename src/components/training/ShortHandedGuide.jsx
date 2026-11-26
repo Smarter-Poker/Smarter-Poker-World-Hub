@@ -21,12 +21,12 @@ const SH_CONCEPTS = [
     ranges: '3-Bet frequency should be 8-12% overall. vs BTN opens: 3-bet 12-16% from blinds.',
     keyDiff: 'Passive play gets punished. If your PFR is below 18%, you\'re leaving money on the table.',
     tip: 'Be the aggressor. 6-max is about putting pressure on opponents, not waiting for premiums.' },
-  { concept: 'Postflop Skill Matters More', icon: '', color: '#f59e0b',
+  { concept: 'Postflop Skill Matters More', icon: '', color: '#86daff',
     detail: 'More hands played = more postflop decisions. Your edge comes from postflop play, not just preflop tightness.',
     ranges: 'You\'ll see 2-3x more flops than full ring. C-bet, barrel, and value bet frequencies all matter.',
     keyDiff: 'In full ring, a tight player can win without great postflop skill. In 6-max, you can\'t hide.',
     tip: 'Study postflop spots obsessively. That\'s where the money is in 6-max.' },
-  { concept: 'Table Dynamics & Reads', icon: '', color: '#8b5cf6',
+  { concept: 'Table Dynamics & Reads', icon: '', color: '#86daff',
     detail: 'Fewer players = more frequent matchups. You\'ll play against the same opponents repeatedly.',
     ranges: 'Build reads faster. Note tendencies every 20-30 hands. Adjust exploitatively.',
     keyDiff: 'In full ring, you rarely face the same opponent. In 6-max, you battle the same 5 players all session.',
@@ -72,7 +72,7 @@ export default function ShortHandedGuide() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.keyDiff}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Pro Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Pro Tip</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.tip}</div>
           </div>
         </div>

@@ -279,7 +279,7 @@ const styles = {
         background: 'rgba(0,0,0,0.8)',
         padding: '8px 12px',
         borderRadius: 4,
-        color: '#FFD700',
+        color: '#86daff',
         fontSize: 12,
         fontFamily: 'monospace',
     },

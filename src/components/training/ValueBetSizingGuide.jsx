@@ -14,7 +14,7 @@ const SIZING_TIERS = [
     when: 'Standard bet sizing. Good balance of value extraction and protection.',
     hands: 'Strong top pair, overpairs on somewhat wet boards, two pair',
     avoid: 'When villain\'s range is very inelastic (they call or fold regardless of size)' },
-  { size: '75-100%', label: 'Large', color: '#f59e0b', emoji: '',
+  { size: '75-100%', label: 'Large', color: '#86daff', emoji: '',
     when: 'Polarized spots. You have a very strong hand or are bluffing.',
     hands: 'Sets, straights, flushes on wet boards. Also your bluffs.',
     avoid: 'With medium-strength hands - you only get called by better' },

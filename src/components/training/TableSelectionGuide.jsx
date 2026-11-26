@@ -45,7 +45,7 @@ export default function TableSelectionGuide() {
               <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{ind.indicator}</span>
               <span style={{ fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 4,
                 background: ind.weight === 'HIGH' ? 'rgba(34,197,94,0.15)' : ind.weight === 'MEDIUM' ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)',
-                color: ind.weight === 'HIGH' ? '#22c55e' : ind.weight === 'MEDIUM' ? '#f59e0b' : '#64748b' }}>
+                color: ind.weight === 'HIGH' ? '#22c55e' : ind.weight === 'MEDIUM' ? '#86daff' : '#64748b' }}>
                 {ind.weight}
               </span>
             </div>
@@ -70,7 +70,7 @@ export default function TableSelectionGuide() {
           {FISH_SIGNALS.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: '6px 10px' }}>
               <div style={{ width: 40, textAlign: 'center' }}>
-                <span style={{ fontSize: 14, fontWeight: 800, color: s.confidence > 80 ? '#22c55e' : s.confidence > 70 ? '#f59e0b' : '#3b82f6' }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: s.confidence > 80 ? '#22c55e' : s.confidence > 70 ? '#86daff' : '#3b82f6' }}>
                   {s.confidence}%
                 </span>
               </div>

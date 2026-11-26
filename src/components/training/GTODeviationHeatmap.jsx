@@ -24,8 +24,8 @@ export default function GTODeviationHeatmap({ label, actualPct = 0, gtoPct = 0, 
     // > 15% = Major Leak (Red)
     let color = '#22c55e'; // Green
     if (absDelta >= 15) color = '#ef4444'; // Red
-    else if (absDelta >= 8) color = '#f97316'; // Orange
-    else if (absDelta >= 3) color = '#eab308'; // Yellow
+    else if (absDelta >= 8) color = '#86daff'; // Orange
+    else if (absDelta >= 3) color = '#86daff'; // Yellow
 
     const isOver = delta > 0;
 

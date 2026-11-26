@@ -21,12 +21,12 @@ const ZOOM_TOPICS = [
     strategy: 'C-bet more frequently (65-70%) with a smaller sizing (25-33% pot). The pool folds enough to make this instantly profitable.',
     stat: 'Average fold to c-bet in Zoom: 55-60%. At regular tables: 45-50%. Zoom players are more auto-pilot.',
     tip: 'On dry flops (K72r), you can c-bet nearly 100% of your range for 25% pot. The fold equity is insane.' },
-  { title: 'Blind Defense', icon: '■', color: '#f59e0b',
+  { title: 'Blind Defense', icon: '■', color: '#86daff',
     detail: 'Many Zoom players over-fold their blinds since they can instantly get a new hand. This makes stealing very profitable.',
     strategy: 'Steal aggressively from CO and BTN. Open 35-40% from CO and 50%+ from BTN. The blinds fold too much.',
     stat: 'Average fold to steal in Zoom BB: 65-70%. You profit even with a 100% opening range if they fold that much.',
     tip: 'But also defend your own BB more - you\'re likely being over-stolen from. Adjust by 3-betting more from the BB.' },
-  { title: 'Volume & Rakeback', icon: '■', color: '#8b5cf6',
+  { title: 'Volume & Rakeback', icon: '■', color: '#86daff',
     detail: 'Zoom lets you play 250-400 hands/hour per table. Multi-tabling 4 Zoom tables = 1000-1600 hands/hour.',
     strategy: 'Volume is the key advantage of Zoom. Even with a lower win rate, the sheer number of hands generates more total profit.',
     stat: 'Win rate at Zoom is typically 2-4bb/100 lower than regular tables, but hands/hour is 3-4x higher.',
@@ -68,7 +68,7 @@ export default function ZoomPokerGuide() {
           <div style={{ fontSize: 12, color: t.color }}>{t.stat}</div>
         </div>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>PRO TIP</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>PRO TIP</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.tip}</div>
         </div>
       </motion.div>

@@ -156,7 +156,7 @@ const PressureGauge = memo(({ pressure, bubbleFactor, riskPremium }) => {
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 4 }}>
                 <div>
                     <div style={{ fontSize: 12, color: '#64748b' }}>Bubble Factor</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {bubbleFactor.toFixed(2)}x
                     </div>
                 </div>
@@ -417,7 +417,7 @@ export default function ICMTournamentPanel() {
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: 12, color: '#64748b' }}>Hero Stack</div>
                             <div style={{
-                                fontSize: 14, fontWeight: 700, color: '#f59e0b',
+                                fontSize: 14, fontWeight: 700, color: '#86daff',
                                 fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             }}>
                                 {activeStacks[heroIdx]}BB

@@ -12,7 +12,7 @@ const ISO_SPOTS = [
   { limpers: '2 Limpers', position: 'CO/BTN', sizing: '3x + 2x = 5x', color: '#3b82f6',
     range: '55+, A7s+, KTs+, QTs+, JTs, AJo+, KQo',
     reason: 'Tighten slightly with 2 limpers. Still wide in position but need stronger hands multi-way.' },
-  { limpers: '3+ Limpers', position: 'BTN only', sizing: '3x + 3x = 6x', color: '#f59e0b',
+  { limpers: '3+ Limpers', position: 'BTN only', sizing: '3x + 3x = 6x', color: '#86daff',
     range: '77+, ATs+, KQs, AQo+',
     reason: 'Many limpers = someone might have a real hand. Raise big for value with premiums only.' },
   { limpers: '1 Limper', position: 'SB/BB', sizing: '4-5x', color: '#ef4444',
@@ -46,7 +46,7 @@ export default function IsoRaiseStrategy() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: spot.color }}>{spot.limpers}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>{spot.sizing}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#86daff' }}>{spot.sizing}</span>
         </div>
         <div style={{ background: `${spot.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: `3px solid ${spot.color}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: spot.color }}>Range</div>

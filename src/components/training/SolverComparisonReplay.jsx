@@ -74,7 +74,7 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
     const maxAbsEV = Math.max(Math.abs(bestEV), 2);
     const barWidth = Math.min(100, (Math.abs(ev) / maxAbsEV) * 80);
     const isPositive = ev >= 0;
-    const color = isOptimal ? '#22c55e' : isPlayerAction ? '#f59e0b' : '#64748b';
+    const color = isOptimal ? '#22c55e' : isPlayerAction ? '#86daff' : '#64748b';
 
     const actionLabels = {
         fold: 'Fold', check: 'Check', call: 'Call',
@@ -89,7 +89,7 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
         }}>
             <div style={{
                 width: 70, fontSize: 12, fontWeight: isPlayerAction || isOptimal ? 700 : 500,
-                color: isPlayerAction ? '#f59e0b' : isOptimal ? '#22c55e' : '#94a3b8',
+                color: isPlayerAction ? '#86daff' : isOptimal ? '#22c55e' : '#94a3b8',
                 textAlign: 'right',
             }}>
                 {actionLabels[action] || action}
@@ -129,7 +129,7 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
             {/* Markers */}
             {isPlayerAction && (
                 <div style={{
-                    fontSize: 12, fontWeight: 700, color: '#f59e0b',
+                    fontSize: 12, fontWeight: 700, color: '#86daff',
                     background: 'rgba(245,158,11,0.1)', padding: '1px 4px',
                     borderRadius: 3, border: '1px solid rgba(245,158,11,0.2)',
                 }}>YOU</div>
@@ -148,9 +148,9 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
 // ●● Street Label ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const StreetColors = {
-    preflop: { bg: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: 'rgba(167,139,250,0.25)' },
+    preflop: { bg: 'rgba(167,139,250,0.12)', color: '#86daff', border: 'rgba(167,139,250,0.25)' },
     flop: { bg: 'rgba(74,222,128,0.12)', color: '#4ade80', border: 'rgba(74,222,128,0.25)' },
-    turn: { bg: 'rgba(251,146,60,0.12)', color: '#fb923c', border: 'rgba(251,146,60,0.25)' },
+    turn: { bg: 'rgba(251,146,60,0.12)', color: '#86daff', border: 'rgba(251,146,60,0.25)' },
     river: { bg: 'rgba(248,113,113,0.12)', color: '#f87171', border: 'rgba(248,113,113,0.25)' },
 };
 
@@ -307,7 +307,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                 {handData.potSize && (
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                         <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Pot</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {handData.potSize} BB
                         </div>
                     </div>
@@ -330,7 +330,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     </div>
                     <div style={{
                         fontSize: 16, fontWeight: 700,
-                        color: isCorrect ? '#22c55e' : '#f59e0b',
+                        color: isCorrect ? '#22c55e' : '#86daff',
                     }}>
                         {handData.action || '-'}
                     </div>

@@ -57,7 +57,7 @@ export default function FilterBrainBar({
                     <span style={styles.statLabel}>MASTERY</span>
                     <span style={{
                         ...styles.statValue,
-                        color: overallMastery >= 85 ? '#4CAF50' : overallMastery >= 70 ? '#FFD700' : '#FF6B35',
+                        color: overallMastery >= 85 ? '#4CAF50' : overallMastery >= 70 ? '#86daff' : '#FF6B35',
                     }}>
                         {overallMastery}%
                     </span>

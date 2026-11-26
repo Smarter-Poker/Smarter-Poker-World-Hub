@@ -18,11 +18,11 @@ const AIEV_CONCEPTS = [
     detail: 'When actual results are below All-In EV, you\'re running cold. This is the most tilting experience in poker.',
     example: 'You\'re down $2,000 but EV shows -$500. You\'ve been unlucky for $1,500. It WILL even out.',
     tip: 'Focus on decisions, not results. If your EV line is positive, you\'re playing well.' },
-  { concept: 'EV Graph Reading', icon: '▲', color: '#f59e0b',
+  { concept: 'EV Graph Reading', icon: '▲', color: '#86daff',
     detail: 'The EV line is your "true" winrate stripped of variance. A rising EV line means you\'re making good decisions even when results are bad.',
     example: 'Red line (actual) is choppy. Green line (EV) steadily climbs. You\'re a winning player running normally.',
     tip: 'Over 50,000+ hands, actual results should closely track EV. Shorter samples = more variance.' },
-  { concept: 'Non-All-In Decisions', icon: '◇', color: '#8b5cf6',
+  { concept: 'Non-All-In Decisions', icon: '◇', color: '#86daff',
     detail: 'All-In EV only measures all-in spots. Your non-all-in play (postflop decisions, fold equity, thin value) is where most edge comes from.',
     example: 'Two players with identical All-In EV can have vastly different winrates based on non-showdown winnings.',
     tip: 'All-In EV is just one piece. W$SD (Won $ at Showdown) and WWSF (Won When Saw Flop) matter too.' },
@@ -65,7 +65,7 @@ export default function AllInEVDashboard() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.example}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Pro Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Pro Tip</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.tip}</div>
           </div>
         </div>

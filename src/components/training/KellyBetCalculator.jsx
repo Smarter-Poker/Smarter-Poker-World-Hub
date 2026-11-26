@@ -73,7 +73,7 @@ function KellyBetCalculator() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
               {[
                 { label: 'Full Kelly', pct: calc.kellyPct, bet: calc.kellyBet, ruin: calc.ruinFull, color: '#ef4444', rec: 'Aggressive' },
-                { label: 'Half Kelly', pct: calc.halfKellyPct, bet: calc.halfKellyBet, ruin: calc.ruinHalf, color: '#f59e0b', rec: 'Recommended' },
+                { label: 'Half Kelly', pct: calc.halfKellyPct, bet: calc.halfKellyBet, ruin: calc.ruinHalf, color: '#86daff', rec: 'Recommended' },
                 { label: 'Quarter Kelly', pct: calc.quarterKellyPct, bet: calc.quarterKellyBet, ruin: calc.ruinQuarter, color: '#10b981', rec: 'Conservative' },
               ].map(k => (
                 <div key={k.label} style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center', borderTop: `3px solid ${k.color}` }}>

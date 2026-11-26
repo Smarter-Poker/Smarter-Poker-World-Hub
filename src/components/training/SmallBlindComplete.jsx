@@ -10,7 +10,7 @@ const SB_STRATEGIES = [
     desc: 'Against a raise, the SB should mostly 3-bet or fold. Calling creates a bloated pot OOP.',
     ranges: [
       { label: '3-Bet Value', hands: 'QQ+, AKs, AKo', color: '#22c55e' },
-      { label: '3-Bet Bluff', hands: 'A5s-A2s, K5s, Q5s (blockers)', color: '#f59e0b' },
+      { label: '3-Bet Bluff', hands: 'A5s-A2s, K5s, Q5s (blockers)', color: '#86daff' },
       { label: 'Fold', hands: 'Everything else - don\'t flat OOP', color: '#ef4444' },
     ],
     tip: 'Flatting from SB is a major leak. You\'re OOP with a capped range. 3-bet or fold.' },
@@ -18,14 +18,14 @@ const SB_STRATEGIES = [
     desc: 'When there are limpers, SB can complete for 0.5 BB getting great odds.',
     ranges: [
       { label: 'Complete', hands: 'Any suited hand, small pairs, connectors - amazing pot odds', color: '#22c55e' },
-      { label: 'Raise to ISO', hands: 'JJ+, AQ+, KQs - isolate the limpers', color: '#f59e0b' },
+      { label: 'Raise to ISO', hands: 'JJ+, AQ+, KQs - isolate the limpers', color: '#86daff' },
     ],
     tip: 'You\'re getting 3:1+ odds. Complete wide. But raise premiums to thin the field.' },
   { title: 'SB vs BB (heads up)', color: '#3b82f6', icon: '»',
     desc: 'SB vs BB is a unique dynamic. Open to 2.5-3x with a wide range.',
     ranges: [
       { label: 'Open-Raise', hands: '~55-65% of hands - very wide', color: '#22c55e' },
-      { label: 'Limp', hands: 'Weak suited hands, K2o-K5o - too weak to raise, too good to fold', color: '#f59e0b' },
+      { label: 'Limp', hands: 'Weak suited hands, K2o-K5o - too weak to raise, too good to fold', color: '#86daff' },
       { label: 'Fold', hands: 'Bottom ~20% - total trash', color: '#ef4444' },
     ],
     tip: 'Some solvers recommend a mixed limp/raise strategy from SB vs BB. Both are valid.' },
@@ -65,7 +65,7 @@ export default function SmallBlindComplete() {
         ))}
 
         <div style={{ marginTop: 8, background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Insight</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key Insight</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{strat.tip}</div>
         </div>
       </motion.div>

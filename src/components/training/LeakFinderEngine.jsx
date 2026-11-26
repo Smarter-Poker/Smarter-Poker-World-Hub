@@ -17,9 +17,9 @@ const LEAK_CATEGORIES = [
   { id: 'preflop', label: 'Preflop', color: '#3b82f6' },
   { id: 'postflop', label: 'Postflop', color: '#22c55e' },
   { id: 'aggression', label: 'Aggression', color: '#ef4444' },
-  { id: 'defense', label: 'Defense', color: '#f59e0b' },
-  { id: 'sizing', label: 'Sizing', color: '#a855f7' },
-  { id: 'mental', label: 'Mental Game', color: '#ec4899' },
+  { id: 'defense', label: 'Defense', color: '#86daff' },
+  { id: 'sizing', label: 'Sizing', color: '#86daff' },
+  { id: 'mental', label: 'Mental Game', color: '#86daff' },
 ];
 
 // ●●● DETECTED LEAKS ●●●
@@ -98,7 +98,7 @@ const DETECTED_LEAKS = [
 
 function getSeverityConfig(severity) {
   if (severity === 'critical') return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', label: 'CRITICAL', border: 'rgba(239,68,68,0.2)' };
-  if (severity === 'major') return { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', label: 'MAJOR', border: 'rgba(245,158,11,0.2)' };
+  if (severity === 'major') return { color: '#86daff', bg: 'rgba(245,158,11,0.1)', label: 'MAJOR', border: 'rgba(245,158,11,0.2)' };
   return { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', label: 'MINOR', border: 'rgba(59,130,246,0.2)' };
 }
 
@@ -132,7 +132,7 @@ export default function LeakFinderEngine() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
           {[
             { label: 'Total EV Cost', value: `${totalEVCost.toFixed(1)}bb/100`, color: '#ef4444' },
-            { label: 'Leaks Found', value: DETECTED_LEAKS.length, color: '#f59e0b' },
+            { label: 'Leaks Found', value: DETECTED_LEAKS.length, color: '#86daff' },
             { label: 'Critical', value: criticalCount, color: '#ef4444' },
             { label: 'Fix Progress', value: `${avgProgress}%`, color: '#22c55e' },
           ].map((s, i) => (

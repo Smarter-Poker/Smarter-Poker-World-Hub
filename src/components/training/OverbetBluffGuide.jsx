@@ -10,13 +10,13 @@ const BLUFF_SPOTS = [
     color: '#ef4444', story: 'Flush missed but you can rep the nut flush by overbetting. Villain\'s range is capped to one pair.',
     foldEq: 60, neededFoldEq: 43 },
   { title: 'Scare Card River Bluff', board: 'Q♦ J♣ 5♠ 3♦ A♥', hand: '8♠7♠', sizing: '125% pot',
-    color: '#f59e0b', story: 'Ace on river is perfect to overbet. You rep AQ/AJ/AK. Villain folds Qx, Jx, pocket pairs.',
+    color: '#86daff', story: 'Ace on river is perfect to overbet. You rep AQ/AJ/AK. Villain folds Qx, Jx, pocket pairs.',
     foldEq: 55, neededFoldEq: 38 },
   { title: 'Straight Completing River', board: 'T♥ 8♣ 3♦ 6♠ 7♣', hand: 'A♦K♦', sizing: '150% pot',
     color: '#22c55e', story: '4-straight on board. Overbet rep the straight. Villain can\'t call with overpairs.',
     foldEq: 65, neededFoldEq: 43 },
   { title: 'Board Pairs on River', board: 'K♠ Q♦ 8♣ 5♥ K♥', hand: 'J♠T♠', sizing: '125% pot',
-    color: '#8b5cf6', story: 'K pairs on river. Overbet rep trips/full house. Your missed straight draw becomes a powerful bluff.',
+    color: '#86daff', story: 'K pairs on river. Overbet rep trips/full house. Your missed straight draw becomes a powerful bluff.',
     foldEq: 50, neededFoldEq: 38 },
 ];
 
@@ -73,7 +73,7 @@ export default function OverbetBluffGuide() {
               </div>
               <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Need To Fold</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>{spot.neededFoldEq}%</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#86daff' }}>{spot.neededFoldEq}%</div>
               </div>
             </div>
             <div style={{ fontSize: 12, color: '#22c55e', textAlign: 'center', marginTop: 6, fontWeight: 700 }}>
