@@ -927,6 +927,7 @@ import './seo-aeo-geo-phase4-20261126.law.test.mjs';
 import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
 import './seo-aeo-geo-phase6-20261126.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
+import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
