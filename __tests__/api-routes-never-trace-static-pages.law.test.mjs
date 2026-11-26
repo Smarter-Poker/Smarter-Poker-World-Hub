@@ -249,3 +249,42 @@ test('positive control: constructing public URLs with new URL(route, baseUrl).hr
 
     assert.equal(violations.size, 0, `Expected 0 traced non-API pages for new URL(...), got ${violations.size}`);
 });
+
+test('build:vercel isolates pre-build unit tests under NODE_ENV=test without affecting next build', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    const buildVercel = pkg.scripts?.['build:vercel'] ?? '';
+    const segments = buildVercel.split('&&').map((s) => s.trim()).filter(Boolean);
+    assert.ok(segments.length > 0, 'package.json must define scripts["build:vercel"]');
+
+    const nextBuildSegments = segments.filter((s) => /\bnext build\b/.test(s));
+    assert.equal(nextBuildSegments.length, 1, 'build:vercel must invoke next build exactly once');
+    assert.doesNotMatch(
+        nextBuildSegments[0],
+        /\bNODE_ENV=test\b/,
+        'next build itself must stay in production mode (never NODE_ENV=test)',
+    );
+
+    const unprotected = [];
+    for (const seg of segments) {
+        const isTestCommand = /\bnpm run test:/.test(seg) || /\bnode\b[^&]*\s--test\b/.test(seg);
+        if (!isTestCommand) continue;
+        if (/^NODE_ENV=test\s+/.test(seg)) continue;
+
+        // Allow a single-file `node --test <file>` only when that file explicitly sets NODE_ENV = 'test'.
+        const singleFileMatch = seg.match(/^node\s+--test\s+([^\s]+\.mjs)$/);
+        if (singleFileMatch) {
+            const fullPath = path.join(ROOT, singleFileMatch[1]);
+            const source = fs.existsSync(fullPath) ? fs.readFileSync(fullPath, 'utf8') : '';
+            if (/process\.env\.NODE_ENV\s*=\s*['"]test['"]/.test(source)) continue;
+        }
+        unprotected.push(seg);
+    }
+
+    assert.deepEqual(
+        unprotected,
+        [],
+        `build:vercel runs under Vercel's NODE_ENV=production, where React's act(...) throws unconditionally.\n` +
+        `Prefix every pre-build test command in scripts["build:vercel"] with \`NODE_ENV=test\` (as happened on #3084 / dpl_GEHCsnjxzDhJSiawYYBiAftQzXkf):\n` +
+        unprotected.map((s) => `  - ${s}`).join('\n'),
+    );
+});
