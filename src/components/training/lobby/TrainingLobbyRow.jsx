@@ -16,7 +16,7 @@
  */
 
 import { memo } from 'react';
-import { Star, SlidersHorizontal, Lock, Check, Sparkles, AlertTriangle } from 'lucide-react';
+import { Play, Star, SlidersHorizontal, Lock, Check, Sparkles, AlertTriangle } from 'lucide-react';
 import TrainingGameArt from '../TrainingGameArt';
 
 function DifficultyPips({ level }) {
@@ -107,11 +107,11 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
                 </span>
               )}
             </span>
-            <span className="sp-arena-row__focus">{game.focus}</span>
+            <span className="sp-arena-row__focus">{plaqueText}</span>
           </span>
 
-          <span className="sp-arena-row__plaque" aria-label={`Format ${plaqueText}`}>
-            <span>{plaqueText}</span>
+          <span className="sp-arena-row__plaque" aria-hidden="true">
+            <Play size={12} /> Play
           </span>
         </button>
 

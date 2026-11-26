@@ -15,7 +15,7 @@ export const LOBBY_GROUPS = Object.freeze({
 });
 
 export const LOBBY_CATEGORY_META = Object.freeze({
-  MTT: Object.freeze({ id: 'MTT', label: 'Tournaments', shortLabel: "MTT's", group: 'DRILLS', ledTone: 'cobalt' }),
+  MTT: Object.freeze({ id: 'MTT', label: 'Tournaments', shortLabel: "MTTs", group: 'DRILLS', ledTone: 'cobalt' }),
   CASH: Object.freeze({ id: 'CASH', label: 'Cash Games', shortLabel: 'Cash', group: 'DRILLS', ledTone: 'emerald' }),
   SPINS: Object.freeze({ id: 'SPINS', label: 'Spins & SNGs', shortLabel: 'Spins', group: 'DRILLS', ledTone: 'ice' }),
   ADVANCED: Object.freeze({ id: 'ADVANCED', label: 'Poker Strategy', shortLabel: 'Strategy', group: 'LABS', ledTone: 'ice' }),
@@ -29,7 +29,7 @@ export const QUICK_FILTER_PILLS = Object.freeze([
   { id: 'FOR_YOU', label: 'For You' },
   { id: 'IN_PROGRESS', label: 'In Progress' },
   { id: 'BEGINNER', label: 'Beginner' },
-  { id: 'PRO', label: 'Pro / GTO' },
+  { id: 'PRO', label: 'Advanced' },
 ]);
 
 export const DEFAULT_LOBBY_FILTERS = Object.freeze({
@@ -60,6 +60,15 @@ const STYLE_LABELS = Object.freeze({
   math: 'Math',
   exploitative: 'Exploit',
 });
+
+// Players type poker terms with or without spaces, apostrophes and hyphens.
+function searchWords(value) {
+  return String(value).toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/\b([3-5])[\s-]*bets?\b/g, '$1bet')
+    .replace(/\bsit[\s-]+(?:and[\s-]+|n[\s-]+|&[\s-]+)?go(?:s|es)?\b/g, 'sng')
+    .match(/[a-z0-9]+/g) || [];
+}
 
 /**
  * Enrich a canonical TRAINING_LIBRARY game entry with deterministic Arena-row
@@ -100,7 +109,7 @@ export function buildLobbyGameMeta(game) {
 
   const variantShort = VARIANT_METADATA[preset?.variant]?.shortLabel || 'NLH';
 
-  const searchHaystack = [
+  const words = searchWords([
     game.id,
     game.name,
     game.focus,
@@ -108,6 +117,7 @@ export function buildLobbyGameMeta(game) {
     catMeta.shortLabel,
     plaqueLabel,
     styleLabel,
+    VARIANT_METADATA[preset?.variant]?.label,
     variantShort,
     ...tags,
     game.vipOnly ? 'vip boss level 10' : 'free',
@@ -115,8 +125,7 @@ export function buildLobbyGameMeta(game) {
     `lvl ${difficulty}`,
   ]
     .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+    .join(' '));
 
   return {
     id: game.id,
@@ -135,7 +144,7 @@ export function buildLobbyGameMeta(game) {
     variantShort,
     preset,
     vipOnly: Boolean(game.vipOnly),
-    searchHaystack,
+    searchWords: words,
   };
 }
 
@@ -176,7 +185,7 @@ export function isRecommendedForPlayer(game, meta, ctx = {}) {
 export function filterAndSortTrainingGames(library, filters, ctx = {}) {
   const f = { ...DEFAULT_LOBBY_FILTERS, ...(filters || {}) };
   const query = String(f.query || '').trim().toLowerCase();
-  const queryTerms = query ? query.split(/\s+/).filter(Boolean) : [];
+  const queryTerms = searchWords(query);
   const favoriteSet = ctx.favoriteIds instanceof Set ? ctx.favoriteIds : new Set(ctx.favoriteIds || []);
   const getProgress = typeof ctx.getProgress === 'function' ? ctx.getProgress : () => 0;
 
@@ -227,7 +236,7 @@ export function filterAndSortTrainingGames(library, filters, ctx = {}) {
       if (f.variant !== 'nlh' && meta.category === 'SPINS' && f.variant === 'plo6') continue;
     }
 
-    if (queryTerms.length > 0 && !queryTerms.every((term) => meta.searchHaystack.includes(term))) {
+    if (queryTerms.length > 0 && !queryTerms.every((term) => meta.searchWords.some((word) => word.startsWith(term)))) {
       continue;
     }
 

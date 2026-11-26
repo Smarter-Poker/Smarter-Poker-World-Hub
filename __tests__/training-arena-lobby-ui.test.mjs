@@ -77,6 +77,22 @@ test('trainingLobbyFilter: 3-tier selector deck filters accurately by group, cat
   assert.ok(icmSearch.some((i) => i.game.id === 'mtt-002'));
 });
 
+test('poker search understands common spellings and does not match PLO inside exploitative', () => {
+  const find = (query) => filterAndSortTrainingGames(TRAINING_LIBRARY, { query }).map(({ game }) => game.id);
+  assert.ok(find('3bet').includes('cash-007'));
+  assert.deepEqual(find('3 bet'), find('3-bet'));
+  assert.deepEqual(find('3bet'), find('3-bet'));
+  assert.ok(find('sit and go').includes('spins-001'));
+  const omaha = TRAINING_LIBRARY.filter((game) => buildLobbyGameMeta(game).preset.variant.startsWith('plo'));
+  assert.ok(omaha.length > 0);
+  for (const query of ['plo', 'omaha']) {
+    assert.deepEqual(new Set(find(query)), new Set(omaha.map((game) => game.id)));
+  }
+  for (const game of TRAINING_LIBRARY) {
+    assert.ok(find(game.name).includes(game.id), game.name);
+  }
+});
+
 test('trainingLobbyFilter: column sorting, advanced count, and section grouping stay deterministic', () => {
   const byDiffAsc = filterAndSortTrainingGames(TRAINING_LIBRARY, {
     ...DEFAULT_LOBBY_FILTERS,

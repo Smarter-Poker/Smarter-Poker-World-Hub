@@ -111,7 +111,7 @@ export default function TrainingLobbyControls({
         >
           <span className="sp-arena-plate__well">
             <span className="sp-arena-plate__title">Game Drills</span>
-            <span className="sp-arena-plate__meta sp-num">{counts.DRILLS} Table Formats</span>
+            <span className="sp-arena-plate__meta sp-num">{counts.DRILLS} Games</span>
           </span>
         </button>
 
@@ -124,7 +124,7 @@ export default function TrainingLobbyControls({
         >
           <span className="sp-arena-plate__well">
             <span className="sp-arena-plate__title">Strategy Labs</span>
-            <span className="sp-arena-plate__meta sp-num">{counts.LABS} Theory &amp; Mind</span>
+            <span className="sp-arena-plate__meta sp-num">{counts.LABS} Games</span>
           </span>
         </button>
       </div>
@@ -219,7 +219,7 @@ export default function TrainingLobbyControls({
             ref={searchInputRef}
             type="search"
             aria-label="Search Games"
-            placeholder="Search Drills, Spots, ICM, 3-Bet, PLO…"
+            placeholder="Search Games, e.g. ICM or 3-Bet"
             value={filters.query}
             onChange={(e) => onUpdateFilters({ query: e.target.value })}
           />
