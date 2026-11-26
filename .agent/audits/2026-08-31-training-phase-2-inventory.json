@@ -57571,7 +57571,7 @@
         {
           "element": "button",
           "name": "Go Back",
-          "line": 1662,
+          "line": 1663,
           "handler": "onBackClick || handleBack",
           "destination": null,
           "type": "button",
@@ -57581,7 +57581,7 @@
         {
           "element": "button",
           "name": "Go To The Hub",
-          "line": 1668,
+          "line": 1670,
           "handler": "() => router.push('/hub')",
           "destination": null,
           "type": "button",
@@ -57591,7 +57591,7 @@
         {
           "element": "button",
           "name": "My Profile",
-          "line": 1674,
+          "line": 1677,
           "handler": "goToProfile",
           "destination": null,
           "type": "button",
@@ -57601,7 +57601,7 @@
         {
           "element": "button",
           "name": "Diamond Wallet",
-          "line": 1691,
+          "line": 1695,
           "handler": "() => setIsWalletOpen(true)",
           "destination": null,
           "type": "button",
@@ -57611,7 +57611,7 @@
         {
           "element": "button",
           "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-          "line": 1697,
+          "line": 1702,
           "handler": "() => router.push('/hub/vip-membership')",
           "destination": null,
           "type": "button",
@@ -57621,7 +57621,7 @@
         {
           "element": "button",
           "name": "Messages",
-          "line": 1706,
+          "line": 1712,
           "handler": "() => router.push('/hub/messenger')",
           "destination": null,
           "type": "button",
@@ -57631,7 +57631,7 @@
         {
           "element": "button",
           "name": "Notifications",
-          "line": 1718,
+          "line": 1725,
           "handler": "() => openOverlay('notifications')",
           "destination": null,
           "type": "button",
@@ -99458,11 +99458,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1662:2",
+      "id": "src/components/ui/UniversalHeader.js:1663:2",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go Back",
-      "line": 1662,
+      "line": 1663,
       "handler": "onBackClick || handleBack",
       "destination": null,
       "type": "button",
@@ -99471,11 +99471,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1668:3",
+      "id": "src/components/ui/UniversalHeader.js:1670:3",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go To The Hub",
-      "line": 1668,
+      "line": 1670,
       "handler": "() => router.push('/hub')",
       "destination": null,
       "type": "button",
@@ -99484,11 +99484,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1674:4",
+      "id": "src/components/ui/UniversalHeader.js:1677:4",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "My Profile",
-      "line": 1674,
+      "line": 1677,
       "handler": "goToProfile",
       "destination": null,
       "type": "button",
@@ -99497,11 +99497,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1691:5",
+      "id": "src/components/ui/UniversalHeader.js:1695:5",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Diamond Wallet",
-      "line": 1691,
+      "line": 1695,
       "handler": "() => setIsWalletOpen(true)",
       "destination": null,
       "type": "button",
@@ -99510,11 +99510,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1697:6",
+      "id": "src/components/ui/UniversalHeader.js:1702:6",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-      "line": 1697,
+      "line": 1702,
       "handler": "() => router.push('/hub/vip-membership')",
       "destination": null,
       "type": "button",
@@ -99523,11 +99523,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1706:7",
+      "id": "src/components/ui/UniversalHeader.js:1712:7",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Messages",
-      "line": 1706,
+      "line": 1712,
       "handler": "() => router.push('/hub/messenger')",
       "destination": null,
       "type": "button",
@@ -99536,11 +99536,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1718:8",
+      "id": "src/components/ui/UniversalHeader.js:1725:8",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Notifications",
-      "line": 1718,
+      "line": 1725,
       "handler": "() => openOverlay('notifications')",
       "destination": null,
       "type": "button",

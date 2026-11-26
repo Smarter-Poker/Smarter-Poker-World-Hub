@@ -1644,6 +1644,7 @@ export default function UniversalHeader({
         <div className="approved-global-header__controls">
           <button
             type="button"
+            data-compact="true"
             className="approved-global-header__button approved-global-header__menu"
             data-world-menu-trigger="approved-header"
             data-menu-symbol="hamburger"
@@ -1661,18 +1662,21 @@ export default function UniversalHeader({
           />
           <button
             type="button"
+            data-compact="true"
             className="approved-global-header__button approved-global-header__back"
             onClick={onBackClick || handleBack}
             aria-label="Go Back"
           />
           <button
             type="button"
+            data-compact="true"
             className="approved-global-header__button approved-global-header__hub"
             onClick={() => router.push('/hub')}
             aria-label="Go To The Hub"
           />
           <button
             type="button"
+            data-compact="true"
             className="approved-global-header__button approved-global-header__profile"
             onClick={goToProfile}
             aria-label="My Profile"
@@ -1690,12 +1694,14 @@ export default function UniversalHeader({
           </button>
           <button
             type="button"
+            data-compact="true"
             className="approved-global-header__button approved-global-header__wallet"
             onClick={() => setIsWalletOpen(true)}
             aria-label="Diamond Wallet"
           />
           <button
             type="button"
+            data-compact="true"
             className={`approved-global-header__button approved-global-header__vip${
               safeIsVip ? ' approved-global-header__vip--active' : ''
             }`}
@@ -1705,6 +1711,7 @@ export default function UniversalHeader({
           />
           <button
             type="button"
+            data-compact="true"
             className="approved-global-header__button approved-global-header__messenger"
             onClick={() => router.push('/hub/messenger')}
             aria-label="Messages"
@@ -1717,6 +1724,7 @@ export default function UniversalHeader({
           </button>
           <button
             type="button"
+            data-compact="true"
             className="approved-global-header__button approved-global-header__notifications"
             /* Zeroing the badge, writing sp-notif-count and POSTing mark-read
                used to be written out here, which meant the badge cleared from
