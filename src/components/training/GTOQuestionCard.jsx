@@ -247,7 +247,7 @@ export default function GTOQuestionCard({
             setPendingId(null);
             setHoveredId(null);
         }
-    }, [question, showFeedback, question?._gradingContext?.submissionId, question?.id, questionNumber]);
+    }, [showFeedback, question?._gradingContext?.submissionId, question?.id, questionNumber, question?._retryCount]);
 
     // BUG-D FIX: Fisher-Yates shuffle options per question to eliminate position bias
     const shuffledOptions = useMemo(() => {

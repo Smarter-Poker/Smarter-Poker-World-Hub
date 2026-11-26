@@ -1185,7 +1185,7 @@ test('Phase 23 deep forensic root-cause hardening: Practice Again spot replay, C
   );
   assert.ok(
     udtSrc.includes(':${question?._retryCount || 0}') &&
-      qCardSrc.includes('question, showFeedback'),
+      qCardSrc.includes('showFeedback, question?._gradingContext?.submissionId'),
     'UniversalDynamicTable decisionKey and GTOQuestionCard selection reset must react to Practice Again replay',
   );
 
