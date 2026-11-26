@@ -317,11 +317,34 @@ async function upsertVaultItemsResilient(client, rows) {
         return { upsertedCount: rows.length, rows };
     }
 
-    // Deduplicate in-batch on (issue_period, source_type, source_id) so Postgres ON CONFLICT never sees two identical keys
+    // Deduplicate in-batch on (issue_period, source_type, source_id) and map onto exact magazine_vault_items columns
     const dedupedByKey = new Map();
     for (const r of rows) {
         const key = `${r.issue_period}::${r.source_type}::${r.source_id}`;
-        dedupedByKey.set(key, r);
+        const metaObj = r.metadata_json ?? r.metadata ?? r.payload_json ?? {};
+        const dbRow = {
+            issue_period: r.issue_period,
+            section: r.section,
+            source_type: r.source_type,
+            source_id: r.source_id,
+            headline: r.headline,
+            deck: r.deck ?? r.summary ?? null,
+            body_text: r.body_text ?? null,
+            author_byline: r.author_byline ?? (metaObj && typeof metaObj === 'object' ? metaObj.byline || null : null),
+            canonical_url: r.canonical_url ?? r.source_url ?? null,
+            original_image_url: r.original_image_url ?? null,
+            vaulted_image_url: r.vaulted_image_url ?? null,
+            vaulted_master_url: r.vaulted_master_url ?? null,
+            vaulted_storage_path: r.vaulted_storage_path ?? null,
+            image_width: r.image_width ?? null,
+            image_height: r.image_height ?? null,
+            editorial_score: r.editorial_score ?? 0,
+            is_pinned: Boolean(r.is_pinned),
+            is_excluded: Boolean(r.is_excluded),
+            metadata_json: metaObj && typeof metaObj === 'object' ? metaObj : {},
+            updated_at: new Date().toISOString(),
+        };
+        dedupedByKey.set(key, dbRow);
     }
     let currentRows = [...dedupedByKey.values()];
 
@@ -1043,13 +1066,15 @@ export async function harvestMonthlyMagazineVault(
     try {
         const { data: calEvents } = await client
             .from('unified_events_calendar')
-            .select('id, venue_id, venue_name, event_name, start_time, buy_in, guaranteed, game_type, day_of_week, specific_date, city, state')
+            .select('source, native_id, venue_id, venue_name, event_name, start_time, buy_in, guaranteed, game_type, day_of_week, specific_date, city, state')
             .eq('is_active', true)
             .eq('is_suppressed', false)
             .limit(16);
 
         for (const ev of (calEvents || []).filter((e) => e?.event_name && e?.venue_name).slice(0, 8)) {
-            const sourceId = String(ev.id || `${ev.venue_name}-${ev.event_name}`).slice(0, 120);
+            const sourceId = String(
+                ev.native_id ? `${ev.source || 'ev'}:${ev.native_id}` : `${ev.venue_name}-${ev.event_name}`
+            ).slice(0, 120);
             const loc = [ev.venue_name, ev.city, ev.state].map(stripMagazineDashes).filter(Boolean).join(', ');
             const whenLabel = stripMagazineDashes(ev.specific_date || ev.day_of_week || 'Weekly');
             stagedRows.push(

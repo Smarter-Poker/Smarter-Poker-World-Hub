@@ -48,7 +48,7 @@ async function getSupabaseClient(sb) {
 
 function readItemMeta(item) {
     if (!item || typeof item !== 'object') return {};
-    const m = item.metadata || item.payload_json || item.meta;
+    const m = item.metadata_json || item.metadata || item.payload_json || item.meta;
     return m && typeof m === 'object' ? m : {};
 }
 
@@ -129,7 +129,7 @@ function buildFallbackNewsBriefs(periodLabel) {
     return [
         {
             headline: `Live Tournament Guarantees Surge Entering ${periodLabel}`,
-            summary: 'Regional mid-major stops and championship main events continue expanding multi-flight fields and deeperDay 2 blind structures across North America.',
+            summary: 'Regional mid-major stops and championship main events continue expanding multi-flight fields and deeper Day 2 blind structures across North America.',
             byline: 'Smarter.Poker Tour Desk',
             category: 'Live Circuit',
             imageUrl: IMAGE_VAULT_FALLBACK_URL,
@@ -342,6 +342,11 @@ export function buildMagazineManifestFromVault({
 
     const activeItems = (Array.isArray(vaultItems) ? vaultItems : [])
         .filter((item) => item && item.is_excluded !== true)
+        .map((item) => ({
+            ...item,
+            summary: item.deck || item.summary || item.subheadline || '',
+            source_url: item.canonical_url || item.source_url || '',
+        }))
         .sort((a, b) => {
             const aPinned = Boolean(a.is_pinned) || (pinnedTargetId && String(a.id) === pinnedTargetId);
             const bPinned = Boolean(b.is_pinned) || (pinnedTargetId && String(b.id) === pinnedTargetId);
