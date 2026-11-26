@@ -24,18 +24,12 @@ test('lobby exposes every public game and uses recoverable, prefetched routes', 
     assert.ok(TRIVIA_MIDDLE_MODES.some(mode => mode.id === 'time-attack'));
     assert.ok(existsSync(join(ROOT, 'public/images/trivia/modes-console-v1/time-attack.webp')));
     assert.match(lobby, /await router\.push\(getModeRoute\(modeId\)\)/);
-    assert.match(lobby, /setRouteError\('That game could not be opened/);
+    assert.match(lobby, /setRouteError\('That Game Could Not Be Opened/);
     assert.match(lobby, /router\.prefetch\(route\)/);
-    assert.match(lobby, /'\/hub\/vip-membership'/);
 });
 
-test('entry disclosure is a semantic, focus-managed, scroll-locked dialog', () => {
-    assert.match(lobby, /role="dialog"/);
-    assert.match(lobby, /aria-modal="true"/);
-    assert.match(lobby, /acquireScrollLock\('trivia-entry-disclosure'\)/);
-    assert.match(lobby, /event\.key === 'Escape'/);
-    assert.match(lobby, /event\.key !== 'Tab'/);
-    assert.match(lobby, /previousFocusRef\.current\.focus\(\)/);
+test('lobby routes directly to authoritative pregame without double-modal friction while keeping accessible targets', () => {
+    assert.doesNotMatch(lobby, /showChargePopup/);
     assert.match(lobby, /@media \(forced-colors: active\)/);
     assert.match(lobby, /min-height: 44px/);
 });

@@ -31,7 +31,6 @@ import { TRIVIA_INTRO_ART_SURVIVAL } from '../../../src/config/triviaIntroArt.mj
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
-import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
@@ -1348,7 +1347,10 @@ export default function SurvivalGamePage() {
     // The pill is a short painted slot (about eight characters at 375px);
     // longer state, balance and timer copy is printed on the glass below.
     const balanceLabel = !userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume' : isVip ? 'VIP' : 'Ready';
+    const hasActiveContinuation = Boolean(survivalParentSessionRef.current) && userProgress.highestLevel > 0;
     const nextAvailableLevel = Math.min(userProgress.highestLevel + 1, LEVEL_CONFIG.length);
+    const survivalCostLabel = isVip ? 'VIP Free' : `${formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds`;
+    const startNewRunLabel = `Start New Run (Level 1) - ${survivalCostLabel}`;
     const stateLabel = showOutOfDiamonds
         ? 'Balance'
         : isPaused
@@ -1383,14 +1385,19 @@ export default function SurvivalGamePage() {
                     ? { label: 'Sign In To Play', onClick: () => router.push('/auth/login?redirect=/hub/trivia/survival-game') }
                     : serverRun.hasRecoverableSession
                         ? { label: 'Resume Saved Level', onClick: resumeServerLevel, disabled: isLoading }
-                        : {
-                    label: userProgress.highestLevel > 0
-                        ? `Continue From Level ${formatTriviaDisplayNumber(nextAvailableLevel)}`
-                        : 'Start Level 1',
-                    onClick: () => startLevel(nextAvailableLevel),
-                    disabled: isLoading,
-                    'aria-disabled': isLoading,
-                        }
+                        : hasActiveContinuation
+                            ? {
+                                label: `Continue From Level ${formatTriviaDisplayNumber(nextAvailableLevel)} (Free)`,
+                                onClick: () => startLevel(nextAvailableLevel),
+                                disabled: isLoading,
+                                'aria-disabled': isLoading,
+                            }
+                            : {
+                                label: startNewRunLabel,
+                                onClick: () => startLevel(1),
+                                disabled: isLoading,
+                                'aria-disabled': isLoading,
+                            }
                 : gameState === 'playing'
                     ? timeoutRetryRequired
                         ? { label: isTimeoutRetrying ? 'Confirming Expired Answer' : 'Retry Expired Answer', onClick: retryExpiredQuestion, disabled: isTimeoutRetrying }
@@ -1405,8 +1412,8 @@ export default function SurvivalGamePage() {
                         }
                         : gameState === 'gameOver'
                             ? {
-                                label: `Retry Level ${formatTriviaDisplayNumber(currentLevel)}`,
-                                onClick: () => restartFromLevel(currentLevel),
+                                label: startNewRunLabel,
+                                onClick: () => restartFromLevel(1),
                             }
                             : gameState === 'victory'
                                 ? { label: 'Return To Trivia Hub', onClick: backToLobby }
@@ -1414,11 +1421,13 @@ export default function SurvivalGamePage() {
 
     const secondaryAction = showOutOfDiamonds
         ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
-        : gameState === 'levelComplete'
-            ? { label: 'Save And Exit', onClick: backToLobby }
-            : gameState === 'gameOver'
-            ? { label: 'Back To Trivia', onClick: backToLobby }
-            : null;
+        : gameState === 'lobby'
+            ? { label: 'Back To Lobby', onClick: backToLobby }
+            : gameState === 'levelComplete'
+                ? { label: 'Save And Exit', onClick: backToLobby }
+                : gameState === 'gameOver'
+                    ? { label: 'Back To Lobby', onClick: backToLobby }
+                    : null;
 
     const accountBoundaryPending = shouldGateAccountOwnedRender({
         loading: authLoading,
@@ -1430,7 +1439,7 @@ export default function SurvivalGamePage() {
             <TriviaErrorBoundary pageName="Survival Mode">
                 <>
                     <SEOHead title="Survival Poker Trivia: One Life" description="Survival Poker Trivia On Smarter.Poker: enter one progressive server-verified run, clear ten rising checkpoints, protect limited lives, and receive a verified level ledger." canonical="/hub/trivia/survival-game" />
-                    <div className="trivia-challenge-page trivia-challenge-page--survival" data-trivia-family="challenge" data-trivia-surface="survival-game" data-game-state="loading">
+                    <div className="smarterdesign trivia-challenge-page trivia-challenge-page--survival" data-trivia-family="challenge" data-trivia-surface="survival-game" data-game-state="loading">
                         <UniversalHeader pageDepth={2} />
                         <PageTransition>
                             <main className="trivia-challenge-shell" aria-labelledby="survival-trivia-title">
@@ -1468,22 +1477,13 @@ export default function SurvivalGamePage() {
                 />
 
                 <div
-                    className="trivia-challenge-page trivia-challenge-page--survival"
+                    className="smarterdesign trivia-challenge-page trivia-challenge-page--survival"
                     data-trivia-family="challenge"
                     data-trivia-surface="survival-game"
                     data-game-state={gameState}
                     data-screen-shake={screenShake ? 'active' : 'idle'}
                 >
                     <UniversalHeader pageDepth={2} />
-
-                    {userId && !isVip && (
-                        <GameCostPopup
-                            userId={userId}
-                            featureKey="trivia_survival_game"
-                            isVip={isVip}
-                            cost={GAME_ENTRY_COST}
-                        />
-                    )}
 
                     <PageTransition>
                         <main className="trivia-challenge-shell" aria-labelledby="survival-trivia-title">
@@ -1554,31 +1554,39 @@ export default function SurvivalGamePage() {
                                                 <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
                                             </div>
                                         </dl>
-                                        {userId && !isVip && (
-                                            <ul className="tc-rows" aria-label="Your Balance">
+                                        <ul className="tc-rows" aria-label="Entry Summary">
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Entry Cost</span>
+                                                <span className={`tc-row__value ${isVip || hasActiveContinuation ? 'tc-ink--green' : 'tc-ink--cyan'}`}>
+                                                    {hasActiveContinuation ? 'Free Continuation' : survivalCostLabel}
+                                                </span>
+                                            </li>
+                                            {userId && (
                                                 <li className="tc-row">
                                                     <span className="tc-row__label">Your Balance</span>
-                                                    <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                                    <span className="tc-row__value tc-ink--cyan">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
                                                 </li>
-                                            </ul>
-                                        )}
+                                            )}
+                                        </ul>
 
-                                        <div className="trivia-challenge-levels" aria-label="Survival Level Selection">
+                                        <div className="trivia-challenge-levels" aria-label="Survival Level Progression">
                                             {LEVEL_CONFIG.map(level => {
-                                                const isUnlocked = level.level <= userProgress.highestLevel + 1;
+                                                const isLaunchable = hasActiveContinuation
+                                                    ? level.level === nextAvailableLevel
+                                                    : level.level === 1;
                                                 const isCompleted = level.level <= userProgress.highestLevel;
                                                 return (
                                                     <button
                                                         key={level.level}
                                                         type="button"
                                                         className="trivia-challenge-level"
-                                                        onClick={() => startLevel(level.level)}
-                                                        disabled={!userId || !isUnlocked || isLoading || serverRun.hasRecoverableSession}
-                                                        aria-label={`Level ${level.level}, ${level.accuracyRequired}% Required, ${!userId ? 'Sign In Required' : serverRun.hasRecoverableSession ? 'Resume Saved Level First' : isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}`}
+                                                        onClick={() => startLevel(hasActiveContinuation ? nextAvailableLevel : 1)}
+                                                        disabled={!userId || !isLaunchable || isLoading || serverRun.hasRecoverableSession}
+                                                        aria-label={`Level ${level.level}, ${level.accuracyRequired}% Required, ${!userId ? 'Sign In Required' : serverRun.hasRecoverableSession ? 'Resume Saved Level First' : isLaunchable ? 'Ready To Start' : isCompleted ? 'Best Reached' : 'Locked'}`}
                                                     >
                                                         <span>Level {formatTriviaDisplayNumber(level.level)}</span>
                                                         <span>{formatTriviaDisplayNumber(level.accuracyRequired)}% Required</span>
-                                                        <span>{!userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume Saved Level' : isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}</span>
+                                                        <span>{!userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume Saved Level' : isLaunchable ? 'Ready' : isCompleted ? 'Best Reached' : 'Locked'}</span>
                                                     </button>
                                                 );
                                             })}
@@ -1808,7 +1816,7 @@ export default function SurvivalGamePage() {
                                             {currentQuestion.options?.map((option, index) => (
                                                 <TriviaAnswerOption
                                                     variant="inline"
-                                                    key={index}
+                                                    key={`${currentQuestion.id}-${index}`}
                                                     index={index}
                                                     option={toTitleCase(option)}
                                                     selectedAnswer={trivia.selectedAnswer}
@@ -1841,6 +1849,7 @@ export default function SurvivalGamePage() {
                                         {trivia.showResult && currentQuestion?.id != null && (
                                             <div className="trivia-challenge-report">
                                                 <ReportQuestionButton
+                                                    key={currentQuestion.id}
                                                     questionId={currentQuestion.id}
                                                     sessionId={serverRun.sessionId}
                                                     accountId={userId}

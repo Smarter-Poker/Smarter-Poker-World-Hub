@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { ephemeralResult, persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 import { gradeAction } from '../../../../src/lib/sandbox/actionGrading';
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+    _supabase = client;
+}
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -86,6 +91,8 @@ async function loadOwnedSessionResult(supabase, sessionId, userId) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
       if (req.method !== 'POST') {
           res.setHeader('Allow', 'POST');
@@ -115,6 +122,18 @@ export default async function handler(req, res) {
                   return res.status(401).json({ success: false, error: 'Invalid or expired authorization token' });
               }
               return res.status(200).json(ephemeralResult('guest', null, { stored: false }));
+          }
+
+          const contextAccess = await checkSandboxAccess(supabase, userId);
+          if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'sandbox_analyze')) {
+              return res.status(403).json({
+                  success: false,
+                  blocked: true,
+                  stored: false,
+                  contextState: contextAccess?.contextState || 'session_active_unknown',
+                  accessLevel: contextAccess?.accessLevel || 'hard_block',
+                  error: contextAccess?.message || 'Sandbox coach grading is unavailable during live play or post-session cooldown.',
+              });
           }
 
           // Identity comes from the verified Bearer token above and nowhere

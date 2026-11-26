@@ -8,6 +8,8 @@ import { normalizeUserLeakRow } from '../../../../src/lib/personal-assistant/lea
 const CLUB_HAND_PREFIX = 'club-arena:';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HAND_TIME_CHUNK = 150;
+const HAND_TIME_MAX_IDS = 1800;
+const COOLDOWN_MS = 5 * 60 * 1000;
 
 function handUuid(externalId) {
   const raw = String(externalId || '');
@@ -16,8 +18,12 @@ function handUuid(externalId) {
 }
 
 let _supabase = null;
+let _checkAccess = null;
 export function _setSupabaseForTesting(client) {
   _supabase = client;
+}
+export function _setCheckAccessForTesting(fn) {
+  _checkAccess = fn;
 }
 
 function getSupabase() {
@@ -30,6 +36,92 @@ function getSupabase() {
   return _supabase;
 }
 
+async function evaluateLivePlayAccess(supabase, userId) {
+  if (typeof _checkAccess === 'function') {
+    return _checkAccess(supabase, userId);
+  }
+  if (!userId) {
+    return { allowed: false, contextState: 'education_only', accessLevel: 'general_theory' };
+  }
+  const cooldownCutoffIso = new Date(Date.now() - COOLDOWN_MS).toISOString();
+  const cooldownCutoffMs = Date.parse(cooldownCutoffIso);
+  try {
+    // 1. Check poker_sessions (supports both full PostgREST builders and minimal .eq().limit() test stubs)
+    const psBase = supabase.from('poker_sessions').select('id, started_at, ended_at').eq('user_id', userId);
+    if (typeof psBase?.is === 'function') {
+      const activeRes = await psBase.is('ended_at', null).order('started_at', { ascending: false }).limit(1);
+      if (activeRes?.error) {
+        return { allowed: false, contextState: 'session_active_unknown', accessLevel: 'hard_block', message: 'We detected an active session. Please end your session first.' };
+      }
+      if (Array.isArray(activeRes?.data) && activeRes.data.length > 0) {
+        return { allowed: false, contextState: 'live_play', accessLevel: 'hard_block', message: 'Live-fix claim is unavailable during live play. Finish your session first.' };
+      }
+      const recentBase = supabase.from('poker_sessions').select('id, ended_at').eq('user_id', userId);
+      const recentRes = await recentBase.not('ended_at', 'is', null).gte('ended_at', cooldownCutoffIso).limit(1);
+      if (recentRes?.error) {
+        return { allowed: false, contextState: 'session_active_unknown', accessLevel: 'hard_block', message: 'We detected an active session. Please end your session first.' };
+      }
+      if (Array.isArray(recentRes?.data) && recentRes.data.length > 0) {
+        return { allowed: true, contextState: 'session_ended_verified', accessLevel: 'limited_review', message: 'Post-session cooldown active. Wait 5 minutes after leaving the table.' };
+      }
+    } else if (typeof psBase?.limit === 'function') {
+      const psRes = await psBase.limit(20);
+      if (psRes?.error) {
+        return { allowed: false, contextState: 'session_active_unknown', accessLevel: 'hard_block', message: 'We detected an active session. Please end your session first.' };
+      }
+      const psRows = Array.isArray(psRes?.data) ? psRes.data : [];
+      if (psRows.some(r => r && (r.ended_at === null || r.ended_at === undefined))) {
+        return { allowed: false, contextState: 'live_play', accessLevel: 'hard_block', message: 'Live-fix claim is unavailable during live play. Finish your session first.' };
+      }
+      if (psRows.some(r => r?.ended_at && Date.parse(r.ended_at) >= cooldownCutoffMs)) {
+        return { allowed: true, contextState: 'session_ended_verified', accessLevel: 'limited_review', message: 'Post-session cooldown active. Wait 5 minutes after leaving the table.' };
+      }
+    }
+
+    // 2. Check table_seats (Club Arena live seating + 5m post-seat cooldown)
+    const tsBase = supabase.from('table_seats').select('id, table_id, left_at').eq('user_id', userId);
+    if (typeof tsBase?.is === 'function') {
+      const activeSeatsRes = await tsBase.is('left_at', null).limit(1);
+      if (activeSeatsRes?.error) {
+        if (String(activeSeatsRes.error?.code || '') !== '42P01') {
+          return { allowed: false, contextState: 'session_active_unknown', accessLevel: 'hard_block', message: 'We detected an active session. Please end your session first.' };
+        }
+      } else if (Array.isArray(activeSeatsRes?.data) && activeSeatsRes.data.length > 0) {
+        return { allowed: false, contextState: 'live_play', accessLevel: 'hard_block', message: 'Live-fix claim is unavailable while seated at a live Club Arena table.' };
+      }
+      const recentSeatsBase = supabase.from('table_seats').select('id, left_at').eq('user_id', userId);
+      const recentSeatsRes = await recentSeatsBase.not('left_at', 'is', null).gte('left_at', cooldownCutoffIso).limit(1);
+      if (recentSeatsRes?.error) {
+        if (String(recentSeatsRes.error?.code || '') !== '42P01') {
+          return { allowed: false, contextState: 'session_active_unknown', accessLevel: 'hard_block', message: 'We detected an active session. Please end your session first.' };
+        }
+      } else if (Array.isArray(recentSeatsRes?.data) && recentSeatsRes.data.length > 0) {
+        return { allowed: true, contextState: 'session_ended_verified', accessLevel: 'limited_review', message: 'Post-session cooldown active. Wait 5 minutes after leaving the table.' };
+      }
+    } else if (typeof tsBase?.limit === 'function') {
+      const tsRes = await tsBase.limit(20);
+      if (tsRes?.error) {
+        if (String(tsRes.error?.code || '') !== '42P01') {
+          return { allowed: false, contextState: 'session_active_unknown', accessLevel: 'hard_block', message: 'We detected an active session. Please end your session first.' };
+        }
+      } else {
+        const tsRows = Array.isArray(tsRes?.data) ? tsRes.data : [];
+        if (tsRows.some(r => r && (r.left_at === null || r.left_at === undefined))) {
+          return { allowed: false, contextState: 'live_play', accessLevel: 'hard_block', message: 'Live-fix claim is unavailable while seated at a live Club Arena table.' };
+        }
+        if (tsRows.some(r => r?.left_at && Date.parse(r.left_at) >= cooldownCutoffMs)) {
+          return { allowed: true, contextState: 'session_ended_verified', accessLevel: 'limited_review', message: 'Post-session cooldown active. Wait 5 minutes after leaving the table.' };
+        }
+      }
+    }
+
+    return { allowed: true, contextState: 'training_mode', accessLevel: 'full_access', message: null };
+  } catch (err) {
+    console.warn('[claim-live-fix] live play context check failed closed:', err?.message || err);
+    return { allowed: false, contextState: 'session_active_unknown', accessLevel: 'hard_block', message: 'Session context could not be verified.' };
+  }
+}
+
 async function attachHandTimes(supabase, decisions) {
   try {
     const wanted = new Map();
@@ -37,6 +129,7 @@ async function attachHandTimes(supabase, decisions) {
       if (row.solver_verified === true) {
         const id = handUuid(row.hand_external_id);
         if (id && !wanted.has(id)) wanted.set(id, null);
+        if (wanted.size >= HAND_TIME_MAX_IDS) break;
       }
     }
     const ids = [...wanted.keys()];
@@ -95,6 +188,17 @@ export default async function handler(req, res) {
     const leakId = String(req.body?.leakId || '').trim();
     if (!leakId) {
       return res.status(400).json({ success: false, error: 'leakId is required' });
+    }
+
+    const contextAccess = await evaluateLivePlayAccess(supabase, userId);
+    if (!contextAccess?.allowed || contextAccess.accessLevel !== 'full_access') {
+      return res.status(403).json({
+        success: false,
+        blocked: true,
+        contextState: contextAccess?.contextState || 'session_active_unknown',
+        accessLevel: contextAccess?.accessLevel || 'hard_block',
+        error: contextAccess?.message || 'Live-fix claim is unavailable during live play or post-session cooldown.',
+      });
     }
 
     // Load ONLY caller-owned rows

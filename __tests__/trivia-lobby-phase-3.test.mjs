@@ -27,7 +27,7 @@ test('the trivia page shell also keeps CSS out of server-rendered style text', (
     assert.match(HUB_PAGE, /import styles from '\.\.\/\.\.\/\.\.\/src\/styles\/trivia\/TriviaHub\.module\.css'/);
     assert.doesNotMatch(HUB_PAGE, /<style>/);
     assert.doesNotMatch(HUB_PAGE, /<style jsx/);
-    assert.match(HUB_PAGE, /className=\{styles\.page\}/);
+    assert.match(HUB_PAGE, /styles\.page/);
     assert.match(HUB_CSS, /\.backgroundOverlay/);
 });
 

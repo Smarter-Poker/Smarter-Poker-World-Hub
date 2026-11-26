@@ -55,7 +55,7 @@ export async function runRecoverAudits(supabase, { p_limit = 25 } = {}) {
     for (let i = 0; i < requeuedIds.length; i += 50) {
       const { data: batchJobs, error: jobsError } = await supabase
         .from('pa_leak_audit_jobs')
-        .select('id, user_id')
+        .select('id, user_id, progress')
         .in('id', requeuedIds.slice(i, i + 50));
 
       if (!jobsError && Array.isArray(batchJobs)) {
@@ -65,7 +65,11 @@ export async function runRecoverAudits(supabase, { p_limit = 25 } = {}) {
 
     if (jobs.length > 0) {
       const results = await Promise.allSettled(
-        jobs.map(job => kickAuditWorker(job))
+        jobs.map(job => (
+          job?.progress?.fullRescan === true
+            ? kickAuditWorker(job, { fullRescan: true })
+            : kickAuditWorker(job)
+        ))
       );
       kickedCount = results.filter(r => r.status === 'fulfilled' && r.value?.ok).length;
     }

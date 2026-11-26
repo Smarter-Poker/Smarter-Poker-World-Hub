@@ -70,7 +70,7 @@ export default function Phase9SettlementReceipt({
         <section className="phase9-settlement" aria-labelledby={`phase9-${String(modeLabel).toLowerCase().replaceAll(' ', '-')}-receipt-title`}>
             <div className="phase9-settlement__head">
                 <h2 id={`phase9-${String(modeLabel).toLowerCase().replaceAll(' ', '-')}-receipt-title`}>Settlement Receipt</h2>
-                <span className={settlement?.replayed ? 'tc-ink--gold' : 'tc-ink--green'}>
+                <span className={settlement?.replayed ? 'tc-ink--cyan' : 'tc-ink--green'}>
                     {settlement?.replayed ? 'Verified Replay' : 'Settled'}
                 </span>
             </div>
@@ -90,7 +90,7 @@ export default function Phase9SettlementReceipt({
                     <div><dt>Submitted</dt><dd><time data-preserve-case="true" dateTime={receipt.submittedAt}>{receipt.submittedAt}</time></dd></div>
                 )}
                 <div><dt>Server Grade</dt><dd>{formatTriviaDisplayNumber(correct)} / {formatTriviaDisplayNumber(total)}</dd></div>
-                <div><dt>Reward</dt><dd className={reward > 0 ? 'tc-ink--gold' : undefined}>{formatTriviaDisplayNumber(reward)} Diamonds</dd></div>
+                <div><dt>Reward</dt><dd className={reward > 0 ? 'tc-ink--green' : undefined}>{formatTriviaDisplayNumber(reward)} Diamonds</dd></div>
                 <div><dt>Voided</dt><dd>{formatTriviaDisplayNumber(Math.max(0, Number(settlement?.voided) || 0))}</dd></div>
             </dl>
             {receipt && transactions.length > 0 ? (
@@ -98,7 +98,7 @@ export default function Phase9SettlementReceipt({
                     {transactions.map((transaction, index) => (
                         <li key={transaction.id || transaction.referenceId || index}>
                             <strong>{transactionLabel(transaction.role)}</strong>
-                            <span className={Number(transaction.amount) > 0 ? 'tc-ink--gold' : 'tc-ink--silver'}>
+                            <span className={Number(transaction.amount) > 0 ? 'tc-ink--green' : 'tc-ink--silver'}>
                                 {Number(transaction.amount) > 0 ? '+' : ''}{formatTriviaDisplayNumber(Number(transaction.amount) || 0)} Diamonds
                             </span>
                             {transaction.referenceId && <small data-preserve-case="true">{transaction.referenceId}</small>}
@@ -114,7 +114,7 @@ export default function Phase9SettlementReceipt({
                     <div className="phase9-settlement__actions">
                         <button
                             type="button"
-                            className="tc-word tc-ink--gold phase9-settlement__action"
+                            className="tc-word tc-ink--cyan phase9-settlement__action"
                             onClick={() => setShareCardOpen(true)}
                         >
                             Share Score Card

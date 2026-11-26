@@ -21,7 +21,6 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TimeAttackGame from '../../../src/components/trivia/TimeAttackGame';
 import DiamondEngine from '../../../src/services/DiamondEngine';
-import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
@@ -514,6 +513,7 @@ export default function TimeAttackPage() {
     };
 
 
+    const timeAttackCostLabel = isVip ? 'VIP Free' : '10 Diamonds';
     const primaryAction = showOutOfDiamonds
         ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
         : pageLoading || gameState === 'playing' || gameState === 'saving'
@@ -521,17 +521,17 @@ export default function TimeAttackPage() {
             : gameState === 'saving_error'
                 ? { label: 'Retry Save', onClick: handleRetrySave }
                 : gameState === 'complete'
-                    ? { label: 'Play Again', onClick: handlePlayAgain }
+                    ? { label: `Play Again (${timeAttackCostLabel})`, onClick: handlePlayAgain }
                     : !userId
                         ? { label: 'Sign In To Play', onClick: () => router.push('/auth/login?redirect=/hub/trivia/time-attack') }
                         : serverRun.hasRecoverableSession
                             ? { label: 'Recover Run Result', onClick: recoverTimeAttackRun }
-                            : { label: 'Start Time Attack', onClick: handleStart };
+                            : { label: `Start Time Attack (${timeAttackCostLabel})`, onClick: handleStart };
 
     const secondaryAction = showOutOfDiamonds
         ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
-        : gameState === 'complete'
-            ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
+        : (!pageLoading && (gameState === 'lobby' || gameState === 'complete'))
+            ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
             : undefined;
 
     // The pill is a short painted slot (about eight characters at 375px).
@@ -561,21 +561,12 @@ export default function TimeAttackPage() {
                 />
 
                 <div
-                    className="trivia-challenge-page trivia-challenge-page--time-attack"
+                    className="smarterdesign trivia-challenge-page trivia-challenge-page--time-attack"
                     data-trivia-family="challenge"
                     data-trivia-surface="time-attack"
                     data-game-state={pageLoading ? 'loading' : gameState}
                 >
                     <UniversalHeader pageDepth={2} />
-
-                    {userId && !isVip && (
-                        <GameCostPopup
-                            userId={userId}
-                            featureKey="trivia_timeattack"
-                            isVip={isVip}
-                            cost={10}
-                        />
-                    )}
 
                     <main className="trivia-challenge-shell" aria-labelledby="time-attack-title">
                         <TriviaConsole
@@ -633,6 +624,10 @@ export default function TimeAttackPage() {
                                     )}
 
                                     <dl className="trivia-challenge-stats">
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Entry Cost</dt>
+                                            <dd>{timeAttackCostLabel}</dd>
+                                        </div>
                                         <div className="trivia-challenge-stat">
                                             <dt>Personal Best</dt>
                                             <dd>{formatTriviaDisplayNumber(personalBest)}</dd>

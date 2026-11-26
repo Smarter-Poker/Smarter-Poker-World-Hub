@@ -10,6 +10,9 @@ const DELETE_CONFIRMATION = 'DELETE MY PERSONAL ASSISTANT DATA';
 const PAGE_SIZE = 1000;
 const MAX_EXPORT_ROWS_PER_SOURCE = 50_000;
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+  _supabase = client;
+}
 
 function db() {
   if (!_supabase) {
@@ -58,12 +61,12 @@ async function clubArenaHands(userId) {
       .contains('players', JSON.stringify([{ id: userId }])).order('created_at', { ascending: true }), 'Club Arena Hands'),
   ]);
   return [...new Map([...modern, ...legacy].map(row => [String(row.id), sanitizeExportHandRow(row, userId)])).values()]
-    .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+    .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id || '').localeCompare(String(b.id || '')));
 }
 
 async function buildExport(userId) {
   const [
-    leaks, trainingLeaks, assistantStats, decisions, reviews, auditJobs, drillSessions, drillAnswers, drillAttempts,
+    leaks, trainingLeaks, assistantStats, decisions, reviews, reviewOperations, auditJobs, drillSessions, drillAnswers, drillAttempts,
     goals, feedback, preferences, lifecycleReceipts, sandboxSessions, savedHands,
     sandboxAnalytics, sandboxQuizResults, coachResults, bookmarks, equityHistory,
     templates, sharedScenarios, solutionBookmarks, sourceHands, privateHandFacts,
@@ -73,6 +76,7 @@ async function buildExport(userId) {
     db().from('user_assistant_stats').select('*').eq('user_id', userId).maybeSingle(),
     ownerRows('hand_audit_decisions', userId),
     ownerRows('leak_review_state', userId),
+    ownerRows('leak_review_operations', userId),
     ownerRows('pa_leak_audit_jobs', userId),
     ownerRows('leak_drill_sessions', userId, '*', 'batch_id'),
     ownerRows('leak_drill_answers', userId),
@@ -108,6 +112,7 @@ async function buildExport(userId) {
       assistantStats: assistantStats.data || null,
       decisions,
       reviews,
+      reviewOperations,
       auditJobs,
       drillSessions,
       drillAnswers,
@@ -159,32 +164,41 @@ async function buildExport(userId) {
   };
 }
 
-async function countOwnerRows(table, userId) {
-  const { count, error } = await db().from(table).select('id', { count: 'exact', head: true }).eq('user_id', userId);
+async function countOwnerRows(table, userId, pk = 'id') {
+  const { count, error } = await db().from(table).select(pk, { count: 'exact', head: true }).eq('user_id', userId);
   if (error) throw error;
   return count || 0;
 }
 
 async function summary(userId) {
   const [
-    leaks, trainingLeaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
-    coachResults, bookmarks, equityHistory, templates, sharedScenarios,
-    solutionBookmarks, preference, receipts,
+    leaks, trainingLeaks, decisions, reviews, reviewOperations, auditJobs,
+    drillSessions, drillAnswers, drillAttempts, goals, feedback, sandboxSessions, savedHands,
+    sandboxAnalytics, sandboxQuizResults, coachResults, bookmarks, equityHistory, templates, sharedScenarios,
+    solutionBookmarks, assistantStats, preference, receipts,
   ] = await Promise.all([
     countOwnerRows('user_leaks', userId),
     countOwnerRows('user_training_leaks', userId),
     countOwnerRows('hand_audit_decisions', userId),
     countOwnerRows('leak_review_state', userId),
+    countOwnerRows('leak_review_operations', userId),
+    countOwnerRows('pa_leak_audit_jobs', userId),
+    countOwnerRows('leak_drill_sessions', userId, 'batch_id'),
+    countOwnerRows('leak_drill_answers', userId),
+    countOwnerRows('leak_drill_attempts', userId),
     countOwnerRows('pa_coaching_goals', userId),
     countOwnerRows('pa_coach_feedback', userId),
     countOwnerRows('sandbox_sessions', userId),
     countOwnerRows('sandbox_saved_hands', userId),
+    countOwnerRows('sandbox_analytics', userId),
+    countOwnerRows('sandbox_quiz_results', userId),
     countOwnerRows('sandbox_coach_results', userId),
     countOwnerRows('sandbox_bookmarks', userId),
     countOwnerRows('sandbox_equity_history', userId),
     countOwnerRows('sandbox_templates', userId),
     db().from('sandbox_shared_scenarios').select('id', { count: 'exact', head: true }).eq('creator_id', userId),
     countOwnerRows('solution_bookmarks', userId),
+    countOwnerRows('user_assistant_stats', userId, 'user_id'),
     db().from('pa_coaching_preferences').select('retention_days, last_retention_run_at').eq('user_id', userId).maybeSingle(),
     db().from('pa_data_lifecycle_receipts').select('id, action, scope, item_counts, receipt_fingerprint, created_at')
       .eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
@@ -192,8 +206,10 @@ async function summary(userId) {
   if (sharedScenarios.error || preference.error || receipts.error) throw sharedScenarios.error || preference.error || receipts.error;
   return {
     counts: {
-      leaks, trainingLeaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
-      coachResults, bookmarks, equityHistory, templates,
+      leaks, trainingLeaks, decisions, reviews, reviewOperations, auditJobs,
+      drillSessions, drillAnswers, drillAttempts, assistantStats,
+      goals, feedback, sandboxSessions, savedHands,
+      sandboxAnalytics, sandboxQuizResults, coachResults, bookmarks, equityHistory, templates,
       sharedScenarios: sharedScenarios.count || 0,
       solutionBookmarks,
     },
@@ -251,7 +267,9 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && body.action === 'save_retention') {
       const preference = await saveRetention(user.id, body.retentionDays);
       const retention = await db().rpc('apply_personal_assistant_retention', { p_user_id: user.id });
-      if (retention.error) throw retention.error;
+      if (retention.error || !retention.data || retention.data.error || retention.data.success === false) {
+        throw retention.error || new Error('Retention Policy Could Not Be Applied.');
+      }
       return res.status(200).json({ success: true, preference, retention: retention.data });
     }
     if (req.method === 'POST' && body.action === 'request_deletion') {
@@ -266,7 +284,15 @@ export default async function handler(req, res) {
       }
       openDeletionChallenge(body.challenge, { userId: user.id, scope });
       const result = await db().rpc('purge_personal_assistant_data', { p_user_id: user.id, p_scope: scope });
-      if (result.error) throw result.error;
+      if (
+        result.error
+        || !result.data
+        || result.data.error
+        || result.data.success === false
+        || (!result.data.receipt_id && !result.data.receipt_fingerprint && !result.data.fingerprint)
+      ) {
+        throw result.error || new Error('Personal Assistant Data Purge Could Not Be Verified.');
+      }
       return res.status(200).json({ success: true, scope, receipt: result.data, sourceHandsDeleted: false });
     }
     return res.status(400).json({ success: false, error: 'Unsupported Data Control Action.' });

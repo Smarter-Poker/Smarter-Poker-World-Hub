@@ -1,8 +1,7 @@
 /*
- * Trivia console chassis - Club Arena spade master (spade-console-v1).
- * Each slice paints its own box at its own native ratio (#ClubArenaConsole
- * 3.3a): top.png on the head, mid.png repeating on the body only, and the
- * closing art on the foot. Colours are the master's inks and nothing else.
+ * Trivia Console chassis on canonical #SMARTERDESIGN (styles/smarterdesign.css).
+ * Ink-navy surface, single continuous steel rim, cobalt primary action,
+ * white/silver/ice-blue typography, Title Case labels, >= 44px touch targets.
  */
 
 .console {
@@ -14,245 +13,206 @@
     width: min(100%, var(--tc-max));
     min-width: 0;
     margin-inline: auto;
-    padding: 0;
     overflow: visible;
-    color: #e4e7ec;
-    background: none;
-    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    color: var(--sd-text, #f2f7ff);
+    font-family: var(--sd-type, 'Arial Narrow', sans-serif);
     font-variant-numeric: tabular-nums lining-nums;
 }
 
 .head {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1000 / 348;
-    background: url('/images/trivia/console/spade-console-v1/top.webp') top center / 100% auto no-repeat;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--sd-line, #445e77);
+}
+
+.headCopy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1 1 220px;
+}
+
+.eyebrow {
+    margin: 0;
+    color: var(--sd-ice, #86daff);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+}
+
+.title {
+    margin: 0;
+    color: var(--sd-text, #f2f7ff);
+    font-family: var(--sd-type, 'Arial Narrow', sans-serif);
+    font-size: clamp(1.45rem, 3.6vw, 2.25rem);
+    font-weight: 750;
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    overflow-wrap: anywhere;
+    text-shadow: 0 2px 0 #243951, 0 3px 6px #020914;
+}
+
+.subtitle {
+    margin: 0;
+    color: var(--sd-silver, #bdd0e2);
+    font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 4px 12px;
+    border: 1px solid var(--sd-line, #445e77);
+    background: var(--sd-surface, #0a1829);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .body {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 3cqw;
-    padding: 0 10.5% 3cqw;
-    background: url('/images/trivia/console/spade-console-v1/mid.webp') top center / 100% auto repeat-y;
+    gap: 16px;
+    padding-top: 14px;
+    min-width: 0;
 }
 
 .foot {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1000 / 72;
-    background: url('/images/trivia/console/spade-console-v1/bottom-foot.webp') bottom center / 100% auto no-repeat;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--sd-line, #445e77);
 }
 
 .withPlates .foot {
-    aspect-ratio: 1000 / 277;
-    background-image: url('/images/trivia/console/spade-console-v1/bottom-plates.webp');
-}
-
-.zone {
-    position: absolute;
     display: grid;
-    align-items: center;
-    justify-items: start;
-    min-width: 0;
-    margin: 0;
-    overflow: hidden;
-    color: #e4e7ec;
-    white-space: nowrap;
-    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
 }
 
-.zone > span {
-    display: inline-block;
-    max-width: 100%;
-    /* The fit may take a string below the 12px base floor: a label that is
-       smaller is legible, a label cut off by the rim is a defect. */
-    font-size: calc(1em * var(--fit, 1));
-}
-
-.eyebrow {
-    color: #45adff;
-    font-size: max(12px, 2.6cqw);
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    text-shadow: 0 0 0.9cqw rgb(69 173 255 / 70%), 0 0 2cqw rgb(69 173 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
-}
-
-.title {
-    font-size: 7cqw;
-    font-weight: 800;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-
-.subtitle {
-    color: #9aa5b3;
-    font-size: max(12px, 3.2cqw);
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
-}
-
-/* One fitted line, like every other zone in the head: a second line cannot
-   fit the painted well at phone width, so it would be cut, never wrapped. */
-.subtitle > span {
-    line-height: 1.1;
-}
-
-.pill {
-    justify-items: center;
-    font-size: max(12px, 3.4cqw);
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-align: center;
-    text-transform: uppercase;
-}
-
-/* The two painted plates. The button paints nothing. */
 .plate {
-    appearance: none;
-    position: absolute;
-    display: grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
     min-width: 0;
     min-height: 44px;
-    margin: 0;
-    padding: 0 4%;
-    border: 0;
-    border-radius: 0;
-    overflow: hidden;
-    color: inherit;
-    background: transparent;
-    box-shadow: none;
-    font: inherit;
+    padding: 8px 14px;
     cursor: pointer;
     touch-action: manipulation;
 }
 
-/* The face inside the rim: labels fit this, never the rim. */
 .plateWell {
-    display: grid;
-    justify-items: center;
-    width: 70%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
     min-width: 0;
-    overflow: hidden;
 }
 
 .plateText {
     display: inline-block;
     max-width: 100%;
-    font-size: calc(max(12px, 4.2cqw) * var(--fit, 1));
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.plate:active .plateText {
-    filter: brightness(1.25);
+    font-size: clamp(14px, 2.6vw, 17px);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
 }
 
 .plate:disabled {
     cursor: not-allowed;
-}
-
-.plate:disabled .plateText {
-    opacity: 0.45;
+    opacity: 0.55;
 }
 
 .plate:focus-visible {
-    outline: 3px solid #45adff;
-    outline-offset: -6px;
+    outline: 2px solid #9ee3ff;
+    outline-offset: 2px;
 }
 
-/* The single action: a lit word on the glass above the flat foot. */
 .glassActions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    padding-top: 2.6cqw;
-    border-top: 1px solid #000;
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--sd-line, #445e77);
 }
 
 .word {
-    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-width: 44px;
     min-height: 44px;
-    margin: 0;
-    padding: 1.4cqw 3cqw;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    font: 800 max(14px, 3.3cqw) / 1 'Roboto Condensed', Inter, system-ui, sans-serif;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    white-space: nowrap;
+    padding: 8px 16px;
+    font-size: clamp(14px, 2.4vw, 16px);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
     cursor: pointer;
     touch-action: manipulation;
 }
 
-.word:active {
-    filter: brightness(1.25);
-}
-
 .word:disabled {
-    opacity: 0.45;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
 .word:focus-visible {
-    outline: 3px solid #45adff;
+    outline: 2px solid #9ee3ff;
     outline-offset: 2px;
 }
 
-/* Inks: the master's own colours (#ClubArenaConsole 3.4). */
+/* #SMARTERDESIGN canonical inks (white, silver, ice blue, semantic green/red). */
 .ink_silver {
-    color: #e4e7ec;
-    -webkit-text-fill-color: #e4e7ec;
-    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
+    color: var(--sd-silver, #bdd0e2);
 }
 
 .ink_white {
-    color: #f4f7fb;
-    -webkit-text-fill-color: #f4f7fb;
-    text-shadow: 0 0 1cqw rgb(69 173 255 / 90%), 0 0.25cqw 0 rgb(0 0 0 / 70%), 0 0.5cqw 1cqw rgb(0 0 0 / 60%);
+    color: var(--sd-text, #f2f7ff);
 }
 
 .ink_blue {
-    color: #45adff;
-    -webkit-text-fill-color: #45adff;
-    text-shadow: 0 0 0.9cqw rgb(69 173 255 / 70%), 0 0 2cqw rgb(69 173 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+    color: var(--sd-ice, #86daff);
 }
 
 .ink_green {
-    color: #c8ffd2;
-    -webkit-text-fill-color: #c8ffd2;
-    text-shadow: 0 0 1cqw rgb(53 217 90 / 80%), 0 0 2cqw rgb(53 217 90 / 35%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+    color: #4ade80;
 }
 
 .ink_red {
     color: #ff5b6e;
-    -webkit-text-fill-color: #ff5b6e;
-    text-shadow: 0 0 1cqw rgb(240 40 73 / 80%), 0 0 2cqw rgb(240 40 73 / 35%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
-}
-
-.ink_gold {
-    color: #ffd700;
-    -webkit-text-fill-color: #ffd700;
-    text-shadow: 0 0 1cqw rgb(255 215 0 / 70%), 0 0 2cqw rgb(255 215 0 / 30%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
 }
 
 .ink_muted {
-    color: #9aa5b3;
-    -webkit-text-fill-color: #9aa5b3;
-    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
+    color: #9ab0c7;
+}
+
+@media (max-width: 520px) {
+    .foot {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .plate:active .plateText,
-    .word:active { filter: none; }
+    .plate:active,
+    .word:active {
+        filter: none;
+    }
 }

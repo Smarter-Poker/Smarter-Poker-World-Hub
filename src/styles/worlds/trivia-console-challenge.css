@@ -65,7 +65,6 @@
     letter-spacing: 0.04em;
     line-height: 1.2;
     text-align: center;
-    text-transform: uppercase;
 }
 
 .trivia-challenge-breakdown > :is(h2, h3),
@@ -81,7 +80,7 @@
 }
 
 .time-attack-over > h2 {
-    color: var(--tc-ink-gold);
+    color: var(--tc-ink-blue);
 }
 
 .trivia-challenge-intro > p,
@@ -120,7 +119,7 @@
 }
 
 .trivia-challenge-state--paused > :is(h2, h3) {
-    color: var(--tc-ink-gold);
+    color: var(--tc-ink-blue);
 }
 
 /* Refusals and warnings: red ink on the glass, no drawn box. */
@@ -142,7 +141,6 @@
     font-size: max(18px, 4.4cqw) !important;
     font-weight: 800;
     letter-spacing: 0.04em;
-    text-transform: uppercase;
 }
 
 .trivia-challenge-alert > p {
@@ -153,7 +151,7 @@
 
 .trivia-challenge-notice {
     margin: 0;
-    color: var(--tc-ink-gold);
+    color: var(--tc-ink-blue);
     font-size: max(14px, 3.4cqw);
     font-weight: 700;
     line-height: 1.5;
@@ -184,7 +182,6 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     line-height: 1.25;
-    text-transform: uppercase;
 }
 
 .trivia-challenge-stat dd {
@@ -205,7 +202,7 @@
 }
 
 .trivia-challenge-stat[data-tone='accent'] dd {
-    color: var(--tc-ink-gold);
+    color: var(--tc-ink-blue);
     text-shadow: 0 0 1cqw rgb(255 215 0 / 55%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
 }
 
@@ -251,7 +248,6 @@
     letter-spacing: 0.12em;
     text-align: center;
     text-decoration: none;
-    text-transform: uppercase;
     text-shadow: 0 0 1cqw rgb(69 173 255 / 90%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
     cursor: pointer;
     touch-action: manipulation;
@@ -309,7 +305,6 @@
     font-size: max(13px, 3cqw);
     font-weight: 700;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
 }
 
 .trivia-challenge-setting-group {
@@ -324,7 +319,6 @@
     font-size: max(12px, 2.6cqw);
     font-weight: 700;
     letter-spacing: 0.12em;
-    text-transform: uppercase;
 }
 
 .trivia-challenge-levels {
@@ -378,7 +372,6 @@
     font-size: max(12px, 2.7cqw);
     font-weight: 800;
     letter-spacing: 0.12em;
-    text-transform: uppercase;
 }
 
 .time-attack-clock {
@@ -486,7 +479,7 @@
 }
 
 .trivia-challenge-ranking-score {
-    color: var(--tc-ink-gold);
+    color: var(--tc-ink-blue);
 }
 
 /* Phase 9 intros are image-first on phones and become a deliberate
@@ -520,7 +513,6 @@
     font-weight: 800;
     letter-spacing: 0.16em;
     line-height: 1.25;
-    text-transform: uppercase;
 }
 
 .phase9-mode-brief > p,
@@ -557,7 +549,6 @@
     font-size: max(12px, 2.5cqw);
     font-weight: 800;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
 }
 
 .phase9-mode-brief__rows dd,
@@ -581,7 +572,6 @@
     font-size: max(12px, 2.6cqw);
     font-weight: 800;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
 }
 
 .phase9-settlement__transactions {

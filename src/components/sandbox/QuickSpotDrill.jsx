@@ -175,6 +175,9 @@ function shuffle(list) {
 function mapDrillRow(row) {
     if (!row) return null;
     const meta = (row.metadata && typeof row.metadata === 'object') ? row.metadata : {};
+    const scenario = (row.scenario && typeof row.scenario === 'object')
+        ? row.scenario
+        : ((meta.scenario && typeof meta.scenario === 'object') ? meta.scenario : {});
     const rawOptions = Array.isArray(row.options) && row.options.length
         ? row.options
         : (Array.isArray(meta.options) && meta.options.length ? meta.options : DEFAULT_OPTIONS);
@@ -182,9 +185,10 @@ function mapDrillRow(row) {
     return {
         id: row.id ?? null,
         scenario_text: row.scenario_text || row.context || row.question || meta.scenario_text || 'What is the GTO play here?',
-        hero_hand: row.hero_hand || meta.hero_hand || null,
-        hero_position: row.hero_position || meta.hero_position || null,
-        street: (row.street || meta.street || 'preflop'),
+        hero_hand: row.hero_hand || meta.hero_hand || scenario.heroHand || null,
+        hero_position: row.hero_position || meta.hero_position || scenario.heroPosition || null,
+        street: (row.street || meta.street || scenario.street || 'preflop'),
+        pot: row.pot ?? row.pot_size ?? meta.pot ?? meta.pot_size ?? scenario.potSize ?? null,
         options: rawOptions
             .map(o => (typeof o === 'object' && o !== null ? (o.text ?? o.label ?? o.id ?? '') : o))
             .map(o => String(o).trim())
@@ -815,40 +819,34 @@ export default function QuickSpotDrill({
 
     // ── render helpers ────────────────────────────────────────────────────
     const headerRight = (streak > 0 && !finished && !loading) ? (
-        <span style={{ ...pill('warn'), ...numeric }} aria-label={`${streak} in a row`}>
+        <span style={{ ...pill('warn'), ...numeric }} aria-label={`${streak} In A Row`}>
             <Flame size={12} strokeWidth={2.5} /> {streak}
         </span>
     ) : null;
 
-    let subtitle = 'Loading spots…';
-    if (loadError) subtitle = 'Could not load';
+    let subtitle = 'Loading Spots…';
+    if (loadError) subtitle = 'Could Not Load';
     else if (finished) subtitle = `Level ${level}`;
-    else if (questions.length > 0) subtitle = `Spot ${currentIdx + 1} of ${questions.length} · Level ${level}`;
-    else if (!loading) subtitle = 'No spots available';
+    else if (questions.length > 0) subtitle = `Spot ${currentIdx + 1} Of ${questions.length} · Level ${level}`;
+    else if (!loading) subtitle = 'No Spots Available';
+
+    const potDisplay = q?.pot != null && String(q.pot).trim() !== ''
+        ? (typeof q.pot === 'number' ? `${q.pot} BB` : String(q.pot))
+        : null;
+    const isAnsweredCorrect = revealed && answer && String(answer).toLowerCase() === String(q?.correct_answer || '').toLowerCase();
 
     return (
         <BottomSheet
             open
             onClose={requestClose}
-            title="Quick drill"
+            title="Quick Drill"
             titleIcon={<Zap size={18} strokeWidth={2} color={T.accent} />}
             subtitle={subtitle}
             headerRight={headerRight}
-            ariaLabel="Quick spot drill"
+            ariaLabel="Quick Spot Drill"
             dismissOnBackdrop={!reviewSaving && (!inProgress || answeredSoFar === 0)}
             hideClose={reviewSaving}
-            closeLabel="Close drill"
-            footer={!loading && !confirmQuit && questions.length > 0 && !finished && revealed ? (
-                <button
-                    ref={nextButtonRef}
-                    type="button"
-                    className="pa-btn"
-                    onClick={handleNext}
-                    style={{ ...btn('primary', { block: true }) }}
-                >
-                    {currentIdx + 1 >= questions.length ? 'See results' : 'Next spot'}
-                </button>
-            ) : null}
+            closeLabel="Close Drill"
         >
             <PAStyles />
             <span className="pa-vh" role="status" aria-live="polite" data-testid="drill-outcome-announcement">{announcement}</span>
@@ -915,7 +913,7 @@ export default function QuickSpotDrill({
             ) : questions.length === 0 ? (
                 <EmptyState
                     icon={<AlertTriangle size={22} strokeWidth={2} />}
-                    title="No spots match yet"
+                    title="No Spots Match Yet"
                     body={activeParams
                         ? 'Nothing in the question pool fits these filters. Try the unfiltered pool instead.'
                         : 'The drill pool is empty right now. Check back after the next content drop.'}
@@ -1067,7 +1065,7 @@ export default function QuickSpotDrill({
                     {misses.length > 0 && (
                         <div>
                             <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                                Review Your {misses.length} miss{misses.length === 1 ? '' : 'es'}
+                                Review Your {misses.length} Miss{misses.length === 1 ? '' : 'es'}
                             </h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
                                 {misses.map((m, i) => (
@@ -1083,7 +1081,7 @@ export default function QuickSpotDrill({
                                             {m.position && <span style={pill('accent')}>{m.position}</span>}
                                         </div>
                                         <div style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
-                                            You Picked <strong style={{ color: T.danger }}>{m.pick}</strong> · Solver plays{' '}
+                                            You Picked <strong style={{ color: T.danger }}>{m.pick}</strong> · Solver Plays{' '}
                                             <strong style={{ color: T.success }}>{m.correct}</strong>
                                         </div>
                                         {m.explanation && (
@@ -1140,7 +1138,7 @@ export default function QuickSpotDrill({
                         </div>
                         <div
                             role="timer"
-                            aria-label={`${timer} seconds remaining`}
+                            aria-label={`${timer} Seconds Remaining`}
                             style={{
                                 textAlign: 'right', fontSize: F.caption, marginTop: S.xs, ...numeric,
                                 color: timer <= 5 ? T.danger : T.textDim,
@@ -1150,56 +1148,47 @@ export default function QuickSpotDrill({
                         </div>
                     </div>
 
-                    <p style={{ fontSize: F.bodySm, color: T.text, lineHeight: 1.45, margin: 0 }}>
-                        {q?.scenario_text}
-                    </p>
+                    {/* Spot Context: Cards, Pot, Question Prompt, and Selected Answer stay clearly visible above the thumb-zone bar */}
+                    <div
+                        data-testid="drill-spot-context"
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: S.sm,
+                            padding: S.md,
+                            background: '#081018',
+                            border: '1px solid rgba(140, 161, 180, 0.24)',
+                            borderRadius: R.sm,
+                        }}
+                    >
+                        {(q?.hero_hand || q?.hero_position || q?.street || potDisplay || revealed || answer) && (
+                            <div style={{ display: 'flex', gap: S.sm, alignItems: 'center', flexWrap: 'wrap' }}>
+                                {q?.hero_hand && (
+                                    <span data-testid="drill-hero-cards" style={{ fontSize: F.h3, fontWeight: 800, color: T.warn, ...numeric }}>
+                                        {q.hero_hand}
+                                    </span>
+                                )}
+                                {q?.hero_position && <span style={pill('accent')}>{q.hero_position}</span>}
+                                {q?.street && <span style={pill('neutral')}>{String(q.street).replace(/_/g, ' ')}</span>}
+                                {potDisplay && (
+                                    <span data-testid="drill-pot-badge" style={{ ...pill('neutral'), ...numeric }}>
+                                        Pot: {potDisplay}
+                                    </span>
+                                )}
+                                {(revealed || answer) && (
+                                    <span
+                                        data-testid="drill-selected-answer"
+                                        style={pill(revealed ? (isAnsweredCorrect ? 'success' : 'danger') : 'accent')}
+                                    >
+                                        Selected: {answer || 'Time Expired'}
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
-                    {(q?.hero_hand || q?.hero_position) && (
-                        <div style={{ display: 'flex', gap: S.sm, alignItems: 'center', flexWrap: 'wrap' }}>
-                            {q?.hero_hand && (
-                                <span style={{ fontSize: F.h3, fontWeight: 800, color: T.warn, ...numeric }}>{q.hero_hand}</span>
-                            )}
-                            {q?.hero_position && <span style={pill('accent')}>{q.hero_position}</span>}
-                            {q?.street && <span style={pill('neutral')}>{String(q.street).replace(/_/g, ' ')}</span>}
-                        </div>
-                    )}
-
-                    {/* Single column of thumb-zone answers */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
-                        {optionRows.map((opt, idx) => {
-                            const isCorrectOpt = String(opt).toLowerCase() === String(q?.correct_answer || '').toLowerCase();
-                            const isUserPick = opt === answer;
-                            let background = T.surface2;
-                            let borderColor = T.borderHi;
-                            let colour = T.text;
-
-                            if (revealed) {
-                                if (isCorrectOpt) { background = T.successSoft; borderColor = 'rgba(77,224,165,0.5)'; colour = T.success; }
-                                else if (isUserPick) { background = T.dangerSoft; borderColor = 'rgba(255,107,122,0.5)'; colour = T.danger; }
-                                else { colour = T.textDim; }
-                            }
-
-                            return (
-                                <button
-                                    key={`${opt}-${idx}`}
-                                    type="button"
-                                    className="pa-btn"
-                                    onClick={() => handlePick(opt)}
-                                    disabled={revealed || isSubmittingAnswer}
-                                    aria-busy={isSubmittingAnswer || undefined}
-                                    style={{
-                                        ...btn('secondary', { block: true }),
-                                        minHeight: 48, fontSize: F.body, justifyContent: 'space-between',
-                                        background, borderColor, color: colour,
-                                        ...(revealed ? { cursor: 'default', opacity: 1, pointerEvents: 'none' } : null),
-                                    }}
-                                >
-                                    <span>{opt}</span>
-                                    {revealed && isCorrectOpt && <Check size={18} strokeWidth={2.5} aria-hidden="true" />}
-                                    {revealed && isUserPick && !isCorrectOpt && <X size={18} strokeWidth={2.5} aria-hidden="true" />}
-                                </button>
-                            );
-                        })}
+                        <p data-testid="drill-question-prompt" style={{ fontSize: F.bodySm, color: T.text, lineHeight: 1.45, margin: 0 }}>
+                            {q?.scenario_text}
+                        </p>
                     </div>
 
                     {answerError && (
@@ -1226,6 +1215,84 @@ export default function QuickSpotDrill({
                         <span style={{ color: T.success }}>{score.correct} Correct</span>
                         <span style={{ color: T.danger }}>{score.total - score.correct} Missed</span>
                         <span style={{ color: pctTone(accuracy) }}>{accuracy}%</span>
+                    </div>
+
+                    {/* Thumb-zone sticky bottom bar: 2-column responsive answer grid + docked Next Spot / See Results CTA */}
+                    <div
+                        data-testid="drill-thumb-zone"
+                        style={{
+                            position: 'sticky',
+                            bottom: 0,
+                            zIndex: 5,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: S.sm,
+                            paddingTop: S.sm,
+                            paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+                            background: 'linear-gradient(180deg, rgba(5, 8, 12, 0.92) 0%, #05080c 22%, #081018 100%)',
+                            borderTop: '1px solid rgba(140, 161, 180, 0.24)',
+                        }}
+                    >
+                        <div
+                            data-testid="drill-answer-grid"
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                                gap: S.sm,
+                            }}
+                        >
+                            {optionRows.map((opt, idx) => {
+                                const isCorrectOpt = String(opt).toLowerCase() === String(q?.correct_answer || '').toLowerCase();
+                                const isUserPick = opt === answer;
+                                let background = '#0d141c';
+                                let borderColor = 'rgba(140, 161, 180, 0.24)';
+                                let colour = T.text;
+
+                                if (revealed) {
+                                    if (isCorrectOpt) { background = T.successSoft; borderColor = 'rgba(77,224,165,0.5)'; colour = T.success; }
+                                    else if (isUserPick) { background = T.dangerSoft; borderColor = 'rgba(255,107,122,0.5)'; colour = T.danger; }
+                                    else { colour = T.textDim; }
+                                }
+
+                                return (
+                                    <button
+                                        key={`${opt}-${idx}`}
+                                        type="button"
+                                        className="pa-btn"
+                                        onClick={() => handlePick(opt)}
+                                        disabled={revealed || isSubmittingAnswer}
+                                        aria-busy={isSubmittingAnswer || undefined}
+                                        style={{
+                                            ...btn('secondary', { block: true }),
+                                            minHeight: 48,
+                                            padding: '6px 12px',
+                                            fontSize: F.bodySm,
+                                            justifyContent: 'space-between',
+                                            background,
+                                            borderColor,
+                                            color: colour,
+                                            ...(revealed ? { cursor: 'default', opacity: 1, pointerEvents: 'none' } : null),
+                                        }}
+                                    >
+                                        <span>{opt}</span>
+                                        {revealed && isCorrectOpt && <Check size={18} strokeWidth={2.5} aria-hidden="true" />}
+                                        {revealed && isUserPick && !isCorrectOpt && <X size={18} strokeWidth={2.5} aria-hidden="true" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {revealed && (
+                            <button
+                                ref={nextButtonRef}
+                                type="button"
+                                className="pa-btn"
+                                onClick={handleNext}
+                                style={{ ...btn('primary', { block: true }), minHeight: 48 }}
+                            >
+                                {currentIdx + 1 >= questions.length ? 'See Results' : 'Next Spot'}
+                            </button>
+                        )}
                     </div>
                 </div>
             )}

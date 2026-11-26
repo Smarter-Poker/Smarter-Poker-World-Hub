@@ -2,17 +2,27 @@
  * InlineHandReplay · Embedded street-by-street hand stepper for Personal Assistant / Leak Finder.
  *
  * Adheres to the approved MTT Lobby / Arena Workspace standard:
- *   - #040d18 canvas, #688299 / #aec0d0 steel bevels
+ *   - #05080c–#0d141c canvas, 1px solid rgba(140, 161, 180, 0.24) crisp hairlines
  *   - Royal blue primary CTAs / active street indicators
- *   - >= 44px tap targets for every street pill
+ *   - >= 44px tap targets for every street pill in a thumb-zone sticky bottom bar
  *   - Left / Right arrow keyboard navigation (role="tablist", aria-selected)
+ *   - Optional touch swipe left/right navigation (>= 48px horizontal threshold with vertical-scroll guard)
  *   - Community board cards, Hero cards, Pot and Stack depth for the active street
- *   - Street actions list + crisp highlight badge on solver divergence
+ *   - Compact Hero vs Solver verdict at top + explicit strategy-unsupported banner
  *   - Zero block elements inside <button>
  */
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 const STREETS = ['preflop', 'flop', 'turn', 'river'];
+
+const STREET_TAB_LABELS = Object.freeze({
+  preflop: 'Pre',
+  flop: 'Flop',
+  turn: 'Turn',
+  river: 'River',
+});
+
+const SWIPE_THRESHOLD_PX = 48;
 
 const SUITS = { c: '♣', d: '♦', h: '♥', s: '♠' };
 const SUIT_COLORS = { c: '#2ECC71', d: '#3498DB', h: '#E74C3C', s: '#ECF0F1' };
@@ -51,7 +61,7 @@ function CardBadge({ card }) {
         padding: '0 6px',
         borderRadius: 4,
         background: '#07111C',
-        border: '1px solid #688299',
+        border: '1px solid rgba(140, 161, 180, 0.24)',
         borderTopColor: '#aec0d0',
         color: parsed.color,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
@@ -73,6 +83,8 @@ export default function InlineHandReplay({
   streetTimeline = null,
   decisions = null,
   initialStreet = null,
+  strategySupported = null,
+  declineReason = null,
   className = '',
   style = {},
 }) {
@@ -95,6 +107,23 @@ export default function InlineHandReplay({
         : [];
     return raw.filter((dec) => dec && typeof dec === 'object');
   }, [decisions, audit?.decisions]);
+
+  // Explicit strategy-unsupported detection (Omaha / Limit / Bomb Pot / Kill Pot / Multi-Runout / Missing Cards)
+  const isStrategyUnsupported =
+    strategySupported === false ||
+    audit?.strategySupported === false ||
+    resolvedHand?.strategySupported === false ||
+    audit?.supported === false;
+
+  const resolvedDeclineReason =
+    declineReason ||
+    audit?.declineReason ||
+    resolvedHand?.declineReason ||
+    audit?.limitation ||
+    resolvedHand?.limitation ||
+    (isStrategyUnsupported
+      ? "Replayable Hand History Only. Automated Solver Strategy Grading Supports Standard Single-Board No-Limit Hold'em."
+      : null);
 
   // Determine available streets from timeline or decisions
   const availableStreets = useMemo(() => {
@@ -135,6 +164,7 @@ export default function InlineHandReplay({
     setActiveStreet(defaultStreet);
   }, [defaultStreet]);
   const tabRefs = useRef({});
+  const touchStartRef = useRef(null);
 
   // Keyboard navigation for street pill tabs
   const handleKeyDown = useCallback(
@@ -161,6 +191,34 @@ export default function InlineHandReplay({
       }
     },
     [availableStreets]
+  );
+
+  // Optional touch swipe left/right navigation (>= 48px horizontal threshold with vertical-scroll guard)
+  const handleTouchStart = useCallback((event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (event) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      const touch = event.changedTouches?.[0];
+      if (!start || !touch || availableStreets.length <= 1) return;
+      const deltaX = touch.clientX - start.x;
+      const deltaY = touch.clientY - start.y;
+      // Vertical-scroll guard: never switch streets if vertical movement dominates or horizontal swipe < 48px
+      if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaY) >= Math.abs(deltaX)) return;
+      const currentIdx = availableStreets.indexOf(activeStreet);
+      if (currentIdx < 0) return;
+      if (deltaX < 0 && currentIdx < availableStreets.length - 1) {
+        setActiveStreet(availableStreets[currentIdx + 1]);
+      } else if (deltaX > 0 && currentIdx > 0) {
+        setActiveStreet(availableStreets[currentIdx - 1]);
+      }
+    },
+    [availableStreets, activeStreet]
   );
 
   // Derive board cards for active street
@@ -261,12 +319,14 @@ export default function InlineHandReplay({
   return (
     <div
       className={`inline-hand-replay ${className}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{
         display: 'grid',
         gap: 12,
         padding: 14,
-        background: '#040d18',
-        border: '1px solid #688299',
+        background: '#05080c',
+        border: '1px solid rgba(140, 161, 180, 0.24)',
         borderTopColor: '#aec0d0',
         borderRadius: 8,
         color: '#f1f5fc',
@@ -276,18 +336,34 @@ export default function InlineHandReplay({
     >
       {/* Header with Title and Pot/Stack info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <span
-          style={{
-            fontFamily: '"Arial Narrow", Arial, sans-serif',
-            fontSize: 13,
-            fontWeight: 800,
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            color: '#83deff',
-          }}
-        >
-          Street Replay
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span
+            style={{
+              fontFamily: '"Arial Narrow", Arial, sans-serif',
+              fontSize: 13,
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: '#83deff',
+            }}
+          >
+            Street Replay
+          </span>
+          <span
+            data-testid="replay-swipe-hint"
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#9eb4c8',
+              padding: '2px 7px',
+              borderRadius: 999,
+              background: '#0d141c',
+              border: '1px solid rgba(140, 161, 180, 0.24)',
+            }}
+          >
+            Swipe Or Tap Street
+          </span>
+        </div>
         <div style={{ display: 'flex', gap: 12, fontSize: 13, color: '#9eb4c8' }}>
           {potDisplay && (
             <span>
@@ -302,116 +378,39 @@ export default function InlineHandReplay({
         </div>
       </div>
 
-      {/* Street Pill Tabs */}
-      <div
-        role="tablist"
-        aria-label="Hand Streets"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${availableStreets.length}, 1fr)`,
-          gap: 6,
-          background: '#06111e',
-          padding: 4,
-          borderRadius: 6,
-          border: '1px solid #253e57',
-        }}
-      >
-        {availableStreets.map((street, idx) => {
-          const isSelected = activeStreet === street;
-          return (
-            <button
-              key={street}
-              ref={(el) => {
-                tabRefs.current[street] = el;
-              }}
-              role="tab"
-              id={`${baseId}-tab-${street}`}
-              aria-selected={isSelected}
-              aria-controls={isSelected ? `${baseId}-panel-${street}` : undefined}
-              tabIndex={isSelected ? 0 : -1}
-              onClick={() => setActiveStreet(street)}
-              onKeyDown={(e) => handleKeyDown(e, idx)}
-              style={{
-                minHeight: 44,
-                minWidth: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '6px 12px',
-                border: isSelected ? '1px solid #56d8ff' : '1px solid transparent',
-                borderRadius: 5,
-                background: isSelected
-                  ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%)'
-                  : 'transparent',
-                color: isSelected ? '#ffffff' : '#9eb4c8',
-                fontFamily: '"Arial Narrow", Arial, sans-serif',
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                textTransform: 'capitalize',
-              }}
-            >
-              <span>{titleCase(street)}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Explicit strategySupported === false / declineReason banner for Omaha/Limit/Bomb Pot/etc. */}
+      {(isStrategyUnsupported || Boolean(resolvedDeclineReason)) && (
+        <div
+          role="note"
+          data-testid="replay-strategy-unsupported-banner"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            padding: '8px 12px',
+            borderRadius: 6,
+            background: 'rgba(255, 198, 109, 0.12)',
+            border: '1px solid rgba(140, 161, 180, 0.24)',
+            borderLeft: '3px solid #ffc66d',
+            color: '#f1f5fc',
+            fontSize: 13,
+            lineHeight: 1.4,
+          }}
+        >
+          <strong style={{ color: '#ffc66d', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Replay Only · Strategy Grading Not Supported
+          </strong>
+          <span>{resolvedDeclineReason}</span>
+        </div>
+      )}
 
-      {/* Active Street Panel */}
+      {/* Active Street Panel (Hero vs Solver verdict compact & scannable at top) */}
       <div
         role="tabpanel"
         id={`${baseId}-panel-${activeStreet}`}
         aria-labelledby={`${baseId}-tab-${activeStreet}`}
         style={{ display: 'grid', gap: 10 }}
       >
-        {/* Community Board and Hero Cards */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 10,
-            padding: '10px 12px',
-            background: '#07111c',
-            border: '1px solid #253e57',
-            borderRadius: 6,
-          }}
-        >
-          {/* Community Board Cards */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#9eb4c8', textTransform: 'uppercase' }}>
-              Board:
-            </span>
-            {streetBoard.length > 0 ? (
-              <div style={{ display: 'flex', gap: 4 }}>
-                {streetBoard.map((c, i) => (
-                  <CardBadge key={`${c}-${i}`} card={c} />
-                ))}
-              </div>
-            ) : (
-              <span style={{ fontSize: 13, color: '#688299' }}>
-                {activeStreet === 'preflop' ? 'None (Preflop)' : 'Board Not Recorded'}
-              </span>
-            )}
-          </div>
-
-          {/* Hero Cards */}
-          {heroCards.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#9eb4c8', textTransform: 'uppercase' }}>
-                Hero {heroPosition ? `(${heroPosition})` : ''}:
-              </span>
-              <div style={{ display: 'flex', gap: 4 }}>
-                {heroCards.map((c, i) => (
-                  <CardBadge key={`hero-${c}-${i}`} card={c} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* All Hero Decisions & Solver-vs-Hero Divergence Badges for Active Street */}
         {activeDecisions.length > 0 && (
           <div style={{ display: 'grid', gap: 8 }}>
@@ -433,11 +432,12 @@ export default function InlineHandReplay({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
+                    flexWrap: 'wrap',
                     gap: 8,
                     padding: '8px 12px',
                     borderRadius: 6,
-                    background: divergent ? 'rgba(255, 198, 109, 0.12)' : '#07111c',
-                    border: divergent ? '1px solid rgba(255, 198, 109, 0.45)' : '1px solid #253e57',
+                    background: divergent ? 'rgba(255, 198, 109, 0.12)' : '#091017',
+                    border: divergent ? '1px solid rgba(255, 198, 109, 0.45)' : '1px solid rgba(140, 161, 180, 0.24)',
                     color: '#f1f5fc',
                     fontSize: 13,
                     lineHeight: 1.4,
@@ -479,6 +479,53 @@ export default function InlineHandReplay({
           </div>
         )}
 
+        {/* Community Board and Hero Cards */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10,
+            padding: '10px 12px',
+            background: '#091017',
+            border: '1px solid rgba(140, 161, 180, 0.24)',
+            borderRadius: 6,
+          }}
+        >
+          {/* Community Board Cards */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#9eb4c8', textTransform: 'uppercase' }}>
+              Board:
+            </span>
+            {streetBoard.length > 0 ? (
+              <div style={{ display: 'flex', gap: 4 }}>
+                {streetBoard.map((c, i) => (
+                  <CardBadge key={`${c}-${i}`} card={c} />
+                ))}
+              </div>
+            ) : (
+              <span style={{ fontSize: 13, color: '#688299' }}>
+                {activeStreet === 'preflop' ? 'None (Preflop)' : 'Board Not Recorded'}
+              </span>
+            )}
+          </div>
+
+          {/* Hero Cards */}
+          {heroCards.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#9eb4c8', textTransform: 'uppercase' }}>
+                Hero {heroPosition ? `(${heroPosition})` : ''}:
+              </span>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {heroCards.map((c, i) => (
+                  <CardBadge key={`hero-${c}-${i}`} card={c} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Street Actions List */}
         <div style={{ display: 'grid', gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#9eb4c8', textTransform: 'uppercase' }}>
@@ -497,8 +544,8 @@ export default function InlineHandReplay({
                       justifyContent: 'space-between',
                       padding: '6px 10px',
                       borderRadius: 4,
-                      background: isHero ? 'rgba(8, 124, 250, 0.15)' : '#07111c',
-                      border: isHero ? '1px solid #56d8ff' : '1px solid #1c2e42',
+                      background: isHero ? 'rgba(8, 124, 250, 0.15)' : '#091017',
+                      border: isHero ? '1px solid #56d8ff' : '1px solid rgba(140, 161, 180, 0.24)',
                       fontSize: 13,
                     }}
                   >
@@ -519,10 +566,82 @@ export default function InlineHandReplay({
               })}
             </ul>
           ) : (
-            <div style={{ padding: '8px 10px', background: '#07111c', borderRadius: 4, color: '#9eb4c8', fontSize: 13 }}>
+            <div style={{ padding: '8px 10px', background: '#091017', borderRadius: 4, color: '#9eb4c8', fontSize: 13 }}>
               No Specific Actions Recorded For {titleCase(activeStreet)}.
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Thumb-Zone Sticky Bottom Street Selector (Pre, Flop, Turn, River) */}
+      <div
+        data-testid="replay-sticky-street-bar"
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 5,
+          paddingTop: 6,
+          paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
+          background: 'linear-gradient(180deg, rgba(5, 8, 12, 0.92) 0%, #05080c 25%, #091017 100%)',
+          borderTop: '1px solid rgba(140, 161, 180, 0.24)',
+        }}
+      >
+        <div
+          role="tablist"
+          aria-label="Hand Streets"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${availableStreets.length}, 1fr)`,
+            gap: 6,
+            background: '#0d141c',
+            padding: 4,
+            borderRadius: 6,
+            border: '1px solid rgba(140, 161, 180, 0.24)',
+          }}
+        >
+          {availableStreets.map((street, idx) => {
+            const isSelected = activeStreet === street;
+            const tabLabel = STREET_TAB_LABELS[street] || titleCase(street);
+            return (
+              <button
+                key={street}
+                ref={(el) => {
+                  tabRefs.current[street] = el;
+                }}
+                type="button"
+                role="tab"
+                id={`${baseId}-tab-${street}`}
+                data-street={street}
+                aria-selected={isSelected}
+                aria-controls={isSelected ? `${baseId}-panel-${street}` : undefined}
+                tabIndex={isSelected ? 0 : -1}
+                onClick={() => setActiveStreet(street)}
+                onKeyDown={(e) => handleKeyDown(e, idx)}
+                style={{
+                  minHeight: 44,
+                  minWidth: 44,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '6px 10px',
+                  border: isSelected ? '1px solid #56d8ff' : '1px solid transparent',
+                  borderRadius: 5,
+                  background: isSelected
+                    ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%)'
+                    : 'transparent',
+                  color: isSelected ? '#ffffff' : '#9eb4c8',
+                  fontFamily: '"Arial Narrow", Arial, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  touchAction: 'manipulation',
+                  textTransform: 'capitalize',
+                }}
+              >
+                <span>{tabLabel}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

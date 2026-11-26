@@ -322,6 +322,8 @@ async function readWorkspace(supabase, userId) {
   return {
     snapshot: {
       ...snapshot,
+      liveTableActive: Boolean(liveTable.active),
+      cooldownActive: Boolean(liveTable.cooldown),
       preferences: {
         ...preferences,
         weeklyDigestOptIn: Boolean(rawPrefs?.weekly_digest_opt_in),
@@ -330,7 +332,7 @@ async function readWorkspace(supabase, userId) {
       activeAuditProgressText,
       receipt: receiptFingerprint(snapshot),
     },
-    decisions: ownedDecisions,
+    decisions: (liveTable.active || liveTable.cooldown) ? [] : ownedDecisions,
     reviews,
     goals,
     feedback,

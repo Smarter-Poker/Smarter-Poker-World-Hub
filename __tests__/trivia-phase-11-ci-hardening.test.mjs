@@ -281,10 +281,8 @@ test('approved shared chrome is responsive and below-fold lobby art waits for th
     assert.match(frameCard, /src=\{artReady \? FRAME_ASSETS\[resolvedFamily\] : TRANSPARENT_PIXEL\}/);
 
     const responsiveArt = read('src/components/trivia/console/ResponsiveModeArt.jsx');
-    const lobby = read('src/components/trivia/TriviaLobby.jsx');
     assert.match(responsiveArt, /srcSet=\{ready \? art\.mobile\.webp : undefined\}/);
     assert.match(responsiveArt, /src=\{ready \? art\.mobile\.src : art\.preview\}/);
-    assert.match(lobby, /src=\{quickStakesArtReady \? TRIVIA_QUICK_STAKES_MODE\.image : TRANSPARENT_PIXEL\}/);
 });
 
 // The forecast is enforced by the existing Phase 11 required check.

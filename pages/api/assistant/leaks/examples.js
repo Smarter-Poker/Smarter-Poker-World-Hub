@@ -9,8 +9,13 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+  _supabase = client;
+}
+
 function getSupabase() {
   if (!_supabase) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -42,6 +47,17 @@ export default async function handler(req, res) {
     }
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const contextAccess = await checkSandboxAccess(supabase, user.id);
+    if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'hand_review')) {
+      return res.status(403).json({
+        success: false,
+        blocked: true,
+        contextState: contextAccess?.contextState || 'session_active_unknown',
+        accessLevel: contextAccess?.accessLevel || 'hard_block',
+        error: contextAccess?.message || 'Hand examples are unavailable during live play.',
+      });
     }
 
     const leakId = typeof req.query.leakId === 'string' ? req.query.leakId.trim() : '';

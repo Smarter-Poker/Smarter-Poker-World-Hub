@@ -24,7 +24,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 
 const TIERS = {
-  Bronze: { color: '#cd7f32', bg: 'rgba(205,127,50,0.1)' },
+  Bronze: { color: '#86daff', bg: 'rgba(205,127,50,0.1)' },
   Silver: { color: 'var(--sp-fg)', bg: 'rgba(203,213,225,0.1)' },
   Gold: { color: '#86daff', bg: 'rgba(251,191,36,0.1)' },
   Diamond: { color: 'var(--sp-accent-cyan)', bg: 'rgba(0,212,255,0.1)' },

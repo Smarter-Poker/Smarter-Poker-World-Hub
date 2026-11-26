@@ -28,6 +28,7 @@ import useTriviaTimer from '../../hooks/useTriviaTimer';
 
 // ══ Escalating stake values per question ══
 const STAKE_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // 55 total possible
+const POST_ADVANCE_TAP_GUARD_MS = 220;
 
 /** Sentinels stored in answers[] for questions the player never answered. */
 const SKIP_SENTINELS = new Set([-1, -2]);
@@ -96,6 +97,8 @@ export default function TriviaGame({
     enableReport = false,
     reportToken = null,
     reportSessionId = null,
+    reportAccountId = null,
+    accountId = null,
     onQuestionReported = null,
     onRetry = null,
     onInvalidQuestionRefresh = null,
@@ -129,6 +132,11 @@ export default function TriviaGame({
     const [invalidQuestionError, setInvalidQuestionError] = useState(null);
     const [invalidQuestionNeedsRefresh, setInvalidQuestionNeedsRefresh] = useState(false);
     const [isInvalidSkipPending, setIsInvalidSkipPending] = useState(false);
+    // Synchronous ref lock prevents same-frame double-taps from overwriting
+    // pendingAnswerRef or double-submitting before React commits isLocked.
+    const answerLockRef = useRef(false);
+    // Brief post-advance tap guard prevents an Arcade auto-advance tap slip.
+    const postAdvanceGuardUntilRef = useRef(0);
     const { isVip } = useVIP();
     const [reduceMotion] = useState(prefersReducedMotion);
 
@@ -407,7 +415,7 @@ export default function TriviaGame({
                 particleCount: isFireMode ? 30 : 12,
                 spread: 50,
                 origin: { y: 0.7 },
-                colors: isFireMode ? ['#f02849', '#ff5b6e', '#ffd700'] : ['#35d95a', '#45adff'],
+                colors: isFireMode ? ['#f02849', '#ff5b6e', '#86daff'] : ['#35d95a', '#45adff'],
                 disableForReducedMotion: true,
             });
 
@@ -482,9 +490,24 @@ export default function TriviaGame({
         }
     };
 
-    const selectAnswer = (index) => {
-        if (isLocked || selectedAnswer !== null) return;
+    // Release the synchronous answer lock only once the next question renders,
+    // and enforce a brief post-advance tap guard in Arcade auto-advance mode.
+    useEffect(() => {
+        answerLockRef.current = false;
+        if (isArcadeMode && currentIndex > recoveredIndex) {
+            postAdvanceGuardUntilRef.current = Date.now() + POST_ADVANCE_TAP_GUARD_MS;
+        }
+    }, [currentIndex, isArcadeMode, recoveredIndex]);
 
+    const selectAnswer = (index) => {
+        if (
+            answerLockRef.current
+            || isLocked
+            || selectedAnswer !== null
+            || Date.now() < postAdvanceGuardUntilRef.current
+        ) return;
+
+        answerLockRef.current = true;
         audio.chipClick();
         setSelectedAnswer(index);
         setIsLocked(true);
@@ -619,7 +642,7 @@ export default function TriviaGame({
 
         fireConfetti({
             particleCount: 100, spread: 70, origin: { y: 0.5 },
-            colors: ['#ffd700', '#1877f2', '#35d95a'],
+            colors: ['#86daff', '#1877f2', '#35d95a'],
             disableForReducedMotion: true,
         });
 
@@ -684,7 +707,7 @@ export default function TriviaGame({
     const getDifficultyInk = (difficulty) => {
         switch (difficulty) {
             case 'easy': return 'tc-ink--green';
-            case 'medium': return 'tc-ink--gold';
+            case 'medium': return 'tc-ink--cyan';
             case 'hard': return 'tc-ink--red';
             default: return 'tc-ink--muted';
         }
@@ -741,7 +764,7 @@ export default function TriviaGame({
         : currentQuestion.explanation;
 
     const stakeForQuestion = STAKE_VALUES[Math.min(currentIndex, STAKE_VALUES.length - 1)] * multiplier;
-    const clockInk = timeRemaining <= 10 ? 'tc-ink--red' : 'tc-ink--gold';
+    const clockInk = timeRemaining <= 10 ? 'tc-ink--red' : 'tc-ink--cyan';
     const latestFloat = floatingDiamonds.length > 0 ? floatingDiamonds[floatingDiamonds.length - 1] : null;
     // One live status line replaces the old popups. Priority: the outcome
     // that matters most to the player right now.
@@ -752,7 +775,7 @@ export default function TriviaGame({
             : showStreakLost
                 ? { text: 'Streak Lost!', ink: 'tc-ink--red', role: 'status' }
                 : showCombo
-                    ? { text: `${streak} In A Row!${multiplier > 1 ? ` ${multiplier}X` : ''}`, ink: 'tc-ink--gold', role: 'status' }
+                    ? { text: `${streak} In A Row!${multiplier > 1 ? ` ${multiplier}X` : ''}`, ink: 'tc-ink--cyan', role: 'status' }
                     : null;
 
     return (
@@ -797,7 +820,7 @@ export default function TriviaGame({
                 {enableStakes && (
                     <li className={`tc-row stakes-bar ${showBust ? 'busted' : ''}`}>
                         <span className="tc-row__label">Diamonds At Risk</span>
-                        <span className={`tc-row__value stake-value ${showBust ? 'tc-ink--red' : 'tc-ink--gold'}`}>
+                        <span className={`tc-row__value stake-value ${showBust ? 'tc-ink--red' : 'tc-ink--cyan'}`}>
                             {stakePot}
                         </span>
                     </li>
@@ -805,7 +828,7 @@ export default function TriviaGame({
                 {enableStakes && multiplier > 1 && (
                     <li className="tc-row">
                         <span className="tc-row__label">Multiplier</span>
-                        <span className="tc-row__value tc-ink--gold">{multiplier}X</span>
+                        <span className="tc-row__value tc-ink--cyan">{multiplier}X</span>
                     </li>
                 )}
                 {isFireMode && (
@@ -838,7 +861,7 @@ export default function TriviaGame({
                 {flash ? (
                     <p className={`trivia-game__flash-text ${flash.ink}`} role={flash.role}>{flash.text}</p>
                 ) : latestFloat ? (
-                    <p key={latestFloat.id} className={`trivia-game__flash-text tc-ink--gold ${reduceMotion ? '' : 'is-rising'}`}>
+                    <p key={latestFloat.id} className={`trivia-game__flash-text tc-ink--green ${reduceMotion ? '' : 'is-rising'}`}>
                         +{latestFloat.value} Diamonds
                     </p>
                 ) : null}
@@ -852,7 +875,7 @@ export default function TriviaGame({
                         {toTitleCase(currentQuestion.difficulty || '')}
                     </span>
                     {enableStakes && (
-                        <span className="question-stake tc-ink--gold">
+                        <span className="question-stake tc-ink--cyan">
                             {stakeForQuestion} Diamonds
                         </span>
                     )}
@@ -865,12 +888,17 @@ export default function TriviaGame({
                     Trivia surface prints selected, correct, incorrect and
                     removed states the same way. Nothing is revealed until the
                     verdict exists (revealedCorrectIndex stays null). */}
-                <div className="options">
+                <div
+                    className="options"
+                    style={{ minHeight: '248px' }}
+                    aria-busy={isAnswerPending}
+                    data-pending={isAnswerPending ? 'true' : 'false'}
+                >
                     {currentQuestion.options.map((option, index) => {
                         const revealed = selectedAnswer !== null && revealedCorrectIndex !== null;
                         return (
                             <TriviaAnswerOption
-                                key={index}
+                                key={`${currentQuestion.id}-${index}`}
                                 index={index}
                                 option={toTitleCase(option)}
                                 selectedAnswer={selectedAnswer}
@@ -1000,7 +1028,7 @@ export default function TriviaGame({
                     {canCashOut && (
                         <button
                             type="button"
-                            className="cash-out-btn tc-word tc-ink--gold"
+                            className="cash-out-btn tc-word tc-ink--cyan"
                             onClick={handleCashOut}
                             ref={cashOutBtnRef}
                             aria-label={`Cash Out ${stakePot} Diamonds And End The Game`}
@@ -1024,6 +1052,7 @@ export default function TriviaGame({
                             questionId={currentQuestion.id}
                             userToken={reportToken}
                             sessionId={reportSessionId}
+                            accountId={reportAccountId || accountId}
                             onDone={onQuestionReported}
                         />
                     ) : null}

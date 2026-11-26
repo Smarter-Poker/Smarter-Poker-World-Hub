@@ -11,6 +11,7 @@ import { leakToDrill } from '../sandbox/leakReview.js';
 import {
   auditParsedHands,
   clubArenaHandRejectionReason,
+  describeClubArenaHandSupport,
   normalizeClubArenaHand,
   resolveStackDepthBb,
 } from '../training/handAuditEngine.js';
@@ -197,9 +198,52 @@ function buildStreetTimeline(normalizedHand) {
         position: a.position || null,
         action: a.action || null,
         amount: Number.isFinite(Number(a.amount)) ? Number(a.amount) : null,
+        amountBB: Number.isFinite(Number(a.amountBB)) ? +Number(a.amountBB).toFixed(2) : null,
+        amountAdded: Number.isFinite(Number(a.amountAdded)) ? Number(a.amountAdded) : null,
+        amountAddedBB: Number.isFinite(Number(a.amountAddedBB)) ? +Number(a.amountAddedBB).toFixed(2) : null,
+        totalBet: Number.isFinite(Number(a.totalBet)) ? Number(a.totalBet) : null,
+        totalBetBB: Number.isFinite(Number(a.totalBetBB)) ? +Number(a.totalBetBB).toFixed(2) : null,
         potBeforeBB: Number.isFinite(Number(a.potBeforeBB)) ? +Number(a.potBeforeBB).toFixed(2) : null,
+        stackAtDecisionBB: Number.isFinite(Number(a.stackAtDecisionBB)) ? +Number(a.stackAtDecisionBB).toFixed(2) : null,
         isHero: a.isHero === true,
       })),
+    });
+  }
+  return ordered;
+}
+
+function buildReplayOnlyTimeline(row, userId) {
+  const summary = parseHandSummary(row?.summary) || {};
+  const board = toCardCodes(row?.community_cards || row?.board || summary?.board) || [];
+  const rawActions = Array.isArray(row?.actions) ? row.actions : [];
+  const ordered = [];
+  for (const street of ['preflop', 'flop', 'turn', 'river']) {
+    const summaryStreetActions = Array.isArray(summary?.streets?.[street]?.actions)
+      ? summary.streets[street].actions
+      : null;
+    const streetActions = summaryStreetActions && summaryStreetActions.length > 0
+      ? summaryStreetActions
+      : rawActions.filter(a => String(a?.street || a?.stage || 'preflop').toLowerCase() === street);
+    if (streetActions.length === 0) continue;
+    ordered.push({
+      street,
+      board: street === 'preflop'
+        ? []
+        : (street === 'flop'
+            ? board.slice(0, 3)
+            : (street === 'turn'
+                ? board.slice(0, 4)
+                : board.slice(0, 5))),
+      actions: streetActions.slice(0, 12).map(a => {
+        const actorId = a?.playerId ?? a?.userId ?? a?.player_id ?? null;
+        return {
+          position: a?.position ? String(a.position).toUpperCase() : null,
+          action: String(a?.action || a?.type || '').toLowerCase() || null,
+          amount: Number.isFinite(Number(a?.amount)) ? Number(a.amount) : null,
+          potBeforeBB: null,
+          isHero: actorId !== null && String(actorId) === String(userId),
+        };
+      }),
     });
   }
   return ordered;
@@ -371,7 +415,20 @@ export async function executeSingleHandAudit(req, res, {
       ...(effectiveStackBb !== null ? { hero_effective_stack_bb: effectiveStackBb } : {}),
     };
 
-    const eligibility = classifyHandAuditEligibility(hydratedRow, { requireExplicitVariant: true });
+    const baseEligibility = classifyHandAuditEligibility(hydratedRow, { requireExplicitVariant: true });
+    const supportDescriptor = describeClubArenaHandSupport(hydratedRow, user.id);
+    const eligibility = (!baseEligibility.eligible)
+      ? baseEligibility
+      : (supportDescriptor.rejectionReason === 'unsupported_variant' || supportDescriptor.rejectionReason === 'unsupported_special_format')
+        ? {
+            eligible: false,
+            reason: supportDescriptor.rejectionReason,
+            variant: supportDescriptor.variant,
+            format: baseEligibility.format,
+            specialFormat: supportDescriptor.specialFormat || baseEligibility.specialFormat || null,
+            limitation: supportDescriptor.declineReason,
+          }
+        : baseEligibility;
     const summaryObj = parseHandSummary(hydratedRow.summary) || {};
     const rawPlayers = Array.isArray(summaryObj.players) && summaryObj.players.length > 0
       ? summaryObj.players
@@ -390,11 +447,16 @@ export async function executeSingleHandAudit(req, res, {
     if (!eligibility.eligible) {
       return res.status(200).json({
         success: true,
+        importable: true,
+        replayable: true,
+        strategySupported: false,
         supported: false,
         audited: false,
         reason: eligibility.reason,
+        declineReason: eligibility.limitation,
         limitation: eligibility.limitation,
         hand: handMeta,
+        streetTimeline: buildReplayOnlyTimeline(hydratedRow, user.id),
         decisions: [],
         solverVerifiedCount: 0,
         unpricedCount: 0,
@@ -408,11 +470,16 @@ export async function executeSingleHandAudit(req, res, {
     if (rejectionReason === 'missing_private_cards') {
       return res.status(200).json({
         success: true,
+        importable: true,
+        replayable: true,
+        strategySupported: false,
         supported: true,
         audited: false,
         reason: 'missing_private_cards',
+        declineReason: 'Hero Hole Cards Are Not Retained For This Hand Under Club Arena Card-Retention Rules, So Solver Decisions Remain Explicitly Unmeasured.',
         limitation: 'Hero Hole Cards Are Not Retained For This Hand Under Club Arena Card-Retention Rules, So Solver Decisions Remain Explicitly Unmeasured.',
         hand: handMeta,
+        streetTimeline: buildReplayOnlyTimeline(hydratedRow, user.id),
         decisions: [],
         solverVerifiedCount: 0,
         unpricedCount: 0,
@@ -426,11 +493,16 @@ export async function executeSingleHandAudit(req, res, {
     if (!normalizedHand) {
       return res.status(200).json({
         success: true,
+        importable: true,
+        replayable: true,
+        strategySupported: false,
         supported: false,
         audited: false,
         reason: rejectionReason || 'incomplete_hand_structure',
+        declineReason: 'This Hand Does Not Contain Complete Single-Board Hold\'em Decision Structure For Deterministic Solver Grading.',
         limitation: 'This Hand Does Not Contain Complete Single-Board Hold\'em Decision Structure For Deterministic Solver Grading.',
         hand: handMeta,
+        streetTimeline: buildReplayOnlyTimeline(hydratedRow, user.id),
         decisions: [],
         solverVerifiedCount: 0,
         unpricedCount: 0,
@@ -572,10 +644,14 @@ export async function executeSingleHandAudit(req, res, {
 
     return res.status(200).json({
       success: true,
+      importable: true,
+      replayable: true,
+      strategySupported: true,
       supported: true,
       audited: !cooldownBlockedLiveGrade,
       persisted,
       singleRoundTrip: usedSingleRoundTrip,
+      declineReason: null,
       reason: cooldownBlockedLiveGrade ? 'cooldown_active' : null,
       limitation: cooldownBlockedLiveGrade
         ? 'Post-Session Cooldown Active. Live Solver Grading Unlocks Once Your Cooldown Completes.'

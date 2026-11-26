@@ -410,7 +410,7 @@ const styles = {
   statValue: {
     fontSize: '24px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#86daff',
   },
   statLabel: {
     fontSize: '12px',
@@ -468,7 +468,7 @@ const styles = {
   },
   achIcon: {
     fontSize: '32px',
-    color: '#f2b84b',
+    color: '#86daff',
   },
   achInfo: {
     flex: 1,

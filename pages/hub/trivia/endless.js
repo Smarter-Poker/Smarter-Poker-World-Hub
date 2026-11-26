@@ -25,7 +25,6 @@ import { TRIVIA_INTRO_ART_ENDLESS } from '../../../src/config/triviaIntroArt.mjs
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
-import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
@@ -1322,6 +1321,7 @@ export default function EndlessModePage() {
                     gameover: highScoreProjectionPending ? 'Retry' : 'Final',
                 }[gameState] || balanceLabel;
 
+    const endlessCostLabel = isVip ? 'VIP Free' : `${formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds`;
     const primaryAction = showOutOfDiamonds
         ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
         : isPaused
@@ -1332,7 +1332,7 @@ export default function EndlessModePage() {
                     ? 'Sign In To Play'
                     : serverRun.hasRecoverableSession
                         ? 'Resume Endless Run'
-                        : loadError ? 'Try Again' : 'Start Endless Trivia',
+                        : loadError ? 'Try Again' : `Start Endless (${endlessCostLabel})`,
                 onClick: !userId
                     ? () => router.push('/auth/login?redirect=/hub/trivia/endless')
                     : serverRun.hasRecoverableSession ? resumeServerRun : startGame,
@@ -1348,13 +1348,13 @@ export default function EndlessModePage() {
                 : gameState === 'gameover'
                     ? highScoreProjectionPending
                         ? { label: isLoading ? 'Retrying Record Projection' : 'Retry Record Projection', onClick: retryHighScoreProjection, disabled: isLoading }
-                        : { label: 'Play Again', onClick: playAgain }
+                        : { label: `Play Again (${endlessCostLabel})`, onClick: playAgain }
                     : null;
 
     const secondaryAction = showOutOfDiamonds
         ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
-        : gameState === 'gameover'
-            ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
+        : (gameState === 'ready' || gameState === 'gameover')
+            ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
             : null;
 
     const accountBoundaryPending = shouldGateAccountOwnedRender({
@@ -1367,7 +1367,7 @@ export default function EndlessModePage() {
             <TriviaErrorBoundary pageName="Endless Mode">
                 <>
                     <SEOHead title="Endless Trivia - Keep The Streak Alive" description="Endless Poker Trivia On Smarter.Poker: enter a server-verified run, answer until the third miss, use limited lifelines, and review the final settlement receipt." canonical="/hub/trivia/endless" />
-                    <div className="trivia-challenge-page trivia-challenge-page--endless" data-trivia-family="challenge" data-trivia-surface="endless" data-game-state="loading">
+                    <div className="smarterdesign trivia-challenge-page trivia-challenge-page--endless" data-trivia-family="challenge" data-trivia-surface="endless" data-game-state="loading">
                         <UniversalHeader pageDepth={2} />
                         <PageTransition>
                             <main className="trivia-challenge-shell" aria-labelledby="endless-trivia-title">
@@ -1396,22 +1396,13 @@ export default function EndlessModePage() {
                 />
 
                 <div
-                    className="trivia-challenge-page trivia-challenge-page--endless"
+                    className="smarterdesign trivia-challenge-page trivia-challenge-page--endless"
                     data-trivia-family="challenge"
                     data-trivia-surface="endless"
                     data-game-state={gameState}
                     data-screen-shake={screenShake ? 'active' : 'idle'}
                 >
                     <UniversalHeader pageDepth={2} />
-
-                    {userId && !isVip && (
-                        <GameCostPopup
-                            userId={userId}
-                            featureKey="trivia_endless"
-                            isVip={isVip}
-                            cost={GAME_ENTRY_COST}
-                        />
-                    )}
 
                     <PageTransition>
                         <main className="trivia-challenge-shell" aria-labelledby="endless-trivia-title">
@@ -1482,18 +1473,18 @@ export default function EndlessModePage() {
                                             </div>
                                             <div className="trivia-challenge-stat">
                                                 <dt>Entry</dt>
-                                                <dd>{isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds`}</dd>
+                                                <dd>{endlessCostLabel}</dd>
                                             </div>
                                             <div className="trivia-challenge-stat">
                                                 <dt>Daily Reward Cap</dt>
                                                 <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
                                             </div>
                                         </dl>
-                                        {userId && !isVip && (
+                                        {userId && (
                                             <ul className="tc-rows" aria-label="Your Balance">
                                                 <li className="tc-row">
                                                     <span className="tc-row__label">Your Balance</span>
-                                                    <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                                    <span className="tc-row__value tc-ink--cyan">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
                                                 </li>
                                             </ul>
                                         )}
@@ -1724,6 +1715,7 @@ export default function EndlessModePage() {
                                         {trivia.showResult && currentQuestion?.id != null && (
                                             <div className="trivia-challenge-report">
                                                 <ReportQuestionButton
+                                                    key={currentQuestion.id}
                                                     questionId={currentQuestion.id}
                                                     sessionId={serverRun.sessionId}
                                                     accountId={userId}

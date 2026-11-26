@@ -641,7 +641,7 @@ export function renderVirtualSandboxMarkdown({ canonicalUrl = 'https://smarter.p
     '- **Custom Board & Table Setup**: Configure Stacks, Positions, Hole Cards, And Dealer Button For 2 To 9 Players.',
     '- **Runout Distribution Engine**: Monte Carlo Simulation Running Thousands Of Turn And River Boards To Chart Win, Tie, And Equity Distributions.',
     '- **Multiway Pot Modeling**: Accurate Side Pot Breakdown And Equity Calculations Across Multi-All-In Encounters.',
-    '- **Interactive Hand Sharing**: Generate Instant Shareable Web URLs Permitting Friends And Students To Load And Test Custom Scenarios.',
+    '- **Stateless Hand Review & Personal Assistant Analysis**: Audit Completed Hands And Transition Directly Into Evidence-Backed GTO Training And Deterministic Leak Detection.',
     '- **Device Compatibility**: Responsive 3D Rendering On Mobile Touchscreens And High-Resolution Desktop Displays.',
     '',
     '## Frequently Asked Questions',
@@ -650,7 +650,7 @@ export function renderVirtualSandboxMarkdown({ canonicalUrl = 'https://smarter.p
     'Yes. The Sandbox Handles Multiway Hands With Up To 9 Players, Accurately Segmenting Main Pots And Side Pots While Computing Exact Equities.',
     '',
     '### Is The Virtual Table Sandbox Free?',
-    'Yes. Full Simulation, Runout Modeling, And Hand Sharing Features Are 100% Free With No Download Required.',
+    'Yes. Full Simulation, Runout Modeling, And Personal Assistant Hand Review Workflows Are 100% Free With No Download Required.',
     '',
   ].join('\n');
 }

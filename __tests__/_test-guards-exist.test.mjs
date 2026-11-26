@@ -149,6 +149,7 @@ import './api-routes-exist.test.mjs';
 import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
+import './toke-dealer-reference.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
 // 2026-09-22: the same route schedules only its periodic steps. Runs the real
@@ -906,6 +907,8 @@ import './trivia-fortress-ui-laws.test.mjs';
 import './trivia-mfa-gate-fortress-laws.test.mjs';
 import './trivia-launch-gateboard-laws.test.mjs';
 import './trivia-smarterdesign-competitive-admin-laws.test.mjs';
+import './trivia-smarterdesign-gameplay-laws.test.mjs';
+import './trivia-smarterdesign-lobby-laws.test.mjs';
 import './newsletter-zero-broken-links-and-images.law.test.mjs';
 import './newsletter-end-to-end-wiring-and-ops.law.test.mjs';
 import './weekly-wire-v4-enhancements.law.test.mjs';

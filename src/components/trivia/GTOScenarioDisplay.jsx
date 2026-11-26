@@ -100,17 +100,17 @@ const ACTION_INKS = {
     'RAISE': 'green',
     'BET': 'green',
     '3-BET': 'green',
-    '4-BET': 'gold',
+    '4-BET': 'cyan',
     'CALL': 'blue',
     'CHECK': 'silver',
     'FOLD': 'red',
-    'ALL-IN': 'gold',
-    'SHOVE': 'gold',
+    'ALL-IN': 'cyan',
+    'SHOVE': 'cyan',
 };
 
 const INK_COLORS = {
     green: { color: '#c8ffd2', glow: 'rgb(53 217 90 / 30%)' },
-    gold: { color: '#ffd700', glow: 'rgb(255 215 0 / 30%)' },
+    cyan: { color: '#86daff', glow: 'rgb(134 218 255 / 30%)' },
     blue: { color: '#45adff', glow: 'rgb(69 173 255 / 30%)' },
     silver: { color: '#e4e7ec', glow: 'rgb(228 231 236 / 30%)' },
     red: { color: '#ff5b6e', glow: 'rgb(240 40 73 / 30%)' },

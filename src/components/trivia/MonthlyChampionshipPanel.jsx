@@ -4,7 +4,7 @@ import { TriviaGlassAction } from './console/TriviaConsole';
 import { exactDiamonds } from './tournaments/tournamentModel.mjs';
 
 const BADGE_INK = Object.freeze({
-    monthly_champion: 'tc-ink--gold',
+    monthly_champion: 'tc-ink--blue',
     top_3_finisher: 'tc-ink--green',
     top_20_qualifier: 'tc-ink--blue',
 });
@@ -65,16 +65,15 @@ export default function MonthlyChampionshipPanel() {
         <section className="tt-section" aria-labelledby="tt-championship-title" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div className="tt-section-head">
                 <h2 id="tt-championship-title" className="tc-label">Monthly Trivia Championship</h2>
-                <span className="tc-ink--gold">{data?.month || 'Current Month'} CT</span>
+                <span className="tc-ink--blue">{data?.month || 'Current Month'} CT</span>
             </div>
 
             {eventStatus ? (
                 <div
                     role="region"
                     aria-label="End-Of-Month Championship Event Status"
+                    className="sd-panel"
                     style={{
-                        border: '1px solid #ffd700',
-                        background: '#050607',
                         padding: '12px',
                         display: 'flex',
                         flexDirection: 'column',
@@ -82,7 +81,7 @@ export default function MonthlyChampionshipPanel() {
                     }}
                 >
                     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '6px 12px', alignItems: 'baseline' }}>
-                        <span className="tc-label tc-ink--gold">End-Of-Month Championship Event</span>
+                        <span className="tc-label tc-ink--blue">End-Of-Month Championship Event</span>
                         <span className="tc-ink--blue">
                             {eventDate ? `${eventDate} At ${eventTimeLabel}` : eventTimeLabel}
                         </span>
@@ -97,7 +96,7 @@ export default function MonthlyChampionshipPanel() {
                                 : `Your Status: Play Nightlies To Reach Top ${qualifierCutoff}`}
                         </span>
                         {viewerBadges.length > 0 ? (
-                            <span className="tc-ink--gold">
+                            <span className="tc-ink--blue">
                                 Permanent Badges Held: {viewerBadges.map((b) => `${b.titleLabel} (${b.seasonMonth})`).join(', ')}
                             </span>
                         ) : null}
@@ -126,14 +125,14 @@ export default function MonthlyChampionshipPanel() {
                     aria-label="Permanent Monthly Championship Badges"
                     style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
                 >
-                    <h3 className="tc-label tc-ink--gold" style={{ margin: 0 }}>Permanent Championship Badges Awarded</h3>
+                    <h3 className="tc-label tc-ink--blue" style={{ margin: 0 }}>Permanent Championship Badges Awarded</h3>
                     <ul className="tc-rows" aria-label="Permanent Championship Badge Winners">
                         {awards.map((award) => (
                             <li key={award.id || `${award.userId}-${award.rank}`} className="tc-row">
                                 <span className="tc-row__label">
                                     #{award.rank} {award.displayName}
                                 </span>
-                                <span className={`tc-row__value ${BADGE_INK[award.badgeCode] || 'tc-ink--gold'}`}>
+                                <span className={`tc-row__value ${BADGE_INK[award.badgeCode] || 'tc-ink--blue'}`}>
                                     {award.titleLabel} | {exactDiamonds(award.points)} Pts
                                 </span>
                             </li>
@@ -172,7 +171,7 @@ export default function MonthlyChampionshipPanel() {
                                 <span className="tc-row__label">
                                     #{row.rank} {row.displayName}{row.participantKind === 'horse' ? ' (Smarter Horse)' : ''}{isQualified ? ' [Top 20 Qualifier]' : ''}
                                 </span>
-                                <span className="tc-row__value tc-ink--gold">
+                                <span className="tc-row__value tc-ink--blue">
                                     {exactDiamonds(row.points)} Pts | {row.wins}W | {row.cashes} Cash | {exactDiamonds(row.totalPayout)} Diamonds
                                 </span>
                             </li>

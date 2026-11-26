@@ -176,16 +176,16 @@ test('20261124052600 tournament health activation window migration preserves pre
     assert.match(sql, /-- FORWARD ROLLBACK:/);
 });
 
-test('TriviaLobby checks variableCost before isVip so PvP/Tournaments never advertise VIP Free', () => {
+test('TriviaLobby checks Free and variableCost before isVip so free and variable modes never advertise VIP Free', () => {
     const lobby = read('src/components/trivia/TriviaLobby.jsx');
-    const costLabelBlock = lobby.slice(
-        lobby.indexOf("? 'Verified At Entry'"),
-        lobby.indexOf(": 'Free';", lobby.indexOf("? 'Verified At Entry'")) + 10,
-    );
-    const variableIndex = costLabelBlock.indexOf('variableCost');
-    const vipIndex = costLabelBlock.indexOf('isVip');
-    assert.ok(variableIndex > -1 && vipIndex > -1, 'entry badge evaluates both variableCost and isVip');
-    assert.ok(variableIndex < vipIndex, 'variableCost must be checked before isVip');
+    const fnStart = lobby.indexOf('const formatEntryCost =');
+    const fnEnd = lobby.indexOf('};', fnStart) + 2;
+    const costLabelBlock = lobby.slice(fnStart, fnEnd);
+    const freeIndex = costLabelBlock.indexOf("return 'Free'");
+    const variableIndex = costLabelBlock.indexOf("return 'Variable'");
+    const vipIndex = costLabelBlock.indexOf("return 'VIP Free'");
+    assert.ok(freeIndex > -1 && variableIndex > -1 && vipIndex > -1, 'entry badge evaluates Free, variableCost, and isVip');
+    assert.ok(freeIndex < variableIndex && variableIndex < vipIndex, 'Free and variableCost must be checked before isVip');
 });
 
 test('survival-game clears parent session on failure & restart, guards settings load, and binds question reports', () => {
@@ -247,7 +247,8 @@ test('dynamic [mode] route admits arcade free-entry holders and passes mode to P
     const page = read('pages/hub/trivia/[mode].js');
     assert.match(page, /let arcadeFreeEntryCount = 0;/);
     assert.match(page, /arcadeFreeEntryCount = itemMap\.get\('arcade_ticket'\) \|\| 0;/);
-    assert.match(page, /if \(mode === 'arcade' && !vipStatus && arcadeFreeEntryCount < 1\)/);
+    assert.doesNotMatch(page, /if \(mode === 'arcade' && !vipStatus && arcadeFreeEntryCount < 1\)/);
+    assert.match(page, /const hasArcadeFreeEntry = mode === 'arcade' && \(arcadeInventory\?\.freeEntry \|\| 0\) >= 1;/);
     assert.match(page, /<PrizeWheel[\s\S]*?mode=\{mode\}/);
 
     const wheel = read('src/components/trivia/PrizeWheel.jsx');

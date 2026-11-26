@@ -23,6 +23,7 @@ const GAME_DURATION = 30; // seconds
 // Single source of truth for the cap lives in triviaEngine.
 const DAILY_DIAMOND_CAP = DAILY_DIAMOND_CAPS?.['time-attack'] ?? 5;
 const LOAD_MORE_THRESHOLD = 5;
+const POST_ADVANCE_TAP_GUARD_MS = 220;
 
 export default function TimeAttackGame({
     questions = [],
@@ -58,6 +59,12 @@ export default function TimeAttackGame({
     const [answerError, setAnswerError] = useState(null);
     const answerStartTime = useRef(Date.now());
     const answersRef = useRef([]); // Track per-question correct/incorrect
+    // Synchronous ref lock prevents same-frame double-taps from firing
+    // duplicate serverGrader calls or double-advancing currentIndex.
+    const answerLockRef = useRef(false);
+    // Brief tap cooldown after auto-advance prevents a late tap from landing
+    // on the newly rendered question's option.
+    const postAdvanceGuardUntilRef = useRef(0);
     const reduceMotion = usePhase9ReducedMotion();
 
     const currentQuestion = questions[currentIndex];
@@ -125,9 +132,14 @@ export default function TimeAttackGame({
         setGameOver(true);
     }, [timeLeft, gameOver, isRevealing]);
 
-    // Reset answer timer on new question
+    // Reset answer timer and release the synchronous answer lock only once
+    // the next question has actually rendered.
     useEffect(() => {
         answerStartTime.current = Date.now();
+        answerLockRef.current = false;
+        if (currentIndex > 0) {
+            postAdvanceGuardUntilRef.current = Date.now() + POST_ADVANCE_TAP_GUARD_MS;
+        }
     }, [currentIndex]);
 
     // Top up the pool before it runs dry. time-attack.js currently passes a
@@ -141,8 +153,15 @@ export default function TimeAttackGame({
     }, [currentIndex, questions.length, onLoadMoreQuestions, gameOver]);
 
     const handleAnswer = (answerIndex) => {
-        if (isRevealing || gameOver || !currentQuestion) return;
+        if (
+            answerLockRef.current
+            || isRevealing
+            || gameOver
+            || !currentQuestion
+            || Date.now() < postAdvanceGuardUntilRef.current
+        ) return;
 
+        answerLockRef.current = true;
         const answerTime = (Date.now() - answerStartTime.current) / 1000;
         setAnswerError(null);
         setSelectedAnswer(answerIndex);
@@ -153,12 +172,13 @@ export default function TimeAttackGame({
             // key. Release the tap instead of wedging the run - this only
             // happens on a wiring mistake, never in normal play.
             console.warn('[TimeAttackGame] serverGrader prop missing - cannot grade answer');
+            answerLockRef.current = false;
             setSelectedAnswer(null);
             setIsRevealing(false);
             return;
         }
 
-        // The tap locks instantly; every side effect waits for the server
+        // The tap locks synchronously; every side effect waits for the server
         // verdict. The first answer per question is binding server-side, so a
         // failed call is safe to re-tap - a retry replays the stored verdict
         // instead of double-recording.
@@ -171,6 +191,7 @@ export default function TimeAttackGame({
             .catch((err) => {
                 console.warn('[TimeAttackGame] serverGrader failed, unlocking for retry:', err?.message || err);
                 if (!_isMountedRef.current) return;
+                answerLockRef.current = false;
                 setSelectedAnswer(null);
                 setIsRevealing(false);
                 setAnswerError('Could Not Submit That Answer. Tap The Same Answer Again.');
@@ -257,14 +278,15 @@ export default function TimeAttackGame({
     }
 
     const warning = timeLeft <= 10;
+    const isPendingAnswer = isRevealing && verdict == null;
     return (
         <div className="time-attack-game" data-game-over={gameOver ? 'true' : 'false'}>
-            {/* The clock: live seconds printed on the glass (gold, red at ten
+            {/* The clock: live seconds printed on the glass (ice blue, red at ten
                 seconds and under) over a native meter that drains with it. */}
             <div className="time-attack-clock" data-warning={warning ? 'true' : 'false'}>
                 <p className="trivia-challenge-progress-label">
                     <span>Seconds Left</span>
-                    <span className={`time-attack-clock__value tc-ink--${warning ? 'red' : 'gold'}`} role="timer" aria-live="off">
+                    <span className={`time-attack-clock__value tc-ink--${warning ? 'red' : 'cyan'}`} role="timer" aria-live="off">
                         {timeLeft}
                     </span>
                 </p>
@@ -299,13 +321,18 @@ export default function TimeAttackGame({
                 <div className="time-attack-question">
                     <p className="trivia-challenge-question">{currentQuestion.question}</p>
 
-                    <div className="trivia-challenge-options">
+                    <div
+                        className="trivia-challenge-options"
+                        style={{ minHeight: '248px' }}
+                        aria-busy={isPendingAnswer}
+                        data-pending={isPendingAnswer ? 'true' : 'false'}
+                    >
                         {currentQuestion.options.map((option, idx) => (
                             // Reveal comes from the server verdict - while the
                             // grading call is in flight (verdict null) the tap
-                            // is locked but nothing is marked right or wrong.
+                            // is locked and acknowledged as pending until confirmed.
                             <TriviaAnswerOption
-                                key={idx}
+                                key={`${currentQuestion.id}-${idx}`}
                                 index={idx}
                                 option={option}
                                 selectedAnswer={selectedAnswer}
