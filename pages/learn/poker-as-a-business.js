@@ -183,7 +183,7 @@ export default function PokerAsABusinessPage() {
               Pro Risk Of Ruin &amp; Bankroll Calculator
             </Link>
             <Link href="/poker-rooms/states" style={styles.crossBtnOutline}>
-              15 US State Poker Laws &amp; Tax Guides
+              All 50 US States &amp; DC Poker Laws &amp; Tax Guides
             </Link>
           </div>
         </header>

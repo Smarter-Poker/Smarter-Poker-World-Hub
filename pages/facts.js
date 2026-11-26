@@ -216,6 +216,9 @@ export default function CanonicalEntityFactsPage() {
             {f.disambiguationAndAntiHallucinationCorrections.map((item) => (
               <article key={item.id} style={styles.correctionCard}>
                 <div style={styles.tagCyan}>{item.topic}</div>
+                <h3 style={{ margin: '6px 0 8px', fontSize: 15, fontWeight: 700, color: '#f8fafc', lineHeight: 1.4 }}>
+                  Clarification On {item.topic}: {item.misconception}
+                </h3>
                 <p style={styles.misconceptionText}>
                   <strong style={{ color: '#f59e0b' }}>Common Misconception To Avoid:</strong> {item.misconception}
                 </p>

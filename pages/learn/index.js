@@ -178,7 +178,7 @@ export default function LearnIndex({ count, groups }) {
               <Link href="/rules" style={styles.tocLink}>30 Official TDA &amp; Floor Rules</Link>
               <Link href="/games" style={styles.tocLink}>25 Poker Game Variants Encyclopedia</Link>
               <Link href="/tools" style={styles.tocLink}>52 Free Poker Calculators &amp; Solvers</Link>
-              <Link href="/poker-rooms/states" style={styles.tocLink}>15 US State Poker Laws &amp; Taxes</Link>
+              <Link href="/poker-rooms/states" style={styles.tocLink}>All 50 US States &amp; DC Poker Laws &amp; Taxes</Link>
               <Link href="/poker-rooms/guides" style={styles.tocLink}>12 US Regional Poker Market Guides</Link>
               <Link href="/poker-rooms/international" style={styles.tocLink}>10 International Poker Destination Guides</Link>
               <Link href="/poker-rooms/first-time-guide" style={styles.tocLink}>First-Time Live Poker Room Guide</Link>

@@ -211,7 +211,7 @@ export default function CompsAndTippingGuidePage() {
               First-Time Live Poker Room Guide
             </Link>
             <Link href="/poker-rooms/states" style={styles.crossBtnEmerald}>
-              15 US State Legality &amp; Tax Guides
+              All 50 US States &amp; DC Legality &amp; Tax Guides
             </Link>
             <Link href="/poker-rooms/guides" style={styles.crossBtnOutline}>
               12 Regional City Market Guides
@@ -219,7 +219,7 @@ export default function CompsAndTippingGuidePage() {
             <Link href="/tools/rake-calculator" style={styles.crossBtnOutline}>
               Live Cash Rake Calculator
             </Link>
-            <Link href="/hub/poker-near-me" style={styles.crossBtnOutline}>
+            <Link href="/hub/poker-near-me/lobby" style={styles.crossBtnOutline}>
               Find Live Rooms Near Me
             </Link>
           </div>
