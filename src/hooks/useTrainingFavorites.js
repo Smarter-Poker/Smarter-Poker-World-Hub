@@ -5,13 +5,14 @@
  * authenticated users. Never fabricates persistence on database errors:
  * mutations only settle after a validated `{ success: true }` server payload.
  *
- * For signed-out visitors, keeps an honest in-memory session set so stars work
+ * For signed-out visitors, keeps favorites in tab-scoped session storage so stars work
  * during browsing while surfacing a clear prompt that signing in syncs them.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { authedFetch } from '../lib/authUtils';
 import toast from '../stores/toastStore';
+import { readGuestTrainingFavorites, toggleGuestTrainingFavorite } from '../lib/training/guestTrainingFavorites.mjs';
 
 export default function useTrainingFavorites(authUser) {
   const [favoriteIds, setFavoriteIds] = useState(() => new Set());
@@ -22,11 +23,17 @@ export default function useTrainingFavorites(authUser) {
   useEffect(() => {
     let cancelled = false;
     if (!authUser?.id) {
+      try {
+        setFavoriteIds(readGuestTrainingFavorites(window.sessionStorage));
+      } catch {
+        setFavoriteIds(new Set());
+      }
       setLoading(false);
       setError(null);
       return () => { cancelled = true; };
     }
 
+    setFavoriteIds(new Set());
     setLoading(true);
     setError(null);
 
@@ -59,20 +66,16 @@ export default function useTrainingFavorites(authUser) {
     const currentlyStarred = favoriteIds.has(gameId);
     const nextAction = currentlyStarred ? 'remove' : 'add';
 
-    // Signed-out visitors get honest session-only favorites in memory
     if (!authUser?.id) {
-      setFavoriteIds((prev) => {
-        const next = new Set(prev);
-        if (currentlyStarred) next.delete(gameId);
-        else next.add(gameId);
-        return next;
-      });
-      toast.info(
-        currentlyStarred
-          ? 'Removed From Session Favorites.'
-          : 'Saved For This Session. Sign In To Sync Favorites Across Devices.',
-      );
-      return true;
+      try {
+        const next = toggleGuestTrainingFavorite(window.sessionStorage, gameId);
+        setFavoriteIds(next);
+        toast.info(next.has(gameId) ? 'Saved For This Tab.' : 'Removed From Favorites.');
+        return true;
+      } catch {
+        toast.error('Favorites Could Not Be Saved In This Tab.');
+        return false;
+      }
     }
 
     pendingRef.current.add(gameId);

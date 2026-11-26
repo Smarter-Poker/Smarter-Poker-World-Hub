@@ -31,6 +31,7 @@ function isOutsideDialog(event, dialog) {
 
 export default function TrainingGamePreviewSheet({
   item,
+  isFavorite,
   onClose,
   onLaunch,
   onToggleFavorite,
@@ -197,12 +198,12 @@ export default function TrainingGamePreviewSheet({
           <footer className="sp-arena-sheet__foot">
             <button
               type="button"
-              className={`sp-arena-sheet__reset sd-button${item.isFavorite ? ' active' : ''}`}
-              aria-pressed={item.isFavorite}
+              className={`sp-arena-sheet__reset sd-button${isFavorite ? ' active' : ''}`}
+              aria-pressed={isFavorite}
               onClick={() => onToggleFavorite(game.id)}
             >
-              <Star size={15} aria-hidden="true" fill={item.isFavorite ? 'currentColor' : 'none'} />
-              <span>{item.isFavorite ? 'Favorited' : 'Favorite'}</span>
+              <Star size={15} aria-hidden="true" fill={isFavorite ? 'currentColor' : 'none'} />
+              <span>{isFavorite ? 'Favorited' : 'Favorite'}</span>
             </button>
             <button
               type="button"

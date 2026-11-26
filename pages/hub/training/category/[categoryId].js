@@ -282,6 +282,7 @@ export default function CategoryPage() {
 
           <TrainingGamePreviewSheet
             item={previewItem}
+            isFavorite={favoriteIds.has(previewItem?.game.id)}
             onClose={() => setPreviewItem(null)}
             onLaunch={playGame}
             onToggleFavorite={toggleFavorite}

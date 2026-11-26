@@ -16,6 +16,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { readGuestTrainingFavorites, toggleGuestTrainingFavorite } from '../src/lib/training/guestTrainingFavorites.mjs';
 import { TRAINING_LIBRARY } from '../src/data/TRAINING_LIBRARY.js';
 import {
   DEFAULT_LOBBY_FILTERS,
@@ -186,4 +187,30 @@ test('Arena Lobby CSS & dialogs obey #SMARTERDESIGN, mobile 12px floor, and mode
   for (const forbidden of [/#f3b151/i, /#ffe16a/i, /#facc15/i, /#ffd700/i, /#c084fc/i, /#c99cff/i, /#f59e0b/i, /#fb923c/i]) {
     assert.doesNotMatch(cssCode, forbidden, `Forbidden accent color ${forbidden} in training-lobby-arena.css`);
   }
+});
+
+test('guest favorites survive lobby re-entry in the same tab and report storage failures', () => {
+  const values = new Map();
+  const storage = { getItem: key => values.get(key), setItem: (key, value) => values.set(key, value) };
+  assert.deepEqual([...toggleGuestTrainingFavorite(storage, 'cash-002')], ['cash-002']);
+  assert.deepEqual([...readGuestTrainingFavorites(storage)], ['cash-002']);
+  assert.deepEqual([...toggleGuestTrainingFavorite(storage, 'cash-002')], []);
+  assert.deepEqual([...readGuestTrainingFavorites(storage)], []);
+  storage.getItem = () => 'invalid json';
+  assert.deepEqual([...readGuestTrainingFavorites(storage)], []);
+  storage.setItem = () => { throw new Error('Storage blocked'); };
+  assert.throws(() => toggleGuestTrainingFavorite(storage, 'cash-002'), /Storage blocked/);
+});
+
+test('preview follows current favorite state on both entry points while preserving custom selections', () => {
+  for (const page of ['pages/hub/training.js', 'pages/hub/training/category/[categoryId].js']) {
+    assert.ok(read(page).includes('isFavorite={favoriteIds.has(previewItem?.game.id)}'));
+  }
+  const preview = read('src/components/training/lobby/TrainingGamePreviewSheet.jsx');
+  assert.ok(preview.includes('aria-pressed={isFavorite}'));
+  assert.ok(preview.includes('[item, defaultVariant]'));
+  assert.ok(!preview.includes('item.isFavorite'));
+  const header = read('src/components/training/lobby/TrainingLobbyHeader.jsx');
+  assert.ok(header.includes("'Play Again'"));
+  assert.ok(!header.includes("'Resume Session'"));
 });

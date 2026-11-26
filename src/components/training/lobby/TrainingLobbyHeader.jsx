@@ -3,7 +3,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * Replaces the tall 30%-viewport hero poster with a tight, high-signal command
  * header mirroring Club Arena's welcome + 2 telemetry plaques:
- *   - Left plaque: Instant Play / Resume action for the player's top drill
+ *   - Left plaque: Quick Play / Play Again action for the player's top drill
  *   - Right plaque: Live 30-day GTO Grade + weekly hands/streak (honest states)
  *   - Slim conditional 5-Minute Leak Fix bar when a real leak/warmup applies
  */
@@ -23,7 +23,7 @@ export default function TrainingLobbyHeader({
   totalGames,
 }) {
   const primaryGame = continueTarget?.game || heroGame;
-  const isResume = Boolean(continueTarget?.game);
+  const hasLastDrill = Boolean(continueTarget?.game);
   const hasGradeData = Number(stats?.rolling_total) > 0;
   const grade = hasGradeData ? (stats?.current_grade || '-') : '-';
   const accuracy = hasGradeData ? `${stats.rolling_accuracy_pct}%` : null;
@@ -41,11 +41,11 @@ export default function TrainingLobbyHeader({
       </div>
 
       <div className="sp-arena-masthead__plaques">
-        {/* Left Plaque: Quick Play / Resume */}
+        {/* Left Plaque: Quick Play / Play Again */}
         <div className="sp-arena-plaque sp-arena-plaque--action">
           <div className="sp-arena-plaque__copy">
             <span className="sp-arena-plaque__label">
-              {isResume ? 'Resume Session' : 'Quick Play Drill'}
+              {hasLastDrill ? 'Last Played' : 'Quick Play Drill'}
             </span>
             <strong className="sp-arena-plaque__name">
               {primaryGame?.name || 'Push/Fold Mastery'}
@@ -58,12 +58,12 @@ export default function TrainingLobbyHeader({
             type="button"
             className="sp-arena-plaque__play sd-button sd-primary"
             data-start-training-cta="true"
-            data-continue-training-cta={isResume ? 'true' : undefined}
+            data-continue-training-cta={hasLastDrill ? 'true' : undefined}
             disabled={!primaryGame}
-            onClick={() => onPlayGame(primaryGame, isResume ? continueTarget.preset : undefined)}
+            onClick={() => onPlayGame(primaryGame, hasLastDrill ? continueTarget.preset : undefined)}
           >
             <Play size={15} aria-hidden="true" />
-            <span>{isResume ? 'Resume' : 'Play'}</span>
+            <span>{hasLastDrill ? 'Play Again' : 'Play'}</span>
           </button>
         </div>
 
