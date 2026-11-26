@@ -143,6 +143,6 @@ test('no page component references a binding from a server-only module', () => {
 
 test('the Weekly Wire edition page receives its spot card URL as a prop', () => {
     const page = fs.readFileSync(path.join(ROOT, 'pages/hub/wire/[edition].js'), 'utf8');
-    assert.match(page, /imageSrc:\s*buildSpotCardImageUrl\(spot\.slug,\s*\{\s*relative:\s*true\s*\}\)/);
+    assert.match(page, /imageUrl:\s*buildSpotCardImageUrl\(spot\.slug,\s*\{\s*relative:\s*true\s*\}\)/);
     assert.doesNotMatch(componentBody(page), /buildSpotCardImageUrl|emailImageProxy/);
 });

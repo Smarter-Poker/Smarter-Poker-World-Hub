@@ -22,3 +22,10 @@ Regression test: `__tests__/server-only-modules-stay-out-of-page-components.law.
 - on 98842721 (pre-fix): 0 pass, 2 fail (`component uses "emailImageProxy"`).
 - on e7683057 (last good build) the all-pages law passes: no other page violates it.
 - with the fix: 2 pass, 0 fail.
+
+## Update 2026-11-26T00:10Z
+
+#3011 (`aca9e106`) merged an equivalent page fix first (prop name `imageUrl`), and production
+`dpl_HJGLNGeVcZmkNuixWQUz85j4714t` is READY on it. This branch was rebased onto that main and now
+carries only the hardening: the all-pages law, the Weekly Wire pin (updated to `imageUrl`) and the
+CI gate step. Law on rebased main: 2 pass, 0 fail. Law with the pre-fix page from `98842721`: 0 pass, 2 fail.
