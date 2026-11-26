@@ -142067,6 +142067,7 @@
           "__tests__/messenger-media-attachments.test.mjs",
           "__tests__/messenger-reliability-incident-controls.test.mjs",
           "__tests__/one-reader-per-sentinel.law.test.mjs",
+          "e2e/messenger-media-geometry.spec.ts",
           "src/components/social/GoLiveModal.jsx",
           "src/components/social/LiveViewerList.jsx"
         ]
@@ -142088,6 +142089,7 @@
           "__tests__/messenger-media-attachments.test.mjs",
           "__tests__/messenger-reliability-incident-controls.test.mjs",
           "__tests__/one-reader-per-sentinel.law.test.mjs",
+          "e2e/messenger-media-geometry.spec.ts",
           "src/components/messenger/MessageBubble.js",
           "src/components/notifications/HubNotificationsFeed.jsx",
           "src/hooks/useUnreadCount.jsx"
@@ -152730,6 +152732,7 @@
           "__tests__/messenger-media-attachments.test.mjs",
           "__tests__/messenger-reliability-incident-controls.test.mjs",
           "__tests__/one-reader-per-sentinel.law.test.mjs",
+          "e2e/messenger-media-geometry.spec.ts",
           "src/components/social/GoLiveModal.jsx",
           "src/components/social/LiveViewerList.jsx"
         ]
@@ -152751,6 +152754,7 @@
           "__tests__/messenger-media-attachments.test.mjs",
           "__tests__/messenger-reliability-incident-controls.test.mjs",
           "__tests__/one-reader-per-sentinel.law.test.mjs",
+          "e2e/messenger-media-geometry.spec.ts",
           "src/components/messenger/MessageBubble.js",
           "src/components/notifications/HubNotificationsFeed.jsx",
           "src/hooks/useUnreadCount.jsx"

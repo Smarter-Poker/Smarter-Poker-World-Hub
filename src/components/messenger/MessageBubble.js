@@ -10,7 +10,7 @@ import ReliabilityIncidentControls, { ReliabilityMessageHeader, ReliabilityMessa
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { unionEcoRows } from '../../lib/unionEco.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
-import { parseMessageMedia, isMediaMessage, isVisualMediaKind, mediaThumbnailUrl, videoPreviewUrl } from '../../lib/messenger/messageMedia.mjs';
+import { parseMessageMedia, isMediaMessage, isVisualMediaKind, extractMediaDimensions, mediaThumbnailUrl, videoPreviewUrl } from '../../lib/messenger/messageMedia.mjs';
 import { isLiveInvite, liveInviteHref } from '../../lib/messenger/liveInvite.mjs';
 import { isCallReceipt, parseCallReceipt } from '../../lib/messenger/callReceipt.mjs';
 import { reliabilityIncidentControls, reliabilityMessageParts } from '../../lib/messenger/reliabilityIncident.mjs';
@@ -161,7 +161,7 @@ LinkPreviewCard.displayName = 'LinkPreviewCard';
 // src/lib/messenger/messageMedia.mjs. If the file itself cannot load, the
 // bubble shows a tappable card — never the raw markup it was stored as.
 // ═══════════════════════════════════════════════════════════════════════════
-export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
+export function MediaAttachment({ media, dimensions = null, isOwn, theme: C = defaultTheme }) {
     const [failed, setFailed] = useState(false);
     const [viewing, setViewing] = useState(false);
     // The thread draws a fitted copy; `fitted` drops to the original if the
@@ -241,6 +241,8 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                 <div style={{ display: 'block', background: '#000' }}>
                     <video
                         src={videoSrc}
+                        width={dimensions?.width}
+                        height={dimensions?.height}
                         controls
                         playsInline
                         preload="metadata"
@@ -253,6 +255,7 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                             height: 'auto',
                             maxWidth: '100%',
                             maxHeight: 'min(520px, 68dvh)',
+                            ...(dimensions?.aspectRatio ? { aspectRatio: dimensions.aspectRatio } : {}),
                             objectFit: 'contain',
                             background: '#000',
                             borderRadius: 0,
@@ -284,6 +287,8 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                 <img
                     src={threadSrc}
                     alt={label}
+                    width={dimensions?.width}
+                    height={dimensions?.height}
                     loading="lazy"
                     decoding="async"
                     onError={() => { if (threadSrc !== media.url) setFitted(false); else setFailed(true); }}
@@ -296,6 +301,7 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                         height: 'auto',
                         maxWidth: media.kind === 'gif' ? 'min(320px, 100%)' : '100%',
                         maxHeight: media.kind === 'gif' ? 'min(360px, 60dvh)' : 'min(520px, 68dvh)',
+                        ...(dimensions?.aspectRatio ? { aspectRatio: dimensions.aspectRatio } : {}),
                         objectFit: 'contain',
                         borderRadius: 0,
                         cursor: 'zoom-in',
@@ -360,8 +366,18 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
     const audioRef = useRef(null);
     const [playing, setPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(durationProp || 0);
     const animFrameRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+            if (audioRef.current) {
+                try { audioRef.current.pause(); } catch { /* unmounting */ }
+            }
+        };
+    }, []);
 
     const togglePlay = (e) => {
         e.stopPropagation();
@@ -369,13 +385,16 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
         if (playing) {
             audioRef.current.pause();
             setPlaying(false);
-            cancelAnimationFrame(animFrameRef.current);
+            if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
         } else {
-            audioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            audioRef.current.play().catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
             setPlaying(true);
             const tick = () => {
                 if (audioRef.current) {
-                    setProgress(audioRef.current.currentTime / (audioRef.current.duration || 1));
+                    const dur = audioRef.current.duration || duration || 1;
+                    const cur = audioRef.current.currentTime || 0;
+                    setCurrentTime(cur);
+                    setProgress(Math.max(0, Math.min(1, cur / dur)));
                 }
                 animFrameRef.current = requestAnimationFrame(tick);
             };
@@ -383,10 +402,24 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
         }
     };
 
+    const handleSeek = (e) => {
+        e.stopPropagation();
+        const ratio = Math.max(0, Math.min(1, Number(e.target.value) / 1000));
+        const dur = (audioRef.current?.duration && isFinite(audioRef.current.duration))
+            ? audioRef.current.duration
+            : duration;
+        if (audioRef.current && dur > 0) {
+            audioRef.current.currentTime = ratio * dur;
+        }
+        setCurrentTime(dur > 0 ? ratio * dur : 0);
+        setProgress(ratio);
+    };
+
     const handleEnded = () => {
         setPlaying(false);
         setProgress(0);
-        cancelAnimationFrame(animFrameRef.current);
+        setCurrentTime(0);
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
 
     const handleLoadedMetadata = () => {
@@ -409,6 +442,9 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
         })
     );
 
+    const sliderValue = Math.round(progress * 1000);
+    const activeTimeLabel = playing || currentTime > 0 ? formatDur(currentTime) : formatDur(duration);
+
     return (
         <div style={{
             display: 'flex',
@@ -425,6 +461,8 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
                 onLoadedMetadata={handleLoadedMetadata}
             />
             <button
+                type="button"
+                aria-label={playing ? 'Pause Voice Message' : 'Play Voice Message'}
                 onClick={togglePlay}
                 style={{
                     width: 34,
@@ -443,23 +481,24 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
                 onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
                 {playing ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white" aria-hidden="true">
                         <rect x="6" y="4" width="4" height="16" rx="1" />
                         <rect x="14" y="4" width="4" height="16" rx="1" />
                     </svg>
                 ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white" aria-hidden="true">
                         <path d="M8 5v14l11-7z" />
                     </svg>
                 )}
             </button>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 1, height: 24 }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 1, height: 24 }}>
                     {bars.current.map((h, i) => {
                         const filled = i / bars.current.length <= progress;
                         return (
                             <div
                                 key={i}
+                                aria-hidden="true"
                                 style={{
                                     width: 3,
                                     height: `${h * 100}%`,
@@ -468,16 +507,37 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
                                         ? (isOwn ? 'white' : C.blue)
                                         : (isOwn ? 'rgba(255,255,255,0.3)' : '#D0D0D0'),
                                     transition: 'background 0.1s',
+                                    pointerEvents: 'none',
                                 }}
                             />
                         );
                     })}
+                    <input
+                        type="range"
+                        min={0}
+                        max={1000}
+                        step={1}
+                        value={sliderValue}
+                        onChange={handleSeek}
+                        onClick={e => e.stopPropagation()}
+                        aria-label="Voice Message Progress"
+                        aria-valuetext={`${formatDur(currentTime)} Of ${formatDur(duration)}`}
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            margin: 0,
+                            opacity: 0,
+                            cursor: 'pointer',
+                        }}
+                    />
                 </div>
                 <span style={{
                     fontSize: 11,
                     color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec,
                 }}>
-                    {playing ? formatDur(audioRef.current?.currentTime || 0) : formatDur(duration)}
+                    {activeTimeLabel}
                 </span>
             </div>
         </div>
@@ -672,12 +732,34 @@ export function MessageBubble({
         if (longPressFired.current && e?.cancelable) e.preventDefault();
     };
 
+    const [rowHovered, setRowHovered] = useState(false);
+
     useEffect(() => {
         if (!showReactions && !showMenu) return;
         const dismiss = () => { setShowReactions(false); setShowMenu(false); };
-        const t = setTimeout(() => document.addEventListener('click', dismiss), 50);
-        return () => { clearTimeout(t); document.removeEventListener('click', dismiss); };
+        const onKeyDown = (event) => { if (event.key === 'Escape') dismiss(); };
+        const t = setTimeout(() => {
+            document.addEventListener('click', dismiss);
+            document.addEventListener('keydown', onKeyDown);
+        }, 50);
+        return () => {
+            clearTimeout(t);
+            document.removeEventListener('click', dismiss);
+            document.removeEventListener('keydown', onKeyDown);
+        };
     }, [showReactions, showMenu]);
+
+    const handleContextMenu = (e) => {
+        if (status === 'sending') return;
+        const target = e.target;
+        if (target && typeof target.closest === 'function' && target.closest('a, video, input, textarea')) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        setShowReactions(true);
+        setShowMenu(true);
+    };
 
     if (!message) return null;
 
@@ -731,6 +813,7 @@ export function MessageBubble({
         ? parseMessageMedia(strippedBubbleContent)
         : null;
     const isVisualMedia = Boolean(parsedVisualMedia && isVisualMediaKind(parsedVisualMedia.kind));
+    const mediaDimensions = isVisualMedia ? extractMediaDimensions(bubbleMeta) : null;
     const isMediaAttachment = Boolean(parsedVisualMedia);
     const copyableText = isMediaAttachment
         ? (parsedVisualMedia.caption || '')
@@ -741,6 +824,7 @@ export function MessageBubble({
         && !isMediaAttachment
         && !message.is_deleted
         && (Date.now() - new Date(message.created_at).getTime()) < 300000;
+    const showDesktopActions = status !== 'sending' && (rowHovered || showReactions || showMenu);
 
     return (
         <div
@@ -757,6 +841,9 @@ export function MessageBubble({
                 position: 'relative',
                 WebkitTouchCallout: 'none',
             }}
+            onMouseEnter={() => setRowHovered(true)}
+            onMouseLeave={() => setRowHovered(false)}
+            onContextMenu={handleContextMenu}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -845,7 +932,7 @@ export function MessageBubble({
                         borderRadius: 8,
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         overflow: 'hidden',
-                        zIndex: 20,
+                        zIndex: 60,
                         minWidth: 180,
                     }}>
                         {onSave && !message.is_deleted && !String(message.id).startsWith('temp-') && (
@@ -1195,7 +1282,7 @@ export function MessageBubble({
                         // Photos, videos, GIFs and voice notes — current and
                         // retired payloads alike — go through the one dialect.
                         const media = parseMessageMedia(content);
-                        if (media) return <MediaAttachment media={media} isOwn={isOwn} theme={C} />;
+                        if (media) return <MediaAttachment media={media} dimensions={mediaDimensions} isOwn={isOwn} theme={C} />;
 
                         // A Reliability Controller body is a list of lines. Only
                         // a message entitled to the controls keeps its breaks.
@@ -1238,6 +1325,113 @@ export function MessageBubble({
                             theme={C} />;
                     })()}
                 </div>
+
+                {status !== 'sending' && (
+                    <div
+                        data-message-actions
+                        className="sp-message-actions"
+                        style={{
+                            position: 'absolute',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            [isOwn ? 'right' : 'left']: 'calc(100% + 6px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            padding: '2px 4px',
+                            borderRadius: 16,
+                            background: C.card,
+                            border: `1px solid ${C.border}`,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                            zIndex: 15,
+                            opacity: showDesktopActions ? 1 : 0,
+                            pointerEvents: showDesktopActions ? 'auto' : 'none',
+                            transition: 'opacity 0.14s ease',
+                        }}
+                        onFocus={() => setRowHovered(true)}
+                        onBlur={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget)) setRowHovered(false);
+                        }}
+                    >
+                        <button
+                            type="button"
+                            aria-label="React To Message"
+                            aria-expanded={showReactions}
+                            title="React"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMenu(false);
+                                setShowReactions(prev => !prev);
+                            }}
+                            style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: showReactions ? C.hoverBg : 'transparent',
+                                color: C.textSec,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 15,
+                                padding: 0,
+                            }}
+                        >☺</button>
+                        {!message.is_deleted && onReply && (
+                            <button
+                                type="button"
+                                aria-label="Reply To Message"
+                                title="Reply"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowReactions(false);
+                                    setShowMenu(false);
+                                    onReply(message);
+                                }}
+                                style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: '50%',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: C.textSec,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 15,
+                                    padding: 0,
+                                }}
+                            >↩</button>
+                        )}
+                        <button
+                            type="button"
+                            aria-label="More Message Actions"
+                            aria-expanded={showMenu}
+                            title="More"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowReactions(false);
+                                setShowMenu(prev => !prev);
+                            }}
+                            style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: showMenu ? C.hoverBg : 'transparent',
+                                color: C.textSec,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 15,
+                                padding: 0,
+                            }}
+                        >⋯</button>
+                    </div>
+                )}
 
                 {reactions.length > 0 && (
                     <div style={{

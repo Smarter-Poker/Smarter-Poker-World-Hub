@@ -7,12 +7,14 @@ import { visibleMessageBoundary, isMessageId, CONTINUITY_PREFIX } from './messen
 import { createMessengerSendOperation, restoreMessengerSendOperations, performMessengerSend,
     mergeMessengerPendingMessages, reconcileMessengerMessage, messengerOperationMessage, acknowledgeMessengerSend } from './messengerSendOperation.mjs';
 import { persistReadWithRetry, readFailureMessage } from '../../../lib/messengerReadRetry.mjs';
-import { encodeMessageMedia, extractReplyPrefix, formatReplyQuote, isVisualMediaKind, mediaThumbnailUrl, parseMessageMedia, resolveUploadMedia, videoPreviewUrl } from '../../../lib/messenger/messageMedia.mjs';
+import { encodeMessageMedia, extractMediaDimensions, extractReplyPrefix, formatReplyQuote, isVisualMediaKind, mediaThumbnailUrl, parseMessageMedia, resolveUploadMedia, videoPreviewUrl } from '../../../lib/messenger/messageMedia.mjs';
+import { prepareMessengerUploadFile, uploadFileWithProgress } from '../../../lib/messenger/mediaUpload';
+import { getAccessToken } from '../../../lib/authUtils';
 import MediaViewer, { ATTACHMENT_ATTRIBUTE } from '../MediaViewer';
 
 const MESSAGE_ROUTES = { 'get-messages': '/api/messenger/get-messages', 'mark-read': '/api/messenger/mark-read' };
 const safeMedia = content => parseMessageMedia(content);
-function DockMedia({ media, replyQuote }) {
+function DockMedia({ media, dimensions = null, replyQuote }) {
     const [failed, setFailed] = useState(false);
     const [fitted, setFitted] = useState(true);
     const [viewing, setViewing] = useState(false);
@@ -38,7 +40,16 @@ function DockMedia({ media, replyQuote }) {
             {replyEl}
             {forwardedEl}
             <div className="dock-media-stage dock-media-stage-video">
-                <video src={videoPreviewUrl(media.url) || media.url} controls playsInline preload="metadata" onError={() => setFailed(true)} />
+                <video
+                    src={videoPreviewUrl(media.url) || media.url}
+                    width={dimensions?.width}
+                    height={dimensions?.height}
+                    style={dimensions?.aspectRatio ? { aspectRatio: dimensions.aspectRatio } : undefined}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    onError={() => setFailed(true)}
+                />
             </div>
             {captionEl}
         </>;
@@ -52,6 +63,9 @@ function DockMedia({ media, replyQuote }) {
             <img
                 src={src}
                 alt={label}
+                width={dimensions?.width}
+                height={dimensions?.height}
+                style={dimensions?.aspectRatio ? { aspectRatio: dimensions.aspectRatio } : undefined}
                 loading="lazy"
                 decoding="async"
                 {...{ [ATTACHMENT_ATTRIBUTE]: media.url }}
@@ -72,8 +86,13 @@ export default function MessengerChat({ actorId, identity, conversation, service
     const [engaged, setEngaged] = useState(false);
     const [older, setOlder] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(null);
+    const [pendingMedia, setPendingMedia] = useState(null);
+    const [dragOver, setDragOver] = useState(false);
     const [newAvailable, setNewAvailable] = useState(false);
     const [emojis, setEmojis] = useState(false);
+    const uploadAbort = useRef(null);
+    const pendingPreviewUrl = useRef(null);
     const mounted = useRef(true);
     const sequence = useRef(0);
     const scroll = useRef(null);
@@ -197,6 +216,8 @@ export default function MessengerChat({ actorId, identity, conversation, service
         return () => {
             clearTimeout(draftTimer.current); clearTimeout(positionTimer.current); void continuity.write(id, 'draft'); void continuity.write(id, 'position');
             mounted.current = false; ++sequence.current;
+            if (uploadAbort.current) { try { uploadAbort.current.abort(); } catch { /* unmounting */ } }
+            if (pendingPreviewUrl.current) { URL.revokeObjectURL(pendingPreviewUrl.current); pendingPreviewUrl.current = null; }
             clearTimeout(refreshTimer); clearTimeout(typingTimer.current); stop();
             services.supabase.removeChannel(realtime); if (ownsTyping) services.supabase.removeChannel(live);
             channel.current = null;
@@ -255,7 +276,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
             }
         } catch (failure) { if (current()) setError(dockFailureText(failure)); }
     };
-    const send = (content = draft.text, consume = true) => {
+    const send = (content = draft.text, consume = true, metadata = null) => {
         if (!current() || !content.trim() || content.length > 2000) return;
         const captured = continuity.state(id).draft;
         const quoted = consume && captured.replyToId ? messages.find(message => message.id === captured.replyToId) : null;
@@ -264,28 +285,80 @@ export default function MessengerChat({ actorId, identity, conversation, service
         // Repeated Enter/clicks while a send is ambiguous retain its request ID.
         const pending = [...ops.current.values()].find(operation => !operation.receipt && JSON.parse(operation.body).content === wireContent);
         if (pending) { void attempt(pending, consume ? captured : null); return; }
-        const operation = createMessengerSendOperation({ actorId, conversationId: id, content: wireContent });
+        const operation = createMessengerSendOperation({ actorId, conversationId: id, content: wireContent, metadata });
         ops.current.set(operation.requestId, operation);
         void attempt(operation, consume ? captured : null);
     };
-    const upload = async event => {
-        const media = event.target.files?.[0]; event.target.value = '';
+    const clearPendingMedia = () => {
+        if (pendingPreviewUrl.current) { URL.revokeObjectURL(pendingPreviewUrl.current); pendingPreviewUrl.current = null; }
+        setPendingMedia(null);
+    };
+    const stageMedia = media => {
         if (!media || !current()) return;
         const resolved = resolveUploadMedia(media);
         if (!resolved || media.size > (resolved.kind === 'video' ? 50 : 10) * 1024 * 1024) { setError('Choose An Image Under 10MB Or Video Under 50MB'); return; }
+        if (pendingPreviewUrl.current) { URL.revokeObjectURL(pendingPreviewUrl.current); pendingPreviewUrl.current = null; }
+        const previewUrl = URL.createObjectURL(media);
+        pendingPreviewUrl.current = previewUrl;
+        setError('');
+        setPendingMedia({ file: media, kind: resolved.kind, mimeType: resolved.mimeType, name: media.name || (resolved.kind === 'video' ? 'Video' : 'Photo'), previewUrl });
+        composer.current?.focus();
+    };
+    const sendPendingMedia = async () => {
+        if (!pendingMedia || !current() || uploading) return;
+        const mediaToSend = pendingMedia;
+        const caption = draft.text.trim();
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        uploadAbort.current = controller;
+        clearPendingMedia();
         setUploading(true);
+        setUploadProgress(0);
         try {
-            const response = await services.request('/api/social/upload-url', { method: 'POST', body: JSON.stringify({ fileName: media.name || `media_${Date.now()}.${resolved.kind === 'video' ? 'mp4' : 'jpg'}`, fileSize: media.size, mimeType: resolved.mimeType, folder: 'messages', prefix: actorId }), actorId, currentActor: () => identity.current });
+            const prepared = await prepareMessengerUploadFile(mediaToSend.file);
+            if (!prepared) throw new Error('Choose An Image Under 10MB Or Video Under 50MB');
+            if (prepared.file.size > (prepared.kind === 'video' ? 50 : 10) * 1024 * 1024) throw new Error('Choose An Image Under 10MB Or Video Under 50MB');
+            const response = await services.request('/api/social/upload-url', { method: 'POST', body: JSON.stringify({ fileName: prepared.fileName, fileSize: prepared.file.size, mimeType: prepared.mimeType, folder: 'messages', prefix: actorId }), actorId, currentActor: () => identity.current, signal: controller?.signal });
             const result = await response.json();
             if (!response.ok || !result.success || !result.signedUrl || !result.publicUrl) throw new Error('Upload Could Not Be Started');
             if (!current()) return;
-            const uploaded = await fetch(result.signedUrl, { method: 'PUT', headers: { 'Content-Type': resolved.mimeType }, body: media, signal: AbortSignal.timeout(300000) });
-            if (!uploaded.ok) throw new Error('Upload Did Not Complete');
-            const encoded = encodeMessageMedia({ kind: resolved.kind, url: result.publicUrl });
+            await uploadFileWithProgress(prepared.file, result, {
+                kind: prepared.kind,
+                mimeType: prepared.mimeType,
+                accessToken: getAccessToken(),
+                onProgress: pct => { if (current()) setUploadProgress(pct); },
+                signal: controller?.signal,
+                timeoutMs: prepared.kind === 'video' ? 600000 : 300000,
+            });
+            const encoded = encodeMessageMedia({ kind: prepared.kind, url: result.publicUrl, caption });
             if (!encoded) throw new Error('Upload Produced An Unusable Address');
-            if (current()) send(encoded, false);
-        } catch (failure) { if (current()) setError(dockFailureText(failure)); }
-        finally { if (current()) setUploading(false); }
+            const meta = prepared.width && prepared.height ? { media_width: prepared.width, media_height: prepared.height } : null;
+            if (current()) send(encoded, Boolean(caption), meta);
+        } catch (failure) {
+            if (current() && failure?.name !== 'AbortError') setError(dockFailureText(failure));
+        } finally {
+            if (uploadAbort.current === controller) uploadAbort.current = null;
+            if (current()) { setUploading(false); setUploadProgress(null); }
+        }
+    };
+    const upload = event => {
+        const media = event.target.files?.[0]; event.target.value = '';
+        stageMedia(media);
+    };
+    const handlePaste = event => {
+        if (uploading) return;
+        const items = Array.from(event.clipboardData?.items || []);
+        for (const item of items) {
+            if (item.kind === 'file') {
+                const pasted = item.getAsFile?.();
+                if (pasted && resolveUploadMedia(pasted)) { event.preventDefault(); stageMedia(pasted); return; }
+            }
+        }
+        const pasted = Array.from(event.clipboardData?.files || []).find(f => resolveUploadMedia(f));
+        if (pasted) { event.preventDefault(); stageMedia(pasted); }
+    };
+    const handleSubmit = () => {
+        if (pendingMedia) { void sendPendingMedia(); return; }
+        send();
     };
     const openFull = () => { onMinimize(); services.openMessenger(id); };
     const name = dockName(conversation);
@@ -293,7 +366,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
     // app-wide CallProvider, so they keep working when this window closes.
     const canCall = !!conversation.otherUser?.id && !conversation.is_group && !conversation.isRequest && !conversation.isAccounting;
     const call = type => void requestCall({ conversationId: id, otherUser: conversation.otherUser, callType: type, isGroup: !!conversation.is_group, isRequest: !!conversation.isRequest });
-    return <div className="dock-chat" data-dock-conversation={id} onFocusCapture={() => setEngaged(true)} onPointerDown={() => setEngaged(true)} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onMinimize(); } }}>
+    return <div className={`dock-chat ${dragOver ? 'dock-chat-dragover' : ''}`} data-dock-conversation={id} onFocusCapture={() => setEngaged(true)} onPointerDown={() => setEngaged(true)} onDragOver={event => { if (Array.from(event.dataTransfer?.types || []).includes('Files')) { event.preventDefault(); setDragOver(true); } }} onDragLeave={event => { if (event.currentTarget === event.target) setDragOver(false); }} onDrop={event => { event.preventDefault(); setDragOver(false); const dropped = Array.from(event.dataTransfer?.files || []).find(f => resolveUploadMedia(f)); if (dropped) stageMedia(dropped); }} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onMinimize(); } }}>
         <header className="dock-chat-header">
             {conversation.otherUser?.avatar_url ? <img className="dock-chat-avatar" src={conversation.otherUser.avatar_url} alt="" /> : <span className="dock-chat-avatar dock-initial">{name.slice(0, 1)}</span>}
             <button type="button" className="dock-chat-person" onClick={openFull}><strong>{name}</strong><small>{typing ? 'Typing...' : 'Messenger'}</small></button>
@@ -327,7 +400,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
                 return <div key={message.id} data-message-id={message.id} className={`dock-message ${own ? 'dock-own' : ''}`}>
                     <div className={`dock-message-bubble ${visualMedia ? 'dock-media-bubble' : ''}`} data-media-frame={visualMedia ? media.kind : undefined} title={new Date(message.created_at).toLocaleString()}>
                         {message.is_deleted ? <em>Message Removed</em> : message.message_type === 'invoice' ? <button type="button" onClick={openFull}>Open Invoice In Messenger</button>
-                            : visualMedia ? <DockMedia media={media} replyQuote={replyQuote} />
+                            : visualMedia ? <DockMedia media={media} dimensions={extractMediaDimensions(message.media_metadata || message.metadata)} replyQuote={replyQuote} />
                             : media?.kind === 'audio' ? <>{replyQuote && <div className="dock-reply-quote">{replyQuote}</div>}<audio src={media.url} controls /></>
                             : String(body || '').startsWith('[CALL_RECEIPT]') ? <span className="dock-call-receipt">{messengerPreviewText(body, 0)}</span>
                             : <>{replyQuote && <div className="dock-reply-quote">{replyQuote}</div>}{body}</>}
@@ -341,15 +414,17 @@ export default function MessengerChat({ actorId, identity, conversation, service
         {newAvailable && <button type="button" className="dock-new-messages" onClick={() => { setNewAvailable(false); nearBottom.current = true; void load(); }}>New Messages</button>}
         {draft.replyToId && <div className="dock-reply-banner">Replying To Message <button type="button" aria-label="Cancel Reply" onClick={() => { continuity.edit(id, 'draft', { text: draft.text, replyToId: null }); void continuity.write(id, 'draft'); }}><X size={14} /></button></div>}
         {emojis && <div className="dock-emojis">{['\u{1f600}','\u{1f602}','\u{2764}\u{fe0f}','\u{1f44d}','\u{1f389}','\u{1f60e}'].map(emoji => <button key={emoji} type="button" aria-label={`Insert ${emoji}`} onClick={() => { editDraft((draft.text + emoji).slice(0, 2000)); setEmojis(false); composer.current?.focus(); }}>{emoji}</button>)}</div>}
-        <form className="dock-composer" onSubmit={event => { event.preventDefault(); send(); }}>
+        {uploading && <div className="dock-upload-progress" role="status"><span>{uploadProgress != null ? `Uploading ${uploadProgress}%` : 'Uploading...'}</span><div className="dock-upload-bar"><div style={{ width: `${Math.max(5, uploadProgress ?? 15)}%` }} /></div><button type="button" aria-label="Cancel Upload" onClick={() => { try { uploadAbort.current?.abort(); } catch { /* ignore */ } }}>Cancel</button></div>}
+        {pendingMedia && !uploading && <div className="dock-media-preview" data-attachment-preview>{pendingMedia.kind === 'video' ? <video src={pendingMedia.previewUrl} muted playsInline preload="metadata" /> : <img src={pendingMedia.previewUrl} alt="Attachment Preview" />}<span><strong>{pendingMedia.kind === 'video' ? 'Video Ready' : 'Photo Ready'}</strong><small>{pendingMedia.name}</small></span><button type="button" aria-label="Remove Attachment" onClick={clearPendingMedia}><X size={14} /></button></div>}
+        <form className="dock-composer" onSubmit={event => { event.preventDefault(); handleSubmit(); }}>
             <input ref={file} type="file" accept="image/*,video/*" hidden onChange={upload} />
             <button type="button" aria-label="Attach Photo Or Video" disabled={uploading} onClick={() => file.current?.click()}><ImagePlus size={21} /></button>
-            <textarea ref={composer} aria-label={`Message ${name}`} placeholder={uploading ? 'Uploading...' : 'Aa'} rows={1} maxLength={2000} value={draft.text} onChange={event => {
+            <textarea ref={composer} aria-label={`Message ${name}`} placeholder={uploading ? 'Uploading...' : pendingMedia ? 'Add A Caption...' : 'Aa'} rows={1} maxLength={2000} value={draft.text} onPaste={handlePaste} onChange={event => {
                 editDraft(event.target.value);
                 if (Date.now() - typingSent.current > 1500) { typingSent.current = Date.now(); void channel.current?.send({ type: 'broadcast', event: 'typing', payload: { userId: actorId } }); }
-            }} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); send(); } }} />
+            }} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); handleSubmit(); } }} />
             <button type="button" aria-label="Choose Emoji" aria-expanded={emojis} onClick={() => setEmojis(value => !value)}><Smile size={21} /></button>
-            {draft.text.trim() ? <button type="submit" aria-label="Send Message"><Send size={21} /></button> : <button type="button" aria-label="Send Like" onClick={() => send('\u{1f44d}', false)}><ThumbsUp size={21} /></button>}
+            {(draft.text.trim() || pendingMedia) ? <button type="submit" disabled={uploading} aria-label={pendingMedia ? 'Send Attachment' : 'Send Message'}><Send size={21} /></button> : <button type="button" aria-label="Send Like" onClick={() => send('\u{1f44d}', false)}><ThumbsUp size={21} /></button>}
         </form>
     </div>;
 }
