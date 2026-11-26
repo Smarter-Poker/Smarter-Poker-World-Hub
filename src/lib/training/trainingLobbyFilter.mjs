@@ -15,11 +15,11 @@ export const LOBBY_GROUPS = Object.freeze({
 });
 
 export const LOBBY_CATEGORY_META = Object.freeze({
-  MTT: Object.freeze({ id: 'MTT', label: 'Tournaments', shortLabel: "MTTs", group: 'DRILLS', ledTone: 'cobalt' }),
+  MTT: Object.freeze({ id: 'MTT', label: 'Tournaments', shortLabel: 'Tournaments', group: 'DRILLS', ledTone: 'cobalt' }),
   CASH: Object.freeze({ id: 'CASH', label: 'Cash Games', shortLabel: 'Cash', group: 'DRILLS', ledTone: 'emerald' }),
   SPINS: Object.freeze({ id: 'SPINS', label: 'Spins & SNGs', shortLabel: 'Spins', group: 'DRILLS', ledTone: 'ice' }),
   ADVANCED: Object.freeze({ id: 'ADVANCED', label: 'Poker Strategy', shortLabel: 'Strategy', group: 'LABS', ledTone: 'ice' }),
-  PSYCHOLOGY: Object.freeze({ id: 'PSYCHOLOGY', label: 'Mental Game', shortLabel: 'Mental', group: 'LABS', ledTone: 'steel' }),
+  PSYCHOLOGY: Object.freeze({ id: 'PSYCHOLOGY', label: 'Mental Game', shortLabel: 'Mental Game', group: 'LABS', ledTone: 'steel' }),
 });
 
 export const LOBBY_CATEGORY_ORDER = Object.freeze(['MTT', 'CASH', 'SPINS', 'ADVANCED', 'PSYCHOLOGY']);
@@ -152,6 +152,7 @@ export function buildLobbyGameMeta(game) {
  */
 export function countAdvancedFilters(filters) {
   let count = 0;
+  if (filters.quickFilter && filters.quickFilter !== 'ALL') count += 1;
   if (filters.difficultyTier && filters.difficultyTier !== 'ALL') count += 1;
   if (filters.styleTag && filters.styleTag !== 'ALL') count += 1;
   if (filters.statusFilter && filters.statusFilter !== 'ALL') count += 1;

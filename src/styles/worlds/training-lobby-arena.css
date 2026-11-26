@@ -308,44 +308,22 @@ body.world-training .sp-arena-primary-plates {
   gap: 8px;
 }
 
+/* Reuse Club Arena's table-leather-v1 and filter-plate masters. Labels,
+   selections and hit areas remain native buttons at every viewport size. */
 body.world-training .sp-arena-plate {
-  position: relative;
   min-height: 62px;
-  padding: 8px 12px;
-  border: 2px solid #7d96ad;
-  border-top-color: #d6e2ec;
-  border-bottom-color: #3a5064;
-  border-radius: 6px;
-  background:
-    linear-gradient(90deg, rgba(69, 173, 255, 0.25) 0 4px, transparent 4px calc(100% - 4px), rgba(69, 173, 255, 0.25) calc(100% - 4px)),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 9px),
-    linear-gradient(180deg, #1b2d40 0%, #0a1522 52%, #050b13 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.26),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.65),
-    0 4px 12px rgba(0, 0, 0, 0.55);
+  padding: 8px 14px;
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: url('/images/training/lobby/arena-mode.webp') center / 100% 100% no-repeat;
   color: #f2f7ff;
   cursor: pointer;
-  transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.1s ease;
 }
 
 body.world-training .sp-arena-plate:hover {
-  border-color: #9ed9ff;
-}
-
-body.world-training .sp-arena-plate[aria-pressed='true'] {
-  border-color: #56d8ff;
-  border-top-color: #dcf7ff;
-  background:
-    linear-gradient(90deg, #45adff 0 4px, transparent 4px calc(100% - 4px), #45adff calc(100% - 4px)),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 9px),
-    linear-gradient(180deg, #156ad1 0%, #093d8a 54%, #052254 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    0 0 18px rgba(69, 173, 255, 0.34);
-  color: #ffffff;
+  filter: brightness(1.13);
 }
 
 body.world-training .sp-arena-plate__well {
@@ -367,18 +345,9 @@ body.world-training .sp-arena-plate__title {
 }
 
 body.world-training .sp-arena-plate[aria-pressed='true'] .sp-arena-plate__title {
-  color: #ffffff;
-}
-
-body.world-training .sp-arena-plate__meta {
-  font-size: 12px;
-  font-weight: 600;
-  color: #bdd0e2;
-  letter-spacing: 0.03em;
-}
-
-body.world-training .sp-arena-plate[aria-pressed='true'] .sp-arena-plate__meta {
-  color: #d7f2ff;
+  color: #86daff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Centered Favorites Plate */
@@ -395,23 +364,11 @@ body.world-training .sp-arena-favorites-btn {
   min-width: 168px;
   min-height: 44px;
   padding: 0 18px;
-  border: 1px solid #7590a9;
-  border-top-color: #c5d6e6;
-  border-radius: 5px;
-  background: linear-gradient(180deg, #1b2f44 0%, #091522 65%, #050c14 100%);
-  color: #f2f7ff;
   font-family: var(--font-rajdhani, sans-serif);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-body.world-training .sp-arena-favorites-btn[aria-pressed='true'] {
-  border-color: #56d8ff;
-  background: linear-gradient(180deg, #0d72e8 0%, #073f8f 60%, #042559 100%);
-  color: #ffffff;
-  box-shadow: 0 0 14px rgba(69, 173, 255, 0.34);
 }
 
 /* Tier 2: Sub-Category Tabs (flex-wrap keeps every category visible, zero hidden rail) */
@@ -430,34 +387,12 @@ body.world-training .sp-cat-chip.sp-arena-subtab {
   gap: 5px;
   min-height: 44px;
   padding: 0 10px;
-  border: 1px solid #5c7690;
-  border-top-color: #a9bdd0;
-  border-radius: 5px;
-  background: linear-gradient(180deg, #16283b 0%, #08121f 70%);
-  color: #e6f0fa;
   font-family: var(--font-rajdhani, sans-serif);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-body.world-training .sp-cat-chip.sp-arena-subtab .sp-cat-count {
-  font-size: 12px;
-  font-weight: 700;
-  color: #86daff;
-}
-
-body.world-training .sp-cat-chip.sp-arena-subtab[aria-pressed='true'] .sp-cat-count {
-  color: #dff6ff;
-}
-
-/* Tier 3: 2x3 Quick-Filter Pills */
-body.world-training .sp-arena-quick-pills {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
 }
 
 body.world-training .sp-arena-pill {
@@ -488,6 +423,28 @@ body.world-training .sp-arena-pill.active {
   background: linear-gradient(180deg, #0b78f2 0%, #064296 62%, #03265c 100%);
   color: #ffffff;
   box-shadow: 0 0 12px rgba(69, 173, 255, 0.28);
+}
+
+body.world-training .sp-arena-favorites-btn,
+body.world-training .sp-cat-chip.sp-arena-subtab,
+body.world-training .sp-arena-search-row .sp-arena-pill--filters,
+body.world-training .sp-arena-sticky-rail .sp-arena-sticky-rail__btn {
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: url('/images/training/lobby/arena-filter.webp') center / 100% 100% no-repeat;
+  color: #e8eff6;
+}
+
+body.world-training .sp-arena-favorites-btn[aria-pressed='true'],
+body.world-training .sp-cat-chip.sp-arena-subtab[aria-pressed='true'],
+body.world-training .sp-arena-search-row .sp-arena-pill--filters:is([aria-pressed='true'], .active),
+body.world-training .sp-arena-sticky-rail .sp-arena-sticky-rail__btn[aria-pressed='true'] {
+  border-image: none;
+  color: #86daff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Inline Search Row */
@@ -691,22 +648,15 @@ body.world-training .sp-arena-row-list {
   gap: 7px;
 }
 
+/* Crop only the lit perimeter of PremiumMttRows' emblems-v2/card master.
+   Nine slices keep the rim intact when a game name wraps or the row widens. */
 body.world-training .sp-arena-row {
   position: relative;
-  border: 2px solid #6b849c;
-  border-top-color: #c7d5e3;
-  border-bottom-color: #2f4356;
-  border-radius: 7px;
-  background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 8px),
-    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 8px),
-    linear-gradient(180deg, #13202e 0%, #08111b 52%, #040911 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 4px 0 0 var(--row-led, #45adff),
-    0 6px 16px rgba(0, 0, 0, 0.52);
-  overflow: clip;
-  transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.12s ease;
+  border: solid transparent;
+  border-width: 6px 10px;
+  border-image: url('/images/training/lobby/arena-row-rim.webp') 15 27 / 6px 10px stretch;
+  background: #06101c;
+  color: #f2f7ff;
 }
 
 /* Below-the-fold rendering deferral (modern-web-guidance: defer-rendering-heavy-content) */
@@ -715,32 +665,12 @@ body.world-training .sp-arena-row--deferred {
   contain-intrinsic-size: auto none auto 116px;
 }
 
-body.world-training .sp-arena-row--led-ice { --row-led: #45adff; }
-body.world-training .sp-arena-row--led-cobalt { --row-led: #1981ec; }
-body.world-training .sp-arena-row--led-emerald { --row-led: #22c55e; }
-body.world-training .sp-arena-row--led-steel { --row-led: #94aec6; }
-body.world-training .sp-arena-row--led-crimson { --row-led: #ef4444; }
-
-body.world-training .sp-arena-row.is-featured {
-  border-color: #7eb8e6;
-  border-top-color: #e2f1ff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 4px 0 0 var(--row-led, #45adff),
-    inset -4px 0 0 var(--row-led, #45adff),
-    0 8px 20px rgba(0, 0, 0, 0.58);
-}
-
-body.world-training .sp-arena-row:hover {
-  border-color: #86daff;
-  transform: translateY(-1px);
-}
-
 body.world-training .sp-arena-row__head-wrap {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  border-bottom: 1px solid rgba(154, 184, 212, 0.24);
+  background: url('/images/training/lobby/arena-mode.webp') center / 160% 280% no-repeat;
+  border-bottom: 1px solid #708295;
 }
 
 /* Upper Half: Emblem + Title/Focus + Format Plaque */
@@ -1276,8 +1206,36 @@ body.world-training .sp-arena-empty p {
 
 @media (max-width: 768px) {
   body.world-training .sp-arena-masthead__plaques {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 6px;
+  }
+
+  body.world-training .sp-arena-plaque {
+    padding: 6px;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-content: center;
+  }
+
+  body.world-training .sp-arena-plaque__copy {
+    flex-basis: 100%;
+  }
+
+  body.world-training .sp-arena-plaque__play {
+    width: 100%;
+  }
+
+  body.world-training .sp-arena-plaque__name,
+  body.world-training .sp-arena-plaque__value,
+  body.world-training .sp-arena-plaque__sub {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+
+  body.world-training .sp-arena-plaque__grade-grid,
+  body.world-training .sp-arena-plaque__telemetry-error {
+    flex-wrap: wrap;
+    gap: 4px;
   }
 
   dialog.sp-arena-sheet {
@@ -1300,9 +1258,14 @@ body.world-training .sp-arena-empty p {
     gap: 7px;
   }
 
+  body.world-training .sp-cat-chips.sp-arena-subtabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   body.world-training .sp-arena-plate {
     min-height: 56px;
-    padding: 6px 8px;
+    padding: 7px 12px;
   }
 
   body.world-training .sp-arena-row__head {
@@ -1318,6 +1281,8 @@ body.world-training .sp-arena-empty p {
 
   body.world-training .sp-arena-row__title {
     font-size: 15px;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   body.world-training .sp-arena-row__plaque {

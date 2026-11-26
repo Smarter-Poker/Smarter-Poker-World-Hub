@@ -8,6 +8,7 @@
 
 import { useEffect, useRef } from 'react';
 import { X, Search, RotateCcw } from 'lucide-react';
+import { QUICK_FILTER_PILLS } from '../../../lib/training/trainingLobbyFilter.mjs';
 
 const VARIANT_OPTIONS = [
   { id: 'ALL', label: 'All Variants' },
@@ -157,6 +158,24 @@ export default function TrainingFiltersSheet({
               />
             </div>
           </div>
+
+          <fieldset className="sp-arena-sheet__group">
+            <legend className="sp-arena-sheet__label">Quick Filters</legend>
+            <div className="sp-arena-sheet__pills">
+              {QUICK_FILTER_PILLS.map((pill) => (
+                <button
+                  key={pill.id}
+                  type="button"
+                  className="sp-arena-sheet__pill sd-button"
+                  data-quick-filter={pill.id.toLowerCase()}
+                  aria-pressed={filters.quickFilter === pill.id}
+                  onClick={() => onUpdateFilters({ quickFilter: filters.quickFilter === pill.id ? 'ALL' : pill.id })}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
 
           {/* Poker Variant */}
           <fieldset className="sp-arena-sheet__group">

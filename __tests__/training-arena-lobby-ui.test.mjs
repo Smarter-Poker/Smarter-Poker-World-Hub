@@ -169,6 +169,15 @@ test('Arena Lobby CSS & dialogs obey #SMARTERDESIGN, mobile 12px floor, and mode
   const previewSheet = read('src/components/training/lobby/TrainingGamePreviewSheet.jsx');
   const row = read('src/components/training/lobby/TrainingLobbyRow.jsx');
 
+  for (const file of ['arena-mode.webp', 'arena-filter.webp', 'arena-row-rim.webp']) {
+    const url = '/images/training/lobby/' + file;
+    assert.ok(css.includes(url), `Missing Arena skin on live controls: ${file}`);
+    const asset = fs.readFileSync(path.join(ROOT, 'public', url));
+    assert.equal(asset.toString('ascii', 8, 12), 'WEBP');
+  }
+  assert.equal(countAdvancedFilters({ ...DEFAULT_LOBBY_FILTERS, quickFilter: 'BEGINNER' }), 1);
+  assert.match(filtersSheet, /data-quick-filter=\{pill.id.toLowerCase\(\)\}/);
+
   // Native <dialog closedby="any"> + showModal() + Safari pointer fallback + scroll containment
   for (const sheet of [filtersSheet, previewSheet]) {
     assert.match(sheet, /<dialog/);
