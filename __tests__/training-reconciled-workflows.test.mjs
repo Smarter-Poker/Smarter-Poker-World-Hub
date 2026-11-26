@@ -1412,7 +1412,7 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     trainingRouteCount += 1;
     assert.doesNotMatch(src, /data-specialty-brain-panel/, `${relPath} must keep the main action free of calibration panels`);
     if (relPath === 'pages/hub/training/category/[categoryId].js') {
-      assert.match(src, /onClick=\{playGame\}/);
+      assert.match(src, /onStart=\{playGame\}/);
     }
   }
   assert.ok(
