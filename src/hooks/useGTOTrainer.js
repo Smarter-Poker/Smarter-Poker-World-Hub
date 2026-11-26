@@ -1060,7 +1060,7 @@ export default function useGTOTrainer(
           gameId,
           gameType: trainerConfig.gameType || 'cash',
           stackDepth: (trainerConfig.stackDepth || 100).toString(),
-          count: (trainerConfig.questionsCount || effectiveQuestionsPerLevel).toString(),
+          count: ([10, 25, 50, 100].includes(Number(trainerConfig.questionsCount)) ? Number(trainerConfig.questionsCount) : 25).toString(),
           level: effectiveLevel.toString(),
           difficulty: resolveDeliveryDifficulty(trainerConfig),
           sessionId: trainingSessionId,
@@ -1144,7 +1144,7 @@ export default function useGTOTrainer(
           params.set('targetStreet', trainerConfig.targetStreet);
           params.set('gameMode', 'street');
         }
-        const explicitTargetPosition = trainerConfig?.targetPositions || trainerConfig?.position;
+        const explicitTargetPosition = trainerConfig?.targetPositions || trainerConfig?.position || trainerConfig?.heroPosition;
         if (explicitTargetPosition && String(explicitTargetPosition).toLowerCase() !== 'any') {
           params.set(
             'targetPositions',

@@ -1188,6 +1188,11 @@ test('Phase 23 deep forensic root-cause hardening: Practice Again spot replay, C
       qCardSrc.includes('showFeedback, question?._gradingContext?.submissionId'),
     'UniversalDynamicTable decisionKey and GTOQuestionCard selection reset must react to Practice Again replay',
   );
+  assert.ok(
+    trainerHookSrc.includes('trainerConfig?.targetPositions || trainerConfig?.position || trainerConfig?.heroPosition') &&
+      trainerHookSrc.includes('[10, 25, 50, 100].includes(Number(trainerConfig.questionsCount))'),
+    'useGTOTrainer must forward heroPosition/targetPositions in batch-preload and normalize custom-train count to [10,25,50,100]',
+  );
 
   // 2. Uncalled bet return when opponents fold with 0 committed on current street
   const uncalledPostflop = computeMainAndSidePots(

@@ -240,7 +240,6 @@ export default function TrainingArenaPage() {
                     ...(targetPosition ? {
                         targetPositions: targetPosition,
                         heroPosition: primaryHeroPosition,
-                        position: primaryHeroPosition,
                     } : {}),
                     ...(duelToken ? { duelToken } : {}),
                     ...(duelRole ? { duelRole } : {}),
