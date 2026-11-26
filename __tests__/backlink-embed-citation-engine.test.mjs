@@ -836,7 +836,7 @@ test('35-Item Master Expansion: 10 New Calculators, 9 New Authority Hubs, 45 MCP
   assert.equal(POKER_ROADMAPS.length, 5, '5 player progression roadmaps');
   assert.ok(getRoadmapBySlug('beginner-to-beating-1-3-live'));
 
-  assert.equal(US_POKER_STATES.length, 15, '15 US state poker legality & tax guides');
+  assert.equal(US_POKER_STATES.length, 51, '51 US state & DC poker legality & tax guides (all 50 states + DC)');
   assert.equal(getStateGuideBySlug('tx')?.slug, 'texas', 'tx postal code resolves to texas');
   assert.equal(getStateGuideBySlug('nv')?.slug, 'nevada', 'nv postal code resolves to nevada');
 

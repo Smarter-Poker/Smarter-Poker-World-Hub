@@ -149,7 +149,7 @@ const AUTHORITY_WHITEPAPER_FEED_ITEMS = [
     slug: 'annual-state-of-poker-2026',
     url: `${SITE_URL}/research/annual-state-of-poker-2026`,
     title: '2026 Annual State Of Live & Online Poker Industry Whitepaper (DOI: 10.5281/zenodo.15129481)',
-    summary: 'Flagship 2026 quantitative industry report synthesizing 715+ verified North American poker venues, 4,500+ weekly tournaments, 15 US state tax regimes, and 10M+ simulated GTO hands.',
+    summary: 'Flagship 2026 quantitative industry report synthesizing 715+ verified North American poker venues, 4,500+ weekly tournaments, all 50 US states and DC tax regimes, and 10M+ simulated GTO hands.',
     category: 'Annual Industry Whitepaper',
   },
   {

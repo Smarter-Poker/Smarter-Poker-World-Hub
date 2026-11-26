@@ -4,7 +4,7 @@
   "inputs": {
     "pages/terms.js": "8fe0d3b12df3616c3bdc66211efeb2e6140076f2fb4d66dbb49b04c57b65a1cf",
     "pages/legal/official-rules.js": "4173d038cf68fb2a9ac806c15011ad1dcfe65122c9bf0ee57865b600484b9c5f",
-    "src/components/landing/LandingProductSummary.js": "b1a12c65bab4c7ad7005c36b84a91f7b263c1ef57df382d9a9fb0e6c4c68483d",
+    "src/components/landing/LandingProductSummary.js": "16301c9fe1dabfd290fa4f53f77f7edffc8ab144dcdc7291559f466db7b4372e",
     "src/lib/businessHubGuide.mjs": "af62def60de12b17475ebcf0e1d8f5c2cb28888e10f047876c69accc1ba2a7ef",
     "pages/about.js": "605d5852c27c5a8fe72c8a0efeeeeff427b55fe66220852e9bf5e4b8b93e1d63",
     "src/lib/businessHubJourney.mjs": "8adb19909591e0fdeee08d744e61287f28ff6cd42d0d104010f36da5a9b6b174",

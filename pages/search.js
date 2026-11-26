@@ -416,7 +416,7 @@ const AUTHORITY_HUB_ITEMS = [
     title: 'US State-By-State Poker Legality, Tax Withholding & Room Directory',
     href: '/poker-rooms/states',
     badge: '15 US State Guides',
-    summary: 'State-By-State Legal Status, Minimum Age, W-2G State Tax Withholding Rates, And Rake Models Across Fifteen Top States.',
+    summary: 'State-By-State Legal Status, Minimum Age, W-2G State Tax Withholding Rates, And Rake Models Across All 50 US States And DC.',
   },
   {
     category: 'GTO Lessons',

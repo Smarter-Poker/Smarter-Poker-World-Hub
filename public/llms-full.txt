@@ -14,6 +14,7 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Full Sitemap: https://smarter.poker/sitemap.xml
 - Venues & Home Games Sitemap: https://smarter.poker/sitemap-venues.xml
 - Tournament Series & Tours Sitemap: https://smarter.poker/sitemap-series.xml
+- News & Articles Sitemap (Google News): https://smarter.poker/sitemap-news.xml
 - Video Library Sitemap: https://smarter.poker/sitemap-videos.xml
 - Arena Sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Terms of Service: https://smarter.poker/terms
