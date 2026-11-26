@@ -1009,7 +1009,7 @@ export async function buildNewsArticleUrls(supabaseOrRows = null, { limit = 1000
       }
       const { data, error } = await client
         .from('poker_news')
-        .select('id, title, published_at, updated_at, created_at')
+        .select('id, title, published_at, updated_at')
         .eq('is_published', true)
         .order('published_at', { ascending: false })
         .limit(limit);
@@ -1024,7 +1024,7 @@ export async function buildNewsArticleUrls(supabaseOrRows = null, { limit = 1000
     .filter((row) => row && row.id && typeof row.title === 'string' && row.title.trim())
     .map((row) => {
       const id = String(row.id).trim();
-      const publishedAt = row.published_at || row.created_at || null;
+      const publishedAt = row.published_at || null;
       const lastmod = row.updated_at || publishedAt || null;
       return {
         path: `/hub/article?id=${encodeURIComponent(id)}`,
