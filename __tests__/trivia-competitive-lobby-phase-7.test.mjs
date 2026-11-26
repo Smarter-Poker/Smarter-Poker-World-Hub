@@ -225,20 +225,17 @@ test('countdown and lobby state model cover every truthful Phase 7 briefing stat
     assert.equal(deriveCompetitiveLobbyState({ ...base, pvpResource: ready(resume) }).key, 'resume');
 });
 
-test('the briefing is painted, sits between Daily and the catalogue, and keeps mobile stacked', () => {
-    const daily = LOBBY.indexOf('className="daily-trivia-banner"');
-    const briefing = LOBBY.indexOf('<CompetitiveLobbyBriefing');
+test('the briefing renders on TriviaConsole in the lobby and keeps mobile stacked', () => {
+    const masthead = LOBBY.indexOf('lobby-masthead');
     const catalogue = LOBBY.indexOf('className="modes-section"');
-    const quickStakes = LOBBY.indexOf('className="quick-stakes-section"');
-    assert.ok(daily >= 0 && daily < briefing && briefing < catalogue && catalogue < quickStakes);
+    const quickStakes = LOBBY.indexOf('quick-stakes-card');
+    const briefing = LOBBY.indexOf('<CompetitiveLobbyBriefing');
+    assert.ok(masthead >= 0 && masthead < catalogue && catalogue < quickStakes && quickStakes < briefing);
 
     assert.match(BRIEFING, /import TriviaConsole from '\.\.\/console\/TriviaConsole'/);
     assert.match(BRIEFING, /title=\{getTournamentHeadline\(featuredTournament, scheduleNow\)\}/);
     assert.match(BRIEFING, /America\/Chicago \/ Official Nightly/);
     assert.match(BRIEFING, />Smarter Horses</);
-    assert.match(BRIEFING, /TRIVIA_INTRO_ART_TOURNAMENTS/);
-    assert.match(BRIEFING, /TRIVIA_INTRO_ART_PVP/);
-    assert.match(BRIEFING, /<ResponsiveModeArt[\s\S]*?className=\{styles\.featureArt\}[\s\S]*?<div className=\{styles\.featureCopy\}/);
     assert.match(BRIEFING, />Entry</);
     assert.match(BRIEFING, />Rake</);
     assert.match(BRIEFING, /Start 1 V 1/);

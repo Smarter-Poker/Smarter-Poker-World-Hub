@@ -68,7 +68,6 @@
     font-weight: 800;
     letter-spacing: 0.035em;
     line-height: 1.12;
-    text-transform: uppercase;
     overflow-wrap: anywhere;
 }
 
@@ -92,7 +91,6 @@
     font-weight: 800;
     letter-spacing: 0.06em;
     text-align: center;
-    text-transform: uppercase;
 }
 
 .trivia-pvp-fine-print {
@@ -162,7 +160,6 @@
     font-weight: 800;
     letter-spacing: 0.12em;
     line-height: 1.25;
-    text-transform: uppercase;
 }
 
 .trivia-pvp-data-row dd {
@@ -217,7 +214,6 @@
     color: var(--tc-ink-muted);
     font-size: 0.78em;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
 }
 
 .trivia-pvp-stake[data-selected='true'] {
@@ -375,7 +371,6 @@
     font-size: clamp(11px, 2.3cqw, 14px);
     font-weight: 800;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
 }
 
 .trivia-pvp-receipt-list strong {
@@ -449,11 +444,10 @@
 .trivia-pvp-history-list summary > span:first-child {
     color: var(--tc-ink-blue);
     letter-spacing: 0.08em;
-    text-transform: uppercase;
 }
 
 .trivia-pvp-history-list summary > span:last-child {
-    color: var(--tc-ink-gold);
+    color: var(--tc-ink-blue);
     text-align: right;
 }
 

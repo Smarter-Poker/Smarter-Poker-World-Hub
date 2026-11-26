@@ -18,7 +18,7 @@
     border: 0;
     border-radius: 0;
     overflow: visible;
-    color: #e4e7ec;
+    color: var(--sd-text, #f2f7ff);
     background: transparent;
     box-shadow: none;
     font: inherit;
@@ -98,15 +98,14 @@
 .captionText {
     display: inline-block;
     max-width: 100%;
-    color: #e4e7ec;
+    color: var(--sd-text, #f2f7ff);
     font-size: max(12px, calc(4.4cqw * var(--fit, 1)));
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     line-height: 1;
     text-align: center;
-    text-transform: uppercase;
     white-space: nowrap;
-    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0 1.4cqw rgb(69 173 255 / 55%);
+    text-shadow: 0 2px 0 #243951, 0 3px 6px #020914;
 }
 
 .copy {
@@ -177,8 +176,8 @@
 }
 
 .card:focus-visible {
-    outline: 3px solid #45adff;
-    outline-offset: -3px;
+    outline: 2px solid #9ee3ff;
+    outline-offset: 2px;
 }
 
 .card:disabled {

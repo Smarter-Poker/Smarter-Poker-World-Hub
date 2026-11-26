@@ -32652,7 +32652,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 114,
+          "line": 119,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32662,7 +32662,7 @@
         {
           "element": "button",
           "name": "All Training Games",
-          "line": 155,
+          "line": 160,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32672,7 +32672,7 @@
         {
           "element": "button",
           "name": "Play Now",
-          "line": 184,
+          "line": 189,
           "handler": "() => playGame(featuredGame)",
           "destination": null,
           "type": "button",
@@ -32682,7 +32682,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 219,
+          "line": 224,
           "handler": "() => updateFilters({ query: '' })",
           "destination": null,
           "type": "button",
@@ -32692,7 +32692,7 @@
         {
           "element": "button",
           "name": "Favorite Games",
-          "line": 229,
+          "line": 234,
           "handler": "() => updateFilters({ favoritesOnly: !favoritesOnly })",
           "destination": null,
           "type": "button",
@@ -32702,7 +32702,7 @@
         {
           "element": "button",
           "name": "Filters",
-          "line": 232,
+          "line": 237,
           "handler": "() => setFiltersOpen(true)",
           "destination": null,
           "type": "button",
@@ -32712,7 +32712,7 @@
         {
           "element": "button",
           "name": "Reset Filters",
-          "line": 271,
+          "line": 276,
           "handler": "resetFilters",
           "destination": null,
           "type": "button",
@@ -32752,7 +32752,7 @@
       "functions": [
         {
           "name": "CategoryPage",
-          "line": 54,
+          "line": 59,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -32760,7 +32760,7 @@
         },
         {
           "name": "updateFilters",
-          "line": 71,
+          "line": 76,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -32768,7 +32768,7 @@
         },
         {
           "name": "resetFilters",
-          "line": 72,
+          "line": 77,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -32776,7 +32776,7 @@
         },
         {
           "name": "playGame",
-          "line": 123,
+          "line": 128,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -32789,7 +32789,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 214,
+          "line": 219,
           "excerpt": "placeholder={`Search ${category.title}…`}",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -84335,11 +84335,11 @@
       "effectRef": "pages/hub/training/autopilot.js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:114:1",
+      "id": "pages/hub/training/category/[categoryId].js:119:1",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 114,
+      "line": 119,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -84348,11 +84348,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:155:2",
+      "id": "pages/hub/training/category/[categoryId].js:160:2",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "All Training Games",
-      "line": 155,
+      "line": 160,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -84361,11 +84361,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:184:3",
+      "id": "pages/hub/training/category/[categoryId].js:189:3",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Play Now",
-      "line": 184,
+      "line": 189,
       "handler": "() => playGame(featuredGame)",
       "destination": null,
       "type": "button",
@@ -84374,11 +84374,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:219:4",
+      "id": "pages/hub/training/category/[categoryId].js:224:4",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Clear Search",
-      "line": 219,
+      "line": 224,
       "handler": "() => updateFilters({ query: '' })",
       "destination": null,
       "type": "button",
@@ -84387,11 +84387,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:229:5",
+      "id": "pages/hub/training/category/[categoryId].js:234:5",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Favorite Games",
-      "line": 229,
+      "line": 234,
       "handler": "() => updateFilters({ favoritesOnly: !favoritesOnly })",
       "destination": null,
       "type": "button",
@@ -84400,11 +84400,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:232:6",
+      "id": "pages/hub/training/category/[categoryId].js:237:6",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Filters",
-      "line": 232,
+      "line": 237,
       "handler": "() => setFiltersOpen(true)",
       "destination": null,
       "type": "button",
@@ -84413,11 +84413,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:271:7",
+      "id": "pages/hub/training/category/[categoryId].js:276:7",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Reset Filters",
-      "line": 271,
+      "line": 276,
       "handler": "resetFilters",
       "destination": null,
       "type": "button",
@@ -114666,7 +114666,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "kind": "PLACEHOLDER",
-        "line": 214,
+        "line": 219,
         "excerpt": "placeholder={`Search ${category.title}…`}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -118881,7 +118881,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "name": "CategoryPage",
-        "line": 54,
+        "line": 59,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -122096,7 +122096,6 @@
           "src/components/poker-near-me/modals/ManualLocationModal.js",
           "src/components/store/MerchPurchaseDialog.jsx",
           "src/components/training/GodModeArena.jsx",
-          "src/components/trivia/TriviaLobby.jsx",
           "src/hooks/useAccessibleDialog.js"
         ]
       },
@@ -125568,7 +125567,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "kind": "PLACEHOLDER",
-        "line": 214,
+        "line": 219,
         "excerpt": "placeholder={`Search ${category.title}…`}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -129783,7 +129782,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "name": "CategoryPage",
-        "line": 54,
+        "line": 59,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132998,7 +132997,6 @@
           "src/components/poker-near-me/modals/ManualLocationModal.js",
           "src/components/store/MerchPurchaseDialog.jsx",
           "src/components/training/GodModeArena.jsx",
-          "src/components/trivia/TriviaLobby.jsx",
           "src/hooks/useAccessibleDialog.js"
         ]
       },
