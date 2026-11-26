@@ -1,5 +1,6 @@
 -- Authoritative Training Game Favorites table for the Training Games Arena Lobby
 -- Composite primary key (user_id, game_id) guarantees idempotent upsert & zero duplicates.
+-- Declares explicit complete table access boundary (REVOKE ALL + least-privilege GRANTs + RLS).
 
 CREATE TABLE IF NOT EXISTS public.training_game_favorites (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -12,6 +13,10 @@ CREATE INDEX IF NOT EXISTS idx_training_game_favorites_user_created
     ON public.training_game_favorites (user_id, created_at DESC);
 
 ALTER TABLE public.training_game_favorites ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON TABLE public.training_game_favorites FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT, DELETE ON TABLE public.training_game_favorites TO authenticated;
+GRANT ALL ON TABLE public.training_game_favorites TO service_role;
 
 DO $$
 BEGIN

@@ -115,7 +115,7 @@ test('trainingLobbyFilter: column sorting, advanced count, and section grouping 
 test('game-favorites API, hook, and SQL migration enforce JWT auth, idempotency, and honest 503 failure', () => {
   const api = read('pages/api/training/game-favorites.js');
   const hook = read('src/hooks/useTrainingFavorites.js');
-  const sql = read('supabase/migrations/20261126185500_training_game_favorites.sql');
+  const sql = read('supabase/migrations/20261126191500_training_game_favorites_hardened.sql');
 
   const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
   const apiCode = stripComments(api);
@@ -131,6 +131,8 @@ test('game-favorites API, hook, and SQL migration enforce JWT auth, idempotency,
 
   assert.match(sql, /PRIMARY KEY \(user_id, game_id\)/);
   assert.match(sql, /ENABLE ROW LEVEL SECURITY/);
+  assert.match(sql, /REVOKE ALL ON TABLE public\.training_game_favorites FROM PUBLIC, anon, authenticated, service_role;/);
+  assert.match(sql, /GRANT SELECT, INSERT, DELETE ON TABLE public\.training_game_favorites TO authenticated;/);
   assert.match(sql, /auth\.uid\(\) = user_id/);
 });
 
