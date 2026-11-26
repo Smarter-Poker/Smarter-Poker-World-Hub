@@ -933,6 +933,43 @@ export default function ArticlePage({ initialArticle = null, initialRelated = []
                     </section>
                 )}
 
+                {/* Contextual Internal-Link Mesh */}
+                <section className="related" aria-label="Explore Connected Poker Guides And Tools">
+                    <h3>Explore Smarter.Poker Guides &amp; Tools</h3>
+                    <div className="related-grid">
+                        <Link href="/hub/poker-series">
+                            <div className="related-card" style={{ padding: 14 }}>
+                                <span>Live Poker Tournament Series &amp; Schedules</span>
+                            </div>
+                        </Link>
+                        <Link href="/hub/poker-tours">
+                            <div className="related-card" style={{ padding: 14 }}>
+                                <span>Traveling Poker Tours &amp; Circuit Stops</span>
+                            </div>
+                        </Link>
+                        <Link href="/hub/poker-near-me/lobby">
+                            <div className="related-card" style={{ padding: 14 }}>
+                                <span>Poker Near Me: 324+ Verified US Live Rooms</span>
+                            </div>
+                        </Link>
+                        <Link href="/poker-rooms/states">
+                            <div className="related-card" style={{ padding: 14 }}>
+                                <span>All 50 US States Poker Laws &amp; Tax Directory</span>
+                            </div>
+                        </Link>
+                        <Link href="/tools/icm-calculator">
+                            <div className="related-card" style={{ padding: 14 }}>
+                                <span>Free Tournament ICM &amp; Final Table Deal Calculator</span>
+                            </div>
+                        </Link>
+                        <Link href="/tools/poker-odds-calculator">
+                            <div className="related-card" style={{ padding: 14 }}>
+                                <span>Free Hold'em &amp; PLO Poker Odds Calculator</span>
+                            </div>
+                        </Link>
+                    </div>
+                </section>
+
                 {readerOpen && externalSourceUrl && (
                     <ArticleReaderModal
                         url={externalSourceUrl}

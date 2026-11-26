@@ -427,7 +427,7 @@ export default function PreflopCharts() {
               lineHeight: 1.55,
             }}
           >
-            <strong style={{ color: '#fbd38d' }}>Authored Reference · Not Solver-Exact</strong>
+            <strong style={{ color: '#86daff' }}>Authored Reference · Not Solver-Exact</strong>
             <br />
             {provenance?.disclosure ||
               'This 6-Max Cash 100BB teaching corpus has no attached solver checksum, tree identity, or audited source artifact.'}

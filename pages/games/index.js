@@ -78,6 +78,10 @@ export default function PokerGamesIndexPage() {
       dateModified: GAMES_AS_OF,
       isPartOf: { '@id': 'https://smarter.poker/#website' },
       publisher: { '@id': 'https://smarter.poker/#organization' },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'main p:first-of-type'],
+      },
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: POKER_VARIANTS.length,
@@ -115,7 +119,7 @@ export default function PokerGamesIndexPage() {
     <div style={styles.page}>
       <SEOHead
         title="Poker Variants And Mixed Games Guide"
-        description="Complete Rules, Hand Rankings, Betting Structures, And Starting Hand Strategy For 15 Poker Variants: Hold'em, PLO4/5/6, Omaha Hi-Lo, Short Deck, Stud, Razz, 2-7 Triple Draw, And Badugi."
+        description="Rules, Hand Rankings, And Strategy For 15 Poker Variants: Texas Hold'em, PLO4/5/6, Omaha Hi-Lo, Short Deck, Stud, Razz, 2-7 Triple Draw, And Badugi."
         canonical={GAMES_BASE_PATH}
         markdownUrl="https://smarter.poker/games.md"
         jsonLd={jsonLd}

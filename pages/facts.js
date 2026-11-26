@@ -93,7 +93,7 @@ export default function CanonicalEntityFactsPage() {
     <div style={styles.page}>
       <SEOHead
         title="Smarter.Poker Canonical Entity Facts"
-        description="Canonical Ground-Truth Entity Fact Sheet For Smarter.Poker: 52 Free Calculators, 70 MCP Tools, 44 Streamer Commands, 715 Verified Venues, 15 Zenodo Studies (DOI: 10.5281/zenodo.15129481), And Anti-Hallucination Corrections."
+        description="Canonical Entity Fact Sheet For Smarter.Poker: 52 Free Calculators, 70 MCP Tools, 324+ Live Venues, 15 Zenodo Studies, And Verified Brand Facts."
         canonical={canonicalPath}
         jsonLd={jsonLd}
       />

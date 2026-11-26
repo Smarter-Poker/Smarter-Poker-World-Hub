@@ -66,6 +66,10 @@ function indexSchema(groups, description) {
       isAccessibleForFree: true,
       isPartOf: { '@id': WEBSITE_ID },
       publisher: { '@id': ORGANIZATION_ID },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'main p:first-of-type'],
+      },
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: lessons.length,
@@ -88,7 +92,7 @@ function indexSchema(groups, description) {
 }
 
 export default function LearnIndex({ count, groups }) {
-  const description = `${count} Free Poker Strategy Lessons, Each A Complete Answer With Its Chart Or Table On The Page: Preflop Ranges By Position, ICM, Bubble Play, 3-Bet Sizing, Bankroll Rules And Tilt Control.`;
+  const description = `${count} Free Poker Strategy Lessons With Charts Inline: Preflop Ranges, Pot Odds, ICM, Bubble Play, 3-Bet Sizing, Bankroll Rules, And Tilt Control.`;
 
   return (
     <>

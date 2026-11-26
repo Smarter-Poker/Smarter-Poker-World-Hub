@@ -23,6 +23,11 @@ import styles from '../../../src/styles/trivia/TriviaHub.module.css';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import { isTriviaPvpReleased } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 import { areTriviaTournamentsReleased } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
+import {
+    getTriviaMode,
+    getTriviaModeRoute,
+    resolveTriviaModeAvailability,
+} from '../../../src/config/triviaModeRegistry.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
 import {
@@ -78,27 +83,24 @@ function WeeklyWireTriviaBanner({ router }) {
         <section
             data-weekly-wire-trivia-card="true"
             aria-label="Weekly Wire Trivia Of The Week"
+            className="smarterdesign sd-panel"
             style={{
-                marginBottom: 24,
-                padding: '20px 24px',
-                borderRadius: 16,
-                background: 'var(--tc-chassis-black, #050607)',
-                border: '1px solid var(--tc-bevel, #6d747c)',
-                borderLeft: '3px solid var(--tc-ink-blue, #45adff)',
-                color: 'var(--tc-ink-white, #f4f7fb)',
+                marginBottom: 20,
+                padding: '18px 20px',
+                color: 'var(--sd-text, #f2f7ff)',
             }}
         >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                <span style={{ color: 'var(--tc-ink-blue, #45adff)', fontSize: 12, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase' }}>
+                <span style={{ color: 'var(--sd-ice, #86daff)', fontSize: 13, fontWeight: 700, letterSpacing: '0.03em' }}>
                     Weekly Wire Trivia Of The Week
                 </span>
                 {matchedTrivia.categoryLabel && (
-                    <span style={{ color: 'var(--tc-ink-blue, #45adff)', fontSize: 12, fontWeight: 700, background: 'rgba(69, 173, 255, 0.12)', border: '1px solid rgba(69, 173, 255, 0.35)', padding: '2px 8px', borderRadius: 999 }}>
+                    <span style={{ color: 'var(--sd-ice, #86daff)', fontSize: 12, fontWeight: 700, background: 'rgba(134, 218, 255, 0.12)', border: '1px solid rgba(134, 218, 255, 0.35)', padding: '2px 10px', borderRadius: 4 }}>
                         {matchedTrivia.categoryLabel}
                     </span>
                 )}
             </div>
-            <h2 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 800, color: 'var(--tc-ink-white, #f4f7fb)', lineHeight: 1.35 }}>
+            <h2 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 700, color: 'var(--sd-text, #f2f7ff)', lineHeight: 1.35 }}>
                 {matchedTrivia.question}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 12 }}>
@@ -109,6 +111,7 @@ function WeeklyWireTriviaBanner({ router }) {
                         <button
                             key={opt.key}
                             type="button"
+                            className={`sd-button${isSelected ? ' sd-primary' : ''}`}
                             aria-pressed={isSelected}
                             onClick={() => setPickState({ slug: cleanSlug, key: opt.key })}
                             style={{
@@ -116,28 +119,17 @@ function WeeklyWireTriviaBanner({ router }) {
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
                                 gap: 10,
-                                padding: '12px 14px',
-                                borderRadius: 10,
+                                minHeight: 44,
+                                padding: '10px 14px',
                                 textAlign: 'left',
-                                cursor: 'pointer',
-                                background: isTheAnswer
-                                    ? 'rgba(53, 217, 90, 0.14)'
-                                    : isSelected
-                                        ? 'rgba(69, 173, 255, 0.14)'
-                                        : 'var(--tc-black, #000000)',
-                                border: isTheAnswer
-                                    ? '1px solid var(--tc-glow-green, #35d95a)'
-                                    : isSelected
-                                        ? '1px solid var(--tc-ink-blue, #45adff)'
-                                        : '1px solid var(--tc-bevel, #6d747c)',
-                                color: 'var(--tc-ink-white, #f4f7fb)',
-                                fontSize: 13.5,
+                                fontSize: 14,
                                 fontWeight: 700,
+                                borderColor: isTheAnswer ? '#4ade80' : undefined,
                             }}
                         >
                             <span>{`${opt.key}. ${opt.label}`}</span>
                             {isTheAnswer && (
-                                <span style={{ color: 'var(--tc-ink-green, #c8ffd2)', fontSize: 11.5, fontWeight: 800 }}>
+                                <span style={{ color: '#4ade80', fontSize: 12, fontWeight: 700 }}>
                                     Correct
                                 </span>
                             )}
@@ -151,24 +143,23 @@ function WeeklyWireTriviaBanner({ router }) {
                     style={{
                         marginTop: 14,
                         padding: '12px 16px',
-                        borderRadius: 10,
-                        background: 'var(--tc-black, #000000)',
-                        border: isCorrect ? '1px solid var(--tc-glow-green, #35d95a)' : '1px solid var(--tc-ink-blue, #45adff)',
+                        background: 'var(--sd-ink, #040d18)',
+                        border: isCorrect ? '1px solid #4ade80' : '1px solid #86daff',
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                         {isCorrect ? (
-                            <span style={{ color: 'var(--tc-ink-green, #c8ffd2)', fontSize: 13, fontWeight: 800 }}>
+                            <span style={{ color: '#4ade80', fontSize: 13, fontWeight: 700 }}>
                                 Correct Solver Pick
                             </span>
                         ) : (
-                            <span style={{ color: 'var(--tc-ink-blue, #45adff)', fontSize: 13, fontWeight: 800 }}>
+                            <span style={{ color: '#86daff', fontSize: 13, fontWeight: 700 }}>
                                 {`Missed - Option ${matchedTrivia.answerKey} Is Correct`}
                             </span>
                         )}
                     </div>
                     {matchedTrivia.explanation && (
-                        <p style={{ margin: 0, color: 'var(--tc-ink-silver, #e4e7ec)', fontSize: 13, lineHeight: 1.5 }}>
+                        <p style={{ margin: 0, color: 'var(--sd-silver, #bdd0e2)', fontSize: 13, lineHeight: 1.5 }}>
                             {matchedTrivia.explanation}
                         </p>
                     )}
@@ -185,6 +176,7 @@ export default function TriviaHubPage({ modeAvailability }) {
     const userId = user?.id;
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [isVip, setIsVip] = useState(false);
+    const [arcadeTicketCount, setArcadeTicketCount] = useState(0);
     const [dailyCompleted, setDailyCompleted] = useState(false);
     const [currentStreak, setCurrentStreak] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -200,14 +192,31 @@ export default function TriviaHubPage({ modeAvailability }) {
     }
     const latestUserIdRef = useRef(userId || null);
     latestUserIdRef.current = userId || null;
+    const inFlightFetchKeyRef = useRef(null);
+    const deepLinkHandledRef = useRef('');
 
-    // Account-owned values must never survive an identity transition. This
-    // runs before the data-loading effect below and invalidates every pending
-    // completion from the prior account.
+    // Deep-link support: honor ?mode=<slug> cleanly once router is ready.
+    useEffect(() => {
+        if (!router.isReady) return;
+        const rawMode = Array.isArray(router.query.mode) ? router.query.mode[0] : router.query.mode;
+        const cleanMode = typeof rawMode === 'string' ? rawMode.trim().toLowerCase() : '';
+        if (!cleanMode || deepLinkHandledRef.current === cleanMode) return;
+        const matched = getTriviaMode(cleanMode);
+        if (!matched) return;
+        const availability = resolveTriviaModeAvailability(matched.id, modeAvailability);
+        deepLinkHandledRef.current = cleanMode;
+        if (availability.enabled) {
+            void router.replace(getTriviaModeRoute(matched.id));
+        }
+    }, [modeAvailability, router, router.isReady, router.query.mode]);
+
+    // Account-owned values must never survive an identity transition.
     useEffect(() => {
         playerDataRequestGuardRef.current.invalidate();
+        inFlightFetchKeyRef.current = null;
         setUserDiamonds(0);
         setIsVip(false);
+        setArcadeTicketCount(0);
         setDailyCompleted(false);
         setCurrentStreak(0);
         setPlayerDataStatus({
@@ -225,9 +234,6 @@ export default function TriviaHubPage({ modeAvailability }) {
         hintsEnabled: false,
     });
 
-    // Load preferences from localStorage on mount.
-    // Phase 71: track unmount via ref so the resolved-after-unmount setState
-    // doesn't fire on a dead component (React 18 warning).
     useEffect(() => {
         let cancelled = false;
         if (userId) {
@@ -242,11 +248,6 @@ export default function TriviaHubPage({ modeAvailability }) {
         return () => { cancelled = true; };
     }, [userId]);
 
-    // Phase 71: rollback on save failure so local state doesn't drift from
-    // server. User toggling a preference shouldn't see it 'stick' locally
-    // while the server actually has the old value (next page load reverts).
-    // Resolves true when the value is durable, false when the server rejected it
-    // (callers that keep a second copy of the value need to roll theirs back too).
     const updatePreference = useCallback(async (key, value) => {
         const previousValue = preferences[key];
         const newPrefs = { ...preferences, [key]: value };
@@ -277,31 +278,39 @@ export default function TriviaHubPage({ modeAvailability }) {
         setTimerEnabled: (val) => updatePreference('timerEnabled', val),
     });
 
-    // Using existing supabase instance from lib
-
-    const loadUserData = useCallback(async () => {
+    const loadUserData = useCallback(async ({ force = false } = {}) => {
         const requestUserId = userId || null;
         if (requestUserId !== latestUserIdRef.current) return;
+
+        if (!userId) {
+            if (!authLoading) {
+                const request = playerDataRequestGuardRef.current.begin(null);
+                if (playerDataRequestGuardRef.current.isCurrent(request, latestUserIdRef.current)) {
+                    setUserDiamonds(0);
+                    setIsVip(false);
+                    setArcadeTicketCount(0);
+                    setDailyCompleted(false);
+                    setCurrentStreak(0);
+                    setPlayerDataStatus({
+                        profile: 'signed-out',
+                        daily: 'signed-out',
+                        streak: 'signed-out',
+                    });
+                    setIsLoading(false);
+                }
+            }
+            return;
+        }
+
+        // Deduplicate concurrent identical reads for the same signed-in user.
+        const fetchKey = `${requestUserId}:${getTodayCST()}`;
+        if (!force && inFlightFetchKeyRef.current === fetchKey) return;
+        inFlightFetchKeyRef.current = fetchKey;
+
         const request = playerDataRequestGuardRef.current.begin(requestUserId);
         const requestIsCurrent = () => playerDataRequestGuardRef.current
             .isCurrent(request, latestUserIdRef.current);
 
-        if (!userId) {
-            // Wait for auth to populate or fail
-            if (!authLoading && requestIsCurrent()) {
-                setUserDiamonds(0);
-                setIsVip(false);
-                setDailyCompleted(false);
-                setCurrentStreak(0);
-                setPlayerDataStatus({
-                    profile: 'signed-out',
-                    daily: 'signed-out',
-                    streak: 'signed-out',
-                });
-                setIsLoading(false);
-            }
-            return;
-        }
         if (!requestIsCurrent()) return;
         setIsLoading(true);
         setPlayerDataStatus((previous) => ({
@@ -312,16 +321,9 @@ export default function TriviaHubPage({ modeAvailability }) {
         try {
             const today = getTodayCST();
 
-            // Run the three independent reads in parallel — was three
-            // sequential awaits, ~2 extra round trips before the lobby showed.
-            // Each result is applied independently. A streak outage must not
-            // erase a valid balance or make a completed Daily attempt playable.
-            const [profileRead, dailyPlayRead, streakRead] = await Promise.allSettled([
+            // Run independent reads in a single parallel batch.
+            const [profileRead, dailyPlayRead, streakRead, ticketRead] = await Promise.allSettled([
                 readOwnProfile(supabase, 'diamonds, is_vip', { expectId: userId }),
-                // NOTE: multiple daily_trivia_plays rows per (user, date) are
-                // possible (replays), so .maybeSingle() errored with 2+ rows
-                // and the lobby re-offered an already-completed daily. Use
-                // .limit(1) like [mode].js does.
                 supabase
                     .from('daily_trivia_plays')
                     .select('id')
@@ -333,6 +335,12 @@ export default function TriviaHubPage({ modeAvailability }) {
                     .select('current_streak')
                     .eq('user_id', userId)
                     .maybeSingle(),
+                supabase
+                    .from('user_trivia_items')
+                    .select('quantity')
+                    .eq('user_id', userId)
+                    .eq('item_type', 'arcade_ticket')
+                    .maybeSingle(),
             ]);
 
             if (!requestIsCurrent()) return;
@@ -340,6 +348,7 @@ export default function TriviaHubPage({ modeAvailability }) {
             const profileProjection = projectTriviaLobbyProfileRead(profileRead);
             const dailyPlayRes = dailyPlayRead.status === 'fulfilled' ? dailyPlayRead.value : null;
             const streakRes = streakRead.status === 'fulfilled' ? streakRead.value : null;
+            const ticketRes = ticketRead.status === 'fulfilled' ? ticketRead.value : null;
             const nextStatus = {
                 profile: profileProjection.status,
                 daily: dailyPlayRead.status === 'fulfilled' && dailyPlayRes && !dailyPlayRes.error ? 'ready' : 'error',
@@ -351,27 +360,32 @@ export default function TriviaHubPage({ modeAvailability }) {
                 setIsVip(profileProjection.isVip);
             }
 
-            // A successful null owner profile is authoritative. Clear every
-            // account-scoped value instead of retaining data from a previous
-            // account or a profile that was removed mid-session.
             if (profileProjection.applyValue && !profileProjection.profileExists) {
                 setDailyCompleted(false);
                 setCurrentStreak(0);
-            } else if (nextStatus.daily === 'ready') {
-                const dailyPlay = dailyPlayRes?.data;
-                setDailyCompleted(!!(dailyPlay && dailyPlay.length > 0));
-            }
-
-            if (!(profileProjection.applyValue && !profileProjection.profileExists)
-                && nextStatus.streak === 'ready') {
-                const streakData = streakRes?.data;
-                setCurrentStreak(streakData?.current_streak || 0);
+                setArcadeTicketCount(0);
+            } else {
+                if (nextStatus.daily === 'ready') {
+                    const dailyPlay = dailyPlayRes?.data;
+                    setDailyCompleted(!!(dailyPlay && dailyPlay.length > 0));
+                }
+                if (nextStatus.streak === 'ready') {
+                    const streakData = streakRes?.data;
+                    setCurrentStreak(streakData?.current_streak || 0);
+                }
+                if (ticketRes && !ticketRes.error) {
+                    setArcadeTicketCount(Math.max(0, Number(ticketRes.data?.quantity) || 0));
+                }
             }
             setPlayerDataStatus(nextStatus);
         } catch (error) {
             if (!requestIsCurrent()) return;
             console.warn('Error loading user data:', error);
             setPlayerDataStatus({ profile: 'error', daily: 'error', streak: 'error' });
+        } finally {
+            if (inFlightFetchKeyRef.current === fetchKey) {
+                inFlightFetchKeyRef.current = null;
+            }
         }
         if (requestIsCurrent()) setIsLoading(false);
     }, [userId, authLoading]);
@@ -382,7 +396,7 @@ export default function TriviaHubPage({ modeAvailability }) {
 
     // BUS LISTENER: Keep diamond balance in sync with other pages via EventBus
     useEffect(() => {
-        const handleBalanceRefresh = () => { loadUserData(); };
+        const handleBalanceRefresh = () => { loadUserData({ force: true }); };
         const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, handleBalanceRefresh);
         const unsubSpent = eventBus.on(EventType.DIAMONDS_SPENT, handleBalanceRefresh);
         return () => { unsubEarned(); unsubSpent(); };
@@ -393,8 +407,8 @@ export default function TriviaHubPage({ modeAvailability }) {
         if (!user?.id) return;
         const _ch = supabase
             .channel(`trivia-hub:${user?.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${user?.id}` }, () => { loadUserData(); })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trivia_streaks', filter: `user_id=eq.${user?.id}` }, () => { loadUserData(); })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${user?.id}` }, () => { loadUserData({ force: true }); })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trivia_streaks', filter: `user_id=eq.${user?.id}` }, () => { loadUserData({ force: true }); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id, loadUserData]);
@@ -405,13 +419,9 @@ export default function TriviaHubPage({ modeAvailability }) {
                 title="Poker Trivia - Test Your Knowledge"
                 description="Put Your Poker Knowledge To The Test With Multiple Game Modes: Endless, Survival, Time Attack, Mixed, PvP, And Tournaments."
                 canonical="/hub/trivia"
-            >
+            />
 
-            </SEOHead>
-
-            {/* Black-first page (Trivia console standard); the shared hub
-                module still owns layout and the overflow clip. */}
-            <div className={styles.page} style={{ background: 'var(--tc-black)' }}>
+            <div className={`${styles.page} smarterdesign`} style={{ background: 'var(--tc-black, #040d18)' }}>
                 <UniversalHeader
                     pageDepth={1}
                     commandMenuOpen={menuOpen}
@@ -419,7 +429,6 @@ export default function TriviaHubPage({ modeAvailability }) {
                     onMenuClick={() => setMenuOpen(true)}
                 />
 
-                {/* Hamburger Menu */}
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}
@@ -432,11 +441,11 @@ export default function TriviaHubPage({ modeAvailability }) {
                 />
 
                 <main className={styles.content}>
-                    <h1 className="sr-only">Smarter Poker Trivia</h1>
                     <WeeklyWireTriviaBanner router={router} />
                     <TriviaLobby
                         userDiamonds={userDiamonds}
                         isVip={isVip}
+                        arcadeTicketCount={arcadeTicketCount}
                         dailyCompleted={dailyCompleted}
                         currentStreak={currentStreak}
                         modeAvailability={modeAvailability}
@@ -444,16 +453,16 @@ export default function TriviaHubPage({ modeAvailability }) {
                         accountKey={userId || null}
                         playerDataLoading={isLoading}
                         playerDataStatus={playerDataStatus}
-                        onRetryPlayerData={loadUserData}
+                        onRetryPlayerData={() => loadUserData({ force: true })}
                         onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
                     />
                 </main>
             </div>
 
-      {/* Server rendered: measured on production this page returned
-          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-      <HubPageSummary page="trivia" />
-    </PageTransition>
+            {/* Server rendered: measured on production this page returned
+                only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+            <HubPageSummary page="trivia" />
+        </PageTransition>
     );
 }
 

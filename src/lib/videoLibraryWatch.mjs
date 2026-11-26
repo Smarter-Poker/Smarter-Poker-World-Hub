@@ -249,6 +249,23 @@ export function buildVideoJsonLd(video, options = {}) {
     return [videoObject, breadcrumbs].filter(Boolean);
 }
 
+export function buildVideoWatchWebPageJsonLd(video) {
+    if (!video?.title) return null;
+    const url = watchUrl(video);
+    return {
+        '@type': 'WebPage',
+        '@id': `${url}#webpage`,
+        url,
+        name: video.title,
+        inLanguage: 'en-US',
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+        speakable: {
+            '@type': 'SpeakableSpecification',
+            cssSelector: ['h1', 'main p:first-of-type'],
+        },
+    };
+}
+
 const XML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' };
 export function xmlEscape(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => XML_ESCAPES[char]);

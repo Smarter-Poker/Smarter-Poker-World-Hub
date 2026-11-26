@@ -90,7 +90,7 @@ export default function NightlyReminderButton({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <TriviaGlassAction
                 label={label}
-                ink={optedIn ? 'green' : 'gold'}
+                ink={optedIn ? 'green' : 'blue'}
                 disabled={loading || pending}
                 aria-pressed={signedIn ? optedIn : undefined}
                 onClick={handleToggle}

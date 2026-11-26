@@ -92,6 +92,10 @@ test('every family has its own destination art, rendered by its destination', ()
     assert.deepEqual(Object.keys(TRIVIA_INTRO_ART).sort(), [...FAMILIES].sort());
     assert.deepEqual(Object.keys(DESTINATION).sort(), [...FAMILIES].sort());
     for (const id of FAMILIES) {
+        if (id === 'lobby') {
+            assert.equal(TRIVIA_INTRO_ART[id].key, id);
+            continue;
+        }
         const source = read(DESTINATION[id]);
         const artReference = PHASE10_FAMILIES.has(id) ? `TRIVIA_INTRO_ART.${id}` : constName(id);
         assert.match(source, new RegExp(`\\b${artReference.replace('.', '\\.') }\\b`), `${DESTINATION[id]} uses ${artReference}`);
@@ -217,13 +221,13 @@ test('ResponsiveModeArt reserves its box, paints a preview, and is lazy unless i
     assert.match(css, /@media \(min-width: 768px\) \{\s*\.art \{\s*aspect-ratio: 12 \/ 5;/);
     assert.match(css, /\.art\[data-art-state='error'\] \.image \{\s*visibility: hidden;/);
     assert.doesNotMatch(css, /:hover/);
-    assert.deepEqual([...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]), ['#000'], 'schema ink only');
+    assert.deepEqual([...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]), ['#040d18'], '#SMARTERDESIGN ink-navy surface');
     for (const [id, rel] of Object.entries(DESTINATION)) {
+        if (id === 'lobby') continue;
         const tags = [...read(rel).matchAll(/<ResponsiveModeArt\b[\s\S]*?\/>/g)].map((m) => m[0]);
         const expectedBranches = new Set(['endless', 'survival', 'tournaments']).has(id) ? 2 : 1;
         assert.equal(tags.length, expectedBranches, `${rel} renders art only in its mutually exclusive hero branches`);
-        if (id === 'lobby') assert.doesNotMatch(tags[0], /\bpriority\b/, 'the Daily header stays the lobby hero');
-        else for (const tag of tags) assert.match(tag, /\bpriority\b/, `${rel}: the intro art is the page hero`);
+        for (const tag of tags) assert.match(tag, /\bpriority\b/, `${rel}: the intro art is the page hero`);
     }
 });
 
@@ -263,7 +267,6 @@ test('lobby card pictures paint their own preview, so a fast scroll never shows 
         assert.match(preview, /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/, `${id} preview is an inline WebP`);
         assert.ok(preview.length < 1200, `${id} preview stays tiny`);
     }
-    assert.match(read(DESTINATION.lobby), /imagePreview=\{TRIVIA_THUMBNAIL_PREVIEWS\[mode\.id\]\}/);
     const card = read('src/components/trivia/console/TriviaFrameCard.jsx');
     assert.match(card, /'--trivia-art-preview': `url\("\$\{imagePreview\}"\)`/);
     assert.match(read('src/components/trivia/console/TriviaFrameCard.module.css'), /\.artWell \{[\s\S]*?background: #000 var\(--trivia-art-preview, none\) 50% 50% \/ cover no-repeat;/);

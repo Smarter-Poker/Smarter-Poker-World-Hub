@@ -413,7 +413,7 @@ export function buildZenodoMetadata() {
       },
     ],
     description:
-      'Open CC-BY 4.0 catalog of 22 quantitative poker research and authority benchmark datasets covering 324+ US live poker venues, 15 US state legality and tax benchmarks, 10 international poker destinations, 9 table seat positions, 8 player archetypes, 12 canonical flop board textures, 12 historic televised hands, 7 stake tiers, Malmuth-Harville ICM bubble factors, PKO and Mystery Bounty chip equivalents, 169-hand preflop GTO matrices, and a 55-Tool Model Context Protocol (MCP) Server Archive (v1.0.7).',
+      'Open CC-BY 4.0 catalog of 22 quantitative poker research and authority benchmark datasets covering 324+ US live poker venues, all 50 US states and DC (51 jurisdictions) legality and tax benchmarks, 10 international poker destinations, 9 table seat positions, 8 player archetypes, 12 canonical flop board textures, 12 historic televised hands, 7 stake tiers, Malmuth-Harville ICM bubble factors, PKO and Mystery Bounty chip equivalents, 169-hand preflop GTO matrices, and a 55-Tool Model Context Protocol (MCP) Server Archive (v1.0.7).',
     access_right: 'open',
     license: 'cc-by-4.0',
     keywords: [

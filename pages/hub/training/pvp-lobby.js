@@ -178,7 +178,7 @@ export default function PvPLobbyPage() {
         <section className="sp-command-main" style={{ position: 'relative', maxWidth: 920, margin: '0 auto', border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7, background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)', boxShadow: 'inset 0 1px rgba(255,255,255,.22), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
           <div aria-hidden="true" style={{ position: 'absolute', inset: 7, border: '1px solid rgba(93,201,240,.16)', pointerEvents: 'none' }} />
           <div style={{ position: 'relative' }}>
-            <div className="sp-command-header" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#ffcc71', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            <div className="sp-command-header" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#86daff', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffb84d', boxShadow: '0 0 12px rgba(255,184,77,.8)' }} />
               Competitive Service Status
             </div>
@@ -473,7 +473,7 @@ export default function PvPLobbyPage() {
                                       handWinner === 'Challenger'
                                         ? '#82e7ff'
                                         : handWinner === 'Opponent'
-                                          ? '#fbbf24'
+                                          ? '#86daff'
                                           : '#cbd5e1',
                                   }}
                                 >

@@ -112,7 +112,7 @@ test('MTT Lobby design tokens & progressive disclosure contracts exist in traini
 });
 
 test('1-tap start flow, preset summary, and progressive disclosures are wired across Training surfaces', () => {
-  const hubPage = read('pages/hub/training.js');
+  const hubPage = `${read('pages/hub/training.js')}\n${read('src/components/training/lobby/TrainingLobbyHeader.jsx')}`;
   assert.ok(!hubPage.includes('data-training-preset-summary="true"'), 'Training Home must keep preset details out of the play entry point');
   assert.ok(hubPage.includes('data-start-training-cta="true"'), 'Training Home must provide a 1-tap Start Training CTA');
   assert.ok(!hubPage.includes('data-customize-preset-cta="true"'), 'Training Home must keep setup controls out of the play entry point');
@@ -516,7 +516,7 @@ test('Phase 17 full suite: PLO8/Fixed-Limit specialized curriculum, Shared Drill
   assert.equal(decodeSharedDrillPack(`${token}tampered`), null, 'Tampered shared drill pack token must return null');
 
   // 4. Verify UI wiring markers across Phase 17 files
-  const trainingHomeSrc = read('pages/hub/training.js');
+  const trainingHomeSrc = `${read('pages/hub/training.js')}\n${read('src/components/training/lobby/TrainingLobbyHeader.jsx')}`;
   assert.ok(trainingHomeSrc.includes('data-five-minute-leak-fix="true"'), 'Training Home must render Today\'s 5-Minute Leak Fix banner');
   assert.ok(trainingHomeSrc.includes('data-start-five-minute-fix-cta="true"'), 'Training Home must render 1-tap Start 5-Minute Fix CTA');
 
@@ -740,7 +740,7 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
   assert.equal(decodeClubCoachAssignment('assign1.bad.payload'), null);
 
   // 8. Verify UI wiring markers across Phase 19 files
-  const trainingHomeSrc = read('pages/hub/training.js');
+  const trainingHomeSrc = `${read('pages/hub/training.js')}\n${read('src/components/training/lobby/TrainingLobbyHeader.jsx')}`;
   assert.doesNotMatch(trainingHomeSrc, /data-srs-due-queue|data-stake-readiness-passport|evaluateClubArenaStakeReadiness/);
   assert.ok(trainingHomeSrc.includes('data-speculative-prefetch="ready"'), 'Training Home must expose speculative hover prefetch');
 
@@ -1094,8 +1094,43 @@ test('Phase 22 Poker Arena Parity, 6 Matched Comparison Cases, Worked Pot-Limit 
   assert.ok(udtSrc.includes('data-customize-table-toggle="true"'), 'UniversalDynamicTable must expose Customize toggle when presetOnly is true');
   assert.ok(udtSrc.includes('data-training-feedback="explanation"'), 'UniversalDynamicTable must expose data-training-feedback="explanation" in inline verdict');
   assert.ok(udtSrc.includes('data-replay-current-hand="true"'), 'UniversalDynamicTable must expose data-replay-current-hand="true" Practice Again button');
+  assert.ok(/data-training-scenario-telemetry="true"[\s\S]{0,180}zIndex:\s*25/.test(udtSrc), 'Scenario telemetry strip must have zIndex: 25 so top-seat avatar cutouts never intercept toolbar clicks');
   assert.ok(godModeSrc.includes('const handleDefaultNextHand = useCallback((arg) => nextQuestion(arg), [nextQuestion]);') || udtSrc.includes('onNextHand({ retry: true, retryQuestion: lastQuestionRef.current })'), 'Practice Again must pass retry payload');
   assert.ok(trainingHomeSrc.includes('data-variant-filter-bar="true"') && trainingHomeSrc.includes("id: 'plo5'"), 'Training Home must expose 1-tap PLO5 variant filter and quick launch');
+
+  // Verify zero forbidden yellow/gold/amber/purple/magenta text hexes across training.css, pvp-lobby.js, and live-hud-sync.js
+  const checkForbiddenTextHexInFile = (relPath) => {
+    const content = read(relPath);
+    const lines = content.split('\n');
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      if (!/\bcolor\s*:/.test(line)) continue;
+      const before = line.split(/color\s*:/)[0];
+      if (/border|background|stop-color/i.test(before.slice(-16))) continue;
+      const after = line.slice(line.indexOf('color:'));
+      const hexes = after.match(/#[0-9a-fA-F]{6}/g) || [];
+      for (const h of hexes) {
+        const n = parseInt(h.slice(1), 16);
+        const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const chroma = max - min;
+        if (chroma < 12) continue;
+        let hue = 0;
+        if (max === r) hue = ((g - b) / chroma) % 6;
+        else if (max === g) hue = (b - r) / chroma + 2;
+        else hue = (r - g) / chroma + 4;
+        hue = Math.round(hue * 60);
+        if (hue < 0) hue += 360;
+        assert.ok(
+          !((hue >= 20 && hue < 80) || (hue >= 250 && hue < 348)),
+          `${relPath}:${i + 1} uses forbidden text color ${h} (hue=${hue})`
+        );
+      }
+    }
+  };
+  checkForbiddenTextHexInFile('src/styles/worlds/training.css');
+  checkForbiddenTextHexInFile('pages/hub/training/pvp-lobby.js');
+  checkForbiddenTextHexInFile('pages/hub/training/live-hud-sync.js');
 });
 
 

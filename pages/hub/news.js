@@ -1439,7 +1439,7 @@ function NewsHub() {
                 block below already documents. */}
             <SEOHead
                 title="Poker News: Headlines, Results And Strategy"
-                description="The Latest Poker News On Smarter.Poker: Tournament Results, Industry Updates And Strategy Articles Gathered Hourly From Top Sources And Read In One Place. Free To Read."
+                description="Latest Poker News On Smarter.Poker: Tournament Results, Industry Updates, And Strategy Articles Gathered Hourly From Top Sources. Free To Read."
                 canonical="/hub/news"
                 jsonLd={NEWS_SCHEMA}
             />

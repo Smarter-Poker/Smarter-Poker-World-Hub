@@ -1,25 +1,20 @@
 /**
- * TRIVIA LOBBY - Mode discovery and entry routing.
- * Painted card chassis come from the shared Trivia console primitives.
+ * TRIVIA LOBBY - Mode discovery and entry routing on canonical #SMARTERDESIGN.
+ * Zero broken raster mode-card images, zero double-modal friction, visible
+ * #SMARTERDESIGN masthead, active solo Continue Game CTA, accurate entry pricing.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { authedFetch } from '../../lib/authUtils';
-import { acquireScrollLock } from '../../lib/scrollLock';
-import TriviaFrameCard from './console/TriviaFrameCard';
-import TriviaConsole from './console/TriviaConsole';
-import ResponsiveModeArt from './console/ResponsiveModeArt';
 import CompetitiveLobbyBriefing from './competitive/CompetitiveLobbyBriefing';
-import { TRIVIA_INTRO_ART_LOBBY } from '../../config/triviaIntroArt.mjs';
-import { TRIVIA_THUMBNAIL_PREVIEWS } from '../../config/triviaThumbnailPreviews.mjs';
-// The lobby no longer bills, so supabase / EventBus / getAuthUser are gone with
-// deductDiamonds. Entry price now comes from the engine config only.
 import { getModeConfig } from '../../lib/trivia/triviaEngine';
+import { readSoloRunRecovery } from '../../lib/trivia/soloRunRecovery.mjs';
 import {
   TRIVIA_FEATURED_MODE,
   TRIVIA_MIDDLE_MODES as MODE_CARDS,
+  TRIVIA_MODE_BY_ID,
   TRIVIA_MODE_FILTER_COUNTS as MODE_FILTER_COUNTS,
   TRIVIA_MODE_FILTERS as MODE_FILTERS,
   TRIVIA_QUICK_STAKES_MODE,
@@ -27,51 +22,11 @@ import {
   resolveTriviaModeAvailability,
 } from '../../config/triviaModeRegistry.mjs';
 
-/**
- * Title Case for strings that reach the screen from data (the copy gates only
- * read literals). Raises the first letter of every word and never lowers the
- * rest, so acronyms and names survive ('8 PM', 'MTT', '1v1', 'GTO'), and
- * writes clock times as '2 AM'. The shared toTitleCase lowers everything
- * after the first letter ('PM' -> 'Pm', '2am' -> '2Am'), so it is not used
- * for these strings.
- */
 function printTitle(text) {
   return String(text ?? '')
     .replace(/(\d)\s?(am|pm)\b/gi, (match, digit, meridiem) => `${digit} ${meridiem.toUpperCase()}`)
     .replace(/(^|[\s_\-/(])(\p{Ll})/gu, (match, lead, letter) => lead + letter.toUpperCase());
 }
-
-const ACKNOWLEDGED_KEY = 'trivia_charge_acknowledged';
-const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
-
-// Mixed Mode is the lobby's multi-category progression card; all other cards
-// use their registry category directly. This keeps every frame family owned by
-// the shared raster primitive rather than rebuilding frame geometry here.
-function getModeFrameFamily(mode) {
-  return mode.id === 'mixed' ? 'progress' : mode.category;
-}
-
-/**
- * ENTRY PRICING — display only.
- * ═══════════════════════════════════════════════════════════════════════════
- * The lobby no longer charges anything. It used to deduct a flat 10 diamonds
- * and then write sessionStorage('trivia_paid') for the destination page to
- * trust, which was broken two ways:
- *   1. The "receipt" was a client-side string. Anyone could set it in devtools
- *      and play every paid mode free.
- *   2. The lobby charged 10 for history/rules/pro even though those modes have
- *      diamondCost: 0, so the SAME game was free by direct URL and 10 diamonds
- *      from the lobby.
- * Every destination page already performs its own server-verified charge (a
- * DiamondEngine/RPC deduction with an idempotency key). That charge is now the
- * only entitlement, so lobby entry and direct-URL entry cost exactly the same.
- *
- * The price shown comes straight from TRIVIA_MODES.diamondCost — the local
- * PAGE_ENTRY_COSTS override table that used to live here is gone, because the
- * engine config now carries the real number for every paid mode (mtt/cash/
- * icm/gto/mixed/endless/survival/time-attack). One table, so the lobby price
- * and the direct-URL price cannot drift apart again.
- */
 
 /** What the user will actually be charged when they enter this mode. */
 function getEntryCost(modeId) {
@@ -82,14 +37,55 @@ function getEntryCost(modeId) {
 /** Modes whose entry price is a stake / tournament fee rather than fixed. */
 const VARIABLE_COST_MODES = new Set(['pvp', 'tournaments']);
 
-/**
- * onDiamondsChange is still accepted (index.js passes it) but is intentionally
- * unused: this component no longer moves diamonds, so it has no delta to
- * report. The destination pages emit their own balance updates.
- */
+/** Solo modes scanned for active, non-expired recoverable runs. */
+const SOLO_RECOVERY_MODES = Object.freeze([
+  'daily',
+  'arcade',
+  'mtt',
+  'cash',
+  'icm',
+  'gto',
+  'mixed',
+  'endless',
+  'survival',
+  'time-attack',
+  'history',
+  'rules',
+  'pro',
+]);
+
+function findActiveSoloRecovery(accountKey, now = Date.now()) {
+  if (typeof window === 'undefined' || !accountKey) return null;
+  let best = null;
+  for (const modeId of SOLO_RECOVERY_MODES) {
+    const record = readSoloRunRecovery(window.localStorage, modeId, accountKey, now);
+    if (!record) continue;
+    // Strictly respect exact expiresAt so expired sessions are never offered.
+    if (record.expiresAt && Date.parse(record.expiresAt) <= now) continue;
+    if (!best || record.createdAt > best.createdAt) {
+      best = record;
+    }
+  }
+  return best;
+}
+
+function formatRecoveryProgress(record) {
+  if (!record) return '';
+  if (Number.isInteger(record.answeredCount) && Number.isInteger(record.totalQuestions) && record.totalQuestions > 0) {
+    const nextQ = Math.min(record.answeredCount + 1, record.totalQuestions);
+    return `Question ${nextQ} Of ${record.totalQuestions}`;
+  }
+  if (record.mode === 'survival' && Number.isInteger(record.survivalLevel)) {
+    return `Level ${record.survivalLevel} In Progress`;
+  }
+  if (record.phase === 'settling') return 'Settlement Pending';
+  return 'Active Session Ready To Resume';
+}
+
 export default function TriviaLobby({
   userDiamonds = 0,
   isVip = false,
+  arcadeTicketCount = 0,
   dailyCompleted = false,
   currentStreak = 0,
   onDiamondsChange,
@@ -104,16 +100,14 @@ export default function TriviaLobby({
   const [activeFilter, setActiveFilter] = useState('all');
   const filterRailRef = useRef(null);
   const filterButtonRefs = useRef([]);
-  const quickStakesRef = useRef(null);
-  const modalRef = useRef(null);
-  const previousFocusRef = useRef(null);
   const routingRef = useRef(false);
   const prefetchedRoutesRef = useRef(new Set());
+  const [isRouting, setIsRouting] = useState(false);
+  const [routeError, setRouteError] = useState('');
+  const [pvpEloBadge, setPvpEloBadge] = useState(null);
+  const [activeSoloRecovery, setActiveSoloRecovery] = useState(null);
 
   useEffect(() => {
-    // Clear any legacy 'already paid' flags left in this session by an
-    // older build. Nothing writes them any more, and a stale one would
-    // hand out one free paid entry on the destination page.
     try {
       sessionStorage.removeItem('trivia_paid');
       sessionStorage.removeItem('trivia_mode');
@@ -122,15 +116,41 @@ export default function TriviaLobby({
     }
   }, []);
 
-  // Cost-disclosure state. NOTE: no diamonds move in this component any
-  // more — the popup only tells the player what the destination page will
-  // charge, and Accept routes them there.
-  const [showChargePopup, setShowChargePopup] = useState(false);
-  const [pendingMode, setPendingMode] = useState(null);
-  const [isRouting, setIsRouting] = useState(false);
-  const [routeError, setRouteError] = useState('');
-  const [quickStakesArtReady, setQuickStakesArtReady] = useState(false);
-  const [pvpEloBadge, setPvpEloBadge] = useState(null);
+  // Scan local solo run recovery pointers for the current account and expire them on time.
+  const refreshSoloRecovery = useCallback(() => {
+    if (authState !== 'authenticated' || !accountKey) {
+      setActiveSoloRecovery(null);
+      return;
+    }
+    setActiveSoloRecovery(findActiveSoloRecovery(accountKey, Date.now()));
+  }, [accountKey, authState]);
+
+  useEffect(() => {
+    refreshSoloRecovery();
+    if (typeof window === 'undefined') return undefined;
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshSoloRecovery();
+    };
+    window.addEventListener('storage', refreshSoloRecovery);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('storage', refreshSoloRecovery);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [refreshSoloRecovery]);
+
+  useEffect(() => {
+    if (!activeSoloRecovery?.expiresAt) return undefined;
+    const msUntilExpiry = Date.parse(activeSoloRecovery.expiresAt) - Date.now();
+    if (msUntilExpiry <= 0) {
+      setActiveSoloRecovery(null);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      refreshSoloRecovery();
+    }, Math.min(msUntilExpiry + 50, 2_147_483_647));
+    return () => window.clearTimeout(timer);
+  }, [activeSoloRecovery?.expiresAt, refreshSoloRecovery]);
 
   useEffect(() => {
     setPvpEloBadge(null);
@@ -157,7 +177,6 @@ export default function TriviaLobby({
         }
       } catch (error) {
         if (error?.name === 'AbortError') return;
-        // Non-blocking Elo pill degrades silently if ratings endpoint is unavailable.
       }
     };
     void loadPvpElo();
@@ -167,23 +186,6 @@ export default function TriviaLobby({
     };
   }, [accountKey, authState]);
 
-  useEffect(() => {
-    const section = quickStakesRef.current;
-    if (!section || quickStakesArtReady) return undefined;
-    if (typeof IntersectionObserver === 'undefined') {
-      setQuickStakesArtReady(true);
-      return undefined;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-      setQuickStakesArtReady(true);
-      observer.disconnect();
-    }, { rootMargin: '128px 0px' });
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, [quickStakesArtReady]);
-
-  const pendingCost = pendingMode ? getEntryCost(pendingMode) : 0;
   const filteredModes =
     activeFilter === 'all'
       ? MODE_CARDS
@@ -202,18 +204,13 @@ export default function TriviaLobby({
   const dailyDataUnavailable = playerDataStatus.daily === 'error';
 
   const revealFilter = (filterIndex, { focus = false } = {}) => {
-    // Wait for React to apply the active state before measuring. Scrolling
-    // the rail directly keeps the page's vertical position untouched.
     requestAnimationFrame(() => {
       const rail = filterRailRef.current;
       const button = filterButtonRefs.current[filterIndex];
       if (!rail || !button) return;
-
       if (focus) button.focus();
-
       const maxLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
       if (maxLeft === 0) return;
-
       const targetLeft = button.offsetLeft - (rail.clientWidth - button.offsetWidth) / 2;
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       rail.scrollTo({
@@ -228,64 +225,20 @@ export default function TriviaLobby({
     revealFilter(filterIndex, options);
   };
 
+  // Honor both ?tab= and ?filter= deep-link query params.
   useEffect(() => {
     if (!router.isReady) return;
-    const requested = typeof router.query.filter === 'string' ? router.query.filter : '';
+    const rawRequested = typeof router.query.tab === 'string'
+      ? router.query.tab
+      : (typeof router.query.filter === 'string' ? router.query.filter : '');
+    const requested = rawRequested.trim().toLowerCase();
     const filterIndex = MODE_FILTERS.findIndex((filter) => filter.id === requested);
     if (filterIndex >= 0) selectFilter(requested, filterIndex);
-    // The query string is the external navigation contract. selectFilter is
-    // deliberately omitted because it is recreated during render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady, router.query.filter]);
-
-  useEffect(() => {
-    if (!showChargePopup) return undefined;
-    previousFocusRef.current = document.activeElement;
-    const releaseScrollLock = acquireScrollLock('trivia-entry-disclosure');
-    const focusTimer = window.setTimeout(
-      () => modalRef.current?.querySelector('[data-entry-action="close"]')?.focus(),
-      0
-    );
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setShowChargePopup(false);
-        setPendingMode(null);
-        return;
-      }
-      if (event.key !== 'Tab' || !modalRef.current) return;
-      const focusable = Array.from(
-        modalRef.current.querySelectorAll(
-          'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
-        )
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener('keydown', handleKeyDown);
-      releaseScrollLock();
-      if (!routingRef.current && previousFocusRef.current instanceof HTMLElement) {
-        previousFocusRef.current.focus();
-      }
-    };
-  }, [showChargePopup]);
+  }, [router.isReady, router.query.tab, router.query.filter]);
 
   const handleFilterKeyDown = (event, currentIndex) => {
     let nextIndex;
-
     switch (event.key) {
       case 'ArrowRight':
         nextIndex = (currentIndex + 1) % MODE_FILTERS.length;
@@ -302,7 +255,6 @@ export default function TriviaLobby({
       default:
         return;
     }
-
     event.preventDefault();
     selectFilter(MODE_FILTERS[nextIndex].id, nextIndex, { focus: true });
   };
@@ -315,9 +267,6 @@ export default function TriviaLobby({
     router.prefetch(route).catch(() => prefetchedRoutesRef.current.delete(route));
   };
 
-  // Route to the correct page for a mode, and recover if Next cancels or
-  // rejects the transition. The old fire-and-forget push stranded the full
-  // screen spinner forever after a route error.
   const routeToMode = async (modeId) => {
     if (routingRef.current) return;
     routingRef.current = true;
@@ -330,202 +279,223 @@ export default function TriviaLobby({
       console.warn('[TriviaLobby] Could not open mode:', error?.message || error);
       routingRef.current = false;
       setIsRouting(false);
-      setRouteError('That game could not be opened. Please try again.');
+      setRouteError('That Game Could Not Be Opened. Please Try Again.');
     }
   };
 
-  const handleChargeAccept = () => {
-    const modeId = pendingMode;
-    if (!modeId) return;
-    // Remember the disclosure so it is shown once, not once per mode.
-    try {
-      localStorage.setItem(ACKNOWLEDGED_KEY, 'true');
-    } catch (e) {
-      console.warn('[App] Handled exception:', e?.message || e);
-    }
-    setShowChargePopup(false);
-    setPendingMode(null);
-    void routeToMode(modeId);
-  };
-
-  // Synchronous re-entry guard: two fast taps on a card used to run two
-  // start flows (and, when this component still billed, two charges).
+  // Synchronous re-entry guard. Navigates directly to mode pregame (zero lobby double-modal).
   const _startModeInFlightRef = useRef(false);
   const startMode = (modeId) => {
     if (_startModeInFlightRef.current) return;
     _startModeInFlightRef.current = true;
     try {
-      _startModeInner(modeId);
+      if (playerDataLoading) {
+        setRouteError('Player Access Is Still Loading.');
+        return;
+      }
+      const availability = availabilityFor(modeId);
+      if (!availability.enabled) {
+        setRouteError(availability.message);
+        return;
+      }
+      if (modeId === 'daily' && dailyCompleted) return;
+      void routeToMode(modeId);
     } finally {
-      // Released on the next tick — the guard only exists to swallow the
-      // duplicate click in the same burst.
       setTimeout(() => {
         _startModeInFlightRef.current = false;
       }, 400);
     }
   };
 
-  const _startModeInner = (modeId) => {
-    if (playerDataLoading) {
-      setRouteError('Player access is still loading.');
-      return;
-    }
-    const availability = availabilityFor(modeId);
-    if (!availability.enabled) {
-      setRouteError(availability.message);
-      return;
-    }
-
-    // Block daily if already completed
-    if (modeId === 'daily' && dailyCompleted) return;
-
+  const formatEntryCost = (modeId, unavailable) => {
+    if (playerDataLoading) return 'Checking Access';
+    if (unavailable) return 'Unavailable';
     const cost = getEntryCost(modeId);
-
-    // VIPs and free modes go straight through.
-    if (isVip || cost === 0 || VARIABLE_COST_MODES.has(modeId)) {
-      void routeToMode(modeId);
-      return;
-    }
-
-    let acknowledged = false;
-    try {
-      acknowledged = localStorage.getItem(ACKNOWLEDGED_KEY) === 'true';
-    } catch (e) {
-      console.warn('[App] Handled exception:', e?.message || e);
-    }
-
-    if (!acknowledged) {
-      setPendingMode(modeId);
-      setShowChargePopup(true);
-      return;
-    }
-
-    void routeToMode(modeId);
+    const variableCost = VARIABLE_COST_MODES.has(modeId);
+    // Check Free (cost === 0) FIRST so VIP users never see false "VIP Free" on free modes.
+    if (!variableCost && cost === 0) return 'Free';
+    if (!profileDataReady) return 'Verified At Entry';
+    if (variableCost) return 'Variable';
+    if (arcadeTicketCount > 0 && modeId === 'arcade') return '1 Free Entry Ticket';
+    if (isVip) return 'VIP Free';
+    return `${cost} Diamonds`;
   };
 
-  const pendingModeDefinition = pendingMode
-    ? MODE_CARDS.find((mode) => mode.id === pendingMode) || null
-    : null;
-  const pendingShortfall = profileDataReady && pendingCost > 0 && Number(userDiamonds) < pendingCost;
-  const closeChargePopup = () => {
-    setShowChargePopup(false);
-    setPendingMode(null);
-  };
+  const quickStakesCostText = formatEntryCost(TRIVIA_QUICK_STAKES_MODE.id, !quickStakesAvailability.enabled);
+  const recoveryModeDef = activeSoloRecovery ? TRIVIA_MODE_BY_ID[activeSoloRecovery.mode] : null;
 
   return (
-    <div className="trivia-lobby">
-      {/* Approved Daily Trivia artwork remains the full visual authority:
-          native ratio, no crop, nothing printed or framed over it. */}
-      <div className="daily-trivia-banner" data-completed={dailyCompleted ? 'true' : 'false'}>
-        <img
-          src={TRIVIA_FEATURED_MODE.image}
-          alt={TRIVIA_FEATURED_MODE.imageAlt}
-          className="daily-trivia-banner__image"
-          width={TRIVIA_FEATURED_MODE.imageWidth}
-          height={TRIVIA_FEATURED_MODE.imageHeight}
-          fetchpriority="high"
-          decoding="async"
-        />
-        {/* One full-card target keeps pointer and keyboard behavior identical. */}
-        <button
-          type="button"
-          className="daily-trivia-banner__button"
-          onClick={() => {
-            if (!dailyCompleted && dailyAvailability.enabled) startMode(TRIVIA_FEATURED_MODE.id);
-          }}
-          disabled={playerDataLoading || dailyDataUnavailable || dailyCompleted || !dailyAvailability.enabled}
-          aria-label={
-            playerDataLoading
-              ? 'Checking Daily Trivia Status'
-              : dailyDataUnavailable
-                ? 'Daily Trivia Status Unavailable'
-              : dailyCompleted
-              ? 'Daily Trivia Completed'
-              : dailyAvailability.enabled
-                ? 'Start Daily Trivia - Free, Once Per Day'
-                : dailyAvailability.message
-          }
-        />
-      </div>
-      {playerDataLoading ? (
-        <p className="daily-trivia-status tc-ink--blue" role="status">Checking Player Status</p>
-      ) : dailyDataUnavailable ? (
-        <p className="daily-trivia-status tc-ink--red" role="alert">Daily Status Unavailable / Entry Locked</p>
-      ) : dailyCompleted ? (
-        <p className="daily-trivia-status tc-ink--green">
-          Completed Today
-          {currentStreak > 0 ? ` / ${currentStreak} Day Streak` : ''}
-        </p>
-      ) : !dailyAvailability.enabled ? (
-        <p className="daily-trivia-status tc-ink--gold">{dailyAvailability.message}</p>
-      ) : currentStreak > 0 ? (
-        <p className="daily-trivia-status tc-ink--gold" title={`${currentStreak} Day Streak`}>
-          Day {currentStreak} Streak / Keep It Alive
-        </p>
+    <div className="trivia-lobby smarterdesign">
+      {/* Visible #SMARTERDESIGN Masthead with Primary Daily Trivia Action */}
+      <header className="sd-masthead lobby-masthead">
+        <div className="lobby-masthead__top">
+          <div className="lobby-masthead__copy">
+            <span className="lobby-masthead__eyebrow">Smarter.Poker</span>
+            <h1 className="lobby-masthead__title">Poker Trivia</h1>
+            <p className="lobby-masthead__subtitle">
+              Daily Trivia, Solver Strategy Drills, And Competitive Poker Modes
+            </p>
+          </div>
+          <div className="lobby-masthead__cta">
+            <button
+              type="button"
+              className="sd-button sd-primary lobby-daily-cta"
+              onClick={() => {
+                if (!dailyCompleted && dailyAvailability.enabled) startMode(TRIVIA_FEATURED_MODE.id);
+              }}
+              onPointerDown={() => dailyAvailability.enabled && !dailyCompleted && prefetchMode(TRIVIA_FEATURED_MODE.id)}
+              disabled={playerDataLoading || dailyDataUnavailable || dailyCompleted || !dailyAvailability.enabled || isRouting}
+              aria-label={
+                playerDataLoading
+                  ? 'Checking Daily Trivia Status'
+                  : dailyDataUnavailable
+                    ? 'Daily Trivia Status Unavailable'
+                    : dailyCompleted
+                      ? 'Daily Trivia Completed'
+                      : dailyAvailability.enabled
+                        ? 'Play Daily Trivia - Free, 10 Questions Fresh Every Day'
+                        : dailyAvailability.message
+              }
+            >
+              {playerDataLoading
+                ? 'Checking Daily...'
+                : dailyCompleted
+                  ? 'Daily Trivia Completed'
+                  : !dailyAvailability.enabled
+                    ? 'Daily Maintenance'
+                    : 'Play Daily Trivia (Free)'}
+            </button>
+          </div>
+        </div>
+
+        <dl className="lobby-metrics" aria-label="Player Trivia Summary">
+          <div className="sd-metric lobby-metric">
+            <dt>Diamonds</dt>
+            <dd>
+              {playerDataLoading
+                ? 'Checking'
+                : authState === 'signed-out'
+                  ? 'Sign In'
+                  : profileDataReady
+                    ? Number(userDiamonds || 0).toLocaleString('en-US')
+                    : 'Server Verified'}
+            </dd>
+          </div>
+          <div className="sd-metric lobby-metric">
+            <dt>Daily Streak</dt>
+            <dd className={currentStreak > 0 ? 'tc-ink--blue' : undefined}>
+              {playerDataLoading
+                ? 'Checking'
+                : `${Number(currentStreak || 0).toLocaleString('en-US')} ${currentStreak === 1 ? 'Day' : 'Days'}`}
+            </dd>
+          </div>
+          <div className="sd-metric lobby-metric">
+            <dt>Daily Trivia</dt>
+            <dd className={dailyCompleted ? 'tc-ink--green' : dailyDataUnavailable ? 'tc-ink--red' : 'tc-ink--blue'}>
+              {playerDataLoading
+                ? 'Checking'
+                : dailyDataUnavailable
+                  ? 'Unavailable'
+                  : dailyCompleted
+                    ? 'Completed Today'
+                    : 'Ready (10 Qs)'}
+            </dd>
+          </div>
+          <div className="sd-metric lobby-metric">
+            <dt>Access</dt>
+            <dd className="tc-ink--blue">
+              {isVip
+                ? 'VIP Member'
+                : arcadeTicketCount > 0
+                  ? `${arcadeTicketCount} Free ${arcadeTicketCount === 1 ? 'Ticket' : 'Tickets'}`
+                  : 'Standard'}
+            </dd>
+          </div>
+        </dl>
+      </header>
+
+      {/* Active Solo Session Continue Game Card */}
+      {activeSoloRecovery && recoveryModeDef ? (
+        <section
+          className="sd-panel lobby-continue-card"
+          aria-labelledby="lobby-continue-title"
+          data-solo-recovery-mode={activeSoloRecovery.mode}
+        >
+          <div className="lobby-continue-card__copy">
+            <span className="tc-label">Active Solo Session</span>
+            <h2 id="lobby-continue-title" className="lobby-continue-card__title">
+              {recoveryModeDef.name}
+            </h2>
+            <p className="lobby-continue-card__detail">
+              {formatRecoveryProgress(activeSoloRecovery)}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="sd-button sd-primary lobby-continue-card__action"
+            disabled={isRouting}
+            onClick={() => void routeToMode(activeSoloRecovery.mode)}
+          >
+            Continue Game
+          </button>
+        </section>
       ) : null}
 
       {playerDataPartial ? (
-        <div className="player-data-notice" role="status" aria-live="polite">
+        <div className="sd-panel player-data-notice" role="status" aria-live="polite">
           <p>
             {allPlayerReadsFailed
               ? 'Player Details Are Unavailable. Game Charges Stay Server Verified.'
               : 'Some Player Details Are Unavailable. Successful Reads Were Kept And Game Charges Stay Server Verified.'}
           </p>
           {typeof onRetryPlayerData === 'function' ? (
-            <button type="button" className="tc-word player-data-notice__retry" onClick={onRetryPlayerData}>
+            <button type="button" className="sd-button player-data-notice__retry" onClick={onRetryPlayerData}>
               Refresh Player Status
             </button>
           ) : null}
         </div>
       ) : null}
 
+      {/* Quick Access Utility Bar */}
       <nav className="lobby-utility-bar" aria-label="Trivia Quick Access">
-        <Link href="/hub/trivia/study" className="tc-word tc-ink--blue lobby-utility-link">
-          Study Your Misses
-        </Link>
+        <div className="lobby-utility-links">
+          <Link href="/hub/trivia/study" className="sd-button lobby-utility-link">
+            Study Your Misses
+          </Link>
+          <Link href="/hub/trivia/leaderboard" className="sd-button lobby-utility-link">
+            Leaderboards
+          </Link>
+          <Link href="/hub/trivia/stats" className="sd-button lobby-utility-link">
+            Stats
+          </Link>
+          <Link href="/hub/trivia/achievements" className="sd-button lobby-utility-link">
+            Achievements
+          </Link>
+          <Link href="/hub/trivia/settings" className="sd-button lobby-utility-link">
+            Settings
+          </Link>
+        </div>
         {pvpEloBadge ? (
           availabilityFor('pvp').enabled ? (
-            <Link href="/hub/trivia/pvp" className="lobby-elo-pill tc-ink--gold">
+            <Link href="/hub/trivia/pvp" className="sd-metric lobby-elo-pill tc-ink--blue">
               PvP Elo {pvpEloBadge.elo.toLocaleString('en-US')} / {printTitle(pvpEloBadge.tier)}
             </Link>
           ) : (
-            <span className="lobby-elo-pill tc-ink--gold">
+            <span className="sd-metric lobby-elo-pill tc-ink--blue">
               PvP Elo {pvpEloBadge.elo.toLocaleString('en-US')} / {printTitle(pvpEloBadge.tier)}
             </span>
           )
         ) : null}
       </nav>
 
-      {/* Keyed by account identity only. Every identity change (signed out to
-          an account, one account to another, an account to signed out) still
-          remounts, so no frame shows the previous account's state. The
-          session check finishing without an account (loading to signed-out)
-          is not an identity change: remounting there threw away the server-
-          rendered tournament art and re-downloaded it, which made it the
-          lobby's Largest Contentful Paint at 3.1-3.6s (2026-10-16). The
-          briefing's own effect still resets its resources on every
-          authState change. */}
-      <CompetitiveLobbyBriefing
-        key={`competitive-lobby:${accountKey || 'no-account'}`}
-        authState={authState}
-        accountKey={accountKey}
-        modeAvailability={modeAvailability}
-      />
-
       {/* Mode Cards Section */}
       <section className="modes-section" aria-labelledby="trivia-modes-title">
-        {/* The lobby's own destination art (intro-v1): the Game Select room,
-            a text-free picture that dissolves into the black canvas. The
-            Daily header above and the Quick Stakes footer keep their art. */}
-        <ResponsiveModeArt
-          art={TRIVIA_INTRO_ART_LOBBY}
-          className="modes-intro-art"
-          sizes="(min-width: 1000px) 968px, 100vw"
-        />
         <div className="modes-toolbar">
           <div className="modes-toolbar__heading">
-            <span className="modes-toolbar__eyebrow tc-label">Game Select</span>
-            <h2 id="trivia-modes-title" className="modes-toolbar__title">Choose Your Game</h2>
+            <span className="tc-label">Game Select</span>
+            <h2 id="trivia-modes-title" className="sd-section-title modes-toolbar__title">
+              Choose Your Game
+            </h2>
           </div>
           <span
             className="modes-toolbar__count"
@@ -535,14 +505,14 @@ export default function TriviaLobby({
           >
             <span className="tc-ink--green">{liveModeCount} Live</span>
             {maintenanceModeCount > 0 ? (
-              <span className="tc-ink--gold">{maintenanceModeCount} Maintenance</span>
+              <span className="tc-ink--muted">{maintenanceModeCount} Maintenance</span>
             ) : null}
           </span>
         </div>
 
         <div
           ref={filterRailRef}
-          className="mode-filters"
+          className="sd-tabs mode-filters"
           role="toolbar"
           aria-label="Filter Trivia Modes"
         >
@@ -553,7 +523,7 @@ export default function TriviaLobby({
                 filterButtonRefs.current[filterIndex] = node;
               }}
               type="button"
-              className={`tc-word mode-filter${activeFilter === filter.id ? ' mode-filter--active' : ''}`}
+              className={`sd-button mode-filter${activeFilter === filter.id ? ' active' : ''}`}
               onClick={() => selectFilter(filter.id, filterIndex)}
               onKeyDown={(event) => handleFilterKeyDown(event, filterIndex)}
               tabIndex={activeFilter === filter.id ? 0 : -1}
@@ -562,7 +532,7 @@ export default function TriviaLobby({
               aria-label={`${printTitle(filter.label)}, ${MODE_FILTER_COUNTS[filter.id]} Modes`}
             >
               <span>{printTitle(filter.label)}</span>
-              <span className="mode-filter__count" aria-hidden>
+              <span className="mode-filter__count" aria-hidden="true">
                 {MODE_FILTER_COUNTS[filter.id]}
               </span>
             </button>
@@ -573,23 +543,9 @@ export default function TriviaLobby({
           {filteredModes.map((mode) => {
             const availability = availabilityFor(mode.id);
             const unavailable = !availability.enabled;
-            const cost = getEntryCost(mode.id);
-            const variableCost = VARIABLE_COST_MODES.has(mode.id);
             const modeName = mode.name;
             const modeDescription = printTitle(mode.description);
-            const costText = playerDataLoading
-              ? 'Checking Access'
-              : unavailable
-              ? 'Unavailable'
-              : !profileDataReady
-                ? 'Verified At Entry'
-              : variableCost
-                ? 'Variable'
-                : isVip
-                  ? 'VIP Free'
-                  : cost > 0
-                    ? `${cost} Diamonds`
-                    : 'Free';
+            const costText = formatEntryCost(mode.id, unavailable);
             const rewardText =
               typeof mode.diamondReward === 'number'
                 ? `+${mode.diamondReward}${mode.perfectBonus ? ` / +${mode.perfectBonus} Perfect` : ''}`
@@ -598,71 +554,80 @@ export default function TriviaLobby({
                   : '-';
 
             return (
-              <TriviaFrameCard
+              <article
                 key={mode.id}
-                className={`mode-image-card${unavailable ? ' mode-image-card--maintenance' : ''}`}
-                family={getModeFrameFamily(mode)}
-                image={mode.image}
-                imagePreview={TRIVIA_THUMBNAIL_PREVIEWS[mode.id]}
-                imageAlt=""
-                frameLabel={mode.name}
+                className={`sd-panel mode-card${unavailable ? ' mode-card--maintenance' : ''}`}
+                data-mode-id={mode.id}
                 data-mode-availability={availability.state}
-                onClick={() => startMode(mode.id)}
-                onPointerDown={() => availability.enabled && prefetchMode(mode.id)}
-                onFocus={() => availability.enabled && prefetchMode(mode.id)}
-                disabled={isRouting || unavailable}
-                aria-disabled={playerDataLoading || unavailable}
-                title={unavailable ? availability.message : undefined}
-                aria-label={
-                  unavailable
-                    ? `${modeName}. ${availability.message}`
-                    : `${modeName}. ${modeDescription}. Entry ${costText}. Reward ${rewardText}${typeof mode.diamondReward === 'number' ? ' Diamonds' : ''}.`
-                }
               >
-                <span className="mode-image-card__body">
-                  <span className="mode-image-card__kicker">
-                    <span>{mode.code}</span>
-                    <span aria-hidden> / </span>
-                    <span>{printTitle(mode.category)}</span>
-                    <span aria-hidden> / </span>
-                    <span className={unavailable ? 'tc-ink--gold' : 'tc-ink--green'}>
-                      {printTitle(availability.label)}
-                    </span>
+                <div className="mode-card__head">
+                  <span className="mode-card__kicker">
+                    {mode.code} / {printTitle(mode.category)}
                   </span>
-                  <span className="mode-image-card__description">
-                    {unavailable ? availability.message : modeDescription}
+                  <span className={`mode-card__status ${unavailable ? 'tc-ink--muted' : 'tc-ink--green'}`}>
+                    {printTitle(availability.label)}
                   </span>
+                </div>
 
-                  <span className="mode-image-card__telemetry" aria-hidden>
-                    <span className="mode-image-card__row">
-                      <span className="mode-image-card__label">Entry</span>
-                      <span className="mode-image-card__value">{costText}</span>
-                    </span>
-                    <span className="mode-image-card__row">
-                      <span className="mode-image-card__label">Reward</span>
-                      <span className="mode-image-card__value">{rewardText}</span>
-                    </span>
-                  </span>
+                <h3 className="mode-card__title">{modeName}</h3>
+                <p className="mode-card__description">
+                  {unavailable ? availability.message : modeDescription}
+                </p>
 
-                  <span
-                    className={`mode-image-card__launch ${unavailable ? 'tc-ink--gold' : 'tc-ink--white'}`}
-                    aria-hidden
-                  >
-                    {unavailable ? 'Maintenance' : 'Launch Mode'}
-                  </span>
-                </span>
-              </TriviaFrameCard>
+                <dl className="mode-card__meta">
+                  <div className="mode-card__row">
+                    <dt>Entry</dt>
+                    <dd className={costText === 'Free' || costText === 'VIP Free' || costText === '1 Free Entry Ticket' ? 'tc-ink--green' : 'tc-ink--blue'}>
+                      {costText}
+                    </dd>
+                  </div>
+                  <div className="mode-card__row">
+                    <dt>Reward</dt>
+                    <dd>{rewardText}</dd>
+                  </div>
+                </dl>
+
+                <button
+                  type="button"
+                  className={`sd-button${unavailable ? '' : ' sd-primary'} mode-card__action`}
+                  data-mode-availability={availability.state}
+                  onClick={() => startMode(mode.id)}
+                  onPointerDown={() => availability.enabled && prefetchMode(mode.id)}
+                  onFocus={() => availability.enabled && prefetchMode(mode.id)}
+                  disabled={isRouting || unavailable}
+                  aria-disabled={playerDataLoading || unavailable}
+                  title={unavailable ? availability.message : undefined}
+                  aria-label={
+                    unavailable
+                      ? `${modeName}. ${availability.message}`
+                      : `Play ${modeName}. ${modeDescription}. Entry ${costText}. Reward ${rewardText}${typeof mode.diamondReward === 'number' ? ' Diamonds' : ''}.`
+                  }
+                >
+                  {unavailable ? 'Maintenance' : `Play ${modeName}`}
+                </button>
+              </article>
             );
           })}
         </div>
       </section>
 
-      {/* Quick Stakes Section - approved landscape art at native ratio,
-          nothing printed over it; the entry line prints beneath. */}
-      <div ref={quickStakesRef} className="quick-stakes-section">
+      {/* Quick Stakes Featured Panel */}
+      <section className="sd-panel quick-stakes-card" aria-labelledby="quick-stakes-title">
+        <div className="quick-stakes-card__copy">
+          <span className="tc-label">Featured Timed Mode</span>
+          <h2 id="quick-stakes-title" className="quick-stakes-card__title">
+            {TRIVIA_QUICK_STAKES_MODE.name}
+          </h2>
+          <p className="quick-stakes-card__desc">
+            {TRIVIA_QUICK_STAKES_MODE.description}. 20 Questions In 3 Minutes, Cash Out After 6 Correct.
+          </p>
+          <p className="quick-stakes-card__entry">
+            Entry: <strong className={quickStakesCostText === 'VIP Free' || quickStakesCostText === '1 Free Entry Ticket' ? 'tc-ink--green' : 'tc-ink--blue'}>{quickStakesCostText}</strong>
+          </p>
+        </div>
         <button
           type="button"
-          className="quick-stakes-banner"
+          className="sd-button sd-primary quick-stakes-card__action"
           onClick={() => startMode(TRIVIA_QUICK_STAKES_MODE.id)}
           onPointerDown={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
           onFocus={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
@@ -671,33 +636,21 @@ export default function TriviaLobby({
             playerDataLoading
               ? 'Checking Quick Stakes Access'
               : quickStakesAvailability.enabled
-              ? `${TRIVIA_QUICK_STAKES_MODE.name} - ${TRIVIA_QUICK_STAKES_MODE.description}. ${!profileDataReady ? 'Entry Verified On Game Page' : isVip ? 'Free For VIP' : `Entry ${getEntryCost(TRIVIA_QUICK_STAKES_MODE.id)} Diamonds`}.`
-              : quickStakesAvailability.message
+                ? `Play ${TRIVIA_QUICK_STAKES_MODE.name}. Entry ${quickStakesCostText}.`
+                : quickStakesAvailability.message
           }
         >
-          <img
-            src={quickStakesArtReady ? TRIVIA_QUICK_STAKES_MODE.image : TRANSPARENT_PIXEL}
-            alt=""
-            aria-hidden
-            className="quick-stakes-banner__img"
-            width={TRIVIA_QUICK_STAKES_MODE.imageWidth}
-            height={TRIVIA_QUICK_STAKES_MODE.imageHeight}
-            loading="lazy"
-            decoding="async"
-          />
+          {quickStakesAvailability.enabled ? 'Play Quick Stakes' : 'Maintenance'}
         </button>
-        {/* The approved art already prints the standard entry; a line is
-            printed beneath it only when that entry does not apply. */}
-        {!quickStakesAvailability.enabled ? (
-          <p className="quick-stakes-entry tc-ink--gold" aria-hidden>
-            {quickStakesAvailability.message}
-          </p>
-        ) : isVip ? (
-          <p className="quick-stakes-entry tc-ink--gold" aria-hidden>
-            VIP Entry Free
-          </p>
-        ) : null}
-      </div>
+      </section>
+
+      {/* Competitive Briefing (Nightly Tournament & 1v1 Head To Head) */}
+      <CompetitiveLobbyBriefing
+        key={`competitive-lobby:${accountKey || 'no-account'}`}
+        authState={authState}
+        accountKey={accountKey}
+        modeAvailability={modeAvailability}
+      />
 
       {routeError && (
         <p className="route-error tc-ink--red" role="alert">
@@ -705,685 +658,7 @@ export default function TriviaLobby({
         </p>
       )}
 
-      <style dangerouslySetInnerHTML={{ __html: `
-                .trivia-lobby,
-                .trivia-lobby * {
-                    box-sizing: border-box;
-                }
-
-                .trivia-lobby {
-                    width: 100%;
-                    max-width: 1000px;
-                    margin: 0 auto;
-                    padding: 0 16px 24px;
-                    overflow: visible;
-                    color: var(--tc-ink-silver);
-                    background: var(--tc-black);
-                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
-                    font-variant-numeric: tabular-nums lining-nums;
-                }
-
-                .daily-trivia-banner {
-                    position: relative;
-                    width: 100%;
-                    margin: 0;
-                }
-
-                .daily-trivia-banner__image {
-                    display: block;
-                    width: 100%;
-                    height: auto;
-                }
-
-                .daily-trivia-banner__button {
-                    appearance: none;
-                    position: absolute;
-                    z-index: 2;
-                    inset: 0;
-                    width: 100%;
-                    min-height: 44px;
-                    margin: 0;
-                    padding: 0;
-                    border: 0;
-                    background: transparent;
-                    cursor: pointer;
-                    touch-action: manipulation;
-                    -webkit-tap-highlight-color: transparent;
-                }
-
-                .daily-trivia-banner__button:disabled {
-                    cursor: default;
-                }
-
-                .daily-trivia-banner__button:focus-visible,
-                .quick-stakes-banner:focus-visible {
-                    outline: 3px solid var(--tc-ink-blue);
-                    outline-offset: -3px;
-                }
-
-                .daily-trivia-status,
-                .quick-stakes-entry {
-                    margin: 10px 0 0;
-                    font-size: 14px;
-                    font-weight: 800;
-                    letter-spacing: 0.1em;
-                    line-height: 1.35;
-                    text-align: center;
-                    text-transform: uppercase;
-                }
-
-                .player-data-notice {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 12px;
-                    margin-top: 10px;
-                    padding: 8px 2px;
-                    border-top: var(--tc-rule);
-                    border-bottom: var(--tc-rule);
-                    color: var(--tc-ink-gold);
-                    box-shadow: var(--tc-rule-lit);
-                }
-
-                .player-data-notice p {
-                    margin: 0;
-                    font-size: 13px;
-                    font-weight: 700;
-                    line-height: 1.4;
-                }
-
-                .player-data-notice__retry {
-                    flex: 0 0 auto;
-                    min-height: 44px;
-                    color: var(--tc-ink-blue);
-                    touch-action: manipulation;
-                }
-
-                .player-data-notice__retry:focus-visible {
-                    outline: 3px solid var(--tc-ink-blue);
-                    outline-offset: 2px;
-                }
-
-                .lobby-utility-bar {
-                    display: flex;
-                    flex-wrap: wrap;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 8px 14px;
-                    margin-top: 10px;
-                    padding: 4px 2px;
-                    border-top: var(--tc-rule);
-                    border-bottom: var(--tc-rule);
-                    box-shadow: var(--tc-rule-lit);
-                }
-
-                .lobby-utility-link {
-                    display: inline-flex;
-                    align-items: center;
-                    min-height: 44px;
-                    padding: 0 4px;
-                    font-size: 13px;
-                    font-weight: 800;
-                    letter-spacing: 0.1em;
-                    text-decoration: none;
-                    text-transform: uppercase;
-                    touch-action: manipulation;
-                }
-
-                .lobby-elo-pill {
-                    display: inline-flex;
-                    align-items: center;
-                    min-height: 44px;
-                    padding: 0 10px;
-                    border: 1px solid #6d747c;
-                    background: #050607;
-                    font-size: 12px;
-                    font-weight: 800;
-                    letter-spacing: 0.08em;
-                    text-decoration: none;
-                    text-transform: uppercase;
-                    white-space: nowrap;
-                    touch-action: manipulation;
-                }
-
-                .lobby-utility-link:focus-visible,
-                .lobby-elo-pill:focus-visible {
-                    outline: 3px solid var(--tc-ink-blue);
-                    outline-offset: 2px;
-                }
-
-
-                .modes-section {
-                    position: relative;
-                    margin: 18px 0 0;
-                }
-
-                .modes-intro-art {
-                    margin: 0 0 6px;
-                }
-
-                .modes-toolbar {
-                    display: flex;
-                    align-items: end;
-                    justify-content: space-between;
-                    gap: 16px;
-                    padding: 10px 0 8px;
-                    border-bottom: var(--tc-rule);
-                    box-shadow: var(--tc-rule-lit);
-                }
-
-                .modes-toolbar__heading {
-                    min-width: 0;
-                }
-
-                .modes-toolbar__eyebrow {
-                    display: block;
-                    font-size: 13px;
-                }
-
-                .modes-toolbar__title {
-                    margin: 6px 0 0;
-                    color: var(--tc-ink-silver);
-                    font-size: clamp(26px, 3.6vw, 36px);
-                    font-weight: 800;
-                    line-height: 1;
-                    letter-spacing: 0.04em;
-                    text-transform: uppercase;
-                    text-shadow: 0 -1px 0 rgb(255 255 255 / 55%), 0 1px 0 var(--tc-bevel), 0 2px 0 var(--tc-chassis-black), 0 3px 4px rgb(0 0 0 / 90%);
-                }
-
-                .modes-toolbar__count {
-                    display: flex;
-                    flex-wrap: wrap;
-                    justify-content: flex-end;
-                    gap: 2px 14px;
-                    flex: 0 0 auto;
-                    padding-bottom: 2px;
-                    font-size: 13px;
-                    font-weight: 800;
-                    letter-spacing: 0.1em;
-                    text-transform: uppercase;
-                    white-space: nowrap;
-                }
-
-                .mode-filters {
-                    position: relative;
-                    display: flex;
-                    align-items: stretch;
-                    justify-content: center;
-                    gap: 0;
-                    padding: 4px 0;
-                    overflow-x: auto;
-                    overscroll-behavior-x: contain;
-                    scroll-padding-inline: 4px;
-                    scroll-snap-type: x proximity;
-                    -webkit-overflow-scrolling: touch;
-                    scrollbar-width: none;
-                    background: var(--tc-black);
-                }
-
-                .mode-filters::-webkit-scrollbar {
-                    display: none;
-                }
-
-                .mode-filter.tc-word {
-                    flex: 0 0 auto;
-                    min-width: max-content;
-                    min-height: 44px;
-                    padding: 0 14px;
-                    color: var(--tc-ink-muted);
-                    font-size: 13px;
-                    text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
-                    scroll-snap-align: start;
-                    touch-action: manipulation;
-                }
-
-                .mode-filter.tc-word[aria-pressed='true'] {
-                    color: var(--tc-ink-blue);
-                    text-underline-offset: 7px;
-                    text-shadow: 0 0 6px rgb(69 173 255 / 70%), 0 1px 2px rgb(0 0 0 / 85%);
-                }
-
-                .mode-filter__count {
-                    margin-left: 7px;
-                    color: currentColor;
-                }
-
-                .modes-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
-                    align-items: start;
-                    gap: 22px 14px;
-                    padding: 14px 0 0;
-                }
-
-                .mode-image-card {
-                    flex-direction: column;
-                    min-width: 0;
-                }
-
-                .mode-image-card__body {
-                    display: flex;
-                    flex-direction: column;
-                    min-width: 0;
-                }
-
-                .mode-image-card__kicker {
-                    display: block;
-                    color: var(--tc-ink-blue);
-                    font-size: 12px;
-                    font-weight: 800;
-                    line-height: 1.3;
-                    letter-spacing: 0.12em;
-                    text-align: center;
-                    text-transform: uppercase;
-                }
-
-                .mode-image-card__description {
-                    display: block;
-                    min-height: 42px;
-                    margin-top: 8px;
-                    color: var(--tc-ink-silver);
-                    font-family: Inter, system-ui, sans-serif;
-                    font-size: 14px;
-                    line-height: 1.45;
-                    text-align: center;
-                }
-
-                .mode-image-card__telemetry {
-                    display: grid;
-                    margin-top: 10px;
-                }
-
-                .mode-image-card__row {
-                    display: flex;
-                    align-items: baseline;
-                    justify-content: space-between;
-                    gap: 12px;
-                    min-width: 0;
-                    padding: 7px 0;
-                    border-top: var(--tc-rule);
-                    box-shadow: var(--tc-rule-lit);
-                }
-
-                .mode-image-card__label {
-                    flex: 0 0 auto;
-                    color: var(--tc-ink-blue);
-                    font-size: 12px;
-                    font-weight: 700;
-                    letter-spacing: 0.14em;
-                    text-transform: uppercase;
-                }
-
-                .mode-image-card__value {
-                    min-width: 0;
-                    color: var(--tc-ink-silver);
-                    font-size: 14px;
-                    font-weight: 800;
-                    letter-spacing: 0.04em;
-                    text-align: right;
-                    overflow-wrap: anywhere;
-                }
-
-                .mode-image-card__launch {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 44px;
-                    border-top: var(--tc-rule);
-                    box-shadow: var(--tc-rule-lit);
-                    font-size: 14px;
-                    font-weight: 800;
-                    letter-spacing: 0.14em;
-                    text-transform: uppercase;
-                }
-
-                .mode-image-card--maintenance .mode-image-card__description {
-                    color: var(--tc-ink-muted);
-                }
-
-                .quick-stakes-section {
-                    margin-top: 22px;
-                }
-
-                .quick-stakes-banner {
-                    appearance: none;
-                    position: relative;
-                    display: block;
-                    width: 100%;
-                    min-height: 44px;
-                    aspect-ratio: 1600 / 763;
-                    margin: 0;
-                    padding: 0;
-                    overflow: hidden;
-                    border: 0;
-                    background: transparent;
-                    cursor: pointer;
-                    touch-action: manipulation;
-                    -webkit-tap-highlight-color: transparent;
-                }
-
-                .quick-stakes-banner:disabled {
-                    cursor: not-allowed;
-                }
-
-                .quick-stakes-banner__img {
-                    display: block;
-                    width: 100%;
-                    height: 100%;
-                    object-fit: contain;
-                    pointer-events: none;
-                }
-
-                .gate-overlay {
-                    position: fixed;
-                    z-index: 12000;
-                    inset: 0;
-                    display: grid;
-                    place-items: center;
-                    padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
-                    overflow-y: auto;
-                    background: rgb(0 0 0 / 94%);
-                }
-
-                /* The console's glass is transparent art; black behind it keeps
-                   the page from showing through the well (one tone inside and
-                   outside the frame). */
-                .diamond-modal {
-                    width: min(100%, 620px);
-                    margin: 0 auto;
-                    outline: none;
-                    background: var(--tc-black);
-                }
-
-                .dm-rows {
-                    width: 100%;
-                }
-
-                .dm-shortfall {
-                    margin: 0;
-                    font-size: clamp(14px, 3.4cqw, 18px);
-                    font-weight: 800;
-                    letter-spacing: 0.06em;
-                    text-align: center;
-                    text-transform: uppercase;
-                }
-
-                .dm-actions {
-                    display: flex;
-                    justify-content: center;
-                }
-
-                .dm-hitbox {
-                    min-width: 44px;
-                    min-height: 44px;
-                    touch-action: manipulation;
-                    -webkit-tap-highlight-color: transparent;
-                }
-
-                .dm-hitbox:focus-visible {
-                    outline: 3px solid var(--tc-ink-blue);
-                    outline-offset: 2px;
-                }
-
-                .dm-opening,
-                .route-opening {
-                    margin: 0;
-                    text-align: center;
-                    animation: routePulse 800ms ease-in-out infinite alternate;
-                }
-
-                .deducting-overlay {
-                    position: fixed;
-                    z-index: 9998;
-                    inset: 0;
-                    display: grid;
-                    place-items: center;
-                    background: rgb(0 0 0 / 72%);
-                }
-
-                .route-opening {
-                    font-size: 16px;
-                }
-
-                @keyframes routePulse {
-                    from { opacity: 0.45; }
-                    to { opacity: 1; }
-                }
-
-                .route-error {
-                    margin: 14px 0 0;
-                    font-size: 15px;
-                    font-weight: 700;
-                    line-height: 1.4;
-                    text-align: center;
-                }
-
-                @media (max-width: 899px) and (min-width: 701px) {
-                    .modes-grid {
-                        grid-template-columns: repeat(2, minmax(0, 1fr));
-                    }
-                }
-
-                @media (max-width: 700px) {
-                    .trivia-lobby {
-                        padding: 0 8px 18px;
-                    }
-
-                    .modes-section {
-                        margin-top: 14px;
-                    }
-
-                    .player-data-notice {
-                        align-items: flex-start;
-                        flex-direction: column;
-                    }
-
-                    .modes-toolbar {
-                        align-items: end;
-                        padding: 8px 2px 8px;
-                    }
-
-                    .modes-toolbar__title {
-                        font-size: 24px;
-                    }
-
-                    .modes-toolbar__count {
-                        flex-direction: column;
-                        align-items: flex-end;
-                        text-align: right;
-                    }
-
-                    .mode-filters {
-                        position: sticky;
-                        z-index: 8;
-                        top: calc(59px + env(safe-area-inset-top, 0px));
-                        justify-content: flex-start;
-                        margin-inline: -8px;
-                        padding-inline: 8px;
-                        background: var(--tc-black);
-                    }
-
-                    .mode-filter.tc-word {
-                        padding-inline: 12px;
-                    }
-
-                    .modes-grid {
-                        grid-template-columns: 1fr;
-                        gap: 22px;
-                        padding-top: 12px;
-                    }
-
-                    .mode-image-card {
-                        display: flex;
-                        flex-direction: column;
-                    }
-
-                    .mode-image-card__description {
-                        min-height: 0;
-                    }
-
-                    .quick-stakes-section {
-                        margin-top: 18px;
-                    }
-                }
-
-                /* In forced colours the two approved banners keep their art;
-                   their full-card buttons get a system-colour edge. */
-                @media (forced-colors: active) {
-                    .daily-trivia-banner__button,
-                    .quick-stakes-banner {
-                        outline: 1px solid ButtonText;
-                        outline-offset: -1px;
-                    }
-                }
-
-                /* At 400% zoom and on short landscape phones a rail pinned
-                   under the fixed header would cover the cards it filters. */
-                @media (max-height: 479px) {
-                    .mode-filters {
-                        position: static;
-                    }
-                }
-
-                @media (max-width: 390px) {
-                    .trivia-lobby {
-                        padding-inline: 6px;
-                    }
-
-                    .modes-toolbar__count {
-                        font-size: 12px;
-                    }
-                }
-
-                @media (prefers-contrast: more) {
-                    .modes-toolbar__count,
-                    .mode-image-card__kicker,
-                    .mode-image-card__description,
-                    .mode-image-card__label,
-                    .mode-image-card__value,
-                    .mode-filter.tc-word {
-                        color: var(--tc-ink-white);
-                    }
-                }
-
-                @media (forced-colors: active) {
-                    .mode-filter.tc-word[aria-pressed='true'],
-                    .dm-hitbox:focus-visible,
-                    .player-data-notice__retry:focus-visible {
-                        outline: 2px solid Highlight;
-                    }
-
-                    .mode-image-card__row,
-                    .mode-image-card__launch {
-                        border-top-color: CanvasText;
-                    }
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .dm-opening,
-                    .route-opening {
-                        animation: none;
-                    }
-
-                    .mode-filters {
-                        scroll-behavior: auto;
-                    }
-                }
-            ` }} />
-
-      {/* Diamond entry disclosure (first time only). It moves no diamonds:
-          it states the price the destination page will verify and charge,
-          on the painted console master, and Accept routes there. */}
-      {showChargePopup && (
-        <div className="gate-overlay" onClick={closeChargePopup}>
-          <div
-            ref={modalRef}
-            className="diamond-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="trivia-entry-title"
-            aria-describedby="trivia-entry-description"
-            tabIndex={-1}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <TriviaConsole
-              eyebrow={pendingModeDefinition ? pendingModeDefinition.name : 'Trivia Entry'}
-              title="Diamond Entry"
-              titleId="trivia-entry-title"
-              pill="Entry Fee"
-              pillInk="gold"
-              secondaryAction={{
-                label: 'Close',
-                className: 'dm-hitbox dm-close',
-                'data-entry-action': 'close',
-                'aria-label': 'Close',
-                onClick: () => {
-                  navigator.vibrate?.(50);
-                  closeChargePopup();
-                },
-              }}
-              primaryAction={{
-                // Short enough to fit the painted plate face at phone width;
-                // the accessible name carries the full statement.
-                label: 'Accept',
-                className: 'dm-hitbox dm-accept',
-                disabled: isRouting,
-                'aria-label': `Accept The ${pendingCost} Diamond Entry And Play`,
-                onClick: () => {
-                  navigator.vibrate?.(50);
-                  handleChargeAccept();
-                },
-              }}
-            >
-              <p id="trivia-entry-description" className="trivia-console-copy">
-                This Game Costs {pendingCost} Diamonds. The Game Page Verifies And Charges The
-                Entry When It Starts, So Nothing Is Taken Here.
-              </p>
-              <ul className="tc-rows dm-rows">
-                <li className="tc-row">
-                  <span className="tc-row__label">Entry</span>
-                  <span className="tc-row__value tc-ink--gold">{pendingCost} Diamonds</span>
-                </li>
-                <li className="tc-row">
-                  <span className="tc-row__label">Your Balance</span>
-                  <span className={`tc-row__value ${pendingShortfall ? 'tc-ink--red' : 'tc-ink--silver'}`}>
-                    {profileDataReady
-                      ? `${Number(userDiamonds || 0).toLocaleString('en-US')} Diamonds`
-                      : 'Verified On Game Page'}
-                  </span>
-                </li>
-              </ul>
-              {pendingShortfall && (
-                <p className="dm-shortfall tc-ink--red">
-                  Not Enough Diamonds For This Entry
-                </p>
-              )}
-              <div className="dm-actions">
-                <button
-                  type="button"
-                  className="tc-word dm-hitbox dm-vip"
-                  onClick={() => {
-                    navigator.vibrate?.(50);
-                    void router.push('/hub/vip-membership');
-                  }}
-                  aria-label="Upgrade To VIP"
-                >
-                  Upgrade To VIP
-                </button>
-              </div>
-              {isRouting && (
-                <p className="dm-opening tc-label" role="status" aria-live="polite">
-                  Opening Game
-                </p>
-              )}
-            </TriviaConsole>
-          </div>
-        </div>
-      )}
-
-      {/* Routing status while the destination page loads. */}
-      {isRouting && !showChargePopup && (
+      {isRouting && (
         <div
           className="deducting-overlay"
           role="status"
@@ -1393,6 +668,445 @@ export default function TriviaLobby({
           <span className="route-opening tc-label">Opening Game</span>
         </div>
       )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .trivia-lobby,
+        .trivia-lobby * {
+          box-sizing: border-box;
+        }
+
+        .trivia-lobby {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          width: 100%;
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 12px 16px 28px;
+          color: var(--sd-text, #f2f7ff);
+          background: var(--sd-ink, #040d18);
+          font-variant-numeric: tabular-nums lining-nums;
+        }
+
+        .lobby-masthead {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        .lobby-masthead__top {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px 18px;
+        }
+
+        .lobby-masthead__copy {
+          min-width: 0;
+          flex: 1 1 260px;
+        }
+
+        .lobby-masthead__eyebrow {
+          display: block;
+          color: var(--sd-ice, #86daff);
+          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+        }
+
+        .lobby-masthead__title {
+          margin: 2px 0 4px;
+        }
+
+        .lobby-masthead__subtitle {
+          margin: 0;
+          color: var(--sd-silver, #bdd0e2);
+          font-size: 14px;
+          line-height: 1.4;
+        }
+
+        .lobby-masthead__cta {
+          flex: 0 0 auto;
+        }
+
+        .lobby-daily-cta {
+          min-height: 48px;
+          padding: 10px 20px;
+          font-size: 16px;
+        }
+
+        .lobby-metrics {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin: 0;
+        }
+
+        .lobby-metric {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .lobby-metric dt {
+          color: var(--sd-silver, #bdd0e2);
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .lobby-metric dd {
+          margin: 0;
+          color: var(--sd-text, #f2f7ff);
+          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        .lobby-continue-card {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px 18px;
+        }
+
+        .lobby-continue-card__copy {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+          flex: 1 1 220px;
+        }
+
+        .lobby-continue-card__title {
+          margin: 0;
+          color: var(--sd-text, #f2f7ff);
+          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
+          font-size: 20px;
+          font-weight: 700;
+        }
+
+        .lobby-continue-card__detail {
+          margin: 0;
+          color: var(--sd-silver, #bdd0e2);
+          font-size: 14px;
+        }
+
+        .lobby-continue-card__action {
+          min-height: 44px;
+          padding: 8px 20px;
+          font-size: 15px;
+        }
+
+        .player-data-notice {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          color: var(--sd-ice, #86daff);
+        }
+
+        .player-data-notice p {
+          margin: 0;
+          font-size: 13px;
+          line-height: 1.4;
+        }
+
+        .player-data-notice__retry {
+          flex: 0 0 auto;
+          min-height: 44px;
+        }
+
+        .lobby-utility-bar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px 12px;
+        }
+
+        .lobby-utility-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .lobby-utility-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 44px;
+          padding: 6px 14px;
+          font-size: 14px;
+        }
+
+        .lobby-elo-pill {
+          display: inline-flex;
+          align-items: center;
+          min-height: 44px;
+          padding: 6px 12px;
+          font-size: 13px;
+          font-weight: 700;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+
+        .modes-section {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .modes-toolbar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 8px 16px;
+        }
+
+        .modes-toolbar__heading {
+          min-width: 0;
+        }
+
+        .modes-toolbar__title {
+          margin: 2px 0 0;
+        }
+
+        .modes-toolbar__count {
+          display: flex;
+          gap: 12px;
+          font-size: 13px;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+
+        .mode-filters {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .mode-filter {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-height: 44px;
+          padding: 6px 14px;
+          font-size: 14px;
+        }
+
+        .mode-filter__count {
+          opacity: 0.85;
+          font-size: 12px;
+        }
+
+        .modes-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .mode-card {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 14px;
+          min-width: 0;
+        }
+
+        .mode-card--maintenance {
+          opacity: 0.78;
+        }
+
+        .mode-card__head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .mode-card__kicker {
+          color: var(--sd-ice, #86daff);
+        }
+
+        .mode-card__title {
+          margin: 0;
+          color: var(--sd-text, #f2f7ff);
+          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
+          font-size: 20px;
+          font-weight: 700;
+          line-height: 1.15;
+        }
+
+        .mode-card__description {
+          margin: 0;
+          color: var(--sd-silver, #bdd0e2);
+          font-size: 13px;
+          line-height: 1.4;
+          flex: 1 1 auto;
+        }
+
+        .mode-card__meta {
+          display: grid;
+          gap: 4px;
+          margin: 4px 0 6px;
+          padding-top: 8px;
+          border-top: 1px solid var(--sd-line, #445e77);
+        }
+
+        .mode-card__row {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 8px;
+          font-size: 13px;
+        }
+
+        .mode-card__row dt {
+          color: var(--sd-silver, #bdd0e2);
+          font-weight: 600;
+        }
+
+        .mode-card__row dd {
+          margin: 0;
+          font-weight: 700;
+          text-align: right;
+        }
+
+        .mode-card__action {
+          width: 100%;
+          min-height: 44px;
+          font-size: 15px;
+          touch-action: manipulation;
+        }
+
+        .mode-card__action:focus-visible,
+        .lobby-daily-cta:focus-visible,
+        .lobby-continue-card__action:focus-visible,
+        .quick-stakes-card__action:focus-visible {
+          outline: 2px solid #9ee3ff;
+          outline-offset: 2px;
+        }
+
+        .quick-stakes-card {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px 18px;
+        }
+
+        .quick-stakes-card__copy {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+          flex: 1 1 260px;
+        }
+
+        .quick-stakes-card__title {
+          margin: 0;
+          color: var(--sd-text, #f2f7ff);
+          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
+          font-size: 22px;
+          font-weight: 700;
+        }
+
+        .quick-stakes-card__desc,
+        .quick-stakes-card__entry {
+          margin: 0;
+          color: var(--sd-silver, #bdd0e2);
+          font-size: 14px;
+          line-height: 1.4;
+        }
+
+        .quick-stakes-card__action {
+          min-height: 44px;
+          padding: 8px 20px;
+          font-size: 15px;
+        }
+
+        .deducting-overlay {
+          position: fixed;
+          z-index: 9998;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          background: rgb(4 13 24 / 78%);
+        }
+
+        .route-opening {
+          font-size: 16px;
+        }
+
+        .route-error {
+          margin: 4px 0 0;
+          font-size: 14px;
+          font-weight: 700;
+          text-align: center;
+        }
+
+        @media (max-width: 899px) and (min-width: 641px) {
+          .modes-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .lobby-metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 640px) {
+          .trivia-lobby {
+            padding: 8px 10px 24px;
+          }
+
+          .lobby-metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .lobby-masthead__cta,
+          .lobby-daily-cta,
+          .lobby-continue-card__action,
+          .quick-stakes-card__action {
+            width: 100%;
+          }
+
+          .modes-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (prefers-contrast: more) {
+          .mode-card__description,
+          .mode-card__row dt,
+          .lobby-masthead__subtitle {
+            color: var(--sd-text, #f2f7ff);
+          }
+        }
+
+        @media (forced-colors: active) {
+          .mode-card,
+          .lobby-masthead,
+          .lobby-continue-card,
+          .quick-stakes-card {
+            border-color: CanvasText;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mode-filters {
+            scroll-behavior: auto;
+          }
+        }
+      ` }} />
     </div>
   );
 }

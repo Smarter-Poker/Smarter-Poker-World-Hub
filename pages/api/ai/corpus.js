@@ -241,7 +241,7 @@ export const TOPIC_FAST_CONTEXT = {
     `- **Nassau, Bahamas**: ${SITE}/poker-rooms/international/nassau (Atlantis / Baha Mar | USD | Home Of WSOP Paradise).`,
     '',
     '## 5. Rake, Comps, Tipping, Seasonal Calendar & Security Guides',
-    `- **US State Legality & Tax Withholding (15 States)**: ${SITE}/poker-rooms/states ([.md](${SITE}/poker-rooms/states.md))`,
+    `- **US State Legality & Tax Withholding (All 50 States & DC)**: ${SITE}/poker-rooms/states ([.md](${SITE}/poker-rooms/states.md))`,
     `- **Casino Comps & Dealer Tipping Guide**: ${SITE}/poker-rooms/comps-and-tipping-guide ([.md](${SITE}/poker-rooms/comps-and-tipping-guide.md))`,
     `- **Cage Security, Chip Custody & Floor Dispute Resolution**: ${SITE}/poker-rooms/security-and-disputes-guide ([.md](${SITE}/poker-rooms/security-and-disputes-guide.md))`,
     `- **12-Month Live Poker Series & Cash Action Seasonal Calendar**: ${SITE}/poker-rooms/seasonal-calendar ([.md](${SITE}/poker-rooms/seasonal-calendar.md))`,

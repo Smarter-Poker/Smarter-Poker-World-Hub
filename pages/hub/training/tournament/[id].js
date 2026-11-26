@@ -262,7 +262,7 @@ export default function TrainingTournamentDetail() {
             {userId && isLive && !userEntry && (
               <p style={{ fontSize: 13, opacity: 0.75 }}>
                 You Are Not Registered For This Tournament. Register From the{' '}
-                <Link href="/hub/training/tournaments" style={{ color: '#ffd700' }}>
+                <Link href="/hub/training/tournaments" style={{ color: '#86daff' }}>
                   Tournaments Lobby
                 </Link>
                 .

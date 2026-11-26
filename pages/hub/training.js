@@ -57,11 +57,27 @@ import toast from '../../src/stores/toastStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
+import useTrainingFavorites from '../../src/hooks/useTrainingFavorites';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import {
   resolvePresetForGame,
   loadResumableTrainingSession,
+  VARIANT_METADATA,
 } from '../../src/lib/training/trainingPresets.mjs';
+import {
+  DEFAULT_LOBBY_FILTERS,
+  LOBBY_GROUPS,
+  LOBBY_CATEGORY_ORDER,
+  buildLobbyGameMeta,
+  filterAndSortTrainingGames,
+  buildLobbySections,
+} from '../../src/lib/training/trainingLobbyFilter.mjs';
+import TrainingLobbyHeader from '../../src/components/training/lobby/TrainingLobbyHeader';
+import TrainingLobbyControls from '../../src/components/training/lobby/TrainingLobbyControls';
+import TrainingSortBar from '../../src/components/training/lobby/TrainingSortBar';
+import TrainingLobbyRow from '../../src/components/training/lobby/TrainingLobbyRow';
+import TrainingFiltersSheet from '../../src/components/training/lobby/TrainingFiltersSheet';
+import TrainingGamePreviewSheet from '../../src/components/training/lobby/TrainingGamePreviewSheet';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
 import { analyzeVerifiedTrainingWeaknesses } from '../../src/lib/training/weaknessAnalysis.mjs';
@@ -143,23 +159,72 @@ export default function TrainingPage() {
   const { getGameProgress } = useTrainingProgress();
 
   const [authUser, setAuthUser] = useState(null);
+  const { favoriteIds, favoriteCount, toggleFavorite } = useTrainingFavorites(authUser);
 
-  const [activeCat, setActiveCat] = useState('ALL');
-  const [activeVariantFilter, setActiveVariantFilter] = useState('all');
-  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState(DEFAULT_LOBBY_FILTERS);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState(null);
   const libraryHeadingRef = useRef(null);
+  const controlsRef = useRef(null);
+  const searchInputRef = useRef(null);
   const launchQueryHandledRef = useRef(null);
 
+  const activeCat = filters.category;
+  const activeVariantFilter = filters.variant === 'ALL' ? 'all' : filters.variant;
+  const query = filters.query;
+  const setActiveCat = useCallback((cat) => {
+    setFilters((prev) => ({
+      ...prev,
+      category: cat,
+      group: cat === 'ALL' ? prev.group : 'ALL',
+      favoritesOnly: false,
+    }));
+  }, []);
+  const setActiveVariantFilter = useCallback((variantId) => {
+    setFilters((prev) => ({
+      ...prev,
+      variant: !variantId || variantId === 'all' ? 'ALL' : variantId,
+    }));
+  }, []);
+  const setQuery = useCallback((nextQuery) => {
+    setFilters((prev) => ({ ...prev, query: nextQuery }));
+  }, []);
+  const updateFilters = useCallback((patch) => {
+    setFilters((prev) => ({ ...prev, ...patch }));
+  }, []);
+
   useEffect(() => {
-    const id = setTimeout(() => setDebouncedQuery(query), 120);
+    const id = setTimeout(() => setDebouncedQuery(filters.query), 120);
     return () => clearTimeout(id);
-  }, [query]);
+  }, [filters.query]);
 
   useEffect(() => {
     const user = getAuthUser();
     setAuthUser(user);
   }, []);
+
+  // Precompute deterministic Arena-row metadata for all 107 canonical games once
+  const metaMap = useMemo(() => {
+    const map = new Map();
+    for (const game of TRAINING_LIBRARY) {
+      map.set(game.id, buildLobbyGameMeta(game));
+    }
+    return map;
+  }, []);
+
+  const lobbyCounts = useMemo(() => {
+    const c = { DRILLS: 0, LABS: 0 };
+    for (const cat of LOBBY_CATEGORY_ORDER) c[cat] = 0;
+    for (const game of TRAINING_LIBRARY) {
+      const meta = metaMap.get(game.id);
+      if (!meta) continue;
+      if (c[meta.category] !== undefined) c[meta.category] += 1;
+      if (LOBBY_GROUPS.DRILLS.categories.includes(meta.category)) c.DRILLS += 1;
+      if (LOBBY_GROUPS.LABS.categories.includes(meta.category)) c.LABS += 1;
+    }
+    return c;
+  }, [metaMap]);
 
   // Real data from RPC + Jarvis API · no hardcoded fallbacks
   const {
@@ -187,37 +252,55 @@ export default function TrainingPage() {
   // Use the real recommendation when available; null otherwise (UI handles empty state)
   const jarvisPick = recommendation;
 
-  const filtered = useMemo(() => {
-    const ql = debouncedQuery.trim().toLowerCase();
-    return TRAINING_LIBRARY.filter(g => {
-      if (activeCat !== 'ALL' && g.category !== activeCat) return false;
-      const isOmahaGame = ['cash-005', 'cash-015', 'mtt-018'].includes(g.id);
-      if (activeVariantFilter !== 'all') {
-        if (activeVariantFilter === 'nlh' && isOmahaGame) return false;
-        if (['plo4', 'plo5', 'plo6', 'plo8'].includes(activeVariantFilter) && !isOmahaGame && g.category !== 'CASH') return false;
-      }
-      if (!ql) return true;
-      const omahaQueryMatch = isOmahaGame && (ql.includes('omaha') || ql.includes('plo') || ql.includes('5-card') || ql.includes('five-card') || ql.includes('6-card') || ql.includes('hi-lo'));
-      return (g.name || '').toLowerCase().includes(ql)
-          || (g.focus || '').toLowerCase().includes(ql)
-          || (CATEGORY_META[g.category]?.label || '').toLowerCase().includes(ql)
-          || omahaQueryMatch;
-    });
-  }, [activeCat, activeVariantFilter, debouncedQuery]);
+  const effectiveFilters = useMemo(
+    () => ({ ...filters, query: debouncedQuery }),
+    [filters, debouncedQuery],
+  );
 
-  // PROGRESSIVE GAME GRID (2026-10-12). The full library is 107 cards of ~49
-  // elements each - 5,250 of the page's 5,600 elements - and every one of them
-  // is matched against the site's ~6,300 style rules on each style pass. In
-  // Safari's engine that kept the hub unresponsive for ~7s after load. The
-  // first screenfuls render immediately (server and first client render agree
-  // on the same count, so hydration is unchanged) and the rest mount in
-  // batches as the reader scrolls toward them. The cards are buttons, not
-  // links, so crawlers lose nothing; the HubPageSummary keeps the hub's
-  // crawlable text.
+  const progressById = useMemo(() => {
+    const map = {};
+    for (const g of TRAINING_LIBRARY) {
+      map[g.id] = getGameProgress?.(g.id)?.completionPercent ?? 0;
+    }
+    return map;
+  }, [getGameProgress]);
+
+  const filtered = useMemo(() => (
+    filterAndSortTrainingGames(TRAINING_LIBRARY, effectiveFilters, {
+      metaMap,
+      favoriteIds,
+      recommendedGameId: jarvisPick?.id || null,
+      leakGameId: biggestLeak?.recommendedGame?.id || null,
+      getProgress: (gameId) => progressById[gameId] ?? 0,
+    })
+  ), [effectiveFilters, metaMap, favoriteIds, jarvisPick?.id, biggestLeak?.recommendedGame?.id, progressById]);
+
+  // PROGRESSIVE GAME GRID (2026-10-12). Mounts the initial batch immediately
+  // (server and first client render agree on the same count) and reveals the
+  // rest as the player scrolls, paired with below-the-fold content-visibility.
   const [visibleCardCount, setVisibleCardCount] = useState(INITIAL_GAME_CARDS);
-  useEffect(() => { setVisibleCardCount(INITIAL_GAME_CARDS); }, [activeCat, debouncedQuery]);
-  useEffect(() => { setVisibleCardCount(INITIAL_GAME_CARDS); }, [activeVariantFilter]);
+  useEffect(() => {
+    setVisibleCardCount(INITIAL_GAME_CARDS);
+  }, [
+    activeCat,
+    activeVariantFilter,
+    debouncedQuery,
+    filters.group,
+    filters.favoritesOnly,
+    filters.quickFilter,
+    filters.difficultyTier,
+    filters.styleTag,
+    filters.statusFilter,
+    filters.accessFilter,
+    filters.variant,
+    filters.sortKey,
+    filters.sortDir,
+  ]);
   const visibleGames = filtered.slice(0, visibleCardCount);
+  const visibleSections = useMemo(
+    () => buildLobbySections(visibleGames, effectiveFilters),
+    [visibleGames, effectiveFilters],
+  );
   const moreGamesPending = visibleCardCount < filtered.length;
   const gridSentinelRef = useRef(null);
   useEffect(() => {
@@ -412,9 +495,7 @@ export default function TrainingPage() {
   }, [requireOnline, retryStats, retryProgress]);
 
   const browseTrainingLibrary = useCallback(() => {
-    setActiveCat('ALL');
-    setActiveVariantFilter('all');
-    setQuery('');
+    setFilters(DEFAULT_LOBBY_FILTERS);
     setDebouncedQuery('');
     if (typeof window === 'undefined') return;
     window.requestAnimationFrame(() => {
@@ -429,11 +510,35 @@ export default function TrainingPage() {
   }, []);
 
   const resetBrowseFilters = useCallback(() => {
-    setActiveCat('ALL');
-    setActiveVariantFilter('all');
-    setQuery('');
+    setFilters(DEFAULT_LOBBY_FILTERS);
     setDebouncedQuery('');
   }, []);
+
+  const jumpToControls = useCallback((focusSearch = false) => {
+    if (typeof window === 'undefined') return;
+    const target = controlsRef.current || libraryHeadingRef.current;
+    if (target) {
+      target.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    }
+    if (focusSearch) {
+      window.requestAnimationFrame(() => searchInputRef.current?.focus({ preventScroll: true }));
+    }
+  }, []);
+
+  const handleRowStart = useCallback((game) => {
+    if (filters.variant && filters.variant !== 'ALL' && game?.category !== 'PSYCHOLOGY') {
+      const variantMeta = VARIANT_METADATA[filters.variant] || VARIANT_METADATA.nlh;
+      playGame(game, {
+        variant: filters.variant,
+        bettingStructure: variantMeta.defaultStructure,
+      });
+      return;
+    }
+    playGame(game);
+  }, [filters.variant, playGame]);
 
   useEffect(() => {
     if (scrollLockCount() === 0) clearBodyScrollLockIfUnheld();
@@ -453,84 +558,47 @@ export default function TrainingPage() {
         <HubPageShell className="training" maxWidth={1180} header={<UniversalHeader />}>
           <a href="#main" className="sp-skip">Skip To Main Content</a>
 
-          {/* Pull down at the top to re-read the dashboard. Off while the
-              session setup sheet is open so a drag inside it cannot fire a
-              reload underneath. */}
-          <PullToRefresh onRefresh={refreshDashboard}>
-          <main id="main" className="sp-main">
+          {/* Pull down at the top to re-read the dashboard. Off while a filter
+              or preview sheet is open so a drag inside it cannot fire a reload. */}
+          <PullToRefresh onRefresh={refreshDashboard} disabled={filtersSheetOpen || Boolean(previewItem)}>
+          <main id="main" className="sp-main sp-arena-lobby-shell">
 
-            <section aria-labelledby="hero-h" className="sp-hero sd-masthead" data-tutorial="hero">
-              <div className="sp-hero-copy">
-                <h1 id="hero-h" className="sp-hero-title">Training Games</h1>
-                <p className="sp-hero-sub">Practice Poker Decisions And Get Feedback.</p>
+            <TrainingLobbyHeader
+              heroGame={heroGame}
+              continueTarget={continueTarget}
+              stats={stats}
+              statsLoading={statsBusy}
+              statsError={statsError}
+              onRetryStats={retryStats}
+              signedIn={Boolean(authUser?.id)}
+              onPlayGame={playGame}
+              fiveMinuteLeakFix={fiveMinuteLeakFix}
+              totalGames={TRAINING_LIBRARY.length}
+            />
 
-                <div className="sp-cta-row">
-                  <button
-                    className="sp-cta sp-cta-primary sd-button sd-primary"
-                    data-start-training-cta="true"
-                    onClick={() => playGame(heroGame)}
-                    disabled={!heroGame}
-                  >
-                    <Play size={18} aria-hidden /> Play {heroGame?.name || 'Now'}
-                  </button>
-                  {continueTarget && (
-                    <button
-                      type="button"
-                      className="sp-cta sp-cta-secondary sp-cta-continue sd-button"
-                      data-continue-training-cta="true"
-                      onClick={() => playGame(continueTarget.game, continueTarget.preset)}
-                    >
-                      <Play size={16} aria-hidden /> Continue Training ({continueTarget.gameName})
-                    </button>
-                  )}
-                  <button className="sp-cta sp-cta-secondary sd-button" onClick={browseTrainingLibrary}>
-                    <Shuffle size={18} aria-hidden /> Pick A Different Drill
-                  </button>
-                </div>
-              </div>
+            <section id="training-library" className="sp-arena-lobby-section" aria-labelledby="lib-h" data-tutorial="library">
+              <TrainingLobbyControls
+                filters={filters}
+                onUpdateFilters={updateFilters}
+                onResetFilters={resetBrowseFilters}
+                onOpenFiltersSheet={() => setFiltersSheetOpen(true)}
+                counts={lobbyCounts}
+                favoriteCount={favoriteCount}
+                filteredCount={filtered.length}
+                totalCount={TRAINING_LIBRARY.length}
+                searchInputRef={searchInputRef}
+                controlsRef={controlsRef}
+                headingRef={libraryHeadingRef}
+              />
 
-            </section>
-
-            <section id="training-library" className="sd-panel sp-training-section" aria-labelledby="lib-h" data-tutorial="library">
-              <div className="sp-section-head">
-                <h2 ref={libraryHeadingRef} id="lib-h" className="sp-section-title" tabIndex={-1}>Browse Games</h2>
-                <span className="sp-section-link" aria-live="polite">
-                  {filtered.length === TRAINING_LIBRARY.length ? `${TRAINING_LIBRARY.length} games` : `${filtered.length} of ${TRAINING_LIBRARY.length}`}
-                </span>
-              </div>
-
-              <div className="sp-toolbar" data-tutorial="search">
-                <label className="sp-search">
-                  <Search size={16} aria-hidden />
-                  <input
-                    type="search"
-                    aria-label="Search Games"
-                    placeholder="Search Games"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <nav className="sp-cat-chips" aria-label="Training game categories" data-tutorial="categories">
-                {CATEGORY_ORDER.map(category => {
-                  const meta = CATEGORY_META[category];
-                  return (
-                    <Link key={category} className="sp-cat-chip sd-button" href={`/hub/training/category/${category.toLowerCase()}`}>
-                      <meta.Icon size={14} aria-hidden style={{ color: meta.color }} /> {meta.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              <div className="sp-cat-chips" role="group" aria-label="Filter or launch by poker variant" data-variant-filter-bar="true">
+              <div className="sp-cat-chips sp-arena-variant-bar" role="group" aria-label="Filter Or Launch By Poker Variant" data-variant-filter-bar="true">
                 {VARIANT_FILTERS.map((vf) => {
                   const isActive = activeVariantFilter === vf.id;
                   return (
                     <button
                       key={vf.id}
                       type="button"
-                      className="sp-cat-chip sd-button"
+                      className={`sp-cat-chip sp-arena-variant-pill sd-button${isActive ? ' is-active' : ''}`}
                       data-variant-filter={vf.id}
                       aria-pressed={isActive}
                       onClick={() => setActiveVariantFilter(vf.id)}
@@ -542,7 +610,7 @@ export default function TrainingPage() {
                 {['plo4', 'plo5', 'plo6', 'plo8'].includes(activeVariantFilter) && (
                   <button
                     type="button"
-                    className="sp-cat-chip sd-button sd-primary"
+                    className="sp-cat-chip sp-arena-variant-pill sd-button sd-primary"
                     data-quick-launch-omaha={activeVariantFilter}
                     onClick={() => {
                       const omahaCashGame = TRAINING_LIBRARY.find((g) => g.id === 'cash-005') || TRAINING_LIBRARY[0];
@@ -558,87 +626,84 @@ export default function TrainingPage() {
                 )}
               </div>
 
+              <TrainingSortBar
+                filters={filters}
+                onSortChange={(sortKey, sortDir) => updateFilters({ sortKey, sortDir })}
+                onToggleFavorites={() => updateFilters({ favoritesOnly: !filters.favoritesOnly })}
+                onOpenFilters={() => setFiltersSheetOpen(true)}
+                onJumpToControls={jumpToControls}
+                controlsRef={controlsRef}
+                favoriteCount={favoriteCount}
+              />
+
               {filtered.length > 0 ? (
                 <>
-                  <div className="sp-grid" data-tutorial="games">
-                    {visibleGames.map(g => (
-                      <GameCardNew
-                        key={g.id}
-                        game={g}
-                        isFirstCard={g.id === visibleGames[0]?.id}
-                        variantOverride={activeVariantFilter !== 'all' ? activeVariantFilter : null}
-                        progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
-                        isRecommended={g.id === jarvisPick?.id}
-                        onStart={() => playGame(g)}
-                      />
-                    ))}
+                  <div className="sp-arena-sections" data-tutorial="games">
+                    {visibleSections.reduce((acc, section) => {
+                      const startOffset = acc.offset;
+                      acc.offset += section.items.length;
+                      acc.nodes.push(
+                        <div key={section.id} className="sp-arena-group">
+                          <div className="sp-arena-divider">
+                            <span className="sp-arena-divider__label">{section.label}</span>
+                            <span className="sp-arena-divider__count sp-num">{section.items.length}</span>
+                          </div>
+                          <div className="sp-arena-row-list">
+                            {section.items.map((item, localIdx) => (
+                              <TrainingLobbyRow
+                                key={item.game.id}
+                                item={item}
+                                index={startOffset + localIdx}
+                                onStart={handleRowStart}
+                                onToggleFavorite={toggleFavorite}
+                                onOpenPreview={setPreviewItem}
+                                selectedVariant={filters.variant}
+                              />
+                            ))}
+                          </div>
+                        </div>,
+                      );
+                      return acc;
+                    }, { offset: 0, nodes: [] }).nodes}
                   </div>
                   {moreGamesPending && (
                     <div ref={gridSentinelRef} className="sp-grid-sentinel" aria-hidden="true" />
                   )}
                 </>
               ) : (
-                <div className="sp-empty" role="status">
-                  <p>No Drills Match - Try A Different Search.</p>
+                <div className="sp-arena-empty" role="status">
+                  <p>
+                    {filters.favoritesOnly
+                      ? 'No Favorite Games Yet. Tap The Star On Any Game To Pin It Here.'
+                      : 'No Training Games Match Those Filters.'}
+                  </p>
                   <button
                     type="button"
-                    className="sp-cta sp-cta-secondary sp-empty-reset"
+                    className="sp-cta sp-cta-secondary sp-empty-reset sd-button"
                     onClick={resetBrowseFilters}
                   >
-                    Reset Browse Filters
+                    Reset All Filters
                   </button>
                 </div>
               )}
             </section>
 
-            {fiveMinuteLeakFix && (
-              <section
-                aria-label="Today's 5-Minute Leak Fix"
-                data-five-minute-leak-fix="true"
-                data-leak-fix-basis={fiveMinuteLeakFix.basis}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: 14,
-                  padding: '14px 18px',
-                  borderRadius: 7,
-                  border: '1px solid #688299',
-                  borderTopColor: '#aec0d0',
-                  background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 12px 28px rgba(0,0,0,0.4)',
-                }}
-              >
-                <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#83deff', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                    Adaptive Daily Workout · 10 Hands (~5 Min)
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#f4fbff', marginTop: 3 }}>
-                    {fiveMinuteLeakFix.title}
-                  </div>
-                  <div style={{ fontSize: 13, color: '#b7cede', marginTop: 3, lineHeight: 1.45 }}>
-                    {fiveMinuteLeakFix.subtitle}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                  <button
-                    type="button"
-                    className="sp-cta sp-cta-primary"
-                    data-start-five-minute-fix-cta="true"
-                    data-speculative-prefetch="ready"
-                    onMouseEnter={() => {
-                      if (typeof window !== 'undefined') {
-                        window.__spSpeculativePrefetchGameId = fiveMinuteLeakFix.game?.id || 'cash-002';
-                      }
-                    }}
-                    onClick={() => playGame(fiveMinuteLeakFix.game, fiveMinuteLeakFix.overrides)}
-                  >
-                    <Zap size={16} aria-hidden /> Start 5-Minute Fix (10 Hands) →
-                  </button>
-                </div>
-              </section>
-            )}
+            <TrainingFiltersSheet
+              isOpen={filtersSheetOpen}
+              onClose={() => setFiltersSheetOpen(false)}
+              filters={filters}
+              onUpdateFilters={updateFilters}
+              onResetFilters={resetBrowseFilters}
+              matchingCount={filtered.length}
+            />
+
+            <TrainingGamePreviewSheet
+              item={previewItem}
+              onClose={() => setPreviewItem(null)}
+              onLaunch={playGame}
+              onToggleFavorite={toggleFavorite}
+              defaultVariant={filters.variant}
+            />
 
             {biggestLeak && (
               <section aria-labelledby="leak-h" className="sp-leak" data-tutorial="leak">

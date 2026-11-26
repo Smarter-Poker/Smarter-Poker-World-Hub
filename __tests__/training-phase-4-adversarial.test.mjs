@@ -8,16 +8,17 @@ const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 
 test('the alternate-drill CTA clears filters and moves keyboard focus to the full library', () => {
   const source = read('pages/hub/training.js');
+  const controls = read('src/components/training/lobby/TrainingLobbyControls.jsx');
 
   assert.match(source, /const browseTrainingLibrary = useCallback/);
-  assert.match(source, /setActiveCat\('ALL'\)/);
-  assert.match(source, /setQuery\(''\)/);
+  assert.match(source, /setFilters\(DEFAULT_LOBBY_FILTERS\)/);
+  assert.match(source, /setDebouncedQuery\(''\)/);
   assert.match(source, /heading\.focus\(\{ preventScroll: true \}\)/);
   assert.match(source, /scrollIntoView\(\{/);
   assert.match(source, /prefers-reduced-motion: reduce/);
   assert.match(source, /id="training-library"/);
-  assert.match(source, /ref=\{libraryHeadingRef\}[\s\S]*?tabIndex=\{-1\}/);
-  assert.match(source, /onClick=\{browseTrainingLibrary\}[\s\S]*?Pick A Different Drill/);
+  assert.match(source, /headingRef=\{libraryHeadingRef\}/);
+  assert.match(controls, /ref=\{headingRef\}[\s\S]*?tabIndex=\{-1\}/);
 });
 
 test('the hub reads persisted active leaks instead of calling a nonexistent analyzer method', () => {
@@ -34,10 +35,11 @@ test('the hub reads persisted active leaks instead of calling a nonexistent anal
 
 test('grade copy is unambiguous and page-owned tokens cannot bleed into the global header', () => {
   const hub = read('pages/hub/training.js');
+  const header = read('src/components/training/lobby/TrainingLobbyHeader.jsx');
   const css = read('src/styles/worlds/training.css');
   const transition = read('src/components/transitions/PageTransition.js');
 
-  assert.match(hub, /<h1[^>]*>Training Games<\/h1>/);
+  assert.match(`${hub}\n${header}`, /<h1[^>]*>Training Games<\/h1>/);
   assert.match(hub, /<span>\{delta\} \{delta === 1 \? 'correct hand' : 'correct hands'\} To \{next\}<\/span>/);
   assert.match(
     hub,

@@ -181,13 +181,13 @@ test('TriviaLobby quick-access utility bar wires Study Your Misses and non-block
     assert.match(lobby, /PvP Elo \{pvpEloBadge\.elo/);
     assert.doesNotMatch(lobby, /:hover|whileHover|onMouseEnter|onMouseOver|lucide-react/);
 
-    const daily = lobby.indexOf('className="daily-trivia-banner"');
+    const masthead = lobby.indexOf('lobby-masthead');
     const utility = lobby.indexOf('className="lobby-utility-bar"');
-    const briefing = lobby.indexOf('<CompetitiveLobbyBriefing');
     const catalogue = lobby.indexOf('className="modes-section"');
-    const quickStakes = lobby.indexOf('className="quick-stakes-section"');
+    const quickStakes = lobby.indexOf('quick-stakes-card');
+    const briefing = lobby.indexOf('<CompetitiveLobbyBriefing');
     assert.ok(
-        daily >= 0 && daily < utility && utility < briefing && briefing < catalogue && catalogue < quickStakes,
-        'lobby utility bar sits cleanly between Daily header and Competitive briefing without disturbing vertical order',
+        masthead >= 0 && masthead < utility && utility < catalogue && catalogue < quickStakes && quickStakes < briefing,
+        'lobby utility bar sits cleanly below the #SMARTERDESIGN masthead ahead of modes, Quick Stakes, and Competitive briefing',
     );
 });

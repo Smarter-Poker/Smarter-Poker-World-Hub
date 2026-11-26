@@ -134,7 +134,6 @@
     font-size: max(12px, 2.6cqw);
     font-weight: 700;
     letter-spacing: 0.16em;
-    text-transform: uppercase;
 }
 
 .strategy-trivia .strategy-clock__value {
@@ -287,7 +286,6 @@
     font-weight: 800;
     letter-spacing: 0.08em;
     text-align: center;
-    text-transform: uppercase;
 }
 
 .strategy-trivia .coaching-notes {
@@ -322,7 +320,6 @@
     color: var(--tc-ink-white);
     font-size: max(22px, 5.6cqw) !important;
     letter-spacing: 0.04em;
-    text-transform: uppercase;
 }
 
 .strategy-trivia .score-main {

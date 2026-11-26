@@ -49,6 +49,10 @@ const GLOSSARY_SCHEMA = [
       'Definitions Of The Club Poker, Live Room, Preflop, Postflop, Math And Game Theory Terms Used Across Smarter.Poker.',
     isPartOf: { '@id': 'https://smarter.poker/#website' },
     publisher: { '@id': 'https://smarter.poker/#organization' },
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'article p:first-of-type'],
+    },
     hasDefinedTerm: GLOSSARY_TERMS.map((t) => ({
       '@type': 'DefinedTerm',
       '@id': `https://smarter.poker${glossaryTermPath(t.slug)}#term`,

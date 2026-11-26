@@ -75,6 +75,10 @@ export default function PokerSeriesGuidesIndexPage() {
           url: `https://smarter.poker${seriesGuidePath(s.slug)}`,
         })),
       },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'main p:first-of-type'],
+      },
     },
     {
       '@type': 'FAQPage',

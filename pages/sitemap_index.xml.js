@@ -10,6 +10,8 @@
  */
 
 import {
+  AUTHORITY_EVIDENCE_LASTMOD,
+  LEARN_EVIDENCE_LASTMOD,
   generateSitemapIndexXml,
   sendSitemapXmlResponse,
 } from '../src/lib/seo/sitemapBuilders.mjs';
@@ -19,13 +21,14 @@ export async function getServerSideProps({ req, res }) {
   const sitemaps = [
     { loc: '/sitemap-core.xml' },
     { loc: '/sitemap-tools.xml' },
-    { loc: '/sitemap-authority.xml' },
+    { loc: '/sitemap-authority.xml', ...(AUTHORITY_EVIDENCE_LASTMOD ? { lastmod: AUTHORITY_EVIDENCE_LASTMOD } : {}) },
     { loc: '/sitemap-venues.xml' },
     { loc: '/sitemap-tournaments.xml' },
     { loc: '/sitemap-series.xml' },
     { loc: '/sitemap-compare.xml', lastmod: COMPARE_AS_OF },
-    { loc: '/sitemap-learn.xml' },
+    { loc: '/sitemap-learn.xml', ...(LEARN_EVIDENCE_LASTMOD ? { lastmod: LEARN_EVIDENCE_LASTMOD } : {}) },
     { loc: '/sitemap-videos.xml' },
+    { loc: '/sitemap-news.xml' },
     { loc: '/hub/club-arena/sitemap.xml' },
   ];
 
