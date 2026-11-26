@@ -1320,12 +1320,16 @@ export default function App({ Component, pageProps }) {
                                 <GlobalPageOverlay />
                               </HubErrorBoundary>
                               <ToastProvider>
-                                <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
-                                  {automaticPlayerWrites && !isPrintProofRoute && <GlobalNotificationPrompt />}
-                                </HubErrorBoundary>
+                                {!isPrintProofRoute && (
+                                  <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
+                                    {automaticPlayerWrites && <GlobalNotificationPrompt />}
+                                  </HubErrorBoundary>
+                                )}
                                 <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
                                   <ServiceWorkerUpdater />
-                                  {automaticPlayerWrites && !isPrintProofRoute && <PWAInstallPrompt />}
+                                  {!isPrintProofRoute && (
+                                    <>{automaticPlayerWrites && <PWAInstallPrompt />}</>
+                                  )}
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Proactive Help" fallback={<></>}>
                                   <ProactiveHelp
