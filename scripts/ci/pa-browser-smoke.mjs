@@ -302,6 +302,8 @@ async function checkRoute(browser, baseUrl, viewport, route, storageState) {
       const controls = document.querySelectorAll('button:not([aria-hidden="true"]), [role="button"]:not([aria-hidden="true"]), input[type="button"], input[type="submit"], a.btn, a.pa-btn');
       for (const el of controls) {
         if (!isVisible(el)) continue;
+        // Site-wide UniversalHeader chrome is owned outside Personal Assistant.
+        if (el.closest('.approved-global-header')) continue;
         const rect = el.getBoundingClientRect();
         if (rect.height < minHeight) {
           const tag = el.tagName.toLowerCase();
