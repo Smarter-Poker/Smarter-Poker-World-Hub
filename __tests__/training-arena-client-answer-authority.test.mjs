@@ -60,6 +60,8 @@ test('session setup and normalization cannot advertise or revive pseudo Arena mo
 
 test('psychology reveal retains the submitted option across replacement, remount, and a new decision', async () => {
   const { createRequire } = await import('node:module');
+  // Each Node test file runs in its own process. Load React's act-enabled test build here.
+  process.env.NODE_ENV = 'test';
   const require = createRequire(import.meta.url);
   const React = require('react');
   const { act, create } = require('react-test-renderer');
