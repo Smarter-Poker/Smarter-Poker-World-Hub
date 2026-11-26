@@ -646,7 +646,7 @@ export default function RangeBuilder() {
                       marginBottom: 12,
                     }}
                   >
-                    <strong style={{ color: 'var(--sp-accent-amber)' }}>Authored Practice Reference</strong>
+                    <strong style={{ color: '#86daff' }}>Authored Practice Reference</strong>
                     <br />
                     {result.reference?.label}
                     <br />

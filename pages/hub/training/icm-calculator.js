@@ -424,7 +424,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                     cursor: 'pointer',
                     border: 'none',
                     background: 'rgba(168,85,247,0.1)',
-                    color: 'var(--sp-accent-purple)',
+                    color: '#86daff',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -626,7 +626,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                     style={{
                       fontSize: 12,
                       fontWeight: 700,
-                      color: 'var(--sp-accent-amber)',
+                      color: '#86daff',
                       width: 20,
                       textAlign: 'right',
                     }}
@@ -672,7 +672,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: 'var(--sp-accent-amber)',
+                  color: '#86daff',
                   fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
@@ -689,7 +689,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                   border: '1px solid rgba(234,179,8,0.2)',
                   borderRadius: 6,
                   padding: '6px 10px',
-                  color: 'var(--sp-accent-amber)',
+                  color: '#86daff',
                   fontSize: 14,
                   fontWeight: 700,
                   outline: 'none',
@@ -762,7 +762,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                     {
                       label: 'Prize Pool',
                       value: `$${results.totalPrizePool.toLocaleString()}`,
-                      color: 'var(--sp-accent-amber)',
+                      color: '#86daff',
                     },
                     {
                       label: 'Total Chips',
@@ -887,7 +887,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                           fontSize: 12,
                           fontWeight: 800,
                           textAlign: 'right',
-                          color: 'var(--sp-accent-amber)',
+                          color: '#86daff',
                         }}
                       >
                         ${(Number.isFinite(Number(r.icmDollars)) ? Number(r.icmDollars) : 0).toFixed(0)}
@@ -897,7 +897,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                           fontSize: 12,
                           fontWeight: 600,
                           textAlign: 'right',
-                          color: 'var(--sp-accent-purple)',
+                          color: '#86daff',
                         }}
                       >
                         {r.icmPct}%
@@ -1188,7 +1188,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                       fontWeight: 700,
                       fontSize: 13,
                       cursor: 'pointer',
-                      color: 'var(--sp-accent-amber)',
+                      color: '#86daff',
                       outline: 'none',
                     }}
                   >

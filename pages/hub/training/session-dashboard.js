@@ -347,7 +347,7 @@ function StreakTracker({ sessions }) {
         style={{
           fontSize: 12,
           fontWeight: 800,
-          color: 'var(--sp-accent-amber)',
+          color: '#86daff',
           fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
           textTransform: 'uppercase',
           letterSpacing: 1,
@@ -366,7 +366,7 @@ function StreakTracker({ sessions }) {
         </div>
         <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-purple)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#86daff', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
             {streaks.best}
           </div>
           <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Best</div>
@@ -503,7 +503,7 @@ function CoachingCard({ session }) {
           <div style={{
             fontSize: 12,
             fontWeight: 800,
-            color: 'var(--sp-accent-purple)',
+            color: '#86daff',
             fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             textTransform: 'uppercase',
             letterSpacing: 1,

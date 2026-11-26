@@ -762,7 +762,7 @@ export default function MultiTablePage() {
                         {
                           label: 'Tables Done',
                           value: `${combinedStats.tablesCompleted}/${tableCount}`,
-                          color: 'var(--sp-accent-purple)',
+                          color: '#86daff',
                         },
                       ].map((s, i) => (
                         <motion.div
@@ -1254,14 +1254,14 @@ export default function MultiTablePage() {
               )}
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 12 }}>
                 <span style={{ color: 'var(--sp-accent-green)' }}>Hands: {combinedStats.totalHands}</span>
-                <span style={{ color: 'var(--sp-accent-amber)' }}>Correct: {combinedStats.totalCorrect}</span>
+                <span style={{ color: '#86daff' }}>Correct: {combinedStats.totalCorrect}</span>
                 <span style={{ color: 'var(--sp-accent-red)' }}>
                   Measured EV Loss:{' '}
                   {combinedStats.measuredEVDecisions > 0
                     ? `${combinedStats.totalEVLoss.toFixed(1)} BB`
                     : '-'}
                 </span>
-                <span style={{ color: 'var(--sp-accent-purple)' }}>
+                <span style={{ color: '#86daff' }}>
                   Done: {completedTables.size}/{tableCount}
                 </span>
               </div>
@@ -1407,34 +1407,15 @@ export default function MultiTablePage() {
                   return (
                     <button
                       key={gameId}
+                      type="button"
                       role="tab"
+                      className="sd-button"
                       aria-selected={isActive}
                       onClick={() => setFocusedGameId(gameId)}
-                      style={{
-                        flex: '0 0 auto',
-                        minHeight: 34,
-                        padding: '6px 14px',
-                        borderRadius: 8,
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        whiteSpace: 'nowrap',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        background: isActive
-                          ? 'rgba(var(--sp-accent-cyan-rgb), 0.18)'
-                          : 'rgba(255,255,255,0.05)',
-                        color: isActive ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-                        border: `1px solid ${
-                          isDone
-                            ? 'rgba(34,197,94,0.45)'
-                            : isActive
-                              ? 'rgba(var(--sp-accent-cyan-rgb), 0.55)'
-                              : 'rgba(255,255,255,0.08)'
-                        }`,
-                      }}
+                      style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}
                     >
-                      TABLE {i + 1}
-                      {isDone ? ' - DONE' : ''}
+                      Table {i + 1}
+                      {isDone ? ' · Complete' : ''}
                     </button>
                   );
                 })}

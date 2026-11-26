@@ -386,7 +386,7 @@ export default function CommunityLeaderboardPage() {
                     >
                       {p.name}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>{p.score}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff' }}>{p.score}</div>
                   </motion.div>
                 );
               })}
