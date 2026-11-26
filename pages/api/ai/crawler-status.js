@@ -15,6 +15,7 @@ import { RESEARCH_REPORTS } from '../../../src/content/research/reports';
 import { POKER_RULES } from '../../../src/content/rules/rules';
 import { POKER_VARIANTS } from '../../../src/content/games/variants';
 import { POKER_MARKET_GUIDES } from '../../../src/content/guides/markets';
+import { US_POKER_STATES } from '../../../src/content/guides/states';
 import { MCP_TOOLS, MCP_PROMPTS, MCP_RESOURCE_TEMPLATES } from '../../../src/lib/mcp/mcpServer.mjs';
 
 const SITE = 'https://smarter.poker';
@@ -83,7 +84,7 @@ export default function handler(req, res) {
       table_position_guides: 9,
       stakes_level_guides: 7,
       famous_poker_hand_guides: 12,
-      us_state_poker_guides: 15,
+      us_state_poker_guides: US_POKER_STATES.length,
       player_archetype_guides: 8,
       canonical_board_texture_guides: 12,
       international_poker_destinations: 10,
@@ -118,6 +119,7 @@ export default function handler(req, res) {
       mcp_endpoint: `${SITE}/api/mcp`,
       mcp_manifest: `${SITE}/.well-known/mcp.json`,
       mcp_registry: `${SITE}/.well-known/mcp-registry.json`,
+      sitemap_news_xml: `${SITE}/sitemap-news.xml`,
       a2a_agent_card: 'https://smarter.poker/.well-known/agent.json',
       ai_facts_json: `${SITE}/.well-known/ai-facts.json`,
       batch_solve_api: `${SITE}/api/ai/batch-solve`,

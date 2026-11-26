@@ -65,7 +65,7 @@ export default function USStatePokerDirectoryPage() {
       '@id': `${STATES_URL}#collection`,
       name: 'US State Poker Legality, Tax Rates, Rake & Room Directory Hub',
       description:
-        'Complete Guide To Live And Online Poker Across The Top 15 US States: Legal Age (18+ Vs 21+), State Income Tax Rates, W-2G Rules, Rake Models, And Active Cardrooms.',
+        'Live And Online Poker Laws Across All 50 US States & DC: Legal Age (18+ Vs 21+), State Tax Rates, W-2G Rules, Rake Models, And Active Cardrooms.',
       url: STATES_URL,
       inLanguage: 'en-US',
       dateModified: STATES_AS_OF,
@@ -113,7 +113,7 @@ export default function USStatePokerDirectoryPage() {
     <div style={styles.page}>
       <SEOHead
         title="US State Poker Laws, Taxes And Cardrooms"
-        description="Complete Guide To Live And Online Poker Across The Top 15 US States: Legal Age (18+ Vs 21+), State Income Tax Rates, W-2G Rules, Rake Models, And Active Cardrooms."
+        description="Live And Online Poker Laws Across All 50 US States & DC: Legal Age (18+ Vs 21+), State Tax Rates, W-2G Rules, Rake Models, And Active Cardrooms."
         canonical={STATES_BASE_PATH}
         jsonLd={jsonLd}
       />
@@ -135,7 +135,7 @@ export default function USStatePokerDirectoryPage() {
 
         <header style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.cyanBadge}>TOP 15 US POKER JURISDICTIONS</span>
+            <span style={styles.cyanBadge}>ALL 50 US STATES &amp; DC JURISDICTIONS</span>
             <span style={styles.emeraldBadge}>LEGAL AGE, TAX RATES, RAKE &amp; W-2G RULES</span>
           </div>
 
@@ -187,7 +187,7 @@ export default function USStatePokerDirectoryPage() {
         {/* Master Comparison Table */}
         <section aria-label="Master US State Poker Comparison Table" style={styles.tablePlate}>
           <div style={styles.sectionHeader}>
-            <h2 style={styles.h2}>Master Comparison Of Top 15 US Poker States</h2>
+            <h2 style={styles.h2}>Master Comparison Of All 50 US States &amp; DC Poker Laws</h2>
             <span style={styles.asOfText}>
               Showing {filteredStates.length} Of {US_POKER_STATES.length} States
             </span>
@@ -296,7 +296,7 @@ export default function USStatePokerDirectoryPage() {
           badgeType="research"
           badgeLabel="15-State Regulatory Index"
           badgeValue="Laws, Taxes & Rake Models"
-          summary="Complete Guide To Live And Online Poker Across The Top 15 US States: Legal Age (18+ Vs 21+), State Income Tax Rates, W-2G Rules, Rake Models, And Active Cardrooms."
+          summary="Live And Online Poker Laws Across All 50 US States & DC: Legal Age (18+ Vs 21+), State Tax Rates, W-2G Rules, Rake Models, And Active Cardrooms."
           publishedYear="2026"
           slug="us-state-poker-laws-directory"
         />
