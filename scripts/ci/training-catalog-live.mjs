@@ -36,6 +36,55 @@ export function selectCatalogGames(games, selection) {
   return selected;
 }
 
+// Compare what the player sees with the server's post-answer reveal for that decision.
+export function checkStrategyReveal(feedback, state, rows) {
+  const frequencies = feedback.gtoFrequencies || feedback.frequencies;
+  if (state === 'unavailable') {
+    assert.equal(rows.length, 0, 'an unavailable strategy showed numeric bars');
+    assert.ok(!feedback.solverVerified || !frequencies || !Object.keys(frequencies).length,
+      'a measured strategy disappeared');
+    return;
+  }
+  assert.equal(state, 'verified', 'unknown chart state');
+  assert.equal(feedback.solverVerified, true, 'an unmeasured decision showed a strategy chart');
+  assert.ok(frequencies && rows.length, 'a verified chart has no action frequencies');
+  const seen = new Set();
+  for (const { action, percent, text } of rows) {
+    assert.ok(!seen.has(action) && Object.hasOwn(frequencies, action), 'unexpected chart action');
+    seen.add(action);
+    assert.ok(percent !== null && percent !== '' && Number.isFinite(Number(percent)), 'missing chart value');
+    const measured = frequencies[action];
+    assert.ok(typeof measured === 'number' && Number.isFinite(measured), 'missing measured action value');
+    assert.equal(Number(percent), measured, 'bar differs from the measured action frequency');
+    const visible = text.match(/([\d.]+)\s*%\s*$/);
+    assert.ok(visible && Math.abs(Number(visible[1]) - measured) <= 0.051,
+      'visible percentage differs from measured frequency');
+  }
+  assert.deepEqual([...seen].sort(), Object.keys(frequencies).sort(), 'chart omitted measured actions');
+}
+
+async function verifyCoachingReveal(surface, verdict, receipt, request) {
+  const { feedback } = receipt;
+  assert.ok(feedback?.correctAnswer, 'missing server answer key');
+  assert.equal(await verdict.getAttribute('data-correct-action'), feedback.correctAnswer,
+    'visible answer key differs from the graded action');
+  assert.equal(await verdict.getAttribute('data-selected-action'), request.answerId ?? request.selectedAnswer,
+    'visible selection differs from the submitted action');
+  if (!(await verdict.evaluate(node => node.classList.contains('sp-training-feedback')))) return 'verdict';
+  const expand = surface.getByRole('button', { name: 'Show Coaching Details', exact: true });
+  if (await expand.isVisible()) await expand.click();
+  const chart = surface.locator('[data-training-feedback="strategy"]');
+  await chart.waitFor({ timeout: ANSWER_TIMEOUT });
+  const state = await chart.getAttribute('data-frequency-state');
+  const rows = await chart.locator('[data-frequency-action]').evaluateAll(nodes => nodes.map(node => ({
+    action: node.getAttribute('data-frequency-action'),
+    percent: node.getAttribute('data-frequency-percent'),
+    text: node.innerText,
+  })));
+  checkStrategyReveal(feedback, state, rows);
+  return state;
+}
+
 function traceArenaRequests(page) {
   const responses = [];
   const pageErrors = [];
@@ -181,8 +230,13 @@ async function verifyGame(page, origin, game, entry, throughResults, recordPacer
     assert.ok(!seen.has(receipt.submissionId), 'decision was already counted');
     seen.add(receipt.submissionId);
     entry.stage = 'verdict';
-    await surface.locator('[data-training-feedback="verdict"]').waitFor({ timeout: ANSWER_TIMEOUT });
-    if (!throughResults) return;
+    const verdict = surface.locator('[data-training-feedback="verdict"]');
+    await verdict.waitFor({ timeout: ANSWER_TIMEOUT });
+    if (!throughResults) {
+      entry.stage = 'coaching';
+      entry.coaching = await verifyCoachingReveal(surface, verdict, receipt, request);
+      return;
+    }
     entry.stage = 'advance';
     const next = page.locator('[data-training-next-decision]:visible').first();
     await next.or(results).first().waitFor({ timeout: ANSWER_TIMEOUT });

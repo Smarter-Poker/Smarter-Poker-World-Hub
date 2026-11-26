@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { validateConfig, AUDIT_UUID, collectPublic } from '../scripts/ci/training-phase6-public-certificate.mjs';
 import { mkdtemp, rm, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { orderCatalogGames, selectCatalogGames } from '../scripts/ci/training-catalog-live.mjs';
+import { checkStrategyReveal, orderCatalogGames, selectCatalogGames } from '../scripts/ci/training-catalog-live.mjs';
 import { readDeploymentIdentity } from '../scripts/training-phase6-production-delivery-attestation.mjs';
 const base = { GITHUB_REF: 'refs/heads/main', GITHUB_SHA: 'a'.repeat(40), EXPECTED_SHA: 'a'.repeat(40), TEST_USER_EMAIL: 'configured', TEST_USER_PASSWORD: 'fixture', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'fixture', NEXT_PUBLIC_SUPABASE_URL: 'https://kuklfnapbkmacvwxktbh.supabase.co', RUNNER_TEMP: '/fixture', PUBLIC_EVIDENCE: '/fixture/public.json', DEPLOYMENT_URL: 'https://hub-vanguard-abc-smarter-poker.vercel.app' };
 test('fixed designated audit identity and refusal boundaries', () => {
@@ -125,4 +125,18 @@ test('catalog results traversal uses the actual Play button across paged lobby r
   assert.match(runner, /next\.click\(\)[\s\S]*?hasNotText/);
   assert.match(runner, /entry\.getByRole\('button', \{ name: `Play \$\{game\.name\},`/);
   assert.match(runner, /const play = await findCatalogPlayButton\(page, game\)/);
+});
+
+test('catalog compares rendered frequencies with the revealed action IDs, including a measured zero', () => {
+  const measured = { solverVerified: true, gtoFrequencies: { raise_pot: 100, fold: 0 } };
+  const rows = [
+    { action: 'fold', percent: '0', text: 'Fold 0%' },
+    { action: 'raise_pot', percent: '100', text: 'Raise 100% Pot 100%' },
+  ];
+  checkStrategyReveal(measured, 'verified', rows);
+  checkStrategyReveal({ solverVerified: false, gtoFrequencies: null }, 'unavailable', []);
+  assert.throws(() => checkStrategyReveal(measured, 'unavailable', []), /disappeared/);
+  assert.throws(() => checkStrategyReveal(measured, 'verified', rows.slice(1)), /omitted/);
+  assert.throws(() => checkStrategyReveal(measured, 'verified', [rows[0], { ...rows[1], text: 'Raise Pot 0%' }]), /visible percentage/);
+  assert.throws(() => checkStrategyReveal({ solverVerified: false }, 'unavailable', rows), /numeric bars/);
 });
