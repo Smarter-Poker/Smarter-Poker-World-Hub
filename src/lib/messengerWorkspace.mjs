@@ -421,14 +421,22 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         const candidateDrafts = draftStates.filter(d => d && typeof d.draft_text === 'string' && d.draft_text.trim() && !existingIds.has(d.conversation_id));
         if (candidateDrafts.length) {
             const candidateIds = candidateDrafts.map(d => d.conversation_id);
-            const [draftParts, draftAccounting, draftMessages] = await Promise.all([
-                rows(db.from('social_conversation_participants').select('conversation_id,context_entity_id')
-                    .eq('user_id', userId).in('conversation_id', candidateIds), 'draft participation'),
-                rows(db.from('accounting_conversations').select('conversation_id')
-                    .in('conversation_id', candidateIds), 'draft accounting'),
-                rows(db.from('social_messages').select('conversation_id')
-                    .in('conversation_id', candidateIds).limit(200), 'draft messages'),
-            ]);
+            const draftParts = [];
+            const draftAccounting = [];
+            const draftMessages = [];
+            for (const batch of idBatches(candidateIds)) {
+                const [partsBatch, accountingBatch, messagesBatch] = await Promise.all([
+                    rows(db.from('social_conversation_participants').select('conversation_id,context_entity_id')
+                        .eq('user_id', userId).in('conversation_id', batch), 'draft participation'),
+                    rows(db.from('accounting_conversations').select('conversation_id')
+                        .in('conversation_id', batch), 'draft accounting'),
+                    rows(db.from('social_messages').select('conversation_id')
+                        .in('conversation_id', batch).limit(200), 'draft messages'),
+                ]);
+                draftParts.push(...partsBatch);
+                draftAccounting.push(...accountingBatch);
+                draftMessages.push(...messagesBatch);
+            }
             const accountingIds = new Set(draftAccounting.map(a => a.conversation_id));
             const nonEmptyIds = new Set(draftMessages.map(m => m.conversation_id));
             const validIds = draftParts
@@ -437,8 +445,11 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
                     && !nonEmptyIds.has(p.conversation_id))
                 .map(p => p.conversation_id);
             if (validIds.length) {
-                const otherParts = await rows(db.from('social_conversation_participants').select('conversation_id,user_id')
-                    .in('conversation_id', validIds).neq('user_id', userId), 'draft counterparts');
+                const otherParts = [];
+                for (const batch of idBatches(validIds)) {
+                    otherParts.push(...await rows(db.from('social_conversation_participants').select('conversation_id,user_id')
+                        .in('conversation_id', batch).neq('user_id', userId), 'draft counterparts'));
+                }
                 const otherUserIds = [...new Set(otherParts.map(p => p.user_id).filter(Boolean))];
                 const otherProfiles = otherUserIds.length
                     ? await byIds(db, 'profiles', 'id,username,display_name,avatar_url', 'id', otherUserIds)
