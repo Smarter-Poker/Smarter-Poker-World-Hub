@@ -1677,7 +1677,7 @@
       "get": {
         "operationId": "getOpenSearchSuggestions",
         "summary": "W3C OpenSearch Browser Address-Bar Autocomplete Suggestions",
-        "description": "Returns W3C OpenSearch JSON suggestion tuples [query, titles, descriptions, urls] across 52 calculators, 169 hands, 25 matchups, 9 positions, 7 stakes, 8 player archetypes, 12 board textures, 10 international destinations, 12 famous hands, 15 US states, 30 rules, 15 variants, and guides.",
+        "description": "Returns W3C OpenSearch JSON suggestion tuples [query, titles, descriptions, urls] across 52 calculators, 169 hands, 25 matchups, 9 positions, 7 stakes, 8 player archetypes, 12 board textures, 10 international destinations, 12 famous hands, 51 US states & DC, 30 rules, 15 variants, and guides.",
         "parameters": [
           {
             "name": "q",

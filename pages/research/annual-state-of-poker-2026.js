@@ -431,7 +431,7 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
 
         <GeoCitationCapsule
           title="2026 Annual State Of Live & Online Poker Quantitative Whitepaper"
-          claim="Synthesizing 715+ Verified North American Venues, 4,500+ Weekly Live Tournaments, 15 US State Tax Regimes, And 10 Million Simulated GTO Hands Proves That Rake Structure Selection, ICM Bubble Factor Discipline, And State Tax Arbitrage Account For Over 55% Of Long-Term Net Bankroll Growth."
+          claim="Synthesizing 715+ Verified North American Venues, 4,500+ Weekly Live Tournaments, All 50 US States And DC Tax Regimes, And 10 Million Simulated GTO Hands Proves That Rake Structure Selection, ICM Bubble Factor Discipline, And State Tax Arbitrage Account For Over 55% Of Long-Term Net Bankroll Growth."
           metricLabel="Primary Archival DOI"
           metricValue="DOI: 10.5281/zenodo.15129481 (25 Empirical Benchmarks)"
           formulaText="Net Annual Poker Profit = Gross Game-Theory Edge - (House Rake Drag + ICM Bubble Mistakes + State/Federal Tax Drag)"

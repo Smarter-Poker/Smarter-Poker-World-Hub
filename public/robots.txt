@@ -572,4 +572,5 @@ Sitemap: https://smarter.poker/sitemap-series.xml
 Sitemap: https://smarter.poker/sitemap-compare.xml
 Sitemap: https://smarter.poker/sitemap-learn.xml
 Sitemap: https://smarter.poker/sitemap-videos.xml
+Sitemap: https://smarter.poker/sitemap-news.xml
 Sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
