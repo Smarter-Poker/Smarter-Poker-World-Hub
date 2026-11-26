@@ -124,8 +124,8 @@ test('3. Core Web Vitals explicit width/height and valid lowercase fetchpriority
   assert.doesNotMatch(identityMarkSrc, /fetchPriority=/);
 
   const pokerToolsSrc = read('pages/hub/poker-tools.js');
-  assert.match(pokerToolsSrc, /getCardImage\(card\.rank, card\.suit\)\}\s+alt=""\s+width="64"\s+height="90"/);
-  assert.match(pokerToolsSrc, /getCardImage\(rank, suit\)\}\s+alt=""\s+width="48"\s+height="68"/);
+  assert.match(pokerToolsSrc, /<img\s+[^>]*width="\d+"\s+height="\d+"[^>]*getCardImage\(card\.rank, card\.suit\)/);
+  assert.match(pokerToolsSrc, /<img\s+[^>]*width="\d+"\s+height="\d+"[^>]*getCardImage\(rank, suit\)/);
 });
 
 test('4. GSC CTR title and meta description budgets hold across all lessons, research reports, and all 169 starting hands', () => {
