@@ -4372,7 +4372,7 @@ function authStorageState(authStatePath, targetOrigin, expectedAuditUserId) {
 export async function readDeploymentIdentity(
   baseUrl,
   expectedBuild,
-  { fetchFn = globalThis.fetch, now = () => Date.now(), protectionBypassSecret = '' } = {}
+  { fetchFn = globalThis.fetch, now = () => Date.now(), protectionBypassSecret = '', expectedDeploymentOrigin = baseUrl } = {}
 ) {
   assert.equal(typeof fetchFn, 'function', 'deployment identity requires a fetch transport');
   const immutableOrigin = protectionBypassSecret
@@ -4405,7 +4405,7 @@ export async function readDeploymentIdentity(
     : `https://${health.deploymentUrl}`;
   assert.equal(
     validateImmutableDeploymentUrl(healthDeploymentUrl),
-    baseUrl,
+    expectedDeploymentOrigin,
     'health named a different immutable deployment'
   );
   assert.ok(
@@ -4425,7 +4425,7 @@ export async function readDeploymentIdentity(
   return {
     commitSha: String(health.commitSha).toLowerCase(),
     version: String(health.version).toLowerCase(),
-    deploymentUrl: baseUrl,
+    deploymentUrl: expectedDeploymentOrigin,
     deploymentId: health.deploymentId,
   };
 }
