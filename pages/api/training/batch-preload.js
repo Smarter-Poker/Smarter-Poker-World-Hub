@@ -201,7 +201,7 @@ export function adaptQuestionToVariant(question, requestedVariant, index = 0, ex
             : 'no_limit';
 
     const rawFormat = String(extraOptions?.format || scenario.format || '').trim().toLowerCase();
-    const resolvedFormat = ['cash', 'mtt', 'spins', 'hu'].includes(rawFormat)
+    const resolvedFormat = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(rawFormat)
         ? rawFormat
         : (extraOptions?.gameId && String(extraOptions.gameId).startsWith('mtt-'))
             ? 'mtt'
@@ -315,8 +315,8 @@ export function adaptQuestionToVariant(question, requestedVariant, index = 0, ex
             ...(engineModule ? { engineModule } : {}),
             ...(isPlo8 ? { hiLo: true, plo8LowEvaluation } : {}),
             ...(mergedBrainEvaluation ? { brainEvaluation: mergedBrainEvaluation } : {}),
-            ...(brainResult?.madeHandCategory && !scenario.madeHandCategory ? { madeHandCategory: brainResult.madeHandCategory } : {}),
-            ...(brainResult?.potLimitSizing && !scenario.potLimitSizing ? { potLimitSizing: brainResult.potLimitSizing } : {}),
+            ...(brainResult?.madeHandCategory ? { madeHandCategory: brainResult.madeHandCategory } : {}),
+            ...(brainResult?.potLimitSizing ? { potLimitSizing: brainResult.potLimitSizing } : {}),
         },
     };
 }
@@ -451,9 +451,17 @@ export default async function handler(req, res) {
       const gameId = sanitizeParam(rawGameId, 100);
       const syncedHandId = sanitizeParam(rawSyncedHandId, 120);
       const normalizedRawVariant = sanitizeParam(rawVariant, 16)?.toLowerCase() || '';
-      const mappedRawVariant = ['plo8', 'omaha8', 'plo_hilo'].includes(normalizedRawVariant)
+      const mappedRawVariant = ['plo8', 'omaha8', 'plo_hilo', 'plo-hi-lo', 'plo_hi_lo', 'omaha_hi_lo', 'flo8', 'o8'].includes(normalizedRawVariant)
           ? 'plo8'
-          : normalizedRawVariant;
+          : ['plo6', 'omaha6', 'plo-6', '6-card-plo'].includes(normalizedRawVariant)
+              ? 'plo6'
+              : ['plo5', 'omaha5', 'plo-5', '5-card-plo'].includes(normalizedRawVariant)
+                  ? 'plo5'
+                  : ['plo4', 'plo', 'omaha', 'omaha4', 'plo-4', '4-card-plo', 'flo'].includes(normalizedRawVariant)
+                      ? 'plo4'
+                      : ['nlh', 'holdem', 'nlhe', 'flh'].includes(normalizedRawVariant)
+                          ? 'nlh'
+                          : normalizedRawVariant;
       const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(mappedRawVariant)
           ? mappedRawVariant
           : null;
@@ -478,9 +486,12 @@ export default async function handler(req, res) {
       const effectiveVariant = duelPayload?.variant && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(duelPayload.variant))
           ? String(duelPayload.variant)
           : requestedVariant;
-      const effectiveBettingStructure = requestedBettingStructure
-          || (effectiveVariant && String(effectiveVariant).startsWith('plo') ? 'pot_limit' : null);
-      const effectiveFormat = requestedFormat || null;
+      const effectiveBettingStructure = (duelPayload?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(duelPayload.bettingStructure)))
+          ? String(duelPayload.bettingStructure)
+          : (requestedBettingStructure || (effectiveVariant && String(effectiveVariant).startsWith('plo') ? 'pot_limit' : null));
+      const effectiveFormat = (duelPayload?.format && ['cash', 'mtt', 'spins', 'hu', '9max'].includes(String(duelPayload.format)))
+          ? String(duelPayload.format)
+          : (requestedFormat || null);
       const attestationContinuationRequested =
           rawAttestationContinuationRule !== undefined
           || rawAttestationContinuationPrecommit !== undefined;
@@ -1391,13 +1402,21 @@ export default async function handler(req, res) {
                       || 'Player';
                   const activeDuelId = duelPayload?.duelId
                       || `duel_${String(delivery.attemptId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24)}`;
+                  const resolvedDuelVariant = effectiveVariant
+                      || (['cash-005', 'cash-015', 'mtt-018'].includes(gameId) ? 'plo4' : 'nlh');
+                  const resolvedDuelStructure = effectiveBettingStructure
+                      || (resolvedDuelVariant.startsWith('plo') ? 'pot_limit' : 'no_limit');
+                  const resolvedDuelFormat = effectiveFormat
+                      || (String(gameId).startsWith('mtt-') ? 'mtt' : String(gameId).startsWith('spins-') ? 'spins' : 'cash');
                   const activeDuelToken = duelPayload
                       ? trimmedDuelToken
                       : createSignedTrainingDuelToken({
                           duelId: activeDuelId,
                           gameId,
                           level: gameLevel,
-                          variant: effectiveVariant || 'nlh',
+                          variant: resolvedDuelVariant,
+                          bettingStructure: resolvedDuelStructure,
+                          format: resolvedDuelFormat,
                           targetHands: servedQuestionIds.length,
                           questionIds: servedQuestionIds,
                           challengerId: _authUser.id,

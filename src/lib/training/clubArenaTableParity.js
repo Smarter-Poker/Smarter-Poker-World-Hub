@@ -1513,7 +1513,7 @@ export function formatTrainingHandAsPokerStarsHistory({
           ? 'Omaha'
           : "Hold'em";
   const variantHeader = `${ gameTitle } ${ structureLabel }`;
-  const maxSeats = normFormat === 'hu' ? 2 : normFormat === 'spins' ? 3 : 6;
+  const maxSeats = normFormat === 'hu' ? 2 : normFormat === 'spins' ? 3 : normFormat === '9max' ? 9 : 6;
   const cleanHeroCards = Array.isArray(heroCards) && heroCards.length > 0 ? heroCards : ['As', 'Kd'];
   const cleanVillainCards = Array.isArray(villainCards) && villainCards.length > 0 ? villainCards : ['Qh', 'Qc'];
   const cleanBoard = Array.isArray(boardCards) ? boardCards.filter(Boolean) : [];

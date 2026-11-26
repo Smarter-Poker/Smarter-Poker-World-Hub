@@ -42,7 +42,11 @@ function parseCardList(raw) {
 
 function inferVariantFromHoleCards(heroCards = [], rawVariant = '') {
   const explicit = String(rawVariant || '').trim().toLowerCase();
-  if (['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(explicit)) return explicit;
+  if (['plo8', 'omaha8', 'omaha_hi_lo', 'plo_hilo', 'plo-hi-lo', 'plo_hi_lo', 'flo8', 'o8'].includes(explicit)) return 'plo8';
+  if (['plo6', 'omaha6', 'plo-6', '6-card-plo'].includes(explicit)) return 'plo6';
+  if (['plo5', 'omaha5', 'plo-5', '5-card-plo'].includes(explicit)) return 'plo5';
+  if (['plo4', 'plo', 'omaha', 'omaha4', 'plo-4', '4-card-plo', 'flo'].includes(explicit)) return 'plo4';
+  if (['nlh', 'holdem', 'nlhe', 'flh'].includes(explicit)) return 'nlh';
   if (heroCards.length === 6) return 'plo6';
   if (heroCards.length === 5) return 'plo5';
   if (heroCards.length === 4) return 'plo4';
@@ -510,7 +514,7 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
       : Array.isArray(hand?.hero?.holeCards)
         ? hand.hero.holeCards
         : [];
-    const variant = rawVar === 'plo8' || /plo8|hilo|hi-lo/i.test(rawVar)
+    const variant = rawVar === 'plo8' || /plo8|omaha8|flo8|\bo8\b|hilo|hi[_-]?lo/i.test(rawVar)
       ? 'plo8'
       : rawVar === 'plo6' || rawHole.length === 6
         ? 'plo6'

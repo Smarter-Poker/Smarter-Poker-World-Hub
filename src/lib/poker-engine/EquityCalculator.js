@@ -160,8 +160,9 @@ function shufflePartial(arr, count) {
  * @returns {Object} { players: [{ id, equity, wins, ties }], boardSize }
  */
 function calculateEquity(players, board, variant = 'holdem', iterations = 2000) {
-  const isOmaha = variant.startsWith('omaha');
-  const isShortDeck = variant === 'short_deck';
+  const normVar = String(variant || 'holdem').toLowerCase();
+  const isOmaha = normVar.startsWith('omaha') || normVar.startsWith('plo') || normVar === 'flo' || normVar === 'flo8';
+  const isShortDeck = normVar === 'short_deck';
 
   // Build the dead cards set (all known cards)
   const dead = new Set();

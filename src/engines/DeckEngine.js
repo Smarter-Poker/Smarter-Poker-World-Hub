@@ -175,9 +175,10 @@ export class DeckEngine {
         return this.deck.length - this.cursor;
     }
 
-    /** Add dead cards and rebuild deck */
+    /** Add dead cards and rebuild deck while preserving already-dealt cards as dead */
     addDeadCards(cards) {
-        for (const c of cards) this.deadCards.add(c);
+        for (const c of cards || []) this.deadCards.add(c);
+        for (const dealtCard of this.dealt || []) this.deadCards.add(dealtCard);
         this.deck = this._buildDeck();
         this._shuffle();
     }
