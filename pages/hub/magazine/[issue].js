@@ -285,7 +285,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                         fontFamily: "Georgia, 'Times New Roman', serif",
                     }}
                 >
-                    {page.headline}
+                    {stripMagazineDashes(page.headline)}
                 </h3>
             )}
 
@@ -297,7 +297,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
 
             {page.subheadline && (
                 <p style={{ margin: '0 0 14px 0', fontSize: '15px', lineHeight: 1.55, color: '#9fb3c8' }}>
-                    {page.subheadline}
+                    {stripMagazineDashes(page.subheadline)}
                 </p>
             )}
 
@@ -305,7 +305,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                 <div style={{ marginBottom: '14px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #1b2c3d' }}>
                     <img
                         src={spot?.cardImageUrl || page.imageUrl || FALLBACK_MAGAZINE_IMAGE}
-                        alt={page.headline || `Magazine Page ${page.pageNumber}`}
+                        alt={stripMagazineDashes(page.headline || `Magazine Page ${page.pageNumber}`)}
                         loading="lazy"
                         onError={handleMagazineImageError}
                         style={{
@@ -323,7 +323,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                 <div style={{ display: 'grid', gap: '12px', marginBottom: '14px' }}>
                     {page.paragraphs.map((p, idx) => (
                         <p key={idx} style={{ margin: 0, fontSize: '15.5px', lineHeight: 1.68, color: '#e2e8f0' }}>
-                            {p}
+                            {stripMagazineDashes(p)}
                         </p>
                     ))}
                 </div>
@@ -343,7 +343,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                         color: '#ffffff',
                     }}
                 >
-                    {`"${page.pullQuote}"`}
+                    {`"${stripMagazineDashes(page.pullQuote)}"`}
                 </blockquote>
             )}
 

@@ -21,6 +21,7 @@ import { isCompetitorSponsoredPost, normalizeEditorialTitle } from '../newslette
 import {
     KINGS_CLUB_UUID,
     areSameStoryline,
+    isEchoingOrEmptyBlurb,
     isLowValueScheduleStub,
 } from '../newsletter/weeklyWireEngine.mjs';
 import {
@@ -72,7 +73,24 @@ const BOILERPLATE_PATTERNS = [
     'read more:',
     'cookie policy',
     'all rights reserved',
+    'add as a preferred source on google',
 ];
+
+export function stripScraperBylinePrefix(text) {
+    let clean = stripMagazineDashes(text || '');
+    if (!clean) return '';
+
+    clean = clean
+        .replace(
+            /^[\s\S]{0,90}?\bPosted\s+on:\s*[A-Za-z]+\s+\d{1,2},\s*\d{4}(?:\s+\d{1,2}:\d{2}(?:\s*[A-Z]{2,4})?)?\s*(?:Link\s+copied\s*)?(?:Add\s+as\s+a\s+preferred\s+source\s+on\s+Google\s*)?/i,
+            ''
+        )
+        .replace(/^Link\s+copied\s*/i, '')
+        .replace(/^Add\s+as\s+a\s+preferred\s+source\s+on\s+Google\s*/i, '')
+        .replace(/^\d+\s+min(?:ute)?s?\s+read\s*[•·|-]?\s*/i, '');
+
+    return stripMagazineDashes(clean);
+}
 
 async function getSupabaseClient(sb) {
     if (sb && typeof sb === 'object') return sb;
@@ -109,23 +127,33 @@ function deterministicPeriodOffset(period, modulus) {
 }
 
 function decodeBasicHtml(raw) {
-    return stripMagazineDashes(
+    return stripScraperBylinePrefix(
         String(raw || '')
             .replace(/<br\s*\/?>/gi, ' ')
             .replace(/<[^>]+>/g, ' ')
-            .replace(/&amp;/gi, '&')
-            .replace(/&lt;/gi, '<')
-            .replace(/&gt;/gi, '>')
-            .replace(/&quot;/gi, '"')
-            .replace(/&#0?39;|&apos;|&rsquo;|&lsquo;/gi, "'")
-            .replace(/&ldquo;|&rdquo;/gi, '"')
-            .replace(/&nbsp;/gi, ' ')
-            .replace(/&#(\d+);/g, (_m, code) => {
-                const n = Number(code);
-                return Number.isFinite(n) && n >= 32 && n <= 126 ? String.fromCharCode(n) : ' ';
-            })
-            .replace(/\s+/g, ' ')
     );
+}
+
+export function buildCleanNonEchoingDeck({ title = '', rawSummary = '', rawExcerpt = '', paragraphs = [], sourceName = '', category = '' } = {}) {
+    const cleanTitle = stripMagazineDashes(title);
+    const candidates = [
+        stripScraperBylinePrefix(rawSummary),
+        stripScraperBylinePrefix(rawExcerpt),
+        ...(Array.isArray(paragraphs) ? paragraphs.map((p) => stripScraperBylinePrefix(p)) : []),
+    ];
+
+    for (const cand of candidates) {
+        if (!cand || cand.length < 32) continue;
+        if (!isEchoingOrEmptyBlurb(cleanTitle, cand)) {
+            return cand.slice(0, 280);
+        }
+    }
+
+    const outlet = stripMagazineDashes(sourceName || 'Smarter.Poker News Desk');
+    const cat = stripMagazineDashes(category || 'World Poker').toLowerCase();
+    return stripMagazineDashes(
+        `Full ${cat} breakdown via ${outlet}, examining field turnouts, tournament structures, and championship storylines.`
+    ).slice(0, 280);
 }
 
 function isBoilerplateParagraph(text) {
@@ -290,7 +318,7 @@ function buildSynthesizedEditorialParagraphs(row, normalizedTitle) {
         if (acc && out.length < 5) out.push(acc);
     }
 
-    if (out.length === 0 && rawSummary && rawSummary.length >= 30) {
+    if (out.length === 0 && rawSummary && rawSummary.length >= 30 && !isEchoingOrEmptyBlurb(normalizedTitle, rawSummary)) {
         out.push(rawSummary);
     }
 
@@ -603,13 +631,21 @@ export async function harvestMonthlyMagazineVault(
         if (clusteredStories.some((c) => areSameStoryline(c.cleanTitle, cleanTitle))) continue;
 
         const popularityViews = Math.max(Number(row.views || 0), Number(row.view_count || 0));
+        const isPodcastOrVideoStub =
+            /\bpodcast\b|\bepisode\s*#?\d+\b/i.test(cleanTitle) || cleanTitle.includes('|');
+        const isMajorTourStory =
+            /\b(wsop|wsopc|wpt|ept|triton|mspt|apt|pgt|main event|championship|high roller|final table|trophy)\b/i.test(
+                cleanTitle
+            );
         const baseScore =
             (row.is_featured ? 32 : 0) +
             (row.image_url ? 18 : 0) +
             (row.content && String(row.content).length > 300 ? 20 : 0) +
-            Math.min(25, Math.floor(popularityViews / 12));
+            (isMajorTourStory ? 18 : 0) +
+            Math.min(25, Math.floor(popularityViews / 12)) -
+            (isPodcastOrVideoStub ? 16 : 0);
 
-        clusteredStories.push({ row, cleanTitle, baseScore });
+        clusteredStories.push({ row, cleanTitle, baseScore, isPodcastOrVideoStub, isMajorTourStory });
     }
 
     clusteredStories.sort(
@@ -622,15 +658,22 @@ export async function harvestMonthlyMagazineVault(
     let featureCount = 0;
 
     for (let idx = 0; idx < topStories.length; idx += 1) {
-        const { row, cleanTitle, baseScore } = topStories[idx];
+        const { row, cleanTitle, baseScore, isPodcastOrVideoStub } = topStories[idx];
         const sourceId = String(row.id);
         const existing = existingMap.get(`poker_news::${sourceId}`);
 
         let paragraphs = [];
         if (existing?.body_text && String(existing.body_text).split('\n\n').filter(Boolean).length >= 2) {
-            paragraphs = String(existing.body_text).split('\n\n').map(stripMagazineDashes).filter(Boolean);
-        } else if (Date.now() < externalDeadlineMs - 600 && row.source_url && idx < 10) {
+            paragraphs = String(existing.body_text)
+                .split('\n\n')
+                .map((p) => stripScraperBylinePrefix(p))
+                .filter((p) => p.length >= 36 && !isEchoingOrEmptyBlurb(cleanTitle, p));
+        }
+        if (paragraphs.length < 2 && Date.now() < externalDeadlineMs - 600 && row.source_url && idx < 10) {
             paragraphs = await extractArticleBodySafe(row.source_url, { deadlineMs: externalDeadlineMs });
+            paragraphs = paragraphs
+                .map((p) => stripScraperBylinePrefix(p))
+                .filter((p) => p.length >= 36 && !isEchoingOrEmptyBlurb(cleanTitle, p));
         }
         if (paragraphs.length < 2) {
             paragraphs = buildSynthesizedEditorialParagraphs(row, cleanTitle);
@@ -670,13 +713,13 @@ export async function harvestMonthlyMagazineVault(
             /\b(wsop|wpt|ept|triton|main event|championship|high roller|million|final table|industry)\b/i.test(cleanTitle);
 
         let section = 'news_brief';
-        if (coverCount < 3 && (row.is_featured || idx < 3) && (!vaultImg.usedFallback || idx === 0)) {
+        if (coverCount < 3 && !isPodcastOrVideoStub && (row.is_featured || idx < 4) && (!vaultImg.usedFallback || idx === 0)) {
             section = 'cover_candidate';
             coverCount += 1;
-        } else if (isHighResPhoto && photoEssayCount < 3) {
+        } else if (isHighResPhoto && !isPodcastOrVideoStub && photoEssayCount < 3) {
             section = 'photo_essay';
             photoEssayCount += 1;
-        } else if (isDeepDive && featureCount < 5) {
+        } else if (isDeepDive && !isPodcastOrVideoStub && featureCount < 5) {
             section = 'feature_story';
             featureCount += 1;
         }
@@ -687,9 +730,14 @@ export async function harvestMonthlyMagazineVault(
             Math.min(20, paragraphs.length * 4) +
             (section === 'cover_candidate' ? 15 : 0);
 
-        const summaryText = stripMagazineDashes(
-            decodeBasicHtml(row.summary || row.excerpt || paragraphs[0] || cleanTitle)
-        ).slice(0, 320);
+        const summaryText = buildCleanNonEchoingDeck({
+            title: cleanTitle,
+            rawSummary: decodeBasicHtml(row.summary || ''),
+            rawExcerpt: decodeBasicHtml(row.excerpt || ''),
+            paragraphs,
+            sourceName: row.source_name || 'Smarter.Poker News Desk',
+            category: row.category || 'Tournament & Industry',
+        });
 
         stagedRows.push(
             mergePreservedFlags(
@@ -1131,48 +1179,88 @@ export async function harvestMonthlyMagazineVault(
         );
     }
 
-    // 8. Upcoming 60-day `poker_series` + `unified_events_calendar` (`section: 'series_calendar'`)
+    // 8. Upcoming 60-day `poker_series` + `tournament_series` + `unified_events_calendar` (`section: 'series_calendar'`)
+    // NOTE: `poker_series` has NO `venue_name` column (uses `series_name, city, state, tour_code`), while `tournament_series` uses `name, venue_name, city, state`.
     const todayIsoDate = new Date(nowMs).toISOString().slice(0, 10);
     const sixtyDaysIsoDate = new Date(nowMs + 60 * 86_400_000).toISOString().slice(0, 10);
     try {
-        let seriesQuery = client
+        let psQuery = client
             .from('poker_series')
-            .select('id, series_name, venue_name, city, state, start_date, end_date, data_quality, is_suppressed');
-        if (typeof seriesQuery.in === 'function') {
+            .select('id, series_name, city, state, start_date, end_date, tour_code, main_event_buyin, total_guaranteed, data_quality, is_suppressed');
+        if (typeof psQuery.in === 'function') {
             // in-list: bounded 3 verified poker_series data_quality constants
-            seriesQuery = seriesQuery.in('data_quality', VERIFIED_SERIES_QUALITIES.slice(0, 3));
+            psQuery = psQuery.in('data_quality', VERIFIED_SERIES_QUALITIES.slice(0, 3));
         }
-        const { data: seriesRows } = await seriesQuery
-            .gte('end_date', todayIsoDate)
-            .lte('start_date', sixtyDaysIsoDate)
-            .order('start_date', { ascending: true })
-            .limit(20);
 
-        const filteredSeries = (seriesRows || [])
-            .filter(
-                (r) =>
-                    r &&
-                    r.is_suppressed !== true &&
-                    r.series_name &&
-                    (!r.data_quality || VERIFIED_SERIES_QUALITIES.includes(String(r.data_quality)))
-            )
-            .slice(0, 12);
+        let tsQuery = client
+            .from('tournament_series')
+            .select('id, name, venue_name, city, state, start_date, end_date, tour_code, main_event_buyin, main_event_guaranteed, data_quality, is_suppressed');
+        if (typeof tsQuery.in === 'function') {
+            // in-list: bounded 3 verified tournament_series data_quality constants
+            tsQuery = tsQuery.in('data_quality', VERIFIED_SERIES_QUALITIES.slice(0, 3));
+        }
+
+        const [psRes, tsRes] = await Promise.all([
+            psQuery
+                .gte('end_date', todayIsoDate)
+                .lte('start_date', sixtyDaysIsoDate)
+                .order('start_date', { ascending: true })
+                .limit(24),
+            Promise.resolve(
+                tsQuery
+                    .gte('end_date', todayIsoDate)
+                    .lte('start_date', sixtyDaysIsoDate)
+                    .order('start_date', { ascending: true })
+                    .limit(24)
+            ).catch(() => ({ data: [], error: null })),
+        ]);
+
+        const combinedRawSeries = [
+            ...(Array.isArray(psRes?.data)
+                ? psRes.data.map((r) => ({ ...r, _sourceType: 'poker_series', _seriesName: r.series_name }))
+                : []),
+            ...(Array.isArray(tsRes?.data)
+                ? tsRes.data.map((r) => ({ ...r, _sourceType: 'tournament_series', _seriesName: r.name }))
+                : []),
+        ];
+
+        const filteredSeries = combinedRawSeries
+            .filter((r) => {
+                if (!r || r.is_suppressed === true || !r._seriesName) return false;
+                if (r.data_quality && !VERIFIED_SERIES_QUALITIES.includes(String(r.data_quality))) return false;
+                // Exclude year-long 2026-01-01..2026-12-31 recurring house promos (> 90 days) so real multi-day series stops lead
+                if (r.start_date && r.end_date) {
+                    const spanDays = (Date.parse(r.end_date) - Date.parse(r.start_date)) / 86_400_000;
+                    if (Number.isFinite(spanDays) && spanDays > 90) return false;
+                }
+                if (r.end_date && String(r.end_date).slice(0, 10) < todayIsoDate) return false;
+                if (r.start_date && String(r.start_date).slice(0, 10) > sixtyDaysIsoDate) return false;
+                return true;
+            })
+            .sort((a, b) => {
+                const aUpcoming = String(a.start_date || '') >= todayIsoDate ? 0 : 1;
+                const bUpcoming = String(b.start_date || '') >= todayIsoDate ? 0 : 1;
+                if (aUpcoming !== bUpcoming) return aUpcoming - bUpcoming;
+                return String(a.start_date || '').localeCompare(String(b.start_date || ''));
+            })
+            .slice(0, 14);
 
         for (const s of filteredSeries) {
-            const cleanSeriesTitle = stripMagazineDashes(normalizeEditorialTitle(s.series_name)).slice(0, 500);
+            const cleanSeriesTitle = stripMagazineDashes(normalizeEditorialTitle(s._seriesName)).slice(0, 500);
             if (!cleanSeriesTitle) continue;
-            const loc = [s.venue_name, s.city, s.state].map(stripMagazineDashes).filter(Boolean).join(', ');
+            const locParts = [s.venue_name, s.city, s.state].map(stripMagazineDashes).filter(Boolean);
+            const loc = locParts.join(', ') || stripMagazineDashes(s.tour_code || 'Regional Championship Stop');
             const dates = [s.start_date, s.end_date].filter(Boolean).join(' to ');
             stagedRows.push(
                 mergePreservedFlags(
                     {
                         issue_period: period,
                         section: 'series_calendar',
-                        source_type: 'poker_series',
+                        source_type: s._sourceType,
                         source_id: String(s.id),
                         headline: cleanSeriesTitle,
-                        summary: stripMagazineDashes(`${loc}${dates ? ` (${dates})` : ''}`),
-                        body_text: stripMagazineDashes(`${s.series_name} at ${loc}. Dates: ${dates || 'Upcoming'}.`),
+                        summary: stripMagazineDashes(`${loc}${dates ? ` • ${dates}` : ''}`),
+                        body_text: stripMagazineDashes(`${cleanSeriesTitle} at ${loc}. Dates: ${dates || 'Upcoming'}.`),
                         source_url: `${MAGAZINE_SITE_URL}/hub/poker-near-me`,
                         original_image_url: '',
                         vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
@@ -1180,11 +1268,11 @@ export async function harvestMonthlyMagazineVault(
                         vaulted_storage_path: null,
                         image_width: 960,
                         image_height: 540,
-                        editorial_score: 78,
+                        editorial_score: 82,
                         is_pinned: false,
                         is_excluded: false,
                         metadata: {
-                            venueName: stripMagazineDashes(s.venue_name || ''),
+                            venueName: stripMagazineDashes(s.venue_name || s.tour_code || ''),
                             city: stripMagazineDashes(s.city || ''),
                             state: stripMagazineDashes(s.state || ''),
                             startDate: s.start_date || null,
@@ -1409,6 +1497,7 @@ export async function harvestWeeklyWireEditionToVault(
     for (let i = 0; i < articles.length; i += 1) {
         const a = articles[i];
         if (!a?.id || !a?.title) continue;
+        if (isCompetitorSponsoredPost(a)) continue;
         const cleanTitle = stripMagazineDashes(normalizeEditorialTitle(a.title)).slice(0, 500);
         if (!cleanTitle) continue;
         const allowNet = Date.now() < deadlineMs - 500;
@@ -1426,10 +1515,21 @@ export async function harvestWeeklyWireEditionToVault(
         let bodyParagraphs = [];
         if (allowNet && a.source_url && i < 2) {
             bodyParagraphs = await extractArticleBodySafe(a.source_url, { deadlineMs });
+            bodyParagraphs = bodyParagraphs
+                .map((p) => stripScraperBylinePrefix(p))
+                .filter((p) => p.length >= 36 && !isEchoingOrEmptyBlurb(cleanTitle, p));
         }
         if (bodyParagraphs.length === 0) {
             bodyParagraphs = buildSynthesizedEditorialParagraphs(a, cleanTitle);
         }
+
+        const wireDeck = buildCleanNonEchoingDeck({
+            title: cleanTitle,
+            rawSummary: a.summary || '',
+            paragraphs: bodyParagraphs,
+            sourceName: a.source_name || 'Weekly Wire',
+            category: a.category || 'Tournament & Industry',
+        });
 
         rows.push(
             mergePreservedFlags(
@@ -1439,7 +1539,7 @@ export async function harvestWeeklyWireEditionToVault(
                     source_type: 'poker_news',
                     source_id: String(a.id),
                     headline: cleanTitle,
-                    summary: stripMagazineDashes(a.summary || cleanTitle),
+                    summary: wireDeck,
                     body_text: bodyParagraphs.join('\n\n'),
                     source_url: String(a.source_url || `${MAGAZINE_SITE_URL}/hub/news`),
                     original_image_url: String(a.image_url || ''),

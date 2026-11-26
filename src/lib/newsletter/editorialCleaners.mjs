@@ -49,6 +49,12 @@ const POKER_ACRONYM_MAP = {
     ai: 'AI',
     usa: 'USA',
     uk: 'UK',
+    lapc: 'LAPC',
+    lhpo: 'LHPO',
+    shrpo: 'SHRPO',
+    napt: 'NAPT',
+    pca: 'PCA',
+    tda: 'TDA',
     iii: 'III',
     ii: 'II',
     iv: 'IV',
@@ -128,8 +134,9 @@ export function normalizeEditorialTitle(title) {
         clean = converted.join(' ');
     }
 
-    // Preserve $2.65M / $25K uppercase magnitude suffixes on dollar tokens
+    // Preserve $2.65M / $25K AND bare 50m / 250k / 20k uppercase magnitude suffixes on numeric tokens
     clean = clean.replace(/\$(\d+(?:[.,]\d+)?)([kmb])\b/gi, (_m, num, unit) => `$${num}${unit.toUpperCase()}`);
+    clean = clean.replace(/\b(\d+(?:[.,]\d+)?)([km])\b/gi, (_m, num, unit) => `${num}${unit.toUpperCase()}`);
 
     // Fix poker acronym casing across word boundaries on ALL headlines
     clean = clean.replace(POKER_ACRONYM_RE, (full, base, pluralS) => {
@@ -156,11 +163,33 @@ const RIVAL_PRODUCT_PATTERNS = [
     /\bclub\s*gg\b/i,
     /\bpokerrrr\s*2?\b/i,
     /\bpoker\s*bros\b/i,
-    /\bggpoker\s+bonus\s+code\b/i,
+    /\bclub\s*wpt(?:\s+gold)?\b/i,
+    /\bglobal\s+poker\b/i,
+    /\bcoin\s*poker\b/i,
+    /\bphenom\s+poker\b/i,
+    /\bacr\s+poker\b/i,
+    /\bamericas\s+cardroom\b/i,
+    /\bbet\s*rivers(?:\s+poker)?\b/i,
+    /\bbet\s*mgm\s+poker\b/i,
+    /\bborgata\s+online(?:\s+poker)?\b/i,
+    /\bparty\s*poker\b/i,
+    /\b888\s*poker\b/i,
+    /\bwpt\s+global\b/i,
+    /\bggpoker\s+(?:bonus|promo|giveaway|honeymoon|rakeback|fish\s+buffet)\b/i,
+    /\bpokerstars\s+(?:ambassador|ambassadors|rewards|chest|bonus|festive\s+season|power\s+path)\b/i,
+    /\bfestive\s+season\s+returns\s+with\b/i,
+    /\bin\s+rewards\s+throughout\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)\b/i,
+    /\bclimb\s+the\s+cash\s+game\s+ladder\b/i,
+    /\bcash\s+game\s+ladder\b/i,
+    /\bfor\s+a\s+share\s+of\s+\$?\d+[.,\d]*[kmb]?\s+(?:each|every)\s+(?:week|month|day)\b/i,
+    /\b(?:deposit|reload|welcome)\s+bonus\b/i,
+    /\brake\s+race\b/i,
     /\b(?:promo|bonus|coupon|referral)\s+code\b/i,
     /\baffiliate\b/i,
     /\bsponsored\s+(?:post|content|partner|article)\b/i,
 ];
+
+const RIVAL_SOURCE_OUTLET_RE = /\b(?:pokerstars\s+blog|ggpoker\s+blog|partypoker\s+blog|888poker\s+magazine|wpt\s+global\s+blog|acr\s+poker\s+blog|coinpoker\s+blog|betrivers)\b/i;
 
 const SUBSCRIPTION_PITCH_PATTERNS = [
     /\b\d+%\s*off\b[\s\S]*\b(subscription|pro|plan|membership|course|trainer|solver|elite|annual)\b/i,
@@ -174,14 +203,24 @@ const LIVE_TOUR_PACKAGE_RE = /\b(?:wsop|wsopc|wpt|ept|mspt|apt|hpt|rgps|pgt|trit
 
 const AFFILIATE_URL_RE = /[?&](?:aff|affiliate|aff_id|promo_code|bonus_code)=|\/(?:bonus-code|promo-code|black-friday-offer)\b/i;
 
-export function isCompetitorSponsoredPost({ title = '', summary = '', excerpt = '', source_url = '' } = {}) {
+export function isCompetitorSponsoredPost({
+    title = '',
+    summary = '',
+    excerpt = '',
+    source_url = '',
+    source_name = '',
+    byline = '',
+} = {}) {
     const combinedText = [title, summary, excerpt]
         .map((v) => String(v || '').trim())
         .filter(Boolean)
         .join(' ');
     const url = String(source_url || '').trim();
+    const outlet = `${String(source_name || '').trim()} ${String(byline || '').trim()}`.trim();
 
-    if (!combinedText && !url) return false;
+    if (!combinedText && !url && !outlet) return false;
+
+    if (outlet && RIVAL_SOURCE_OUTLET_RE.test(outlet)) return true;
 
     for (const re of RIVAL_PRODUCT_PATTERNS) {
         if (re.test(combinedText)) return true;

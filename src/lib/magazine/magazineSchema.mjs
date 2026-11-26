@@ -222,10 +222,49 @@ export function normalizeMagazineUsState(code) {
     return mapped || null;
 }
 
-export function stripMagazineDashes(value) {
+const NAMED_HTML_ENTITIES = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    rsquo: "'",
+    lsquo: "'",
+    rdquo: '"',
+    ldquo: '"',
+    nbsp: ' ',
+    bull: '•',
+    middot: '·',
+    hellip: '...',
+};
+
+export function decodeMagazineEntities(value) {
     return String(value ?? '')
         .replace(/&mdash;|&ndash;|&#8212;|&#8211;|&#x2014;|&#x2013;/gi, ' - ')
+        .replace(/&#x([0-9a-f]{1,6});/gi, (m, hex) => {
+            const cp = parseInt(hex, 16);
+            if (!Number.isFinite(cp) || cp < 32 || cp > 0x10ffff) return m;
+            if (cp === 0x2014 || cp === 0x2013) return ' - ';
+            return String.fromCodePoint(cp);
+        })
+        .replace(/&#(\d{1,7});/g, (m, dec) => {
+            const cp = parseInt(dec, 10);
+            if (!Number.isFinite(cp) || cp < 32 || cp > 0x10ffff) return m;
+            if (cp === 0x2014 || cp === 0x2013) return ' - ';
+            return String.fromCodePoint(cp);
+        })
+        .replace(/&([a-z]+);/gi, (m, name) => {
+            const mapped = NAMED_HTML_ENTITIES[String(name).toLowerCase()];
+            return mapped !== undefined ? mapped : m;
+        });
+}
+
+export function stripMagazineDashes(value) {
+    return decodeMagazineEntities(value)
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u201c\u201d]/g, '"')
         .replace(/\s*[\u2014\u2013]\s*/g, ' - ')
+        .replace(/\s+([,.;:!?])/g, '$1')
         .replace(/\s{2,}/g, ' ')
         .trim();
 }

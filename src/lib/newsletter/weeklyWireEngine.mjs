@@ -1240,29 +1240,61 @@ export async function curateWeeklyWireEdition(
         : null;
     const toolMarkerId = toolResult?.markerId || null;
 
-    // 5. Query upcoming live poker_series safely (graceful fallback if unavailable in mock DB)
+    // 5. Query upcoming live poker_series + tournament_series safely (graceful fallback if unavailable in mock DB)
+    // NOTE: `poker_series` has NO `venue_name` column (uses `series_name, city, state, tour_code`), while `tournament_series` uses `name, venue_name, city, state`.
     let upcomingSeries = [];
     try {
         const todayIsoDate = new Date(nowMs).toISOString().slice(0, 10);
-        const { data: seriesRows, error: seriesErr } = await sb
-            .from('poker_series')
-            .select('id, series_name, venue_name, city, state, start_date, end_date, is_suppressed')
-            .gte('end_date', todayIsoDate)
-            .order('start_date', { ascending: true })
-            .limit(12);
-        if (!seriesErr && Array.isArray(seriesRows)) {
-            upcomingSeries = seriesRows
-                .filter((row) => row && row.is_suppressed !== true && row.series_name)
-                .slice(0, 3)
-                .map((row) => ({
-                    id: row.id,
-                    series_name: normalizeEditorialTitle(row.series_name),
-                    venue_name: stripEmDashes(row.venue_name || '').trim(),
-                    city: stripEmDashes(row.city || '').trim(),
-                    state: stripEmDashes(row.state || '').trim(),
-                    start_date: row.start_date || null,
-                    end_date: row.end_date || null,
-                }));
+        const ninetyDaysIsoDate = new Date(nowMs + 90 * 86_400_000).toISOString().slice(0, 10);
+        const [psRes, tsRes] = await Promise.all([
+            sb
+                .from('poker_series')
+                .select('id, series_name, city, state, start_date, end_date, tour_code, is_suppressed')
+                .gte('end_date', todayIsoDate)
+                .order('start_date', { ascending: true })
+                .limit(16),
+            Promise.resolve(
+                sb
+                    .from('tournament_series')
+                    .select('id, name, venue_name, city, state, start_date, end_date, tour_code, is_suppressed')
+                    .gte('end_date', todayIsoDate)
+                    .order('start_date', { ascending: true })
+                    .limit(16)
+            ).catch(() => ({ data: [], error: null })),
+        ]);
+        const mergedRaw = [
+            ...(!psRes?.error && Array.isArray(psRes?.data) ? psRes.data : []),
+            ...(!tsRes?.error && Array.isArray(tsRes?.data)
+                ? tsRes.data.map((r) => ({ ...r, series_name: r.series_name || r.name }))
+                : []),
+        ];
+        const filteredRows = mergedRaw
+            .filter((row) => {
+                if (!row || row.is_suppressed === true || !row.series_name) return false;
+                if (row.start_date && row.end_date) {
+                    const spanDays = (Date.parse(row.end_date) - Date.parse(row.start_date)) / 86_400_000;
+                    if (Number.isFinite(spanDays) && spanDays > 150) return false;
+                }
+                if (row.start_date && String(row.start_date).slice(0, 10) > ninetyDaysIsoDate) return false;
+                return true;
+            })
+            .sort((a, b) => String(a.start_date || '').localeCompare(String(b.start_date || '')));
+        const seenNames = new Set();
+        for (const row of filteredRows) {
+            const normName = normalizeEditorialTitle(row.series_name);
+            const dedupeKey = normName.toLowerCase();
+            if (!normName || seenNames.has(dedupeKey)) continue;
+            seenNames.add(dedupeKey);
+            upcomingSeries.push({
+                id: row.id,
+                series_name: normName,
+                venue_name: stripEmDashes(row.venue_name || row.tour_code || '').trim(),
+                city: stripEmDashes(row.city || '').trim(),
+                state: stripEmDashes(row.state || '').trim(),
+                start_date: row.start_date || null,
+                end_date: row.end_date || null,
+            });
+            if (upcomingSeries.length >= 3) break;
         }
     } catch {
         upcomingSeries = [];
