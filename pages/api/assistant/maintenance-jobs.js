@@ -50,12 +50,19 @@ export async function runRecoverAudits(supabase, { p_limit = 25 } = {}) {
   let kickedCount = 0;
 
   if (requeuedIds.length > 0) {
-    const { data: jobs, error: jobsError } = await supabase
-      .from('pa_leak_audit_jobs')
-      .select('id, user_id')
-      .in('id', requeuedIds);
+    const jobs = [];
+    for (let i = 0; i < requeuedIds.length; i += 50) {
+      const { data: batchJobs, error: jobsError } = await supabase
+        .from('pa_leak_audit_jobs')
+        .select('id, user_id')
+        .in('id', requeuedIds.slice(i, i + 50));
 
-    if (!jobsError && Array.isArray(jobs)) {
+      if (!jobsError && Array.isArray(batchJobs)) {
+        jobs.push(...batchJobs);
+      }
+    }
+
+    if (jobs.length > 0) {
       const results = await Promise.allSettled(
         jobs.map(job => kickAuditWorker(job))
       );
