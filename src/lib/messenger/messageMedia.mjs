@@ -19,6 +19,9 @@
  * and the message falls back to plain text rather than reaching an <img src>.
  */
 
+import { isLiveInvite } from './liveInvite.mjs';
+import { isCallReceipt, describeCallReceipt } from './callReceipt.mjs';
+
 export const MEDIA_KINDS = ['image', 'video', 'gif', 'audio'];
 export const VISUAL_MEDIA_KINDS = ['image', 'video', 'gif'];
 
@@ -122,6 +125,55 @@ function fromLegacyMedia(rest) {
     return isSafeMediaUrl(url) ? { kind, url: String(url).trim(), duration: 0, caption: '' } : null;
 }
 
+/** Strip leading [REPLY:...] header, returning { replyQuote, body }. */
+export function extractReplyPrefix(content) {
+    if (typeof content !== 'string') return { replyQuote: null, body: '' };
+    const match = /^\[REPLY:([^\]]+)\]\s*/.exec(content);
+    if (!match) return { replyQuote: null, body: content };
+    return { replyQuote: match[1].trim(), body: content.slice(match[0].length) };
+}
+
+/** Strip repeated leading [Forwarded] prefixes so forwarding never double-wraps. */
+export function stripForwardPrefix(content) {
+    if (typeof content !== 'string') return '';
+    let text = content.trim();
+    while (text.startsWith(FORWARD_PREFIX)) {
+        text = text.slice(FORWARD_PREFIX.length).trim();
+    }
+    return text;
+}
+
+/**
+ * Plain-text quote safe to embed inside [REPLY:...].
+ * Media attachments resolve to their human label (never raw `[Image](url)` whose
+ * inner `]` would prematurely terminate `[REPLY:...]` and corrupt the message).
+ */
+export function formatReplyQuote(content, maxLength = 80) {
+    const raw = extractReplyPrefix(String(content || '')).body.trim();
+    if (!raw) return 'Attachment';
+    const media = parseMessageMedia(raw);
+    let summary;
+    if (media) {
+        const label = mediaPreviewLabel(media.kind);
+        summary = media.caption ? `${label}: ${media.caption}` : label;
+    } else if (isLiveInvite(raw)) {
+        summary = 'Live Stream Invite';
+    } else if (isCallReceipt(raw)) {
+        summary = describeCallReceipt(raw);
+    } else {
+        summary = stripForwardPrefix(raw);
+    }
+    const safe = summary.replace(/[\r\n]+/g, ' ').replace(/\]/g, '').replace(/\s+/g, ' ').trim();
+    if (!safe) return 'Attachment';
+    return maxLength > 0 && safe.length > maxLength ? safe.slice(0, maxLength).trimEnd() : safe;
+}
+
+/** True when a message payload is structured (media, call receipt, live invite) and must not be edited as plain text. */
+export function isStructuredMessageContent(content) {
+    const raw = extractReplyPrefix(String(content || '')).body.trim();
+    return Boolean(parseMessageMedia(raw) || isLiveInvite(raw) || isCallReceipt(raw));
+}
+
 /**
  * The single reader. Returns { kind, url, duration, caption, forwarded } for a
  * media message, or null for anything else — including a media marker whose
@@ -130,8 +182,11 @@ function fromLegacyMedia(rest) {
 export function parseMessageMedia(content) {
     if (typeof content !== 'string') return null;
     let text = content.replace(REPLY_PREFIX, '').trim();
-    const forwarded = text.startsWith(FORWARD_PREFIX);
-    if (forwarded) text = text.slice(FORWARD_PREFIX.length).trim();
+    let forwarded = false;
+    while (text.startsWith(FORWARD_PREFIX)) {
+        forwarded = true;
+        text = text.slice(FORWARD_PREFIX.length).trim();
+    }
 
     text = text.replace(LEADING_DECORATION, '');
 

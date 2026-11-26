@@ -12,14 +12,18 @@ import test from 'node:test';
 import * as messageMedia from '../src/lib/messenger/messageMedia.mjs';
 import {
     encodeMessageMedia,
+    extractReplyPrefix,
+    formatReplyQuote,
     parseMessageMedia,
     isMediaMessage,
     isSafeMediaUrl,
+    isStructuredMessageContent,
     isVisualMediaKind,
     mediaPreviewLabel,
     mediaThumbnailUrl,
     isThumbnailUrl,
     resolveUploadMedia,
+    stripForwardPrefix,
     videoPreviewUrl,
 } from '../src/lib/messenger/messageMedia.mjs';
 import * as liveInvite from '../src/lib/messenger/liveInvite.mjs';
@@ -304,13 +308,70 @@ test('corner Messenger dock and ClubArenaMessenger use the same 1px thin media f
     const dock = readFileSync('src/components/messenger/dock/MessengerChat.jsx', 'utf8');
     const dockCss = readFileSync('src/components/messenger/dock/MessengerDock.css', 'utf8');
     const caMessenger = readFileSync('src/components/club-arena/ClubArenaMessenger.jsx', 'utf8');
+    const viewer = readFileSync('src/components/messenger/MediaViewer.jsx', 'utf8');
 
     assert.match(dock, /encodeMessageMedia/);
     assert.match(dock, /resolveUploadMedia/);
+    assert.match(dock, /formatReplyQuote/);
+    assert.match(dock, /extractReplyPrefix/);
+    assert.match(dock, /mediaThumbnailUrl/);
+    assert.match(dock, /<MediaViewer /);
     assert.match(dock, /dock-media-bubble/);
+    assert.match(dock, /dock-media-fallback/);
+    assert.match(dock, /dock-reply-quote/);
     assert.equal(/\[(?:Image|Video|GIF|Audio)\]\(\$\{/.test(dock), false, 'dock must not hand-write media markers');
     assert.match(dockCss, /\.dock-message-bubble\.dock-media-bubble[\s\S]*padding:\s*0;[\s\S]*border:\s*1px solid/);
-    assert.match(dockCss, /\.dock-media-bubble img,[\s\S]*object-fit:\s*contain;/);
+    assert.match(dockCss, /\.dock-media-bubble img,[\s\S]*margin:\s*0 auto;[\s\S]*object-fit:\s*contain;/);
     assert.match(caMessenger, /media-bubble/);
     assert.match(caMessenger, /\.message-bubble\.media-bubble[\s\S]*padding:\s*0;[\s\S]*border:\s*1px solid/);
+    assert.match(viewer, /onError=\{\(\) => setFailed\(true\)\}/);
+    assert.match(viewer, /Unable To Load Photo/);
+});
+
+// SECOND-PASS HARDENING (2026-11-25):
+// - Replying to a photo/video previously embedded `[Image](url)` inside `[REPLY:...]`
+//   whose inner `]` terminated the reply regex early and corrupted the message.
+// - Forwarding an already-forwarded photo doubled `[Forwarded]` and broke parsing.
+// - Saved Messages, Search, Edit Message, and Copy Text leaked raw `[Image](url)` markup.
+test('reply quotes, double-forwarded media, structured edit guards, and search/saved previews never leak or break markup', () => {
+    const videoUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/messages/a/clip.mp4';
+    // Reply quotes translate attachments to plain labels and never contain `]`.
+    assert.equal(formatReplyQuote(`[Image](${PHOTO})`), 'Photo');
+    assert.equal(formatReplyQuote(`[Video](${videoUrl})`), 'Video');
+    assert.equal(formatReplyQuote(`[Audio](${PHOTO})|dur:9`), 'Voice Message');
+    assert.equal(formatReplyQuote(`[Image](${PHOTO}) Look at the river card`), 'Photo: Look at the river card');
+    assert.equal(formatReplyQuote('[REPLY:older] hello [world]'), 'hello [world');
+    const replyWire = `[REPLY:${formatReplyQuote(`[Image](${PHOTO})`)}] Nice hand!`;
+    assert.deepEqual(extractReplyPrefix(replyWire), { replyQuote: 'Photo', body: 'Nice hand!' });
+
+    // Double-forwarded media still decodes as media, and stripForwardPrefix prevents doubling.
+    const dbl = parseMessageMedia(`[Forwarded] [Forwarded] [Image](${PHOTO})`);
+    assert.equal(dbl?.kind, 'image');
+    assert.equal(dbl?.forwarded, true);
+    assert.equal(dbl?.url, PHOTO);
+    assert.equal(stripForwardPrefix(`[Forwarded] [Forwarded] [Image](${PHOTO})`), `[Image](${PHOTO})`);
+
+    // Structured media/system messages are refused for text editing.
+    assert.equal(isStructuredMessageContent(`[Image](${PHOTO})`), true);
+    assert.equal(isStructuredMessageContent(`[Video](${videoUrl})`), true);
+    assert.equal(isStructuredMessageContent('[LIVE_INVITE]room=1'), true);
+    assert.equal(isStructuredMessageContent('[CALL_RECEIPT]{"type":"video"}'), true);
+    assert.equal(isStructuredMessageContent('Good luck!'), false);
+
+    // Previews strip reply/forward wrappers cleanly.
+    assert.equal(messengerPreviewText(`[REPLY:Hi] [Image](${PHOTO})`), 'Photo');
+    assert.equal(messengerPreviewText('[REPLY:Hi] Thanks!'), 'Thanks!');
+    assert.equal(messengerPreviewText('[Forwarded] See you at 8'), 'See you at 8');
+
+    // Every main-page surface wires through the shared helpers.
+    const page = readFileSync('pages/hub/messenger.js', 'utf8');
+    const bubble = readFileSync('src/components/messenger/MessageBubble.js', 'utf8');
+    assert.match(page, /formatReplyQuote\(replyToMessage\.content/);
+    assert.match(page, /isStructuredMessageContent\(message\.content/);
+    assert.match(page, /stripForwardPrefix\(/);
+    assert.match(page, /messengerPreviewText\(item\.message\.content/);
+    assert.match(page, /messengerPreviewText\(hit\.content/);
+    assert.match(page, /messengerPreviewText\(result\.content/);
+    assert.match(bubble, /const canEditMessage = isOwn[\s\S]*!isMediaAttachment/);
+    assert.match(bubble, /margin:\s*'0 auto'/);
 });

@@ -238,24 +238,27 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
         return (
             <div style={{ display: 'block' }}>
                 {forwarded}
-                <video
-                    src={videoSrc}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    onError={() => setFailed(true)}
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                        display: 'block',
-                        width: 'auto',
-                        height: 'auto',
-                        maxWidth: '100%',
-                        maxHeight: 'min(520px, 68dvh)',
-                        objectFit: 'contain',
-                        background: '#000',
-                        borderRadius: 0,
-                    }}
-                />
+                <div style={{ display: 'block', background: '#000' }}>
+                    <video
+                        src={videoSrc}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        onError={() => setFailed(true)}
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            display: 'block',
+                            margin: '0 auto',
+                            width: 'auto',
+                            height: 'auto',
+                            maxWidth: '100%',
+                            maxHeight: 'min(520px, 68dvh)',
+                            objectFit: 'contain',
+                            background: '#000',
+                            borderRadius: 0,
+                        }}
+                    />
+                </div>
                 {caption}
             </div>
         );
@@ -273,28 +276,32 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
 
     const label = media.kind === 'gif' ? 'GIF' : 'Photo Attachment';
     const threadSrc = fitted ? (mediaThumbnailUrl(media.url, { kind: media.kind }) || media.url) : media.url;
+    const hasMediaChrome = Boolean(media.caption || media.forwarded);
     return (
         <div style={{ display: 'block' }}>
             {forwarded}
-            <img
-                src={threadSrc}
-                alt={label}
-                loading="lazy"
-                decoding="async"
-                onError={() => { if (threadSrc !== media.url) setFitted(false); else setFailed(true); }}
-                onClick={e => { e.stopPropagation(); setViewing(true); }}
-                {...{ [ATTACHMENT_ATTRIBUTE]: media.url }}
-                style={{
-                    display: 'block',
-                    width: 'auto',
-                    height: 'auto',
-                    maxWidth: media.kind === 'gif' ? 'min(320px, 100%)' : '100%',
-                    maxHeight: media.kind === 'gif' ? 'min(360px, 60dvh)' : 'min(520px, 68dvh)',
-                    objectFit: 'contain',
-                    borderRadius: 0,
-                    cursor: 'zoom-in',
-                }}
-            />
+            <div style={{ display: 'block', background: hasMediaChrome ? C.bg : 'transparent' }}>
+                <img
+                    src={threadSrc}
+                    alt={label}
+                    loading="lazy"
+                    decoding="async"
+                    onError={() => { if (threadSrc !== media.url) setFitted(false); else setFailed(true); }}
+                    onClick={e => { e.stopPropagation(); setViewing(true); }}
+                    {...{ [ATTACHMENT_ATTRIBUTE]: media.url }}
+                    style={{
+                        display: 'block',
+                        margin: '0 auto',
+                        width: 'auto',
+                        height: 'auto',
+                        maxWidth: media.kind === 'gif' ? 'min(320px, 100%)' : '100%',
+                        maxHeight: media.kind === 'gif' ? 'min(360px, 60dvh)' : 'min(520px, 68dvh)',
+                        objectFit: 'contain',
+                        borderRadius: 0,
+                        cursor: 'zoom-in',
+                    }}
+                />
+            </div>
             {caption}
             {viewing && <MediaViewer url={media.url} label={label} onClose={() => setViewing(false)} />}
         </div>
@@ -724,6 +731,16 @@ export function MessageBubble({
         ? parseMessageMedia(strippedBubbleContent)
         : null;
     const isVisualMedia = Boolean(parsedVisualMedia && isVisualMediaKind(parsedVisualMedia.kind));
+    const isMediaAttachment = Boolean(parsedVisualMedia);
+    const copyableText = isMediaAttachment
+        ? (parsedVisualMedia.caption || '')
+        : (!isSpecialCard ? strippedBubbleContent : '');
+    const canEditMessage = isOwn
+        && !isFinancialDocument
+        && !isSpecialCard
+        && !isMediaAttachment
+        && !message.is_deleted
+        && (Date.now() - new Date(message.created_at).getTime()) < 300000;
 
     return (
         <div
@@ -838,11 +855,10 @@ export function MessageBubble({
                                 {isSaved ? 'Remove Saved Message' : 'Save Message'}
                             </button>
                         )}
-                        {!message.is_deleted && (
+                        {!message.is_deleted && copyableText && (
                             <button
                                 onClick={() => {
-                                    const text = message.content || message.text || '';
-                                    navigator.clipboard?.writeText(text).then(() => {
+                                    navigator.clipboard?.writeText(copyableText).then(() => {
                                         if (navigator.vibrate) navigator.vibrate(10);
                                     }).catch(e => console.warn('[App] Handled exception:', e?.message || e));
                                     setShowMenu(false);
@@ -881,7 +897,7 @@ export function MessageBubble({
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Delete For Me</button>
-                        {isOwn && !isFinancialDocument && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 300000 && (
+                        {canEditMessage && (
                             <button
                                 onClick={() => {
                                     onEdit?.(message);
