@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep pinned history immutable; admit three exact, freshly qualified DML transitions."""
+"""Keep pinned history immutable and admit only exact, freshly qualified transitions."""
 import argparse
 import copy
 import hashlib
@@ -32,6 +32,10 @@ REPORT_TRANSITIONS = (
     ('supabase/migrations/20261114174518_cashier_history_names_the_union_or_club_that_sent.sql', '7ae0cd350be74ecea3635c1e30869de2197d1263e102e89e7e2089d87aca0701'),
 )
 MARKETPLACE_TRANSITIONS = (('supabase/migrations/20261031191337_signup_audit_checks_auth_triggers_by_name.sql', '16618b0db7ce11823bdfe685af7b3253976354dfcb099d13b4b926434a679021'), ('supabase/migrations/20261102011118_marketplace_whole_dollar_prices.sql', '8183a4285311c4e74d4e39e4e376ccc53b0dea3aba4fce8b1e2809b3b496f663'),)
+TRAINING_CAP_TRANSITION = ('supabase/migrations/20261126211919_training_results_at_diamond_daily_cap.sql', 'c576a2844c4e157c7c9b22957e29bd552a49a629dce9eac48fe2adbcce0922f1')
+TRAINING_CAP_PREFIX = 'Training journal cap PostgreSQL qualification passed: '
+TRAINING_CAP_CHECKS = ('cappedTrainingResults', 'unrelatedJournalRefusal',
+                       'ledgerAndBalancePreserved', 'idempotentCompletion')
 MARKETPLACE_PREFIX = 'Marketplace PostgreSQL qualification passed: '
 REPORT_PREFIX = 'Digest PostgreSQL qualification passed: '
 
@@ -44,6 +48,7 @@ TRANSITIONS = (
      'b6deee756e3426b8a9fa67e74cb490a3aaf68f53ebea7fe6df58bf234979ed8d'),
 )
 EVIDENCE_PREFIX = 'Phase 6 Training solver catalog verification passed: '
+ADMITTED_TRANSITIONS = TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS + (TRAINING_CAP_TRANSITION,)
 REQUIRED_CHECKS = (
     'exactTwoTargets', 'schemaUnchanged', 'm2Unchanged',
     'receiptsAndArtifactsPreserved', 'duplicateRefused', 'guardDriftRefused',
@@ -70,11 +75,11 @@ def validate_inputs(inventory, forward, actual):
     if any(actual[p] != digest for p, digest in expected.items()):
         raise ValueError('Historical migration bytes changed')
     new = set(actual) - set(expected)
-    if new != set(dict(TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS)) or any(actual.get(p) != digest for p, digest in TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS):
-        raise ValueError('Only exact independently qualified M1, digest and marketplace transitions are admitted')
+    if new != set(dict(ADMITTED_TRANSITIONS)) or any(actual.get(p) != digest for p, digest in ADMITTED_TRANSITIONS):
+        raise ValueError('Only exact independently qualified Hub transitions are admitted')
 
 
-def extend_inventory(inventory, forward, actual, proof, report_proof=None, marketplace_proof=None):
+def extend_inventory(inventory, forward, actual, proof, report_proof=None, marketplace_proof=None, training_cap_proof=None):
     validate_inputs(inventory, forward, actual)
     if not isinstance(proof, list) or len(proof) != len(TRANSITIONS):
         raise ValueError('Native proof must cover all three transitions in order')
@@ -91,9 +96,16 @@ def extend_inventory(inventory, forward, actual, proof, report_proof=None, marke
     expected_marketplace = [{'path': p, 'sha256': digest, 'postgresMajor': 17} for p, digest in MARKETPLACE_TRANSITIONS]
     if marketplace_proof != expected_marketplace:
         raise ValueError('Fresh exact PostgreSQL 17 marketplace qualification required')
+    path, digest = TRAINING_CAP_TRANSITION
+    expected_training_cap = {'path': path, 'sha256': digest, 'postgresMajor': 17}
+    if (not isinstance(training_cap_proof, dict)
+            or any(training_cap_proof.get(key) != value for key, value in expected_training_cap.items())
+            or type(training_cap_proof['postgresMajor']) is not int
+            or any(training_cap_proof.get(key) is not True for key in TRAINING_CAP_CHECKS)):
+        raise ValueError('Fresh exact PostgreSQL 17 Training journal cap qualification required')
     admitted = copy.deepcopy(inventory)
     admitted['repositories']['hub']['files'].extend(
-        {'path': migration, 'sha256': digest} for migration, digest in TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS)
+        {'path': migration, 'sha256': digest} for migration, digest in ADMITTED_TRANSITIONS)
     return admitted
 
 
@@ -141,8 +153,15 @@ def main():
     if len(receipts) != 1:
         raise ValueError('Expected one fresh marketplace native qualification receipt')
     marketplace_proof = json.loads(receipts[0])
+    training_cap = subprocess.run(['node', str(root / 'scripts/verify-training-authority-postgres.mjs')],
+                                  cwd=root, env=environment, check=True, capture_output=True, text=True)
+    receipts = [line[len(TRAINING_CAP_PREFIX):] for line in training_cap.stdout.splitlines()
+                if line.startswith(TRAINING_CAP_PREFIX)]
+    if len(receipts) != 1:
+        raise ValueError('Expected one fresh Training journal cap qualification receipt')
+    training_cap_proof = json.loads(receipts[0])
     # Re-read migration bytes after execution so the receipt cannot admit changed input.
-    admitted = extend_inventory(inventory, forward, fingerprint(root), proof, report_proof, marketplace_proof)
+    admitted = extend_inventory(inventory, forward, fingerprint(root), proof, report_proof, marketplace_proof, training_cap_proof)
     with tempfile.TemporaryDirectory(prefix='training-qualified-lineage-') as scratch:
         derived = Path(scratch) / 'qualified-inventory.json'
         derived.write_text(json.dumps(admitted), encoding='utf-8')

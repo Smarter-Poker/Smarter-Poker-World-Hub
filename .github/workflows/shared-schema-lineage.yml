@@ -8,6 +8,7 @@ on:
       - '.github/workflows/shared-schema-lineage.yml'
       - 'scripts/ci/*shared-schema-lineage.py'
       - 'scripts/verify-training-solver-catalog-postgres.mjs'
+      - 'scripts/verify-training-authority-postgres.mjs'
       - 'scripts/training-m1-repin-qualification.mjs'
   push:
     branches: [main]
@@ -17,6 +18,7 @@ on:
       - '.github/workflows/shared-schema-lineage.yml'
       - 'scripts/ci/*shared-schema-lineage.py'
       - 'scripts/verify-training-solver-catalog-postgres.mjs'
+      - 'scripts/verify-training-authority-postgres.mjs'
       - 'scripts/training-m1-repin-qualification.mjs'
   workflow_dispatch:
 permissions:
@@ -64,7 +66,7 @@ jobs:
         env:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
         run: npm ci --no-audit --no-fund
-      - name: Qualify exact DML and verify every migration against pinned history
+      - name: Qualify exact transitions and verify every migration against pinned history
         env:
           PHASE6_POSTGRES_BIN: /usr/lib/postgresql/17/bin
         run: python3 scripts/ci/check-shared-schema-lineage.py --checkout . --shared-source shared-schema-source
