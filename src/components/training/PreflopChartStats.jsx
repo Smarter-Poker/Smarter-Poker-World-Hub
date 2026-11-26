@@ -31,7 +31,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
     };
 
     const barData = [
-        { label: 'Pairs', value: pairCombos, max: totalCombos || 1, color: '#a855f7' },
+        { label: 'Pairs', value: pairCombos, max: totalCombos || 1, color: '#86daff' },
         { label: 'Suited', value: suitedCombos, max: totalCombos || 1, color: '#3b82f6' },
         { label: 'Offsuit', value: offsuitCombos, max: totalCombos || 1, color: '#64748b' },
     ];
@@ -158,7 +158,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                     border: '1px solid rgba(251,191,36,0.15)',
                 }}>
                     <div style={{
-                        fontSize: 18, fontWeight: 800, color: '#fbbf24',
+                        fontSize: 18, fontWeight: 800, color: '#86daff',
                         fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         {mixedHands}

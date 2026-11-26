@@ -65,6 +65,6 @@ test('pressed analysis filters are accessible and carry the cyan instrument stat
 });
 
 test('the unchanged global header remains outside the training page stage', () => {
-  assert.match(app, /\{!trainingPageOwnsHeader && <UniversalHeader pageDepth=\{2\} \/>\}[\s\S]*?<div className="sp-training-page-stage">/);
+  assert.match(app, /\{!trainingPageOwnsHeader && <UniversalHeader pageDepth=\{2\} \/>\}[\s\S]*?<div className="sp-training-page-stage smarterdesign">/);
   assert.doesNotMatch(trainingCss, /\.universal-header[^\n]*sp-training-tool--analysis/);
 });

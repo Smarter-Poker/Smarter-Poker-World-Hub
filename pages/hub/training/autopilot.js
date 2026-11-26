@@ -157,7 +157,7 @@ const SPOT_DEFINITIONS = [
     name: '3-Bet Pots',
     position: 'any',
     street: 'any',
-    color: '#ec4899',
+    color: '#86daff',
     iconKind: 'bolt',
     icon: '⌁',
     gameId: 'cash-007',

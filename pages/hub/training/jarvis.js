@@ -271,7 +271,7 @@ export default function JarvisDashboard() {
             }}
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: '#fbbf24', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#86daff', textTransform: 'uppercase' }}>
                 #1 Priority Leak Curriculum: {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
               </div>
               <div style={{ fontSize: 12, fontWeight: 800, color: leakAnalysis.hasVerifiedLeak ? '#4ade80' : '#94a3b8' }}>

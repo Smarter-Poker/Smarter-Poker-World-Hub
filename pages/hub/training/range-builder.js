@@ -390,7 +390,7 @@ export default function RangeBuilder() {
       >
         {/* ─── Header ─────────────────────────────────────────────── */}
         <div
-          className="sp-training-tool-header"
+          className="sp-training-tool-header sd-masthead"
           style={{
             padding: '20px 24px 16px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',

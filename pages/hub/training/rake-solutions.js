@@ -65,7 +65,7 @@ const RAKE_PRESETS = [
     pct: 5,
     cap: 15,
     desc: 'Illustrative $15 Cap',
-    color: '#ec4899',
+    color: '#86daff',
   },
 ];
 

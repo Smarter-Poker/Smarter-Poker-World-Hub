@@ -196,7 +196,7 @@ const styles = {
     count: { fontSize: 12, color: '#475569' },
     loading: { color: '#64748b', fontSize: 12, textAlign: 'center', padding: 16 },
     empty: { color: '#475569', fontSize: 12, textAlign: 'center', padding: 16, fontStyle: 'italic' },
-    error: { color: '#fbbf24', fontSize: 12, fontWeight: 700, textAlign: 'center', padding: '16px 16px 4px' },
+    error: { color: '#86daff', fontSize: 12, fontWeight: 700, textAlign: 'center', padding: '16px 16px 4px' },
     unavailableDetail: { color: '#64748b', fontSize: 12, textAlign: 'center' },
     retryButton: {
         display: 'block', minHeight: 44, margin: '12px auto 4px', padding: '0 18px',

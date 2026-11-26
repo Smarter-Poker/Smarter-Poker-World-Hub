@@ -240,7 +240,7 @@ const LevelCard: React.FC<{
                         </span>
                     )}
                     {diamondMultiplier && diamondMultiplier > 1.0 && (
-                        <span style={{ color: '#FBBF24', fontSize: 12, marginLeft: 12, fontWeight: 600 }}>
+                        <span style={{ color: '#86daff', fontSize: 12, marginLeft: 12, fontWeight: 600 }}>
                             {diamondMultiplier}x Diamonds
                         </span>
                     )}
