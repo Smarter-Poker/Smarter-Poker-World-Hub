@@ -71,7 +71,7 @@ test('the page clears account state and gates every async completion by account 
 test('signed-in competitive reads use authedFetch while signed-out schedule remains public', () => {
     assert.match(BRIEFING, /import \{ authedFetch \} from '[^']*authUtils'/);
     assert.match(BRIEFING, /authState === 'authenticated' \? authedFetch : fetch/);
-    assert.match(BRIEFING, /readJson\(requestPlan\.pvpResume, controller\.signal, authedFetch\)/);
+    assert.match(BRIEFING, /readDeduplicatedPvpResume\(requestPlan\.pvpResume, pvpCacheKey, authedFetch/);
     assert.match(BRIEFING, /\[accountKey, authState, refreshVersion, requestPlan\.schedule\]/);
     assert.match(BRIEFING, /const data = sanitizeNightlySchedule\(raw\)/);
 });
