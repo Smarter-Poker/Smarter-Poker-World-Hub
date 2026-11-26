@@ -196,6 +196,8 @@ const staticPages = [
   { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
   { path: '/hub/wire', priority: '0.85', changefreq: 'weekly' },
+  { path: '/hub/magazine', priority: '0.85', changefreq: 'monthly' },
+  { path: '/hub/magazine/poker-rooms', priority: '0.8', changefreq: 'monthly' },
   { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/video-library/channels', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/video-library/players', priority: '0.8', changefreq: 'weekly' },
@@ -803,14 +805,27 @@ function sitemapLastmodLine(lastmod) {
   return `    <lastmod>${new Date(time).toISOString()}</lastmod>\n`;
 }
 
-import { sendSitemapXmlResponse, buildWireEditionUrls } from '../src/lib/seo/sitemapBuilders.mjs';
+import {
+  sendSitemapXmlResponse,
+  buildWireEditionUrls,
+  buildMagazineIssueUrls,
+} from '../src/lib/seo/sitemapBuilders.mjs';
+import { createClient } from '../src/lib/supabaseServerClient';
 
 export async function getServerSideProps({ req, res }) {
-  const [homeGameUrls, pokerVenueUrls, pokerEventDetailUrls, wireEditionUrls] = await Promise.all([
+  let supabase = null;
+  try {
+    supabase = createClient();
+  } catch {
+    supabase = null;
+  }
+
+  const [homeGameUrls, pokerVenueUrls, pokerEventDetailUrls, wireEditionUrls, magazineIssueUrls] = await Promise.all([
     buildHomeGameUrls(),
     buildPokerVenueUrls(),
     buildPokerEventDetailUrls(),
-    buildWireEditionUrls(),
+    buildWireEditionUrls(supabase),
+    buildMagazineIssueUrls(supabase),
   ]);
   // A page the release gate is currently redirecting is not a page. The
   // gate is read here, from the same functions the pages read, so the
@@ -836,6 +851,7 @@ export async function getServerSideProps({ req, res }) {
     ...pokerVenueUrls,
     ...pokerEventDetailUrls,
     ...wireEditionUrls,
+    ...magazineIssueUrls,
   ]);
 
   res.setHeader('Content-Type', 'text/xml');

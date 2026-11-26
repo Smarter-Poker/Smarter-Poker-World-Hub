@@ -29,7 +29,7 @@ const PREFERENCE_OPTIONS = [
         badge: 'Full Access',
         title: 'Receive All Smarter.Poker Updates',
         description:
-            'Get The Weekly Wire Plus Exclusive Free Chip Drops, VIP Invitations, And Major Tournament Announcements.',
+            'Get The Tuesday Weekly Wire, Monthly Magazine Cover Reveals, Plus Exclusive Free Chip Drops, VIP Invitations, And Major Tournament Announcements.',
     },
     {
         key: 'unsubscribe',
@@ -292,7 +292,7 @@ export default function EmailPreferencesPage() {
                                 Open From Any Smarter.Poker Email
                             </div>
                             <p style={{ margin: '0 0 18px 0', color: '#b7cadc', fontSize: '14px', lineHeight: 1.55 }}>
-                                Click The Signed Email Preferences Link At The Bottom Of Any Weekly Wire Or Smarter.Poker Email To Update Delivery In One Click.
+                                Click The Signed Email Preferences Link At The Bottom Of Any Weekly Wire, Monthly Magazine, Or Smarter.Poker Email To Update Delivery In One Click.
                             </p>
                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                 <Link
@@ -309,6 +309,22 @@ export default function EmailPreferencesPage() {
                                     }}
                                 >
                                     Read Weekly Wire Archive
+                                </Link>
+                                <Link
+                                    href="/hub/magazine"
+                                    style={{
+                                        display: 'inline-block',
+                                        background: '#101a24',
+                                        border: '1px solid #4fc1b3',
+                                        color: '#4fc1b3',
+                                        textDecoration: 'none',
+                                        fontWeight: 800,
+                                        fontSize: '13.5px',
+                                        padding: '11px 18px',
+                                        borderRadius: '8px',
+                                    }}
+                                >
+                                    Monthly Magazine
                                 </Link>
                                 <Link
                                     href="/hub/settings/notifications"
@@ -481,6 +497,9 @@ export default function EmailPreferencesPage() {
                     >
                         <Link href="/hub/wire" style={{ color: '#4fc1b3', textDecoration: 'none', fontWeight: 700 }}>
                             Weekly Wire Web Archive
+                        </Link>
+                        <Link href="/hub/magazine" style={{ color: '#4fc1b3', textDecoration: 'none', fontWeight: 700 }}>
+                            Monthly Magazine
                         </Link>
                         <Link href="/hub/news" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 700 }}>
                             Back To News Hub

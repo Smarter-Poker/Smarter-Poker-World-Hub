@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import OperatorGlyph from '../../src/components/admin/OperatorGlyph';
 import { getFreshAccessToken } from '../../src/lib/authUtils';
 import {
@@ -232,6 +232,8 @@ export default function NewsletterOperations() {
     const [magazineViewport, setMagazineViewport] = useState('desktop');
     const [magInlineNotice, setMagInlineNotice] = useState('');
     const [magInlineError, setMagInlineError] = useState('');
+    const [roomEdits, setRoomEdits] = useState({});
+    const loadedPeriodRef = useRef('');
 
     // A counter that reads the same when it is loading, when the request failed and
     // when the answer is genuinely zero is not reporting, it is guessing on the operator's
@@ -279,20 +281,33 @@ export default function NewsletterOperations() {
         return preview?.segmentPreviews?.[wirePreviewSegment] || preview?.htmlPreview || '';
     })();
 
-    const load = useCallback(async (sessionToken = token, nextPage = page, term = search) => {
-        if (!sessionToken) return;
+    const load = useCallback(async (sessionToken = token, nextPage = page, term = search, periodOverride = magIssuePeriod) => {
+        let effectiveToken = sessionToken;
+        let effectivePeriod = periodOverride;
+        if (typeof sessionToken === 'string' && isValidIssuePeriod(sessionToken)) {
+            effectivePeriod = sessionToken;
+            effectiveToken = token;
+        }
+        if (!effectiveToken) return;
         setLoading(true);
         setError('');
         setLoadError('');
         try {
             const params = new URLSearchParams({ page: String(nextPage), pageSize: '25' });
             if (term.trim()) params.set('search', term.trim());
+            const periodArg = String(effectivePeriod || '').trim();
+            const periodSuffix = isValidIssuePeriod(periodArg)
+                ? `&issuePeriod=${encodeURIComponent(periodArg)}`
+                : '';
+            if (isValidIssuePeriod(periodArg)) {
+                loadedPeriodRef.current = periodArg;
+            }
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 15000);
             let body;
             try {
-                const response = await fetch(`/api/news/operations?${params}`, {
-                    headers: { Authorization: `Bearer ${sessionToken}` },
+                const response = await fetch(`/api/news/operations?${params}${periodSuffix}`, {
+                    headers: { Authorization: `Bearer ${effectiveToken}` },
                     signal: controller.signal,
                 });
                 // DEFECT 3: the body read stays INSIDE the armed abort window.
@@ -312,7 +327,15 @@ export default function NewsletterOperations() {
         } finally {
             setLoading(false);
         }
-    }, [page, search, token]);
+    }, [magIssuePeriod, page, search, token]);
+
+    useEffect(() => {
+        if (!token) return;
+        const cleanPeriod = magIssuePeriod.trim();
+        if (!isValidIssuePeriod(cleanPeriod)) return;
+        if (loadedPeriodRef.current === cleanPeriod) return;
+        load(token, page, search, cleanPeriod);
+    }, [magIssuePeriod, token, page, search, load]);
 
     const loadPromoConfig = useCallback(async (sessionToken) => {
         if (!sessionToken) return;
@@ -901,9 +924,73 @@ export default function NewsletterOperations() {
                 throw new Error(body?.error || 'Unable to update poker room subscription');
             }
             setMagInlineNotice(`Updated ${room.room_name || 'Poker Room'} Status To ${nextStatus.toUpperCase()}.`);
-            await load(token, page, search);
+            await load(token, page, search, magIssuePeriod);
         } catch (err) {
             setMagInlineError(err?.message || 'Unable to update poker room subscription');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const setRoomEditField = (roomId, field, value, fallbackCopies, fallbackNotes) => {
+        setRoomEdits((prev) => {
+            const current = prev[roomId] || {
+                requestedCopies: String(fallbackCopies ?? 25),
+                notes: String(fallbackNotes ?? ''),
+            };
+            return {
+                ...prev,
+                [roomId]: {
+                    ...current,
+                    [field]: value,
+                },
+            };
+        });
+    };
+
+    const saveMagazineRoomDetails = async (room) => {
+        if (!token || !room?.id) return;
+        const edit = roomEdits[room.id] || {};
+        const parsedCopies = Number.parseInt(
+            String(edit.requestedCopies ?? room.requested_copies ?? 25),
+            10
+        );
+        if (!Number.isInteger(parsedCopies) || parsedCopies < 5 || parsedCopies > 1000) {
+            setMagInlineError('Requested Monthly Print Copies Must Be Between 5 And 1,000.');
+            return;
+        }
+        const nextNotes = String(edit.notes ?? room.notes ?? '').trim().slice(0, 500);
+        setRunning(`mag-room-save-${room.id}`);
+        setMagInlineError('');
+        setMagInlineNotice('');
+        try {
+            const response = await fetch('/api/news/magazine-rooms', {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: room.id,
+                    subscriptionId: room.id,
+                    requestedCopies: parsedCopies,
+                    requested_copies: parsedCopies,
+                    notes: nextNotes,
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || body?.error || body?.success === false) {
+                throw new Error(body?.error || 'Unable To Save Poker Room Print Details');
+            }
+            setMagInlineNotice(`Saved Print Allocation And Notes For ${room.room_name || 'Poker Room'}.`);
+            setRoomEdits((prev) => {
+                const next = { ...prev };
+                delete next[room.id];
+                return next;
+            });
+            await load(token, page, search, magIssuePeriod);
+        } catch (err) {
+            setMagInlineError(err?.message || 'Unable To Save Poker Room Print Details');
         } finally {
             setRunning('');
         }
@@ -1001,6 +1088,23 @@ export default function NewsletterOperations() {
                         >
                             <span aria-hidden="true" style={{ color: '#60a5fa' }}>&#9679;</span>
                             Phone-Verified Attributed Players: <strong style={{ color: '#ffffff', marginLeft: 4 }}>{data.attributionSummary.phoneVerifiedSignups ?? 0}</strong>
+                        </span>
+                        <span
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                background: 'rgba(79, 193, 179, 0.10)',
+                                border: '1px solid #4fc1b3',
+                                color: '#e2e8f0',
+                                borderRadius: 999,
+                                padding: '5px 14px',
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                            }}
+                        >
+                            <span aria-hidden="true" style={{ color: '#4fc1b3' }}>&#9679;</span>
+                            Monthly Magazine Signups: <strong style={{ color: '#ffffff', marginLeft: 4 }}>{data.attributionSummary.bySource?.monthly_magazine ?? 0}</strong>
                         </span>
                     </div>
                 )}
@@ -1516,7 +1620,7 @@ export default function NewsletterOperations() {
                                     Current Period
                                 </span>
                                 <strong style={{ display: 'block', marginTop: 4, color: '#4fc1b3', fontSize: 19 }}>
-                                    {magazineSummary?.currentPeriod || activeMagPeriod}
+                                    {magazineSummary?.selectedPeriod || magazineSummary?.currentPeriod || activeMagPeriod}
                                 </strong>
                             </div>
                             <div style={{ padding: '11px 13px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
@@ -1949,10 +2053,14 @@ export default function NewsletterOperations() {
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            if (iss.issue_period) setMagIssuePeriod(iss.issue_period);
-                                                            if (iss.cover_headline) setMagCoverHeadline(iss.cover_headline);
-                                                            if (iss.cover_subheadline) setMagCoverSubheadline(iss.cover_subheadline);
-                                                            if (iss.editor_note) setMagEditorNote(iss.editor_note);
+                                                            const nextPeriod = String(iss.issue_period || '').trim();
+                                                            if (nextPeriod) setMagIssuePeriod(nextPeriod);
+                                                            setMagCoverHeadline(iss.cover_headline || '');
+                                                            setMagCoverSubheadline(iss.cover_subheadline || '');
+                                                            setMagEditorNote(iss.editor_note || '');
+                                                            if (token && isValidIssuePeriod(nextPeriod)) {
+                                                                load(token, page, search, nextPeriod);
+                                                            }
                                                         }}
                                                         style={{
                                                             background: '#05070a',
@@ -2007,63 +2115,176 @@ export default function NewsletterOperations() {
                                 <thead>
                                     <tr>
                                         <th>Poker Room</th>
-                                        <th>Location</th>
+                                        <th>Shipping Address</th>
                                         <th>Manager Contact</th>
-                                        <th>Tables / Copies</th>
+                                        <th>Tables / Copies &amp; Notes</th>
                                         <th>Status</th>
                                         <th>Controls</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {magRoomSubscriptions.map((room) => (
-                                        <tr key={room.id}>
-                                            <td>
-                                                <strong style={{ color: '#ffffff' }}>{room.room_name}</strong>
-                                            </td>
-                                            <td>{[room.city, room.state].filter(Boolean).join(', ') || '-'}</td>
-                                            <td>
-                                                <div>{room.contact_name || '-'}</div>
-                                                <div style={{ color: '#9fb3c8', fontSize: 11 }}>{room.contact_email || ''}</div>
-                                            </td>
-                                            <td>
-                                                {room.table_count ? `${room.table_count} Tables / ` : ''}
-                                                <strong>{room.requested_copies || 0} Copies</strong>
-                                            </td>
-                                            <td>
-                                                <Status value={room.status || 'pending'} />
-                                            </td>
-                                            <td>
-                                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                                    <button
-                                                        type="button"
-                                                        className={styles.rowAction}
-                                                        onClick={() => updateMagazineRoomStatus(room, 'verified')}
-                                                        disabled={Boolean(running) || room.status === 'verified'}
-                                                        style={{ borderColor: '#60a5fa', color: '#60a5fa' }}
-                                                    >
-                                                        Verify
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className={styles.rowAction}
-                                                        onClick={() => updateMagazineRoomStatus(room, 'active')}
-                                                        disabled={Boolean(running) || room.status === 'active'}
-                                                        style={{ borderColor: '#4fc1b3', color: '#4fc1b3' }}
-                                                    >
-                                                        Activate
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className={styles.rowAction}
-                                                        onClick={() => updateMagazineRoomStatus(room, 'paused')}
-                                                        disabled={Boolean(running) || room.status === 'paused'}
-                                                    >
-                                                        Pause
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {magRoomSubscriptions.map((room) => {
+                                        const streetLine =
+                                            room.shipping_address ||
+                                            room.shipping_address_json?.street ||
+                                            room.shipping_address_json?.address ||
+                                            '';
+                                        const zipCode =
+                                            room.postal_code ||
+                                            room.shipping_address_json?.postalCode ||
+                                            '';
+                                        const cityStateLine = [
+                                            [room.city, room.state].filter(Boolean).join(', '),
+                                            zipCode,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ');
+                                        const draftCopies =
+                                            roomEdits[room.id]?.requestedCopies ??
+                                            String(room.requested_copies ?? 25);
+                                        const draftNotes =
+                                            roomEdits[room.id]?.notes ??
+                                            String(room.notes || '');
+                                        return (
+                                            <tr key={room.id}>
+                                                <td>
+                                                    <strong style={{ color: '#ffffff' }}>{room.room_name}</strong>
+                                                </td>
+                                                <td>
+                                                    <div style={{ color: '#ffffff', fontWeight: 600 }}>
+                                                        {streetLine || 'Street Address Pending'}
+                                                    </div>
+                                                    <div style={{ color: '#9fb3c8', fontSize: 11, marginTop: 2 }}>
+                                                        {cityStateLine || '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>{room.contact_name || '-'}</div>
+                                                    <div className="no-capitalize" style={{ color: '#9fb3c8', fontSize: 11 }}>
+                                                        {room.contact_email || ''}
+                                                    </div>
+                                                    {room.contact_phone && (
+                                                        <div style={{ color: '#60a5fa', fontSize: 11, marginTop: 2 }}>
+                                                            {room.contact_phone}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        {room.table_count ? `${room.table_count} Tables / ` : ''}
+                                                        <strong style={{ color: '#ffffff' }}>{room.requested_copies || 0} Copies</strong>
+                                                    </div>
+                                                    {room.notes && (
+                                                        <div style={{ color: '#9fb3c8', fontSize: 11, marginTop: 3 }}>
+                                                            {room.notes}
+                                                        </div>
+                                                    )}
+                                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
+                                                        <input
+                                                            type="number"
+                                                            min={5}
+                                                            max={1000}
+                                                            value={draftCopies}
+                                                            onChange={(e) =>
+                                                                setRoomEditField(
+                                                                    room.id,
+                                                                    'requestedCopies',
+                                                                    e.target.value,
+                                                                    room.requested_copies,
+                                                                    room.notes
+                                                                )
+                                                            }
+                                                            aria-label="Requested Copies"
+                                                            style={{
+                                                                width: 72,
+                                                                background: '#07121c',
+                                                                border: '1px solid #254052',
+                                                                borderRadius: 6,
+                                                                padding: '5px 7px',
+                                                                color: '#ffffff',
+                                                                fontSize: 11.5,
+                                                            }}
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={draftNotes}
+                                                            onChange={(e) =>
+                                                                setRoomEditField(
+                                                                    room.id,
+                                                                    'notes',
+                                                                    e.target.value,
+                                                                    room.requested_copies,
+                                                                    room.notes
+                                                                )
+                                                            }
+                                                            placeholder="Fulfillment Notes"
+                                                            aria-label="Fulfillment Notes"
+                                                            style={{
+                                                                width: 148,
+                                                                background: '#07121c',
+                                                                border: '1px solid #254052',
+                                                                borderRadius: 6,
+                                                                padding: '5px 8px',
+                                                                color: '#ffffff',
+                                                                fontSize: 11.5,
+                                                            }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            className={styles.rowAction}
+                                                            onClick={() => saveMagazineRoomDetails(room)}
+                                                            disabled={Boolean(running)}
+                                                            style={{ borderColor: '#4fc1b3', color: '#4fc1b3' }}
+                                                        >
+                                                            Save
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <Status value={room.status || 'pending'} />
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                        <button
+                                                            type="button"
+                                                            className={styles.rowAction}
+                                                            onClick={() => updateMagazineRoomStatus(room, 'verified')}
+                                                            disabled={Boolean(running) || room.status === 'verified'}
+                                                            style={{ borderColor: '#60a5fa', color: '#60a5fa' }}
+                                                        >
+                                                            Verify
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className={styles.rowAction}
+                                                            onClick={() => updateMagazineRoomStatus(room, 'active')}
+                                                            disabled={Boolean(running) || room.status === 'active'}
+                                                            style={{ borderColor: '#4fc1b3', color: '#4fc1b3' }}
+                                                        >
+                                                            Activate
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className={styles.rowAction}
+                                                            onClick={() => updateMagazineRoomStatus(room, 'paused')}
+                                                            disabled={Boolean(running) || room.status === 'paused'}
+                                                        >
+                                                            Pause
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className={styles.rowAction}
+                                                            onClick={() => updateMagazineRoomStatus(room, 'cancelled')}
+                                                            disabled={Boolean(running) || room.status === 'cancelled'}
+                                                            style={{ borderColor: '#f87171', color: '#f87171' }}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                     {!loading && magRoomSubscriptions.length === 0 && (
                                         <tr>
                                             <td colSpan="6" className={styles.emptyCell}>
@@ -2278,6 +2499,16 @@ export default function NewsletterOperations() {
                                                     {Boolean(campaign.telemetry.sections.tool) && (
                                                         <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #60a5fa', color: '#60a5fa' }}>
                                                             Tool: {campaign.telemetry.sections.tool}
+                                                        </span>
+                                                    )}
+                                                    {Boolean(campaign.telemetry.sections.magazine) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #4fc1b3', color: '#4fc1b3' }}>
+                                                            Magazine: {campaign.telemetry.sections.magazine}
+                                                        </span>
+                                                    )}
+                                                    {Boolean(campaign.telemetry.sections.cardrooms) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #60a5fa', color: '#60a5fa' }}>
+                                                            Cardrooms: {campaign.telemetry.sections.cardrooms}
                                                         </span>
                                                     )}
                                                 </div>

@@ -184,6 +184,12 @@ export function classifyClickedEmailSection(clickedUrl) {
     ) {
         return 'kings_club';
     }
+    if (path === '/hub/magazine/poker-rooms' || path.startsWith('/hub/magazine/poker-rooms/')) {
+        return 'cardrooms';
+    }
+    if (path === '/hub/magazine' || path.startsWith('/hub/magazine/')) {
+        return 'magazine';
+    }
     if (
         path.startsWith('/hub/venues') ||
         path.startsWith('/hub/poker-near-me') ||

@@ -140,6 +140,7 @@ jobs:
 
             const res = await fetch(endpoint, {
               method: 'POST',
+              signal: AbortSignal.timeout(270_000),
               headers: {
                 'Content-Type': 'application/json',
                 'x-operator-timestamp': ts,

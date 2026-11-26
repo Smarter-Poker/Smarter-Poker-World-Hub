@@ -8,8 +8,10 @@
  * and Featured Poker Rooms into `public.magazine_vault_items`.
  *
  * Strictly enforces:
+ *   - Public venue privacy (`redactPublicVenue` & `isUnverifiedSelfRegistration`).
  *   - Idempotent `upsert` on `(issue_period, source_type, source_id)` while
- *     preserving operator `is_pinned` and `is_excluded` flags on existing rows.
+ *     preserving operator `is_pinned`, `is_excluded`, `vaulted_storage_path`,
+ *     Weekly Wire provenance metadata, and peak `editorial_score`.
  *   - Hard 20-second external network budget so serverless executions never time out.
  *   - SSRF-hardened HTML paragraph extraction (`assertFetchableUrl` + `fetchGuarded`).
  *   - Zero em/en dashes (`stripMagazineDashes`) and Chips-only formatting (`formatChipsOnly`).
@@ -38,6 +40,10 @@ import {
     isDisplayableVideoTitle,
 } from '../videoLibraryCuration.mjs';
 import {
+    isUnverifiedSelfRegistration,
+    redactPublicVenue,
+} from '../poker-near-me/publicVenuePrivacy.mjs';
+import {
     MAGAZINE_SITE_URL,
     currentIssuePeriod,
     formatChipsOnly,
@@ -49,6 +55,8 @@ import { IMAGE_VAULT_FALLBACK_URL, vaultMagazineImage } from './imageVault.mjs';
 const DEFAULT_EXTERNAL_BUDGET_MS = 20_000;
 const MAX_ARTICLE_HTML_BYTES = 1_500_000;
 const BLOCKED_VIDEO_SET = new Set(BLOCKED_VIDEO_LIBRARY_IDS);
+const VERIFIED_SERIES_QUALITIES = ['scraped_verified', 'scraped_inferred', 'manual_research'];
+const EXCLUDED_CARDROOM_VENUE_TYPES = ['series', 'tour', 'home_game'];
 
 const BOILERPLATE_PATTERNS = [
     'table of contents',
@@ -201,9 +209,8 @@ export async function extractArticleBodySafe(
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-        let response;
         try {
-            response = await fetchGuardedFn(
+            const response = await fetchGuardedFn(
                 parsed.toString(),
                 {
                     method: 'GET',
@@ -216,38 +223,46 @@ export async function extractArticleBodySafe(
                 },
                 3
             );
+
+            if (!response || !response.ok) return [];
+            const ct = String(response.headers?.get?.('content-type') || '').toLowerCase();
+            if (ct && !ct.includes('html') && !ct.includes('xml')) return [];
+
+            let html = '';
+            if (response.body && typeof response.body.getReader === 'function') {
+                const reader = response.body.getReader();
+                const chunks = [];
+                let bytes = 0;
+                try {
+                    while (bytes < MAX_ARTICLE_HTML_BYTES) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const buf = Buffer.from(value);
+                        bytes += buf.byteLength;
+                        chunks.push(buf);
+                    }
+                    try {
+                        await reader.cancel();
+                    } catch {
+                        /* ignore */
+                    }
+                } finally {
+                    try {
+                        reader.releaseLock?.();
+                    } catch {
+                        /* ignore */
+                    }
+                }
+                html = Buffer.concat(chunks).toString('utf8');
+            } else {
+                const text = await response.text();
+                html = text.slice(0, MAX_ARTICLE_HTML_BYTES);
+            }
+
+            return parseCleanParagraphsFromHtml(html, 6);
         } finally {
             clearTimeout(timer);
         }
-
-        if (!response || !response.ok) return [];
-        const ct = String(response.headers?.get?.('content-type') || '').toLowerCase();
-        if (ct && !ct.includes('html') && !ct.includes('xml')) return [];
-
-        let html = '';
-        if (response.body && typeof response.body.getReader === 'function') {
-            const reader = response.body.getReader();
-            const chunks = [];
-            let bytes = 0;
-            while (bytes < MAX_ARTICLE_HTML_BYTES) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const buf = Buffer.from(value);
-                bytes += buf.byteLength;
-                chunks.push(buf);
-            }
-            try {
-                await reader.cancel();
-            } catch {
-                /* ignore */
-            }
-            html = Buffer.concat(chunks).toString('utf8');
-        } else {
-            const text = await response.text();
-            html = text.slice(0, MAX_ARTICLE_HTML_BYTES);
-        }
-
-        return parseCleanParagraphsFromHtml(html, 6);
     } catch {
         return [];
     }
@@ -292,19 +307,32 @@ function buildSynthesizedEditorialParagraphs(row, normalizedTitle) {
 
 async function loadExistingVaultMap(client, period) {
     const map = new Map();
-    try {
-        const { data } = await client
-            .from('magazine_vault_items')
-            .select('*')
-            .eq('issue_period', period)
-            .limit(500);
-        for (const row of data || []) {
-            if (!row?.source_type || !row?.source_id) continue;
-            const key = `${row.source_type}::${row.source_id}`;
-            map.set(key, row);
-        }
-    } catch {
-        /* graceful fallback when table is empty or mocked */
+    if (!client || typeof client.from !== 'function') return map;
+
+    let query = client
+        .from('magazine_vault_items')
+        .select(
+            'id, section, source_type, source_id, body_text, vaulted_image_url, vaulted_master_url, vaulted_storage_path, image_width, image_height, editorial_score, is_pinned, is_excluded, metadata_json'
+        )
+        .eq('issue_period', period);
+
+    if (typeof query.order === 'function') {
+        query = query
+            .order('is_pinned', { ascending: false })
+            .order('is_excluded', { ascending: false })
+            .order('editorial_score', { ascending: false });
+    }
+    if (typeof query.limit === 'function') {
+        query = query.limit(1000);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    for (const row of data || []) {
+        if (!row?.source_type || !row?.source_id) continue;
+        const key = `${row.source_type}::${row.source_id}`;
+        map.set(key, row);
     }
     return map;
 }
@@ -313,40 +341,71 @@ async function upsertVaultItemsResilient(client, rows) {
     if (!Array.isArray(rows) || rows.length === 0) {
         return { upsertedCount: 0, rows: [] };
     }
-    if (!client || typeof client.from !== 'function') {
-        return { upsertedCount: rows.length, rows };
-    }
 
-    // Deduplicate in-batch on (issue_period, source_type, source_id) and map onto exact magazine_vault_items columns
-    const dedupedByKey = new Map();
+    // Deduplicate in-batch across (issue_period, section, source_type, source_id) & unique constraint
+    // (issue_period, source_type, source_id), skipping empty cleaned headlines and clamping <= 500 chars.
+    const seenSectionKeys = new Set();
+    const dedupedByConflictKey = new Map();
+
     for (const r of rows) {
-        const key = `${r.issue_period}::${r.source_type}::${r.source_id}`;
+        if (!r || typeof r !== 'object') continue;
+        const cleanHeadline = stripMagazineDashes(r.headline || '').slice(0, 500);
+        if (!cleanHeadline) continue;
+
+        const cleanPeriod = String(r.issue_period || '').trim();
+        const cleanSection = String(r.section || 'news_brief').trim();
+        const cleanSourceType = String(r.source_type || '').trim().slice(0, 64);
+        const cleanSourceId = String(r.source_id || '').trim().slice(0, 256);
+        if (!cleanPeriod || !cleanSourceType || !cleanSourceId) continue;
+
+        const sectionKey = `${cleanPeriod}::${cleanSection}::${cleanSourceType}::${cleanSourceId}`;
+        if (seenSectionKeys.has(sectionKey)) continue;
+        seenSectionKeys.add(sectionKey);
+
+        const conflictKey = `${cleanPeriod}::${cleanSourceType}::${cleanSourceId}`;
         const metaObj = r.metadata_json ?? r.metadata ?? r.payload_json ?? {};
         const dbRow = {
-            issue_period: r.issue_period,
-            section: r.section,
-            source_type: r.source_type,
-            source_id: r.source_id,
-            headline: r.headline,
-            deck: r.deck ?? r.summary ?? null,
+            issue_period: cleanPeriod,
+            section: cleanSection,
+            source_type: cleanSourceType,
+            source_id: cleanSourceId,
+            headline: cleanHeadline,
+            deck: r.deck != null ? stripMagazineDashes(r.deck) : r.summary != null ? stripMagazineDashes(r.summary) : null,
             body_text: r.body_text ?? null,
-            author_byline: r.author_byline ?? (metaObj && typeof metaObj === 'object' ? metaObj.byline || null : null),
+            author_byline:
+                r.author_byline ??
+                (metaObj && typeof metaObj === 'object' && metaObj.byline ? stripMagazineDashes(metaObj.byline) : null),
             canonical_url: r.canonical_url ?? r.source_url ?? null,
             original_image_url: r.original_image_url ?? null,
             vaulted_image_url: r.vaulted_image_url ?? null,
             vaulted_master_url: r.vaulted_master_url ?? null,
             vaulted_storage_path: r.vaulted_storage_path ?? null,
-            image_width: r.image_width ?? null,
-            image_height: r.image_height ?? null,
-            editorial_score: r.editorial_score ?? 0,
+            image_width: Number.isFinite(Number(r.image_width)) && Number(r.image_width) >= 1 ? Math.round(Number(r.image_width)) : null,
+            image_height: Number.isFinite(Number(r.image_height)) && Number(r.image_height) >= 1 ? Math.round(Number(r.image_height)) : null,
+            editorial_score: Number.isFinite(Number(r.editorial_score)) ? Number(r.editorial_score) : 0,
             is_pinned: Boolean(r.is_pinned),
             is_excluded: Boolean(r.is_excluded),
             metadata_json: metaObj && typeof metaObj === 'object' ? metaObj : {},
             updated_at: new Date().toISOString(),
         };
-        dedupedByKey.set(key, dbRow);
+
+        const prior = dedupedByConflictKey.get(conflictKey);
+        if (
+            !prior ||
+            (dbRow.is_pinned && !prior.is_pinned) ||
+            dbRow.editorial_score >= prior.editorial_score
+        ) {
+            dedupedByConflictKey.set(conflictKey, dbRow);
+        }
     }
-    let currentRows = [...dedupedByKey.values()];
+
+    let currentRows = [...dedupedByConflictKey.values()];
+    if (currentRows.length === 0) {
+        return { upsertedCount: 0, rows: [] };
+    }
+    if (!client || typeof client.from !== 'function') {
+        return { upsertedCount: currentRows.length, rows: currentRows };
+    }
 
     for (let attempt = 0; attempt < 8; attempt += 1) {
         const query = client
@@ -421,11 +480,73 @@ function mergePreservedFlags(candidateRow, existingMap) {
     const key = `${candidateRow.source_type}::${candidateRow.source_id}`;
     const prev = existingMap.get(key);
     if (!prev) return candidateRow;
+
+    const prevMeta =
+        prev.metadata_json && typeof prev.metadata_json === 'object'
+            ? prev.metadata_json
+            : prev.metadata && typeof prev.metadata === 'object'
+              ? prev.metadata
+              : {};
+    const candMeta =
+        candidateRow.metadata_json && typeof candidateRow.metadata_json === 'object'
+            ? candidateRow.metadata_json
+            : candidateRow.metadata && typeof candidateRow.metadata === 'object'
+              ? candidateRow.metadata
+              : {};
+    const mergedMeta = {
+        ...candMeta,
+        ...(prevMeta.wireEditionNumber != null && candMeta.wireEditionNumber == null
+            ? { wireEditionNumber: prevMeta.wireEditionNumber }
+            : {}),
+        ...(prevMeta.campaignId != null && candMeta.campaignId == null
+            ? { campaignId: prevMeta.campaignId }
+            : {}),
+    };
+
     return {
         ...candidateRow,
+        vaulted_storage_path: candidateRow.vaulted_storage_path || prev.vaulted_storage_path || null,
+        editorial_score: Math.max(
+            Number(prev.editorial_score || 0),
+            Number(candidateRow.editorial_score || 0)
+        ),
         is_pinned: Boolean(prev.is_pinned),
         is_excluded: Boolean(prev.is_excluded),
+        metadata: mergedMeta,
+        metadata_json: mergedMeta,
     };
+}
+
+async function queryPokerNewsWindow(client, startIso, endIso, limit) {
+    const fullSelect =
+        'id, slug, title, summary, excerpt, content, source_name, source_url, image_url, category, is_featured, views, view_count, published_at';
+    const fallbackSelect =
+        'id, slug, title, summary, excerpt, content, source_name, source_url, image_url, category, is_featured, view_count, published_at';
+
+    const primary = await client
+        .from('poker_news')
+        .select(fullSelect)
+        .eq('is_published', true)
+        .neq('category', 'platform_update')
+        .gte('published_at', startIso)
+        .lt('published_at', endIso)
+        .order('published_at', { ascending: false })
+        .limit(limit);
+
+    if (!primary?.error) {
+        return Array.isArray(primary?.data) ? primary.data : [];
+    }
+
+    const fallback = await client
+        .from('poker_news')
+        .select(fallbackSelect)
+        .eq('is_published', true)
+        .neq('category', 'platform_update')
+        .gte('published_at', startIso)
+        .lt('published_at', endIso)
+        .order('published_at', { ascending: false })
+        .limit(limit);
+    return Array.isArray(fallback?.data) ? fallback.data : [];
 }
 
 /**
@@ -453,31 +574,14 @@ export async function harvestMonthlyMagazineVault(
     // 1. Harvest `poker_news` stories for target `issuePeriod`
     let rawNews = [];
     try {
-        const { data } = await client
-            .from('poker_news')
-            .select('id, slug, title, summary, excerpt, content, source_name, source_url, image_url, category, is_featured, view_count, published_at')
-            .eq('is_published', true)
-            .neq('category', 'platform_update')
-            .gte('published_at', bounds.startIso)
-            .lt('published_at', bounds.endIso)
-            .order('published_at', { ascending: false })
-            .limit(100);
-        rawNews = Array.isArray(data) ? data : [];
+        rawNews = await queryPokerNewsWindow(client, bounds.startIso, bounds.endIso, 100);
 
-        // If early in the month (< 8 stories inside strict UTC month window), supplement from trailing 30d ending at bounds.endIso
+        // If early in the month (< 8 stories inside strict UTC month window), supplement from trailing 35d ending at bounds.endIso
         if (rawNews.length < 8) {
             const fallbackStartIso = new Date(Date.parse(bounds.endIso) - 35 * 86_400_000).toISOString();
-            const { data: recentData } = await client
-                .from('poker_news')
-                .select('id, slug, title, summary, excerpt, content, source_name, source_url, image_url, category, is_featured, view_count, published_at')
-                .eq('is_published', true)
-                .neq('category', 'platform_update')
-                .gte('published_at', fallbackStartIso)
-                .lt('published_at', bounds.endIso)
-                .order('published_at', { ascending: false })
-                .limit(60);
+            const recentData = await queryPokerNewsWindow(client, fallbackStartIso, bounds.endIso, 60);
             const seenIds = new Set(rawNews.map((r) => String(r?.id || '')));
-            for (const extra of recentData || []) {
+            for (const extra of recentData) {
                 if (extra?.id && !seenIds.has(String(extra.id))) {
                     seenIds.add(String(extra.id));
                     rawNews.push(extra);
@@ -494,15 +598,16 @@ export async function harvestMonthlyMagazineVault(
         if (isCompetitorSponsoredPost(row)) continue;
         if (isLowValueScheduleStub(row)) continue;
 
-        const cleanTitle = stripMagazineDashes(normalizeEditorialTitle(row.title));
+        const cleanTitle = stripMagazineDashes(normalizeEditorialTitle(row.title)).slice(0, 500);
         if (!cleanTitle) continue;
         if (clusteredStories.some((c) => areSameStoryline(c.cleanTitle, cleanTitle))) continue;
 
+        const popularityViews = Math.max(Number(row.views || 0), Number(row.view_count || 0));
         const baseScore =
             (row.is_featured ? 32 : 0) +
             (row.image_url ? 18 : 0) +
             (row.content && String(row.content).length > 300 ? 20 : 0) +
-            Math.min(25, Math.floor(Number(row.view_count || 0) / 12));
+            Math.min(25, Math.floor(popularityViews / 12));
 
         clusteredStories.push({ row, cleanTitle, baseScore });
     }
@@ -540,6 +645,7 @@ export async function harvestMonthlyMagazineVault(
             vaultImg = {
                 vaultedImageUrl: existing.vaulted_image_url,
                 vaultedMasterUrl: existing.vaulted_master_url,
+                storagePath: existing.vaulted_storage_path || null,
                 width: Number(existing.image_width || 1200),
                 height: Number(existing.image_height || 800),
                 usedFallback: false,
@@ -599,6 +705,7 @@ export async function harvestMonthlyMagazineVault(
                     original_image_url: String(row.image_url || ''),
                     vaulted_image_url: vaultImg.vaultedImageUrl,
                     vaulted_master_url: vaultImg.vaultedMasterUrl,
+                    vaulted_storage_path: vaultImg.storagePath ?? existing?.vaulted_storage_path ?? null,
                     image_width: Number(vaultImg.width || 1200),
                     image_height: Number(vaultImg.height || 800),
                     editorial_score: editorialScore,
@@ -653,10 +760,11 @@ export async function harvestMonthlyMagazineVault(
                             .slice(0, 10)
                             .map((s) => `#${s.rank} ${s.playerName} - ${s.points.toLocaleString('en-US')} Points`)
                             .join('\n\n'),
-                        source_url: `${MAGAZINE_SITE_URL}/hub/news`,
+                        source_url: `${MAGAZINE_SITE_URL}/hub/leaderboards`,
                         original_image_url: '',
                         vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                         vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                        vaulted_storage_path: null,
                         image_width: 960,
                         image_height: 540,
                         editorial_score: 92,
@@ -692,6 +800,7 @@ export async function harvestMonthlyMagazineVault(
 
         for (const row of (kcRows || []).filter((r) => Number(r?.prize_pool || 0) > 0).slice(0, 10)) {
             const cleanTourneyName = stripMagazineDashes(String(row.name || 'Kings Club Championship').replace(/\$/g, ''));
+            if (!cleanTourneyName) continue;
             const prizeLabel = formatChipsOnly(row.prize_pool);
             const buyInLabel =
                 Number(row.buy_in_amount || 0) > 0 ? formatChipsOnly(row.buy_in_amount) : 'Freeroll (0 Chips)';
@@ -705,13 +814,14 @@ export async function harvestMonthlyMagazineVault(
                         section: 'tournament_result',
                         source_type: 'kings_club_tournament',
                         source_id: String(row.id),
-                        headline: `${cleanTourneyName} - ${prizeLabel} Prize Pool`,
+                        headline: `${cleanTourneyName} - ${prizeLabel} Prize Pool`.slice(0, 500),
                         summary: `Kings Club 25450 ${gameType} tournament completed with ${prizeLabel} awarded (${buyInLabel} entry${players > 0 ? `, ${players} entries` : ''}).`,
                         body_text: `${cleanTourneyName} concluded inside Kings Club (Club Code 25450) on Club Arena with a ${prizeLabel} total prize pool across ${gameType} competition.`,
                         source_url: `${MAGAZINE_SITE_URL}/hub/club-arena/?join=25450`,
                         original_image_url: '',
                         vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                         vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                        vaulted_storage_path: null,
                         image_width: 960,
                         image_height: 540,
                         editorial_score: 84,
@@ -719,6 +829,7 @@ export async function harvestMonthlyMagazineVault(
                         is_excluded: false,
                         metadata: {
                             clubCode: '25450',
+                            name: cleanTourneyName,
                             gameType,
                             buyInChips: Math.round(Number(row.buy_in_amount || 0)),
                             buyInLabel,
@@ -780,6 +891,7 @@ export async function harvestMonthlyMagazineVault(
                     original_image_url: cardImageUrl,
                     vaulted_image_url: cardImageUrl,
                     vaulted_master_url: cardImageUrl,
+                    vaulted_storage_path: null,
                     image_width: 600,
                     image_height: 240,
                     editorial_score: 90,
@@ -832,6 +944,7 @@ export async function harvestMonthlyMagazineVault(
                     original_image_url: '',
                     vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                     vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                    vaulted_storage_path: null,
                     image_width: 960,
                     image_height: 540,
                     editorial_score: 82,
@@ -880,13 +993,15 @@ export async function harvestMonthlyMagazineVault(
 
         for (const v of dedupeVideos(curatedVideos).slice(0, 4)) {
             const vidId = String(v.videoId);
-            const cleanVideoTitle = stripMagazineDashes(normalizeEditorialTitle(v.title));
+            const cleanVideoTitle = stripMagazineDashes(normalizeEditorialTitle(v.title)).slice(0, 500);
+            if (!cleanVideoTitle) continue;
             const existingVid = existingMap.get(`video_library::${vidId}`);
             let vidVault;
             if (existingVid?.vaulted_image_url && existingVid.vaulted_image_url !== IMAGE_VAULT_FALLBACK_URL) {
                 vidVault = {
                     vaultedImageUrl: existingVid.vaulted_image_url,
                     vaultedMasterUrl: existingVid.vaulted_master_url || existingVid.vaulted_image_url,
+                    storagePath: existingVid.vaulted_storage_path || null,
                     width: Number(existingVid.image_width || 1200),
                     height: Number(existingVid.image_height || 800),
                 };
@@ -923,6 +1038,7 @@ export async function harvestMonthlyMagazineVault(
                         original_image_url: String(v.thumbnail || ''),
                         vaulted_image_url: vidVault.vaultedImageUrl,
                         vaulted_master_url: vidVault.vaultedMasterUrl,
+                        vaulted_storage_path: vidVault.storagePath ?? existingVid?.vaulted_storage_path ?? null,
                         image_width: Number(vidVault.width || 1200),
                         image_height: Number(vidVault.height || 800),
                         editorial_score: 80,
@@ -961,6 +1077,7 @@ export async function harvestMonthlyMagazineVault(
                     original_image_url: '',
                     vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                     vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                    vaulted_storage_path: null,
                     image_width: 960,
                     image_height: 540,
                     editorial_score: 86,
@@ -996,6 +1113,7 @@ export async function harvestMonthlyMagazineVault(
                     original_image_url: '',
                     vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                     vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                    vaulted_storage_path: null,
                     image_width: 960,
                     image_height: 540,
                     editorial_score: 83,
@@ -1017,15 +1135,32 @@ export async function harvestMonthlyMagazineVault(
     const todayIsoDate = new Date(nowMs).toISOString().slice(0, 10);
     const sixtyDaysIsoDate = new Date(nowMs + 60 * 86_400_000).toISOString().slice(0, 10);
     try {
-        const { data: seriesRows } = await client
+        let seriesQuery = client
             .from('poker_series')
-            .select('id, series_name, venue_name, city, state, start_date, end_date, is_suppressed')
+            .select('id, series_name, venue_name, city, state, start_date, end_date, data_quality, is_suppressed');
+        if (typeof seriesQuery.in === 'function') {
+            // in-list: bounded 3 verified poker_series data_quality constants
+            seriesQuery = seriesQuery.in('data_quality', VERIFIED_SERIES_QUALITIES.slice(0, 3));
+        }
+        const { data: seriesRows } = await seriesQuery
             .gte('end_date', todayIsoDate)
             .lte('start_date', sixtyDaysIsoDate)
             .order('start_date', { ascending: true })
             .limit(20);
 
-        for (const s of (seriesRows || []).filter((r) => r && r.is_suppressed !== true && r.series_name).slice(0, 12)) {
+        const filteredSeries = (seriesRows || [])
+            .filter(
+                (r) =>
+                    r &&
+                    r.is_suppressed !== true &&
+                    r.series_name &&
+                    (!r.data_quality || VERIFIED_SERIES_QUALITIES.includes(String(r.data_quality)))
+            )
+            .slice(0, 12);
+
+        for (const s of filteredSeries) {
+            const cleanSeriesTitle = stripMagazineDashes(normalizeEditorialTitle(s.series_name)).slice(0, 500);
+            if (!cleanSeriesTitle) continue;
             const loc = [s.venue_name, s.city, s.state].map(stripMagazineDashes).filter(Boolean).join(', ');
             const dates = [s.start_date, s.end_date].filter(Boolean).join(' to ');
             stagedRows.push(
@@ -1035,13 +1170,14 @@ export async function harvestMonthlyMagazineVault(
                         section: 'series_calendar',
                         source_type: 'poker_series',
                         source_id: String(s.id),
-                        headline: stripMagazineDashes(normalizeEditorialTitle(s.series_name)),
+                        headline: cleanSeriesTitle,
                         summary: stripMagazineDashes(`${loc}${dates ? ` (${dates})` : ''}`),
                         body_text: stripMagazineDashes(`${s.series_name} at ${loc}. Dates: ${dates || 'Upcoming'}.`),
                         source_url: `${MAGAZINE_SITE_URL}/hub/poker-near-me`,
                         original_image_url: '',
                         vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                         vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                        vaulted_storage_path: null,
                         image_width: 960,
                         image_height: 540,
                         editorial_score: 78,
@@ -1064,19 +1200,48 @@ export async function harvestMonthlyMagazineVault(
     }
 
     try {
-        const { data: calEvents } = await client
+        let calQuery = client
             .from('unified_events_calendar')
-            .select('source, native_id, venue_id, venue_name, event_name, start_time, buy_in, guaranteed, game_type, day_of_week, specific_date, city, state')
+            .select(
+                'source, native_id, venue_id, venue_name, event_name, start_time, buy_in, guaranteed, game_type, day_of_week, specific_date, is_recurring, city, state'
+            )
             .eq('is_active', true)
-            .eq('is_suppressed', false)
-            .limit(16);
+            .eq('is_suppressed', false);
+        if (typeof calQuery.or === 'function') {
+            calQuery = calQuery.or(
+                `is_recurring.eq.true,and(specific_date.gte.${todayIsoDate},specific_date.lte.${sixtyDaysIsoDate})`
+            );
+        }
+        if (typeof calQuery.order === 'function') {
+            calQuery = calQuery.order('specific_date', { ascending: true, nullsFirst: false });
+        }
+        const { data: calEvents } = await calQuery.limit(40);
 
-        for (const ev of (calEvents || []).filter((e) => e?.event_name && e?.venue_name).slice(0, 8)) {
+        const upcomingEvents = (calEvents || [])
+            .filter((ev) => {
+                if (!ev?.event_name || !ev?.venue_name) return false;
+                const startDate = String(ev.start_date || ev.specific_date || '').slice(0, 10);
+                const endDate = String(ev.end_date || startDate || '').slice(0, 10);
+                if (startDate) {
+                    return (endDate >= todayIsoDate || startDate >= todayIsoDate) && startDate <= sixtyDaysIsoDate;
+                }
+                return ev.is_recurring === true && Boolean(ev.day_of_week);
+            })
+            .sort((a, b) => {
+                const aStart = String(a.start_date || a.specific_date || '9999-12-31');
+                const bStart = String(b.start_date || b.specific_date || '9999-12-31');
+                return aStart.localeCompare(bStart);
+            })
+            .slice(0, 8);
+
+        for (const ev of upcomingEvents) {
+            const cleanEventTitle = stripMagazineDashes(normalizeEditorialTitle(ev.event_name)).slice(0, 500);
+            if (!cleanEventTitle) continue;
             const sourceId = String(
                 ev.native_id ? `${ev.source || 'ev'}:${ev.native_id}` : `${ev.venue_name}-${ev.event_name}`
             ).slice(0, 120);
             const loc = [ev.venue_name, ev.city, ev.state].map(stripMagazineDashes).filter(Boolean).join(', ');
-            const whenLabel = stripMagazineDashes(ev.specific_date || ev.day_of_week || 'Weekly');
+            const whenLabel = stripMagazineDashes(ev.specific_date || ev.start_date || ev.day_of_week || 'Weekly');
             stagedRows.push(
                 mergePreservedFlags(
                     {
@@ -1084,13 +1249,14 @@ export async function harvestMonthlyMagazineVault(
                         section: 'series_calendar',
                         source_type: 'live_event',
                         source_id: sourceId,
-                        headline: stripMagazineDashes(normalizeEditorialTitle(ev.event_name)),
+                        headline: cleanEventTitle,
                         summary: stripMagazineDashes(`${loc} • ${whenLabel}`),
                         body_text: stripMagazineDashes(`${ev.event_name} hosted at ${loc} (${whenLabel}).`),
                         source_url: `${MAGAZINE_SITE_URL}/hub/poker-near-me`,
                         original_image_url: '',
                         vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                         vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                        vaulted_storage_path: null,
                         image_width: 960,
                         image_height: 540,
                         editorial_score: 72,
@@ -1102,6 +1268,8 @@ export async function harvestMonthlyMagazineVault(
                             state: stripMagazineDashes(ev.state || ''),
                             gameType: stripMagazineDashes(ev.game_type || 'NLH'),
                             schedule: whenLabel,
+                            startDate: ev.specific_date || ev.start_date || null,
+                            endDate: ev.end_date || null,
                         },
                     },
                     existingMap
@@ -1112,18 +1280,36 @@ export async function harvestMonthlyMagazineVault(
         /* non-blocking */
     }
 
-    // 9. Top `poker_venues` (`section: 'featured_venue'`)
+    // 9. Top `poker_venues` (`section: 'featured_venue'`, strictly redacted via publicVenuePrivacy.mjs)
     try {
         const { data: venues } = await client
             .from('poker_venues')
-            .select('id, name, slug, city, state, poker_tables, games_offered, stakes_cash, has_tournaments, is_featured, trust_score, is_active, is_suppressed')
+            .select(
+                'id, name, slug, city, state, poker_tables, games_offered, stakes_cash, has_tournaments, is_featured, trust_score, is_active, is_suppressed, source, data_quality, venue_type, canonical_venue_id'
+            )
             .eq('is_active', true)
             .eq('is_suppressed', false)
             .order('is_featured', { ascending: false })
             .order('trust_score', { ascending: false })
-            .limit(18);
+            .limit(36);
 
-        for (const v of (venues || []).filter((r) => r?.id && r?.name).slice(0, 12)) {
+        const safeVenues = (venues || [])
+            .filter((rawVenue) => {
+                if (!rawVenue?.id || !rawVenue?.name) return false;
+                if (rawVenue.is_active === false || rawVenue.is_suppressed === true) return false;
+                if (Number(rawVenue.id) === 3109) return false;
+                if (rawVenue.canonical_venue_id != null) return false;
+                const vType = String(rawVenue.venue_type || '').toLowerCase();
+                if (EXCLUDED_CARDROOM_VENUE_TYPES.includes(vType)) return false;
+                if (isUnverifiedSelfRegistration(rawVenue)) return false;
+                return true;
+            })
+            .map((rawVenue) => redactPublicVenue(rawVenue))
+            .slice(0, 12);
+
+        for (const v of safeVenues) {
+            const cleanVenueName = stripMagazineDashes(v.name).slice(0, 500);
+            if (!cleanVenueName) continue;
             const loc = [v.city, v.state].map(stripMagazineDashes).filter(Boolean).join(', ');
             const tables = Number(v.poker_tables || 0);
             const venuePath = v.slug ? `/hub/venues/${encodeURIComponent(v.slug)}` : `/hub/poker-near-me`;
@@ -1138,17 +1324,18 @@ export async function harvestMonthlyMagazineVault(
                         section: 'featured_venue',
                         source_type: 'poker_venue',
                         source_id: String(v.id),
-                        headline: stripMagazineDashes(v.name),
+                        headline: cleanVenueName,
                         summary: stripMagazineDashes(
                             `${loc}${tables > 0 ? ` • ${tables} Tables` : ''} • ${gamesStr || 'Live Cash & Tournaments'}`
                         ),
                         body_text: stripMagazineDashes(
-                            `${v.name} (${loc}) features ${tables > 0 ? `${tables} live poker tables` : 'active live action'} running ${gamesStr || 'No-Limit Holdem and Pot-Limit Omaha'}.`
+                            `${cleanVenueName} (${loc}) features ${tables > 0 ? `${tables} live poker tables` : 'active live action'} running ${gamesStr || 'No-Limit Holdem and Pot-Limit Omaha'}.`
                         ),
                         source_url: `${MAGAZINE_SITE_URL}${venuePath}`,
                         original_image_url: '',
                         vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                         vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                        vaulted_storage_path: null,
                         image_width: 960,
                         image_height: 540,
                         editorial_score: v.is_featured ? 88 : 76,
@@ -1176,7 +1363,7 @@ export async function harvestMonthlyMagazineVault(
     const persisted = await upsertVaultItemsResilient(client, stagedRows);
 
     const countsBySection = {};
-    for (const r of stagedRows) {
+    for (const r of persisted.rows) {
         countsBySection[r.section] = (countsBySection[r.section] || 0) + 1;
     }
 
@@ -1222,7 +1409,8 @@ export async function harvestWeeklyWireEditionToVault(
     for (let i = 0; i < articles.length; i += 1) {
         const a = articles[i];
         if (!a?.id || !a?.title) continue;
-        const cleanTitle = stripMagazineDashes(normalizeEditorialTitle(a.title));
+        const cleanTitle = stripMagazineDashes(normalizeEditorialTitle(a.title)).slice(0, 500);
+        if (!cleanTitle) continue;
         const allowNet = Date.now() < deadlineMs - 500;
         const vaultImg = await vaultMagazineImage(client, {
             sourceUrl: allowNet ? a.image_url || '' : '',
@@ -1257,6 +1445,7 @@ export async function harvestWeeklyWireEditionToVault(
                     original_image_url: String(a.image_url || ''),
                     vaulted_image_url: vaultImg.vaultedImageUrl,
                     vaulted_master_url: vaultImg.vaultedMasterUrl,
+                    vaulted_storage_path: vaultImg.storagePath ?? null,
                     image_width: Number(vaultImg.width || 1200),
                     image_height: Number(vaultImg.height || 800),
                     editorial_score: 95 - i * 3,
@@ -1293,6 +1482,7 @@ export async function harvestWeeklyWireEditionToVault(
                     original_image_url: cardUrl,
                     vaulted_image_url: cardUrl,
                     vaulted_master_url: cardUrl,
+                    vaulted_storage_path: null,
                     image_width: 600,
                     image_height: 240,
                     editorial_score: 94,
@@ -1309,6 +1499,8 @@ export async function harvestWeeklyWireEditionToVault(
                         solverFrequency: stripMagazineDashes(s.solverFrequency || ''),
                         evSummary: cleanEv,
                         cardImageUrl: cardUrl,
+                        wireEditionNumber: edition.editionNumber || null,
+                        campaignId: campaignId || null,
                     },
                 },
                 existingMap
@@ -1333,6 +1525,7 @@ export async function harvestWeeklyWireEditionToVault(
                     original_image_url: '',
                     vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                     vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                    vaulted_storage_path: null,
                     image_width: 960,
                     image_height: 540,
                     editorial_score: 88,
@@ -1346,6 +1539,8 @@ export async function harvestWeeklyWireEditionToVault(
                         options: (q.options || []).map((o) => ({ key: o.key, label: stripMagazineDashes(o.label) })),
                         answerKey: q.answerKey || 'A',
                         explanation: stripMagazineDashes(q.explanation || ''),
+                        wireEditionNumber: edition.editionNumber || null,
+                        campaignId: campaignId || null,
                     },
                 },
                 existingMap
@@ -1357,6 +1552,7 @@ export async function harvestWeeklyWireEditionToVault(
     for (const w of Array.isArray(edition.recentWinners) ? edition.recentWinners : []) {
         if (!w?.id || !w?.name) continue;
         const cleanName = stripMagazineDashes(String(w.name).replace(/\$/g, ''));
+        if (!cleanName) continue;
         const prizeLabel = formatChipsOnly(w.prize_pool);
         rows.push(
             mergePreservedFlags(
@@ -1365,13 +1561,14 @@ export async function harvestWeeklyWireEditionToVault(
                     section: 'tournament_result',
                     source_type: 'kings_club_tournament',
                     source_id: String(w.id),
-                    headline: `${cleanName} - ${prizeLabel} Prize Pool`,
+                    headline: `${cleanName} - ${prizeLabel} Prize Pool`.slice(0, 500),
                     summary: `Kings Club 25450 completed tournament awarding ${prizeLabel}.`,
                     body_text: `${cleanName} wrapped up inside Kings Club (Code 25450) awarding ${prizeLabel}.`,
                     source_url: `${MAGAZINE_SITE_URL}/hub/club-arena/?join=25450`,
                     original_image_url: '',
                     vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                     vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                    vaulted_storage_path: null,
                     image_width: 960,
                     image_height: 540,
                     editorial_score: 86,
@@ -1379,10 +1576,14 @@ export async function harvestWeeklyWireEditionToVault(
                     is_excluded: false,
                     metadata: {
                         clubCode: '25450',
+                        name: cleanName,
                         gameType: stripMagazineDashes(String(w.game_type || 'NLH').replace(/\$/g, '')),
+                        buyInChips: Math.round(Number(w.buy_in_amount || 0)),
                         prizePoolChips: Math.round(Number(w.prize_pool || 0)),
                         prizePoolLabel: prizeLabel,
                         buyInLabel: formatChipsOnly(w.buy_in_amount),
+                        wireEditionNumber: edition.editionNumber || null,
+                        campaignId: campaignId || null,
                     },
                 },
                 existingMap
@@ -1408,6 +1609,7 @@ export async function harvestWeeklyWireEditionToVault(
                     original_image_url: '',
                     vaulted_image_url: IMAGE_VAULT_FALLBACK_URL,
                     vaulted_master_url: IMAGE_VAULT_FALLBACK_URL,
+                    vaulted_storage_path: null,
                     image_width: 960,
                     image_height: 540,
                     editorial_score: 89,
@@ -1417,6 +1619,8 @@ export async function harvestWeeklyWireEditionToVault(
                         kind: 'platform_update',
                         badge: stripMagazineDashes(u.badge || 'Platform Upgrade'),
                         ctaUrl: u.ctaUrl || `${MAGAZINE_SITE_URL}/hub`,
+                        wireEditionNumber: edition.editionNumber || null,
+                        campaignId: campaignId || null,
                     },
                 },
                 existingMap

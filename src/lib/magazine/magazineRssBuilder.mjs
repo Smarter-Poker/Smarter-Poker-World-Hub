@@ -2,7 +2,8 @@
  * Smarter.Poker Monthly Magazine RSS 2.0 Syndication Builder
  *
  * Pure XML builder shared by `/hub/magazine/rss.xml` and API callers.
- * Enforces valid XML escaping and zero em/en dashes (`stripMagazineDashes`).
+ * Enforces strict `status === 'published'` filtering, accurate max `<lastBuildDate>`,
+ * HTTPS `<enclosure>` cover imagery, valid XML escaping, and zero em/en dashes.
  */
 import {
     MAGAZINE_MASTHEAD,
@@ -23,10 +24,30 @@ export function escapeMagazineXml(value) {
         .replace(/'/g, '&apos;');
 }
 
-function toRfc2822Date(raw) {
-    if (!raw) return '';
+function parseTimestampMs(raw) {
+    if (!raw) return 0;
     const d = new Date(raw);
-    return Number.isNaN(d.getTime()) ? '' : d.toUTCString();
+    const ms = d.getTime();
+    return Number.isNaN(ms) ? 0 : ms;
+}
+
+function toRfc2822Date(raw) {
+    const ms = parseTimestampMs(raw);
+    return ms > 0 ? new Date(ms).toUTCString() : '';
+}
+
+function resolveHttpsCoverUrl(row) {
+    const candidate = String(
+        row?.cover_image_url ?? row?.coverImageUrl ?? row?.manifest_json?.coverImageUrl ?? ''
+    ).trim();
+    if (!candidate) return '';
+    try {
+        const parsed = new URL(candidate);
+        if (parsed.protocol !== 'https:') return '';
+        return parsed.toString();
+    } catch {
+        return '';
+    }
 }
 
 function resolveOptions(siteUrlOrOptions) {
@@ -59,13 +80,15 @@ export function buildMagazineRssXml(issues = [], siteUrl = MAGAZINE_SITE_URL) {
         : `/${selfPath}`;
 
     const publishedRows = (Array.isArray(issues) ? issues : []).filter(
-        (row) => row && (!row.status || row.status === 'published')
+        (row) => Boolean(row) && row.status === 'published'
     );
 
-    const lastBuildDate =
-        publishedRows
-            .map((r) => toRfc2822Date(r.published_at || r.publishedAt || r.updated_at || r.created_at))
-            .find(Boolean) || '';
+    let maxBuildMs = 0;
+    for (const r of publishedRows) {
+        const ms = parseTimestampMs(r.published_at || r.publishedAt || r.updated_at || r.created_at);
+        if (ms > maxBuildMs) maxBuildMs = ms;
+    }
+    const lastBuildDate = maxBuildMs > 0 ? new Date(maxBuildMs).toUTCString() : '';
 
     const itemBlocks = publishedRows
         .map((row, idx) => {
@@ -89,6 +112,7 @@ export function buildMagazineRssXml(issues = [], siteUrl = MAGAZINE_SITE_URL) {
             const description = stripMagazineDashes(rawDesc);
 
             const pubDate = toRfc2822Date(row.published_at || row.publishedAt || row.updated_at || row.created_at);
+            const enclosureUrl = resolveHttpsCoverUrl(row);
 
             return [
                 '    <item>',
@@ -97,6 +121,9 @@ export function buildMagazineRssXml(issues = [], siteUrl = MAGAZINE_SITE_URL) {
                 `      <guid isPermaLink="true">${escapeMagazineXml(link)}</guid>`,
                 pubDate ? `      <pubDate>${pubDate}</pubDate>` : '',
                 `      <description>${escapeMagazineXml(description)}</description>`,
+                enclosureUrl
+                    ? `      <enclosure url="${escapeMagazineXml(enclosureUrl)}" length="0" type="image/jpeg" />`
+                    : '',
                 '    </item>',
             ]
                 .filter(Boolean)

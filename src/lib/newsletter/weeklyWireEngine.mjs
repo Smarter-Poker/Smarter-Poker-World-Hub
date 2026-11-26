@@ -791,7 +791,10 @@ export function selectRotatingCatalogItem(
 
 export function parseWireEditionSubjectNumber(subject) {
     if (typeof subject !== 'string') return null;
-    const match = subject.match(/(?:Weekly\s+Wire|Wire)\s*#\s*(\d+)/i) || subject.match(/#\s*(\d+)/);
+    const trimmed = subject.trim();
+    if (!trimmed) return null;
+    if (/^\[(?:promo|lifecycle|sms|test|spot-vote)(?:\b|_)/i.test(trimmed)) return null;
+    const match = trimmed.match(/(?:Weekly\s+Wire|Wire)\s*#\s*(\d+)/i) || trimmed.match(/#\s*(\d+)/);
     if (!match) return null;
     const num = parseInt(match[1], 10);
     return Number.isFinite(num) && num > 0 ? num : null;

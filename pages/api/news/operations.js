@@ -23,6 +23,7 @@ import {
 import {
     MAGAZINE_SECTIONS,
     currentIssuePeriod,
+    isValidIssuePeriod,
 } from '../../../src/lib/magazine/magazineSchema.mjs';
 
 export { resolveAdminSubscriberPatch };
@@ -446,6 +447,7 @@ export default async function handler(req, res) {
             phoneVerifiedSignups: 0,
             bySource: {
                 weekly_wire: 0,
+                monthly_magazine: 0,
                 welcome_email: 0,
                 promo_campaign: 0,
                 promo_sms: 0,
@@ -454,7 +456,15 @@ export default async function handler(req, res) {
             },
         };
         try {
-            const ALLOWED_SOURCES = ['weekly_wire', 'welcome_email', 'promo_campaign', 'promo_sms', 'welcome_back_sms', 'lifecycle'];
+            const ALLOWED_SOURCES = [
+                'weekly_wire',
+                'monthly_magazine',
+                'welcome_email',
+                'promo_campaign',
+                'promo_sms',
+                'welcome_back_sms',
+                'lifecycle',
+            ];
             if (supabase?.auth?.admin?.listUsers) {
                 const attributedIds = [];
                 const startMs = Date.now();
@@ -509,9 +519,17 @@ export default async function handler(req, res) {
         });
 
         const currentPeriod = currentIssuePeriod();
+        const rawIssuePeriod = String(
+            Array.isArray(req.query.issuePeriod) ? req.query.issuePeriod[0] : req.query.issuePeriod || ''
+        ).trim();
+        const selectedPeriod =
+            rawIssuePeriod && isValidIssuePeriod(rawIssuePeriod) && /^\d{4}-(0[1-9]|1[0-2])$/.test(rawIssuePeriod)
+                ? rawIssuePeriod
+                : currentPeriod;
         const defaultVaultCounts = Object.fromEntries(MAGAZINE_SECTIONS.map((sec) => [sec, 0]));
         let magazineSummary = {
             currentPeriod,
+            selectedPeriod,
             issues: [],
             vaultCounts: { ...defaultVaultCounts },
             vaultTotal: 0,
@@ -522,6 +540,30 @@ export default async function handler(req, res) {
             totalRequestedCopies: 0,
         };
         try {
+            const loadRoomsWithFallback = async () => {
+                const fullRes = await Promise.resolve(
+                    supabase
+                        .from('magazine_room_subscriptions')
+                        .select(
+                            'id, room_name, contact_name, contact_email, contact_phone, city, state, postal_code, shipping_address_json, table_count, requested_copies, notes, status, created_at, updated_at'
+                        )
+                        .order('created_at', { ascending: false })
+                        .limit(50)
+                ).catch(() => ({ data: null, error: new Error('room_query_failed') }));
+                if (!fullRes?.error && Array.isArray(fullRes?.data)) {
+                    return fullRes;
+                }
+                return Promise.resolve(
+                    supabase
+                        .from('magazine_room_subscriptions')
+                        .select(
+                            'id, room_name, contact_name, contact_email, city, state, table_count, requested_copies, status, created_at'
+                        )
+                        .order('created_at', { ascending: false })
+                        .limit(50)
+                ).catch(() => ({ data: [], error: null }));
+            };
+
             const [magIssuesRes, magVaultRes, magRoomsRes, magActiveCopiesRes] = await Promise.all([
                 Promise.resolve(
                     supabase
@@ -536,19 +578,11 @@ export default async function handler(req, res) {
                     supabase
                         .from('magazine_vault_items')
                         .select('id, section, headline, vaulted_image_url, editorial_score, is_pinned, is_excluded')
-                        .eq('issue_period', currentPeriod)
+                        .eq('issue_period', selectedPeriod)
                         .order('editorial_score', { ascending: false })
                         .limit(500)
                 ).catch(() => ({ data: [], error: null })),
-                Promise.resolve(
-                    supabase
-                        .from('magazine_room_subscriptions')
-                        .select(
-                            'id, room_name, contact_name, contact_email, city, state, table_count, requested_copies, status, created_at'
-                        )
-                        .order('created_at', { ascending: false })
-                        .limit(25)
-                ).catch(() => ({ data: [], error: null })),
+                loadRoomsWithFallback(),
                 Promise.resolve(
                     supabase
                         .from('magazine_room_subscriptions')
@@ -589,7 +623,17 @@ export default async function handler(req, res) {
                     is_excluded: Boolean(row.is_excluded),
                 }));
 
-            const roomSubscriptions = Array.isArray(magRoomsRes?.data) ? magRoomsRes.data : [];
+            const roomSubscriptions = (Array.isArray(magRoomsRes?.data) ? magRoomsRes.data : []).map((row) => {
+                const addrJson =
+                    row?.shipping_address_json && typeof row.shipping_address_json === 'object'
+                        ? row.shipping_address_json
+                        : {};
+                return {
+                    ...row,
+                    shipping_address_json: addrJson,
+                    shipping_address: row?.shipping_address_json?.street || row?.shipping_address_json?.address || '',
+                };
+            });
             const activeCopySource = Array.isArray(magActiveCopiesRes?.data)
                 ? magActiveCopiesRes.data
                 : roomSubscriptions.filter((r) => ['pending', 'verified', 'active'].includes(String(r?.status || '')));
@@ -600,6 +644,7 @@ export default async function handler(req, res) {
 
             magazineSummary = {
                 currentPeriod,
+                selectedPeriod,
                 issues,
                 vaultCounts,
                 vaultTotal: vaultRows.length,

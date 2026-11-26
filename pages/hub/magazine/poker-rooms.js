@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
     FALLBACK_MAGAZINE_IMAGE,
     handleMagazineImageError,
@@ -8,6 +8,8 @@ import {
 import {
     MAGAZINE_MASTHEAD,
     MAGAZINE_SITE_URL,
+    formatPeriodLabel,
+    stripMagazineDashes,
 } from '../../../src/lib/magazine/magazineSchema.mjs';
 
 const US_STATE_CODES = [
@@ -26,14 +28,63 @@ const BLOCKED_EMAIL_DOMAINS = new Set([
     'invalid',
     'localhost',
     'horse.ai',
+    'hydra.bot',
+    'mailinator.com',
+    'tempmail.com',
 ]);
+
+const US_ZIP_RE = /^\d{5}(-\d{4})?$/;
+
+export async function getServerSideProps({ res }) {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900');
+
+    let latestIssue = null;
+    try {
+        const { createClient } = await import('../../../src/lib/supabaseServerClient.js');
+        const sb = createClient();
+        const { data: rows } = await sb
+            .from('magazine_issues')
+            .select(
+                'id, issue_number, volume_number, issue_period, slug, title, cover_headline, cover_subheadline, cover_image_url'
+            )
+            .eq('status', 'published')
+            .order('issue_number', { ascending: false })
+            .limit(1);
+
+        if (Array.isArray(rows) && rows.length > 0 && rows[0]) {
+            const r = rows[0];
+            latestIssue = {
+                id: String(r.id || r.slug || 'latest'),
+                issueNumber: Math.max(1, Number(r.issue_number || 1)),
+                volumeNumber: Math.max(1, Number(r.volume_number || 1)),
+                issuePeriod: String(r.issue_period || ''),
+                periodLabel: formatPeriodLabel(r.issue_period),
+                slug: String(r.slug || r.issue_period || 'latest'),
+                title: stripMagazineDashes(r.title || MAGAZINE_MASTHEAD),
+                coverHeadline: stripMagazineDashes(r.cover_headline || ''),
+                coverSubheadline: stripMagazineDashes(r.cover_subheadline || ''),
+                coverImageUrl: String(r.cover_image_url || FALLBACK_MAGAZINE_IMAGE),
+            };
+        }
+    } catch (err) {
+        console.warn('[magazine/poker-rooms] SSR fallback:', err?.message || err);
+    }
+
+    return {
+        props: {
+            latestIssue,
+        },
+    };
+}
 
 function validateRoomRequest(form) {
     const roomName = form.roomName.trim();
     const contactName = form.contactName.trim();
     const contactEmail = form.contactEmail.trim().toLowerCase();
+    const shippingAddress = form.shippingAddress.trim();
     const city = form.city.trim();
     const state = form.state.trim().toUpperCase();
+    const postalCode = form.postalCode.trim();
     const copies = Number(form.requestedCopies);
     const tables = Number(form.tableCount);
 
@@ -43,11 +94,24 @@ function validateRoomRequest(form) {
         return 'Please Enter A Valid Business Or Cardroom Email Address.';
     }
     const domain = contactEmail.split('@')[1] || '';
-    if (BLOCKED_EMAIL_DOMAINS.has(domain) || domain.endsWith('.example.com')) {
+    if (
+        BLOCKED_EMAIL_DOMAINS.has(domain) ||
+        domain.endsWith('.example.com') ||
+        domain.endsWith('.invalid') ||
+        domain.endsWith('.local') ||
+        domain.endsWith('.test') ||
+        domain.endsWith('.smarter.poker')
+    ) {
         return 'Please Use A Real Poker Room Email Address Instead Of A Placeholder Domain.';
+    }
+    if (shippingAddress.length < 4) {
+        return 'Please Enter A Complete Street Shipping Address For Bundle Delivery.';
     }
     if (city.length < 2) return 'Please Enter Your Poker Room City.';
     if (!US_STATE_CODES.includes(state)) return 'Please Select A Valid Two-Letter US State Or DC Code.';
+    if (!US_ZIP_RE.test(postalCode)) {
+        return 'Please Enter A Valid Five-Digit US ZIP Or ZIP+4 Postal Code.';
+    }
     if (!Number.isFinite(tables) || tables < 1 || tables > 300) {
         return 'Please Enter Your Active Poker Table Count Between 1 And 300.';
     }
@@ -57,7 +121,7 @@ function validateRoomRequest(form) {
     return '';
 }
 
-export default function SmarterPokerMagazinePokerRoomsPage() {
+export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null }) {
     const [form, setForm] = useState({
         roomName: '',
         contactName: '',
@@ -72,14 +136,50 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
         notes: '',
     });
     const [submitting, setSubmitting] = useState(false);
+    const submittingRef = useRef(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [submittedRecord, setSubmittedRecord] = useState(null);
 
     const canonicalUrl = `${MAGAZINE_SITE_URL}/hub/magazine/poker-rooms`;
-    const pageTitle = `Stock ${MAGAZINE_MASTHEAD} In Your Poker Room | Cardroom Print Bundles`;
+    const pageTitle = 'Cardroom Poker Magazine Bundles | Smarter.Poker';
     const pageDesc =
         'Request Monthly Commercial Print Bundles Of Smarter.Poker Magazine For Your Poker Room Lobby, Waiting List Podium, And Tournament Desk.';
-    const ogImageUrl = `${MAGAZINE_SITE_URL}${FALLBACK_MAGAZINE_IMAGE}`;
+    const rawCoverImg = latestIssue?.coverImageUrl || FALLBACK_MAGAZINE_IMAGE;
+    const ogImageUrl = rawCoverImg.startsWith('http')
+        ? rawCoverImg
+        : `${MAGAZINE_SITE_URL}${rawCoverImg.startsWith('/') ? rawCoverImg : `/${rawCoverImg}`}`;
+
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@graph': [
+            {
+                '@type': 'WebPage',
+                '@id': `${canonicalUrl}#webpage`,
+                name: pageTitle,
+                url: canonicalUrl,
+                description: pageDesc,
+                inLanguage: 'en-US',
+                primaryImageOfPage: {
+                    '@type': 'ImageObject',
+                    url: ogImageUrl,
+                },
+                isPartOf: {
+                    '@type': 'WebSite',
+                    name: 'Smarter.Poker',
+                    url: MAGAZINE_SITE_URL,
+                },
+            },
+            {
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                    { '@type': 'ListItem', position: 1, name: 'Home', item: `${MAGAZINE_SITE_URL}/` },
+                    { '@type': 'ListItem', position: 2, name: 'Hub', item: `${MAGAZINE_SITE_URL}/hub` },
+                    { '@type': 'ListItem', position: 3, name: 'Monthly Magazine', item: `${MAGAZINE_SITE_URL}/hub/magazine` },
+                    { '@type': 'ListItem', position: 4, name: 'Cardroom Print Bundles', item: canonicalUrl },
+                ],
+            },
+        ],
+    };
 
     const handleFieldChange = (field) => (e) => {
         setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -87,12 +187,14 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (submittingRef.current) return;
         const validationError = validateRoomRequest(form);
         if (validationError) {
             setErrorMessage(validationError);
             return;
         }
 
+        submittingRef.current = true;
         setSubmitting(true);
         setErrorMessage('');
         try {
@@ -140,6 +242,7 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
         } catch {
             setErrorMessage('Network Error Submitting Your Request. Please Check Your Connection And Try Again.');
         } finally {
+            submittingRef.current = false;
             setSubmitting(false);
         }
     };
@@ -176,6 +279,21 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
                 <meta key="og-description" property="og:description" content={pageDesc} />
                 <meta key="og-image" property="og:image" content={ogImageUrl} />
                 <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
+                <meta key="twitter-title" name="twitter:title" content={pageTitle} />
+                <meta key="twitter-description" name="twitter:description" content={pageDesc} />
+                <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
+                <link
+                    key="magazine-rss"
+                    rel="alternate"
+                    type="application/rss+xml"
+                    title="Smarter.Poker Magazine RSS"
+                    href={`${MAGAZINE_SITE_URL}/hub/magazine/rss.xml`}
+                />
+                <script
+                    key="magazine-rooms-jsonld"
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+                />
             </Head>
 
             <main
@@ -217,21 +335,40 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
                         }}
                     >
                         <div>
-                            <div
-                                style={{
-                                    display: 'inline-block',
-                                    background: '#4fc1b3',
-                                    color: '#05070a',
-                                    fontSize: '11px',
-                                    fontWeight: 900,
-                                    letterSpacing: '1.6px',
-                                    textTransform: 'uppercase',
-                                    padding: '4px 12px',
-                                    borderRadius: '999px',
-                                    marginBottom: '12px',
-                                }}
-                            >
-                                Official Cardroom Print Program
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        background: '#4fc1b3',
+                                        color: '#05070a',
+                                        fontSize: '11px',
+                                        fontWeight: 900,
+                                        letterSpacing: '1.6px',
+                                        textTransform: 'uppercase',
+                                        padding: '4px 12px',
+                                        borderRadius: '999px',
+                                    }}
+                                >
+                                    Official Cardroom Print Program
+                                </span>
+                                {latestIssue && (
+                                    <Link
+                                        href={`/hub/magazine/${latestIssue.slug}`}
+                                        style={{
+                                            display: 'inline-block',
+                                            background: '#05070a',
+                                            border: '1px solid #60a5fa',
+                                            color: '#60a5fa',
+                                            fontSize: '11px',
+                                            fontWeight: 800,
+                                            padding: '4px 12px',
+                                            borderRadius: '999px',
+                                            textDecoration: 'none',
+                                        }}
+                                    >
+                                        {`Vol. ${latestIssue.volumeNumber} \u2022 Issue #${latestIssue.issueNumber} (${latestIssue.periodLabel})`}
+                                    </Link>
+                                )}
                             </div>
                             <h1
                                 style={{
@@ -259,8 +396,12 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
                             }}
                         >
                             <img
-                                src={FALLBACK_MAGAZINE_IMAGE}
-                                alt="Smarter.Poker Magazine Cardroom Bundle Preview"
+                                src={latestIssue?.coverImageUrl || FALLBACK_MAGAZINE_IMAGE}
+                                alt={
+                                    latestIssue?.title
+                                        ? `${latestIssue.title} Cardroom Bundle Preview`
+                                        : 'Smarter.Poker Magazine Cardroom Bundle Preview'
+                                }
                                 onError={handleMagazineImageError}
                                 style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }}
                             />
@@ -481,11 +622,12 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
                                     >
                                         <div style={{ gridColumn: '1 / -1' }}>
                                             <label htmlFor="mag-shipping-address" style={labelStyle}>
-                                                Street Shipping Address (Attention: Poker Room)
+                                                Street Shipping Address (Attention: Poker Room) *
                                             </label>
                                             <input
                                                 id="mag-shipping-address"
                                                 type="text"
+                                                required
                                                 value={form.shippingAddress}
                                                 onChange={handleFieldChange('shippingAddress')}
                                                 placeholder="Enter Street Address For Bundle Delivery"
@@ -501,6 +643,7 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
                                             <input
                                                 id="mag-city"
                                                 type="text"
+                                                required
                                                 value={form.city}
                                                 onChange={handleFieldChange('city')}
                                                 placeholder="Enter City"
@@ -530,14 +673,15 @@ export default function SmarterPokerMagazinePokerRoomsPage() {
 
                                         <div>
                                             <label htmlFor="mag-postal" style={labelStyle}>
-                                                ZIP / Postal Code
+                                                ZIP / Postal Code *
                                             </label>
                                             <input
                                                 id="mag-postal"
                                                 type="text"
+                                                required
                                                 value={form.postalCode}
                                                 onChange={handleFieldChange('postalCode')}
-                                                placeholder="Enter ZIP Code"
+                                                placeholder="Enter Five-Digit ZIP Code"
                                                 style={inputStyle}
                                                 disabled={submitting}
                                             />

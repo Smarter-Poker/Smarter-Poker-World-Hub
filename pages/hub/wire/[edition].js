@@ -864,7 +864,24 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                         <Link href="/hub/wire" style={{ color: '#4fc1b3', textDecoration: 'none', fontWeight: 700 }}>
                             &larr; All Weekly Wire Editions
                         </Link>
-                        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <Link
+                                href="/hub/magazine"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    color: '#05070a',
+                                    background: '#4fc1b3',
+                                    borderRadius: '999px',
+                                    padding: '4px 13px',
+                                    fontSize: '12.5px',
+                                    fontWeight: 800,
+                                    textDecoration: 'none',
+                                }}
+                            >
+                                Monthly Magazine &rarr;
+                            </Link>
                             <a
                                 href="/hub/wire/rss.xml"
                                 type="application/rss+xml"

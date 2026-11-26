@@ -166,7 +166,7 @@ export default function SmarterPokerMagazineNewsstandPage({
     }, [allDisplayIssues, searchQuery, activeDepartment]);
 
     const canonicalUrl = `${MAGAZINE_SITE_URL}/hub/magazine`;
-    const pageTitle = `${MAGAZINE_MASTHEAD} | Monthly Digital Flipbook, Solver Strategy & Tour Standings`;
+    const pageTitle = 'Monthly Poker Magazine & Strategy | Smarter.Poker';
     const pageDesc =
         'Read Every 44-Page Monthly Issue Of Smarter.Poker Magazine: Major Circuit Coverage, Global POY Standings, GTO Solver Columns, Kings Club 25450 Champions, And Cardroom Print Editions.';
     const ogImageUrl =
@@ -581,7 +581,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                     </section>
 
                     <div style={{ marginBottom: '28px' }}>
-                        <NewsletterCaptureBar variant="inline" alwaysVisible pathname="/hub/wire" source="magazine_rack" />
+                        <NewsletterCaptureBar variant="inline" alwaysVisible pathname="/hub/magazine" source="capture:magazine" />
                     </div>
 
                     <section aria-label="Magazine Back-Issue Rack">

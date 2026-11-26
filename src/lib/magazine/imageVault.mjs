@@ -3,7 +3,7 @@
  *
  * Fetches candidate editorial photography through SSRF-hardened manual redirect
  * validation (`assertFetchableUrl`, <= 3 hops, 7000ms timeout, 8MB max bytes),
- * rejects tracking pixels or low-resolution thumbnails (`< 360x220`), and
+ * rejects tracking pixels, SVGs, or low-resolution thumbnails (`< 360x220`), and
  * generates both:
  *   - 300-DPI commercial print master JPEG (`<= 2400px` max edge, quality 90, density 300)
  *   - Progressive web flipbook JPEG (`1200x800`, quality 84)
@@ -29,10 +29,13 @@ export const IMAGE_VAULT_MAX_BYTES = 8 * 1024 * 1024;
 export const IMAGE_VAULT_MIN_WIDTH = 360;
 export const IMAGE_VAULT_MIN_HEIGHT = 220;
 export const IMAGE_VAULT_PRINT_DPI = 300;
+export const IMAGE_VAULT_LIMIT_INPUT_PIXELS = 36_000_000;
 export const IMAGE_VAULT_FALLBACK_URL = '/api/news/email-image?fallback=1&w=960&h=540';
 
+const ALLOWED_SHARP_FORMATS = new Set(['jpeg', 'png', 'webp', 'avif', 'gif', 'heif']);
+
 const PLACEHOLDER_IMAGE_RE =
-    /(?:spacer\.gif|blank\.gif|pixel\.gif|1x1|transparent\.png|default[-_]?avatar|gravatar\.com\/avatar\/0{6,}|\/wp-includes\/images\/media\/default)/i;
+    /(?:spacer\.gif|blank\.gif|pixel\.gif|1x1|transparent\.png|default[-_]?avatar|gravatar\.com\/avatar\/0{6,}|\/wp-includes\/images\/media\/default|\.svg(?:[?#]|$))/i;
 
 async function getSupabaseClient(sb) {
     if (sb && typeof sb === 'object') return sb;
@@ -118,6 +121,12 @@ export function buildVanguardEditorialPlateSvg(width = 1200, height = 800, seedI
     ].join('');
 }
 
+function isDisallowedSvgOrXmlPayload(buf) {
+    if (!buf || buf.byteLength === 0) return true;
+    const head = buf.subarray(0, Math.min(512, buf.byteLength)).toString('utf8').trimStart();
+    return /^(?:<\?xml\b|<!doctype\b|<svg\b|<html\b)/i.test(head) || /<svg[\s>]/i.test(head);
+}
+
 async function readBoundedImageBuffer(response, maxBytes = IMAGE_VAULT_MAX_BYTES) {
     const declaredLen = Number(response.headers?.get?.('content-length') || 0);
     if (declaredLen > maxBytes) {
@@ -164,9 +173,20 @@ async function readBoundedImageBuffer(response, maxBytes = IMAGE_VAULT_MAX_BYTES
     return buf;
 }
 
+export function isAllowedUpstreamImageContentType(rawContentType) {
+    const mime = String(rawContentType || '')
+        .toLowerCase()
+        .split(';')[0]
+        .trim();
+    if (!mime) return true;
+    if (mime === 'image/svg+xml' || mime.includes('svg')) return false;
+    if (mime === 'application/octet-stream' || mime === 'binary/octet-stream') return true;
+    return mime.startsWith('image/');
+}
+
 /**
  * Fetches a remote image URL with manual SSRF-validated redirects (`<= 3` hops,
- * `7000ms` total timeout, `8MB` max payload).
+ * `7000ms` total timeout across headers AND body stream, `8MB` max payload).
  */
 export async function fetchSafeMagazineImageBuffer(
     rawUrl,
@@ -202,63 +222,67 @@ export async function fetchSafeMagazineImageBuffer(
             throw blockedErr;
         }
 
-        const remainingMs = Math.max(250, deadlineMs - Date.now());
+        const remainingMs = deadlineMs - Date.now();
+        if (remainingMs <= 50) return null;
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), remainingMs);
+        const timer = setTimeout(() => controller.abort(), Math.max(250, remainingMs));
 
-        let response;
         try {
-            response = await fetchImpl(parsed.toString(), {
+            const response = await fetchImpl(parsed.toString(), {
                 method: 'GET',
                 redirect: 'manual',
                 signal: controller.signal,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (compatible; SmarterPokerMagazine/1.0; +https://smarter.poker)',
-                    Accept: 'image/avif,image/webp,image/apng,image/jpeg,image/png,image/*;q=0.8',
+                    Accept: 'image/avif,image/webp,image/apng,image/jpeg,image/png;q=0.9',
                 },
             });
+
+            if (!response) return null;
+
+            if (response.status >= 300 && response.status <= 399) {
+                const location = response.headers?.get?.('location');
+                try {
+                    await response.body?.cancel?.();
+                } catch {
+                    /* ignore */
+                }
+                if (!location || hop === maxRedirects) return null;
+                try {
+                    currentUrl = new URL(location, parsed.toString()).toString();
+                } catch {
+                    return null;
+                }
+                continue;
+            }
+
+            if (!response.ok) {
+                try {
+                    await response.body?.cancel?.();
+                } catch {
+                    /* ignore */
+                }
+                return null;
+            }
+
+            const contentType = String(response.headers?.get?.('content-type') || '');
+            if (!isAllowedUpstreamImageContentType(contentType)) {
+                try {
+                    await response.body?.cancel?.();
+                } catch {
+                    /* ignore */
+                }
+                return null;
+            }
+
+            const buf = await readBoundedImageBuffer(response, maxBytes);
+            if (isDisallowedSvgOrXmlPayload(buf)) {
+                return null;
+            }
+            return buf;
         } finally {
             clearTimeout(timer);
         }
-
-        if (!response) return null;
-
-        if (response.status >= 300 && response.status <= 399) {
-            const location = response.headers?.get?.('location');
-            try {
-                await response.body?.cancel?.();
-            } catch {
-                /* ignore */
-            }
-            if (!location || hop === maxRedirects) return null;
-            try {
-                currentUrl = new URL(location, parsed.toString()).toString();
-            } catch {
-                return null;
-            }
-            continue;
-        }
-
-        if (!response.ok) {
-            try {
-                await response.body?.cancel?.();
-            } catch {
-                /* ignore */
-            }
-            return null;
-        }
-
-        const contentType = String(response.headers?.get?.('content-type') || '').toLowerCase();
-        if (contentType.includes('text/html') || contentType.includes('application/json')) {
-            try {
-                await response.body?.cancel?.();
-            } catch {
-                /* ignore */
-            }
-            return null;
-        }
-
-        return readBoundedImageBuffer(response, maxBytes);
     }
 
     return null;
@@ -324,12 +348,21 @@ export async function vaultMagazineImage(
                 assertFetchableFn,
                 timeoutMs,
             });
-            if (rawBuf && rawBuf.byteLength > 0) {
-                const probe = sharp(rawBuf, { failOn: 'none', animated: false });
+            if (rawBuf && rawBuf.byteLength > 0 && !isDisallowedSvgOrXmlPayload(rawBuf)) {
+                const probe = sharp(rawBuf, {
+                    failOn: 'none',
+                    animated: false,
+                    limitInputPixels: 36_000_000,
+                });
                 const meta = await probe.metadata();
+                const fmt = String(meta?.format || '').toLowerCase();
                 const w = Number(meta?.width || 0);
                 const h = Number(meta?.height || 0);
-                if (w >= IMAGE_VAULT_MIN_WIDTH && h >= IMAGE_VAULT_MIN_HEIGHT) {
+                if (
+                    ALLOWED_SHARP_FORMATS.has(fmt) &&
+                    w >= IMAGE_VAULT_MIN_WIDTH &&
+                    h >= IMAGE_VAULT_MIN_HEIGHT
+                ) {
                     decodedBuffer = rawBuf;
                     sourceWidth = w;
                     sourceHeight = h;
@@ -349,7 +382,11 @@ export async function vaultMagazineImage(
     if (decodedBuffer) {
         try {
             contentHashHex = crypto.createHash('sha256').update(decodedBuffer).digest('hex');
-            const masterResult = await sharp(decodedBuffer, { failOn: 'none', animated: false })
+            const masterResult = await sharp(decodedBuffer, {
+                failOn: 'none',
+                animated: false,
+                limitInputPixels: 36_000_000,
+            })
                 .rotate()
                 .resize({
                     width: 2400,
@@ -366,7 +403,11 @@ export async function vaultMagazineImage(
             finalWidth = Number(masterResult.info?.width || sourceWidth || 1200);
             finalHeight = Number(masterResult.info?.height || sourceHeight || 800);
 
-            webBuffer = await sharp(decodedBuffer, { failOn: 'none', animated: false })
+            webBuffer = await sharp(decodedBuffer, {
+                failOn: 'none',
+                animated: false,
+                limitInputPixels: 36_000_000,
+            })
                 .rotate()
                 .resize(1200, 800, {
                     fit: 'cover',
@@ -391,13 +432,13 @@ export async function vaultMagazineImage(
         const masterSvg = buildVanguardEditorialPlateSvg(1600, 2000, `${seedLabel}:master`);
 
         try {
-            masterBuffer = await sharp(Buffer.from(masterSvg, 'utf8'))
+            masterBuffer = await sharp(Buffer.from(masterSvg, 'utf8'), { limitInputPixels: 36_000_000 })
                 .flatten({ background: '#05070a' })
                 .withMetadata({ density: IMAGE_VAULT_PRINT_DPI })
                 .jpeg({ quality: 90, progressive: true, mozjpeg: true })
                 .toBuffer();
 
-            webBuffer = await sharp(Buffer.from(webSvg, 'utf8'))
+            webBuffer = await sharp(Buffer.from(webSvg, 'utf8'), { limitInputPixels: 36_000_000 })
                 .flatten({ background: '#05070a' })
                 .jpeg({ quality: 84, progressive: true, mozjpeg: true })
                 .toBuffer();

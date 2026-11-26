@@ -239,7 +239,7 @@ export function resolveNotificationRoute(n) {
 
     if (t === 'monthly_magazine_published') {
         const issueSlug = pick(d, 'slug', 'issuePeriod', 'issue_period', 'issue', 'issueNumber');
-        return issueSlug && /^[a-z0-9-]+$/i.test(issueSlug) ? `/hub/magazine/${seg(issueSlug)}` : '/hub/magazine';
+        return issueSlug && /^[a-z0-9][a-z0-9._-]{0,63}$/i.test(issueSlug) ? `/hub/magazine/${seg(issueSlug)}` : '/hub/magazine';
     }
 
     // ── 8. Generic payload shapes, for types we do not know by name ────

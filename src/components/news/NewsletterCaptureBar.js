@@ -53,67 +53,85 @@ export function normalizeCapturePath(rawPath) {
 export function isNewsletterCaptureRoute(rawPath) {
     const raw = String(rawPath || '').split(/[?#]/, 1)[0].trim();
     if (!raw) return false;
+    const norm = normalizeCapturePath(raw);
+    if (
+        norm === '/hub/magazine/print' ||
+        norm.startsWith('/hub/magazine/print/') ||
+        norm === '/hub/magazine/poker-rooms' ||
+        norm.startsWith('/hub/magazine/poker-rooms/') ||
+        norm === '/hub/magazine/rss.xml'
+    ) {
+        return false;
+    }
     return (
         raw.startsWith('/tools/') ||
-        raw === '/hub/article' ||
-        raw.startsWith('/hub/article/') ||
+        norm === '/hub/article' ||
+        norm.startsWith('/hub/article/') ||
         raw.startsWith('/hub/poker-near-me') ||
         raw.startsWith('/hub/poker-series') ||
         raw.startsWith('/hub/series/') ||
-        raw === '/hub/wire' ||
-        raw.startsWith('/hub/wire/') ||
-        raw === '/hub/news' ||
-        raw.startsWith('/hub/news/') ||
-        raw === '/learn' ||
-        raw.startsWith('/learn/') ||
-        raw === '/rules' ||
-        raw.startsWith('/rules/') ||
-        raw === '/games' ||
-        raw.startsWith('/games/') ||
-        raw === '/poker-rooms' ||
-        raw.startsWith('/poker-rooms/') ||
-        raw === '/freerolls' ||
-        raw === '/weekend-tournaments' ||
-        raw === '/research' ||
-        raw.startsWith('/research/') ||
-        raw === '/glossary' ||
-        raw.startsWith('/glossary/') ||
+        norm === '/hub/wire' ||
+        norm.startsWith('/hub/wire/') ||
+        norm === '/hub/magazine' ||
+        norm.startsWith('/hub/magazine/') ||
+        norm === '/hub/news' ||
+        norm.startsWith('/hub/news/') ||
+        norm === '/learn' ||
+        norm.startsWith('/learn/') ||
+        norm === '/rules' ||
+        norm.startsWith('/rules/') ||
+        norm === '/games' ||
+        norm.startsWith('/games/') ||
+        norm === '/poker-rooms' ||
+        norm.startsWith('/poker-rooms/') ||
+        norm === '/freerolls' ||
+        norm === '/weekend-tournaments' ||
+        norm === '/research' ||
+        norm.startsWith('/research/') ||
+        norm === '/glossary' ||
+        norm.startsWith('/glossary/') ||
         raw.startsWith('/hub/venues/') ||
         raw.startsWith('/hub/tours/') ||
-        raw === '/hub/poker-tours' ||
-        raw === '/hub/daily-tournaments' ||
-        raw === '/hub/events-calendar'
+        norm === '/hub/poker-tours' ||
+        norm === '/hub/daily-tournaments' ||
+        norm === '/hub/events-calendar'
     );
 }
 
 export function deriveCaptureSource(rawPath) {
     const raw = String(rawPath || '').split(/[?#]/, 1)[0].trim();
+    const norm = normalizeCapturePath(raw);
     if (raw.startsWith('/tools/')) return 'capture:tools';
-    if (raw === '/hub/article' || raw.startsWith('/hub/article/')) return 'capture:article';
+    if (norm === '/hub/article' || norm.startsWith('/hub/article/')) return 'capture:article';
     if (raw.startsWith('/hub/poker-near-me')) return 'capture:poker-near-me';
     if (raw.startsWith('/hub/poker-series') || raw.startsWith('/hub/series/')) return 'capture:series';
-    if (raw === '/hub/wire' || raw.startsWith('/hub/wire/')) return 'capture:wire';
-    if (raw === '/hub/news' || raw.startsWith('/hub/news/')) return 'capture:news';
-    if (raw === '/learn' || raw.startsWith('/learn/')) return 'capture:learn';
-    if (raw === '/rules' || raw.startsWith('/rules/')) return 'capture:rules';
-    if (raw === '/games' || raw.startsWith('/games/')) return 'capture:games';
-    if (raw === '/poker-rooms' || raw.startsWith('/poker-rooms/')) return 'capture:poker-rooms';
-    if (raw === '/freerolls' || raw === '/weekend-tournaments') return 'capture:freerolls';
-    if (raw === '/research' || raw.startsWith('/research/')) return 'capture:research';
-    if (raw === '/glossary' || raw.startsWith('/glossary/')) return 'capture:glossary';
+    if (norm === '/hub/magazine' || norm.startsWith('/hub/magazine/')) return 'capture:magazine';
+    if (norm === '/hub/wire' || norm.startsWith('/hub/wire/')) return 'capture:wire';
+    if (norm === '/hub/news' || norm.startsWith('/hub/news/')) return 'capture:news';
+    if (norm === '/learn' || norm.startsWith('/learn/')) return 'capture:learn';
+    if (norm === '/rules' || norm.startsWith('/rules/')) return 'capture:rules';
+    if (norm === '/games' || norm.startsWith('/games/')) return 'capture:games';
+    if (norm === '/poker-rooms' || norm.startsWith('/poker-rooms/')) return 'capture:poker-rooms';
+    if (norm === '/freerolls' || norm === '/weekend-tournaments') return 'capture:freerolls';
+    if (norm === '/research' || norm.startsWith('/research/')) return 'capture:research';
+    if (norm === '/glossary' || norm.startsWith('/glossary/')) return 'capture:glossary';
     if (raw.startsWith('/hub/venues/')) return 'capture:venues';
-    if (raw.startsWith('/hub/tours/') || raw === '/hub/poker-tours' || raw === '/hub/daily-tournaments' || raw === '/hub/events-calendar') return 'capture:tours';
+    if (raw.startsWith('/hub/tours/') || norm === '/hub/poker-tours' || norm === '/hub/daily-tournaments' || norm === '/hub/events-calendar') return 'capture:tours';
     return 'capture:hub';
 }
 
 export function deriveCaptureHeadline(rawPath) {
     const raw = String(rawPath || '').split(/[?#]/, 1)[0].trim();
+    const norm = normalizeCapturePath(raw);
+    if (norm === '/hub/magazine' || norm.startsWith('/hub/magazine/')) {
+        return 'Get Smarter.Poker Magazine & Weekly Wire Free';
+    }
     if (
         raw.startsWith('/poker-rooms') ||
         raw.startsWith('/hub/venues/') ||
         raw.startsWith('/hub/poker-near-me') ||
-        raw === '/freerolls' ||
-        raw === '/weekend-tournaments'
+        norm === '/freerolls' ||
+        norm === '/weekend-tournaments'
     ) {
         return 'Get Live Tournament Schedules And Weekly Solver Spots In Your Inbox';
     }
@@ -128,7 +146,12 @@ export function deriveCaptureHeadline(rawPath) {
     return 'Get Curated World Poker News, Solver Spots And Club Rewards';
 }
 
-export default function NewsletterCaptureBar({ pathname: pathnameProp, variant = 'floating', alwaysVisible = false }) {
+export default function NewsletterCaptureBar({
+    pathname: pathnameProp,
+    variant = 'floating',
+    alwaysVisible = false,
+    source = '',
+}) {
     const router = useRouter();
     const activePath = pathnameProp || router?.asPath || router?.pathname || '';
     const isInline = variant === 'inline';
@@ -213,16 +236,21 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
         };
     }, [activePath, alwaysVisible]);
 
-    const cleanPath = String(activePath || '').split(/[?#]/, 1)[0].trim();
-    const routeEligible = isNewsletterCaptureRoute(cleanPath);
+    const cleanPath = normalizeCapturePath(activePath);
+    const routeEligible = isNewsletterCaptureRoute(activePath);
+    const effectiveSource = String(source || '').trim() || deriveCaptureSource(cleanPath);
 
-    // Article pages mount <NewsletterCaptureBar variant="inline" /> directly at
-    // the end of the story body, so the global floating bar yields there to avoid
-    // rendering duplicate bars on the same screen.
+    // Article, Weekly Wire index, and Magazine newsstand pages mount
+    // <NewsletterCaptureBar variant="inline" /> directly in flow, so the global
+    // floating bar yields there to avoid rendering duplicate bars on the same screen.
     const suppressedForInlineArticle =
-        !isInline && (cleanPath === '/hub/article' || cleanPath.startsWith('/hub/article/'));
+        !isInline &&
+        (cleanPath === '/hub/article' ||
+            cleanPath.startsWith('/hub/article/') ||
+            cleanPath === '/hub/wire' ||
+            cleanPath === '/hub/magazine');
 
-    const isCalculatorLander = ['/tools/poker-odds-calculator', '/tools/icm-calculator'].includes(normalizeCapturePath(cleanPath));
+    const isCalculatorLander = ['/tools/poker-odds-calculator', '/tools/icm-calculator'].includes(cleanPath);
     if (!ready || !routeEligible || suppressedForInlineArticle || (!isInline && isCalculatorLander)) {
         return null;
     }
@@ -259,7 +287,7 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: trimmed,
-                    source: deriveCaptureSource(cleanPath),
+                    source: effectiveSource,
                 }),
             });
             const body = await response.json().catch(() => ({}));

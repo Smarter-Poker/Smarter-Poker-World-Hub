@@ -607,7 +607,10 @@ export default async function handler(req, res) {
             }
 
             try {
-                await submitToIndexNow([`${siteUrl}/hub/wire`, `${siteUrl}/hub/wire/${edition.editionNumber}`]);
+                await submitToIndexNow([
+                    new URL('/hub/wire', siteUrl).href,
+                    new URL(`/hub/wire/${edition.editionNumber}`, siteUrl).href,
+                ]);
             } catch (_idxErr) {
                 /* non-blocking */
             }

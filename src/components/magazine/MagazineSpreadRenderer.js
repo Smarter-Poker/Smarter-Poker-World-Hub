@@ -65,6 +65,7 @@ function formatSafeChips(item) {
     if (typeof item === 'number') return formatChipsOnly(item);
     if (item && typeof item === 'object') {
         const rawNum =
+            item.prizePoolChips ??
             item.prizeChips ??
             item.prize_chips ??
             item.prize_pool ??
@@ -75,10 +76,15 @@ function formatSafeChips(item) {
         if (Number.isFinite(Number(rawNum)) && Number(rawNum) > 0) {
             return formatChipsOnly(Number(rawNum));
         }
-        const rawLabel = String(item.prizeLabel || item.prize || item.value || '').replace(/\$/g, '').trim();
+        const rawLabel = String(
+            item.prizePoolLabel || item.prizeLabel || item.prize || item.value || ''
+        )
+            .replace(/\$/g, '')
+            .trim();
         if (rawLabel) {
             return /chips/i.test(rawLabel) ? stripMagazineDashes(rawLabel) : `${stripMagazineDashes(rawLabel)} Chips`;
         }
+        return '0 Chips';
     }
     const parsed = Number(String(item || '').replace(/[^0-9.]/g, ''));
     return Number.isFinite(parsed) && parsed > 0 ? formatChipsOnly(parsed) : '0 Chips';
@@ -122,7 +128,9 @@ function getThemeTokens(mode) {
     };
 }
 
-function QrActionBadge({ page, theme, compact = false }) {
+function QrActionBadge({ page, theme, compact = false, printMode = null, darkSurface = false }) {
+    const isPrintMode = printMode != null ? Boolean(printMode) : Boolean(theme?.isPrint);
+    const useLightCard = isPrintMode && !darkSurface;
     const qrTarget = page?.qrUrl || page?.ctaUrl || `${MAGAZINE_SITE_URL}/hub/magazine`;
     const qrSrc = buildMagazineQrDataUri(qrTarget, compact ? 64 : 76);
     const shortPath = formatReadableShortPath(qrTarget);
@@ -137,8 +145,8 @@ function QrActionBadge({ page, theme, compact = false }) {
                 gap: compact ? '8px' : '10px',
                 padding: compact ? '6px 8px' : '8px 10px',
                 borderRadius: '8px',
-                background: theme.isPrint ? '#f8fafc' : '#05070a',
-                border: `1px solid ${theme.isPrint ? '#0f172a' : '#1b2c3d'}`,
+                background: useLightCard ? '#f8fafc' : '#05070a',
+                border: `1px solid ${useLightCard ? '#0f172a' : '#1b2c3d'}`,
             }}
         >
             <img
@@ -163,18 +171,18 @@ function QrActionBadge({ page, theme, compact = false }) {
                         fontWeight: 800,
                         letterSpacing: '1.2px',
                         textTransform: 'uppercase',
-                        color: theme.isPrint ? '#2563eb' : '#4fc1b3',
+                        color: useLightCard ? '#2563eb' : '#4fc1b3',
                         marginBottom: '2px',
                     }}
                 >
                     Scan At The Table
                 </div>
-                {theme.isPrint ? (
+                {isPrintMode ? (
                     <div
                         style={{
                             fontSize: '10.5px',
                             fontWeight: 800,
-                            color: theme.ink,
+                            color: useLightCard ? theme.ink : '#ffffff',
                             lineHeight: 1.25,
                             marginBottom: '2px',
                         }}
@@ -202,7 +210,7 @@ function QrActionBadge({ page, theme, compact = false }) {
                     style={{
                         fontSize: '8.5px',
                         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                        color: theme.inkMuted,
+                        color: useLightCard ? theme.inkMuted : '#9fb3c8',
                         wordBreak: 'break-all',
                     }}
                 >
@@ -324,8 +332,12 @@ function FrontCoverLayout({ page, issueMeta, theme }) {
     const iss = issueMeta?.issueNumber || page?.meta?.issueNumber || 1;
     const periodLabel = issueMeta?.periodLabel || formatPeriodLabel(issueMeta?.issuePeriod);
     const coverHeadline = cleanText(page?.headline || issueMeta?.coverHeadline, 'Inside The Month In Poker');
+    const rawPageSub = String(page?.subheadline || '').trim();
+    const pageSubIsVolumeLine = /^vol(?:ume)?\.?\s*\d+/i.test(rawPageSub);
     const coverSub = cleanText(
-        page?.subheadline || issueMeta?.coverSubheadline,
+        issueMeta?.coverSubheadline ||
+            page?.paragraphs?.[0] ||
+            (pageSubIsVolumeLine ? '' : rawPageSub),
         'Major Champions, GTO Solver Labs, POY Standings & Coast-To-Coast Live Series'
     );
 
@@ -512,7 +524,9 @@ function FrontCoverLayout({ page, issueMeta, theme }) {
                         ctaUrl: page?.ctaUrl || `/hub/magazine/${issueMeta?.slug || 'latest'}`,
                         qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}/hub/magazine/${issueMeta?.slug || 'latest'}`,
                     }}
-                    theme={{ ...theme, isPrint: false }}
+                    theme={theme}
+                    printMode={theme.isPrint}
+                    darkSurface
                     compact
                 />
             </div>
@@ -631,7 +645,9 @@ function HousePromoLayout({ page, issueMeta, theme }) {
                             ctaUrl: page?.ctaUrl || '/go/promo',
                             qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}/go/promo`,
                         }}
-                        theme={{ ...theme, isPrint: false }}
+                        theme={theme}
+                        printMode={theme.isPrint}
+                        darkSurface
                     />
                 </div>
             </div>
@@ -860,8 +876,16 @@ function TocSpreadLayout({ page, issueMeta, theme, onSelectPage }) {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     {grp.entries.slice(0, 9).map((entry, idx) => {
                                         const targetPage = Number(entry?.pageNumber || entry?.page || idx + 1);
+                                        const endPageNumber = Number(entry?.endPageNumber || targetPage);
+                                        const pageRangeLabel =
+                                            endPageNumber > targetPage
+                                                ? `P. ${targetPage}-${endPageNumber}`
+                                                : `P. ${targetPage}`;
                                         const entryTitle = cleanText(entry?.headline || entry?.title, `Section ${targetPage}`);
-                                        const entrySub = cleanText(entry?.subheadline || entry?.summary || entry?.department, '');
+                                        const entrySub = cleanText(
+                                            entry?.subheadline || entry?.subtitle || entry?.summary || entry?.department,
+                                            ''
+                                        );
                                         const clickable = !theme.isPrint && typeof onSelectPage === 'function';
 
                                         if (clickable) {
@@ -903,7 +927,7 @@ function TocSpreadLayout({ page, issueMeta, theme, onSelectPage }) {
                                                             flexShrink: 0,
                                                         }}
                                                     >
-                                                        {`P. ${targetPage}`}
+                                                        {pageRangeLabel}
                                                     </span>
                                                 </button>
                                             );
@@ -928,7 +952,7 @@ function TocSpreadLayout({ page, issueMeta, theme, onSelectPage }) {
                                                     )}
                                                 </div>
                                                 <div style={{ fontSize: '10.5px', fontWeight: 900, color: theme.accentBlue, flexShrink: 0 }}>
-                                                    {targetPage}
+                                                    {pageRangeLabel}
                                                 </div>
                                             </div>
                                         );
@@ -946,6 +970,7 @@ function TocSpreadLayout({ page, issueMeta, theme, onSelectPage }) {
 }
 
 function NewsRailLayout({ page, issueMeta, theme }) {
+    const isFinalTable = page?.kind === 'final_table_live';
     const stories =
         Array.isArray(page?.items) && page.items.length > 0
             ? page.items.slice(0, 3)
@@ -974,7 +999,11 @@ function NewsRailLayout({ page, issueMeta, theme }) {
                             marginBottom: '2px',
                         }}
                     >
-                        The Monthly Wire &bull; Industry &amp; Tour Digest
+                        {isFinalTable ? (
+                            <>Final Table Live &bull; Championship Results</>
+                        ) : (
+                            <>The Monthly Wire &bull; Industry &amp; Tour Digest</>
+                        )}
                     </div>
                     <h2
                         style={{
@@ -997,7 +1026,10 @@ function NewsRailLayout({ page, issueMeta, theme }) {
                                 st?.vaulted_image_url ||
                                 page?.imageUrl ||
                                 FALLBACK_MAGAZINE_IMAGE;
-                            const outlet = cleanText(st?.sourceName || st?.source_name || st?.outlet, 'Smarter.Poker News');
+                            const outlet = cleanText(
+                                st?.sourceName || st?.source_name || st?.outlet || st?.byline || st?.category,
+                                'Smarter.Poker News'
+                            );
                             return (
                                 <article
                                     key={idx}
@@ -1356,6 +1388,8 @@ function StandingsTableLayout({ page, issueMeta, theme }) {
             : Array.isArray(page?.items) && page.items.length > 0
               ? page.items
               : [];
+    const displayRows = rows.slice(0, 13);
+    const compactRows = rows.length > 12;
 
     return (
         <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
@@ -1392,7 +1426,7 @@ function StandingsTableLayout({ page, issueMeta, theme }) {
                         )}
                     </h2>
                     {page?.subheadline && (
-                        <div style={{ fontSize: '9.5px', color: theme.inkMuted, marginBottom: '8px' }}>
+                        <div style={{ fontSize: '9.5px', color: theme.inkMuted, marginBottom: compactRows ? '6px' : '8px' }}>
                             {cleanText(page.subheadline)}
                         </div>
                     )}
@@ -1409,7 +1443,7 @@ function StandingsTableLayout({ page, issueMeta, theme }) {
                             style={{
                                 display: 'grid',
                                 gridTemplateColumns: '38px 1.3fr 1.2fr 100px',
-                                padding: '6px 8px',
+                                padding: compactRows ? '5px 8px' : '6px 8px',
                                 background: theme.subtleBg,
                                 borderBottom: `1px solid ${theme.border}`,
                                 fontSize: '8.2px',
@@ -1420,31 +1454,50 @@ function StandingsTableLayout({ page, issueMeta, theme }) {
                             }}
                         >
                             <span>Rank</span>
-                            <span>{isKings ? 'Champion' : 'Player'}</span>
-                            <span>{isPoy ? 'Circuit / Cashes' : 'Event'}</span>
+                            <span>{isKings ? 'Tournament' : 'Player'}</span>
+                            <span>{isKings ? 'Format & Buy-In' : isPoy ? 'Circuit / Cashes' : 'Event'}</span>
                             <span style={{ textAlign: 'right' }}>{isPoy ? 'POY Points' : 'Prize Pool'}</span>
                         </div>
 
-                        {rows.length === 0 ? (
+                        {displayRows.length === 0 ? (
                             <div style={{ padding: '14px', fontSize: '9.5px', color: theme.inkMuted }}>
                                 Verified Monthly Standings Sync Automatically With Official Leaderboard Snapshots.
                             </div>
                         ) : (
-                            rows.slice(0, 12).map((row, idx) => {
+                            displayRows.map((row, idx) => {
                                 const rank = Number(row?.rank || row?.place || idx + 1);
-                                const player = cleanText(
-                                    row?.playerName || row?.player_name || row?.username || row?.winner || row?.name,
-                                    `Contender #${rank}`
-                                );
-                                const detail = cleanText(
-                                    row?.eventName ||
-                                        row?.tournamentName ||
-                                        row?.tournament_name ||
-                                        row?.tour ||
-                                        row?.headline ||
-                                        row?.summary,
-                                    isKings ? 'Kings Club Major' : 'Championship Circuit'
-                                );
+                                const primaryLabel = isKings
+                                    ? cleanText(
+                                          row?.name ||
+                                              row?.tournamentName ||
+                                              row?.tournament_name ||
+                                              row?.eventName ||
+                                              row?.headline ||
+                                              row?.playerName,
+                                          `Tournament #${rank}`
+                                      )
+                                    : cleanText(
+                                          row?.playerName || row?.player_name || row?.username || row?.winner || row?.name,
+                                          `Contender #${rank}`
+                                      );
+                                const detail = isKings
+                                    ? cleanText(
+                                          row?.eventDetail ||
+                                              (row?.gameType && row?.buyInLabel
+                                                  ? `${row.gameType} \u2022 ${row.buyInLabel}`
+                                                  : row?.gameType || 'Kings Club Schedule'),
+                                          'Kings Club Schedule'
+                                      )
+                                    : cleanText(
+                                          row?.eventName ||
+                                              row?.tournamentName ||
+                                              row?.tournament_name ||
+                                              row?.tour ||
+                                              row?.headline ||
+                                              row?.summary ||
+                                              (isPoy && row?.year ? `${row.year} Global POY Circuit` : ''),
+                                          'Championship Circuit'
+                                      );
                                 const metric = isPoy
                                     ? `${Number(row?.points || row?.poy_points || row?.score || 0).toLocaleString('en-US')} Pts`
                                     : formatSafeChips(row);
@@ -1455,9 +1508,9 @@ function StandingsTableLayout({ page, issueMeta, theme }) {
                                         style={{
                                             display: 'grid',
                                             gridTemplateColumns: '38px 1.3fr 1.2fr 100px',
-                                            padding: '5px 8px',
-                                            borderBottom: idx < rows.slice(0, 12).length - 1 ? `1px solid ${theme.border}` : 'none',
-                                            fontSize: '9px',
+                                            padding: compactRows ? '3.5px 8px' : '5px 8px',
+                                            borderBottom: idx < displayRows.length - 1 ? `1px solid ${theme.border}` : 'none',
+                                            fontSize: compactRows ? '8.6px' : '9px',
                                             alignItems: 'center',
                                         }}
                                     >
@@ -1471,7 +1524,7 @@ function StandingsTableLayout({ page, issueMeta, theme }) {
                                                 paddingRight: '6px',
                                             }}
                                         >
-                                            {player}
+                                            {primaryLabel}
                                         </strong>
                                         <span
                                             style={{
@@ -1509,16 +1562,40 @@ function StandingsTableLayout({ page, issueMeta, theme }) {
 }
 
 function StrategyColumnLayout({ page, issueMeta, theme }) {
+    const [pickedOption, setPickedOption] = useState('');
     const spot = page?.spot || {};
     const cardImg =
         spot?.cardImageUrl ||
         spot?.imageUrl ||
         (theme.isPrint ? page?.masterImageUrl : page?.imageUrl) ||
         FALLBACK_MAGAZINE_IMAGE;
-    const options = Array.isArray(spot?.options) ? spot.options : [];
+    const options =
+        Array.isArray(page?.items) && page.items.length > 0
+            ? page.items
+            : Array.isArray(spot?.options)
+              ? spot.options
+              : [];
     const correctKey = String(spot?.correctKey || 'A');
-    const solverPct = Math.min(100, Math.max(0, Number(spot?.solverPct ?? spot?.solverFreqPct ?? 68) || 68));
-    const communityPct = Math.min(100, Math.max(0, Number(spot?.communityPct ?? spot?.solverPickPct ?? 44) || 44));
+    const freqMatch =
+        typeof spot?.solverFrequency === 'string'
+            ? /^(\d+(?:\.\d+)?)%/.exec(spot.solverFrequency.trim())
+            : null;
+    const rawSolverPct =
+        spot?.solverPct ?? spot?.solverFreqPct ?? (freqMatch ? Number(freqMatch[1]) : null);
+    const solverPct =
+        rawSolverPct != null && Number.isFinite(Number(rawSolverPct))
+            ? Math.min(100, Math.max(0, Number(rawSolverPct)))
+            : null;
+    const rawCommunityPct =
+        spot?.communityPct ??
+        (Number(spot?.communityVotes?.total) > 0 ? spot.communityVotes.solverAgreementPct : null);
+    const communityPct =
+        rawCommunityPct != null && Number.isFinite(Number(rawCommunityPct))
+            ? Math.min(100, Math.max(0, Number(rawCommunityPct)))
+            : null;
+    const isSetupHalf =
+        page?.meta?.spreadHalf === 'setup' ||
+        (page?.meta?.spreadHalf !== 'verdict' && Array.isArray(page?.items) && page.items.length > 0);
     const spotSlug = String(spot?.slug || '');
     const handLabHref = spotSlug
         ? `/hub/training/hand-lab?spot=${encodeURIComponent(spotSlug)}`
@@ -1560,114 +1637,275 @@ function StrategyColumnLayout({ page, issueMeta, theme }) {
                         {cleanText(page?.headline || spot?.title, 'GTO Solver Decision Breakdown')}
                     </h2>
 
-                    <div
-                        style={{
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: `1px solid ${theme.border}`,
-                            marginBottom: '7px',
-                            background: '#05070a',
-                        }}
-                    >
-                        <img
-                            src={cardImg}
-                            alt={cleanText(spot?.title || page?.headline, 'Poker Strategy Felt Diagram')}
-                            onError={handleMagazineImageError}
-                            style={{ width: '100%', height: '112px', objectFit: 'cover', display: 'block' }}
-                        />
-                    </div>
+                    {isSetupHalf ? (
+                        <>
+                            <div
+                                style={{
+                                    borderRadius: '8px',
+                                    overflow: 'hidden',
+                                    border: `1px solid ${theme.border}`,
+                                    marginBottom: '7px',
+                                    background: '#05070a',
+                                }}
+                            >
+                                <img
+                                    src={cardImg}
+                                    alt={cleanText(spot?.title || page?.headline, 'Poker Strategy Felt Diagram')}
+                                    onError={handleMagazineImageError}
+                                    style={{ width: '100%', height: '112px', objectFit: 'cover', display: 'block' }}
+                                />
+                            </div>
 
-                    {(spot?.situation || page?.subheadline) && (
-                        <p style={{ margin: '0 0 7px 0', fontSize: '9.4px', lineHeight: 1.42, color: theme.inkSecondary }}>
-                            {cleanText(spot?.situation || page?.subheadline)}
-                        </p>
-                    )}
+                            {(spot?.situation || page?.paragraphs?.[0] || page?.subheadline) && (
+                                <p style={{ margin: '0 0 7px 0', fontSize: '9.4px', lineHeight: 1.42, color: theme.inkSecondary }}>
+                                    {cleanText(spot?.situation || page?.paragraphs?.[0] || page?.subheadline)}
+                                </p>
+                            )}
 
-                    {options.length > 0 && (
-                        <div style={{ display: 'grid', gap: '4px', marginBottom: '7px' }}>
-                            {options.slice(0, 4).map((opt, idx) => {
-                                const isGto = String(opt?.key) === correctKey;
-                                return (
-                                    <div
-                                        key={idx}
-                                        style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            padding: '4px 8px',
-                                            borderRadius: '6px',
-                                            background: isGto ? (theme.isPrint ? '#f1f5f9' : '#102131') : theme.cardBg,
-                                            border: `1px solid ${isGto ? theme.accentTeal : theme.border}`,
-                                            fontSize: '9px',
-                                        }}
-                                    >
-                                        <span style={{ color: theme.ink, fontWeight: isGto ? 800 : 600 }}>
-                                            {`${cleanText(opt?.key, 'A')}. ${cleanText(opt?.label)}`}
-                                        </span>
-                                        {isGto && (
-                                            <span
+                            {options.length > 0 && (
+                                <div style={{ display: 'grid', gap: '4px', marginBottom: '7px' }}>
+                                    {options.slice(0, 4).map((opt, idx) => {
+                                        const optKey = String(opt?.key || String.fromCharCode(65 + idx));
+                                        const isPicked = pickedOption === optKey;
+                                        const isGto = optKey === correctKey;
+
+                                        if (theme.isPrint) {
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        padding: '5px 8px',
+                                                        borderRadius: '6px',
+                                                        background: theme.cardBg,
+                                                        border: `1px solid ${theme.border}`,
+                                                        fontSize: '9px',
+                                                    }}
+                                                >
+                                                    <span style={{ color: theme.ink, fontWeight: 700 }}>
+                                                        {`Option ${cleanText(optKey, 'A')}. ${cleanText(opt?.label)}`}
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+
+                                        const showRight = Boolean(pickedOption) && isGto;
+                                        const showWrong = isPicked && !isGto;
+
+                                        return (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setPickedOption(optKey)}
                                                 style={{
-                                                    fontSize: '8px',
-                                                    fontWeight: 900,
-                                                    color: theme.accentTeal,
-                                                    textTransform: 'uppercase',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    width: '100%',
+                                                    textAlign: 'left',
+                                                    padding: '5px 8px',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    background: showRight
+                                                        ? '#102131'
+                                                        : showWrong
+                                                          ? 'rgba(248, 113, 113, 0.14)'
+                                                          : theme.cardBg,
+                                                    border: `1px solid ${
+                                                        showRight ? '#4fc1b3' : showWrong ? '#f87171' : theme.border
+                                                    }`,
+                                                    fontSize: '9px',
+                                                    color: showRight ? '#4fc1b3' : showWrong ? '#f87171' : theme.ink,
                                                 }}
                                             >
-                                                GTO Preferred
-                                            </span>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                                                <span style={{ fontWeight: showRight || showWrong ? 800 : 600 }}>
+                                                    {`${cleanText(optKey, 'A')}. ${cleanText(opt?.label)}`}
+                                                </span>
+                                                {showRight && (
+                                                    <span
+                                                        style={{
+                                                            fontSize: '8px',
+                                                            fontWeight: 900,
+                                                            color: '#4fc1b3',
+                                                            textTransform: 'uppercase',
+                                                        }}
+                                                    >
+                                                        GTO Preferred
+                                                    </span>
+                                                )}
+                                                {showWrong && (
+                                                    <span
+                                                        style={{
+                                                            fontSize: '8px',
+                                                            fontWeight: 900,
+                                                            color: '#f87171',
+                                                            textTransform: 'uppercase',
+                                                        }}
+                                                    >
+                                                        Selected
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
-                    <div
-                        style={{
-                            background: theme.cardBg,
-                            border: `1px solid ${theme.border}`,
-                            borderRadius: '7px',
-                            padding: '7px 9px',
-                            marginBottom: '6px',
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                fontSize: '8.5px',
-                                fontWeight: 800,
-                                marginBottom: '4px',
-                            }}
-                        >
-                            <span style={{ color: theme.accentTeal }}>{`GTO Solver Frequency: ${solverPct}%`}</span>
-                            <span style={{ color: theme.accentBlue }}>{`Community Pick Rate: ${communityPct}%`}</span>
-                        </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                height: '7px',
-                                borderRadius: '999px',
-                                overflow: 'hidden',
-                                background: theme.subtleBg,
-                            }}
-                        >
-                            <div style={{ width: `${solverPct}%`, background: '#4fc1b3' }} />
-                            <div style={{ width: `${Math.max(0, 100 - solverPct)}%`, background: '#2563eb' }} />
-                        </div>
-                        {(spot?.evSummary || page?.paragraphs?.[0]) && (
-                            <p style={{ margin: '5px 0 0 0', fontSize: '8.9px', lineHeight: 1.38, color: theme.inkSecondary }}>
-                                {cleanText(spot?.evSummary || page?.paragraphs?.[0])}
-                            </p>
-                        )}
-                    </div>
+                            {page?.paragraphs?.[1] && (
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        padding: '6px 8px',
+                                        borderRadius: '6px',
+                                        background: theme.cardBg,
+                                        border: `1px solid ${theme.border}`,
+                                        fontSize: '8.9px',
+                                        lineHeight: 1.4,
+                                        color: theme.inkSecondary,
+                                    }}
+                                >
+                                    {cleanText(page.paragraphs[1])}
+                                </p>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            {page?.subheadline && (
+                                <div style={{ fontSize: '9.5px', fontWeight: 700, color: theme.inkMuted, marginBottom: '7px' }}>
+                                    {cleanText(page.subheadline)}
+                                </div>
+                            )}
+
+                            <div
+                                style={{
+                                    background: theme.cardBg,
+                                    border: `1px solid ${theme.border}`,
+                                    borderRadius: '7px',
+                                    padding: '8px 10px',
+                                    marginBottom: '7px',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        gap: '8px',
+                                        fontSize: '8.5px',
+                                        fontWeight: 800,
+                                        marginBottom: '5px',
+                                    }}
+                                >
+                                    <span style={{ color: theme.accentTeal }}>
+                                        {solverPct != null
+                                            ? `GTO Solver Frequency: ${solverPct}%`
+                                            : cleanText(spot?.solverFrequency, `Recommended Line: Option ${correctKey}`)}
+                                    </span>
+                                    <span style={{ color: theme.accentBlue }}>
+                                        {communityPct != null
+                                            ? `Community Agreement: ${communityPct}%`
+                                            : 'Live Reader Poll \u2022 Vote In Hand Lab'}
+                                    </span>
+                                </div>
+                                {solverPct != null && (
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            height: '7px',
+                                            borderRadius: '999px',
+                                            overflow: 'hidden',
+                                            background: theme.subtleBg,
+                                            marginBottom: '6px',
+                                        }}
+                                    >
+                                        <div style={{ width: `${solverPct}%`, background: '#4fc1b3' }} />
+                                        <div style={{ width: `${Math.max(0, 100 - solverPct)}%`, background: '#2563eb' }} />
+                                    </div>
+                                )}
+                                {spot?.solverFrequency && (
+                                    <div style={{ fontSize: '9.2px', fontWeight: 800, color: theme.ink, marginBottom: '4px' }}>
+                                        {cleanText(spot.solverFrequency)}
+                                    </div>
+                                )}
+                                {(spot?.evSummary || page?.paragraphs?.[0]) && (
+                                    <p style={{ margin: 0, fontSize: '9.1px', lineHeight: 1.42, color: theme.inkSecondary }}>
+                                        {cleanText(spot?.evSummary || page?.paragraphs?.[0])}
+                                    </p>
+                                )}
+                            </div>
+
+                            {Array.isArray(spot?.options) && spot.options.length > 0 && (
+                                <div style={{ display: 'grid', gap: '4px', marginBottom: '7px' }}>
+                                    {spot.options.slice(0, 4).map((opt, idx) => {
+                                        const optKey = String(opt?.key || String.fromCharCode(65 + idx));
+                                        const isGto = optKey === correctKey;
+                                        const totalVotes = Number(spot?.communityVotes?.total || 0);
+                                        const optVotes = Number(spot?.communityVotes?.[optKey] || 0);
+                                        const votePct =
+                                            totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : null;
+                                        return (
+                                            <div
+                                                key={idx}
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '6px',
+                                                    background: isGto ? (theme.isPrint ? '#f1f5f9' : '#102131') : theme.cardBg,
+                                                    border: `1px solid ${isGto ? theme.accentTeal : theme.border}`,
+                                                    fontSize: '8.8px',
+                                                }}
+                                            >
+                                                <span style={{ color: theme.ink, fontWeight: isGto ? 800 : 600 }}>
+                                                    {`${cleanText(optKey, 'A')}. ${cleanText(opt?.label)}`}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        fontSize: '8px',
+                                                        fontWeight: 900,
+                                                        color: isGto ? theme.accentTeal : theme.inkMuted,
+                                                        textTransform: 'uppercase',
+                                                    }}
+                                                >
+                                                    {votePct != null
+                                                        ? `${isGto ? 'GTO \u2022 ' : ''}${votePct}% Reader Vote`
+                                                        : isGto
+                                                          ? 'GTO Equilibrium'
+                                                          : 'Alternative'}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {page?.paragraphs?.[1] && (
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        padding: '7px 9px',
+                                        borderLeft: `3px solid ${theme.accentTeal}`,
+                                        background: theme.cardBg,
+                                        borderRadius: '0 6px 6px 0',
+                                        fontSize: '9.1px',
+                                        lineHeight: 1.44,
+                                        color: theme.inkSecondary,
+                                    }}
+                                >
+                                    {cleanText(page.paragraphs[1])}
+                                </p>
+                            )}
+                        </>
+                    )}
                 </div>
 
                 <QrActionBadge
                     page={{
                         ...page,
                         ctaLabel: page?.ctaLabel || 'Run Interactive Spot In GTO Hand Lab',
-                        ctaUrl: handLabHref,
+                        ctaUrl: toInternalMagazineHref(page?.ctaUrl, handLabHref),
                         qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}${handLabHref}`,
                     }}
                     theme={theme}
@@ -1697,6 +1935,13 @@ function TheTestQuizLayout({ page, issueMeta, theme }) {
                       explanation: 'Calling 0.5 Pot To Win 1.5 Total Pot Requires 0.5 / 2.0 = 25% Equity.',
                   },
               ];
+    const hasPrintAnswerKey =
+        Array.isArray(page?.meta?.answerKey) && page.meta.answerKey.length > 0;
+    const answerKeySource = hasPrintAnswerKey
+        ? page.meta.answerKey
+        : Array.isArray(page?.meta?.allQuestions) && page.meta.allQuestions.length > 0
+          ? page.meta.allQuestions
+          : questions;
 
     return (
         <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
@@ -1728,7 +1973,8 @@ function TheTestQuizLayout({ page, issueMeta, theme }) {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {questions.map((q, qIdx) => {
-                            const qKey = String(q?.slug || q?.id || qIdx);
+                            const qNum = Number(q?.number || qIdx + 1);
+                            const qKey = String(q?.slug || q?.id || qNum);
                             const picked = selectedAnswers[qKey] || '';
                             const correct = String(q?.answerKey || q?.correctKey || 'A');
                             const opts = Array.isArray(q?.options) ? q.options.slice(0, 4) : [];
@@ -1744,13 +1990,14 @@ function TheTestQuizLayout({ page, issueMeta, theme }) {
                                     }}
                                 >
                                     <div style={{ fontSize: '9.4px', fontWeight: 800, color: theme.ink, marginBottom: '4px', lineHeight: 1.3 }}>
-                                        {`${qIdx + 1}. ${cleanText(q?.question || q?.headline || q?.title)}`}
+                                        {`${qNum}. ${cleanText(q?.question || q?.headline || q?.title)}`}
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
                                         {opts.map((opt) => {
                                             const optKey = String(opt?.key || 'A');
                                             const isPicked = picked === optKey;
                                             const isRight = optKey === correct;
+                                            const isWrongPick = Boolean(picked) && isPicked && !isRight;
                                             if (theme.isPrint) {
                                                 return (
                                                     <div
@@ -1782,15 +2029,20 @@ function TheTestQuizLayout({ page, issueMeta, theme }) {
                                                         background:
                                                             picked && isRight
                                                                 ? '#102131'
-                                                                : isPicked
-                                                                  ? '#1b2c3d'
+                                                                : isWrongPick
+                                                                  ? 'rgba(248, 113, 113, 0.14)'
                                                                   : '#05070a',
-                                                        color: picked && isRight ? '#4fc1b3' : '#ffffff',
+                                                        color:
+                                                            picked && isRight
+                                                                ? '#4fc1b3'
+                                                                : isWrongPick
+                                                                  ? '#f87171'
+                                                                  : '#ffffff',
                                                         border: `1px solid ${
                                                             picked && isRight
                                                                 ? '#4fc1b3'
-                                                                : isPicked
-                                                                  ? '#60a5fa'
+                                                                : isWrongPick
+                                                                  ? '#f87171'
                                                                   : '#1b2c3d'
                                                         }`,
                                                     }}
@@ -1801,7 +2053,14 @@ function TheTestQuizLayout({ page, issueMeta, theme }) {
                                         })}
                                     </div>
                                     {!theme.isPrint && picked && (
-                                        <div style={{ marginTop: '4px', fontSize: '8.3px', color: '#4fc1b3', lineHeight: 1.3 }}>
+                                        <div
+                                            style={{
+                                                marginTop: '4px',
+                                                fontSize: '8.3px',
+                                                color: picked === correct ? '#4fc1b3' : '#f87171',
+                                                lineHeight: 1.3,
+                                            }}
+                                        >
                                             {`Correct Answer: ${correct}. ${cleanText(q?.explanation, '')}`}
                                         </div>
                                     )}
@@ -1811,7 +2070,7 @@ function TheTestQuizLayout({ page, issueMeta, theme }) {
                     </div>
                 </div>
 
-                {theme.isPrint ? (
+                {theme.isPrint && (hasPrintAnswerKey || Number(page?.pageNumber) === 35) ? (
                     <div
                         style={{
                             border: '1.5px solid #0f172a',
@@ -1834,14 +2093,18 @@ function TheTestQuizLayout({ page, issueMeta, theme }) {
                         </div>
                         <div
                             style={{
-                                fontSize: '8.2px',
+                                fontSize: '8px',
                                 color: '#0f172a',
                                 transform: 'rotate(180deg)',
                                 textAlign: 'right',
+                                lineHeight: 1.32,
                             }}
                         >
-                            {questions
-                                .map((q, i) => `Q${i + 1}: ${cleanText(q?.answerKey || q?.correctKey, 'A')} (${cleanText(q?.explanation, '').slice(0, 55)})`)
+                            {answerKeySource
+                                .map(
+                                    (q, i) =>
+                                        `Q${q?.number || i + 1}: ${cleanText(q?.answerKey || q?.correctKey, 'A')} (${cleanText(q?.explanation, '').slice(0, 52)})`
+                                )
                                 .join(' \u2022 ')}
                         </div>
                     </div>
@@ -1982,27 +2245,51 @@ function DirectoryGridLayout({ page, issueMeta, theme }) {
 }
 
 function CardroomBundleCtaLayout({ page, issueMeta, theme }) {
+    const rawCtaUrl = String(page?.ctaUrl || '/hub/magazine/poker-rooms').trim() || '/hub/magazine/poker-rooms';
+    const isWeeklyWireCta =
+        rawCtaUrl.includes('/hub/wire') || page?.meta?.ctaVariant === 'weekly_wire';
+    const defaultBenefits = isWeeklyWireCta
+        ? [
+              {
+                  title: 'Every Tuesday At 14:00 UTC',
+                  summary: 'Curated World Poker News, Live Series Storylines, And Championship Results Delivered Free.',
+              },
+              {
+                  title: 'Interactive Spot Of The Week',
+                  summary: 'Vote On Real NLH, ICM, And PLO Decision Spots And Compare Against Solver Equilibrium.',
+              },
+              {
+                  title: 'Poker Trivia & Pro Calculators',
+                  summary: 'Sharpen Table IQ With Weekly Quiz Challenges And Instant Access To 42 Free Poker Tools.',
+              },
+              {
+                  title: 'Kings Club 25450 Highlights',
+                  summary: 'Follow Weekly Champions Circle Standings And Nightly Club Arena Schedules.',
+              },
+          ]
+        : [
+              {
+                  title: '44-Page Monthly Print Bundles',
+                  summary: 'Shipped Directly To Verified Poker Room Podiums, Waiting Lists, And Brush Desks.',
+              },
+              {
+                  title: 'Complimentary Table-Tent QR Kit',
+                  summary: 'Players Scan Between Hands To Study GTO Spots And View Your Live Tournament Clock.',
+              },
+              {
+                  title: 'Featured Poker Near Me Placement',
+                  summary: 'Partner Cardrooms Appear Inside Our Print Directory And Geo-Targeted Weekly Wire.',
+              },
+              {
+                  title: 'Flexible 5 To 1,000 Copy Tiers',
+                  summary: 'Sized For Boutique Charity Rooms, Regional Card Clubs, And Flagship Resort Floors.',
+              },
+          ];
     const benefits =
         Array.isArray(page?.items) && page.items.length > 0
             ? page.items.slice(0, 4)
-            : [
-                  {
-                      title: '44-Page Monthly Print Bundles',
-                      summary: 'Shipped Directly To Verified Poker Room Podiums, Waiting Lists, And Brush Desks.',
-                  },
-                  {
-                      title: 'Complimentary Table-Tent QR Kit',
-                      summary: 'Players Scan Between Hands To Study GTO Spots And View Your Live Tournament Clock.',
-                  },
-                  {
-                      title: 'Featured Poker Near Me Placement',
-                      summary: 'Partner Cardrooms Appear Inside Our Print Directory And Geo-Targeted Weekly Wire.',
-                  },
-                  {
-                      title: 'Weekly Wire Digital Dispatch',
-                      summary: 'Every Tuesday, Subscribers Receive Fresh Tour News And Solver Spots In Their Inbox.',
-                  },
-              ];
+            : defaultBenefits;
+    const bodyParagraphs = Array.isArray(page?.paragraphs) ? page.paragraphs.slice(0, 2) : [];
 
     return (
         <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
@@ -2029,7 +2316,9 @@ function CardroomBundleCtaLayout({ page, issueMeta, theme }) {
                             marginBottom: '4px',
                         }}
                     >
-                        Cardroom Print Distribution &amp; Weekly Wire
+                        {isWeeklyWireCta
+                            ? 'Smarter.Poker Weekly Wire \u2022 Free Tuesday Dispatch'
+                            : 'Cardroom Print Distribution Program'}
                     </div>
                     <h2
                         style={{
@@ -2041,14 +2330,34 @@ function CardroomBundleCtaLayout({ page, issueMeta, theme }) {
                             color: theme.ink,
                         }}
                     >
-                        {cleanText(page?.headline, 'Stock Smarter.Poker Magazine Free In Your Poker Room')}
+                        {cleanText(
+                            page?.headline,
+                            isWeeklyWireCta
+                                ? 'Subscribe Free To The Tuesday Smarter.Poker Weekly Wire'
+                                : 'Stock Smarter.Poker Magazine Free In Your Poker Room'
+                        )}
                     </h2>
-                    <p style={{ margin: '0 0 10px 0', fontSize: '9.8px', lineHeight: 1.44, color: theme.inkSecondary }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '9.8px', lineHeight: 1.44, color: theme.inkSecondary }}>
                         {cleanText(
                             page?.subheadline,
-                            'Poker Room Managers And Tournament Directors Can Request Monthly Commercial Print Bundles At Zero Cost.'
+                            isWeeklyWireCta
+                                ? 'Fresh Solver Spots, POY Updates, And Tour Radar Delivered Straight To Your Inbox Every Tuesday.'
+                                : 'Poker Room Managers And Tournament Directors Can Request Monthly Commercial Print Bundles At Zero Cost.'
                         )}
                     </p>
+
+                    {bodyParagraphs.length > 0 && (
+                        <div style={{ display: 'grid', gap: '5px', marginBottom: '9px' }}>
+                            {bodyParagraphs.map((para, pIdx) => (
+                                <p
+                                    key={pIdx}
+                                    style={{ margin: 0, fontSize: '9.1px', lineHeight: 1.42, color: theme.inkSecondary }}
+                                >
+                                    {cleanText(para)}
+                                </p>
+                            ))}
+                        </div>
+                    )}
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         {benefits.map((b, idx) => (
@@ -2075,9 +2384,11 @@ function CardroomBundleCtaLayout({ page, issueMeta, theme }) {
                 <QrActionBadge
                     page={{
                         ...page,
-                        ctaLabel: page?.ctaLabel || 'Request Poker Room Print Copies',
-                        ctaUrl: '/hub/magazine/poker-rooms',
-                        qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}/hub/magazine/poker-rooms`,
+                        ctaLabel:
+                            page?.ctaLabel ||
+                            (isWeeklyWireCta ? 'Subscribe Free To Weekly Wire' : 'Request Poker Room Print Copies'),
+                        ctaUrl: rawCtaUrl,
+                        qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}${rawCtaUrl.startsWith('/') ? rawCtaUrl : `/${rawCtaUrl}`}`,
                     }}
                     theme={theme}
                 />
@@ -2202,7 +2513,9 @@ function BackCoverLayout({ page, issueMeta, theme }) {
                         ctaUrl: page?.ctaUrl || '/hub',
                         qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}/hub`,
                     }}
-                    theme={{ ...theme, isPrint: false }}
+                    theme={theme}
+                    printMode={theme.isPrint}
+                    darkSurface
                 />
             </div>
         </div>
@@ -2222,19 +2535,23 @@ export function MagazinePageSheet({ page, issueMeta = {}, mode = 'screen', onSel
         inner = <EditorFirstHandLayout page={page} issueMeta={issueMeta} theme={theme} />;
     } else if (kind === 'toc_left' || kind === 'toc_right') {
         inner = <TocSpreadLayout page={page} issueMeta={issueMeta} theme={theme} onSelectPage={onSelectPage} />;
-    } else if (kind === 'news_rail') {
+    } else if (kind === 'news_rail' || kind === 'final_table_live') {
         inner = <NewsRailLayout page={page} issueMeta={issueMeta} theme={theme} />;
     } else if (kind === 'capture_the_moment_left' || kind === 'capture_the_moment_right') {
         inner = <CaptureTheMomentLayout page={page} issueMeta={issueMeta} theme={theme} />;
-    } else if (kind === 'cover_feature' || kind === 'secondary_feature' || kind === 'platform_feature') {
+    } else if (
+        kind === 'cover_feature' ||
+        kind === 'secondary_feature' ||
+        kind === 'platform_feature' ||
+        kind === 'strategy_ai_coach'
+    ) {
         inner = <FeatureArticleLayout page={page} issueMeta={issueMeta} theme={theme} />;
-    } else if (kind === 'poy_standings' || kind === 'final_table_live' || kind === 'kings_club_champions') {
+    } else if (kind === 'poy_standings' || kind === 'kings_club_champions') {
         inner = <StandingsTableLayout page={page} issueMeta={issueMeta} theme={theme} />;
     } else if (
         kind === 'strategy_nlh' ||
         kind === 'strategy_icm' ||
-        kind === 'strategy_plo' ||
-        kind === 'strategy_ai_coach'
+        kind === 'strategy_plo'
     ) {
         inner = <StrategyColumnLayout page={page} issueMeta={issueMeta} theme={theme} />;
     } else if (kind === 'the_test_quiz') {

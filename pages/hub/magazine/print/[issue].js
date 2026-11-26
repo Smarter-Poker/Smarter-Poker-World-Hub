@@ -86,6 +86,14 @@ export async function getServerSideProps({ params, query, res }) {
     }
 }
 
+const DARK_BLEED_PAGE_KINDS = new Set([
+    'front_cover',
+    'back_cover',
+    'capture_the_moment_left',
+    'capture_the_moment_right',
+    'house_promo_spread',
+]);
+
 export default function SmarterPokerMagazinePrintSheetPage({
     issueStatus = 'published',
     initialBleed = false,
@@ -104,10 +112,11 @@ export default function SmarterPokerMagazinePrintSheetPage({
             : '@page { size: 8.375in 10.875in; margin: 0; }',
         '@media print {',
         '  html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }',
-        '  .sp-mag-print-toolbar, .approved-global-header, [data-global-footer] { display: none !important; }',
+        '  .sp-mag-print-toolbar, .approved-global-header, .approved-global-header__clearance, .sp-world-command-trigger, .messenger-dock, .messenger-previews, [data-global-footer], [data-global-bottom-nav], [data-bottom-nav-clearance], [data-offline-bar], [data-startup-prompt], .sp-pwa-install-bar, aside[aria-label="Return To Your Poker Seat"], aside[aria-label="Smarter.Poker Weekly Wire Subscription"] { display: none !important; }',
+        '  .sp-mag-print-root { min-height: 0 !important; background: #ffffff !important; }',
         '  .sp-mag-print-canvas { padding: 0 !important; gap: 0 !important; background: #ffffff !important; }',
         '  .sp-mag-print-sheet { box-shadow: none !important; margin: 0 !important; page-break-after: always; break-after: page; page-break-inside: avoid; break-inside: avoid; }',
-        '  .sp-mag-print-sheet:last-child { page-break-after: auto; break-after: auto; }',
+        '  .sp-mag-print-sheet:last-child { page-break-after: auto !important; break-after: auto !important; }',
         '}',
     ].join('\n');
 
@@ -122,6 +131,7 @@ export default function SmarterPokerMagazinePrintSheetPage({
             </Head>
 
             <div
+                className="sp-mag-print-root"
                 style={{
                     minHeight: '100vh',
                     background: '#05070a',
@@ -221,87 +231,140 @@ export default function SmarterPokerMagazinePrintSheetPage({
                         padding: '28px 16px 80px 16px',
                     }}
                 >
-                    {pages.map((page) => (
-                        <section
-                            key={page.pageNumber}
-                            className="sp-mag-print-sheet"
-                            style={{
-                                width: `${pageWidthIn}in`,
-                                height: `${pageHeightIn}in`,
-                                padding: showBleed ? '0.125in' : '0',
-                                boxSizing: 'border-box',
-                                position: 'relative',
-                                background: '#ffffff',
-                                boxShadow: '0 18px 48px rgba(0, 0, 0, 0.75)',
-                                pageBreakAfter: 'always',
-                                breakAfter: 'page',
-                            }}
-                        >
-                            {showBleed && (
-                                <>
-                                    <span
-                                        aria-hidden="true"
-                                        style={{
-                                            position: 'absolute',
-                                            top: '0.04in',
-                                            left: '0.04in',
-                                            width: '0.08in',
-                                            height: '0.08in',
-                                            borderRight: '1px solid #05070a',
-                                            borderBottom: '1px solid #05070a',
-                                            zIndex: 20,
-                                        }}
-                                    />
-                                    <span
-                                        aria-hidden="true"
-                                        style={{
-                                            position: 'absolute',
-                                            top: '0.04in',
-                                            right: '0.04in',
-                                            width: '0.08in',
-                                            height: '0.08in',
-                                            borderLeft: '1px solid #05070a',
-                                            borderBottom: '1px solid #05070a',
-                                            zIndex: 20,
-                                        }}
-                                    />
-                                    <span
-                                        aria-hidden="true"
-                                        style={{
-                                            position: 'absolute',
-                                            bottom: '0.04in',
-                                            left: '0.04in',
-                                            width: '0.08in',
-                                            height: '0.08in',
-                                            borderRight: '1px solid #05070a',
-                                            borderTop: '1px solid #05070a',
-                                            zIndex: 20,
-                                        }}
-                                    />
-                                    <span
-                                        aria-hidden="true"
-                                        style={{
-                                            position: 'absolute',
-                                            bottom: '0.04in',
-                                            right: '0.04in',
-                                            width: '0.08in',
-                                            height: '0.08in',
-                                            borderLeft: '1px solid #05070a',
-                                            borderTop: '1px solid #05070a',
-                                            zIndex: 20,
-                                        }}
-                                    />
-                                </>
-                            )}
+                    {pages.map((page, idx) => {
+                        const isDarkBleed = DARK_BLEED_PAGE_KINDS.has(String(page?.kind || ''));
+                        const cropMarkColor = isDarkBleed ? '#9fb3c8' : '#05070a';
+                        const isLastSheet = idx >= pages.length - 1;
+                        return (
+                            <section
+                                key={page.pageNumber}
+                                className="sp-mag-print-sheet"
+                                style={{
+                                    width: `${pageWidthIn}in`,
+                                    height: `${pageHeightIn}in`,
+                                    padding: showBleed ? '0.125in' : '0',
+                                    boxSizing: 'border-box',
+                                    position: 'relative',
+                                    background: showBleed && isDarkBleed ? '#05070a' : '#ffffff',
+                                    boxShadow: '0 18px 48px rgba(0, 0, 0, 0.75)',
+                                    pageBreakAfter: isLastSheet ? 'auto' : 'always',
+                                    breakAfter: isLastSheet ? 'auto' : 'page',
+                                }}
+                            >
+                                {showBleed && (
+                                    <>
+                                        {/* Top-Left Outer Bleed Crop Marks (0.02in..0.095in aligned to exact 0.125in trim) */}
+                                        <span
+                                            aria-hidden="true"
+                                            style={{
+                                                position: 'absolute',
+                                                top: '0.02in',
+                                                left: '0.125in',
+                                                width: '1px',
+                                                height: '0.075in',
+                                                background: cropMarkColor,
+                                                zIndex: 20,
+                                            }}
+                                        />
+                                        <span
+                                            aria-hidden="true"
+                                            style={{
+                                                position: 'absolute',
+                                                top: '0.125in',
+                                                left: '0.02in',
+                                                width: '0.075in',
+                                                height: '1px',
+                                                background: cropMarkColor,
+                                                zIndex: 20,
+                                            }}
+                                        />
+                                        {/* Top-Right Outer Bleed Crop Marks */}
+                                        <span
+                                            aria-hidden="true"
+                                            style={{
+                                                position: 'absolute',
+                                                top: '0.02in',
+                                                right: '0.125in',
+                                                width: '1px',
+                                                height: '0.075in',
+                                                background: cropMarkColor,
+                                                zIndex: 20,
+                                            }}
+                                        />
+                                        <span
+                                            aria-hidden="true"
+                                            style={{
+                                                position: 'absolute',
+                                                top: '0.125in',
+                                                right: '0.02in',
+                                                width: '0.075in',
+                                                height: '1px',
+                                                background: cropMarkColor,
+                                                zIndex: 20,
+                                            }}
+                                        />
+                                        {/* Bottom-Left Outer Bleed Crop Marks */}
+                                        <span
+                                            aria-hidden="true"
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: '0.02in',
+                                                left: '0.125in',
+                                                width: '1px',
+                                                height: '0.075in',
+                                                background: cropMarkColor,
+                                                zIndex: 20,
+                                            }}
+                                        />
+                                        <span
+                                            aria-hidden="true"
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: '0.125in',
+                                                left: '0.02in',
+                                                width: '0.075in',
+                                                height: '1px',
+                                                background: cropMarkColor,
+                                                zIndex: 20,
+                                            }}
+                                        />
+                                        {/* Bottom-Right Outer Bleed Crop Marks */}
+                                        <span
+                                            aria-hidden="true"
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: '0.02in',
+                                                right: '0.125in',
+                                                width: '1px',
+                                                height: '0.075in',
+                                                background: cropMarkColor,
+                                                zIndex: 20,
+                                            }}
+                                        />
+                                        <span
+                                            aria-hidden="true"
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: '0.125in',
+                                                right: '0.02in',
+                                                width: '0.075in',
+                                                height: '1px',
+                                                background: cropMarkColor,
+                                                zIndex: 20,
+                                            }}
+                                        />
+                                    </>
+                                )}
 
-                            <MagazinePageSheet
-                                page={page}
-                                issueMeta={safeManifest}
-                                mode="print"
-                                style={{ width: '8.375in', height: '10.875in', aspectRatio: 'auto' }}
-                            />
-                        </section>
-                    ))}
+                                <MagazinePageSheet
+                                    page={page}
+                                    issueMeta={safeManifest}
+                                    mode="print"
+                                    style={{ width: '8.375in', height: '10.875in', aspectRatio: 'auto' }}
+                                />
+                            </section>
+                        );
+                    })}
                 </main>
             </div>
         </>
