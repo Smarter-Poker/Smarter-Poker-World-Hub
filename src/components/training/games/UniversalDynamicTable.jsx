@@ -823,9 +823,9 @@ function evaluateHandStrength(hCards, bCards) {
     if (hasFlush) return { label: 'Flush', color: 'var(--sp-accent-green)', tier: 'strong' };
     if (isOverpair) return { label: 'Overpair', color: 'var(--sp-accent-green)', tier: 'strong' };
     if (isTopPair) return { label: 'Top Pair', color: 'var(--sp-accent-green)', tier: 'strong' };
-    if (pairWithBoard.length > 0) return { label: 'Pair', color: 'var(--sp-accent-amber)', tier: 'medium' };
+    if (pairWithBoard.length > 0) return { label: 'Pair', color: '#86daff', tier: 'medium' };
     if (hasFlushDraw) return { label: 'Flush Draw', color: 'var(--sp-accent-blue)', tier: 'draw' };
-    if (hasPocketPair) return { label: 'Pocket Pair', color: 'var(--sp-accent-amber)', tier: 'medium' };
+    if (hasPocketPair) return { label: 'Pocket Pair', color: '#86daff', tier: 'medium' };
     if (heroHigh <= 4) return { label: 'High Card', color: 'var(--sp-fg-muted)', tier: 'weak' };
     return { label: 'Air', color: 'var(--sp-accent-red)', tier: 'weak' };
 }
@@ -3991,7 +3991,7 @@ function UniversalDynamicTable({
         const accuracy = questionNumber > 0 ? ((questionNumber - sessionMistakes) / questionNumber) * 100 : 100;
         if (accuracy >= 85) return { label: 'EXPERT', color: 'var(--sp-accent-red)', bg: 'rgba(239,68,68,0.15)' };
         if (accuracy >= 70) return { label: 'HARD', color: 'var(--sp-accent-orange)', bg: 'rgba(249,115,22,0.15)' };
-        if (accuracy >= 50) return { label: 'MEDIUM', color: 'var(--sp-accent-amber)', bg: 'rgba(251,191,36,0.15)' };
+        if (accuracy >= 50) return { label: 'MEDIUM', color: '#86daff', bg: 'rgba(251,191,36,0.15)' };
         return { label: 'EASY', color: 'var(--sp-accent-green)', bg: 'rgba(34,197,94,0.15)' };
     }, [questionNumber, sessionMistakes]);
 
@@ -4950,7 +4950,7 @@ function UniversalDynamicTable({
             soundManager?.play('potWon');
             const elapsed = (Date.now() - answerStartTime.current) / 1000;
             if (elapsed < 5) {
-                setSpeedBonusToast({ label: 'LIGHTNING +5', color: 'var(--sp-accent-amber)' });
+                setSpeedBonusToast({ label: 'LIGHTNING +5', color: '#86daff' });
                 SoundEngine.play('speed_bonus');
                 setTimeout(() => setSpeedBonusToast(null), 2000);
             } else if (elapsed < 10) {
@@ -8592,7 +8592,7 @@ function UniversalDynamicTable({
                             transition={{ delay: 0.15 }}
                             style={{
                                 fontFamily: "'Inter', sans-serif", fontSize: 22,
-                                fontWeight: 900, color: 'var(--sp-accent-amber)', letterSpacing: 2,
+                                fontWeight: 900, color: '#86daff', letterSpacing: 2,
                                 textShadow: '0 2px 8px rgba(251,191,36,0.4)',
                             }}
                         >
@@ -9996,7 +9996,7 @@ function UniversalDynamicTable({
                                 if (significantActions >= 2) {
                                     return (
                                         <span style={{
-                                            fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-purple)',
+                                            fontSize: 12, fontWeight: 700, color: '#86daff',
                                             background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)',
                                             padding: '1px 6px', borderRadius: 4, letterSpacing: 0.5,
                                         }}>
@@ -10560,7 +10560,7 @@ function UniversalDynamicTable({
                                                 padding: '4px 12px', borderRadius: 6,
                                                 background: showRangeGrid ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
                                                 border: `1px solid rgba(168, 85, 247, ${showRangeGrid ? '0.4' : '0.25'})`,
-                                                color: 'var(--sp-accent-purple)', fontSize: 12, fontWeight: 700,
+                                                color: '#86daff', fontSize: 12, fontWeight: 700,
                                                 cursor: 'pointer', letterSpacing: 0.5,
                                             }}
                                         >
@@ -10601,7 +10601,7 @@ function UniversalDynamicTable({
 
                                                 {/* Phase 53: Hand category for context */}
                                                 {fq?.handCategory && (
-                                                    <div style={{ marginBottom: 4, fontSize: 12, fontStyle: 'italic', color: 'var(--sp-accent-purple)' }}>
+                                                    <div style={{ marginBottom: 4, fontSize: 12, fontStyle: 'italic', color: '#86daff' }}>
                                                         Your Hand: {fq.handCategory}
                                                     </div>
                                                 )}
@@ -10638,7 +10638,7 @@ function UniversalDynamicTable({
                                                         background: 'rgba(249, 115, 22, 0.08)',
                                                         borderRadius: 6,
                                                         border: '1px solid rgba(249, 115, 22, 0.15)',
-                                                        color: 'var(--sp-accent-amber)', fontSize: 12,
+                                                        color: '#86daff', fontSize: 12,
                                                     }}>
                                                         {mistakeFeedback}
                                                     </div>
@@ -10760,7 +10760,7 @@ function UniversalDynamicTable({
                                         fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
                                         background: 'rgba(168, 85, 247, 0.12)',
                                         border: '1px solid rgba(168, 85, 247, 0.25)',
-                                        color: 'var(--sp-accent-purple)', letterSpacing: 0.3,
+                                        color: '#86daff', letterSpacing: 0.3,
                                     }}>
                                         {structuredExplanation.concept}
                                     </span>
@@ -10893,8 +10893,8 @@ function UniversalDynamicTable({
                                     const sc = fScenario;
                                     const r = getPositionReminder(sc.heroPosition || sc.position || '', sc.street || 'flop', sc.nodeType || '');
                                     if (!r || !r.tip) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(251,191,36,0.04)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.1)', fontSize: 12, lineHeight: 1.5, color: 'var(--sp-accent-amber)' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, color: 'var(--sp-accent-amber)' }}>POSITION: </span>{r.tip}
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(251,191,36,0.04)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.1)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, color: '#86daff' }}>POSITION: </span>{r.tip}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -10905,8 +10905,8 @@ function UniversalDynamicTable({
                                     if (!sc.texture && !sc.boardTexture) return null;
                                     const g = getTextureStrategyGuide(sc.texture || sc.boardTexture || '', sc.street || 'flop', sc.heroPosition || '', sc.villainPosition || '');
                                     if (!g || !g.strategy) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.04)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.1)', fontSize: 12, lineHeight: 1.5, color: 'var(--sp-accent-purple)' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, color: 'var(--sp-accent-purple)' }}>TEXTURE: </span>{g.strategy}
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.04)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.1)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, color: '#86daff' }}>TEXTURE: </span>{g.strategy}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -10977,7 +10977,7 @@ function UniversalDynamicTable({
                                     const sc = fScenario;
                                     const drill = getRangeConstructionDrill(sc.heroPosition || 'CO', sc.nodeType?.includes('3bet') ? '3bet' : 'open');
                                     if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.15)', fontSize: 12, lineHeight: 1.5, color: 'var(--sp-accent-purple)' }}>
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.15)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>RANGE TIP: </span>{drill.tip}
                                     </div>);
                                 } catch (_) { return null; }
@@ -10990,7 +10990,7 @@ function UniversalDynamicTable({
                                     const sc = fScenario;
                                     const drill = getHandReadingDrill(sc.street || 'flop');
                                     if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 12, lineHeight: 1.5, color: 'var(--sp-accent-amber)' }}>
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>HAND READING: </span>{drill.keyPrinciple}
                                     </div>);
                                 } catch (_) { return null; }
@@ -11134,7 +11134,7 @@ function UniversalDynamicTable({
                                 awkwardly. Map streetsPlayed to a natural-language summary. */}
                             <div style={{
                                 fontSize: 12, fontWeight: 700, letterSpacing: 1.2,
-                                textTransform: 'uppercase', color: 'var(--sp-accent-purple)', marginBottom: 6,
+                                textTransform: 'uppercase', color: '#86daff', marginBottom: 6,
                             }}>
                                 {(() => {
                                     const n = handSummary.streetsPlayed || 1;
@@ -11440,7 +11440,7 @@ function UniversalDynamicTable({
                                                 ? 'var(--sp-accent-red)'
                                                 : 'var(--sp-accent-amber)',
                                         },
-                                        { label: 'Streak', value: streak, color: 'var(--sp-accent-amber)' },
+                                        { label: 'Streak', value: streak, color: '#86daff' },
                                     ].map((stat, i) => (
                                         <div key={i} style={{
                                             textAlign: 'center', padding: '8px 0',
@@ -11622,7 +11622,7 @@ function UniversalDynamicTable({
                             )}
                             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-accent-red)' }}>You: {mk.selectedAnswer ?? '-'}</div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-accent-green)' }}>Correct: {mk.correctAnswer ?? '-'}</div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                 {mk.classification || 'mistake'}
                                 {mk.evLossMeasured === true && Number.isFinite(mk.evLoss)
                                     ? ` · ${mk.evLoss > 0 ? '-' : ''}${mk.evLoss.toFixed(2)} BB`
@@ -11972,7 +11972,7 @@ const styles = {
     streakText: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: 'var(--sp-accent-amber)',
+        color: '#86daff',
     },
 
     // ── TABLE AREA — Phase 17e: Fill ALL available space, overflow hidden

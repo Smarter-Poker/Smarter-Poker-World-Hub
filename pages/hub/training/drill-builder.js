@@ -83,7 +83,7 @@ const PRESETS = [
       stackDepth: 100,
       scenarios: ['3bet_pot'],
     },
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
   },
   {
     id: 'cbet-spots',
@@ -129,7 +129,7 @@ const PRESETS = [
       stackDepth: 100,
       scenarios: ['river'],
     },
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
   },
   {
     id: 'plo4-pot-limit',
@@ -161,7 +161,7 @@ const PRESETS = [
       stackDepth: 100,
       scenarios: ['cbet'],
     },
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
   },
   {
     id: 'plo6-double-board-prep',
@@ -177,7 +177,7 @@ const PRESETS = [
       stackDepth: 100,
       scenarios: ['cbet'],
     },
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
   },
   {
     id: 'plo8_scoop_quartering_defense',

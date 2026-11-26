@@ -573,7 +573,7 @@ export default function StreaksPage() {
                   gap: 8,
                 }}>
                   {/* TRAIN-STREAKS-A11Y-1: SVG lightbulb replaces inline emoji */}
-                  <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)', flexShrink: 0, marginTop: 1 }} aria-hidden>
+                  <span style={{ display: 'inline-flex', color: '#86daff', flexShrink: 0, marginTop: 1 }} aria-hidden>
                     <LightbulbIcon size={14} />
                   </span>
                   <span>{tips[dayIdx]}</span>
@@ -588,7 +588,7 @@ export default function StreaksPage() {
               <div style={styles.nextMilestoneHeader}>
                 {/* TRAIN-STREAKS-A11Y-1: route milestone icon via MilestoneIcon */}
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-hidden>
+                  <span style={{ display: 'inline-flex', color: '#86daff' }} aria-hidden>
                     <MilestoneIcon kind={nextMilestone.iconKind} size={20} />
                   </span>
                   Next: {nextMilestone.name}
@@ -855,7 +855,7 @@ const styles = {
   },
   settlementStatus: {
     marginTop: 6,
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
     fontSize: 12,
     lineHeight: 1.4,
   },

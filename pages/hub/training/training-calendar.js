@@ -346,7 +346,7 @@ export default function TrainingCalendarPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>{totalDays}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#86daff' }}>{totalDays}</div>
                   <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     Active Days
                   </div>
@@ -465,7 +465,7 @@ export default function TrainingCalendarPage() {
                         <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Hands</span>
                       </div>
                       <div>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: '#86daff' }}>
                           {selectedData.sessions}
                         </span>{' '}
                         <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Sessions</span>
@@ -562,7 +562,7 @@ export default function TrainingCalendarPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Sessions</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: '#86daff' }}>
                         {weeklyStats.sessions}
                       </div>
                     </div>

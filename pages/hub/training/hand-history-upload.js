@@ -364,7 +364,7 @@ const GRADE_TIERS = {
   INACCURACY: {
     label: 'Inaccuracy',
     icon: '~',
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
     bg: 'rgba(251,191,36,0.1)',
     border: 'rgba(251,191,36,0.3)',
   },
@@ -759,7 +759,7 @@ function LeakReport({ hands }) {
       {/* Top Coaching Insight */}
       {worstStreet?.[1]?.count > 0 && (
         <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ fontSize: 12, color: 'var(--sp-accent-amber)', fontWeight: 700, marginBottom: 4 }}>
+          <div style={{ fontSize: 12, color: '#86daff', fontWeight: 700, marginBottom: 4 }}>
              Primary Leak
           </div>
           <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
@@ -1484,9 +1484,9 @@ export default function HandHistoryUploadPage() {
                 >
                   {[
                     { label: 'Hands', value: stats.totalHands, color: 'var(--sp-accent-cyan)' },
-                    { label: 'Actions', value: stats.heroActions, color: 'var(--sp-accent-purple)' },
+                    { label: 'Actions', value: stats.heroActions, color: '#86daff' },
                     { label: 'Showdowns', value: stats.withShowdown, color: 'var(--sp-accent-green)' },
-                    { label: 'Avg Pot', value: `$${(Number.isFinite(Number(stats.avgPot)) ? Number(stats.avgPot) : 0).toFixed(0)}`, color: 'var(--sp-accent-amber)' },
+                    { label: 'Avg Pot', value: `$${(Number.isFinite(Number(stats.avgPot)) ? Number(stats.avgPot) : 0).toFixed(0)}`, color: '#86daff' },
                   ].map((s, i) => (
                     <div
                       key={i}

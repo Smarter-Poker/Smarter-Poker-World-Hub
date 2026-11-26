@@ -248,7 +248,7 @@ export default function JarvisDashboard() {
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); loadInsights(); }} />
           <div style={styles.header}>
             {/* TRAIN-JARVIS-A11Y-1: SVG brain replaces ◇ hero */}
-            <div style={{ ...styles.jarvisIcon, color: 'var(--sp-accent-purple)', display: 'inline-flex', justifyContent: 'center' }} aria-hidden>
+            <div style={{ ...styles.jarvisIcon, color: '#86daff', display: 'inline-flex', justifyContent: 'center' }} aria-hidden>
               <BrainIcon size={48} />
             </div>
             <h1 style={styles.title}>JARVIS Dashboard</h1>
@@ -743,7 +743,7 @@ const styles = {
     display: 'block',
     fontSize: '24px',
     fontWeight: 700,
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
   },
   weeklyLabel: {
     fontSize: '12px',

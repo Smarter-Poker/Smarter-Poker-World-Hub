@@ -420,7 +420,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
                     </span>
                     {isMixed && (
                         <span style={{
-                            fontSize: 12, color: 'var(--sp-accent-amber)',
+                            fontSize: 12, color: '#86daff',
                             background: 'rgba(251, 191, 36, 0.15)',
                             padding: '2px 8px', borderRadius: 20, fontWeight: 600,
                         }}>
@@ -471,7 +471,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
                     display: 'flex', alignItems: 'center', gap: 6,
                     marginBottom: 8, fontSize: 12, color: 'var(--sp-fg-muted)',
                 }}>
-                    <span style={{ color: 'var(--sp-accent-amber)' }}>★</span>
+                    <span style={{ color: '#86daff' }}>★</span>
                     <span>Best:</span>
                     <span style={{ color: bestDisplay.color, fontWeight: 700 }}>
                         {bestDisplay.label} ({bestAction[1].toFixed(1)}%)

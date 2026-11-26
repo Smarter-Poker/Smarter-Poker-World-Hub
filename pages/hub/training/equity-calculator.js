@@ -1054,7 +1054,7 @@ export default function EquityCalculatorPage() {
             <span
               style={{
                 fontSize: 12,
-                color: 'var(--sp-accent-purple)',
+                color: '#86daff',
                 background: 'rgba(168,85,247,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -1389,7 +1389,7 @@ export default function EquityCalculatorPage() {
                   style={{
                     fontSize: 12,
                     fontWeight: 800,
-                    color: 'var(--sp-accent-purple)',
+                    color: '#86daff',
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',
