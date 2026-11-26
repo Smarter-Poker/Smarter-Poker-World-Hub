@@ -804,7 +804,7 @@ export interface TokeAnalytics {
  * Career-level analytics for the Toke Dashboard.
  * Uses the already-efficient bulk gig data to avoid extra queries.
  */
-export async function getTokeAnalytics(userId: string, startDate?: string): Promise<TokeAnalytics> {
+export async function getTokeAnalytics(userId: string, startDate?: string, endDate?: string): Promise<TokeAnalytics> {
     return withRetry(async () => {
         // Fetch all non-deleted gigs
         let query = supabase
@@ -815,6 +815,7 @@ export async function getTokeAnalytics(userId: string, startDate?: string): Prom
             .order('start_date', { ascending: true });
 
         if (startDate) query = query.gte('start_date', startDate);
+        if (endDate) query = query.lte('start_date', endDate);
         const { data: gigs, error: gigErr } = await query;
         if (gigErr) throw gigErr;
         if (!gigs || gigs.length === 0) {

@@ -2,6 +2,8 @@ import {
     Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ReferenceLine,
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
+import { BarChart3 } from 'lucide-react';
+import styles from './DealerAnalytics.module.css';
 
 // ── Tooltip wrapper ────────────────────────────────────────────
 function TT({ children }) {
@@ -30,8 +32,8 @@ const fmtK = (v) => {
 
 function EmptyChart({ msg }) {
     return (
-        <div role="status" style={{ height: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, color: '#b7c9db' }}>{msg}</span>
+        <div role="status" className={styles.emptyChart}>
+            <BarChart3 size={26} aria-hidden="true" /><span>{msg}</span>
         </div>
     );
 }
@@ -40,6 +42,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
     // ── Chart renderers ──────────────────────────────────────
     const renderTrend = () => {
         if (!trendData.length) return <EmptyChart msg="Complete Your First Event To See The Trend" />;
+        const allZero = !trendData.some(row => row.cumulative !== 0);
         return (
             <ResponsiveContainer width="100%" height={236}>
                 <AreaChart accessibilityLayer title="Cumulative Dealer Earnings" data={trendData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
@@ -57,8 +60,8 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                     <CartesianGrid vertical={false} stroke="#304860" strokeDasharray="3 5" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false}
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
-                        interval="equidistantPreserveStart" />
-                    <YAxis axisLine={false} tickLine={false} width="auto"
+                        interval="preserveStartEnd" tickFormatter={date => date.split(',')[0]} />
+                    <YAxis ticks={allZero ? [0] : undefined} domain={allZero ? [0, 1] : [0, 'auto']} axisLine={false} tickLine={false} width="auto"
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
@@ -87,6 +90,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
 
     const renderEvents = () => {
         if (!trendData.length) return <EmptyChart msg="No Completed Events Yet" />;
+        const allZero = !trendData.some(row => row.tokes !== 0);
         return (
             <ResponsiveContainer width="100%" height={236}>
                 <BarChart accessibilityLayer title="Tokes Per Event" data={trendData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
@@ -99,8 +103,8 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                     <CartesianGrid vertical={false} stroke="#304860" strokeDasharray="3 5" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false}
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
-                        interval="equidistantPreserveStart" />
-                    <YAxis axisLine={false} tickLine={false} width="auto"
+                        interval="preserveStartEnd" tickFormatter={date => date.split(',')[0]} />
+                    <YAxis ticks={allZero ? [0] : undefined} domain={allZero ? [0, 1] : [0, 'auto']} axisLine={false} tickLine={false} width="auto"
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <Tooltip content={({ active, payload }) => {
@@ -124,6 +128,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
     const renderMonthly = () => {
         const hasMonthlyData = monthlyData.some(m => m.events > 0);
         if (!hasMonthlyData) return <EmptyChart msg="No Monthly Data Yet" />;
+        const allZero = !monthlyData.some(row => row.tokes !== 0);
         return (
             <ResponsiveContainer width="100%" height={236}>
                 <BarChart accessibilityLayer title="Monthly Tokes" data={monthlyData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
@@ -137,7 +142,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                     <XAxis dataKey="month" axisLine={false} tickLine={false}
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         interval="preserveStartEnd" minTickGap={12} />
-                    <YAxis axisLine={false} tickLine={false} width="auto"
+                    <YAxis ticks={allZero ? [0] : undefined} domain={allZero ? [0, 1] : [0, 'auto']} axisLine={false} tickLine={false} width="auto"
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <Tooltip content={({ active, payload }) => {
@@ -147,7 +152,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                             <TT>
                                 <div style={{ color: '#b7c9db', fontSize: 12, marginBottom: 4 }}>{d.month}</div>
                                 <div style={{ color: '#9ee5f3', fontWeight: 700, fontSize: 15 }}>{fmt(d.tokes)}</div>
-                                {d.events > 0 && <div style={{ color: '#b7c9db', fontSize: 12, marginTop: 3 }}>{d.events} event{d.events !== 1 ? 's' : ''}</div>}
+                                {d.events > 0 && <div style={{ color: '#b7c9db', fontSize: 12, marginTop: 3 }}>{d.events} {d.events === 1 ? 'Event' : 'Events'}</div>}
                             </TT>
                         );
                     }} />

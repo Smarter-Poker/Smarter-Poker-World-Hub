@@ -8,9 +8,11 @@
 
 import BankrollHeaderAdd from './BankrollHeaderAdd';
 import vault from './toke/DealerVault.module.css';
+import form from './toke/TokeForm.module.css';
+import TokeFormHeader from './toke/TokeFormHeader';
 import view from './toke/TokeWorkspace.module.css';
 import { memo, useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, FileText, Loader2, Upload, Trash2, FolderLock } from 'lucide-react';
+import { Camera, FileText, Loader2, Upload, Trash2, FolderLock, ChevronDown, BadgeCheck, Files, Briefcase, Receipt } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
 import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
@@ -25,10 +27,10 @@ import DocumentCropper from './DocumentCropper';
 // ── Constants ────────────────────────────────────────────────────
 
 const TABS = [
-    { id: 'gaming_license', label: 'Gaming Licenses' },
-    { id: 'tax', label: 'Tax Documents' },
-    { id: 'employment', label: 'Employment' },
-    { id: 'paystub', label: 'Pay Stubs' },
+    { id: 'gaming_license', label: 'Gaming Licenses', Icon: BadgeCheck },
+    { id: 'tax', label: 'Tax Documents', Icon: Files },
+    { id: 'employment', label: 'Employment', Icon: Briefcase },
+    { id: 'paystub', label: 'Pay Stubs', Icon: Receipt },
 ];
 
 const TAX_SUB_TYPES = [
@@ -194,6 +196,7 @@ function DealerVault({ userId, completedGigs = [] }) {
             return;
         }
 
+        setExpanded(true);
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (ev) => {
@@ -407,22 +410,27 @@ function DealerVault({ userId, completedGigs = [] }) {
         }
     };
 
+    const closeUpload = () => {
+        setPendingFile(null);
+        setShowUploadForm(false);
+    };
+
     // ── Render ───────────────────────────────────────────────────
     return (
-        <section className={'sd-panel ' + view.panel + ' ' + vault.library}>
+        <section className={'sd-panel ' + view.panel + ' ' + vault.library} aria-labelledby="dealer-library-title">
             {userId && !showUploadForm && !isUploading && <BankrollHeaderAdd label="Upload Document" onClick={() => fileInputRef.current?.click()} />}
             <input ref={fileInputRef} type="file" accept="image/*,application/pdf" hidden onChange={e => { handleFileSelect(e.target.files?.[0]); e.target.value = ''; }} />
 
             {/* Header */}
             <button type="button" className={view.disclosure} aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>
-                <div style={s.headerLeft}><FolderLock size={24} aria-hidden="true" />
+                <div className={vault.headerLeft}><span className={form.seal}><FolderLock size={21} aria-hidden="true" /></span>
 
                     <div>
-                        <div className="sd-section-title">Documents</div>
+                        <span className="sd-section-title" id="dealer-library-title">Documents</span>
                         {userId && !isLoading && !readError && <div style={s.headerSub}>{`${docs.length} ${docs.length === 1 ? 'Document' : 'Documents'} Stored`}</div>}
                     </div>
                 </div>
-                <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                <ChevronDown size={20} className={vault.expandIcon} aria-hidden="true" />
             </button>
 
             {!expanded ? null : (
@@ -439,21 +447,21 @@ function DealerVault({ userId, completedGigs = [] }) {
                     )}
 
                     {/* Tab Bar */}
-                    <div className={"sd-tabs " + view.chartChoices} aria-label="Document Categories" role="group">
+                    <div className={"sd-tabs " + vault.categories} aria-label="Document Categories" role="group">
                         {TABS.map(tab => (
                             <button
                                 key={tab.id} aria-pressed={activeTab === tab.id}
                                 className="sd-button"
                                 onClick={() => setActiveTab(tab.id)}
                             >
-                                {tab.label}
+                                <tab.Icon size={18} aria-hidden="true" />{tab.label}
                             </button>
                         ))}
                     </div>
 
                     {/* Year Filter (tax + paystub only) */}
                     {['tax', 'paystub'].includes(activeTab) && (
-                        <div className={vault.years}>
+                        <div className={vault.years} role="group" aria-label="Document Year">
                             {YEARS.map(y => (
                                 <button
                                     key={y} aria-pressed={selectedYear === y}
@@ -485,167 +493,165 @@ function DealerVault({ userId, completedGigs = [] }) {
 
                     {/* Upload Form */}
                     {showUploadForm && (
-                        <div className={vault.form}>
-                            {isAnalyzing && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(74,144,217,0.1)', border: `1px solid ${METAL.primary}`, borderRadius: 8, marginBottom: 16, color: METAL.primary }}>
-                                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 14 }}>
-                                        {ocrProgress === null
-                                            ? 'Reading This Document On Your Device...'
-                                            : `Reading This Document On Your Device... ${ocrProgress}%`}
-                                    </span>
-                                </div>
-                            )}
-                            <div style={s.uploadFormTitle}><FileText size={16} aria-hidden="true" /> {pendingFile?.name}</div>
-
-                            <input
-                                style={s.input}
-                                placeholder="Label (e.g. Nevada Gaming License 2025)"
-                                aria-label="Document Label"
-                                value={uploadForm.label}
-                                onChange={e => setUploadForm(f => ({ ...f, label: e.target.value }))}
-                            />
-
-                            {activeTab === 'gaming_license' && (
-                                <>
-                                    <div style={s.row2}>
-                                        <select
-                                            style={s.select}
-                                            aria-label="Issuing State"
-                                            value={uploadForm.state}
-                                            onChange={e => setUploadForm(f => ({ ...f, state: e.target.value }))}
-                                        >
-                                            {US_STATES_GAMING.map(st => (
-                                                <option key={st} value={st}>{st}</option>
-                                            ))}
-                                        </select>
-                                        <input
-                                            style={s.input}
-                                            placeholder="License #"
-                                            aria-label="License Number"
-                                            value={uploadForm.license_number}
-                                            onChange={e => setUploadForm(f => ({ ...f, license_number: e.target.value }))}
-                                        />
+                        <form className={vault.form} aria-labelledby="vault-intake-title" onSubmit={event => { event.preventDefault(); void handleUpload(); }}>
+                            <TokeFormHeader icon={FileText} id="vault-intake-title" title="Document Details" detail={pendingFile?.name} onClose={closeUpload} closeLabel="Close Document Details" disabled={isUploading} />
+                            <div className={form.fields}>
+                                {isAnalyzing && (
+                                    <div className={vault.reading} role="status">
+                                        <Loader2 size={18} aria-hidden="true" />
+                                        <span>
+                                            {ocrProgress === null
+                                                ? 'Reading This Document On Your Device...'
+                                                : `Reading This Document On Your Device... ${ocrProgress}%`}
+                                        </span>
                                     </div>
-                                    <div style={s.row2}>
-                                        <div>
-                                            <div style={s.fieldLabel}>Issue Date</div>
-                                            <input
-                                                type="date"
-                                                style={s.input}
-                                                aria-label="Issue Date"
-                                                value={uploadForm.issued_date}
-                                                onChange={e => setUploadForm(f => ({ ...f, issued_date: e.target.value }))}
-                                            />
-                                        </div>
-                                        <div>
-                                            <div style={s.fieldLabel}>Expiry Date</div>
-                                            <input
-                                                type="date"
-                                                style={s.input}
-                                                aria-label="Expiry Date"
-                                                value={uploadForm.expiry_date}
-                                                onChange={e => setUploadForm(f => ({ ...f, expiry_date: e.target.value }))}
-                                            />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
+                                )}
 
-                            {activeTab === 'tax' && (
-                                <>
-                                    <div style={s.row2}>
+                                <label>Document Label
+                                    <input
+                                        placeholder="Label (e.g. Nevada Gaming License 2025)"
+                                        aria-label="Document Label"
+                                        value={uploadForm.label}
+                                        onChange={e => setUploadForm(f => ({ ...f, label: e.target.value }))}
+                                    />
+                                </label>
+
+                                {activeTab === 'gaming_license' && (
+                                    <>
+                                        <div className={vault.pair}>
+                                            <label>Issuing State
+                                                <select
+                                                    aria-label="Issuing State"
+                                                    value={uploadForm.state}
+                                                    onChange={e => setUploadForm(f => ({ ...f, state: e.target.value }))}
+                                                >
+                                                    {US_STATES_GAMING.map(st => (
+                                                        <option key={st} value={st}>{st}</option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <label>License Number
+                                                <input
+                                                    placeholder="License #"
+                                                    aria-label="License Number"
+                                                    value={uploadForm.license_number}
+                                                    onChange={e => setUploadForm(f => ({ ...f, license_number: e.target.value }))}
+                                                />
+                                            </label>
+                                        </div>
+                                        <div className={vault.pair}>
+                                            <label>Issue Date
+                                                <input
+                                                        type="date"
+                                                        aria-label="Issue Date"
+                                                        value={uploadForm.issued_date}
+                                                        onChange={e => setUploadForm(f => ({ ...f, issued_date: e.target.value }))}
+                                                    />
+                                            </label>
+                                            <label>Expiry Date
+                                                <input
+                                                        type="date"
+                                                        aria-label="Expiry Date"
+                                                        value={uploadForm.expiry_date}
+                                                        onChange={e => setUploadForm(f => ({ ...f, expiry_date: e.target.value }))}
+                                                    />
+                                            </label>
+                                        </div>
+                                    </>
+                                )}
+
+                                {activeTab === 'tax' && (
+                                    <>
+                                        <div className={vault.pair}>
+                                            <label>Document Type
+                                                <select
+                                                    aria-label="Document Type"
+                                                    value={uploadForm.sub_type}
+                                                    onChange={e => setUploadForm(f => ({ ...f, sub_type: e.target.value }))}
+                                                >
+                                                    <option value="">Select Type...</option>
+                                                    {TAX_SUB_TYPES.map(t => (
+                                                        <option key={t.value} value={t.value}>{t.label}</option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <label>Tax Year
+                                                <select
+                                                    aria-label="Tax Year"
+                                                    value={uploadForm.tax_year}
+                                                    onChange={e => setUploadForm(f => ({ ...f, tax_year: parseInt(e.target.value, 10) }))}
+                                                >
+                                                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                                                </select>
+                                            </label>
+                                        </div>
+                                        <label>Amount ($)
+                                            <input
+                                                type="number"
+                                                placeholder="Amount (optional)"
+                                                aria-label="Amount"
+                                                value={uploadForm.amount}
+                                                onChange={e => setUploadForm(f => ({ ...f, amount: e.target.value }))}
+                                            />
+                                        </label>
+                                    </>
+                                )}
+
+                                {activeTab === 'employment' && (
+                                    <label>Document Type
                                         <select
-                                            style={s.select}
                                             aria-label="Document Type"
                                             value={uploadForm.sub_type}
                                             onChange={e => setUploadForm(f => ({ ...f, sub_type: e.target.value }))}
                                         >
                                             <option value="">Select Type...</option>
-                                            {TAX_SUB_TYPES.map(t => (
+                                            {EMPLOYMENT_SUB_TYPES.map(t => (
                                                 <option key={t.value} value={t.value}>{t.label}</option>
                                             ))}
                                         </select>
-                                        <select
-                                            style={s.select}
-                                            aria-label="Tax Year"
-                                            value={uploadForm.tax_year}
-                                            onChange={e => setUploadForm(f => ({ ...f, tax_year: parseInt(e.target.value, 10) }))}
-                                        >
-                                            {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                                        </select>
+                                    </label>
+                                )}
+
+                                {activeTab === 'paystub' && (
+                                    <div className={vault.pair}>
+                                        <label>Gross Amount ($)
+                                            <input
+                                                type="number"
+                                                placeholder="Gross amount"
+                                                aria-label="Amount"
+                                                value={uploadForm.amount}
+                                                onChange={e => setUploadForm(f => ({ ...f, amount: e.target.value }))}
+                                            />
+                                        </label>
+                                        <label>Tax Year
+                                            <select
+                                                aria-label="Tax Year"
+                                                value={uploadForm.tax_year}
+                                                onChange={e => setUploadForm(f => ({ ...f, tax_year: parseInt(e.target.value, 10) }))}
+                                            >
+                                                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                                            </select>
+                                        </label>
                                     </div>
+                                )}
+
+                                <label>Notes (Optional)
                                     <input
-                                        type="number"
-                                        style={s.input}
-                                        placeholder="Amount (optional)"
-                                        aria-label="Amount"
-                                        value={uploadForm.amount}
-                                        onChange={e => setUploadForm(f => ({ ...f, amount: e.target.value }))}
+                                        placeholder="Notes (optional)"
+                                        aria-label="Notes"
+                                        value={uploadForm.notes}
+                                        onChange={e => setUploadForm(f => ({ ...f, notes: e.target.value }))}
                                     />
-                                </>
-                            )}
+                                </label>
 
-                            {activeTab === 'employment' && (
-                                <select
-                                    style={s.select}
-                                    aria-label="Document Type"
-                                    value={uploadForm.sub_type}
-                                    onChange={e => setUploadForm(f => ({ ...f, sub_type: e.target.value }))}
-                                >
-                                    <option value="">Select Type...</option>
-                                    {EMPLOYMENT_SUB_TYPES.map(t => (
-                                        <option key={t.value} value={t.value}>{t.label}</option>
-                                    ))}
-                                </select>
-                            )}
-
-                            {activeTab === 'paystub' && (
-                                <div style={s.row2}>
-                                    <input
-                                        type="number"
-                                        style={s.input}
-                                        placeholder="Gross amount"
-                                        aria-label="Amount"
-                                        value={uploadForm.amount}
-                                        onChange={e => setUploadForm(f => ({ ...f, amount: e.target.value }))}
-                                    />
-                                    <select
-                                        style={s.select}
-                                        aria-label="Tax Year"
-                                        value={uploadForm.tax_year}
-                                        onChange={e => setUploadForm(f => ({ ...f, tax_year: parseInt(e.target.value, 10) }))}
-                                    >
-                                        {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                                    </select>
-                                </div>
-                            )}
-
-                            <input
-                                style={s.input}
-                                placeholder="Notes (optional)"
-                                aria-label="Notes"
-                                value={uploadForm.notes}
-                                onChange={e => setUploadForm(f => ({ ...f, notes: e.target.value }))}
-                            />
-
-                            <div style={s.row2}>
-                                <button
-                                    className="sd-button sd-primary"
-                                    onClick={handleUpload}
-                                    disabled={isUploading}
-                                >
+                            </div>
+                            <div className={form.actions}>
+                                <button type="button" className="sd-button" onClick={closeUpload} disabled={isUploading}>Cancel</button>
+                                <button type="submit" className="sd-button sd-primary" disabled={isUploading}>
                                     {isUploading ? 'Uploading...' : 'Upload'}
                                 </button>
-                                <button
-                                    className="sd-button"
-                                    onClick={() => { setPendingFile(null); setShowUploadForm(false); }}
-                                    disabled={isUploading}
-                                >
-                                    Cancel
-                                </button>
                             </div>
-                        </div>
+                        </form>
                     )}
 
                     {/* Document List */}
@@ -658,16 +664,16 @@ function DealerVault({ userId, completedGigs = [] }) {
                     ) : sortedDocs.length === 0 ? (
                         <div role="status" className={view.status}>No {TABS.find(t => t.id === activeTab)?.label} Uploaded Yet</div>
                     ) : (
-                        <div className={vault.documents}>
+                        <ul className={vault.documents} aria-label="Stored Documents">
                             {sortedDocs.map(doc => {
                                 const badge = activeTab === 'gaming_license' ? expiryBadge(doc.expiry_date) : null;
                                 const isImage = doc.file_url && !doc.file_url.toLowerCase().endsWith('.pdf');
                                 return (
-                                    <div key={doc.id} className={vault.document}>
+                                    <li key={doc.id} className={vault.document}>
                                         {/* Thumbnail or PDF icon */}
                                         <a href={doc.file_url} target="_blank" rel="noreferrer"
                                             aria-label={'Open ' + (doc.label || doc.file_name)}
-                                            style={s.docThumb}
+                                            className={vault.thumb}
                                         >
                                             {isImage
                                                 ? <img src={doc.file_url} alt={doc.label} style={s.thumbImg} />
@@ -676,8 +682,8 @@ function DealerVault({ userId, completedGigs = [] }) {
                                         </a>
 
                                         {/* Info */}
-                                        <div style={s.docInfo}>
-                                            <div style={s.docLabel}>{doc.label || doc.file_name}</div>
+                                        <div className={vault.docInfo}>
+                                            <div className={vault.docLabel}>{doc.label || doc.file_name}</div>
 
                                             {activeTab === 'gaming_license' && (
                                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
@@ -717,20 +723,20 @@ function DealerVault({ userId, completedGigs = [] }) {
                                         </div>
 
                                         {/* Actions */}
-                                        <div style={s.docActions}>
+                                        <div className={vault.documentActions}>
                                             <button
                                                 className="sd-button"
                                                 onClick={() => window.open(doc.file_url, '_blank', 'noopener,noreferrer')}
                                             >View</button>
                                             <button
-                                                className={vault.deleteButton} aria-label={'Delete ' + (doc.label || doc.file_name)}
+                                                className={'sd-button ' + vault.deleteButton} aria-label={'Delete ' + (doc.label || doc.file_name)}
                                                 onClick={() => handleDelete(doc)}
                                             ><Trash2 size={17} aria-hidden="true" /></button>
                                         </div>
-                                    </div>
+                                    </li>
                                 );
                             })}
-                        </div>
+                        </ul>
                     )}
                 </div>
             )}
