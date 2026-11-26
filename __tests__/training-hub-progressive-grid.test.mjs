@@ -35,10 +35,11 @@ test('training home and category games open a dedicated preset arena', () => {
   assert.match(category, /onClick=\{playGame\}/);
   for (const source of [hub, category]) {
     assert.match(source, /pathname: '\/hub\/training\/arena\/\[gameId\]'/);
-    assert.match(source, /query: \{ gameId: game\.id, start: '1', source: 'training-(?:home|category)' \}/);
   }
-  assert.match(arena, /startsWithPreset = Boolean\(game && !customLaunch\.config && !customLaunch\.error\)/);
-  assert.match(arena, /customLaunch\.config \|\| \(startsWithPreset \? resolvePresetForGame\(game\) : null\)/);
+  assert.match(hub, /const query = \{ gameId: game\.id, start: '1', source: 'training-home' \}/);
+  assert.match(category, /query: \{ gameId: game\.id, start: '1', source: 'training-category' \}/);
+  assert.match(arena, /startsWithPreset = Boolean\(game && !customLaunch\.error && \(homePreset \|\| !customLaunch\.config\)\)/);
+  assert.match(arena, /\.\.\.resolvePresetForGame\(game\),\s*\.\.\.customLaunch\.config/);
   assert.match(arena, /initialConfig=\{initialConfig\}/);
 });
 

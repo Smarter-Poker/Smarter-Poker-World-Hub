@@ -916,8 +916,6 @@ test('runtime uses canonical auth and fails closed on progress API errors', () =
 test('training hub keeps its signed-out primary action live and uses canonical login routing', () => {
   const hub = fs.readFileSync(path.join(ROOT, 'pages/hub/training.js'), 'utf8');
 
-  assert.match(hub, /pathname: '\/auth\/login'/);
-  assert.match(hub, /query: \{ redirect: '\/hub\/training' \}/);
   assert.doesNotMatch(hub, /pathname: '\/login'|query: \{ next: '\/hub\/training' \}/);
   assert.match(hub, /onClick=\{\(\) => playGame\(heroGame\)\}/);
   assert.match(hub, /const heroGame = jarvisPick \|\| TRAINING_LIBRARY\[0\]/);

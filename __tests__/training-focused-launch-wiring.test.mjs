@@ -59,6 +59,8 @@ test('Arena revalidates custom query values and fails closed for noncanonical ga
   assert.match(source, /customTrainingConfigFromQuery\(router\.query\)/);
   assert.match(source, /isCanonicalTrainingGameId\(gameId\)/);
   assert.match(source, /This Training Game Does Not Exist In The Canonical Library/);
-  assert.match(source, /customLaunch\.config \|\| \(startsWithPreset \? resolvePresetForGame\(game\) : null\)/);
+  assert.match(source, /if \(!startsWithPreset\) return customLaunch\.config/);
+  assert.match(source, /\.\.\.resolvePresetForGame\(game\),\s*\.\.\.customLaunch\.config/);
+  assert.match(source, /homeHands && homeHands <= 50/);
   assert.match(source, /initialConfig=\{initialConfig\}/);
 });

@@ -37,6 +37,12 @@ test('Phase 2 Training surface inventory is exhaustive and current', () => {
   assert.ok(manifest.classifications.possibleUnwiredFunctions.every((entry) => entry.disposition && entry.review && entry.rationale));
   assert.ok(manifest.classifications.possibleUnwiredFunctions.every((entry) => entry.review === 'accepted'));
   assert.ok(manifest.routes.every((route) => route.sample?.path));
+  const dedicatedEntries = manifest.routeCoverage.filter(route => route.gameplayDestination);
+  assert.ok(dedicatedEntries.length >= 14);
+  for (const entry of dedicatedEntries) {
+    assert.ok(manifest.games.some(game => entry.gameplayDestination === '/hub/training/arena/' + game.id));
+    assert.ok(entry.reachableFiles.includes('pages/hub/training/arena/[gameId].js'));
+  }
   assert.deepEqual(manifest.gaps.missingLinks, []);
   assert.deepEqual(manifest.gaps.missingApiDefinitions, []);
   assert.equal(manifest.frozenInvariants.globalHeader, 'unchanged');

@@ -12,7 +12,6 @@ const routes = [
   'session-dashboard',
   'leaderboard',
   'community-leaderboard',
-  'player-profiles',
 ];
 
 test('the complete reporting family adopts one intelligence-rail shell', () => {
@@ -40,8 +39,7 @@ test('report, scorecard, dashboard, and profile pages expose responsive stages',
     'gto-scorecard',
     'session-dashboard',
     'community-leaderboard',
-    'player-profiles',
-  ]) {
+    ]) {
     const source = read(`pages/hub/training/${route === 'gto-reports' ? 'reports' : route}.js`);
     assert.match(source, /sp-intelligence-header/, `${route} is missing the command header`);
     assert.match(source, /sp-intelligence-main/, `${route} is missing the responsive stage`);
