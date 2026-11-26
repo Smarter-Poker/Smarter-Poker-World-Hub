@@ -11,13 +11,28 @@
  * explicitly whitelists them. Returning `false` sets `unoptimized={true}` on `<Image>`
  * so those URLs load directly from their first-party route without a broken `/_next/image` hop.
  */
-const ALLOWED_REMOTE_MASKS = [
-    'supabase.co',
+// Mirror of `images.remotePatterns` in next.config.js: https only, exact hostnames, and a leading
+// `*.` matches exactly ONE subdomain label (Next.js semantics). Any host the optimizer would refuse
+// must stay unoptimized, otherwise `/_next/image` answers 400 and the image breaks. Keep this list
+// identical to next.config.js when a remote pattern is added or removed.
+const ALLOWED_REMOTE_HOSTS = [
+    'kuklfnapbkmacvwxktbh.supabase.co',
+    '*.supabase.co',
+    'images.unsplash.com',
     'smarter.poker',
-    'unsplash.com',
-    'img.youtube.com',
+    'auth.smarter.poker',
+    '*.smarter.poker',
     'api.qrserver.com',
+    'img.youtube.com',
 ];
+
+function hostMatchesRemotePattern(host, pattern) {
+    if (!pattern.startsWith('*.')) return host === pattern;
+    const suffix = pattern.slice(1);
+    if (!host.endsWith(suffix)) return false;
+    const label = host.slice(0, host.length - suffix.length);
+    return label.length > 0 && !label.includes('.');
+}
 
 export function shouldOptimizeSpImageSrc(finalSrc) {
     if (typeof finalSrc !== 'string' || !finalSrc) return false;
@@ -33,14 +48,12 @@ export function shouldOptimizeSpImageSrc(finalSrc) {
 
     try {
         const urlObj = new URL(trimmed);
-        if (urlObj.protocol !== 'https:' && urlObj.protocol !== 'http:') return false;
+        if (urlObj.protocol !== 'https:') return false;
         const host = urlObj.hostname.toLowerCase();
         if (host === 'smarter.poker' || host.endsWith('.smarter.poker')) {
             if (urlObj.pathname.startsWith('/api/')) return false;
         }
-        return ALLOWED_REMOTE_MASKS.some(
-            (mask) => host === mask || host.endsWith(`.${mask}`)
-        );
+        return ALLOWED_REMOTE_HOSTS.some((pattern) => hostMatchesRemotePattern(host, pattern));
     } catch {
         return false;
     }

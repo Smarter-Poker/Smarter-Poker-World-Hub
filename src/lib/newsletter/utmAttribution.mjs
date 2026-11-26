@@ -65,7 +65,11 @@ export function appendNewsletterUtm(
     }
 
     const hostname = parsed.hostname.toLowerCase();
-    const isSmarterPoker = hostname === 'smarter.poker' || hostname === 'www.smarter.poker';
+    const isSmarterPoker =
+        hostname === 'smarter.poker' ||
+        hostname === 'www.smarter.poker' ||
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1';
 
     if (isAbsolute && !isSmarterPoker) {
         return rawUrl;
@@ -112,21 +116,58 @@ export function appendNewsletterUtm(
 
 /**
  * Classifies a clicked link URL into a standard email section identifier for
- * aggregate click heatmaps.
+ * aggregate click heatmaps. Handles raw URLs, encoded strings, query-wrapped redirects,
+ * and standard deep links.
  */
 export function classifyClickedEmailSection(clickedUrl) {
     if (!clickedUrl || typeof clickedUrl !== 'string') {
         return 'other';
     }
+    let raw = clickedUrl.trim();
+    if (!raw) return 'other';
+
+    // Decode URL if the entire input was encoded (e.g. starts with https%3A or %2F)
+    if (/^(?:https?%3A|%2F)/i.test(raw)) {
+        try {
+            raw = decodeURIComponent(raw);
+        } catch {
+            /* ignore malformed percent encoding */
+        }
+    }
+
     let parsed;
     try {
-        parsed = new URL(clickedUrl, 'https://smarter.poker');
+        parsed = new URL(raw, 'https://smarter.poker');
     } catch {
         return 'other';
     }
+
+    // If wrapped in a click tracker redirect parameter (e.g. ?url=... or ?target=...)
+    for (const p of ['url', 'target', 'dest', 'destination']) {
+        const nested = parsed.searchParams.get(p);
+        if (nested && (nested.startsWith('http') || nested.startsWith('/'))) {
+            try {
+                parsed = new URL(nested, 'https://smarter.poker');
+                break;
+            } catch {
+                /* ignore */
+            }
+        }
+    }
+
     const path = parsed.pathname.toLowerCase();
     const search = parsed.search.toLowerCase();
 
+    // Prioritize specific feature sections before generic article/news/archive fallbacks:
+    if (path.startsWith('/hub/trivia') || parsed.searchParams.has('wire_q') || search.includes('wire_q=')) {
+        return 'trivia';
+    }
+    if (path.includes('/hub/training/hand-lab') || parsed.searchParams.has('spot') || search.includes('spot=')) {
+        return 'spot';
+    }
+    if (path.startsWith('/hub/video-library') || path.startsWith('/hub/video')) {
+        return 'video';
+    }
     if (
         path.startsWith('/auth/signup') ||
         path.startsWith('/go/promo') ||
@@ -134,15 +175,6 @@ export function classifyClickedEmailSection(clickedUrl) {
         path.startsWith('/promo/welcome-back')
     ) {
         return 'promo';
-    }
-    if (path.includes('/hub/training/hand-lab') || parsed.searchParams.has('spot') || search.includes('spot=')) {
-        return 'spot';
-    }
-    if (path.startsWith('/hub/trivia') || parsed.searchParams.has('wire_q') || search.includes('wire_q=')) {
-        return 'trivia';
-    }
-    if (path.startsWith('/hub/video-library')) {
-        return 'video';
     }
     if (
         path.startsWith('/hub/club-arena') ||
@@ -173,3 +205,5 @@ export function classifyClickedEmailSection(clickedUrl) {
     }
     return 'other';
 }
+
+export { classifyClickedEmailSection as classifyClickedSection };

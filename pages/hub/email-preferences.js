@@ -1,8 +1,13 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAccessToken } from '../../src/lib/authUtils';
+import {
+    WIRE_SESSION_CHECKED_KEY,
+    WIRE_SUBSCRIPTION_CHANGED_EVENT,
+} from '../../src/components/news/NewsletterCaptureBar';
+
 
 const PREFERENCE_OPTIONS = [
     {
@@ -52,8 +57,12 @@ export default function EmailPreferencesPage() {
     const [currentMode, setCurrentMode] = useState('all');
     const [statusNotice, setStatusNotice] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    // Each load takes a ticket; a slower response from an older token or account never overwrites a newer one.
+    const loadSeqRef = useRef(0);
+    const saveInFlightRef = useRef(false);
 
     const loadCurrentPreferences = useCallback(async (rawToken) => {
+        const seq = ++loadSeqRef.current;
         setLoading(true);
         setErrorMessage('');
         try {
@@ -65,6 +74,7 @@ export default function EmailPreferencesPage() {
                 },
             });
             const body = await response.json().catch(() => ({}));
+            if (seq !== loadSeqRef.current) return;
             if (!response.ok || !body?.success) {
                 setErrorMessage('This Email Preference Link Is Invalid Or Has Expired.');
                 return;
@@ -72,13 +82,16 @@ export default function EmailPreferencesPage() {
             setMaskedEmail(body.maskedEmail || body.email || '');
             setCurrentMode(body.currentMode || 'all');
         } catch {
-            setErrorMessage('Unable To Load Email Preferences Right Now - Please Try Again.');
+            if (seq === loadSeqRef.current) {
+                setErrorMessage('Unable To Load Email Preferences Right Now - Please Try Again.');
+            }
         } finally {
-            setLoading(false);
+            if (seq === loadSeqRef.current) setLoading(false);
         }
     }, []);
 
     const loadSessionPreferences = useCallback(async (sessionJwt) => {
+        const seq = ++loadSeqRef.current;
         setLoading(true);
         setErrorMessage('');
         try {
@@ -89,17 +102,19 @@ export default function EmailPreferencesPage() {
                 },
             });
             const body = await response.json().catch(() => ({}));
+            if (seq !== loadSeqRef.current) return;
             if (!response.ok || !body?.success) {
-                setLoading(false);
                 return;
             }
             setMaskedEmail(body.maskedEmail || body.email || '');
             setCurrentMode(body.currentMode || 'all');
             setUseSessionAuth(true);
         } catch {
-            setErrorMessage('Unable To Load Email Preferences Right Now - Please Try Again.');
+            if (seq === loadSeqRef.current) {
+                setErrorMessage('Unable To Load Email Preferences Right Now - Please Try Again.');
+            }
         } finally {
-            setLoading(false);
+            if (seq === loadSeqRef.current) setLoading(false);
         }
     }, []);
 
@@ -111,6 +126,7 @@ export default function EmailPreferencesPage() {
         const clean = typeof fromQuery === 'string' ? fromQuery.trim() : '';
         setPrefToken(clean);
         if (clean) {
+            setUseSessionAuth(false);
             loadCurrentPreferences(clean);
             return;
         }
@@ -121,11 +137,14 @@ export default function EmailPreferencesPage() {
             return;
         }
 
+        loadSeqRef.current += 1;
+        setUseSessionAuth(false);
         setLoading(false);
     }, [router.isReady, router.query.token, loadCurrentPreferences, loadSessionPreferences]);
 
     const handleSelectPreference = async (preferenceKey) => {
-        if ((!prefToken && !useSessionAuth) || savingKey) return;
+        if ((!prefToken && !useSessionAuth) || savingKey || saveInFlightRef.current) return;
+        saveInFlightRef.current = true;
         setSavingKey(preferenceKey);
         setErrorMessage('');
         setStatusNotice('');
@@ -156,11 +175,26 @@ export default function EmailPreferencesPage() {
                 setErrorMessage('Could Not Save Your Email Preference - Please Try Again.');
                 return;
             }
-            if (preferenceKey === 'unsubscribe' && typeof window !== 'undefined') {
+            if (typeof window !== 'undefined') {
+                // Keep every Weekly Wire capture bar on this device in step with the saved choice.
                 try {
-                    window.localStorage.removeItem('sp_wire_subscribed_v1');
+                    if (preferenceKey === 'unsubscribe') {
+                        window.localStorage.removeItem('sp_wire_subscribed_v1');
+                    } else {
+                        window.localStorage.setItem('sp_wire_subscribed_v1', '1');
+                    }
                 } catch {
                     /* ignore storage restrictions */
+                }
+                try {
+                    window.sessionStorage.removeItem(WIRE_SESSION_CHECKED_KEY);
+                } catch {
+                    /* ignore storage restrictions */
+                }
+                try {
+                    window.dispatchEvent(new Event(WIRE_SUBSCRIPTION_CHANGED_EVENT));
+                } catch {
+                    /* ignore environments without Event */
                 }
             }
             const updatedMode = body.currentMode || (preferenceKey === 'unsubscribe' ? 'unsubscribed' : preferenceKey);
@@ -170,6 +204,7 @@ export default function EmailPreferencesPage() {
         } catch {
             setErrorMessage('Could Not Save Your Email Preference - Please Try Again.');
         } finally {
+            saveInFlightRef.current = false;
             setSavingKey('');
         }
     };

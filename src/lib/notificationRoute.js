@@ -232,6 +232,11 @@ export function resolveNotificationRoute(n) {
         return '/hub/messenger';
     }
 
+    if (t === 'weekly_wire_published') {
+        const edition = pick(d, 'edition', 'editionNumber');
+        return edition && /^\d+$/.test(edition) ? `/hub/wire/${edition}` : '/hub/wire';
+    }
+
     // ── 8. Generic payload shapes, for types we do not know by name ────
     const pageType = pick(d, 'page_type', 'pageType');
     const pageId = pick(d, 'page_id', 'pageId');

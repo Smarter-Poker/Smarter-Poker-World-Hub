@@ -2,7 +2,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { deterministicUuid } from '../../../src/lib/promoCampaigns/welcomeBackOffer.mjs';
 import { buildSignedEmailImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
+import * as wireCatalog from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import NewsletterCaptureBar from '../../../src/components/news/NewsletterCaptureBar';
 
@@ -18,6 +20,64 @@ function parseSubjectEditionNumber(subject) {
     if (!match) return null;
     const n = parseInt(match[1], 10);
     return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+const ARCHIVE_ARTICLE_ID_CAP = 600;
+const ARCHIVE_ARTICLE_ID_CHUNK = 100;
+const ARCHIVE_SEARCH_TEXT_CAP = 900;
+
+function archiveCopy(str) {
+    return String(str || '').replace(/[—–]/g, '-').trim();
+}
+
+function longIssueDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// Searchable text for one archived edition: the campaign subject plus every headline, the
+// Spot Of The Week, Tool Spotlight, Trivia question and platform upgrade titles that the
+// edition page itself renders, so a reader searching "WSOP", "PLO" or "ICM" finds the edition.
+function buildEditionSearchText({ row, editionNumber, rawIds, newsById }) {
+    const idSet = new Set(rawIds);
+    const updatesCatalog = wireCatalog.PLATFORM_UPDATES_CATALOG || [];
+    const toolsCatalog = wireCatalog.TOOL_SPOTLIGHT_CATALOG || [];
+    const spotsCatalog = wireCatalog.SPOT_OF_THE_WEEK_CATALOG || [];
+    const triviaCatalog = wireCatalog.TRIVIA_OF_THE_WEEK_CATALOG || [];
+    const parts = [archiveCopy(row.subject), longIssueDate(row.completed_at || row.created_at)];
+
+    let hasCustomUpdate = false;
+    for (const id of rawIds) {
+        const news = newsById.get(id);
+        if (!news) continue;
+        if (news.category === 'platform_update') hasCustomUpdate = true;
+        parts.push(archiveCopy(news.title), archiveCopy(news.category === 'platform_update' ? '' : news.source_name));
+    }
+
+    const matchedUpdates = updatesCatalog.filter((u) => idSet.has(wireEngine.updateMarkerUuid(u.slug)));
+    const fallbackStart = ((editionNumber - 1) * 2) % Math.max(1, updatesCatalog.length);
+    const shownUpdates =
+        matchedUpdates.length + (hasCustomUpdate ? 1 : 0) > 0
+            ? matchedUpdates
+            : updatesCatalog.slice(fallbackStart, fallbackStart + 2);
+    for (const u of shownUpdates) parts.push(archiveCopy(u.title));
+
+    const spot =
+        spotsCatalog.find((s) => idSet.has(wireEngine.spotMarkerUuid(s.slug)) || idSet.has(deterministicUuid(`spot:${s.slug}`))) ||
+        (spotsCatalog.length > 0 ? spotsCatalog[(editionNumber - 1) % spotsCatalog.length] : null);
+    if (spot) parts.push(archiveCopy(spot.title), archiveCopy(spot.category));
+
+    const tool =
+        toolsCatalog.find((t) => idSet.has(wireEngine.toolMarkerUuid(t.slug))) ||
+        (toolsCatalog.length > 0 ? toolsCatalog[(editionNumber - 1) % toolsCatalog.length] : null);
+    if (tool) parts.push(archiveCopy(tool.title), archiveCopy(tool.category));
+
+    const trivia = triviaCatalog.find((t) => idSet.has(wireEngine.triviaMarkerUuid(t.slug)));
+    if (trivia) parts.push(archiveCopy(trivia.question));
+
+    return parts.filter(Boolean).join(' | ').toLowerCase().slice(0, ARCHIVE_SEARCH_TEXT_CAP);
 }
 
 function formatIssueDate(iso) {
@@ -49,29 +109,46 @@ export async function getServerSideProps({ res }) {
         const wireRows = (rows || []).filter(isWeeklyWireCampaign);
         const usedNumbers = new Set();
 
-        // Collect up to 80 candidate lead-article UUIDs across archived editions so each
-        // archived edition card can display a verified first-party thumbnail.
-        const candidateLeadIds = [];
+        // Collect every archived article UUID (bounded) so each archive card can show a verified
+        // first-party thumbnail AND carry its headlines into the archive search index.
+        const candidateIds = [];
+        const seenCandidateIds = new Set();
         for (const row of wireRows) {
             const rawIds = Array.isArray(row.article_ids) ? row.article_ids : [];
-            for (const id of rawIds.slice(0, 3)) {
+            for (const id of rawIds) {
                 const cleanId = String(id || '').trim().toLowerCase();
-                if (UUID_SHAPE_RE.test(cleanId) && candidateLeadIds.length < 80) {
-                    candidateLeadIds.push(cleanId);
+                if (UUID_SHAPE_RE.test(cleanId) && !seenCandidateIds.has(cleanId) && candidateIds.length < ARCHIVE_ARTICLE_ID_CAP) {
+                    seenCandidateIds.add(cleanId);
+                    candidateIds.push(cleanId);
                 }
             }
         }
 
+        const newsById = new Map();
         const thumbByArticleId = new Map();
-        if (candidateLeadIds.length > 0) {
-            // in-list: bounded by slice(0, 80)
-            const { data: artRows } = await sb
-                .from('poker_news')
-                .select('id, image_url, category')
-                .in('id', [...new Set(candidateLeadIds)].slice(0, 80));
-            for (const art of artRows || []) {
-                if (art?.id && art.category !== 'platform_update') {
-                    thumbByArticleId.set(String(art.id).toLowerCase(), art.image_url || '');
+        if (candidateIds.length > 0) {
+            const chunks = [];
+            for (let i = 0; i < candidateIds.length; i += ARCHIVE_ARTICLE_ID_CHUNK) {
+                chunks.push(candidateIds.slice(i, i + ARCHIVE_ARTICLE_ID_CHUNK));
+            }
+            // in-list: bounded by ARCHIVE_ARTICLE_ID_CAP, chunked to keep each request URL short
+            const chunkResults = await Promise.all(
+                chunks.map((chunk) =>
+                    sb
+                        .from('poker_news')
+                        .select('id, title, source_name, image_url, category')
+                        // in-list: bounded by ARCHIVE_ARTICLE_CHUNK_SIZE (<= 100)
+                        .in('id', chunk)
+                        .then((r) => r?.data || [])
+                        .catch(() => [])
+                )
+            );
+            for (const art of chunkResults.flat()) {
+                if (!art?.id) continue;
+                const key = String(art.id).toLowerCase();
+                newsById.set(key, art);
+                if (art.category !== 'platform_update') {
+                    thumbByArticleId.set(key, art.image_url || '');
                 }
             }
         }
@@ -92,9 +169,13 @@ export async function getServerSideProps({ res }) {
                     if (leadRawImg) break;
                 }
             }
+            const validIds = rawIds
+                .map((id) => String(id || '').trim().toLowerCase())
+                .filter((id) => UUID_SHAPE_RE.test(id));
             return {
                 id: String(row.id),
                 editionNumber,
+                searchText: buildEditionSearchText({ row, editionNumber, rawIds: validIds, newsById }),
                 subject: String(row.subject || `Smarter.Poker Weekly Wire #${editionNumber}`).replace(/[—–]/g, '-'),
                 sentAt: row.completed_at || row.created_at || null,
                 sentCount: Number(row.sent_count || row.recipient_count || 0),
@@ -155,12 +236,17 @@ export async function getServerSideProps({ res }) {
 export default function WeeklyWireArchivePage({ editions = [], livePreview = null }) {
     const [searchQuery, setSearchQuery] = useState('');
     const filteredEditions = useMemo(() => {
-        const q = searchQuery.trim().toLowerCase();
+        const q = searchQuery.trim().toLowerCase().replace(/\s+/g, ' ');
         if (!q) return editions;
+        // "Edition 1", "Issue 12" and "#3" name one edition exactly; a bare number also matches text.
+        const numberQuery = q.match(/^(edition|issue|wire)?\s*(#)?\s*(\d+)$/);
+        const exactOnly = Boolean(numberQuery && (numberQuery[1] || numberQuery[2]));
+        const tokens = q.replace(/#/g, ' ').split(' ').filter(Boolean);
         return editions.filter((ed) => {
-            const numMatch = String(ed.editionNumber || '').includes(q) || `#${ed.editionNumber}`.includes(q);
-            const subjMatch = String(ed.subject || '').toLowerCase().includes(q);
-            return numMatch || subjMatch;
+            if (numberQuery && Number(numberQuery[3]) === Number(ed.editionNumber)) return true;
+            if (exactOnly) return false;
+            const haystack = `edition ${ed.editionNumber} #${ed.editionNumber} ${ed.subject || ''} ${ed.searchText || ''}`.toLowerCase();
+            return tokens.every((token) => haystack.includes(token));
         });
     }, [editions, searchQuery]);
 

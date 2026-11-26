@@ -16,6 +16,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth.js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit.js';
 import { reportApiError } from '../../../src/lib/apiErrorHandler.js';
 import {
+    parseCampaignSectionClicks,
     parseCampaignTelemetrySummary,
     resolveAdminSubscriberPatch,
 } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
@@ -96,8 +97,8 @@ export async function requireNewsletterAdmin(req, res, supabase = getSupabase())
 }
 
 export default async function handler(req, res) {
-    if (!['GET', 'PATCH', 'POST'].includes(req.method)) {
-        res.setHeader('Allow', 'GET, PATCH, POST');
+    if (!['GET', 'PATCH', 'POST', 'DELETE'].includes(req.method)) {
+        res.setHeader('Allow', 'GET, PATCH, POST, DELETE');
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
     if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
@@ -108,6 +109,22 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store');
 
     try {
+        if (req.method === 'DELETE') {
+            const rawDraftId = req.body?.draftId || req.query?.draftId || '';
+            const draftId = String(rawDraftId || '').trim();
+            if (!draftId) {
+                return res.status(400).json({ success: false, error: 'draftId is required' });
+            }
+            const { error } = await supabase
+                .from('newsletter_campaigns')
+                .delete()
+                .eq('id', draftId)
+                .eq('status', 'cancelled')
+                .ilike('subject', '[PROMO DRAFT]%');
+            if (error) throw error;
+            return res.status(200).json({ success: true, deleted: true, draftId });
+        }
+
         if (req.method === 'POST') {
             const { action } = req.body || {};
             if (action === 'save_promo_draft') {
@@ -119,15 +136,28 @@ export default async function handler(req, res) {
                 if (!draft || typeof draft !== 'object') {
                     return res.status(400).json({ success: false, error: 'Valid draft object is required' });
                 }
+                const cleanSubject = String(draft.subject || '').trim().slice(0, 180);
+                const cleanHeadline = String(draft.headline || '').trim().slice(0, 200);
+                const cleanBody = String(draft.body || '').trim().slice(0, 8000);
+                const cleanCtaLabel = String(draft.ctaLabel || draft.ctaText || '').trim().slice(0, 80);
+                const cleanCtaUrl = String(draft.ctaUrl || '').trim().slice(0, 500);
+                const cleanSmsBody = String(draft.smsBody || '').trim().slice(0, 480);
+                const cleanScope = String(draft.scope || 'non_accounts').trim().slice(0, 40);
+                const cleanPostal = String(draft.postalAddress || '').trim().slice(0, 240);
+                const cleanChannels = ['email', 'sms', 'both'].includes(draft.channels)
+                    ? draft.channels
+                    : (Array.isArray(draft.channels) ? draft.channels : 'both');
+
                 const cleanDraft = {
-                    subject: String(draft.subject || '').trim(),
-                    headline: String(draft.headline || '').trim(),
-                    body: String(draft.body || '').trim(),
-                    ctaLabel: String(draft.ctaLabel || '').trim(),
-                    ctaUrl: String(draft.ctaUrl || '').trim(),
-                    smsBody: String(draft.smsBody || '').trim(),
-                    scope: String(draft.scope || '').trim(),
-                    channels: Array.isArray(draft.channels) ? draft.channels : [],
+                    subject: cleanSubject,
+                    headline: cleanHeadline,
+                    body: cleanBody,
+                    ctaLabel: cleanCtaLabel,
+                    ctaUrl: cleanCtaUrl,
+                    smsBody: cleanSmsBody,
+                    scope: cleanScope,
+                    postalAddress: cleanPostal,
+                    channels: cleanChannels,
                 };
                 const subject = `[PROMO DRAFT] ${cleanName}`.slice(0, 190);
                 const errorSummary = ('draft:' + JSON.stringify(cleanDraft)).slice(0, 4000);
@@ -144,10 +174,46 @@ export default async function handler(req, res) {
                         })
                         .eq('id', draftId.trim())
                         .eq('status', 'cancelled')
-                        .select('id, subject, error_summary, updated_at')
-                        .maybeSingle();
+                        .select('id, subject, error_summary, updated_at');
                     if (error) throw error;
-                    savedRow = data;
+                    savedRow = Array.isArray(data) && data.length > 0 ? data[0] : null;
+                }
+
+                if (!savedRow) {
+                    const { data: existingByName, error: lookupErr } = await supabase
+                        .from('newsletter_campaigns')
+                        .select('id, subject, error_summary, updated_at')
+                        .eq('status', 'cancelled')
+                        .eq('subject', subject)
+                        .order('created_at', { ascending: false })
+                        .limit(10);
+                    if (lookupErr) throw lookupErr;
+
+                    if (Array.isArray(existingByName) && existingByName.length > 0) {
+                        const canonical = existingByName[0];
+                        const { data, error } = await supabase
+                            .from('newsletter_campaigns')
+                            .update({
+                                subject,
+                                error_summary: errorSummary,
+                                updated_at: nowIso,
+                            })
+                            .eq('id', canonical.id)
+                            .eq('status', 'cancelled')
+                            .select('id, subject, error_summary, updated_at');
+                        if (error) throw error;
+                        savedRow = Array.isArray(data) && data.length > 0 ? data[0] : null;
+
+                        if (existingByName.length > 1) {
+                            const dupIds = existingByName.slice(1).map((r) => r.id);
+                            // in-list: bounded by duplicate draft lookup limit (<= 20)
+                            await supabase
+                                .from('newsletter_campaigns')
+                                .delete()
+                                .in('id', dupIds.slice(0, 20))
+                                .eq('status', 'cancelled');
+                        }
+                    }
                 }
 
                 if (!savedRow) {
@@ -166,10 +232,9 @@ export default async function handler(req, res) {
                             error_summary: errorSummary,
                             created_by: admin.id,
                         })
-                        .select('id, subject, error_summary, updated_at')
-                        .maybeSingle();
+                        .select('id, subject, error_summary, updated_at');
                     if (error) throw error;
-                    savedRow = data;
+                    savedRow = Array.isArray(data) && data.length > 0 ? data[0] : null;
                 }
 
                 return res.status(200).json({
@@ -387,25 +452,34 @@ export default async function handler(req, res) {
         try {
             const ALLOWED_SOURCES = ['weekly_wire', 'welcome_email', 'promo_campaign', 'promo_sms', 'welcome_back_sms', 'lifecycle'];
             if (supabase?.auth?.admin?.listUsers) {
-                const { data: usersData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-                const userList = usersData?.users || [];
                 const attributedIds = [];
-                for (const u of userList) {
-                    const source = u?.user_metadata?.acquisition_utm_source || u?.raw_user_meta_data?.acquisition_utm_source;
-                    if (source && ALLOWED_SOURCES.includes(source)) {
-                        attributionSummary.totalSignups += 1;
-                        attributionSummary.bySource[source] = (attributionSummary.bySource[source] || 0) + 1;
-                        if (u.id) attributedIds.push(u.id);
+                const startMs = Date.now();
+                // Bounded pagination: up to 10 pages of 1000 users (max 10,000 users), stopping early if < 1000 returned or after 3.5s
+                for (let page = 1; page <= 10; page += 1) {
+                    if (Date.now() - startMs > 3500) break;
+                    const { data: usersData, error: pageErr } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+                    if (pageErr) break;
+                    const userList = usersData?.users || [];
+                    for (const u of userList) {
+                        const source = u?.user_metadata?.acquisition_utm_source || u?.raw_user_meta_data?.acquisition_utm_source;
+                        if (source && ALLOWED_SOURCES.includes(source)) {
+                            attributionSummary.totalSignups += 1;
+                            attributionSummary.bySource[source] = (attributionSummary.bySource[source] || 0) + 1;
+                            if (u.id) attributedIds.push(u.id);
+                        }
                     }
+                    if (userList.length < 1000) break;
                 }
                 if (attributedIds.length > 0) {
-                    // in-list: bounded attributed user ids
-                    const { data: verifiedProfiles } = await supabase
-                        .from('profiles')
-                        .select('id, phone_verified')
-                        .in('id', attributedIds.slice(0, 200))
-                        .eq('phone_verified', true);
-                    attributionSummary.phoneVerifiedSignups = (verifiedProfiles || []).length;
+                    for (let i = 0; i < attributedIds.length && i < 2100; i += 150) {
+                        // in-list: bounded by 150-item slice
+                        const { data: verifiedProfiles } = await supabase
+                            .from('profiles')
+                            .select('id')
+                            .in('id', attributedIds.slice(i, i + 150))
+                            .eq('phone_verified', true);
+                        attributionSummary.phoneVerifiedSignups += (verifiedProfiles || []).length;
+                    }
                 }
             }
         } catch (_attrErr) {
@@ -415,28 +489,7 @@ export default async function handler(req, res) {
         const wireOnlyCount = wireOnlyResult.count || 0;
         const parsedCampaigns = (campaignsResult.data || []).map((campaign) => {
             const telemetry = parseCampaignTelemetrySummary(campaign.error_summary);
-            let sections = {};
-            const rawErr = String(campaign.error_summary || '');
-            const telemIdx = rawErr.indexOf('telemetry:');
-            if (telemIdx !== -1) {
-                const jsonStr = rawErr.slice(telemIdx + 'telemetry:'.length).trim();
-                try {
-                    const parsed = JSON.parse(jsonStr);
-                    if (parsed?.sections && typeof parsed.sections === 'object' && !Array.isArray(parsed.sections)) {
-                        sections = parsed.sections;
-                    }
-                } catch {
-                    const m = jsonStr.match(/(\{.*\})/);
-                    if (m) {
-                        try {
-                            const parsed = JSON.parse(m[1]);
-                            if (parsed?.sections && typeof parsed.sections === 'object') {
-                                sections = parsed.sections;
-                            }
-                        } catch {}
-                    }
-                }
-            }
+            const sections = parseCampaignSectionClicks(campaign.error_summary);
             return {
                 ...campaign,
                 opens: telemetry.opens,

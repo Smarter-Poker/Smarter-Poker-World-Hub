@@ -95,18 +95,40 @@ export function verifyUnsubscribeToken(token) {
     return email;
 }
 
-function resolveUnsubscribeTarget(raw) {
-    const value = String(raw).trim();
-    if (!value || value.length > 2048) return null;
-
-    const fromToken = verifyUnsubscribeToken(value);
-    if (fromToken) return { email: fromToken, verified: true };
-
-    const email = value.toLowerCase();
-    if (email.length <= MAX_EMAIL_LENGTH && EMAIL_RE.test(email)) {
-        return { email, verified: false };
+export function resolveTokenOrEmailQuery(query = {}) {
+    const rawE = typeof query.e === 'string' ? query.e : (typeof query.email === 'string' ? query.email : '');
+    const rawT = typeof query.t === 'string' ? query.t : (typeof query.token === 'string' ? query.token : '');
+    const cleanE = rawE.trim().toLowerCase();
+    const cleanT = rawT.trim();
+    if (cleanT) {
+        if (cleanT.includes('.')) {
+            const verified = verifyUnsubscribeToken(cleanT);
+            if (verified) return { email: verified, verified: true, token: cleanT };
+        }
+        if (cleanE) {
+            const reconstructed = `${b64url(Buffer.from(cleanE, 'utf8'))}.${cleanT}`;
+            const verified = verifyUnsubscribeToken(reconstructed);
+            if (verified) return { email: verified, verified: true, token: reconstructed };
+        }
+    }
+    if (cleanE && cleanE.length <= MAX_EMAIL_LENGTH && EMAIL_RE.test(cleanE)) {
+        return { email: cleanE, verified: false, token: null };
     }
     return null;
+}
+
+export function resolveUnsubscribeTarget(raw, query = {}) {
+    const value = String(raw || '').trim();
+    if (value && value !== '1' && value !== 'true') {
+        const fromToken = verifyUnsubscribeToken(value);
+        if (fromToken) return { email: fromToken, verified: true, token: value };
+
+        const email = value.toLowerCase();
+        if (email.length <= MAX_EMAIL_LENGTH && EMAIL_RE.test(email)) {
+            return { email, verified: false, token: null };
+        }
+    }
+    return resolveTokenOrEmailQuery(query);
 }
 
 export { buildWelcomeEmail, derivePreferenceMode, maskEmailAddress };
@@ -249,18 +271,21 @@ export default async function handler(req, res) {
                 );
         }
 
-        // 1. GET /api/news/subscribe?preferences=<signed-token>
-        const hasPreferencesParam = typeof req.query?.preferences !== 'undefined';
+        // 1. GET /api/news/subscribe?preferences=<signed-token> OR ?preferences=session OR ?preferences=1&e=...&t=...
+        const hasPreferencesParam =
+            typeof req.query?.preferences !== 'undefined' ||
+            typeof req.query?.prefs !== 'undefined' ||
+            (req.query?.mode && (req.query?.t || req.query?.token));
         const rawPreferences = Array.isArray(req.query?.preferences)
             ? req.query.preferences[0]
-            : req.query?.preferences;
+            : (req.query?.preferences ?? req.query?.prefs ?? '');
 
         if (req.method === 'GET' && hasPreferencesParam) {
             if (!applyRateLimit(req, res, LIMITS.read || LIMITS.write)) return;
             const prefStr = typeof rawPreferences === 'string' ? rawPreferences.trim() : '';
             let verifiedEmail = null;
-
             let sessionUserId = null;
+
             if (!prefStr || prefStr === 'session') {
                 const sb = getSupabase();
                 const authRes = await getServerUserWithFallback(req, sb);
@@ -275,8 +300,22 @@ export default async function handler(req, res) {
                         error: 'Authentication required.',
                     });
                 }
+            } else if (prefStr === '1' || prefStr === 'true') {
+                const fromQuery = resolveTokenOrEmailQuery(req.query);
+                if (fromQuery?.verified) {
+                    verifiedEmail = fromQuery.email;
+                } else {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Invalid or expired email preference link.',
+                    });
+                }
             } else {
                 verifiedEmail = verifyUnsubscribeToken(prefStr);
+                if (!verifiedEmail) {
+                    const fromQuery = resolveTokenOrEmailQuery(req.query);
+                    if (fromQuery?.verified) verifiedEmail = fromQuery.email;
+                }
                 if (!verifiedEmail) {
                     return res.status(400).json({
                         success: false,
@@ -324,19 +363,20 @@ export default async function handler(req, res) {
             });
         }
 
-        // 2. GET / POST /api/news/subscribe?unsubscribe=<token-or-email>
+        // 2. GET / POST /api/news/subscribe?unsubscribe=<token-or-email> OR ?unsubscribe=1&e=...&t=... OR RFC 8058 One-Click
         const rawUnsub = Array.isArray(req.query?.unsubscribe)
             ? req.query.unsubscribe[0]
-            : req.query?.unsubscribe;
+            : (req.query?.unsubscribe ?? (req.query?.unsub ?? ''));
+        const hasUnsubQuery = Boolean(rawUnsub) || Boolean(req.query?.e && req.query?.t && req.method === 'POST');
 
-        if (['GET', 'POST'].includes(req.method) && typeof rawUnsub === 'string' && rawUnsub) {
+        if (['GET', 'POST'].includes(req.method) && hasUnsubQuery) {
             if (req.method === 'GET' && !applyRateLimit(req, res, LIMITS.write)) return;
 
             const wantsJson =
                 String(req.query.format || '') === 'json' ||
                 String(req.headers.accept || '').includes('application/json');
 
-            const target = resolveUnsubscribeTarget(rawUnsub);
+            const target = resolveUnsubscribeTarget(rawUnsub, req.query);
             const verifiedTok = target?.verified ? String(rawUnsub).trim() : '';
 
             const respond = (status, ok, message) => {
@@ -427,12 +467,14 @@ export default async function handler(req, res) {
         if (req.body?.action === 'preferences') {
             const rawToken = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
             let verifiedEmail = null;
+            let sessionUserId = null;
 
             if (!rawToken || rawToken === 'session') {
                 const sb = getSupabase();
                 const authRes = await getServerUserWithFallback(req, sb);
                 const user = authRes?.user ?? authRes;
                 if (user?.id) {
+                    sessionUserId = user.id;
                     verifiedEmail = user.email || (await sb.auth.admin.getUserById(user.id))?.data?.user?.email || null;
                 }
                 if (!verifiedEmail) {
@@ -443,6 +485,10 @@ export default async function handler(req, res) {
                 }
             } else {
                 verifiedEmail = verifyUnsubscribeToken(rawToken);
+                if (!verifiedEmail && req.body?.e && req.body?.t) {
+                    const candidate = resolveTokenOrEmailQuery({ e: req.body.e, t: req.body.t });
+                    if (candidate?.verified) verifiedEmail = candidate.email;
+                }
                 if (!verifiedEmail) {
                     return res.status(400).json({
                         success: false,
@@ -467,7 +513,7 @@ export default async function handler(req, res) {
 
             const { data: existingRows, error: lookupErr } = await getSupabase()
                 .from('newsletter_subscribers')
-                .select('id')
+                .select('id, user_id')
                 .ilike('email', escapeIlikePattern(verifiedEmail))
                 .limit(20);
 
@@ -490,15 +536,18 @@ export default async function handler(req, res) {
             const rows = Array.isArray(existingRows) ? existingRows : [];
             let saveRes;
             if (rows.length > 0) {
+                const updatePatch = { ...patch };
+                if (sessionUserId) updatePatch.user_id = sessionUserId;
                 saveRes = await getSupabase()
                     .from('newsletter_subscribers')
-                    .update(patch)
+                    .update(updatePatch)
                     // in-list: bounded duplicate subscriber rows for one email
                     .in('id', rows.map((r) => r.id).slice(0, 20));
             } else {
                 const insertPayload = {
                     email: verifiedEmail,
                     ...patch,
+                    ...(sessionUserId ? { user_id: sessionUserId } : {}),
                 };
                 if (patch.is_active) {
                     insertPayload.subscribed_at = nowIso;
@@ -514,17 +563,25 @@ export default async function handler(req, res) {
             }
 
             try {
+                const targetUserIds = new Set();
+                if (sessionUserId) targetUserIds.add(sessionUserId);
+                for (const r of rows) {
+                    if (r?.user_id) targetUserIds.add(String(r.user_id));
+                }
                 const { data: profiles } = await getSupabase()
                     .from('profiles')
                     .select('id')
                     .ilike('email', escapeIlikePattern(verifiedEmail))
                     .limit(10);
                 for (const prof of profiles || []) {
-                    if (!prof?.id) continue;
+                    if (prof?.id) targetUserIds.add(String(prof.id));
+                }
+
+                for (const uid of targetUserIds) {
                     let prefPatch = null;
                     if (preference === 'all') {
                         prefPatch = {
-                            user_id: prof.id,
+                            user_id: uid,
                             mute_all: false,
                             email_enabled: true,
                             marketing_enabled: true,
@@ -532,15 +589,22 @@ export default async function handler(req, res) {
                         };
                     } else if (preference === 'wire_only') {
                         prefPatch = {
-                            user_id: prof.id,
+                            user_id: uid,
                             mute_all: false,
                             email_enabled: true,
                             marketing_enabled: false,
                             updated_at: nowIso,
                         };
+                    } else if (preference === 'snooze_30d') {
+                        prefPatch = {
+                            user_id: uid,
+                            mute_all: false,
+                            email_enabled: true,
+                            updated_at: nowIso,
+                        };
                     } else if (preference === 'unsubscribe') {
                         prefPatch = {
-                            user_id: prof.id,
+                            user_id: uid,
                             marketing_enabled: false,
                             updated_at: nowIso,
                         };
