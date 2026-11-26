@@ -37,7 +37,7 @@ test('training home and category games open a dedicated preset arena', () => {
     assert.match(source, /pathname: '\/hub\/training\/arena\/\[gameId\]'/);
     assert.match(source, /query: \{ gameId: game\.id, start: '1', source: 'training-(?:home|category)' \}/);
   }
-  assert.match(arena, /startsWithPreset = router\.query\.start === '1' && Boolean\(game\)/);
+  assert.match(arena, /startsWithPreset = Boolean\(game && !customLaunch\.config && !customLaunch\.error\)/);
   assert.match(arena, /customLaunch\.config \|\| \(startsWithPreset \? resolvePresetForGame\(game\) : null\)/);
   assert.match(arena, /initialConfig=\{initialConfig\}/);
 });
@@ -49,7 +49,7 @@ test('preset play keeps study tooling out of the shared game table', () => {
   const router = load('src/components/training/GameUIRouter.jsx');
   const table = load('src/components/training/games/UniversalDynamicTable.jsx');
 
-  assert.match(arena, /presetOnly=\{startsWithPreset && !customLaunch\.config\}/);
+  assert.match(arena, /presetOnly=\{startsWithPreset\}/);
   assert.match(game, /<GameUIRouter\s+presetOnly=\{presetOnly\}/);
   assert.match(router, /<UniversalDynamicTable\s+presetOnly=\{presetOnly\}/);
   assert.match(game, /onConfigClick=\{presetOnly \? null : handleConfigClick\}/);

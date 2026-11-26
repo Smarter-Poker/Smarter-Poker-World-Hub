@@ -21,31 +21,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
-
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
-
-const BOARD_CARDS = ['8d', '5c', '2s'];
-
-const pillButtonStyle = (active) => ({
-  padding: '7px 12px',
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 800,
-  cursor: 'pointer',
-  border: active ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
-  background: active
-    ? 'linear-gradient(180deg, rgba(8,145,178,0.75), rgba(3,50,74,0.92))'
-    : 'rgba(255,255,255,0.05)',
-  color: active ? '#e8fbff' : '#cbd5e1',
-});
 
 // TRAIN-CSS-MOTION-ADOPT-9 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -499,37 +475,6 @@ export default function StudyPlanPage() {
   const [activeVariant, setActiveVariant] = useState('nlh');
   const [effectiveStackBb, setEffectiveStackBb] = useState(100);
 
-  const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
-  const boardCards = BOARD_CARDS;
-
-  const brainEval = useMemo(
-    () =>
-      evaluateTrainingSpotWithHorseBrain({
-        variant: activeVariant,
-        street: 'flop',
-        heroCards,
-        boardCards,
-        pot: 6.5,
-        toCall: 2.2,
-        effectiveStackBb,
-      }),
-    [activeVariant, heroCards, boardCards, effectiveStackBb]
-  );
-
-  const arenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        {
-          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
-          variant: activeVariant,
-          street: 'flop',
-          stackDepth: effectiveStackBb,
-        },
-        'study-plan'
-      ),
-    [activeVariant, effectiveStackBb]
-  );
-
   const leakAnalysis = useMemo(() => {
     const rawAnalysis = analyzeVerifiedTrainingWeaknesses(
       Array.isArray(sessions) ? sessions : [],
@@ -830,107 +775,6 @@ export default function StudyPlanPage() {
               Drill Priority #1 Leak In Club Arena ({String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}) →
             </button>
           </div>
-
-          {brainEval && (
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainEval.engineModule}
-              data-recommended-action={brainEval.correctAnswer}
-              data-active-variant={activeVariant}
-              style={{
-                marginBottom: 20,
-                padding: 18,
-                borderRadius: 7,
-                border: '1px solid #688299',
-                borderTopColor: '#aec0d0',
-                background: '#091727',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  marginBottom: 14,
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
-                  Horse Brain Spot Calibration Panel
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
-                  {`Engine: ${brainEval.engineModule} · Recommended: ${brainEval.correctAnswerText}`}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                    Variant
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        data-variant-option={v}
-                        onClick={() => setActiveVariant(v)}
-                        style={pillButtonStyle(activeVariant === v)}
-                      >
-                        {v.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                    Stack Depth
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {[20, 40, 100, 200].map((stk) => (
-                      <button
-                        key={stk}
-                        type="button"
-                        data-stack-option={stk}
-                        onClick={() => setEffectiveStackBb(stk)}
-                        style={pillButtonStyle(effectiveStackBb === stk)}
-                      >
-                        {stk} BB
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>
-                {brainEval.explanation}
-              </div>
-
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                data-launch-href={arenaHref}
-                onClick={() => router.push(arenaHref)}
-                style={{
-                  display: 'inline-flex',
-                  minHeight: 44,
-                  alignItems: 'center',
-                  padding: '0 18px',
-                  borderRadius: 7,
-                  border: '1px solid #56d8ff',
-                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
-                  color: '#fff',
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-              >
-                Launch Calibrated Drill In Club Arena →
-              </button>
-            </div>
-          )}
 
           {!loading && signedOut && (
             <div

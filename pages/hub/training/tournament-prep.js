@@ -1,5 +1,5 @@
 // TRAIN-CSS-TOKENS-BATCH5-59 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
@@ -9,8 +9,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 // BUG FIX (TRAIN-TPP-A11Y-1): SVG icons replacing the bare back-arrow +
 // strategy-tip lightbulb. Strict build-safety rules from PR #362/#365/#369
@@ -42,7 +40,6 @@ function TppLightbulbIcon({ size = 14 }) {
     </svg>
   );
 }
-
 
 export default function TournamentPrepPlanner() {
   const router = useRouter();
@@ -102,55 +99,6 @@ export default function TournamentPrepPlanner() {
   const mDenom = currentBlindInfo.sb + currentBlindInfo.bb + currentBlindInfo.ante * 9;
   const initialM = mDenom > 0 ? startStack / mDenom : 0;
   const initialBBs = currentBlindInfo.bb > 0 ? startStack / currentBlindInfo.bb : 0;
-
-  const effectiveStackBb = useMemo(
-    () => Math.max(5, Math.min(200, Math.round(initialBBs || 20))),
-    [initialBBs]
-  );
-
-  const dynamicBubbleFactor = useMemo(() => {
-    const levelFactor = 1.05 + currentLevel * 0.08;
-    const depthFactor = effectiveStackBb <= 15 ? 0.35 : effectiveStackBb <= 25 ? 0.2 : 0;
-    return Number(Math.max(1.1, Math.min(2.4, levelFactor + depthFactor)).toFixed(2));
-  }, [currentLevel, effectiveStackBb]);
-
-  const [brainVariant, setBrainVariant] = useState('nlh');
-
-  const arenaHref = useMemo(
-    () => buildCustomTrainingArenaHref({ gameId: 'mtt-001', variant: brainVariant }, 'tournament-prep'),
-    [brainVariant]
-  );
-
-  const brainEval = useMemo(() => {
-    try {
-      const toCallBb = effectiveStackBb <= 18 ? Math.max(3, Math.round(effectiveStackBb * 0.7)) : 2.5;
-      const heroCardsByVariant = {
-        nlh: ['As', 'Qh'],
-        plo4: ['As', 'Ks', 'Qh', 'Jh'],
-        plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-        plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-        plo8: ['As', '2s', 'Kd', '3d'],
-      };
-      return evaluateTrainingSpotWithHorseBrain({
-        gameId: 'mtt-001',
-        variant: brainVariant,
-        street: 'preflop',
-        heroCards: heroCardsByVariant[brainVariant] || heroCardsByVariant.nlh,
-        boardCards: [],
-        heroPosition: 'BTN',
-        villainPosition: 'BB',
-        pot: 2.5,
-        toCall: toCallBb,
-        effectiveStackBb,
-        isICM: true,
-        isPKO: false,
-        bubbleFactor: dynamicBubbleFactor,
-        payoutPressure: `Level ${currentLevel} (${effectiveStackBb} BB, M ${initialM.toFixed(1)}, BF ${dynamicBubbleFactor}x)`,
-      });
-    } catch {
-      return null;
-    }
-  }, [currentLevel, effectiveStackBb, dynamicBubbleFactor, initialM, brainVariant]);
 
   const [activeTab, setActiveTab] = useState('structure');
 
@@ -311,76 +259,6 @@ export default function TournamentPrepPlanner() {
               </div>
             </div>
 
-            {brainEval && (
-              <div
-                data-specialty-brain-panel="true"
-                data-brain-engine={brainEval.engineModule}
-                data-recommended-action={brainEval.correctAnswer}
-                data-bubble-factor={String(dynamicBubbleFactor)}
-                style={{ ...styles.card, marginTop: 16 }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 6,
-                    marginBottom: 10,
-                  }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
-                    Horse Brain Tournament &amp; ICM/PKO Engine Panel
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                    Level {currentLevel} | {effectiveStackBb} BB | BF {dynamicBubbleFactor}x
-                  </span>
-                </div>
-                <div data-variant-selector="true" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      data-variant-option={v}
-                      onClick={() => setBrainVariant(v)}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        border: brainVariant === v ? '1px solid rgba(0, 212, 255, 0.75)' : '1px solid rgba(255,255,255,0.14)',
-                        background: brainVariant === v ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255,255,255,0.04)',
-                        color: brainVariant === v ? '#e0f2fe' : 'var(--sp-fg-muted)',
-                      }}
-                    >
-                      {v.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-                <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.55 }}>
-                  {brainEval.explanation}
-                </p>
-                <button
-                  type="button"
-                  data-launch-club-arena-cta="true"
-                  onClick={() => router.push(arenaHref)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 7,
-                    border: '1px solid #56d8ff',
-                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
-                    color: '#fff',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Practice Tournament Spot In Club Arena →
-                </button>
-              </div>
-            )}
           </div>
 
           {/* RIGHT COLUMN: Analysis Display */}

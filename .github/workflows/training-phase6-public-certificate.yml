@@ -2,6 +2,11 @@ name: Training Phase 6 Public Certificate
 on:
   workflow_dispatch:
     inputs:
+      verification:
+        description: Verification to run
+        type: choice
+        options: [authority, catalog]
+        default: authority
       expected_sha:
         description: Exact protected-main and serving Git SHA
         required: true
@@ -19,7 +24,7 @@ jobs:
   collect-public:
     environment: Production
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 35
+    timeout-minutes: 90
     steps:
       - name: Require protected source
         env:
@@ -39,6 +44,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Collect public evidence only
         env:
+          TRAINING_VERIFICATION: ${{ inputs.verification }}
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           DEPLOYMENT_URL: ${{ inputs.deployment_url }}
           TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}

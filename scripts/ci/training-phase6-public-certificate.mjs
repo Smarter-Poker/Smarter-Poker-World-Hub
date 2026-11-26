@@ -6,6 +6,7 @@ import { runProductionDeliveryAttestation, validateDesignatedAuditAuthState, val
 
 export const AUDIT_UUID = '2d1cd6c3-5700-4af9-a271-d4863fdab20d';
 export function validateConfig(env) {
+  assert.ok(['authority', 'catalog'].includes(env.TRAINING_VERIFICATION || 'authority'), 'unknown verification');
   assert.equal(env.GITHUB_REF, 'refs/heads/main', 'protected main required');
   assert.match(env.EXPECTED_SHA || '', /^[a-f0-9]{40}$/);
   assert.equal(env.GITHUB_SHA, env.EXPECTED_SHA, 'source identity mismatch');
@@ -26,8 +27,17 @@ export async function collectPublic(env = process.env, runtime = {}) {
     assert.ok(!checked.error, 'audit identity verification failed');
     assert.equal(checked.data?.user?.id, AUDIT_UUID, 'designated audit identity mismatch');
     assert.equal(checked.data.user.email?.toLowerCase(), env.TEST_USER_EMAIL.toLowerCase(), 'configured email mismatch');
-    const state = { cookies: [], origins: [{ origin: config.origin, localStorage: [{ name: 'smarter-poker-auth', value: JSON.stringify(login.data.session) }] }] };
-    validateDesignatedAuditAuthState(state, config.origin, AUDIT_UUID);
+    const state = { cookies: [], origins: [{ origin: 'https://smarter.poker', localStorage: [{ name: 'smarter-poker-auth', value: JSON.stringify(login.data.session) }] }] };
+    const { storageState } = validateDesignatedAuditAuthState(state, config.origin, AUDIT_UUID);
+    if (env.TRAINING_VERIFICATION === 'catalog') {
+      const verifyCatalog = runtime.verifyCatalog || (await import('./training-catalog-live.mjs')).verifyLiveTrainingCatalog;
+      return await verifyCatalog({
+        ...config,
+        state: storageState,
+        output: env.PUBLIC_EVIDENCE,
+        protectionBypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET || '',
+      });
+    }
     const authState = join(privateDir, 'state.json');
     await writeFile(authState, JSON.stringify(state), { mode: 0o600, flag: 'wx' });
     return await collect({ baseUrl: config.origin, expectedBuild: config.expectedSha, authState, output: env.PUBLIC_EVIDENCE, expectedAuditUserId: AUDIT_UUID, writeAcknowledgement: 'I_ACKNOWLEDGE_THIS_CREATES_REAL_TRAINING_ATTEMPTS_AND_ANSWERS', protectionBypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET || '' });
