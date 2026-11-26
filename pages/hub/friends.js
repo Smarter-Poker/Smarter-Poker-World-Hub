@@ -790,23 +790,22 @@ function FriendsPage() {
         busEmit.dataMutated('friends');
         broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
 
-        // Fire-and-forget DB updates
-        supabase.from('friendships').update({ status: 'accepted' }).eq('id', request.id)
-            .then(({ error }) => {
-                if (error) {
+        // ACCEPT THROUGH THE DEFINER DOOR (2026-11-26). `friendships` grants
+        // authenticated SELECT, INSERT (pending, own row) and DELETE, and no
+        // UPDATE, so the direct `.update({ status: 'accepted' })` was refused
+        // with 42501 every time and the accept rolled back. accept_friendship
+        // checks that the caller is the recipient and flips the one row; every
+        // friendship read here is two-direction, so no reverse row is needed
+        // (the old reverse upsert was refused by RLS too).
+        supabase.rpc('accept_friendship', { p_friendship_id: request.id })
+            .then(({ data, error }) => {
+                if (error || data?.success === false) {
                     // Rollback on failure
                     setFriends(prev => prev.filter(f => f.id !== request.user_id));
                     setFriendIds(prev => { const s = new Set(prev); s.delete(request.user_id); return s; });
                     setFriendRequests(prev => [...prev, request]);
                     toast.error('Failed to accept friend request.');
                 } else {
-                    // Create reverse friendship after confirm — use upsert to handle unique constraint edge cases
-                    supabase.from('friendships').upsert(
-                        { user_id: user.id, friend_id: request.user_id, status: 'accepted' },
-                        { onConflict: 'user_id,friend_id', ignoreDuplicates: false }
-                    ).then(({ error: upsertErr }) => {
-                        if (upsertErr) console.warn('[friends] Reverse friendship upsert failed:', upsertErr.message);
-                    }).catch(e => console.warn('[friends] Handled exception:', e));
                     // Send "friend_accepted" in-app notification to the requester (parity with Horse engine)
                     try {
                         const token = getAccessToken();

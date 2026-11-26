@@ -20,6 +20,8 @@ function getSupabase() {
     return _supabase;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -39,12 +41,16 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error || !game) {
-              // Try by ID as fallback
-              const { data: gameById } = await getSupabase()
-                  .from('game_registry')
-                  .select('*')
-                  .eq('id', slug)
-                  .maybeSingle();
+              // Try by ID as fallback. game_registry.id is a uuid, so only a
+              // uuid is looked up by id: a slug such as `cash-3` reached
+              // Postgres as 22P02 on every miss (2026-11-26).
+              const { data: gameById } = UUID_PATTERN.test(String(slug))
+                  ? await getSupabase()
+                      .from('game_registry')
+                      .select('*')
+                      .eq('id', slug)
+                      .maybeSingle()
+                  : { data: null };
 
               if (!gameById) {
                   // 2026-07-19 AUDIT FIX (E2E defect D6): the 107 training games
