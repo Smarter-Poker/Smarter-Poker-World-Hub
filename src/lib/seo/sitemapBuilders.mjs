@@ -937,3 +937,142 @@ export async function buildPokerEventDetailUrls() {
 
   return Array.from(urls.values());
 }
+
+/**
+ * Return the newest valid ISO date string across real content evidence timestamps
+ * (never fabricates wall-clock generation time).
+ */
+export function latestEvidenceDate(dates = []) {
+  let maxTime = 0;
+  for (const d of dates) {
+    if (!d) continue;
+    const t = new Date(d).getTime();
+    if (Number.isFinite(t) && t > maxTime) maxTime = t;
+  }
+  return maxTime > 0 ? new Date(maxTime).toISOString() : undefined;
+}
+
+export const AUTHORITY_EVIDENCE_LASTMOD = latestEvidenceDate([
+  COMPARE_AS_OF,
+  RULES_AS_OF,
+  GAMES_AS_OF,
+  MARKET_GUIDES_AS_OF,
+  STATES_AS_OF,
+  SERIES_GUIDES_AS_OF,
+  MATCHUPS_AS_OF,
+  POSITIONS_AS_OF,
+  STAKES_AS_OF,
+  FAMOUS_HANDS_AS_OF,
+  ROADMAPS_AS_OF,
+  PLAYER_TYPES_AS_OF,
+  BOARD_TEXTURES_AS_OF,
+  INTERNATIONAL_GUIDES_AS_OF,
+  FORMULAS_AS_OF,
+  TOURNAMENT_STAGES_AS_OF,
+  LEAKS_AS_OF,
+  HUD_STATS_AS_OF,
+  AUTHORS_AS_OF,
+  CORRIDORS_AS_OF,
+  BY_GAME_AS_OF,
+]);
+
+export const LEARN_EVIDENCE_LASTMOD = latestEvidenceDate([
+  MATCHUPS_AS_OF,
+  POSITIONS_AS_OF,
+  STAKES_AS_OF,
+  FAMOUS_HANDS_AS_OF,
+  ROADMAPS_AS_OF,
+  PLAYER_TYPES_AS_OF,
+  BOARD_TEXTURES_AS_OF,
+  FORMULAS_AS_OF,
+  TOURNAMENT_STAGES_AS_OF,
+  LEAKS_AS_OF,
+  HUD_STATS_AS_OF,
+]);
+
+/**
+ * Fetch published poker_news articles for /sitemap-news.xml.
+ * Supports passing a pre-fetched row array or Supabase client for deterministic testing.
+ */
+export async function buildNewsArticleUrls(supabaseOrRows = null, { limit = 1000 } = {}) {
+  let rows = Array.isArray(supabaseOrRows) ? supabaseOrRows : null;
+  if (!rows) {
+    const sb = supabaseOrRows && typeof supabaseOrRows.from === 'function' ? supabaseOrRows : null;
+    try {
+      let client = sb;
+      if (!client) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!url || !key) return [];
+        const { createClient } = await import('@supabase/supabase-js');
+        client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+      }
+      const { data, error } = await client
+        .from('poker_news')
+        .select('id, title, published_at, updated_at, created_at')
+        .eq('is_published', true)
+        .order('published_at', { ascending: false })
+        .limit(limit);
+      if (!error && Array.isArray(data)) rows = data;
+    } catch (err) {
+      console.warn('[sitemap-news] poker_news fetch failed:', err.message);
+      return [];
+    }
+  }
+
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row) => row && row.id && typeof row.title === 'string' && row.title.trim())
+    .map((row) => {
+      const id = String(row.id).trim();
+      const publishedAt = row.published_at || row.created_at || null;
+      const lastmod = row.updated_at || publishedAt || null;
+      return {
+        path: `/hub/article?id=${encodeURIComponent(id)}`,
+        title: row.title.trim(),
+        publishedAt,
+        ...(lastmod ? { lastmod } : {}),
+        priority: '0.75',
+        changefreq: 'daily',
+      };
+    });
+}
+
+/**
+ * Generate Google News + Articles XML sitemap for /sitemap-news.xml.
+ * Emits <news:news> metadata for articles published within the last 48 hours
+ * (Google News specification) while indexing the full recent published catalog.
+ */
+export function generateNewsSitemapXml(entries, { nowMs = Date.now() } = {}) {
+  const cutoffMs = nowMs - 48 * 60 * 60 * 1000;
+  const list = Array.isArray(entries) ? entries : [];
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+${list
+  .map((entry) => {
+    const loc = entry.loc
+      ? entry.loc
+      : (entry.path ? (entry.path.startsWith('http') ? entry.path : `${SITE_URL}${entry.path}`) : '');
+    const escapedLoc = escapeXml(loc);
+    const lastmodLine = sitemapLastmodLine(entry.lastmod);
+    const pubMs = entry.publishedAt ? new Date(entry.publishedAt).getTime() : NaN;
+    const includeNewsBlock = Number.isFinite(pubMs) && pubMs >= cutoffMs && entry.title;
+    const newsBlock = includeNewsBlock
+      ? `    <news:news>
+      <news:publication>
+        <news:name>Smarter.Poker</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${escapeXml(new Date(pubMs).toISOString())}</news:publication_date>
+      <news:title>${escapeXml(entry.title)}</news:title>
+    </news:news>\n`
+      : '';
+    return `  <url>
+    <loc>${escapedLoc}</loc>
+${lastmodLine}${newsBlock}    <changefreq>${escapeXml(entry.changefreq || 'daily')}</changefreq>
+    <priority>${escapeXml(entry.priority || '0.75')}</priority>
+  </url>`;
+  })
+  .join('\n')}
+</urlset>`;
+}

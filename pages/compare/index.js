@@ -108,7 +108,7 @@ export default function CompareHubPage() {
         title="Poker Room And Software Comparisons"
         description="Honest Comparisons Of Live Poker Rooms, Club Apps, Room Management Software, GTO Trainers And Bankroll Trackers, With Every Fact Sourced And Dated."
         canonical={COMPARE_BASE}
-        jsonLd={[schemas.organization, ...compareIndexJsonLd(), faqSchema(COMPARE_FAQS, '/compare')]}
+        jsonLd={[schemas.organization, jsonLd[0], ...compareIndexJsonLd(), faqSchema(COMPARE_FAQS, '/compare')]}
         ogImage="https://smarter.poker/api/og/tool-card?tool=compare"
       />
 

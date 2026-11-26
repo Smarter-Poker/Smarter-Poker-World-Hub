@@ -86,6 +86,10 @@ export default function PokerMatchupsIndexPage() {
           url: `https://smarter.poker${matchupPath(m.slug)}`,
         })),
       },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'main p:first-of-type'],
+      },
     },
     {
       '@type': 'FAQPage',

@@ -444,7 +444,7 @@ export async function getServerSideProps({ params, query, req, res }) {
   const id = String(rawId || '').trim();
   if (!id) return { notFound: true };
 
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
 
   const numericId = /^\d+$/.test(id) ? parseInt(id, 10) : null;
   let venue = null;

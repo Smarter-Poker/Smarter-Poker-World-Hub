@@ -1297,6 +1297,15 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/search',
+        headers: [
+          {
+            key: 'Link',
+            value: '</llms.txt>; rel="llms-txt", </.well-known/mcp.json>; rel="service-desc", </.well-known/ai-facts.json>; rel="describedby"',
+          },
+        ],
+      },
       // [Webmaster Calculator Embeds] Public poker calculators under /tools/*
       // are designed to be embedded via <iframe> on external blogs, forums,
       // cardroom websites, and educational portals (see /tools/embeds).

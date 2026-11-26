@@ -135,7 +135,7 @@ export default function PrintablePokerCheatSheetsPage() {
     <div style={styles.page}>
       <SEOHead
         title="Printable Poker Cheat Sheets And RFI Charts"
-        description="Print-Friendly Poker Cheat Sheets: Official Hand Rankings, Rule Of 4 And 2 Draw Odds, 6-Max & 9-Max 100BB RFI Opening Ranges, 10BB/15BB Push-Fold Charts, And Home Game Chip Breakdown."
+        description="Printable Poker Cheat Sheets: Official Hand Rankings, Rule Of 4 And 2 Odds, 100BB RFI Opening Charts, 10BB-15BB Push/Fold Tables, And Chip Breakdowns."
         canonical={canonicalPath}
         jsonLd={jsonLd}
       />

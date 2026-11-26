@@ -186,10 +186,29 @@ export default function LandingPage() {
     <>
       <SEOHead
         title="Smarter.Poker: Free Poker Training, Clubs And Live Games"
-        description="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling."
+        description="Free Online Poker Platform: GTO Training, 52 Calculators, Private Clubs, Club Commander, Live Venues And Bankroll Tracking. No Real-Money Gambling."
         canonical="/"
         jsonLd={[schemas.organization, schemas.website, schemas.softwareApp]}
-      />
+      >
+        <script
+          key="home-speakable-jsonld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebPage',
+              '@id': 'https://smarter.poker/#webpage',
+              url: 'https://smarter.poker/',
+              name: 'Smarter.Poker: Free Poker Training, Clubs And Live Games',
+              isPartOf: { '@id': 'https://smarter.poker/#website' },
+              speakable: {
+                '@type': 'SpeakableSpecification',
+                cssSelector: ['h1', '#landing-summary-heading', 'section p:first-of-type'],
+              },
+            }),
+          }}
+        />
+      </SEOHead>
 
       <div style={styles.page}>
         {/* ── NAV BAR ─────────────────────────────────────────── */}
