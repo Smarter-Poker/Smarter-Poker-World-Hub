@@ -188,7 +188,7 @@ export default function AggregateReports() {
           .aggregate-note {
             margin-top: 16px;
             padding: 13px 15px;
-            color: #fbd38d;
+            color: #86daff;
             border: 1px solid rgba(251,191,36,0.25);
             border-radius: 9px;
             background: rgba(120,53,15,0.14);
