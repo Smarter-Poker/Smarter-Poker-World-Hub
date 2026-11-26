@@ -4,9 +4,39 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parent/'src'))
-from continuation import split_jobs,check_budget,canonical,eval_launches,provenance_names,regular_sha,verify_provenance,verify_sources
+from continuation import split_jobs,check_budget,canonical,eval_launches,provenance_names,regular_sha,verify_provenance,verify_sources,verify_chain_files,digest
 
 class ContinuationContracts(unittest.TestCase):
+    def test_chain_uses_same_reader_all_hashes_and_exact_train_role(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);paths=[root/str(i) for i in range(12)]
+            for p in paths:p.write_bytes(str(p.name).encode())
+            files={str(p):digest(p.read_bytes()) for p in paths};calls=[]
+            class Reader:
+                def read(self,p,role):
+                    calls.append((p,role))
+                    if role!='TRAIN':raise PermissionError('role')
+                    return Path(p).read_bytes()
+            g=Reader();c={'inputs':{p:{} for p in files}};common=SimpleNamespace(own=lambda p:Path(p))
+            verify_chain_files(common,c,g,files);self.assertEqual(calls,[(p,'TRAIN') for p in files])
+            for p in paths:
+                original=p.read_bytes();p.write_bytes(original+b'drift')
+                with self.assertRaises(ValueError):verify_chain_files(common,c,g,files)
+                p.write_bytes(original)
+            denied=SimpleNamespace(read=lambda p,role:(_ for _ in ()).throw(PermissionError('SOURCE is not TRAIN')))
+            with self.assertRaises(PermissionError):verify_chain_files(common,c,denied,files)
+            verify_chain_files(common,{'inputs':{}},g,files)
+    def test_verify_constructs_one_reader_and_no_chain_recomputation(self):
+        tree=ast.parse((Path(__file__).resolve().parent/'src/continuation.py').read_text())
+        funcs={n.name:ast.unparse(n) for n in tree.body if isinstance(n,ast.FunctionDef)}
+        self.assertEqual(funcs['verify'].count('common.config()'),1)
+        self.assertNotIn('common.frozen()',funcs['verify'])
+        for name in ['verify','release_check','stage']:self.assertNotIn('chain.candidate_chain()',funcs[name])
+        self.assertEqual(funcs['prepare'].count('chain.candidate_chain()'),1)
+    def test_semantic_body_preserves_original_pinned_algorithm(self):
+        src=Path(__file__).resolve().parent/'src/continuation.py'
+        actual=next(n for n in ast.parse(src.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='semantic_chain').body[4:]
+        self.assertEqual(digest('\n'.join(ast.dump(n) for n in actual).encode()),'5f1c75d896d9ab037cd304d855170cbcc07b209883d6cb355e11ebea2ee4402d')
     def jobs(self):return [dict(id='SYNTHETIC%02d'%i,meta=dict(family=('PAIR','MONO','UNP2T')[i//4] if i<12 else 'UNPR'),phases=[dict(scenario=dict(pot_chips=555 if i%2 else 585),arms=[dict(name='unchanged',writes=[dict(table=[.25,.75])])])]) for i in range(16)]
     def test_deterministic_max3_split_keeps_every_original_object(self):
         jobs=self.jobs();original=copy.deepcopy(jobs);groups=split_jobs(list(reversed(jobs)));self.assertEqual([len(g) for g in groups],[3,3,3,3,1,3]);self.assertEqual(jobs,original)

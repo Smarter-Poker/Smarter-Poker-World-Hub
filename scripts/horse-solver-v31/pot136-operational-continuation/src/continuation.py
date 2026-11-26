@@ -76,6 +76,45 @@ def verify_sources(f):
     if not {'PLAN.md','API.md','test_contracts.py','src/continuation.py'}<=set(f['source_files']):raise ValueError('missing frozen review source')
     for p,h in f['source_files'].items():
         if sha(p)!=h:raise ValueError('operational frozen source/job drift')
+def verify_chain_files(common,c,g,files):
+    # One invocation-local role-bound reader; no retained cache or skipped hashes.
+    for p,h in files.items():
+        raw=g.read(p,'TRAIN') if p in c['inputs'] else common.own(p).read_bytes()
+        if digest(raw)!=h:raise ValueError('original causal chain artifact drift: '+p)
+def semantic_chain(common,c,g):
+ # Original pinned E candidate_chain semantics; invocation-local reader only.
+ B=E;read=common.read;sha=common.sha
+ def data_bytes(p,h,role='TRAIN'):
+  raw=g.read(p,role) if p in c['inputs'] else common.own(p).read_bytes()
+  if digest(raw)!=h:raise ValueError('original causal artifact drift')
+  return raw
+ freeze=sha('FREEZE.json');data=read('DATA-RELEASE.json');admission=read('FIT-ADMISSION.json');fit=read('FIT.json');candidate=read('CANDIDATE-SEAL.json');reuse=read('REUSED-TRAIN-ADMISSION.json');files={}
+ assert data['accepted'] is True and data['freeze_sha256']==freeze and data['dataset_sha256']==sha('DATASET.json') and data['fit_games']==136 and data['nodes']==544
+ assert admission['accepted'] is True and admission['freeze_sha256']==freeze and admission['data_release_sha256']==sha('DATA-RELEASE.json') and admission['dataset_sha256']==sha('DATASET.json') and admission['fit_games']==136
+ assert fit['freeze_sha256']==freeze and fit['data_release_sha256']==sha('DATA-RELEASE.json') and fit['fit_games']==136 and len(fit['models'])==8
+ assert candidate['fit_sha256']==sha('FIT.json') and candidate['models']==8 and candidate['fitted_once'] is True
+ assert reuse['accepted'] is True and reuse['games']==32 and reuse['freeze_sha256']==freeze and reuse['mandatory_A2'] is True
+ for name in ('DATA-RELEASE.json','DATASET.json','FIT-ADMISSION.json','FIT-CLAIM.json','FIT.json','CANDIDATE-SEAL.json','REUSED-TRAIN-ADMISSION.json'):files[name]=sha(name)
+ claim=read('FIT-CLAIM.json');assert claim['freeze_sha256']==freeze and claim['data_release_sha256']==sha('DATA-RELEASE.json')
+ # Each external byte read is still explicit TRAIN admission; owned artifacts retain the owned-path guard.
+ for p,h in data['files'].items():data_bytes(p,h,'TRAIN');files[p]=h
+ dataset=read('DATASET.json');assert len(dataset)==544 and len({r['game_key'] for r in dataset})==136
+ for row in dataset:
+  for name in ('label','features'):
+   p=row[name+'_path'];h=row[name+'_sha256'];data_bytes(p,h,'TRAIN');files[p]=h
+ expected={v['path']:v['sha256'] for v in c['reused_native'].values()}
+ for tag,co in c['cohorts'].items():
+  if co['stage']!='HARVEST':continue
+  rp='evidence/technical-'+tag+'.json';receipt=read(rp);assert receipt['verdict']=='PASS_NATIVE_COPY_A2_TECHNICAL';files[rp]=sha(rp)
+  for name,h in receipt['local_files'].items():
+   p=str(B/'m1'/('F5P136-'+tag)/name);data_bytes(p,h,'TRAIN');files[p]=h
+  for jid in co['ids']:
+   p=str(B/'m1'/('F5P136-'+tag)/(jid+'.json'));expected[p]=receipt['local_files'][jid+'.json']
+ assert data['native_sources']==expected and len(expected)==32
+ for p,h in expected.items():data_bytes(p,h,'TRAIN');files[p]=h
+ for p,m in fit['models'].items():assert sha(p)==m['sha256'];files[p]=m['sha256']
+ return files
+
 def prepare(refusal_path,refusal_sha):
     common,ops,_,chain=load_e();common.frozen();c,_=common.config();train_tags=train_gate(common,c)
     if (F/'OPERATIONAL-FREEZE.json').exists():raise ValueError('already frozen; reconcile existing operation')
@@ -86,6 +125,7 @@ def prepare(refusal_path,refusal_sha):
     refusal=json.loads(refusal_path.read_bytes())
     required=dict(verdict='OPERATIONAL_ADMISSION_BLOCKED',freeze_sha256=E_FREEZE,candidate_sha256=common.sha('CANDIDATE-SEAL.json'),stage='EVALUATION',native_launched=False)
     if any(refusal.get(k)!=v for k,v in required.items()) or refusal.get('reason')!='phase_reserve_exceeds_original_2h':raise ValueError('original route must actually refuse, not be predicted to refuse')
+    original_chain=chain.candidate_chain()
     original,files=original_jobs(common,c);groups=split_jobs(original);order=[];cohorts={}
     for i,group in enumerate(groups):
         tag='E-S%02d'%i;p='jobs-'+tag+'.json';write(p,group);out='F5P136-'+tag
@@ -95,14 +135,21 @@ def prepare(refusal_path,refusal_sha):
     write('LAYOUT.json',dict(format='HV31_POT136_OPERATIONAL_PARTITION_V1',cohorts=cohorts,order=order,original_job_object_sha256={j['id']:digest(canonical(j)) for j in original},original_job_files=files,targets=16,arms=64,writes=128,candidate_sha256=common.sha('CANDIDATE-SEAL.json'),fit_sha256=FIT,original_freeze_sha256=E_FREEZE,live_play=False))
     source_files={str(p.relative_to(F)):sha(p) for p in [F/'PLAN.md',F/'API.md',F/'test_contracts.py',*sorted((F/'src').glob('*.py')),*sorted(F.glob('jobs-E-S*.json')),F/'LAYOUT.json']}
     provenance_files={p:regular_sha(E/p,E) for p in provenance_names(c)}
-    write('OPERATIONAL-FREEZE.json',dict(at=stamp(),original_freeze_sha256=E_FREEZE,candidate_sha256=common.sha('CANDIDATE-SEAL.json'),fit_sha256=FIT,source_files=source_files,original_files=files,provenance_files=provenance_files,refusal_path=str(refusal_path),refusal_sha256=refusal_sha,original_budget_before=b,original_phase_cap_runs=39,original_phase_cap_hours=2,global_cap_runs=2000,global_cap_hours=40,combined_cap_hours=18,reserve_formula='(900*n+600)/3600',same_experiment=True,live_play=False))
+    write('OPERATIONAL-FREEZE.json',dict(at=stamp(),original_freeze_sha256=E_FREEZE,candidate_sha256=common.sha('CANDIDATE-SEAL.json'),fit_sha256=FIT,source_files=source_files,original_files=files,provenance_files=provenance_files,original_chain=original_chain,original_chain_sha256=digest(canonical(original_chain)),refusal_path=str(refusal_path),refusal_sha256=refusal_sha,original_budget_before=b,original_phase_cap_runs=39,original_phase_cap_hours=2,global_cap_runs=2000,global_cap_hours=40,combined_cap_hours=18,reserve_formula='(900*n+600)/3600',same_experiment=True,live_play=False))
     # Freeze alone authorizes no solve. Separate root review/A8/stage release next.
     print(json.dumps(dict(state='FROZEN_OPERATIONAL_LAYOUT_ONLY',freeze_sha256=sha('OPERATIONAL-FREEZE.json'),sizes=[len(g) for g in groups])))
 def verify():
-    common,ops,scorer,chain=load_e();common.frozen();f=read('OPERATIONAL-FREEZE.json');c,_=common.config()
+    common,ops,scorer,chain=load_e();f=read('OPERATIONAL-FREEZE.json')
+    verify_provenance(f);verify_sources(f)
+    c,g=common.config()
+    original_freeze=common.read('FREEZE.json')
+    if common.sha('INPUTS.json')!=original_freeze['inputs_sha256']:raise ValueError('original input manifest drift')
+    for p,v in c['inputs'].items():g.read(p,v['role'])
     if set(f['provenance_files'])!=set(provenance_names(c)):raise ValueError('missing frozen TRAIN provenance')
     verify_provenance(f)
     verify_sources(f)
+    if digest(canonical(f['original_chain']))!=f['original_chain_sha256']:raise ValueError('sealed original chain identity drift')
+    if semantic_chain(common,c,g)!=f['original_chain']:raise ValueError('original causal semantic chain drift')
     if f['original_freeze_sha256']!=E_FREEZE or common.sha('FIT.json')!=FIT or f['candidate_sha256']!=common.sha('CANDIDATE-SEAL.json'):raise ValueError('same original candidate required')
     for p,h in f['original_files'].items():
         if common.sha(p)!=h:raise ValueError('original evaluation job drift')
@@ -113,8 +160,7 @@ def release_check():
     if r['accepted'] is not True or r['operational_freeze_sha256']!=sha('OPERATIONAL-FREEZE.json') or r['candidate_sha256']!=common.sha('CANDIDATE-SEAL.json'):raise ValueError('actual operational release required')
     for p,h in r['files'].items():
         if sha(p)!=h:raise ValueError('operational release drift')
-    for p,h in r['original_chain'].items():common.data_bytes(p,h,'TRAIN')
-    if chain.candidate_chain()!=r['original_chain']:raise ValueError('original causal candidate chain changed')
+    if r['original_chain']!=read('OPERATIONAL-FREEZE.json')['original_chain']:raise ValueError('original causal candidate chain changed')
     return common,ops,scorer,c
 def stage():
     common,ops,_,chain,c=verify();b=ops.budget(ops.events());ops.idle()
@@ -132,7 +178,7 @@ def stage():
     proof=ops.remote_ps(script)
     if proof['files']!=names or proof['pio_count']!=0:raise ValueError('actual remote staged/helper identity')
     write('evidence/stage-proof.json',proof);files['evidence/stage-proof.json']=sha('evidence/stage-proof.json');files.update(read('OPERATIONAL-FREEZE.json')['source_files'])
-    write('NATIVE-RELEASE.json',dict(at=stamp(),accepted=True,operational_freeze_sha256=sha('OPERATIONAL-FREEZE.json'),original_freeze_sha256=E_FREEZE,candidate_sha256=common.sha('CANDIDATE-SEAL.json'),files=files,original_chain=chain.candidate_chain(),live_play=False))
+    write('NATIVE-RELEASE.json',dict(at=stamp(),accepted=True,operational_freeze_sha256=sha('OPERATIONAL-FREEZE.json'),original_freeze_sha256=E_FREEZE,candidate_sha256=common.sha('CANDIDATE-SEAL.json'),files=files,original_chain=read('OPERATIONAL-FREEZE.json')['original_chain'],live_play=False))
     print('Staged and released operational partition; no native launched')
 def launch(tag):
     common,ops,_,c=release_check();layout=read('LAYOUT.json');co=layout['cohorts'][tag];events=ops.events();own_outs={v['out'] for v in layout['cohorts'].values()}

@@ -264,7 +264,7 @@ test('bounded operational partition continuation preserves the original experime
     env: { ...process.env, OMP_NUM_THREADS: '1', OPENBLAS_NUM_THREADS: '1', MKL_NUM_THREADS: '1' },
   });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  assert.match(result.stderr, /Ran 9 tests/);
+  assert.match(result.stderr, /Ran 12 tests/);
   assert.match(result.stderr, /OK/);
   assert.doesNotMatch(result.stderr, /skipped=/);
   const manifest = JSON.parse(read(base + 'source-manifest.json'));
