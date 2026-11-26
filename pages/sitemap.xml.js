@@ -349,8 +349,7 @@ const staticPages = [
 
   // A ROUTE THAT ONLY REDIRECTS IS NOT A PAGE (AEO phase 3, 2026-09-17).
   // /hub/training/analyzer is getServerSideProps returning a 307 to the
-  // hand-history upload, and /hub/training/play-mode renders
-  // CanonicalTrainingRedirect and sends the reader into the arena. A crawler
+  // hand-history upload, and /hub/training/play-mode redirects into the arena. A crawler
   // that follows a sitemap entry to a redirect learns the destination it
   // could have reached anyway, and spends a fetch to do it.
   // Hub — Training sub-pages

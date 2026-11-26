@@ -685,9 +685,9 @@ export default function StudyPlanPage() {
               ←
             </button>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
+              <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
                 Weekly Study Plan
-              </div>
+              </h1>
               <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
                 {loading
                   ? 'Loading Verified Training History'

@@ -54,6 +54,8 @@ test('preset play keeps study tooling out of the shared game table', () => {
   assert.match(game, /<GameUIRouter\s+presetOnly=\{presetOnly\}/);
   assert.match(router, /<UniversalDynamicTable\s+presetOnly=\{presetOnly\}/);
   assert.match(game, /onConfigClick=\{presetOnly \? null : handleConfigClick\}/);
+  assert.match(table, /!presetOnly && brainMeta && \(\s*<div/);
+  assert.match(table, /data-training-feedback="verdict"/);
   for (const attribute of ['data-table-study-tools-disclosure', 'data-posthand-simulators-disclosure']) {
     assert.match(table, new RegExp('!presetOnly && <details[^>]*' + attribute));
   }

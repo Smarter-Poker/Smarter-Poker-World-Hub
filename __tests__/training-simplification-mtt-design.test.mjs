@@ -143,7 +143,8 @@ test('1-tap start flow, preset summary, and progressive disclosures are wired ac
   // Phase 15 progressive disclosures and 1-tap preset summaries across secondary subpages
   const multiTable = read('pages/hub/training/multi-table.js');
   assert.ok(multiTable.includes('data-multitable-preset-summary="true"'), 'multi-table.js must display active preset summary bar');
-  assert.ok(multiTable.includes('data-multitable-advanced-disclosure="true"'), 'multi-table.js must wrap per-pane rotation & drill grid inside an advanced disclosure');
+  assert.doesNotMatch(multiTable, /data-multitable-advanced-disclosure/);
+  assert.match(multiTable, /START \{tableCount\} TABLES/);
 
   const categoryPage = read('pages/hub/training/category/[categoryId].js');
   assert.ok(categoryPage.includes('data-category-preset-summary="true"'), 'category/[categoryId].js must display 1-tap sector preset summary');
@@ -176,10 +177,9 @@ test('100% of Training Hub routes adopt the MTT Lobby #040d18 canvas or shared M
   const allRoutes = ['pages/hub/training.js', ...walkRoutes('pages/hub/training')];
   assert.ok(allRoutes.length >= 95, `Expected at least 95 Training route files, found ${allRoutes.length}`);
 
-  const canonicalRedirect = read('src/components/training/CanonicalTrainingRedirect.jsx');
-  assert.ok(canonicalRedirect.includes('#040d18'), 'CanonicalTrainingRedirect.jsx must use #040d18 MTT Lobby canvas');
-  assert.ok(canonicalRedirect.includes('#688299'), 'CanonicalTrainingRedirect.jsx must use #688299 steel border');
-  assert.ok(canonicalRedirect.includes("'plo8'"), 'CanonicalTrainingRedirect.jsx must include plo8 variant tab');
+  const playMode = read('pages/hub/training/play-mode.js');
+  assert.match(playMode, /destination: '\/hub\/training\/arena\/cash-001\?level=1'/);
+  assert.doesNotMatch(playMode, /evaluateTrainingSpotWithHorseBrain/);
 
   const gameCard = read('src/components/training/GameCard.jsx');
   assert.ok(gameCard.includes('#688299'), 'GameCard.jsx must use #688299 steel border');
@@ -756,7 +756,8 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
   assert.ok(leaderboardSrc.includes('data-club-coach-assignment-card="true"'), 'Leaderboard page must render Club Coach Assignment card');
 
   const icmFtSrc = read('pages/hub/training/icm-final-table.js');
-  assert.ok(icmFtSrc.includes('data-icm-chop-simulator="true"'), 'ICM Final Table page must render ICM Chop Simulator');
+  assert.match(icmFtSrc, /gameHref="\/hub\/training\/arena\/mtt-004\?level=1/);
+  assert.doesNotMatch(icmFtSrc, /data-icm-chop-simulator/);
 
   const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
   for (const attr of [

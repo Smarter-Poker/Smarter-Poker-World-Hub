@@ -23,9 +23,14 @@ const app = fs.readFileSync('pages/_app.js', 'utf8');
 
 test('the complete analysis family adopts one dimensional tool shell', () => {
   for (const [route, source] of Object.entries(sources)) {
-    if (route === 'analyzer') {
+    const destination = {
+      analyzer: '/hub/training/hand-history-upload?source=legacy-analyzer',
+      'ev-heatmap': '/hub/training/aggregate?source=ev-heatmap',
+      'performance-heatmap': '/hub/training/gto-reports',
+    }[route];
+    if (destination) {
       assert.match(source, /getServerSideProps/);
-      assert.match(source, /destination:\s*'\/hub\/training\/hand-history-upload\?source=legacy-analyzer'/);
+      assert.ok(source.includes(`destination: '${destination}'`));
       continue;
     }
     assert.match(source, /sp-training-tool--analysis/, `${route} must adopt the analysis shell`);
@@ -52,7 +57,6 @@ test('comparison panels and upload state use straight metallic surfaces', () => 
 
 test('pressed analysis filters are accessible and carry the cyan instrument state', () => {
   assert.match(sources['equity-calculator'], /aria-pressed=\{numPlayers === n\}/);
-  assert.match(sources['performance-heatmap'], /href="\/hub\/training\/gto-reports"/);
   assert.doesNotMatch(sources['performance-heatmap'], /derivePositions|deriveStreets|generateMistakePatterns/);
   assert.match(trainingCss, /button\[aria-pressed='true'\][\s\S]*?#a7f2ff/);
   assert.match(sources['risk-analyzer'], /className="sp-analysis-primary-action"/);

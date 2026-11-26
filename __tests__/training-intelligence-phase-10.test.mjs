@@ -8,7 +8,6 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const routes = [
   'reports',
   'gto-reports',
-  'gto-scorecard',
   'session-dashboard',
   'leaderboard',
   'community-leaderboard',
@@ -19,6 +18,7 @@ test('the complete reporting family adopts one intelligence-rail shell', () => {
     const source = read(`pages/hub/training/${route === 'gto-reports' ? 'reports' : route}.js`);
     assert.match(source, /sp-training-intelligence/, `${route} is missing the intelligence shell`);
   }
+  assert.match(read('pages/hub/training/gto-scorecard.js'), /destination: '\/hub\/training\/gto-reports'/);
   assert.match(read('pages/hub/training/gto-reports.js'), /export \{ default \} from '\.\/reports'/);
 });
 
@@ -36,10 +36,9 @@ test('report, scorecard, dashboard, and profile pages expose responsive stages',
   for (const route of [
     'reports',
     'gto-reports',
-    'gto-scorecard',
     'session-dashboard',
     'community-leaderboard',
-    ]) {
+  ]) {
     const source = read(`pages/hub/training/${route === 'gto-reports' ? 'reports' : route}.js`);
     assert.match(source, /sp-intelligence-header/, `${route} is missing the command header`);
     assert.match(source, /sp-intelligence-main/, `${route} is missing the responsive stage`);

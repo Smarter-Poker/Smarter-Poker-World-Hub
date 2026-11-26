@@ -1383,7 +1383,7 @@ test('legacy simulated reports and play surfaces route to verified data or Club 
 
   for (const [route, href] of Object.entries(routes)) {
     const source = fs.readFileSync(path.join(ROOT, `pages/hub/training/${route}.js`), 'utf8');
-    assert.ok(source.includes(`href="${href}"`), `${route} must route to ${href}`);
+    assert.ok(source.includes(`href="${href}"`) || source.includes(`destination: '${href}'`), `${route} must route to ${href}`);
     assert.doesNotMatch(source, /Math\.random|simulate position|heuristic GTO|GTO_BASELINES/);
   }
 

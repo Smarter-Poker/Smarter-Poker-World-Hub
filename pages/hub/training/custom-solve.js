@@ -21,13 +21,6 @@ import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from
 
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
-const PREVIEW_HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
 
 const HEATMAP_HAND_CLASSES_BY_VARIANT = {
   nlh: [
@@ -455,20 +448,6 @@ export default function CustomSolvePage() {
     return ['Qc', '8d', '3c'];
   }, [selectedBoard, selectedBoardCount]);
 
-  const brainEval = useMemo(() => {
-    const heroCards = PREVIEW_HERO_CARDS_BY_VARIANT[activeVariant] || PREVIEW_HERO_CARDS_BY_VARIANT.nlh;
-    return evaluateTrainingSpotWithHorseBrain({
-      variant: activeVariant,
-      street: effectiveBrainStreet,
-      heroCards,
-      boardCards: effectiveBrainBoard,
-      heroPosition: heroPos,
-      villainPosition: heroPos === villainPos ? (heroPos === 'BB' ? 'BTN' : 'BB') : villainPos,
-      pot: 6.5,
-      toCall: 0,
-      effectiveStackBb: stackDepth,
-    });
-  }, [activeVariant, effectiveBrainStreet, effectiveBrainBoard, heroPos, villainPos, stackDepth]);
 
   const heatmapCells = useMemo(() => {
     const handList = HEATMAP_HAND_CLASSES_BY_VARIANT[activeVariant] || HEATMAP_HAND_CLASSES_BY_VARIANT.nlh;
@@ -1023,91 +1002,6 @@ export default function CustomSolvePage() {
           </div>
 
           {/* 4-Variant Horse Brain Spot Preview & 1-Click Club Arena Launcher */}
-          {brainEval && (
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainEval.engineModule}
-              data-recommended-action={brainEval.correctAnswer}
-              data-active-variant={activeVariant}
-              data-hero-position={heroPos}
-              style={{
-                padding: 18,
-                borderRadius: 14,
-                border: '1px solid rgba(56, 189, 248, 0.4)',
-                background: 'rgba(2, 6, 23, 0.78)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 900, color: '#79e6ff', textTransform: 'uppercase' }}>
-                  Horse Brain 4-Variant Spot Preview
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
-                  Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
-                    Variant
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        aria-pressed={activeVariant === v}
-                        onClick={() => setActiveVariant(v)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: 6,
-                          border: activeVariant === v ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.16)',
-                          background: activeVariant === v ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.04)',
-                          color: activeVariant === v ? '#7dd3fc' : '#cbd5e1',
-                          fontSize: 12,
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {v.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <p style={{ margin: '0 0 14px', fontSize: 12, color: '#cbd5e1', lineHeight: 1.55 }}>
-                {brainEval.explanation}
-              </p>
-
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                onClick={() => router.push(arenaLaunchHref)}
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: 8,
-                  border: '1px solid #38bdf8',
-                  background: 'rgba(56, 189, 248, 0.2)',
-                  color: '#fff',
-                  fontSize: 13,
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                }}
-              >
-                Practice Target Spot In Club Arena →
-              </button>
-            </div>
-          )}
         </div>
       </div>
       <HubPageSummary page="training-custom-solve" />

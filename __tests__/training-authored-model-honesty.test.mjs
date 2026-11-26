@@ -37,8 +37,7 @@ test('authored teaching-model pages parse as executable JSX', () => {
 });
 
 test('Bankroll Coach cannot convert partial Training evidence into promised cash savings', () => {
-  assert.match(BANKROLL, /Verified Training Report/);
-  assert.match(BANKROLL, /Unsupported Dollar-Per-Hour And Monthly Savings Projections Have Been Retired/);
+  assert.match(BANKROLL, /getServerSideProps/);
   assert.match(BANKROLL, /\/hub\/training\/gto-reports\?source=bankroll-coach/);
   assert.doesNotMatch(BANKROLL, /dollarLossPerHour|dollarImpact|HANDS_PER_HOUR|Fix My Leaks/);
 });
