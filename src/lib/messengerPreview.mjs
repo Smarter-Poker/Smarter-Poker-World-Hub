@@ -8,7 +8,7 @@
  * variation selectors are removed, and the two system payloads read as what
  * they are. The message itself is never changed.
  */
-import { parseMessageMedia, mediaPreviewLabel } from './messenger/messageMedia.mjs';
+import { parseMessageMedia, mediaPreviewLabel, extractReplyPrefix, stripForwardPrefix } from './messenger/messageMedia.mjs';
 import { isLiveInvite } from './messenger/liveInvite.mjs';
 import { isCallReceipt, describeCallReceipt } from './messenger/callReceipt.mjs';
 
@@ -19,7 +19,7 @@ const LINK = /\[([^\]]+)\]\((?:[^)]+)\)/gu;
 
 
 export function messengerPreviewText(value, maxLength = 35) {
-  let text = String(value ?? '');
+  let text = extractReplyPrefix(String(value ?? '')).body;
   if (isLiveInvite(text)) return 'Live Stream Invite';
   if (isCallReceipt(text)) return describeCallReceipt(text);
   const media = parseMessageMedia(text);
@@ -27,6 +27,8 @@ export function messengerPreviewText(value, maxLength = 35) {
     const label = mediaPreviewLabel(media.kind);
     if (!media.caption) return label;
     text = `${label}: ${media.caption}`;
+  } else {
+    text = stripForwardPrefix(text);
   }
   text = text
     .replace(LINK, '$1')

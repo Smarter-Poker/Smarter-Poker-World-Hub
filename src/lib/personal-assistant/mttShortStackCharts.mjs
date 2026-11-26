@@ -192,21 +192,33 @@ function buildHandTable() {
 const HAND_TABLE = Object.freeze(buildHandTable());
 const HAND_INDEX = new Map(HAND_TABLE.map(entry => [entry.hand, entry]));
 
-/** Normalize 'AKs' / 'AhKd' / ['Ah','Kd'] / 'KA' to a canonical hand class like 'AKo'. */
+/** Normalize 'AKs' / 'AhKd' / ['Ah','Kd'] / 'A10s' / '1010' to a canonical hand class like 'AKo' or 'ATs'. Ambiguous unsuffixed non-pairs ('AK') return null. */
 export function normalizeHandClass(input) {
   let cards = null;
   if (Array.isArray(input)) cards = input.map(String);
   else if (typeof input === 'string') {
     const compact = input.replace(/[\s,\[\]]+/g, '');
-    if (/^[AKQJT2-9]{2}[so]?$/i.test(compact)) {
-      const a = compact[0].toUpperCase();
-      const b = compact[1].toUpperCase();
-      const suffix = compact[2] ? compact[2].toLowerCase() : '';
-      if (a === b) return `${a}${b}`;
-      const [hi, lo] = RANK_VALUE[a] >= RANK_VALUE[b] ? [a, b] : [b, a];
-      return suffix ? `${hi}${lo}${suffix}` : null;
+    // Try concrete two-card combo first (e.g. 'AhKd', '10s9s', 'As 10d')
+    const concrete = compact.match(/^(?:(10|[AKQJT2-9])([shdc]))(?:(10|[AKQJT2-9])([shdc]))$/i);
+    if (concrete) {
+      cards = [`${concrete[1]}${concrete[2]}`, `${concrete[3]}${concrete[4]}`];
+    } else {
+      // Hand class notation: allow '10' as 'T' (e.g. 'A10s', '109o', '1010')
+      const normalizedClass = compact.replace(/10/g, 'T');
+      if (/^[AKQJT2-9]{2}[so]?$/i.test(normalizedClass)) {
+        const a = normalizedClass[0].toUpperCase();
+        const b = normalizedClass[1].toUpperCase();
+        const suffix = normalizedClass[2] ? normalizedClass[2].toLowerCase() : '';
+        if (a === b) {
+          // Pocket pairs can never be suited ('AAs' is invalid); reject suffixed pairs
+          return suffix ? null : `${a}${b}`;
+        }
+        const [hi, lo] = RANK_VALUE[a] >= RANK_VALUE[b] ? [a, b] : [b, a];
+        // Never guess suited vs offsuit for ambiguous unsuffixed non-pairs ('AK')
+        return suffix ? `${hi}${lo}${suffix}` : null;
+      }
+      cards = compact.match(/(?:10|[AKQJT2-9])[shdc]/gi);
     }
-    cards = compact.match(/(?:10|[AKQJT2-9])[shdc]/gi);
   }
   if (!cards || cards.length !== 2) return null;
   const parsed = cards.map(card => {

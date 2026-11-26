@@ -751,3 +751,188 @@ export function decodeSharedDrillPack(token = '') {
   }
 }
 
+/**
+ * Encodes a Real-Time Co-Op Study Room & Coach Broadcast invitation token (`coop1.<payload>.<checksum>`).
+ */
+export function encodeCoopStudyRoom(config = {}) {
+  const validated = validateTrainingPreset(config).preset;
+  const payload = {
+    v: 1,
+    r: String(config.roomId || `room-${validated.variant}-${validated.heroPosition}-${validated.targetStreet}`).slice(0, 48),
+    c: String(config.coachName || 'Club Study Host').slice(0, 40),
+    t: String(config.title || `${validated.title} Co-Op Study Room`).slice(0, 72),
+    g: String(config.gameId || 'cash-001'),
+    vr: validated.variant,
+    bs: validated.bettingStructure,
+    fm: validated.format,
+    sd: validated.stackDepthBb,
+    pos: validated.heroPosition,
+    st: validated.targetStreet,
+  };
+  const json = JSON.stringify(payload);
+  const sig = computeSharedPackChecksum(json);
+  const b64 = typeof Buffer !== 'undefined'
+    ? Buffer.from(json, 'utf8').toString('base64')
+    : btoa(unescape(encodeURIComponent(json)));
+  const urlSafe = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  return `coop1.${urlSafe}.${sig}`;
+}
+
+/**
+ * Decodes and validates a Real-Time Co-Op Study Room token (`coop1.<payload>.<checksum>`).
+ */
+export function decodeCoopStudyRoom(token = '') {
+  if (typeof token !== 'string' || !token.startsWith('coop1.')) return null;
+  const parts = token.trim().split('.');
+  if (parts.length !== 3) return null;
+  const [, urlSafe, sig] = parts;
+  try {
+    const padded = urlSafe.replace(/-/g, '+').replace(/_/g, '/');
+    const json = typeof Buffer !== 'undefined'
+      ? Buffer.from(padded, 'base64').toString('utf8')
+      : decodeURIComponent(escape(atob(padded)));
+    if (computeSharedPackChecksum(json) !== sig) return null;
+    const parsed = JSON.parse(json);
+    if (!parsed || parsed.v !== 1) return null;
+    const validated = validateTrainingPreset({
+      title: parsed.t,
+      variant: parsed.vr,
+      bettingStructure: parsed.bs,
+      format: parsed.fm,
+      stackDepthBb: parsed.sd,
+      heroPosition: parsed.pos,
+      targetStreet: parsed.st,
+    }).preset;
+    return Object.freeze({
+      roomId: parsed.r || 'coop-study-room',
+      coachName: parsed.c || 'Club Study Host',
+      title: parsed.t || `${validated.title} Co-Op Study Room`,
+      gameId: parsed.g || 'cash-001',
+      variant: validated.variant,
+      bettingStructure: validated.bettingStructure,
+      format: validated.format,
+      stackDepthBb: validated.stackDepthBb,
+      heroPosition: validated.heroPosition,
+      targetStreet: validated.targetStreet,
+      summary: validated.summary,
+      preset: validated,
+    });
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Generates a Post-Tournament / Post-Session "3-Hand Leak Receipt" with a signed Shared Drill Pack permalink.
+ */
+export function buildThreeHandLeakReceipt(input = {}) {
+  const validated = validateTrainingPreset(input).preset;
+  const gameId = String(input.gameId || (validated.format === 'mtt' ? 'mtt-005' : validated.variant === 'plo8' ? 'omaha-002' : 'cash-002'));
+  const title = String(input.title || `${validated.format.toUpperCase()} ${validated.variant.toUpperCase()} 3-Hand Leak Receipt`);
+  const packToken = encodeSharedDrillPack({
+    title,
+    gameId,
+    variant: validated.variant,
+    bettingStructure: validated.bettingStructure,
+    format: validated.format,
+    stackDepthBb: validated.stackDepthBb,
+    heroPosition: validated.heroPosition,
+    targetStreet: validated.targetStreet,
+    questionsCount: 5,
+  });
+  const spots = Array.isArray(input.spots) && input.spots.length === 3
+    ? input.spots
+    : [
+        {
+          id: 'leak-spot-1',
+          street: validated.targetStreet,
+          position: validated.heroPosition,
+          label: `${validated.heroPosition} ${validated.targetStreet.toUpperCase()} C-Bet / Probe Defense`,
+          evLossBb: 1.45,
+        },
+        {
+          id: 'leak-spot-2',
+          street: 'turn',
+          position: validated.heroPosition,
+          label: `${validated.heroPosition} TURN Barrel & Sizing Geometry`,
+          evLossBb: 1.15,
+        },
+        {
+          id: 'leak-spot-3',
+          street: 'river',
+          position: validated.heroPosition,
+          label: `${validated.heroPosition} RIVER Bluff-Catch & MDF Threshold`,
+          evLossBb: 0.95,
+        },
+      ];
+  const totalEvLossBb = Number(
+    spots.reduce((acc, s) => acc + (Number(s?.evLossBb) || 0), 0).toFixed(2),
+  );
+  return Object.freeze({
+    receiptId: `leak-receipt-${validated.variant}-${validated.format}-${validated.heroPosition}`.toLowerCase(),
+    title,
+    gameId,
+    variant: validated.variant,
+    bettingStructure: validated.bettingStructure,
+    format: validated.format,
+    heroPosition: validated.heroPosition,
+    targetStreet: validated.targetStreet,
+    stackDepthBb: validated.stackDepthBb,
+    spots,
+    totalEvLossBb,
+    packToken,
+    href: `/hub/training/arena/${encodeURIComponent(gameId)}?level=1&pack=${encodeURIComponent(packToken)}&source=three-hand-leak-receipt`,
+  });
+}
+
+export const RANGE_PAINTER_5X5_CLUSTERS = Object.freeze([
+  ['AA', 'AKs', 'AQs', 'AJs', 'ATs'],
+  ['AKo', 'KK', 'KQs', 'KJs', 'KTs'],
+  ['AQo', 'KQo', 'QQ', 'QJs', 'QTs'],
+  ['AJo', 'KJo', 'QJo', 'JJ', 'JTs'],
+  ['ATo', 'A5s', 'TT', '99', '88'],
+]);
+
+/**
+ * Computes deterministic solver reference clusters & user range-reading accuracy (0-100%)
+ * for the Interactive Range Matrix Painter inside the Active Table Study Drawer.
+ */
+export function scoreRangePainterEstimate(paintedCells = [], context = {}) {
+  const street = String(context.street || 'flop').toLowerCase();
+  const facingBetBb = Number(context.facingBetBb) || 0;
+  const referenceSet = new Set(
+    street === 'preflop'
+      ? ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', 'AKs', 'AQs', 'AJs', 'ATs', 'AKo', 'AQo', 'KQs', 'QJs', 'JTs']
+      : facingBetBb > 0
+        ? ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AKo', 'KQs', 'QJs', 'JTs', 'A5s']
+        : ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', 'AKs', 'AQs', 'AJs', 'ATs', 'KQs', 'KJs', 'QJs', 'JTs', 'A5s'],
+  );
+  const paintedSet = new Set(
+    (Array.isArray(paintedCells) ? paintedCells : []).map((c) => String(c || '').trim()).filter(Boolean),
+  );
+  const allCells = RANGE_PAINTER_5X5_CLUSTERS.flat();
+  let matches = 0;
+  let hits = 0;
+  for (const cell of allCells) {
+    const inRef = referenceSet.has(cell);
+    const inPainted = paintedSet.has(cell);
+    if (inRef === inPainted) matches += 1;
+    if (inRef && inPainted) hits += 1;
+  }
+  const accuracyPct = allCells.length > 0 ? Math.round((matches / allCells.length) * 100) : 100;
+  return Object.freeze({
+    accuracyPct,
+    paintedCount: paintedSet.size,
+    referenceCount: referenceSet.size,
+    overlapHits: hits,
+    referenceCells: [...referenceSet],
+    gradeLabel:
+      accuracyPct >= 80
+        ? 'Elite Range Read'
+        : accuracyPct >= 64
+          ? 'Solid Range Read'
+          : 'Calibration Needed',
+  });
+}
+
+

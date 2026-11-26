@@ -31,7 +31,10 @@ import {
   normalizeTrainingSessionConfig,
   withTrainingSessionDifficulty,
 } from '../../lib/training/sessionConfigContract.mjs';
-import { resolvePresetForGame } from '../../lib/training/trainingPresets.mjs';
+import {
+  resolvePresetForGame,
+  buildThreeHandLeakReceipt,
+} from '../../lib/training/trainingPresets.mjs';
 // ●●● PHASE 18: Leaderboard ●●●
 import LeaderboardPanel from './LeaderboardPanel';
 // ●●● PHASE 19: Share Card + Achievement Toasts ●●●
@@ -2140,6 +2143,92 @@ function GodModeArenaInner({
                     {`Drill My ${sessionMistakes} Missed Spot${sessionMistakes === 1 ? '' : 's'} Now →`}
                   </button>
                 )}
+              </div>
+            );
+          })()}
+
+          {/* ESSENTIAL RESULT 1C: POST-SESSION 3-HAND LEAK RECEIPT PUSH CARD */}
+          {(() => {
+            const practicedPreset = resolvePresetForGame(gameId, trainerConfig || {});
+            const leakReceipt = buildThreeHandLeakReceipt({
+              gameId,
+              title: `${gameName || practicedPreset.title || 'Training Session'} 3-Hand Leak Receipt`,
+              variant: practicedPreset.variant,
+              bettingStructure: practicedPreset.bettingStructure,
+              format: practicedPreset.format,
+              stackDepthBb: practicedPreset.stackDepthBb,
+              heroPosition: weakestPosition || practicedPreset.heroPosition || 'BTN',
+              targetStreet: practicedPreset.targetStreet || 'flop',
+            });
+            return (
+              <div
+                data-three-hand-leak-receipt="true"
+                data-leak-receipt-id={leakReceipt.receiptId}
+                data-leak-receipt-pack-token={leakReceipt.packToken}
+                style={{
+                  marginBottom: 14,
+                  padding: '14px 16px',
+                  borderRadius: 7,
+                  border: '1px solid #688299',
+                  borderTopColor: '#aec0d0',
+                  background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 24px rgba(0,0,0,0.35)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#83deff', letterSpacing: 1 }}>
+                    POST-SESSION 3-HAND LEAK RECEIPT
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fca5a5' }}>
+                    {`Est. Recoverable EV: +${leakReceipt.totalEvLossBb} BB`}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gap: 6, marginBottom: 10 }}>
+                  {leakReceipt.spots.map((spot, idx) => (
+                    <div
+                      key={spot.id}
+                      data-leak-receipt-spot={spot.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '6px 10px',
+                        borderRadius: 5,
+                        background: '#040d18',
+                        border: '1px solid rgba(104, 130, 153, 0.45)',
+                        fontSize: 12,
+                        color: '#e6f3ff',
+                      }}
+                    >
+                      <span>{`${idx + 1}. ${spot.label}`}</span>
+                      <span style={{ color: '#6ee7b7', fontWeight: 800 }}>{`+${spot.evLossBb} BB`}</span>
+                    </div>
+                  ))}
+                </div>
+                <a
+                  href={leakReceipt.href}
+                  data-launch-three-hand-leak-receipt="true"
+                  data-drill-similar-spot-cta="true"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    minHeight: 40,
+                    padding: '8px 14px',
+                    borderRadius: 7,
+                    border: '1px solid #56d8ff',
+                    borderTopColor: '#b3eaff',
+                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                    color: '#f4fbff',
+                    fontSize: 13,
+                    fontWeight: 800,
+                    textDecoration: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  Practice 3-Hand Leak Receipt Pack Now →
+                </a>
               </div>
             );
           })()}

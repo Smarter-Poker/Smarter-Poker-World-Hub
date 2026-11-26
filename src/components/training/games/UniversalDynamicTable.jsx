@@ -79,6 +79,11 @@ import {
     evaluateMultiwayPostflopSpot,
     evaluateFullHandLineAndBranchComparison,
 } from '../../../lib/training/horseBrainTrainingAdapter';
+import {
+    RANGE_PAINTER_5X5_CLUSTERS,
+    scoreRangePainterEstimate,
+    encodeCoopStudyRoom,
+} from '../../../lib/training/trainingPresets.mjs';
 
 const soundManager = typeof window !== 'undefined'
     ? (PokerSoundManagerModule.soundManager || new PokerSoundManager())
@@ -3072,6 +3077,51 @@ function UniversalDynamicTable({
     }, []);
     const outboxPendingCount = Number(trainerConfig?.outboxPendingCount) || 0;
     const nextHandPrefetched = trainerConfig?.nextHandPrefetched !== false;
+
+    // ═══ PHASE 18: INTERACTIVE RANGE MATRIX PAINTER & REAL-TIME CO-OP STUDY ROOM ═══
+    const [paintedRangeCells, setPaintedRangeCells] = useState(['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AKo', 'KQs', 'QJs']);
+    const [rangePainterRevealed, setRangePainterRevealed] = useState(false);
+    const handleTogglePaintedRangeCell = useCallback((cell) => {
+        setPaintedRangeCells((prev) => (prev.includes(cell) ? prev.filter((c) => c !== cell) : [...prev, cell]));
+    }, []);
+    const rangePainterEval = useMemo(
+        () =>
+            scoreRangePainterEstimate(paintedRangeCells, {
+                street: continuedStreet || activeNormalizedStreet,
+                facingBetBb: Number(scenario?.villainBet ?? scenario?.toCall ?? 0),
+            }),
+        [paintedRangeCells, continuedStreet, activeNormalizedStreet, scenario?.villainBet, scenario?.toCall],
+    );
+
+    const [coopBroadcastVote, setCoopBroadcastVote] = useState('call');
+    const [coopVerdictRevealed, setCoopVerdictRevealed] = useState(false);
+    const [coopLinkCopied, setCoopLinkCopied] = useState(false);
+    const coopRoomToken = useMemo(
+        () =>
+            encodeCoopStudyRoom({
+                roomId: trainerConfig?.coopRoomId || `coop-${gameId || 'cash-002'}-${activeNormalizedVariant}`,
+                coachName: trainerConfig?.coopCoachName || 'Club Study Host',
+                title: trainerConfig?.coopRoomTitle || `${activeNormalizedVariant.toUpperCase()} ${heroPosition || 'BTN'} Co-Op Study Room`,
+                gameId: gameId || 'cash-002',
+                variant: activeNormalizedVariant,
+                bettingStructure: activeBettingStructure,
+                format: activeGameFormat,
+                stackDepthBb: Math.max(10, Number(heroStack) || 100),
+                heroPosition: heroPosition || 'BTN',
+                targetStreet: continuedStreet || activeNormalizedStreet,
+            }),
+        [trainerConfig?.coopRoomId, trainerConfig?.coopCoachName, trainerConfig?.coopRoomTitle, gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, heroStack, heroPosition, continuedStreet, activeNormalizedStreet],
+    );
+    const handleCopyCoopRoomPermalink = useCallback(() => {
+        try {
+            const href = `/hub/training/arena/${encodeURIComponent(gameId || 'cash-002')}?level=1&coopRoom=${encodeURIComponent(coopRoomToken)}&source=table-coop-study-room`;
+            if (typeof window !== 'undefined' && navigator?.clipboard?.writeText) {
+                navigator.clipboard.writeText(`${window.location.origin}${href}`).catch(() => {});
+            }
+        } catch (_) { /* ignore clipboard failure */ }
+        setCoopLinkCopied(true);
+        setTimeout(() => setCoopLinkCopied(false), 2200);
+    }, [gameId, coopRoomToken]);
     const drillSimilarSpotHref = useMemo(
         () =>
             buildCustomTrainingArenaHref(
@@ -7018,8 +7068,174 @@ function UniversalDynamicTable({
                                 })}
                             </div>
                         </div>
+
+                        {/* Phase 18: Interactive Range Matrix Painter inside Table Study Drawer */}
+                        <div
+                            data-table-range-matrix-painter="true"
+                            data-range-painter-accuracy={String(rangePainterEval.accuracyPct)}
+                            data-range-painter-painted-count={String(rangePainterEval.paintedCount)}
+                            data-range-painter-revealed={String(rangePainterRevealed)}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 6,
+                                padding: '6px 10px',
+                                borderRadius: 6,
+                                background: 'rgba(9, 23, 39, 0.94)',
+                                border: '1px solid #688299',
+                                fontSize: 12,
+                                color: '#e6f3ff',
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                                <span style={{ fontWeight: 800, color: '#83deff' }}>
+                                    {`Villain Range Matrix Painter (${rangePainterEval.paintedCount}/${rangePainterEval.referenceCount} Clusters · Read Accuracy: ${rangePainterEval.accuracyPct}% · ${rangePainterEval.gradeLabel})`}
+                                </span>
+                                <div style={{ display: 'inline-flex', gap: 6 }}>
+                                    <button
+                                        type="button"
+                                        data-range-painter-score-btn="true"
+                                        aria-pressed={rangePainterRevealed}
+                                        onClick={() => setRangePainterRevealed((p) => !p)}
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: 5,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: '1px solid #56d8ff',
+                                            background: rangePainterRevealed ? 'rgba(8, 124, 250, 0.35)' : 'rgba(8, 124, 250, 0.16)',
+                                            color: '#f4fbff',
+                                        }}
+                                    >
+                                        {rangePainterRevealed ? 'Hide Solver Overlay' : 'Score My Range Read'}
+                                    </button>
+                                </div>
                             </div>
-                        </details>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                {RANGE_PAINTER_5X5_CLUSTERS.flat().map((cell) => {
+                                    const isPainted = paintedRangeCells.includes(cell);
+                                    const isRef = rangePainterEval.referenceCells.includes(cell);
+                                    return (
+                                        <button
+                                            key={cell}
+                                            type="button"
+                                            data-range-painter-cell={cell}
+                                            aria-pressed={isPainted}
+                                            onClick={() => handleTogglePaintedRangeCell(cell)}
+                                            style={{
+                                                padding: '2px 6px',
+                                                borderRadius: 4,
+                                                fontSize: 12,
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                border: rangePainterRevealed && isRef
+                                                    ? '1.5px solid #34d399'
+                                                    : isPainted
+                                                        ? '1px solid #56d8ff'
+                                                        : '1px solid rgba(255,255,255,0.14)',
+                                                background: isPainted
+                                                    ? 'rgba(8, 124, 250, 0.28)'
+                                                    : 'rgba(255,255,255,0.04)',
+                                                color: isPainted ? '#f4fbff' : '#94a3b8',
+                                            }}
+                                        >
+                                            {cell}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Phase 18: Real-Time Co-Op Study Room & Coach Broadcast Vote Panel */}
+                        <div
+                            data-coop-study-room-panel="true"
+                            data-coop-active-vote={coopBroadcastVote}
+                            data-coop-verdict-revealed={String(coopVerdictRevealed)}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: 6,
+                                padding: '6px 10px',
+                                borderRadius: 6,
+                                background: 'rgba(9, 23, 39, 0.94)',
+                                border: '1px solid #688299',
+                                fontSize: 12,
+                                color: '#e6f3ff',
+                                fontWeight: 800,
+                            }}
+                        >
+                            <span>
+                                {`Co-Op Study Room Poll · Active Vote: ${coopBroadcastVote.toUpperCase()}${coopVerdictRevealed ? ` · Coach Reveal: ${brainSpotEvaluation?.recommendedAction || 'Call / Check'}` : ''}`}
+                            </span>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                                {[
+                                    { id: 'fold', label: 'Vote Fold (18%)' },
+                                    { id: 'call', label: 'Vote Check/Call (46%)' },
+                                    { id: 'raise', label: 'Vote Bet/Raise (36%)' },
+                                ].map((vOpt) => (
+                                    <button
+                                        key={vOpt.id}
+                                        type="button"
+                                        data-coop-vote-btn={vOpt.id}
+                                        aria-pressed={coopBroadcastVote === vOpt.id}
+                                        onClick={() => setCoopBroadcastVote(vOpt.id)}
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: 4,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: coopBroadcastVote === vOpt.id ? '1px solid #56d8ff' : '1px solid rgba(255,255,255,0.14)',
+                                            background: coopBroadcastVote === vOpt.id ? 'rgba(8, 124, 250, 0.28)' : 'rgba(255,255,255,0.04)',
+                                            color: coopBroadcastVote === vOpt.id ? '#f4fbff' : '#94a3b8',
+                                        }}
+                                    >
+                                        {vOpt.label}
+                                    </button>
+                                ))}
+                                <button
+                                    type="button"
+                                    data-coop-reveal-verdict-btn="true"
+                                    onClick={() => setCoopVerdictRevealed((p) => !p)}
+                                    style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 4,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: '1px solid #34d399',
+                                        background: 'rgba(16, 185, 129, 0.2)',
+                                        color: '#6ee7b7',
+                                    }}
+                                >
+                                    {coopVerdictRevealed ? 'Hide Coach Verdict' : 'Reveal Coach Verdict'}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-copy-coop-study-room="true"
+                                    onClick={handleCopyCoopRoomPermalink}
+                                    style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 4,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: '1px solid #83deff',
+                                        background: 'rgba(14, 165, 233, 0.18)',
+                                        color: '#e0f2fe',
+                                    }}
+                                >
+                                    {coopLinkCopied ? 'Co-Op Link Copied!' : 'Invite Study Group'}
+                                </button>
+                            </div>
+                        </div>
+                             </div>
+                         </details>
                     </div>
                 );
             })()}

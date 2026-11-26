@@ -259,7 +259,7 @@ export function buildLiveSpotHandHistory(spot, options = {}) {
     foldBefore(heroIdx);
     act(s.position, s.action, s.position === 'SB' ? 3 : 2.5);
   } else if (s.facing === 'open_raise') {
-    const openerIdx = heroIdx >= BTN_IDX ? BTN_IDX : heroIdx - 1;
+    const openerIdx = heroIdx > BTN_IDX ? BTN_IDX : Math.max(0, heroIdx - 1);
     foldBefore(openerIdx);
     raiseTo(PREFLOP_ORDER[openerIdx], 2.5);
     for (let i = openerIdx + 1; i < heroIdx; i += 1) {
