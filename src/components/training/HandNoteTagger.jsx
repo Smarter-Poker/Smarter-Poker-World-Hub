@@ -15,13 +15,13 @@ import React, { useState, useMemo } from 'react';
 // ●●● TAG DEFINITIONS ●●●
 const TAGS = [
   { id: 'leak', label: 'Leak', color: '#ef4444', icon: '●' },
-  { id: 'exploit', label: 'Exploitable', color: '#f59e0b', icon: '●' },
+  { id: 'exploit', label: 'Exploitable', color: '#86daff', icon: '●' },
   { id: 'standard', label: 'Standard', color: '#22c55e', icon: '●' },
   { id: 'interesting', label: 'Interesting', color: '#3b82f6', icon: '●' },
-  { id: 'review', label: 'Review Later', color: '#a855f7', icon: '●' },
-  { id: 'bluff', label: 'Bluff Spot', color: '#ec4899', icon: '◆' },
+  { id: 'review', label: 'Review Later', color: '#86daff', icon: '●' },
+  { id: 'bluff', label: 'Bluff Spot', color: '#86daff', icon: '◆' },
   { id: 'value', label: 'Value Spot', color: '#14b8a6', icon: '●' },
-  { id: 'tilt', label: 'Tilt Play', color: '#f97316', icon: '▲' },
+  { id: 'tilt', label: 'Tilt Play', color: '#86daff', icon: '▲' },
 ];
 
 // ●●● SAMPLE HANDS ●●●
@@ -118,7 +118,7 @@ export default function HandNoteTagger() {
           <button onClick={() => setFilterStarred(!filterStarred)} style={{
             padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
             background: filterStarred ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
-            color: filterStarred ? '#f59e0b' : '#94a3b8', fontSize: 13,
+            color: filterStarred ? '#86daff' : '#94a3b8', fontSize: 13,
           }}>★</button>
         </div>
 
@@ -150,10 +150,10 @@ export default function HandNoteTagger() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <button onClick={() => toggleStar(hand.id)} style={{
                   background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 0,
-                  color: hand.starred ? '#f59e0b' : '#475569',
+                  color: hand.starred ? '#86daff' : '#475569',
                 }}>★</button>
                 <span style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 800 }}>{hand.hand}</span>
-                <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)' }}>
+                <span style={{ color: '#86daff', fontSize: 12, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)' }}>
                   {hand.position}
                 </span>
                 <span style={{ color: '#64748b', fontSize: 12, flex: 1 }}>{hand.board}</span>

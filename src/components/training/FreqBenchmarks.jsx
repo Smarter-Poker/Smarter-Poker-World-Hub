@@ -14,7 +14,7 @@ const FREQ_BENCHMARKS = [
     tooHigh: '>55% - OOP c-bets get exploited by floats and raises. Check more.',
     tooLow: '<30% - You\'re check-folding too much. Villain steals with any two cards.',
     adjust: 'Use range bets (33% pot with entire range) on favorable textures OOP.' },
-  { action: 'Turn Barrel', target: '45-55%', color: '#f59e0b', icon: '▲',
+  { action: 'Turn Barrel', target: '45-55%', color: '#86daff', icon: '▲',
     tooHigh: '>60% - You\'re double-barreling too aggressively. Run into traps more.',
     tooLow: '<35% - You\'re giving up after the flop too often. Free showdowns for villain.',
     adjust: 'Barrel more on scare cards. Check back more on bricks when villain calls flop.' },
@@ -22,7 +22,7 @@ const FREQ_BENCHMARKS = [
     tooHigh: '>50% - You\'re over-bluffing rivers. Villain starts hero-calling.',
     tooLow: '<25% - You\'re missing thin value and giving up too many bluffing opportunities.',
     adjust: 'Aim for 2:1 value-to-bluff ratio. Every 2 value bets, include 1 bluff.' },
-  { action: 'Fold to 3-Bet', target: '55-65%', color: '#8b5cf6', icon: '■',
+  { action: 'Fold to 3-Bet', target: '55-65%', color: '#86daff', icon: '■',
     tooHigh: '>70% - You\'re over-folding to 3-bets. Get exploited by light 3-bettors.',
     tooLow: '<45% - You\'re defending too wide. Playing bloated pots with marginal hands.',
     adjust: 'Defend wider from late position opens. Fold more from EP opens.' },
@@ -68,7 +68,7 @@ export default function FreqBenchmarks() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.tooLow}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>How To Adjust</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>How To Adjust</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.adjust}</div>
           </div>
         </div>

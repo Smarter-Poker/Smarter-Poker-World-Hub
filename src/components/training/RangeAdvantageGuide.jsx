@@ -93,7 +93,7 @@ export default function RangeAdvantageGuide() {
       <div style={{ display: 'grid', gap: 8 }}>
         {[
           { title: 'Range Advantage', desc: 'You have more hands that connect with the board overall. Enables high-frequency, small c-bets.', color: '#3b82f6' },
-          { title: 'Nut Advantage', desc: 'You have more of the strongest possible hands (sets, straights, flushes). Enables polar, large bets.', color: '#8b5cf6' },
+          { title: 'Nut Advantage', desc: 'You have more of the strongest possible hands (sets, straights, flushes). Enables polar, large bets.', color: '#86daff' },
           { title: 'When Both Align', desc: 'C-bet at high frequency with small sizing. This is your ideal scenario as PFR.', color: '#22c55e' },
         ].map((c, i) => (
           <div key={i} style={{ background: `${c.color}08`, borderLeft: `3px solid ${c.color}`, borderRadius: 8, padding: '8px 12px' }}>

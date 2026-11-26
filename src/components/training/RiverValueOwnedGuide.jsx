@@ -63,7 +63,7 @@ export default function RiverValueOwnedGuide() {
 
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{spot.reason}</p>
         <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b'}}> Rule</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff'}}> Rule</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.rule}</div>
         </div>
       </motion.div>

@@ -228,7 +228,7 @@ export default function VerifiedTrainingReports() {
           {/* Solver Provenance & Decision Coverage Telemetry Card */}
 
           {!isAuthenticated ? (
-            <TrainerEmptyState variant="locked" title="Sign In To View Verified Reports" message="Training History Is Private And Requires An Authenticated Account." cta={{ label: 'Sign In', onClick: () => router.push('/auth/login?next=/hub/training/reports') }} />
+            <TrainerEmptyState variant="locked" title="Sign In To View Verified Reports" message="Training History Is Private And Requires An Authenticated Account." cta={{ label: 'Sign In', onClick: () => router.push('/auth/login?redirect=/hub/training/reports') }} />
           ) : loading ? (
             <div style={{ ...panelStyle(), padding: 48, textAlign: 'center', color: 'var(--sp-fg-muted)' }}>Loading Verified Training Evidence...</div>
           ) : !report || report.totalSessions === 0 ? (
@@ -239,8 +239,8 @@ export default function VerifiedTrainingReports() {
                 <MetricCard label="Sessions" value={formatMetric(report.totalSessions)} />
                 <MetricCard label="Hands" value={formatMetric(report.totalQuestions)} accent="#78a8ff" />
                 <MetricCard label="Accuracy" value={formatMetric(report.overallAccuracy, '%')} accent="#3ce78b" />
-                <MetricCard label="Verified Signed Score" value={formatMetric(report.verifiedScoreAverage)} detail="Scale: -100 To +100" accent="#c593ff" />
-                <MetricCard label="Measured EV Loss" value={formatEv(report.totalMeasuredEvLoss)} detail={`${report.measuredEvDecisions || 0} Solver-Measured Decisions`} accent="#ffca5c" />
+                <MetricCard label="Verified Signed Score" value={formatMetric(report.verifiedScoreAverage)} detail="Scale: -100 To +100" accent="#86daff" />
+                <MetricCard label="Measured EV Loss" value={formatEv(report.totalMeasuredEvLoss)} detail={`${report.measuredEvDecisions || 0} Solver-Measured Decisions`} accent="#86daff" />
               </section>
 
               <aside style={{ ...panelStyle('rgba(255,202,92,.38)'), padding: 14, marginBottom: 14, color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.55 }}>

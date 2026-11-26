@@ -14,7 +14,7 @@ const DEFENSE_SCENARIOS = [
     call: 'K9o+, QTo+, JTo, all suited broadways, pairs, suited connectors',
     threebet: 'QQ+, AKs, A5s-A4s',
     reason: 'CO opens tighter than BTN. Still defend wide but trim the worst offsuit.' },
-  { opener: 'HJ 2.5x', defense: '~35-40%', color: '#f59e0b',
+  { opener: 'HJ 2.5x', defense: '~35-40%', color: '#86daff',
     call: 'KTo+, QJo, suited broadways, pairs 55+, suited connectors 76s+',
     threebet: 'QQ+, AKs only for value. Less 3-bet bluffing.',
     reason: 'HJ opens ~24%. Tighten your defense accordingly.' },
@@ -22,7 +22,7 @@ const DEFENSE_SCENARIOS = [
     call: 'KQo, suited broadways, pairs 77+, AJs+',
     threebet: 'AA-KK, AKs (very tight)',
     reason: 'UTG opens tight (~15%). Don\'t hero-call with trash. Respect the range.' },
-  { opener: 'SB 3x', defense: '~50-55%', color: '#8b5cf6',
+  { opener: 'SB 3x', defense: '~50-55%', color: '#86daff',
     call: 'Wide range similar to vs BTN. Position post-flop compensates.',
     threebet: 'QQ+, AKs, AQs, A5s-A2s, KQs (mix)',
     reason: 'SB opens wide vs BB. You close the action and see a flop. Defend broadly.' },
@@ -76,7 +76,7 @@ export default function BigBlindDefense() {
 
       {/* Defense frequency visual */}
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>Defense Frequency By Opener</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>Defense Frequency By Opener</div>
         {DEFENSE_SCENARIOS.map((s, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 12, color: '#94a3b8', minWidth: 50 }}>{s.opener}</span>

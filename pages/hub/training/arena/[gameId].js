@@ -21,6 +21,9 @@ import { clearBodyScrollLockIfUnheld } from '../../../../src/lib/scrollLock';
 import {
     customTrainingConfigFromQuery,
     isCanonicalTrainingGameId,
+    normalizeTrainingVariant,
+    normalizeLaunchBettingStructure,
+    normalizeLaunchFormat,
 } from '../../../../src/lib/training/customTrainingLaunchContract.mjs';
 import {
     resolvePresetForGame,
@@ -169,17 +172,17 @@ export default function TrainingArenaPage() {
             const rawVariant = typeof router.query.variant === 'string'
                 ? router.query.variant.trim().toLowerCase()
                 : (sharedDrillPack?.variant || coopStudyRoom?.variant || clubCoachAssignment?.variant || '');
-            const variant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(rawVariant) ? rawVariant : null;
+            const variant = normalizeTrainingVariant(rawVariant);
             const rawBettingStructure = typeof router.query.bettingStructure === 'string'
                 ? router.query.bettingStructure.trim().toLowerCase()
                 : (sharedDrillPack?.bettingStructure || coopStudyRoom?.bettingStructure || clubCoachAssignment?.bettingStructure || '');
-            const bettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(rawBettingStructure)
-                ? rawBettingStructure
-                : null;
+            const bettingStructure = normalizeLaunchBettingStructure(rawBettingStructure, variant || rawVariant);
             const rawFormat = typeof router.query.format === 'string'
                 ? router.query.format.trim().toLowerCase()
                 : (sharedDrillPack?.format || coopStudyRoom?.format || clubCoachAssignment?.format || '');
-            const format = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(rawFormat) ? rawFormat : null;
+            const format = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(rawFormat)
+                ? rawFormat
+                : normalizeLaunchFormat(rawFormat);
             const rawStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
                 ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
                 : (sharedDrillPack?.targetStreet || coopStudyRoom?.targetStreet || clubCoachAssignment?.targetStreet || '');
@@ -187,9 +190,12 @@ export default function TrainingArenaPage() {
             const rawPosition = typeof (router.query.position || router.query.targetPositions) === 'string'
                 ? String(router.query.position || router.query.targetPositions).trim().toUpperCase()
                 : (sharedDrillPack?.heroPosition || coopStudyRoom?.heroPosition || clubCoachAssignment?.heroPosition || '');
-            const targetPosition = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(rawPosition)
-                ? rawPosition
-                : null;
+            const allowedPosSet = new Set(['UTG', 'UTG+1', 'UTG+2', 'MP', 'MP+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
+            const parsedPositions = rawPosition
+                ? rawPosition.split(',').map((p) => p.trim().toUpperCase()).filter((p) => allowedPosSet.has(p))
+                : [];
+            const targetPosition = parsedPositions.length > 0 ? parsedPositions.join(',') : null;
+            const primaryHeroPosition = parsedPositions[0] || null;
             const duelToken = typeof router.query.duelToken === 'string' && router.query.duelToken.trim()
                 ? router.query.duelToken.trim()
                 : null;
@@ -225,7 +231,11 @@ export default function TrainingArenaPage() {
                     ...(bettingStructure ? { bettingStructure } : {}),
                     ...(format ? { format } : {}),
                     ...(targetStreet ? { targetStreet, gameMode: 'street' } : {}),
-                    ...(targetPosition ? { targetPositions: targetPosition, ...(baseConfig ? { position: targetPosition } : {}) } : {}),
+                    ...(targetPosition ? {
+                        targetPositions: targetPosition,
+                        heroPosition: primaryHeroPosition,
+                        position: primaryHeroPosition,
+                    } : {}),
                     ...(duelToken ? { duelToken } : {}),
                     ...(duelRole ? { duelRole } : {}),
                     ...(syncedHandId ? { syncedHandId } : {}),
@@ -277,7 +287,7 @@ export default function TrainingArenaPage() {
     const gameName = game?.name || 'Training Game';
     const presetLaunch = !['custom', 'pack', 'coopRoom', 'assignment', 'duelToken', 'duelRole', 'syncedHandId']
             .some((key) => router.query[key] !== undefined);
-    const homeHands = presetLaunch && router.query.source === 'training-home' && /^[1-9][0-9]?$/.test(router.query.hands)
+    const homeHands = /^[1-9][0-9]?$/.test(String(router.query.hands || ''))
         ? Number(router.query.hands)
         : null;
     const startsWithPreset = Boolean(game && !customLaunch.error && (presetLaunch || !customLaunch.config));
@@ -310,6 +320,12 @@ export default function TrainingArenaPage() {
             const val = router.query?.[key];
             if (typeof val === 'string' && val.trim()) {
                 exitParams.set(key, val.trim());
+            }
+        }
+        for (const extraKey of ['targetStreet', 'targetPositions', 'hands']) {
+            const val = router.query?.[extraKey];
+            if (typeof val === 'string' && val.trim()) {
+                exitParams.set(extraKey, val.trim());
             }
         }
         const qs = exitParams.toString();

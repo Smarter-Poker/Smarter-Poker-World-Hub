@@ -9,9 +9,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STREET_CONFIG = {
-    PREFLOP: { label: 'Preflop', color: '#8b5cf6', icon: '◇', order: 0 },
+    PREFLOP: { label: 'Preflop', color: '#86daff', icon: '◇', order: 0 },
     FLOP:    { label: 'Flop',    color: '#3b82f6', icon: '▣',  order: 1 },
-    TURN:    { label: 'Turn',    color: '#f59e0b', icon: '◆',  order: 2 },
+    TURN:    { label: 'Turn',    color: '#86daff', icon: '◆',  order: 2 },
     RIVER:   { label: 'River',   color: '#ef4444', icon: '◉',  order: 3 },
 };
 
@@ -116,7 +116,7 @@ export default function StreetAccuracyPanel({ streetAccuracy }) {
                             <div style={styles.statsCol}>
                                 <span style={{
                                     ...styles.accuracyValue,
-                                    color: street.accuracy >= 75 ? '#22c55e' : street.accuracy >= 50 ? '#fbbf24' : '#ef4444',
+                                    color: street.accuracy >= 75 ? '#22c55e' : street.accuracy >= 50 ? '#86daff' : '#ef4444',
                                 }}>
                                     {street.accuracy}%
                                 </span>

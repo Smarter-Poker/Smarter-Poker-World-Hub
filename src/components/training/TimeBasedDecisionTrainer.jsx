@@ -92,7 +92,7 @@ function TimeBasedDecisionTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#f472b6' }}>Timed Decisions</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Timed Decisions</h3>
           <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
             <span>{accuracy}% Accuracy</span>
             <span>Avg: {avgTime}s</span>
@@ -127,7 +127,7 @@ function TimeBasedDecisionTrainer() {
         {/* Decision Display */}
         <div style={{ textAlign: 'center', padding: 16, background: 'rgba(244,114,182,0.06)', borderRadius: 10, border: '1px solid rgba(244,114,182,0.15)', marginBottom: 16 }}>
           <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: 4, marginBottom: 6 }}>{decision.board}</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#f472b6', marginBottom: 6 }}>Hero: {decision.hand}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Hero: {decision.hand}</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{decision.position} • {decision.action}</div>
           <div style={{ fontSize: 12, color: '#dbeafe', fontWeight: 800, marginTop: 7 }}>What Is Your Best Action?</div>
         </div>
@@ -184,7 +184,7 @@ function TimeBasedDecisionTrainer() {
                 <span key={i} style={{
                   padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
                   background: h.timedOut ? 'rgba(245,158,11,0.12)' : h.correct ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                  color: h.timedOut ? '#f59e0b' : h.correct ? '#10b981' : '#ef4444',
+                  color: h.timedOut ? '#86daff' : h.correct ? '#10b981' : '#ef4444',
                 }}>{h.time}s {h.timedOut ? '⏰': h.correct ? '✓': '✕'}</span>
               ))}
             </div>

@@ -155,7 +155,7 @@ function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark, c
           fontSize: 16,
           padding: 2,
           lineHeight: 1,
-          color: isBookmarked ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
+          color: isBookmarked ? '#86daff' : 'var(--sp-fg-faint)',
           transition: 'color 0.15s',
         }}
         title={!canBookmark
@@ -1204,7 +1204,7 @@ function SolutionsBrowserInner() {
                       background: showBookmarksOnly
                         ? 'rgba(251,191,36,0.15)'
                         : 'rgba(255,255,255,0.04)',
-                      color: showBookmarksOnly ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
+                      color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
                       fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}

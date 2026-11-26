@@ -341,7 +341,7 @@ export default function BoardExplorer() {
                 <div style={{ fontSize: 12 }}>
                     <span style={{ color: '#64748b' }}>Avg Bet Weight: </span>
                     <span style={{
-                        color: stats.avgBet >= 0.6 ? '#22c55e' : stats.avgBet >= 0.35 ? '#f59e0b' : '#ef4444',
+                        color: stats.avgBet >= 0.6 ? '#22c55e' : stats.avgBet >= 0.35 ? '#86daff' : '#ef4444',
                         fontWeight: 700, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         {(stats.avgBet * 100).toFixed(0)}%

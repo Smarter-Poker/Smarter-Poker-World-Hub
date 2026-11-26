@@ -739,7 +739,7 @@ const styles = {
     potValue: {
         fontSize: 16,
         fontWeight: 700,
-        color: '#FFD700',
+        color: '#86daff',
         fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
     },
 
@@ -814,7 +814,7 @@ const styles = {
         fontSize: 16,
         fontWeight: 600,
         marginBottom: 8,
-        color: '#FFD700',
+        color: '#86daff',
     },
 
     situationText: {

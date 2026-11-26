@@ -13,18 +13,18 @@ import { motion } from 'framer-motion';
 export const PLAY_STATUS = {
     NEW: { id: 'new', label: 'NEW', color: '#00D4FF', glow: 'rgba(0, 212, 255, 0.5)' },
     LOCKED: { id: 'locked', label: '■', color: '#666', glow: 'none' },
-    IN_PROGRESS: { id: 'in_progress', label: 'PLAYING', color: '#FFD700', glow: 'rgba(255, 215, 0, 0.5)' },
+    IN_PROGRESS: { id: 'in_progress', label: 'PLAYING', color: '#86daff', glow: 'rgba(255, 215, 0, 0.5)' },
     COMPLETED: { id: 'completed', label: '✓', color: '#4CAF50', glow: 'rgba(76, 175, 80, 0.5)' },
-    MASTERED: { id: 'mastered', label: '', color: '#FFD700', glow: 'rgba(255, 215, 0, 0.6)' },
+    MASTERED: { id: 'mastered', label: '', color: '#86daff', glow: 'rgba(255, 215, 0, 0.6)' },
     BOSS_DEFEATED: { id: 'boss_defeated', label: '', color: '#FF6B35', glow: 'rgba(255, 107, 53, 0.6)' },
 };
 
 // User rank tiers
 export const USER_RANKS = {
     UNRANKED: { id: 'unranked', label: '-', color: '#444', border: '#555' },
-    BRONZE: { id: 'bronze', label: 'III', color: '#CD7F32', border: '#8B5A2B' },
+    BRONZE: { id: 'bronze', label: 'III', color: '#86daff', border: '#86daff' },
     SILVER: { id: 'silver', label: 'II', color: '#C0C0C0', border: '#A8A8A8' },
-    GOLD: { id: 'gold', label: 'I', color: '#FFD700', border: '#DAA520' },
+    GOLD: { id: 'gold', label: 'I', color: '#86daff', border: '#86daff' },
     DIAMOND: { id: 'diamond', label: '◆', color: '#00D4FF', border: '#0099CC' },
     CHAMPION: { id: 'champion', label: '', color: '#FF6B35', border: '#E64A19' },
 };

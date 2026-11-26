@@ -21,7 +21,7 @@ const CONCEPTS = [
     headsUp: { value: '30-40%', desc: 'Balanced bluff frequency to remain unexploitable.' },
     multiway: { value: '10-15%', desc: 'Too many opponents to bluff through. Each player can wake up with a hand.' },
     adjustment: 'Reduce bluffs dramatically. Focus on semi-bluffs with strong draws. Pure bluffs are rarely profitable multiway.',
-    color: '#f59e0b',
+    color: '#86daff',
   },
   {
     title: 'Hand Strength Requirements Rise',
@@ -45,7 +45,7 @@ const CONCEPTS = [
     headsUp: { value: 'Important', desc: 'Position matters but edge is manageable.' },
     multiway: { value: 'Critical', desc: 'Acting last after 3+ players gives massive information advantage.' },
     adjustment: 'Tighten up in early position even more. The BTN becomes incredibly powerful in multiway pots - you see everyone act first.',
-    color: '#8b5cf6',
+    color: '#86daff',
   },
   {
     title: 'Pot Odds Change',

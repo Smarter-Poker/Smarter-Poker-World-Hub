@@ -155,7 +155,7 @@ function RangeHitChart({ hits }) {
   const categories = [
     { key: 'toppair', label: 'Top Pair+', color: '#22c55e' },
     { key: 'overpair', label: 'Overpair', color: '#3b82f6' },
-    { key: 'draws', label: 'Draws', color: '#f59e0b' },
+    { key: 'draws', label: 'Draws', color: '#86daff' },
     { key: 'air', label: 'Air', color: '#64748b' },
   ];
   return (
@@ -192,7 +192,7 @@ function CbetComparison({ texture }) {
       </div>
       <div>
         <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>OOP C-Bet Strategy</div>
-        <div style={{ color: '#f59e0b', fontSize: 22, fontWeight: 800 }}>{texture.oopCbet}%</div>
+        <div style={{ color: '#86daff', fontSize: 22, fontWeight: 800 }}>{texture.oopCbet}%</div>
         <div style={{ display: 'flex', gap: 2, height: 16, borderRadius: 4, overflow: 'hidden', marginTop: 4 }}>
           <div style={{ width: `${texture.oopFreq.bet33}%`, background: '#3b82f6', opacity: 0.6 }} />
           <div style={{ width: `${texture.oopFreq.bet67}%`, background: '#ef4444', opacity: 0.6 }} />
@@ -294,7 +294,7 @@ export default function FlopTextureAnalyzer() {
               <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Range Distribution On This Board</div>
               <RangeHitChart hits={selectedTexture.rangeHits} />
               <div style={{ display: 'flex', gap: 10, marginTop: 6, justifyContent: 'center' }}>
-                {[{ label: 'Top Pair+', color: '#22c55e' }, { label: 'Overpair', color: '#3b82f6' }, { label: 'Draws', color: '#f59e0b' }, { label: 'Air', color: '#64748b' }].map(c => (
+                {[{ label: 'Top Pair+', color: '#22c55e' }, { label: 'Overpair', color: '#3b82f6' }, { label: 'Draws', color: '#86daff' }, { label: 'Air', color: '#64748b' }].map(c => (
                   <span key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color }} />
                     <span style={{ color: '#94a3b8', fontSize: 12 }}>{c.label}</span>
@@ -337,7 +337,7 @@ export default function FlopTextureAnalyzer() {
                   <div style={{ color: '#64748b', fontSize: 12 }}>{t.example}</div>
                 </div>
                 <div style={{ color: '#22c55e', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{t.ipCbet}%</div>
-                <div style={{ color: '#f59e0b', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{t.oopCbet}%</div>
+                <div style={{ color: '#86daff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{t.oopCbet}%</div>
                 <div style={{ color: getTextureColor(t.connectedness), fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{t.connectedness}</div>
                 <div style={{ color: getTextureColor(t.flushDraw), fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{t.flushDraw}</div>
                 <div style={{ display: 'flex', alignItems: 'center' }}>

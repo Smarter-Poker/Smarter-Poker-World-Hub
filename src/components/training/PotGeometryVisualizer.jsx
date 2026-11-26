@@ -59,14 +59,14 @@ function PotGeometryVisualizer() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#8b5cf6' }}>Pot Geometry Visualizer</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Pot Geometry Visualizer</h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 16 }}>
           {[
-            { label: 'Start Pot', value: startPot, set: setStartPot, min: 2, max: 50, step: 1, color: '#8b5cf6', display: `${startPot} bb` },
+            { label: 'Start Pot', value: startPot, set: setStartPot, min: 2, max: 50, step: 1, color: '#86daff', display: `${startPot} bb` },
             { label: 'Eff. Stack', value: stack, set: setStack, min: 20, max: 300, step: 5, color: '#3b82f6', display: `${stack} bb` },
             { label: 'Flop %', value: flopPct, set: setFlopPct, min: 0, max: 150, step: 1, color: '#10b981', display: `${flopPct}%` },
-            { label: 'Turn %', value: turnPct, set: setTurnPct, min: 0, max: 150, step: 1, color: '#f59e0b', display: `${turnPct}%` },
+            { label: 'Turn %', value: turnPct, set: setTurnPct, min: 0, max: 150, step: 1, color: '#86daff', display: `${turnPct}%` },
             { label: 'River %', value: riverPct, set: setRiverPct, min: 0, max: 200, step: 1, color: '#ef4444', display: `${riverPct}%` },
           ].map(s => (
             <div key={s.label} style={{ padding: 6, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
@@ -112,7 +112,7 @@ function PotGeometryVisualizer() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(139,92,246,0.06)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Final Pot</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#8b5cf6' }}>{Math.round(calc.potAfterRiver)} BB</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#86daff' }}>{Math.round(calc.potAfterRiver)} BB</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Pot Growth</div>
@@ -126,7 +126,7 @@ function PotGeometryVisualizer() {
         </div>
 
         <div style={{ padding: 10, background: 'rgba(139,92,246,0.06)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 4 }}>Pot Geometry Insight</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Pot Geometry Insight</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
             {calc.pctStackUsed < 30 ? 'Small sizing - leaves room for multi-street play. Consider larger sizes with strong hands to build pot.' :
              calc.pctStackUsed < 70 ? 'Moderate commitment - good for value hands. Enough behind for river decisions.' :

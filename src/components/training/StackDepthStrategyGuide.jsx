@@ -26,7 +26,7 @@ const DEPTHS = [
     tip: 'Use ICM Nash charts for tournament short stacks. In cash, rebuy before reaching this depth.',
   },
   {
-    label: 'Medium Stack', range: '25-50 bb', bb: 40, color: '#f59e0b',
+    label: 'Medium Stack', range: '25-50 bb', bb: 40, color: '#86daff',
     overview: 'Most common tournament depth. Flop decisions are critical. Limited turn/river play.',
     preflop: [
       'Standard open sizes (2-2.5x)',
@@ -62,7 +62,7 @@ const DEPTHS = [
     tip: 'This is "real" poker. All concepts apply: ranges, blockers, mixed strategies, board coverage.',
   },
   {
-    label: 'Ultra-Deep', range: '150-500+ bb', bb: 300, color: '#8b5cf6',
+    label: 'Ultra-Deep', range: '150-500+ bb', bb: 300, color: '#86daff',
     overview: 'Rare but high-leverage. Implied odds are massive. Speculative hands skyrocket in value.',
     preflop: [
       'Small pairs and suited connectors are premium holdings',
@@ -139,7 +139,7 @@ function StackDepthStrategyGuide() {
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{depth.keyHands}</div>
           </div>
           <div style={{ flex: 1, padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Pro Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Pro Tip</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{depth.tip}</div>
           </div>
         </div>

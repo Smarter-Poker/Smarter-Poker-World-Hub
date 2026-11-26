@@ -45,7 +45,7 @@ export default function RangePolarizerTool() {
             style={{ padding: '8px 6px', borderRadius: 8, border: streetIdx === i ? '2px solid #8b5cf6' : '1px solid rgba(255,255,255,0.06)',
               background: streetIdx === i ? 'rgba(139,92,246,0.15)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 18 }}>{s.icon}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: streetIdx === i ? '#8b5cf6' : '#64748b' }}>{s.street}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: streetIdx === i ? '#86daff' : '#64748b' }}>{s.street}</div>
           </button>
         ))}
       </div>
@@ -72,7 +72,7 @@ export default function RangePolarizerTool() {
             </div>
             <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#64748b' }}>
               <span><span style={{ color: '#22c55e' }}>●</span> Value {r.value}%</span>
-              <span><span style={{ color: '#f59e0b' }}>●</span> Medium {r.medium}%</span>
+              <span><span style={{ color: '#86daff' }}>●</span> Medium {r.medium}%</span>
               <span><span style={{ color: '#ef4444' }}>●</span> Bluff {r.bluff}%</span>
               <span><span style={{ color: '#475569' }}>●</span> Check {r.check}%</span>
             </div>

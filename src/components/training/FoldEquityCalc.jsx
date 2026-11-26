@@ -53,7 +53,7 @@ function FoldEquityCalc() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#c084fc' }}>Fold Equity Calculator</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Fold Equity Calculator</h3>
 
         {/* Quick Scenarios */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -68,10 +68,10 @@ function FoldEquityCalc() {
         {/* Sliders */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           {[
-            { label: 'Bet Size (% pot)', value: betPct, set: setBetPct, min: 10, max: 300, step: 5, color: '#c084fc', display: `${betPct}%` },
+            { label: 'Bet Size (% pot)', value: betPct, set: setBetPct, min: 10, max: 300, step: 5, color: '#86daff', display: `${betPct}%` },
             { label: 'Pot Size (bb)', value: potSize, set: setPotSize, min: 2, max: 100, step: 1, color: '#fff', display: `${potSize} bb` },
             { label: 'Equity When Called', value: equityWhenCalled, set: setEquityWhenCalled, min: 0, max: 50, step: 1, color: '#3b82f6', display: `${equityWhenCalled}%` },
-            { label: 'Villain Fold %', value: villainFoldPct, set: setVillainFoldPct, min: 0, max: 100, step: 1, color: '#f59e0b', display: `${villainFoldPct}%` },
+            { label: 'Villain Fold %', value: villainFoldPct, set: setVillainFoldPct, min: 0, max: 100, step: 1, color: '#86daff', display: `${villainFoldPct}%` },
           ].map(s => (
             <div key={s.label} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{s.label}</div>
@@ -98,9 +98,9 @@ function FoldEquityCalc() {
         {/* Breakdowns */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 16 }}>
           {[
-            { label: 'Bet Size', value: `${calc.bet} bb`, color: '#c084fc' },
+            { label: 'Bet Size', value: `${calc.bet} bb`, color: '#86daff' },
             { label: 'BE Fold% (Pure)', value: `${calc.breakEvenPurePct}%`, color: '#ef4444' },
-            { label: 'BE Fold% (w/ Eq)', value: `${calc.breakEvenAdjPct}%`, color: '#f59e0b' },
+            { label: 'BE Fold% (w/ Eq)', value: `${calc.breakEvenAdjPct}%`, color: '#86daff' },
             { label: 'Fold Equity', value: `+${calc.foldEquityBB} bb`, color: '#10b981' },
             { label: 'Equity Contrib', value: `+${calc.equityContrib} bb`, color: '#3b82f6' },
           ].map(s => (
@@ -113,7 +113,7 @@ function FoldEquityCalc() {
 
         {/* Fold % vs EV Visual */}
         <div style={{ padding: 10, background: 'rgba(192,132,252,0.06)', borderRadius: 8, border: '1px solid rgba(192,132,252,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#c084fc', marginBottom: 6 }}>How It Works</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>How It Works</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
             When Villain Folds ({villainFoldPct}%), You Win The {potSize}bb Pot.
             When Called ({100 - villainFoldPct}%), You Have {equityWhenCalled}% Equity In A {potSize + calc.bet * 2}bb Pot.

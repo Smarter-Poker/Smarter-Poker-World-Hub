@@ -197,7 +197,7 @@
 }
 
 .telemetryGold strong {
-  color: var(--ch-gold);
+  color: #86daff;
   text-shadow: 0 0 14px rgba(242, 184, 75, 0.24);
 }
 
@@ -278,7 +278,7 @@
 
 .typeBadgeMonthly {
   border-color: rgba(242, 184, 75, 0.55);
-  color: var(--ch-gold);
+  color: #86daff;
 }
 
 .periodCode {
@@ -343,7 +343,7 @@
   border: 1px solid rgba(242, 184, 75, 0.62);
   border-radius: 2px;
   background: rgba(242, 184, 75, 0.08);
-  color: var(--ch-gold);
+  color: #86daff;
   font: 700 10px/1.2 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
   letter-spacing: 0.08em;
   text-transform: uppercase;

@@ -578,7 +578,7 @@ export default function TrainingCalendarPage() {
                         style={{
                           fontSize: 16,
                           fontWeight: 800,
-                          color: weeklyStats.accuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
+                          color: weeklyStats.accuracy >= 75 ? 'var(--sp-accent-green)' : '#86daff',
                         }}
                       >
                         {weeklyStats.accuracy}%

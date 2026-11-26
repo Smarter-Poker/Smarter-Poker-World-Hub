@@ -13,18 +13,18 @@ const EP_RANGES = {
     hands: [
       { tier: 'Always Open', hands: 'AA, KK, QQ, JJ, TT, AKs, AKo, AQs, AQo, AJs', color: '#10b981' },
       { tier: 'Standard Open', hands: '99, 88, ATs, AJo, KQs, KJs, QJs, JTs', color: '#3b82f6' },
-      { tier: 'Conditional Open', hands: '77, 66, A9s, A5s-A4s, KTs, QTs, T9s, 98s', color: '#f59e0b' },
+      { tier: 'Conditional Open', hands: '77, 66, A9s, A5s-A4s, KTs, QTs, T9s, 98s', color: '#86daff' },
       { tier: 'Never Open', hands: 'Offsuit broadways (KTo, QJo, etc), small suited connectors, random offsuit', color: '#ef4444' },
     ],
   },
   '9max': {
     label: '9-Max UTG',
     open: '~12% of hands',
-    color: '#8b5cf6',
+    color: '#86daff',
     hands: [
       { tier: 'Always Open', hands: 'AA, KK, QQ, JJ, TT, AKs, AKo, AQs', color: '#10b981' },
       { tier: 'Standard Open', hands: '99, AQo, AJs, ATs, KQs', color: '#3b82f6' },
-      { tier: 'Conditional Open', hands: '88, 77, AJo, KJs, QJs, JTs', color: '#f59e0b' },
+      { tier: 'Conditional Open', hands: '88, 77, AJo, KJs, QJs, JTs', color: '#86daff' },
       { tier: 'Never Open', hands: 'Most offsuit hands, suited gappers, small pairs at tough tables', color: '#ef4444' },
     ],
   },

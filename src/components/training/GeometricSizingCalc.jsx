@@ -118,7 +118,7 @@ function GeometricSizingCalc() {
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Total Invested</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: calc.allIn ? '#10b981' : '#f59e0b' }}>{calc.allIn ? 'YES' : 'NO'}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: calc.allIn ? '#10b981' : '#86daff' }}>{calc.allIn ? 'YES' : 'NO'}</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>All-In By River</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>

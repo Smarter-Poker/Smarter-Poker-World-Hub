@@ -630,7 +630,7 @@ export function PhaseIndicator({
                 borderRadius: '20px',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: isActionPhase ? '#f59e0b' : '#888'
+                color: isActionPhase ? '#86daff' : '#888'
             }}>
                 {phaseLabels[phase]}
             </div>
@@ -711,7 +711,7 @@ export function SessionReport({
                     <h2 style={{
                         fontSize: '28px',
                         fontWeight: 800,
-                        color: passed ? '#22c55e' : '#f59e0b',
+                        color: passed ? '#22c55e' : '#86daff',
                         margin: 0
                     }}>
                         {passed ? 'Level Complete!' : 'Keep Practicing'}
@@ -733,10 +733,10 @@ export function SessionReport({
                     padding: '1px'
                 }}>
                     <StatBox label="Correct" value={stats.correctCount} color="#22c55e" />
-                    <StatBox label="Mistakes" value={stats.mistakeCount} color="#f59e0b" />
+                    <StatBox label="Mistakes" value={stats.mistakeCount} color="#86daff" />
                     <StatBox label="Critical" value={stats.criticalMistakes} color="#ef4444" />
                     <StatBox label="Diamonds" value={`+${stats.diamondsEarned}`} color="#00d4ff" />
-                    <StatBox label="Diamonds" value={`+${stats.diamondsEarned}`} color="#a855f7" />
+                    <StatBox label="Diamonds" value={`+${stats.diamondsEarned}`} color="#86daff" />
                     <StatBox label="Avg Time" value={`${stats.averageTime.toFixed(1)}s`} color="#888" />
                 </div>
 

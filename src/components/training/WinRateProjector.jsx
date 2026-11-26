@@ -98,9 +98,9 @@ export default function WinRateProjector() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           {[
             { label: 'Win Rate (bb/100)', value: winRate, set: setWinRate, min: -10, max: 20, step: 0.5, color: '#22c55e', suffix: ' bb/100' },
-            { label: 'Std Deviation', value: stdDev, set: setStdDev, min: 40, max: 150, step: 5, color: '#f59e0b', suffix: ' bb/100' },
+            { label: 'Std Deviation', value: stdDev, set: setStdDev, min: 40, max: 150, step: 5, color: '#86daff', suffix: ' bb/100' },
             { label: 'Hours/Week', value: hoursPerWeek, set: setHoursPerWeek, min: 2, max: 60, step: 2, color: '#3b82f6', suffix: 'h' },
-            { label: 'Hands/Hour', value: handsPerHour, set: setHandsPerHour, min: 25, max: 300, step: 25, color: '#a78bfa', suffix: '' },
+            { label: 'Hands/Hour', value: handsPerHour, set: setHandsPerHour, min: 25, max: 300, step: 25, color: '#86daff', suffix: '' },
           ].map(inp => (
             <div key={inp.label} style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -121,7 +121,7 @@ export default function WinRateProjector() {
               padding: '4px 8px', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap',
               background: selectedStake === i ? 'rgba(245,158,11,0.15)' : 'rgba(0,0,0,0.1)',
               border: selectedStake === i ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent',
-              color: selectedStake === i ? '#f59e0b' : '#94a3b8', fontSize: 12, fontWeight: 600,
+              color: selectedStake === i ? '#86daff' : '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>{s.label}</button>
           ))}
         </div>
@@ -187,14 +187,14 @@ export default function WinRateProjector() {
           </div>
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
             <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Risk Of Ruin</div>
-            <div style={{ color: projections.ror < 1 ? '#22c55e' : projections.ror < 5 ? '#f59e0b' : '#ef4444', fontSize: 14, fontWeight: 800 }}>
+            <div style={{ color: projections.ror < 1 ? '#22c55e' : projections.ror < 5 ? '#86daff' : '#ef4444', fontSize: 14, fontWeight: 800 }}>
               {projections.ror < 0.01 ? '<0.01%' : `${projections.ror.toFixed(1)}%`}
             </div>
             <div style={{ color: '#475569', fontSize: 12 }}>At ${bankroll.toLocaleString()} Roll</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
             <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Rec. Stake</div>
-            <div style={{ color: '#f59e0b', fontSize: 14, fontWeight: 800 }}>
+            <div style={{ color: '#86daff', fontSize: 14, fontWeight: 800 }}>
               {STAKES[projections.recommendedStakeIdx].name}
             </div>
             <div style={{ color: '#475569', fontSize: 12 }}>30 Buy-In Rule</div>
@@ -216,7 +216,7 @@ export default function WinRateProjector() {
                   }} />
                 </div>
                 <span style={{
-                  color: bp.prob > 80 ? '#22c55e' : bp.prob > 60 ? '#f59e0b' : '#ef4444',
+                  color: bp.prob > 80 ? '#22c55e' : bp.prob > 60 ? '#86daff' : '#ef4444',
                   fontSize: 12, fontWeight: 800, width: 36, textAlign: 'right',
                 }}>{bp.prob}%</span>
               </div>

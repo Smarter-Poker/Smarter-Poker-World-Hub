@@ -14,7 +14,7 @@ const STRUCTURES = [
       { spot: 'Pot Odds', change: 'Standard pot odds. 1.5bb dead money in the pot from blinds.' },
     ],
     impact: 'Baseline - all other formats compared against this.' },
-  { name: 'Button Straddle ($4)', ante: 0, straddle: true, blinds: '1/2/4', icon: '▲', color: '#f59e0b',
+  { name: 'Button Straddle ($4)', ante: 0, straddle: true, blinds: '1/2/4', icon: '▲', color: '#86daff',
     adjustments: [
       { spot: 'Open Sizing', change: '3x straddle = 12 from EP. Smaller opens (2.5x) work from late position.' },
       { spot: 'Position Value', change: 'BTN straddler acts last preflop but first postflop. Mixed blessing - play tighter from straddle.' },
@@ -109,10 +109,10 @@ export default function StraddleAnteSolver() {
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.2fr 1fr 1fr', padding: '6px 12px',
               borderBottom: '1px solid rgba(255,255,255,0.03)', background: structIdx === i ? `${STRUCTURES[i].color}08` : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
               <span style={{ fontSize: 12, color: '#e2e8f0' }}>{row.structure}</span>
-              <span style={{ fontSize: 12, color: '#f59e0b', fontFamily: 'monospace' }}>{row.deadMoney}</span>
+              <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'monospace' }}>{row.deadMoney}</span>
               <span style={{ fontSize: 12, color: '#3b82f6', fontFamily: 'monospace' }}>{row.openSize}</span>
               <span style={{ fontSize: 12, color: '#22c55e', fontFamily: 'monospace' }}>{row.potPreflop}</span>
-              <span style={{ fontSize: 12, color: '#8b5cf6', fontFamily: 'monospace', fontWeight: 700 }}>{row.adjust}</span>
+              <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'monospace', fontWeight: 700 }}>{row.adjust}</span>
             </div>
           ))}
         </div>

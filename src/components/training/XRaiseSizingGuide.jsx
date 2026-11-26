@@ -37,7 +37,7 @@ const TEXTURES = [
   {
     name: 'Paired Board',
     example: 'Q♣ Q♦ 5♠',
-    color: '#f59e0b',
+    color: '#86daff',
     sizing: '2.5x-3x bet',
     value: { hands: 'Trips (Qx), full house (QQ, 55), overpairs', note: 'Smaller sizing works because ranges are narrow. Trips are strong but full houses are nutted.' },
     bluff: { hands: 'A-high, suited connectors, backdoor draws', note: 'Good spot to bluff because its hard for anyone to have a Q. Villain folds a lot of pocket pairs and Ax.' },
@@ -46,7 +46,7 @@ const TEXTURES = [
   {
     name: 'Ace-High Dry',
     example: 'A♥ 7♣ 2♦',
-    color: '#8b5cf6',
+    color: '#86daff',
     sizing: '3x bet',
     value: { hands: 'Sets (AA rare from BB), A7, two pair, strong Ax', note: 'A-high boards favor the raiser. If BB check-raises, its very strong. Size standard for value.' },
     bluff: { hands: 'Gutshots (65, 43), backdoor flush draws, 98s', note: 'Bluffing is tough because villain has many Ax combos. Only bluff with hands that have some equity.' },
@@ -62,7 +62,7 @@ function XRaiseSizingGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f472b6' }}>Check-Raise Sizing Guide</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Check-Raise Sizing Guide</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {TEXTURES.map((t, i) => (

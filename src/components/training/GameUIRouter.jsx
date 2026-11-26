@@ -117,6 +117,7 @@ export default function GameUIRouter({
     difficultyLevel = 0,
     // Settings config
     onConfigClick = null,
+    onTableConfigChange = null,
     trainerConfig = null,
     // Phase 261-280: Deep coaching callbacks
     getTeachingPrinciple = null,
@@ -217,6 +218,7 @@ export default function GameUIRouter({
             difficultyLevel={difficultyLevel}
             // Settings config — render gear in scenario area
             onConfigClick={onConfigClick}
+            onTableConfigChange={onTableConfigChange}
             trainerConfig={trainerConfig}
             // Phase 261-280: Deep coaching
             getTeachingPrinciple={getTeachingPrinciple}

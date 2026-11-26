@@ -432,7 +432,7 @@ const styles: Record<string, React.CSSProperties> = {
     stackText: {
         fontSize: 14,
         fontWeight: 700,
-        color: '#ffd700',
+        color: '#86daff',
     },
     villainBadge: {
         padding: '6px 12px',

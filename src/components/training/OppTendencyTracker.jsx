@@ -65,7 +65,7 @@ export default function OppTendencyTracker() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
           {[
             { label: 'VPIP', val: `${player.vpip}%`, color: player.vpip > 30 ? '#ef4444' : '#22c55e' },
-            { label: 'PFR', val: `${player.pfr}%`, color: player.pfr > 20 ? '#f59e0b' : '#3b82f6' },
+            { label: 'PFR', val: `${player.pfr}%`, color: player.pfr > 20 ? '#86daff' : '#3b82f6' },
             { label: 'AF', val: player.af.toFixed(1), color: player.af > 2.5 ? '#ef4444' : '#3b82f6' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>

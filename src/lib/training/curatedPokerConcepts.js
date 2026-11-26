@@ -349,8 +349,12 @@ export function generateCuratedPokerConceptBatch({
       ? (street === 'preflop' ? 2.5 : Number((pot * 0.5).toFixed(1)))
       : 0;
 
+    const explicitStructure = String(gameConfig?.bettingStructure || '').trim().toLowerCase();
+    const isFixedLimit = explicitStructure === 'fixed_limit';
     const brainEval = evaluateTrainingSpotWithHorseBrain({
       variant: effectiveVariant,
+      bettingStructure: explicitStructure || undefined,
+      format: gameConfig?.format || undefined,
       street,
       heroCards,
       board: boardCards,
@@ -368,8 +372,6 @@ export function generateCuratedPokerConceptBatch({
       villainArchetype: exploitProfile,
     });
 
-    const explicitStructure = String(gameConfig?.bettingStructure || '').trim().toLowerCase();
-    const isFixedLimit = explicitStructure === 'fixed_limit';
     const useBrainActionChoices = (isPloVariant || hasExplicitVariant)
       && !isFixedLimit
       && brainEval?.ok
@@ -401,11 +403,9 @@ export function generateCuratedPokerConceptBatch({
             : effectiveVariant === 'plo4'
               ? '4-Card PLO (Pot-Limit)'
               : "No-Limit Hold'em";
-    const resolvedBettingStructure = isFixedLimit
-      ? 'fixed_limit'
-      : isPloVariant
-        ? 'pot_limit'
-        : 'no_limit';
+    const resolvedBettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(explicitStructure)
+      ? explicitStructure
+      : (isPloVariant ? 'pot_limit' : 'no_limit');
     questions.push({
       id,
       type: 'PIO',

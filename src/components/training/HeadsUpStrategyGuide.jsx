@@ -26,7 +26,7 @@ const SECTIONS = [
     ],
   },
   {
-    title: 'Key Adjustments', color: '#f59e0b',
+    title: 'Key Adjustments', color: '#86daff',
     content: [
       { label: 'Hand Values Change', value: 'Massively', detail: 'Top pair is a monster HU. Second pair is often the best hand. Ace-high is a strong bluff catcher.' },
       { label: 'Aggression Level', value: '↑↑↑', detail: 'HU is about aggression. If youre not uncomfortable with how much youre betting, youre not aggressive enough.' },
@@ -59,7 +59,7 @@ function HeadsUpStrategyGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#8b5cf6' }}>Heads-Up Strategy</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Heads-Up Strategy</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {SECTIONS.map((s, i) => (
@@ -87,7 +87,7 @@ function HeadsUpStrategyGuide() {
 
         {/* HU Ranges summary */}
         <div style={{ padding: 10, background: 'rgba(139,92,246,0.06)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>HU Range Summary</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>HU Range Summary</div>
           {RANGES_HU.map(r => (
             <div key={r.position} style={{ marginBottom: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>

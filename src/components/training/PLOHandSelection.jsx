@@ -16,12 +16,12 @@ const HAND_TIERS = [
     traits: 'Connected rundowns, suited aces with any kicker, high pairs with some connectivity.',
     vpip: '~10% of hands. Open from MP+. Call 3-bets in position. Sometimes 3-bet for value.',
     ev: 'Profitable when played in position. Can get into trouble multiway with bare pairs.' },
-  { tier: 'Tier 3 - Playable', color: '#f59e0b', icon: '✓',
+  { tier: 'Tier 3 - Playable', color: '#86daff', icon: '✓',
     hands: ['9876ds', '8765ds', 'AKxx', 'KQJx', 'QJT9r', 'AQJ8ss'],
     traits: 'Medium rundowns, suited aces, partial connectivity. Need good flops to continue.',
     vpip: '~15% of hands. Open from CO/BTN. Call opens IP. Fold to 3-bets without strong suits.',
     ev: 'Marginal profitability. Highly position-dependent. Best in single-raised pots IP.' },
-  { tier: 'Tier 4 - Speculative', color: '#8b5cf6', icon: '◆',
+  { tier: 'Tier 4 - Speculative', color: '#86daff', icon: '◆',
     hands: ['7654ds', '5432ds', 'A♠xx♠x', 'KK72r', 'QQJT'],
     traits: 'Low rundowns, single-suited aces, danglers (disconnected cards), bare pairs.',
     vpip: '~5% additional. Only from BTN/SB with good odds. Fold to raises.',
@@ -73,7 +73,7 @@ export default function PLOHandSelection() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tier.vpip}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>EV EXPECTATION</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>EV EXPECTATION</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tier.ev}</div>
           </div>
         </div>

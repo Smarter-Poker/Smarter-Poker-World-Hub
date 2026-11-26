@@ -49,7 +49,7 @@ const SCENARIOS = [
     id: 5, hand: '6♠5♠', board: 'A♠ 9♥ 7♣', position: 'BB vs CO', street: 'Flop', pot: 8.5,
     situation: 'Gutshot + backdoor flush. Facing a c-bet. GTO mixes between calling and check-raising.',
     actions: [
-      { label: 'Check-Raise', freq: 22, ev: 0.25, color: '#f59e0b' },
+      { label: 'Check-Raise', freq: 22, ev: 0.25, color: '#86daff' },
       { label: 'Call', freq: 58, ev: 0.18, color: '#22c55e' },
       { label: 'Fold', freq: 20, ev: 0.00, color: '#64748b' },
     ],
@@ -159,7 +159,7 @@ export default function MixedStrategyTrainer() {
             </div>
             <div>
               <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Pot</div>
-              <div style={{ color: '#f59e0b', fontSize: 22, fontWeight: 800 }}>{scenario.pot}bb</div>
+              <div style={{ color: '#86daff', fontSize: 22, fontWeight: 800 }}>{scenario.pot}bb</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
@@ -252,7 +252,7 @@ export default function MixedStrategyTrainer() {
               <div key={i} style={{ marginBottom: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
                   <span style={{ color: d.color, fontSize: 12, fontWeight: 600 }}>{d.action}</span>
-                  <span style={{ color: d.drift < 10 ? '#22c55e' : d.drift < 20 ? '#f59e0b' : '#ef4444', fontSize: 12 }}>
+                  <span style={{ color: d.drift < 10 ? '#22c55e' : d.drift < 20 ? '#86daff' : '#ef4444', fontSize: 12 }}>
                     {d.actual}% Actual Vs {d.target}% Target (Drift: {d.drift}%)
                   </span>
                 </div>

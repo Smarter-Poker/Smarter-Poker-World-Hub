@@ -261,14 +261,17 @@ export default function TrainingPage() {
     if (!game || !requireOnline()) return;
     haptic('light');
     const query = { gameId: game.id, start: '1', source: 'training-home' };
-    const effectiveVariant = focus?.variant || (filters.variant !== 'ALL' && game.category !== 'PSYCHOLOGY' ? filters.variant : null);
+    const userPickedVariant = filters.variant !== 'ALL' && game.category !== 'PSYCHOLOGY'
+      ? String(filters.variant).toLowerCase()
+      : null;
+    const effectiveVariant = userPickedVariant || focus?.variant || null;
     if (effectiveVariant) {
       query.variant = effectiveVariant;
-      if (!focus?.bettingStructure && effectiveVariant !== 'nlh') {
+      if ((!focus?.bettingStructure || userPickedVariant) && effectiveVariant !== 'nlh') {
         query.bettingStructure = 'pot_limit';
       }
     }
-    if (focus?.bettingStructure) query.bettingStructure = focus.bettingStructure;
+    if (focus?.bettingStructure && !userPickedVariant) query.bettingStructure = focus.bettingStructure;
     if (focus?.format) query.format = focus.format;
     if (focus?.targetStreet) query.targetStreet = focus.targetStreet;
     if (focus?.heroPosition || focus?.targetPositions) {
@@ -384,7 +387,7 @@ export default function TrainingPage() {
         ...(['no_limit', 'pot_limit', 'fixed_limit'].includes(qStruct) ? { bettingStructure: qStruct } : {}),
         ...(['cash', 'mtt', 'spins', 'hu', '9max'].includes(qFormat) ? { format: qFormat } : {}),
         ...(['preflop', 'flop', 'turn', 'river'].includes(qStreet) ? { targetStreet: qStreet, scope: 'street' } : {}),
-        ...(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(qPos) ? { heroPosition: qPos, targetPositions: qPos } : {}),
+        ...(['UTG', 'UTG+1', 'UTG+2', 'MP', 'MP+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(qPos) ? { heroPosition: qPos, targetPositions: qPos } : {}),
       };
       playGame(game, queryOverrides);
       return;
@@ -1060,7 +1063,7 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn, error, o
           <li key={r.id || i} className="sp-plist-row">
             <span className="sp-plist-date">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '-'}</span>
             <span className="sp-plist-game">{r.game_name || r.game_id || 'Training'}</span>
-            <span className="sp-plist-score sp-num" style={{ color: score === null ? 'var(--sp-fg-faint)' : score >= 50 ? 'var(--sp-good)' : score >= 0 ? 'var(--sp-warn)' : 'var(--sp-bad)' }}>
+            <span className="sp-plist-score sp-num" style={{ color: score === null ? 'var(--sp-fg-faint)' : score >= 50 ? 'var(--sp-good)' : score >= 0 ? '#86daff' : 'var(--sp-bad)' }}>
               {fmtScore(score)}
             </span>
             <span className="sp-plist-acc sp-num">{r.accuracy != null ? `${Math.round(r.accuracy)}%` : '-'}</span>
@@ -1406,10 +1409,10 @@ function GlobalStyle() {
 
       .sp-leak { border-radius: var(--sp-r-lg); border: 1px solid rgba(245,158,11,0.30); background: linear-gradient(180deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02)); padding: 18px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
       @media (max-width: 768px) { .sp-leak { grid-template-columns: 1fr; } }
-      .sp-leak-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sp-warn); padding: 4px 10px; border-radius: 9999px; background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25); }
+      .sp-leak-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #86daff; padding: 4px 10px; border-radius: 9999px; background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25); }
       .sp-leak-title { font-size: 17px; font-weight: 600; margin: 8px 0 6px; letter-spacing: -0.2px; color: var(--sp-ink-0); }
       .sp-leak-body { font-size: 14px; color: var(--sp-ink-1); margin: 0; line-height: 1.5; }
-      .sp-leak-body b { color: var(--sp-warn); font-weight: 500; }
+      .sp-leak-body b { color: #86daff; font-weight: 500; }
       .sp-spark { display: flex; align-items: flex-end; gap: 3px; height: 32px; margin-top: 8px; }
       .sp-spark span { display: block; width: 10px; border-radius: 2px; background: rgba(245,158,11,0.4); }
       .sp-spark span.sp-spark-miss { background: var(--sp-bad); }
@@ -1452,7 +1455,7 @@ function GlobalStyle() {
         display: flex; align-items: center; gap: 12px; min-height: 88px; padding: 16px;
         border: 1px solid rgba(245,158,11,0.34); border-radius: var(--sp-r-md);
         background: linear-gradient(180deg, rgba(245,158,11,0.08), rgba(245,158,11,0.025));
-        color: var(--sp-warn);
+        color: #86daff;
       }
       .sp-data-unavailable-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 4px; }
       .sp-data-unavailable-copy strong { color: var(--sp-ink-0); font-size: 13px; }

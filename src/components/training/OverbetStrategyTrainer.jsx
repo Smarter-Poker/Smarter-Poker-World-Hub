@@ -82,13 +82,13 @@ function OverbetStrategyTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#f97316' }}>Overbet Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Overbet Trainer</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{stats.correct}/{stats.total} ({accuracy}%)</span>
         </div>
 
         <div style={{ padding: 14, background: 'rgba(249,115,22,0.06)', borderRadius: 10, border: '1px solid rgba(249,115,22,0.15)', marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: 3, marginBottom: 6 }}>{spot.board}</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#f97316', marginBottom: 4 }}>Hero: {spot.hero}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Hero: {spot.hero}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{spot.position} | {spot.street} | Pot: {spot.pot} BB</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Should You Overbet Or Use Normal Sizing?</div>
         </div>
@@ -109,7 +109,7 @@ function OverbetStrategyTrainer() {
             </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               <div style={{ flex: 1, padding: 8, borderRadius: 8, textAlign: 'center', background: spot.whenToOverbet ? 'rgba(249,115,22,0.08)' : 'rgba(255,255,255,0.03)', border: spot.whenToOverbet ? '1px solid rgba(249,115,22,0.2)' : '1px solid rgba(255,255,255,0.04)' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#f97316' }}>{spot.evOverbet}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff' }}>{spot.evOverbet}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Overbet ({spot.sizing})</div>
               </div>
               <div style={{ flex: 1, padding: 8, borderRadius: 8, textAlign: 'center', background: !spot.whenToOverbet ? 'rgba(107,114,128,0.08)' : 'rgba(255,255,255,0.03)', border: !spot.whenToOverbet ? '1px solid rgba(107,114,128,0.2)' : '1px solid rgba(255,255,255,0.04)' }}>
@@ -119,7 +119,7 @@ function OverbetStrategyTrainer() {
             </div>
             <div style={{ padding: 10, background: 'rgba(249,115,22,0.06)', borderRadius: 8, border: '1px solid rgba(249,115,22,0.12)', marginBottom: 8 }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, marginBottom: 6 }}>{spot.reasoning}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key: {spot.condition}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key: {spot.condition}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <button onClick={next} style={{ padding: '10px 28px', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', background: '#f97316', color: '#fff' }}>Next Spot →</button>

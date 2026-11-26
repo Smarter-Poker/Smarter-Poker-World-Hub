@@ -75,9 +75,9 @@ function MedalIcon({ size = 16, color = 'currentColor' }) {
     </svg>
   );
 }
-function GoldMedalIcon({ size = 16 })   { return <MedalIcon size={size} color="#FFD700" />; }
+function GoldMedalIcon({ size = 16 })   { return <MedalIcon size={size} color="#86daff" />; }
 function SilverMedalIcon({ size = 16 }) { return <MedalIcon size={size} color="#C0C0C0" />; }
-function BronzeMedalIcon({ size = 16 }) { return <MedalIcon size={size} color="#CD7F32" />; }
+function BronzeMedalIcon({ size = 16 }) { return <MedalIcon size={size} color="#86daff" />; }
 function LiveDotIcon({ size = 8 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>

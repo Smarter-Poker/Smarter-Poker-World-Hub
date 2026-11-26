@@ -1083,7 +1083,7 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
 
     const progress = timeLeft / seconds;
     const dashOffset = circumference * (1 - progress);
-    const color = timeLeft > 30 ? 'var(--sp-accent-green)' : timeLeft > 10 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
+    const color = timeLeft > 30 ? 'var(--sp-accent-green)' : timeLeft > 10 ? '#86daff' : 'var(--sp-accent-red)';
     // Under 5s the plate turns urgent: a framer-motion scale pulse, suppressed
     // when the OS asks for reduced motion (the static red ring below still
     // carries the urgency for those users).
@@ -1681,7 +1681,7 @@ function InfoPanelShell({
 
 function UniversalDynamicTable({
     gameId = '',
-    presetOnly = false,
+    presetOnly: presetOnlyProp = false,
     question,
     questionNumber,
     totalQuestions,
@@ -1731,6 +1731,7 @@ function UniversalDynamicTable({
     heroAvatarUrl = null,            // Player's chosen avatar image URL (wins over the cached one)
     // Settings config — gear button relocated to scenario area
     onConfigClick = null,
+    onTableConfigChange = null,
     trainerConfig = null,
     // Phase 261-280: Deep coaching callbacks
     getTeachingPrinciple = null,
@@ -2216,6 +2217,7 @@ function UniversalDynamicTable({
     const [audioPack, setAudioPack] = React.useState(() => (soundManager?.soundPack || 'casino'));
     const [continuationStreetIndex, setContinuationStreetIndex] = React.useState(0);
     const [customizeOpen, setCustomizeOpen] = React.useState(false);
+    const presetOnly = Boolean(presetOnlyProp && !customizeOpen);
     const showTableCustomControls = !presetOnly || customizeOpen;
 
     useEffect(() => {
@@ -2843,6 +2845,9 @@ function UniversalDynamicTable({
         setActiveBettingStructure(norm);
         setUserLockedFixedLimit(norm === 'fixed_limit');
         soundManager?.play('check');
+        if (typeof onTableConfigChange === 'function') {
+            onTableConfigChange({ bettingStructure: norm });
+        }
         if (typeof window !== 'undefined') {
             try {
                 const url = new URL(window.location.href);
@@ -2850,12 +2855,15 @@ function UniversalDynamicTable({
                 window.history.replaceState({}, '', url.pathname + url.search);
             } catch { /* non-blocking url sync */ }
         }
-    }, [activeNormalizedVariant]);
+    }, [activeNormalizedVariant, onTableConfigChange]);
 
     const handleSelectGameFormat = useCallback((nextFormat) => {
         const norm = normalizeGameFormat(nextFormat);
         setActiveGameFormat(norm);
         soundManager?.play('deal');
+        if (typeof onTableConfigChange === 'function') {
+            onTableConfigChange({ format: norm });
+        }
         if (typeof window !== 'undefined') {
             try {
                 const url = new URL(window.location.href);
@@ -2863,7 +2871,7 @@ function UniversalDynamicTable({
                 window.history.replaceState({}, '', url.pathname + url.search);
             } catch { /* non-blocking url sync */ }
         }
-    }, []);
+    }, [onTableConfigChange]);
 
     const handleToggleAudioMute = useCallback(() => {
         setIsAudioMuted((prev) => {
@@ -3993,7 +4001,7 @@ function UniversalDynamicTable({
     const computedDifficulty = useMemo(() => {
         const accuracy = questionNumber > 0 ? ((questionNumber - sessionMistakes) / questionNumber) * 100 : 100;
         if (accuracy >= 85) return { label: 'EXPERT', color: 'var(--sp-accent-red)', bg: 'rgba(239,68,68,0.15)' };
-        if (accuracy >= 70) return { label: 'HARD', color: 'var(--sp-accent-orange)', bg: 'rgba(249,115,22,0.15)' };
+        if (accuracy >= 70) return { label: 'HARD', color: '#86daff', bg: 'rgba(249,115,22,0.15)' };
         if (accuracy >= 50) return { label: 'MEDIUM', color: '#86daff', bg: 'rgba(251,191,36,0.15)' };
         return { label: 'EASY', color: 'var(--sp-accent-green)', bg: 'rgba(34,197,94,0.15)' };
     }, [questionNumber, sessionMistakes]);
@@ -4023,7 +4031,7 @@ function UniversalDynamicTable({
     //
     // This key changes on every DECISION -- new hand or new street -- and is
     // the single reset signal for every per-decision effect below.
-    const decisionKey = `${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}`;
+    const decisionKey = `${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}:${question?._retryCount || 0}`;
     const issuedRngRolls = question?._gradingContext?.rngRolls || null;
     const hasIssuedRngRolls = ['low', 'high'].every((mode) => {
         const roll = Number(issuedRngRolls?.[mode]);
@@ -5775,10 +5783,16 @@ function UniversalDynamicTable({
                 const handleSelectVariant = (nextVar) => {
                     const normVar = normalizeTrainingVariant(nextVar);
                     setActiveVariantOverride(normVar);
+                    const nextStructure = !userLockedFixedLimit
+                        ? (normVar === 'nlh' ? 'no_limit' : 'pot_limit')
+                        : activeBettingStructure;
                     if (!userLockedFixedLimit) {
-                        setActiveBettingStructure(normVar === 'nlh' ? 'no_limit' : 'pot_limit');
+                        setActiveBettingStructure(nextStructure);
                     }
                     soundManager?.play('deal');
+                    if (typeof onTableConfigChange === 'function') {
+                        onTableConfigChange({ variant: normVar, bettingStructure: nextStructure });
+                    }
                     if (typeof window === 'undefined') return;
                     try {
                         const url = new URL(window.location.href);
@@ -5829,7 +5843,7 @@ function UniversalDynamicTable({
                             >
                                 {isMultiStreetActive ? 'Full-Hand Practice' : 'Single-Decision Drill'}
                             </span>
-                            {presetOnly && (
+                            {presetOnlyProp && (
                                 <button
                                     type="button"
                                     data-customize-table-toggle="true"
@@ -10686,7 +10700,7 @@ function UniversalDynamicTable({
                                                         <strong style={{ color: 'var(--sp-accent-red)' }}>Your Pick:</strong>{' '}
                                                         {selectedOpt}
                                                         {selectedFreq > 0 ? (
-                                                            <span style={{ color: 'var(--sp-accent-orange)' }}> ({selectedFreq}% - Part Of The Mix But Suboptimal)</span>
+                                                            <span style={{ color: '#86daff' }}> ({selectedFreq}% - Part Of The Mix But Suboptimal)</span>
                                                         ) : (
                                                             <span style={{ color: 'var(--sp-accent-red)' }}> (0% - Not In The Solver's Strategy)</span>
                                                         )}
@@ -10716,7 +10730,7 @@ function UniversalDynamicTable({
                                                         background: evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(251, 191, 36, 0.06)',
                                                         borderRadius: 6,
                                                         border: `1px solid ${evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.12)'}`,
-                                                        fontSize: 12, color: evLoss >= 0.5 ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)', lineHeight: 1.5,
+                                                        fontSize: 12, color: evLoss >= 0.5 ? 'var(--sp-accent-red)' : '#86daff', lineHeight: 1.5,
                                                     }}>
                                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>EV IMPACT: </span>
                                                         {evLoss >= 1.0
@@ -10834,7 +10848,7 @@ function UniversalDynamicTable({
                                     <span style={{
                                         fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
                                         background: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.1)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(251,191,36,0.1)' : 'rgba(34,197,94,0.1)',
-                                        color: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'var(--sp-accent-red)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
+                                        color: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'var(--sp-accent-red)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? '#86daff' : 'var(--sp-accent-green)',
                                         border: '1px solid ' + (structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.2)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(251,191,36,0.2)' : 'rgba(34,197,94,0.2)'),
                                     }}>
                                         {structuredExplanation.spotDifficulty.label} ({structuredExplanation.spotDifficulty.difficulty}/10)
@@ -10851,7 +10865,7 @@ function UniversalDynamicTable({
                                     borderRadius: 8,
                                     border: `1px solid ${structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`,
                                     fontSize: 12, lineHeight: 1.5,
-                                    color: structuredExplanation.isCorrect ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
+                                    color: structuredExplanation.isCorrect ? 'var(--sp-accent-green)' : '#86daff',
                                 }}>
                                     <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, opacity: 0.8 }}>KEY TAKEAWAY: </span>
                                     {structuredExplanation.takeaway}
@@ -10871,7 +10885,7 @@ function UniversalDynamicTable({
                                         <span style={{
                                             fontSize: 12, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
                                             background: structuredExplanation.mistakeType.severity === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.15)',
-                                            color: structuredExplanation.mistakeType.severity === 'high' ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)',
+                                            color: structuredExplanation.mistakeType.severity === 'high' ? 'var(--sp-accent-red)' : '#86daff',
                                         }}>
                                             {structuredExplanation.mistakeType.label}
                                         </span>
@@ -11316,9 +11330,11 @@ function UniversalDynamicTable({
                                         type="button"
                                         data-replay-current-hand="true"
                                         onClick={() => {
+                                            answerSubmittedRef.current = false;
                                             setRetryActive(true);
                                             setSelectedAnswer(null);
-                                            if (onNextHand) onNextHand({ retry: true, retryQuestion: lastQuestionRef.current });
+                                            setFeedbackCollapsed(false);
+                                            if (onNextHand) onNextHand({ retry: true, retryQuestion: lastQuestionRef.current || question });
                                         }}
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
@@ -11346,7 +11362,7 @@ function UniversalDynamicTable({
                                         padding: '8px 16px', borderRadius: 8,
                                         border: isCurrentBookmarked ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255,255,255,0.1)',
                                         background: isCurrentBookmarked ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
-                                        color: isCurrentBookmarked ? 'var(--sp-accent-amber)' : 'var(--sp-fg-muted)',
+                                        color: isCurrentBookmarked ? '#86daff' : 'var(--sp-fg-muted)',
                                         fontSize: 12, fontWeight: 600,
                                         cursor: 'pointer',
                                     }}

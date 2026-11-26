@@ -11,7 +11,7 @@ const PATTERNS = [
     name: 'Min-Bet / Small Sizing',
     line: 'Villain bets 25-33% pot',
     icon: '·',
-    color: '#f59e0b',
+    color: '#86daff',
     meaning: 'Often indicates: blocking bet, thin value, or weak hand trying to control pot. Rarely a strong hand - strong hands want to build pot.',
     exploit: 'Raise frequently as a bluff. Villain is showing weakness. If they call your raise, they likely have a medium-strength hand - barrel turn.',
     examples: [
@@ -37,7 +37,7 @@ const PATTERNS = [
     name: 'Check-Raise',
     line: 'Check → Raise after bet',
     icon: '⌁',
-    color: '#8b5cf6',
+    color: '#86daff',
     meaning: 'Very strong in most player pools. At low stakes, check-raise is almost always value-heavy (sets, two pair, strong draws). GTO players balance with bluffs.',
     exploit: 'Against most players, give credit and fold marginal hands. Only continue with top pair+ or strong draws. Against aggressive regs, call down wider.',
     examples: [
@@ -76,7 +76,7 @@ const PATTERNS = [
     name: 'Limp-Raise (Preflop)',
     line: 'Limp → Raise after someone opens',
     icon: '◆',
-    color: '#ec4899',
+    color: '#86daff',
     meaning: 'Almost always AA or KK. This is one of the most reliable tells in poker. Recreational players limp-raise with premium pairs to trap.',
     exploit: 'Fold everything except QQ+ and AKs. If you have AA/KK, play for stacks. Dont try to outplay a limp-raiser - they have it.',
     examples: [
@@ -95,7 +95,7 @@ function BettingPatternAnalyzer() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#fbbf24' }}>Betting Pattern Analyzer</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Betting Pattern Analyzer</h3>
 
         {/* Pattern Selector */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>

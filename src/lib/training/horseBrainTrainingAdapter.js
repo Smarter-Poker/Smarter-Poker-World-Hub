@@ -1217,6 +1217,8 @@ function resolveDoubleBoardStreet(boardList = []) {
 export function evaluateDoubleBoardBombPot({
   gameId = 'cash-005',
   variant = 'plo4',
+  bettingStructure = null,
+  format = 'cash',
   heroCards = [],
   boardACards = [],
   boardBCards = [],
@@ -1235,12 +1237,31 @@ export function evaluateDoubleBoardBombPot({
         ? ['As', 'Ks', 'Qh', 'Jd']
         : ['As', 'Kd'];
   const cleanHero = Array.isArray(heroCards) && heroCards.length > 0 ? heroCards : defaultHero;
-  const cleanBoardA = Array.isArray(boardACards) && boardACards.length >= 3
-    ? boardACards
-    : ['Qs', '8s', '3d'];
-  const cleanBoardB = Array.isArray(boardBCards) && boardBCards.length >= 3
-    ? boardBCards
-    : ['Jh', '9h', '2c'];
+  const usedCards = new Set(cleanHero.map((c) => String(c || '').toLowerCase()));
+  const fallbackPool = [
+    'Qs', '8s', '3d', '9h', '2c', '7c', '6h', '4s', '5d', 'Kc',
+    'Ac', 'Qd', 'Jc', 'Tc', '8d', '7d', '6c', '5c', '4c', '3c',
+  ];
+  const dedupBoard = (rawBoard, defaultBoard) => {
+    const source = Array.isArray(rawBoard) && rawBoard.length >= 3 ? rawBoard : defaultBoard;
+    const out = [];
+    for (const c of source) {
+      const low = String(c || '').toLowerCase();
+      if (low && !usedCards.has(low)) {
+        usedCards.add(low);
+        out.push(c);
+      } else {
+        const replacement = fallbackPool.find((cand) => !usedCards.has(cand.toLowerCase()));
+        if (replacement) {
+          usedCards.add(replacement.toLowerCase());
+          out.push(replacement);
+        }
+      }
+    }
+    return out;
+  };
+  const cleanBoardA = dedupBoard(boardACards, ['Qs', '8s', '3d']);
+  const cleanBoardB = dedupBoard(boardBCards, ['7c', '9h', '2c']);
 
   const streetA = resolveDoubleBoardStreet(cleanBoardA);
   const streetB = resolveDoubleBoardStreet(cleanBoardB);
@@ -1248,6 +1269,8 @@ export function evaluateDoubleBoardBombPot({
   const boardAEvaluation = evaluateTrainingSpotWithHorseBrain({
     gameId,
     variant: normVariant,
+    ...(bettingStructure ? { bettingStructure } : {}),
+    ...(format ? { format } : {}),
     street: streetA,
     heroCards: cleanHero,
     boardCards: cleanBoardA,
@@ -1261,6 +1284,8 @@ export function evaluateDoubleBoardBombPot({
   const boardBEvaluation = evaluateTrainingSpotWithHorseBrain({
     gameId,
     variant: normVariant,
+    ...(bettingStructure ? { bettingStructure } : {}),
+    ...(format ? { format } : {}),
     street: streetB,
     heroCards: cleanHero,
     boardCards: cleanBoardB,
@@ -1300,6 +1325,7 @@ export function evaluateDoubleBoardBombPot({
   return {
     ok: true,
     variant: normVariant,
+    heroCards: cleanHero,
     boardACards: cleanBoardA,
     boardBCards: cleanBoardB,
     boardAEvaluation,
@@ -1461,6 +1487,7 @@ export function evaluateFullHandLineAndBranchComparison({
       street: cfg.street,
       boardCards: cfg.board,
       potBb: cfg.potBb,
+      engineModule: ev?.engineModule || ev?.brainEvaluation?.engineModule || 'holdem-brain.js',
       recommendedAction: ev?.recommendedAction || 'Check',
       handScore: Number(ev?.handScore ?? 55),
       madeHandCategory: ev?.madeHandCategory || 'Made Hand',

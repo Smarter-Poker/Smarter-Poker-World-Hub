@@ -355,7 +355,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                         icon=""
                         label="Streak"
                         value={milestones.currentStreak}
-                        color="#f97316"
+                        color="#86daff"
                         subValue={`Best: ${milestones.longestStreak}`}
                     />
                     <MilestoneBadge

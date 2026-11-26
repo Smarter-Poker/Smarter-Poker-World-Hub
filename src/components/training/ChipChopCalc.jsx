@@ -16,12 +16,12 @@ const DEAL_TYPES = [
     when: 'Simple and fast. Better than even chop but still imperfect - doesn\'t account for ICM.',
     example: 'You have 50% of chips in play. Total remaining prizes = $10K. You get $5K.',
     verdict: 'Overvalues big stacks, undervalues small stacks. Use ICM chop instead.' },
-  { deal: 'ICM Chop', icon: '■', color: '#f59e0b',
+  { deal: 'ICM Chop', icon: '■', color: '#86daff',
     how: 'Use ICM calculations to determine each player\'s tournament equity based on stack size and payout structure.',
     when: 'The mathematically fairest deal. Accounts for the non-linear relationship between chips and money.',
     example: 'With 50% of chips, your ICM equity might be only 38% of remaining prizes (not 50%).',
     verdict: 'BEST method. Always request ICM-based calculations when making deals.' },
-  { deal: 'Chip Leader Premium', icon: '★', color: '#8b5cf6',
+  { deal: 'Chip Leader Premium', icon: '★', color: '#86daff',
     how: 'ICM chop but the chip leader gets extra money for their positional advantage and skill edge.',
     when: 'When the chip leader feels ICM undervalues their dominant position.',
     example: 'ICM says you should get $4,200. You negotiate $4,500 as chip leader premium.',
@@ -65,7 +65,7 @@ export default function ChipChopCalc() {
           {[
             { label: 'How It Works', text: deal.how, color: '#3b82f6' },
             { label: 'When to Use', text: deal.when, color: '#22c55e' },
-            { label: 'Example', text: deal.example, color: '#f59e0b' },
+            { label: 'Example', text: deal.example, color: '#86daff' },
             { label: 'Verdict', text: deal.verdict, color: deal.color },
           ].map((s, i) => (
             <div key={i} style={{ background: `${s.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${s.color}` }}>

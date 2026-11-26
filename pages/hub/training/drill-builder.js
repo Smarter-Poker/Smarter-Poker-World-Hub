@@ -98,7 +98,7 @@ const PRESETS = [
       stackDepth: 100,
       scenarios: ['cbet'],
     },
-    color: 'var(--sp-accent-orange)',
+    color: '#86daff',
   },
   {
     id: 'mtt-push-fold',
@@ -666,7 +666,7 @@ export default function DrillBuilderPage() {
                     label={pos}
                     selected={selectedPositions.includes(pos)}
                     onClick={() => togglePosition(pos)}
-                    color="#a855f7"
+                    color="#86daff"
                   />
                 ))}
               </div>
@@ -720,7 +720,7 @@ export default function DrillBuilderPage() {
                     label={`${depth}BB`}
                     selected={stackDepth === depth}
                     onClick={() => setStackDepth(depth)}
-                    color="var(--sp-accent-amber)"
+                    color="#86daff"
                   />
                 ))}
               </div>

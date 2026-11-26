@@ -76,13 +76,13 @@ function SlowPlayDecisionTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#facc15' }}>Slow Play Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Slow Play Trainer</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{stats.correct}/{stats.total} ({accuracy}%)</span>
         </div>
 
         <div style={{ padding: 14, background: 'rgba(250,204,21,0.06)', borderRadius: 10, border: '1px solid rgba(250,204,21,0.15)', marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: 4, marginBottom: 6 }}>{spot.board}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#facc15', marginBottom: 6 }}>Hero: {spot.hero}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Hero: {spot.hero}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>{spot.position}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, maxWidth: 420, margin: '0 auto' }}>{spot.context}</div>
         </div>

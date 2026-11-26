@@ -152,7 +152,7 @@ export default function PositionMasteryTracker() {
             { label: 'Overall', value: `${overallMastery}%`, color: getMasteryColor(overallMastery) },
             { label: 'Strongest', value: 'BTN', color: '#22c55e' },
             { label: 'Weakest', value: weakestPos, color: '#ef4444' },
-            { label: 'Total EV Loss', value: `${totalEVLoss.toFixed(1)}bb`, color: '#f59e0b' },
+            { label: 'Total EV Loss', value: `${totalEVLoss.toFixed(1)}bb`, color: '#86daff' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
               <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>

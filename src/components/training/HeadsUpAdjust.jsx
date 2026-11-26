@@ -21,12 +21,12 @@ const HU_ADJUSTMENTS = [
     why: 'Position is EVERYTHING heads-up. The button acts last on every street and controls the pot.',
     mistake: 'Not utilizing position enough. IP should be printing money in HU - it\'s a massive advantage.',
     tip: 'Track your win rate IP vs OOP. If you\'re not winning significantly more IP, you\'re too passive.' },
-  { area: 'Bluffing & Value', icon: '◇', color: '#f59e0b',
+  { area: 'Bluffing & Value', icon: '◇', color: '#86daff',
     adjust: 'Bluff more. Value bet thinner. Second pair is often a value bet HU. Ace-high can check down.',
     why: 'Ranges are wide, so hands that are mediocre in 6-max become strong HU.',
     mistake: 'Not bluffing enough. Your opponent folds a lot HU because their range is so wide.',
     tip: 'If you never get caught bluffing HU, you\'re not bluffing enough.' },
-  { area: 'Adaptation Speed', icon: '◇', color: '#8b5cf6',
+  { area: 'Adaptation Speed', icon: '◇', color: '#86daff',
     adjust: 'Adjust every 10-20 hands. If villain folds to 3-bets, 3-bet more. If they call, bluff less.',
     why: 'HU gives you maximum information per hand. You see every showdown. Adapt constantly.',
     mistake: 'Playing the same strategy regardless of opponent. HU is about constant adjustment.',
@@ -75,7 +75,7 @@ export default function HeadsUpAdjust() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{area.mistake}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Pro Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Pro Tip</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{area.tip}</div>
           </div>
         </div>

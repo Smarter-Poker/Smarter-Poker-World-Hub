@@ -19,7 +19,7 @@ const STAGES = [
     danger: 'Going broke with top pair at 200bb effective. This is a cash game leak in tournaments.',
   },
   {
-    name: 'Middle Stage', range: 'Blinds 200/400 - 1000/2000', stacks: '30-80bb', color: '#f59e0b',
+    name: 'Middle Stage', range: 'Blinds 200/400 - 1000/2000', stacks: '30-80bb', color: '#86daff',
     overview: 'Most important stage. ICM starts mattering. Stack preservation becomes key.',
     adjustments: [
       { area: 'Stealing', tip: 'Increase steal attempts as antes kick in. Antes add 20%+ to each pot.' },
@@ -55,7 +55,7 @@ const STAGES = [
     danger: 'Playing too conservatively after min-cashing. The big money is at the final table.',
   },
   {
-    name: 'Final Table', range: '6-9 players', stacks: '15-100bb', color: '#8b5cf6',
+    name: 'Final Table', range: '6-9 players', stacks: '15-100bb', color: '#86daff',
     overview: 'Maximum pay jumps. Every hand matters. ICM is at its most extreme.',
     adjustments: [
       { area: 'Chip Leader', tip: 'Apply maximum pressure. You cant bust. Every pot you win increases everyones stress.' },
@@ -75,7 +75,7 @@ function TournamentStagesGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#fbbf24' }}>MTT Stage Strategy</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>MTT Stage Strategy</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {STAGES.map((s, i) => (

@@ -97,7 +97,7 @@ const MENTAL_TIPS = [
     desc: 'Physical movement resets your nervous system. Even 5 minutes helps.',
     iconKind: 'walk',
     icon: '',
-    color: 'var(--sp-accent-orange)',
+    color: '#86daff',
   },
   {
     title: 'Reframe the Mistake',

@@ -332,7 +332,7 @@ export default function HandHistoryImporter() {
             </div>
           </div>
           {analysisError && (
-            <div role="alert" style={{ marginTop: 12, color: '#fbbf24', fontSize: 12 }}>
+            <div role="alert" style={{ marginTop: 12, color: '#86daff', fontSize: 12 }}>
               {analysisError}
             </div>
           )}
@@ -354,11 +354,11 @@ export default function HandHistoryImporter() {
             </div>
             <div>
               <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Total EV Loss</div>
-              <div style={{ color: totalEVLoss > 2 ? '#ef4444' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>{totalEVLoss} BB</div>
+              <div style={{ color: totalEVLoss > 2 ? '#ef4444' : '#86daff', fontSize: 14, fontWeight: 700 }}>{totalEVLoss} BB</div>
             </div>
             <div>
               <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Mistakes</div>
-              <div style={{ color: totalMistakes > 3 ? '#ef4444' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>{totalMistakes}</div>
+              <div style={{ color: totalMistakes > 3 ? '#ef4444' : '#86daff', fontSize: 14, fontWeight: 700 }}>{totalMistakes}</div>
             </div>
             <button onClick={() => { setParsedHands([]); setSelectedHand(null); setAnalyses({}); setAnalysisError(''); }} style={{
               marginLeft: 'auto', padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
@@ -369,7 +369,7 @@ export default function HandHistoryImporter() {
           </div>
 
           {analysisError && (
-            <div role="alert" style={{ ...sectionStyle, color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>
+            <div role="alert" style={{ ...sectionStyle, color: '#86daff', border: '1px solid rgba(251,191,36,0.2)' }}>
               {analysisError} No Unverified Result Was Counted As Solver Evidence.
             </div>
           )}
@@ -438,7 +438,7 @@ export default function HandHistoryImporter() {
                         {hand.potSize > 0 && (
                           <div>
                             <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Pot</div>
-                            <div style={{ color: '#f59e0b', fontSize: 16, fontWeight: 700 }}>${hand.potSize.toFixed(2)}</div>
+                            <div style={{ color: '#86daff', fontSize: 16, fontWeight: 700 }}>${hand.potSize.toFixed(2)}</div>
                           </div>
                         )}
                         {hand.winner && (
@@ -509,7 +509,7 @@ export default function HandHistoryImporter() {
                                 <span style={{
                                   marginLeft: 'auto', padding: '1px 6px', borderRadius: 3, fontSize: 12, fontWeight: 700,
                                   background: ['best', 'correct'].includes(dec.grade) ? 'rgba(34,197,94,0.15)' : ['wrong', 'blunder'].includes(dec.grade) ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                                  color: ['best', 'correct'].includes(dec.grade) ? '#22c55e' : ['wrong', 'blunder'].includes(dec.grade) ? '#ef4444' : '#f59e0b',
+                                  color: ['best', 'correct'].includes(dec.grade) ? '#22c55e' : ['wrong', 'blunder'].includes(dec.grade) ? '#ef4444' : '#86daff',
                                 }}>
                                   {['best', 'correct'].includes(dec.grade)
                                     ? 'GTO'

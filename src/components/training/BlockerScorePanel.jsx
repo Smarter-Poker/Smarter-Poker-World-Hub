@@ -283,7 +283,7 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
             <ScoreBar
                 label="Blocks Marginal Hands"
                 score={analysis.marginalBlocker}
-                color="#eab308"
+                color="#86daff"
                 detail={`${analysis.marginalCombos} marginal combos in range`}
             />
 

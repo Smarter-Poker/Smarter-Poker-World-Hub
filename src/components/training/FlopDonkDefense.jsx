@@ -13,7 +13,7 @@ const DONK_TYPES = [
       { action: 'Call', hands: 'Medium hands (top pair, decent draws) - keep their range wide' },
       { action: 'Fold', hands: 'Air with no equity - not worth continuing even at a good price' },
     ]},
-  { type: 'Medium Donk (50-66%)', color: '#f59e0b', icon: '●',
+  { type: 'Medium Donk (50-66%)', color: '#86daff', icon: '●',
     meaning: 'More polarized. Could be a strong hand trying to build the pot or a draw wanting to set their own price.',
     response: [
       { action: 'Raise 2.5x', hands: 'Nutted hands - they\'ve built the pot for you' },
@@ -27,7 +27,7 @@ const DONK_TYPES = [
       { action: 'Call', hands: 'Top pair in position - re-evaluate turn, they may shut down' },
       { action: 'Fold', hands: 'Medium/weak hands - respect the sizing from most players' },
     ]},
-  { type: 'Min Donk', color: '#8b5cf6', icon: '●',
+  { type: 'Min Donk', color: '#86daff', icon: '●',
     meaning: 'Almost always a weak player "blocking" to see cheap cards. This is a terrible play by them.',
     response: [
       { action: 'Raise 4-5x', hands: 'Almost anything - punish this sizing mercilessly' },

@@ -201,8 +201,8 @@ const RangeStats = memo(({ range, solverRange }) => {
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 12, color: '#f59e0b' }}>Extra</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 12, color: '#86daff' }}>Extra</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {stats.extra}
                         </div>
                     </div>
@@ -421,7 +421,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                         {[
                             { label: 'Both', color: '#22c55e' },
                             { label: 'Missing', color: '#ef4444' },
-                            { label: 'Extra', color: '#f59e0b' },
+                            { label: 'Extra', color: '#86daff' },
                         ].map(l => (
                             <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: l.color }} />

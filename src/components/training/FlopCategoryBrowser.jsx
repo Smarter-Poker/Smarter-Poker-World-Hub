@@ -231,7 +231,7 @@ export default function FlopCategoryBrowser() {
               padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
               background: sortBy === s ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
               border: sortBy === s ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent',
-              color: sortBy === s ? '#f59e0b' : '#64748b', fontSize: 12, fontWeight: 600,
+              color: sortBy === s ? '#86daff' : '#64748b', fontSize: 12, fontWeight: 600,
             }}>Sort: {s === 'frequency' ? 'Frequency' : s === 'cbet' ? 'C-Bet %' : 'Difficulty'}</button>
           ))}
         </div>
@@ -252,7 +252,7 @@ export default function FlopCategoryBrowser() {
                     <span style={{ padding: '2px 5px', borderRadius: 3, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: 12, fontWeight: 800 }}>{cat.group}</span>
                     <span style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, flex: 1 }}>{cat.name}</span>
                     <span style={{ color: getDifficultyColor(cat.difficulty), fontSize: 12, fontWeight: 700 }}>{cat.difficulty}</span>
-                    <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 800 }}>{cat.frequency}%</span>
+                    <span style={{ color: '#86daff', fontSize: 12, fontWeight: 800 }}>{cat.frequency}%</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ color: '#64748b', fontSize: 12 }}>{cat.pattern}</span>
@@ -274,7 +274,7 @@ export default function FlopCategoryBrowser() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 10 }}>
                       {[
                         { label: 'IP C-Bet', value: `${cat.ipCbet}%`, color: '#22c55e' },
-                        { label: 'OOP C-Bet', value: `${cat.oopCbet}%`, color: '#f59e0b' },
+                        { label: 'OOP C-Bet', value: `${cat.oopCbet}%`, color: '#86daff' },
                         { label: 'Sizing', value: cat.preferredSize, color: '#3b82f6' },
                         { label: 'Check Freq', value: `${cat.checkFreq}%`, color: '#64748b' },
                       ].map((s, i) => (

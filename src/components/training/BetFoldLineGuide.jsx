@@ -11,7 +11,7 @@ const BET_FOLD_SPOTS = [
     reason: 'K8 on K-high board. Good enough to bet for value vs worse, but if raised, you\'re crushed. Bet-fold.',
     betVs: 'Calls from worse Kx, 9x, draws', foldVs: 'Raises from KQ, KJ, sets, two pair' },
   { hand: 'Overpair on Wet Board', board: 'J♥ T♥ 6♣ 5♠', street: 'Turn', sizing: '66%',
-    action: 'BET / FOLD to big raise', color: '#f59e0b',
+    action: 'BET / FOLD to big raise', color: '#86daff',
     reason: 'QQ on J-T-6-5. Good hand but straight and flush draws are everywhere. Bet for value + protection, fold to a shove.',
     betVs: 'Calls from draws, Jx, medium pairs', foldVs: 'All-in from straights, sets, two pair' },
   { hand: 'Medium Pair, River', board: 'A♠ 8♦ 5♣ 2♥ 3♠', street: 'River', sizing: '40%',

@@ -100,11 +100,11 @@ export default function LifetimeStatsCard({
                     icon="▣"
                     label="EV/Hand"
                     value={avgEVPerHand.toFixed(2)}
-                    color={avgEVPerHand < 0.5 ? '#22c55e' : '#fbbf24'}
+                    color={avgEVPerHand < 0.5 ? '#22c55e' : '#86daff'}
                     delay={0.25}
                 />
-                <StatBox icon="" label="Best Streak" value={longestStreak} color="#f97316" delay={0.3} />
-                <StatBox icon="▲" label="Mistakes" value={totalMistakes} color="#fbbf24" delay={0.35} />
+                <StatBox icon="" label="Best Streak" value={longestStreak} color="#86daff" delay={0.3} />
+                <StatBox icon="▲" label="Mistakes" value={totalMistakes} color="#86daff" delay={0.35} />
             </div>
 
             {/* Pot-Type Breakdown */}
@@ -114,15 +114,15 @@ export default function LifetimeStatsCard({
                     <div style={{ display: 'flex', gap: 6 }}>
                         <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
                             <div style={{ color: '#94a3b8', fontSize: 12 }}>SRP ({potStats.srp.count})</div>
-                            <div style={{ color: srpAvg >= 80 ? '#22c55e' : srpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{srpAvg}%</div>
+                            <div style={{ color: srpAvg >= 80 ? '#22c55e' : srpAvg >= 60 ? '#86daff' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{srpAvg}%</div>
                         </div>
                         <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
                             <div style={{ color: '#94a3b8', fontSize: 12 }}>3BP ({potStats['3bp'].count})</div>
-                            <div style={{ color: tbpAvg >= 80 ? '#22c55e' : tbpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{tbpAvg}%</div>
+                            <div style={{ color: tbpAvg >= 80 ? '#22c55e' : tbpAvg >= 60 ? '#86daff' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{tbpAvg}%</div>
                         </div>
                         <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
                             <div style={{ color: '#94a3b8', fontSize: 12 }}>4BP+ ({potStats['4bp'].count})</div>
-                            <div style={{ color: fbpAvg >= 80 ? '#22c55e' : fbpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{fbpAvg}%</div>
+                            <div style={{ color: fbpAvg >= 80 ? '#22c55e' : fbpAvg >= 60 ? '#86daff' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{fbpAvg}%</div>
                         </div>
                     </div>
                 </div>

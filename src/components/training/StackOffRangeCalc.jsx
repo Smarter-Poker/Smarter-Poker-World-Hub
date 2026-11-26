@@ -16,7 +16,7 @@ const SPR_RANGES = [
     tip: 'At SPR <1, you are pot-committed on the flop. Get it in with almost anything that has equity.',
   },
   {
-    spr: '1-3', label: 'Low SPR', color: '#f59e0b',
+    spr: '1-3', label: 'Low SPR', color: '#86daff',
     stackOff: [
       { category: 'Strong Stack Off', hands: 'Overpairs (AA-TT), top pair top kicker, sets, two pair+', pct: 40 },
       { category: 'Marginal Stack Off', hands: 'Top pair decent kicker, flush draws, OESD + pair', pct: 25 },
@@ -25,7 +25,7 @@ const SPR_RANGES = [
     tip: 'Low SPR = simplified poker. Top pair is often strong enough to commit. Sets are the stone cold nuts.',
   },
   {
-    spr: '3-6', label: 'Medium-Low SPR', color: '#eab308',
+    spr: '3-6', label: 'Medium-Low SPR', color: '#86daff',
     stackOff: [
       { category: 'Strong Stack Off', hands: 'Sets, two pair, nut flush draws, combo draws', pct: 25 },
       { category: 'Marginal', hands: 'Top pair good kicker, overpairs on safe boards', pct: 20 },
@@ -65,7 +65,7 @@ function StackOffRangeCalc() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f472b6' }}>Stack-Off Range Calculator</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Stack-Off Range Calculator</h3>
 
         {/* SPR Selector */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>

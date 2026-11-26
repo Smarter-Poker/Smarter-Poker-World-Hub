@@ -217,7 +217,7 @@ export default function LevelCompleteModal({
                     text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
                 }
                 .title.warning { 
-                    color: #fbbf24; 
+                    color: #86daff; 
                     text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
                 }
 

@@ -14,7 +14,7 @@ const TOURNAMENT_STRUCTURES = [
     payouts: [{ place: '1st', pct: 50, amount: 450 }, { place: '2nd', pct: 30, amount: 270 }, { place: '3rd', pct: 20, amount: 180 }],
     jumps: [
       { from: 4, to: 3, label: 'Bubble → Money', jumpValue: 180, significance: 'CRITICAL', color: '#ef4444' },
-      { from: 3, to: 2, label: '3rd → 2nd', jumpValue: 90, significance: 'Important', color: '#f59e0b' },
+      { from: 3, to: 2, label: '3rd → 2nd', jumpValue: 90, significance: 'Important', color: '#86daff' },
       { from: 2, to: 1, label: '2nd → 1st', jumpValue: 180, significance: 'High', color: '#10b981' },
     ],
   },
@@ -32,7 +32,7 @@ const TOURNAMENT_STRUCTURES = [
     jumps: [
       { from: 9, to: 8, label: '9th → 8th', jumpValue: 2500, significance: 'Low', color: '#6b7280' },
       { from: 6, to: 5, label: '6th → 5th', jumpValue: 5000, significance: 'Medium', color: '#3b82f6' },
-      { from: 4, to: 3, label: '4th → 3rd', jumpValue: 12500, significance: 'High', color: '#f59e0b' },
+      { from: 4, to: 3, label: '4th → 3rd', jumpValue: 12500, significance: 'High', color: '#86daff' },
       { from: 3, to: 2, label: '3rd → 2nd', jumpValue: 25000, significance: 'Very High', color: '#ef4444' },
       { from: 2, to: 1, label: '2nd → 1st', jumpValue: 50000, significance: 'MASSIVE', color: '#10b981' },
     ],
@@ -67,7 +67,7 @@ function TournamentPayJumpCalc() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#fbbf24' }}>Pay Jump Calculator</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Pay Jump Calculator</h3>
 
         {/* Tournament Selector */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -83,7 +83,7 @@ function TournamentPayJumpCalc() {
         {/* Prize Pool Info */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24' }}>${tourney.prizePool.toLocaleString()}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff' }}>${tourney.prizePool.toLocaleString()}</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Prize Pool</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
@@ -109,7 +109,7 @@ function TournamentPayJumpCalc() {
           {tourney.payouts.map((p, i) => (
             <div key={i} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 6, textAlign: 'center' }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{p.place}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>${p.amount.toLocaleString()}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff' }}>${p.amount.toLocaleString()}</div>
             </div>
           ))}
         </div>

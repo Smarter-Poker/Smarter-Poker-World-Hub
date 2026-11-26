@@ -21,7 +21,7 @@ export default function PotCommittedCalc() {
 
     let verdict, color, emoji;
     if (spr <= 1) { verdict = 'FULLY COMMITTED - Just get it in'; color = '#ef4444'; emoji = '●'; }
-    else if (spr <= 2) { verdict = 'POT COMMITTED - Very hard to fold'; color = '#f59e0b'; emoji = '●'; }
+    else if (spr <= 2) { verdict = 'POT COMMITTED - Very hard to fold'; color = '#86daff'; emoji = '●'; }
     else if (spr <= 4) { verdict = 'SOMEWHAT COMMITTED - Need decent equity'; color = '#3b82f6'; emoji = '●'; }
     else { verdict = 'NOT COMMITTED - Can still fold'; color = '#22c55e'; emoji = '●'; }
 
@@ -64,8 +64,8 @@ export default function PotCommittedCalc() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {[
           { label: 'Current SPR', val: analysis.spr, color: '#3b82f6' },
-          { label: 'SPR After Call', val: analysis.sprAfterCall, color: '#8b5cf6' },
-          { label: 'Break-Even Equity', val: `${analysis.potOdds}%`, color: '#f59e0b' },
+          { label: 'SPR After Call', val: analysis.sprAfterCall, color: '#86daff' },
+          { label: 'Break-Even Equity', val: `${analysis.potOdds}%`, color: '#86daff' },
           { label: 'Remaining Stack', val: `${analysis.remainAfterCall} BB`, color: '#22c55e' },
         ].map((s, i) => (
           <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
@@ -86,7 +86,7 @@ export default function PotCommittedCalc() {
           { range: '8+', note: 'Deep. Implied odds matter more than pot odds.' },
         ].map((r, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, marginBottom: 3 }}>
-            <span style={{ fontWeight: 700, color: '#f59e0b', minWidth: 32 }}>{r.range}</span>
+            <span style={{ fontWeight: 700, color: '#86daff', minWidth: 32 }}>{r.range}</span>
             <span style={{ color: '#94a3b8' }}>{r.note}</span>
           </div>
         ))}

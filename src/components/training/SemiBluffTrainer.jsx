@@ -81,7 +81,7 @@ export default function SemiBluffTrainer() {
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 12 }}>
               <div style={{ background: 'rgba(236,72,153,0.1)', borderRadius: 8, padding: '6px 12px' }}>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Outs</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#ec4899' }}>{spot.outs}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#86daff' }}>{spot.outs}</div>
               </div>
               <div style={{ background: 'rgba(59,130,246,0.1)', borderRadius: 8, padding: '6px 12px' }}>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Equity</div>
@@ -89,7 +89,7 @@ export default function SemiBluffTrainer() {
               </div>
               <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: '6px 12px' }}>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Sizing</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b' }}>{spot.sizing}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff' }}>{spot.sizing}</div>
               </div>
             </div>
             <div style={{ fontSize: 15, fontWeight: 800, color: spot.verdict === 'SEMI-BLUFF' ? '#22c55e' : '#ef4444', marginBottom: 6 }}>

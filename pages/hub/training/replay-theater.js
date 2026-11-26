@@ -521,7 +521,7 @@ export default function ReplayTheaterPage() {
                   flex: 1,
                   border: `1px solid ${streetFilter === s ? 'rgba(168,85,247,0.2)' : 'transparent'}`,
                   background: streetFilter === s ? 'rgba(168,85,247,0.06)' : 'transparent',
-                  color: streetFilter === s ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
+                  color: streetFilter === s ? '#86daff' : 'var(--sp-fg-dim)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',

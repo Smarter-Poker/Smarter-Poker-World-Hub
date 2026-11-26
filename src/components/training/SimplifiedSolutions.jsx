@@ -89,7 +89,7 @@ export default function SimplifiedSolutions() {
             style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: modeIdx === i ? '2px solid #8b5cf6' : '1px solid rgba(255,255,255,0.06)',
               background: modeIdx === i ? 'rgba(139,92,246,0.15)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 16 }}>{m.icon}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: modeIdx === i ? '#8b5cf6' : '#64748b' }}>{m.mode}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: modeIdx === i ? '#86daff' : '#64748b' }}>{m.mode}</div>
           </button>
         ))}
       </div>
@@ -97,8 +97,8 @@ export default function SimplifiedSolutions() {
       {/* EV Loss Badge */}
       {modeIdx > 0 && (
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 8, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: '#f59e0b' }}>EV Loss From Simplification:</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#f59e0b', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: 12, color: '#86daff' }}>EV Loss From Simplification:</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#86daff', fontFamily: 'monospace' }}>
             -{(modeIdx === 1 ? spot.evLoss.simplified : spot.evLoss.single).toFixed(2)} BB/Hand
           </span>
         </div>

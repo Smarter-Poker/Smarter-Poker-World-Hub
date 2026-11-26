@@ -59,11 +59,11 @@ function HandReadingTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#c084fc' }}>Hand Reading Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Hand Reading Trainer</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Exercise {exerciseIdx + 1}/{EXERCISES.length}</span>
         </div>
 
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#c084fc', marginBottom: 12 }}>{exercise.title}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', marginBottom: 12 }}>{exercise.title}</div>
 
         {/* Streets */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
@@ -101,7 +101,7 @@ function HandReadingTrainer() {
         {revealedStreet >= exercise.streets.length - 1 && (
           <div>
             <div style={{ padding: 12, background: 'rgba(192,132,252,0.06)', borderRadius: 8, border: '1px solid rgba(192,132,252,0.15)', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#c084fc', marginBottom: 4 }}>Decision Point</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Decision Point</div>
               <div style={{ fontSize: 13, color: '#fff' }}>{exercise.question}</div>
             </div>
 

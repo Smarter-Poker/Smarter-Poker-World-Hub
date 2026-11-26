@@ -197,7 +197,7 @@ export default function QuizModeEngine() {
         <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: '0 0 16px 0' }}>Quiz Results</h3>
 
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ color: accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#f59e0b' : '#ef4444', fontSize: 48, fontWeight: 800 }}>
+          <div style={{ color: accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#86daff' : '#ef4444', fontSize: 48, fontWeight: 800 }}>
             {totalScore}
           </div>
           <div style={{ color: '#94a3b8', fontSize: 14 }}>Points</div>
@@ -205,9 +205,9 @@ export default function QuizModeEngine() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
           {[
-            { label: 'Accuracy', value: `${accuracy}%`, color: accuracy >= 80 ? '#22c55e' : '#f59e0b' },
+            { label: 'Accuracy', value: `${accuracy}%`, color: accuracy >= 80 ? '#22c55e' : '#86daff' },
             { label: 'Correct', value: `${correctCount}/${questions.length}`, color: '#3b82f6' },
-            { label: 'Best Streak', value: bestStreak.toString(), color: '#8b5cf6' },
+            { label: 'Best Streak', value: bestStreak.toString(), color: '#86daff' },
             { label: 'Difficulty', value: difficulty.label, color: difficulty.color },
           ].map(s => (
             <div key={s.label} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
@@ -224,7 +224,7 @@ export default function QuizModeEngine() {
             {Object.entries(typeBreakdown || {}).map(([type, data]) => (
               <div key={type} style={{ padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', textAlign: 'center' }}>
                 <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 600, textTransform: 'capitalize' }}>{type}</div>
-                <div style={{ color: data.correct === data.total ? '#22c55e' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>
+                <div style={{ color: data.correct === data.total ? '#22c55e' : '#86daff', fontSize: 14, fontWeight: 700 }}>
                   {data.correct}/{data.total}
                 </div>
               </div>

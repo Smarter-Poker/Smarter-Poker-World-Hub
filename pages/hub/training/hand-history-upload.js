@@ -371,7 +371,7 @@ const GRADE_TIERS = {
   MISTAKE: {
     label: 'Mistake',
     icon: '✕',
-    color: 'var(--sp-accent-orange)',
+    color: '#86daff',
     bg: 'rgba(249,115,22,0.1)',
     border: 'rgba(249,115,22,0.3)',
   },
@@ -650,7 +650,7 @@ function LeakReport({ hands }) {
             style={{
               fontSize: 22,
               fontWeight: 900,
-              color: accuracy >= 70 ? 'var(--sp-accent-green)' : accuracy >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
+              color: accuracy >= 70 ? 'var(--sp-accent-green)' : accuracy >= 50 ? '#86daff' : 'var(--sp-accent-red)',
             }}
           >
             {accuracy}%
@@ -686,7 +686,7 @@ function LeakReport({ hands }) {
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--sp-accent-orange)' }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#86daff' }}>
             {graded.reduce((sum, grade) => sum + (grade.mistakeDecisions || 0), 0)}
           </div>
           <div

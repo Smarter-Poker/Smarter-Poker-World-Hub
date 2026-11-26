@@ -134,7 +134,7 @@ const PositionHeatmap = memo(({ sessions, positionAccuracy }) => {
         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
             {posData.map(p => {
                 const acc = p.accuracy;
-                const color = acc >= 0.75 ? '#22c55e' : acc >= 0.6 ? '#f59e0b' : acc >= 0.4 ? '#fb923c' : '#ef4444';
+                const color = acc >= 0.75 ? '#22c55e' : acc >= 0.6 ? '#86daff' : acc >= 0.4 ? '#86daff' : '#ef4444';
                 return (
                     <div key={p.position} style={{
                         flex: 1, maxWidth: 65,
@@ -164,8 +164,8 @@ const SpotTypeBreakdown = memo(({ sessions, spotAccuracy }) => {
     const spotData = useMemo(() => {
         const spots = {
             cbet: { label: 'C-Bet', correct: 0, total: 0, color: '#3b82f6' },
-            checkraise: { label: 'Check-Raise', correct: 0, total: 0, color: '#a855f7' },
-            facing_bet: { label: 'Facing Bet', correct: 0, total: 0, color: '#f59e0b' },
+            checkraise: { label: 'Check-Raise', correct: 0, total: 0, color: '#86daff' },
+            facing_bet: { label: 'Facing Bet', correct: 0, total: 0, color: '#86daff' },
             turn_barrel: { label: 'Turn Barrel', correct: 0, total: 0, color: '#22d3ee' },
             river_vbet: { label: 'River Value', correct: 0, total: 0, color: '#ef4444' },
         };
@@ -313,23 +313,23 @@ const MilestoneBadges = memo(({ sessions }) => {
 
         // Session count milestones
         if (totalSessions >= 1) earned.push({ icon: '◆', label: 'First Session', color: '#3b82f6' });
-        if (totalSessions >= 10) earned.push({ icon: '▲', label: '10 Sessions', color: '#f59e0b' });
-        if (totalSessions >= 25) earned.push({ icon: '◆', label: '25 Sessions', color: '#a855f7' });
+        if (totalSessions >= 10) earned.push({ icon: '▲', label: '10 Sessions', color: '#86daff' });
+        if (totalSessions >= 25) earned.push({ icon: '◆', label: '25 Sessions', color: '#86daff' });
         if (totalSessions >= 50) earned.push({ icon: '★', label: '50 Sessions', color: '#22d3ee' });
 
         // Score milestones
         if (bestScore !== null && bestScore >= 70) earned.push({ icon: '★', label: 'Score 70+', color: '#22c55e' });
-        if (bestScore !== null && bestScore >= 80) earned.push({ icon: '★', label: 'Score 80+', color: '#f59e0b' });
+        if (bestScore !== null && bestScore >= 80) earned.push({ icon: '★', label: 'Score 80+', color: '#86daff' });
         if (bestScore !== null && bestScore >= 90) earned.push({ icon: '▲', label: 'Score 90+', color: '#ef4444' });
 
         // Hand count milestones
         if (totalHands >= 100) earned.push({ icon: '◇', label: '100 Hands', color: '#818cf8' });
         if (totalHands >= 500) earned.push({ icon: '●', label: '500 Hands', color: '#22c55e' });
-        if (totalHands >= 1000) earned.push({ icon: '★', label: '1K Hands', color: '#f59e0b' });
+        if (totalHands >= 1000) earned.push({ icon: '★', label: '1K Hands', color: '#86daff' });
 
         // Average score milestones
         if (avgScore !== null && avgScore >= 65 && verifiedScores.length >= 5) earned.push({ icon: '▲', label: 'Consistent B+', color: '#3b82f6' });
-        if (avgScore !== null && avgScore >= 75 && verifiedScores.length >= 10) earned.push({ icon: '★', label: 'Master Student', color: '#a855f7' });
+        if (avgScore !== null && avgScore >= 75 && verifiedScores.length >= 10) earned.push({ icon: '★', label: 'Master Student', color: '#86daff' });
 
         return earned;
     }, [sessions]);
@@ -577,7 +577,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                         <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Avg Score</div>
                         <div style={{
                             fontSize: 18, fontWeight: 700,
-                            color: metrics.avgScore === null ? '#64748b' : metrics.avgScore >= 70 ? '#22c55e' : metrics.avgScore >= 55 ? '#f59e0b' : '#ef4444',
+                            color: metrics.avgScore === null ? '#64748b' : metrics.avgScore >= 70 ? '#22c55e' : metrics.avgScore >= 55 ? '#86daff' : '#ef4444',
                             fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
                             {metrics.avgScore === null ? '-' : metrics.avgScore.toFixed(0)}
@@ -593,7 +593,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Best</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#86daff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {metrics.bestScore ?? '-'}
                         </div>
                     </div>
@@ -659,7 +659,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                 </DashSection>
 
                 {/* Spot Type Breakdown */}
-                <DashSection title="Spot Accuracy" icon="●" color="#a855f7">
+                <DashSection title="Spot Accuracy" icon="●" color="#86daff">
                     <SpotTypeBreakdown sessions={filteredSessions} spotAccuracy={analytics?.spotAccuracy} />
                 </DashSection>
 
@@ -676,13 +676,13 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                 {/* Leak Timeline -- needs per-hand moves; hidden for
                     API-shaped history where "no leaks" would be a lie */}
                 {hasMoveData && (
-                    <DashSection title="Leak Detection" icon="○" color="#f59e0b">
+                    <DashSection title="Leak Detection" icon="○" color="#86daff">
                         <LeakTimeline sessions={filteredSessions} />
                     </DashSection>
                 )}
 
                 {/* Milestones */}
-                <DashSection title="Milestones" icon="★" color="#f59e0b">
+                <DashSection title="Milestones" icon="★" color="#86daff">
                     <MilestoneBadges sessions={filteredSessions} />
                 </DashSection>
             </div>

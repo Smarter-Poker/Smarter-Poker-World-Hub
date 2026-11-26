@@ -36,7 +36,7 @@ import { deriveTrainingSessionAccuracy } from '../../../src/lib/training/session
 // PR #320/#322/#324/#327/#328/#329/#330/#331.
 const EVENT_TYPES = {
   session:     { icon: '◆', iconKind: 'target',  color: 'var(--sp-accent-blue)', label: 'Training' },
-  streak:      { icon: '▲', iconKind: 'flame',   color: 'var(--sp-accent-orange)', label: 'Streak' },
+  streak:      { icon: '▲', iconKind: 'flame',   color: '#86daff', label: 'Streak' },
   achievement: { icon: '★', iconKind: 'trophy',  color: '#86daff', label: 'Badge' },
   mastery:     { icon: '★', iconKind: 'star',    color: '#86daff', label: 'Mastery' },
   leaderboard: { icon: '■', iconKind: 'chart',   color: 'var(--sp-accent-green)', label: 'Rank Up' },
@@ -153,7 +153,7 @@ function FeedItem({ item }) {
           <>
             <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
             {' hit a '}
-            <span style={{ fontWeight: 800, color: 'var(--sp-accent-orange)' }}>{item.streakDays}-Day Streak</span>
+            <span style={{ fontWeight: 800, color: '#86daff' }}>{item.streakDays}-Day Streak</span>
             {' milestone!'}
           </>
         );

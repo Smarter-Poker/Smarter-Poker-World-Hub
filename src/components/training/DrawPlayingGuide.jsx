@@ -9,7 +9,7 @@ const DRAWS = [
   { name: 'Nut Flush Draw', outs: 9, equity: '35%', icon: '♥', color: '#ef4444',
     play: 'Semi-bluff aggressively. Check-raise or bet when you have fold equity. Call when priced in.',
     sizing: 'Bet 66-75% or check-raise to 3x as semi-bluff', avoid: 'Passive calling on the flop - you have too much equity to just call' },
-  { name: 'Open-Ended Straight', outs: 8, equity: '31%', icon: '·', color: '#f59e0b',
+  { name: 'Open-Ended Straight', outs: 8, equity: '31%', icon: '·', color: '#86daff',
     play: 'Similar to flush draws but slightly less equity. Semi-bluff in position, check-call OOP.',
     sizing: 'Bet 55-66% as semi-bluff, call reasonable bets', avoid: 'Overplaying gutshots as OESDs - count your outs carefully' },
   { name: 'Combo Draw (Flush + Straight)', outs: 15, equity: '54%', icon: '◆', color: '#22c55e',
@@ -18,7 +18,7 @@ const DRAWS = [
   { name: 'Gutshot', outs: 4, equity: '17%', icon: '●', color: '#64748b',
     play: 'Mostly a fold or a bluff. Not enough equity to call big bets. Use as bluff candidates.',
     sizing: 'Only semi-bluff when you have strong fold equity', avoid: 'Calling large bets hoping to hit - pot odds rarely justify it' },
-  { name: 'Backdoor Flush + Backdoor Straight', outs: '~6', equity: '~12%', icon: '↻', color: '#8b5cf6',
+  { name: 'Backdoor Flush + Backdoor Straight', outs: '~6', equity: '~12%', icon: '↻', color: '#86daff',
     play: 'Not enough to call big bets alone, but great to add to your floating/bluffing range.',
     sizing: 'Float flop bets in position, barrel favorable turns', avoid: 'Overvaluing backdoor draws - they\'re a bonus, not a primary draw' },
 ];

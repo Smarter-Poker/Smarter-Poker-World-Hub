@@ -33,7 +33,7 @@ const SESSION_HANDS = [
 
 function getResultConfig(result) {
   if (result === 'correct') return { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', label: '✓ Correct' };
-  if (result === 'inaccuracy') return { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', label: '~ Inaccuracy' };
+  if (result === 'inaccuracy') return { color: '#86daff', bg: 'rgba(245,158,11,0.1)', label: '~ Inaccuracy' };
   return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', label: '✕ Mistake'};
 }
 
@@ -102,7 +102,7 @@ export default function SessionReplayTimeline() {
             { label: 'Hands', value: SESSION_HANDS.length, color: '#f1f5f9' },
             { label: 'Accuracy', value: `${accuracy}%`, color: '#22c55e' },
             { label: 'Mistakes', value: mistakes, color: '#ef4444' },
-            { label: 'Inaccuracies', value: inaccuracies, color: '#f59e0b' },
+            { label: 'Inaccuracies', value: inaccuracies, color: '#86daff' },
             { label: 'EV Loss', value: `${totalEVLoss.toFixed(1)}bb`, color: '#ef4444' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
@@ -152,7 +152,7 @@ export default function SessionReplayTimeline() {
                   <span style={{ color: '#475569', fontSize: 12, width: 16, fontWeight: 600 }}>#{h.id}</span>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
                   <span style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 800, width: 40 }}>{h.hand}</span>
-                  <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 600, width: 28 }}>{h.position}</span>
+                  <span style={{ color: '#86daff', fontSize: 12, fontWeight: 600, width: 28 }}>{h.position}</span>
                   <span style={{ color: '#64748b', fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal' }}>
                     {h.board}
                   </span>

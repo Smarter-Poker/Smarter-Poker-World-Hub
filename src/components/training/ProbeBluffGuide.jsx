@@ -63,7 +63,7 @@ export default function ProbeBluffGuide() {
           </div>
           {scenario.sizing !== 'N/A' && (
             <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: '8px 16px', textAlign: 'center' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b' }}>{scenario.sizing}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff' }}>{scenario.sizing}</div>
             </div>
           )}
         </div>

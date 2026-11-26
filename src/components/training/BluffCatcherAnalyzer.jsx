@@ -200,7 +200,7 @@ export default function BluffCatcherAnalyzer() {
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
             <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Hero Hand</div>
-            <div style={{ color: '#f59e0b', fontSize: 16, fontWeight: 800 }}>{selectedScenario.heroHand}</div>
+            <div style={{ color: '#86daff', fontSize: 16, fontWeight: 800 }}>{selectedScenario.heroHand}</div>
             <div style={{ color: '#94a3b8', fontSize: 12 }}>{selectedScenario.heroHandName}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
@@ -214,8 +214,8 @@ export default function BluffCatcherAnalyzer() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
           {[
             { label: 'MDF', value: `${selectedScenario.mdf.toFixed(1)}%`, color: '#3b82f6', desc: 'Min Defense Freq' },
-            { label: 'Pot Odds', value: `${selectedScenario.potOdds.toFixed(1)}%`, color: '#f59e0b', desc: 'Equity needed' },
-            { label: 'Hand Rank', value: `Top ${selectedScenario.heroRanking}%`, color: '#a78bfa', desc: 'In our range' },
+            { label: 'Pot Odds', value: `${selectedScenario.potOdds.toFixed(1)}%`, color: '#86daff', desc: 'Equity needed' },
+            { label: 'Hand Rank', value: `Top ${selectedScenario.heroRanking}%`, color: '#86daff', desc: 'In our range' },
             { label: 'EV of Call', value: `${selectedScenario.evCall >= 0 ? '+' : ''}${selectedScenario.evCall.toFixed(1)}`, color: selectedScenario.evCall >= 0 ? '#22c55e' : '#ef4444', desc: 'vs fold = 0' },
           ].map((m, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 8, textAlign: 'center' }}>

@@ -158,7 +158,7 @@ function StrategyGrid({ grid, label, mode, otherGrid, showLabels }) {
             >
               {showLabels && (
                 <span style={{
-                  color: isPair ? '#fbbf24' : isSuited ? '#34d399' : '#94a3b8',
+                  color: isPair ? '#86daff' : isSuited ? '#34d399' : '#94a3b8',
                   fontSize: 7, fontWeight: 700, lineHeight: 1,
                 }}>
                   {cell.hand}
@@ -219,7 +219,7 @@ function DiffSummary({ leftGrid, rightGrid }) {
       <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
         <div>
           <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Avg Diff</div>
-          <div style={{ color: '#f59e0b', fontSize: 18, fontWeight: 800 }}>{avgDiff}%</div>
+          <div style={{ color: '#86daff', fontSize: 18, fontWeight: 800 }}>{avgDiff}%</div>
         </div>
         <div>
           <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Max Diff</div>
@@ -231,7 +231,7 @@ function DiffSummary({ leftGrid, rightGrid }) {
         </div>
         <div>
           <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Big Diffs (20%+)</div>
-          <div style={{ color: '#a78bfa', fontSize: 18, fontWeight: 800 }}>{bigDiffs}</div>
+          <div style={{ color: '#86daff', fontSize: 18, fontWeight: 800 }}>{bigDiffs}</div>
         </div>
       </div>
 
@@ -243,7 +243,7 @@ function DiffSummary({ leftGrid, rightGrid }) {
           <div key={i} style={{
             padding: '4px 8px', borderRadius: 4,
             background: d.diff > 30 ? 'rgba(239,68,68,0.15)' : d.diff > 15 ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.1)',
-            color: d.diff > 30 ? '#ef4444' : d.diff > 15 ? '#f59e0b' : '#22c55e',
+            color: d.diff > 30 ? '#ef4444' : d.diff > 15 ? '#86daff' : '#22c55e',
             fontSize: 12, fontWeight: 700,
           }}>
             {d.hand}: {d.diff}%
@@ -306,7 +306,7 @@ export default function StrategyComparison() {
             <button onClick={() => setShowLabels(!showLabels)} style={{
               padding: '4px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
               background: showLabels ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
-              color: showLabels ? '#f59e0b' : '#94a3b8',
+              color: showLabels ? '#86daff' : '#94a3b8',
               fontSize: 12, fontWeight: 600,
             }}>
               {showLabels ? 'Hands' : '%'}

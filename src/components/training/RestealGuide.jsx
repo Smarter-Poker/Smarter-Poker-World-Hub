@@ -10,7 +10,7 @@ const RESTEAL_SPOTS = [
     hands: 'A2s-A5s, K9s+, QTs+, 77+', color: '#ef4444',
     reason: 'Short stack + LP opener = perfect resteal. They fold 60%+ and you pick up 4+ BB.' },
   { opener: 'Action Folds To The Button, Who Raises To 2.2 BB', you: 'SB', stack: '100 BB', action: '3-BET TO 10-11 BB',
-    hands: 'ATs+, KQs, 99+, A5s-A4s (blockers)', color: '#f59e0b',
+    hands: 'ATs+, KQs, 99+, A5s-A4s (blockers)', color: '#86daff',
     reason: 'The Button Raises First-In With A Wide Range. From The Small Blind, Use A Polarized 3-Bet Range Of Value Hands And Selected Blocker Bluffs.' },
   { opener: 'Action Folds To The Hijack, Who Raises To 2.5 BB', you: 'CO', stack: '80 BB', action: '3-BET TO 8 BB',
     hands: 'QQ+, AKs, AQs (mostly value)', color: '#3b82f6',
@@ -50,11 +50,11 @@ export default function RestealGuide() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Your Position</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#8b5cf6' }}>{spot.you}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#86daff' }}>{spot.you}</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Stack</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#f59e0b' }}>{spot.stack}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#86daff' }}>{spot.stack}</div>
           </div>
           <div style={{ background: `${spot.color}15`, borderRadius: 8, padding: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Action</div>

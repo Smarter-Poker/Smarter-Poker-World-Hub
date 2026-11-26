@@ -287,7 +287,7 @@ export default function QREExplorerPage() {
                   border: `1px solid ${activePreset === p.id ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.05)'}`,
                   background:
                     activePreset === p.id ? 'rgba(167,139,250,0.1)' : 'rgba(255,255,255,0.02)',
-                  color: activePreset === p.id ? 'var(--sp-accent-purple)' : 'var(--sp-fg-muted)',
+                  color: activePreset === p.id ? '#86daff' : 'var(--sp-fg-muted)',
                   cursor: 'pointer',
                   textAlign: 'center',
                 }}

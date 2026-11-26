@@ -21,12 +21,12 @@ const THREE_HANDED = [
     btnRange: 'N/A - you folded this hand.',
     sbRange: 'As SB: raise 60-70% or fold. Never limp. You have position postflop.',
     bbRange: 'As BB: 3-bet ~20-25% for value+bluffs. Flat ~30-40%. Fold ~35-40%.' },
-  { concept: 'ICM at 3-Handed Final Table', icon: '●', color: '#f59e0b',
+  { concept: 'ICM at 3-Handed Final Table', icon: '●', color: '#86daff',
     detail: 'In tournaments, 3-handed is where ICM pressure peaks. Big pay jumps between 3rd and 1st.',
     btnRange: 'As chip leader: attack. As medium: be cautious. As short: shove or fold.',
     sbRange: 'ICM makes SB vs BB wars less aggressive. You can\'t risk busting before the short stack.',
     bbRange: 'Tighten BB defense if you\'re the medium stack. Let the big stack eliminate the short.' },
-  { concept: 'Adjusting to Opponents', icon: '◇', color: '#8b5cf6',
+  { concept: 'Adjusting to Opponents', icon: '◇', color: '#86daff',
     detail: 'With only 2 opponents, you see their actions every hand. Adjust rapidly.',
     btnRange: 'If both blinds are tight: steal 80%+. If one is aggressive: tighten vs them, steal from the other.',
     sbRange: 'If BB folds a lot: raise every SB. If BB 3-bets often: tighten up and 4-bet/fold.',
@@ -72,7 +72,7 @@ export default function ThreeHandedPlay() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.sbRange}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Big Blind</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Big Blind</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.bbRange}</div>
           </div>
         </div>

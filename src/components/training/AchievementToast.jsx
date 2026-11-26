@@ -113,7 +113,7 @@ const styles = {
     label: {
         fontSize: 12,
         fontWeight: 600,
-        color: '#fbbf24',
+        color: '#86daff',
         textTransform: 'uppercase',
         letterSpacing: 1,
     },

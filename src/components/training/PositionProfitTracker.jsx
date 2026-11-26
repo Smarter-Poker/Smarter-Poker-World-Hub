@@ -8,7 +8,7 @@ import React, { useState, useMemo } from 'react';
 
 const POSITIONS_6MAX = [
   { pos: 'UTG', expected: -2.5, color: '#ef4444', hands: '15-18%', notes: 'Tightest position. Expected to lose from here. Minimize losses by playing premium hands only.' },
-  { pos: 'HJ', expected: -0.5, color: '#f59e0b', hands: '18-22%', notes: 'Slightly wider than UTG. Still a losing position overall but less so.' },
+  { pos: 'HJ', expected: -0.5, color: '#86daff', hands: '18-22%', notes: 'Slightly wider than UTG. Still a losing position overall but less so.' },
   { pos: 'CO', expected: 3.0, color: '#84cc16', hands: '25-30%', notes: 'First profitable position. Open wider, steal blinds effectively.' },
   { pos: 'BTN', expected: 8.0, color: '#10b981', hands: '40-50%', notes: 'Most profitable seat. Positional advantage is massive. Open WIDE.' },
   { pos: 'SB', expected: -15.0, color: '#dc2626', hands: '30-40%', notes: 'Worst position long-term. Forced to post blind, always OOP postflop.' },
@@ -18,7 +18,7 @@ const POSITIONS_6MAX = [
 const BENCHMARKS = [
   { level: 'Elite (10bb/100+)', color: '#10b981', minWR: 10 },
   { level: 'Strong (5-10bb/100)', color: '#3b82f6', minWR: 5 },
-  { level: 'Winning (1-5bb/100)', color: '#f59e0b', minWR: 1 },
+  { level: 'Winning (1-5bb/100)', color: '#86daff', minWR: 1 },
   { level: 'Breakeven (0bb/100)', color: '#6b7280', minWR: 0 },
   { level: 'Losing (<0bb/100)', color: '#ef4444', minWR: -999 },
 ];
@@ -46,7 +46,7 @@ function PositionProfitTracker() {
           <h3 style={{ margin: 0, fontSize: 18, color: '#22d3ee' }}>Position Profit Tracker</h3>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Overall WR</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: totalWR >= 5 ? '#10b981' : totalWR >= 0 ? '#f59e0b' : '#ef4444' }}>{totalWR > 0 ? '+' : ''}{totalWR} BB/100</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: totalWR >= 5 ? '#10b981' : totalWR >= 0 ? '#86daff' : '#ef4444' }}>{totalWR > 0 ? '+' : ''}{totalWR} BB/100</div>
           </div>
         </div>
 

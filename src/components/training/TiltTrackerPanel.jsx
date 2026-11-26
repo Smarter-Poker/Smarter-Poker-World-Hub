@@ -27,8 +27,8 @@ const TRIGGERS = [
 const TILT_LEVELS = [
   { name: 'Zen', range: [0, 15], color: '#22c55e', desc: 'Playing your A-game. Stay focused.' },
   { name: 'Mild', range: [15, 35], color: '#84cc16', desc: 'Slight frustration. Take a deep breath.' },
-  { name: 'Rising', range: [35, 55], color: '#f59e0b', desc: 'Tilt building. Consider taking a break.' },
-  { name: 'Tilted', range: [55, 75], color: '#f97316', desc: 'Decision quality declining. Stop and reset.' },
+  { name: 'Rising', range: [35, 55], color: '#86daff', desc: 'Tilt building. Consider taking a break.' },
+  { name: 'Tilted', range: [55, 75], color: '#86daff', desc: 'Decision quality declining. Stop and reset.' },
   { name: 'Full Tilt', range: [75, 100], color: '#ef4444', desc: 'STOP PLAYING. Leave the table immediately.' },
 ];
 

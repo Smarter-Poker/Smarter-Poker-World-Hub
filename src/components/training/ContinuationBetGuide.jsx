@@ -26,19 +26,19 @@ const BOARDS = [
     tip: 'Similar to A-high dry but slightly less extreme. K-high is still good for PFR.',
   },
   {
-    texture: 'Q♠ Q♦ 6♣', type: 'Paired', color: '#8b5cf6',
+    texture: 'Q♠ Q♦ 6♣', type: 'Paired', color: '#86daff',
     ip: { freq: '80%', size: '25%', reason: 'Almost pure range bet. Nobody has a Q very often. Tiny size with entire range is optimal.' },
     oop: { freq: '60%', size: '25%', reason: 'Still very high frequency. Paired boards compress ranges - small bets work great.' },
     tip: 'Paired boards = range bet small. The pair removes so many combos from both ranges.',
   },
   {
-    texture: '6♣ 5♣ 4♦', type: 'Low Connected', color: '#f59e0b',
+    texture: '6♣ 5♣ 4♦', type: 'Low Connected', color: '#86daff',
     ip: { freq: '25%', size: '50-66%', reason: 'Terrible board for PFR. BB has all the 78, 87, 34, suited connectors. Check back most range.' },
     oop: { freq: '20%', size: '66%', reason: 'Almost never c-bet OOP here. Defender has massive board advantage. Check and play defense.' },
     tip: 'Low connected boards strongly favor BB. Dramatically reduce c-bet frequency.',
   },
   {
-    texture: 'T♠ 7♠ 3♠', type: 'Monotone', color: '#e879f9',
+    texture: 'T♠ 7♠ 3♠', type: 'Monotone', color: '#86daff',
     ip: { freq: '40%', size: '50%', reason: 'Flush possibilities reduce range advantage. Bet with made flushes, strong pairs + flush draw. Medium size.' },
     oop: { freq: '30%', size: '50-66%', reason: 'Check most range. Bet with flushes and strong combo draws. Very polarized strategy.' },
     tip: 'Monotone boards = check more, bet bigger when you do bet. Polarized strategy.',

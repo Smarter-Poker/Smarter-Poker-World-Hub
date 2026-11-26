@@ -97,7 +97,7 @@ function ThinValueTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#fb923c' }}>Thin Value Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Thin Value Trainer</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
             {stats.correct}/{stats.total} ({accuracy}%) • Spot {currentIdx + 1}/{SPOTS.length}
           </span>
@@ -106,7 +106,7 @@ function ThinValueTrainer() {
         {/* Board + Hero */}
         <div style={{ textAlign: 'center', padding: 16, background: 'rgba(251,146,60,0.06)', borderRadius: 10, border: '1px solid rgba(251,146,60,0.15)', marginBottom: 16 }}>
           <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: 5, marginBottom: 6 }}>{spot.board}</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#fb923c', marginBottom: 6 }}>Hero: {spot.hero}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Hero: {spot.hero}</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{spot.position} • Villain Checks To You</div>
         </div>
 

@@ -182,7 +182,7 @@ const styles = {
     },
 
     stackLabel: {
-        color: '#f59e0b',
+        color: '#86daff',
         fontSize: 12,
         fontWeight: 'bold',
     },

@@ -23,7 +23,7 @@ const DEPTH_LEVELS = [
       { spot: 'Set Mining', change: 'Very profitable. Implied odds are excellent. Call up to 10bb.' },
       { spot: 'Postflop SPR', change: 'SPR ~9. Top pair is more of a 2-street hand. Sets are gold.' },
     ] },
-  { depth: '200bb', label: 'Very Deep', color: '#8b5cf6', icon: '▲',
+  { depth: '200bb', label: 'Very Deep', color: '#86daff', icon: '▲',
     openSize: '2.5-3x', threeBet: '3.5x open', fourBet: '2.5x 3bet',
     spr_srp: '~12', spr_3bp: '~5.5',
     adjustments: [
@@ -106,7 +106,7 @@ export default function DeepStackSolutions() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {DEEP_CONCEPTS.map((c, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>{c.concept}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>{c.concept}</div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.detail}</div>
             </div>
           ))}

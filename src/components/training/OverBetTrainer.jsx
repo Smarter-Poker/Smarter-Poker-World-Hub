@@ -138,7 +138,7 @@ function OverBetTrainer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
               {[
                 { label: 'Value Range', range: spot.valueRange, color: '#10b981' },
-                { label: 'Bluff Range', range: spot.bluffRange, color: '#f59e0b' },
+                { label: 'Bluff Range', range: spot.bluffRange, color: '#86daff' },
               ].map(r => (
                 <div key={r.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `3px solid ${r.color}` }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: r.color, marginBottom: 4 }}>{r.label}</div>

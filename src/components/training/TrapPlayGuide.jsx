@@ -47,7 +47,7 @@ export default function TrapPlayGuide() {
 
       {/* Hand display */}
       <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16, textAlign: 'center' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>Your Hand: {spot.hand}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>Your Hand: {spot.hand}</div>
         <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: 4, marginBottom: 16 }}>{spot.board}</div>
 
         {guessed === null ? (
@@ -69,7 +69,7 @@ export default function TrapPlayGuide() {
               color: (guessed === 'trap' && isTrap) || (guessed === 'bet' && !isTrap) ? '#22c55e' : '#ef4444' }}>
               {(guessed === 'trap' && isTrap) || (guessed === 'bet' && !isTrap) ? '✓ Correct!' : '✕ Not Quite'}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: isTrap ? '#8b5cf6' : '#f59e0b', marginBottom: 6 }}>{spot.action}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: isTrap ? '#86daff' : '#86daff', marginBottom: 6 }}>{spot.action}</div>
             <p style={{ fontSize: 13, color: '#cbd5e1', textAlign: 'left' }}>{spot.reason}</p>
           </motion.div>
         )}
@@ -78,12 +78,12 @@ export default function TrapPlayGuide() {
       {/* Conditions */}
       {guessed !== null && (
         <div style={{ background: 'rgba(139,92,246,0.06)', borderRadius: 10, padding: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>
             {isTrap ? 'Trap When...' : 'Bet When...'}
           </div>
           {spot.conditions.map((c, i) => (
             <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0', display: 'flex', gap: 6 }}>
-              <span style={{ color: isTrap ? '#8b5cf6' : '#f59e0b' }}>✓</span> {c}
+              <span style={{ color: isTrap ? '#86daff' : '#86daff' }}>✓</span> {c}
             </div>
           ))}
         </div>

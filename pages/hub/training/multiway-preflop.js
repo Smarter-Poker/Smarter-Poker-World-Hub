@@ -431,7 +431,7 @@ export default function MultiwayPreflopPage() {
                   style={{
                     fontSize: 12,
                     fontWeight: 700,
-                    color: selectedScenario === key ? 'var(--sp-accent-purple)' : 'var(--sp-fg)',
+                    color: selectedScenario === key ? '#86daff' : 'var(--sp-fg)',
                     marginBottom: 4,
                   }}
                 >

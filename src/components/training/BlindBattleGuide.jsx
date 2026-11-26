@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 const SB_STRATS = [
   {
     title: 'SB Open - Raise or Fold',
-    color: '#f59e0b',
+    color: '#86daff',
     desc: 'From the SB, you should either raise or fold. Limping is sometimes used in advanced play but open-raising is the standard GTO approach.',
     range: '~50% of hands',
     sizing: '2.5-3x BB',
@@ -43,7 +43,7 @@ const BB_STRATS = [
   },
   {
     title: 'BB 3-Bet vs SB',
-    color: '#8b5cf6',
+    color: '#86daff',
     desc: 'Mix 3-bets with strong value and strategic bluffs. SB will fold a lot since they\'re OOP.',
     range: '~18-22%',
     sizing: '3x open',
@@ -51,7 +51,7 @@ const BB_STRATS = [
   },
   {
     title: 'BB Check-Raise Flop',
-    color: '#e879f9',
+    color: '#86daff',
     desc: 'As the preflop caller OOP, check-raising is your main weapon for aggression. Use it with strong hands and draws.',
     range: 'Situational',
     sizing: '3-3.5x c-bet',
@@ -66,7 +66,7 @@ function BlindBattleGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#e879f9' }}>Blind Battle Guide</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Blind Battle Guide</h3>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button onClick={() => setPerspective('sb')} style={{

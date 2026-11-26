@@ -12,7 +12,7 @@ const HJ_TOPICS = [
   { title: 'vs CO/BTN 3-Bet', icon: '■', color: '#ef4444',
     text: 'CO and BTN will 3-bet you with wider ranges than they would UTG. Defend accordingly.',
     detail: '4-bet: QQ+, AKs | Call: TT-JJ, AQs, AJs, KQs, some suited connectors | Fold: weak broadways, low suited' },
-  { title: 'Iso-Raising Limpers', icon: '◆', color: '#f59e0b',
+  { title: 'Iso-Raising Limpers', icon: '◆', color: '#86daff',
     text: 'When UTG or UTG+1 limps, iso-raise to 4-5x from HJ with a wide value range.',
     detail: 'Iso with: 77+, ATs+, KJs+, QJs - isolate the fish and play IP post-flop' },
   { title: 'C-Betting from HJ', icon: '●', color: '#22c55e',
@@ -56,15 +56,15 @@ export default function HiJackStrategy() {
 
       {/* Position spectrum */}
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>Position Opening Spectrum</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>Position Opening Spectrum</div>
         {[
           { pos: 'UTG', pct: 15, color: '#ef4444' },
           { pos: 'HJ', pct: 24, color: '#6366f1', highlight: true },
-          { pos: 'CO', pct: 30, color: '#f59e0b' },
+          { pos: 'CO', pct: 30, color: '#86daff' },
           { pos: 'BTN', pct: 45, color: '#22c55e' },
         ].map((p, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: p.highlight ? 800 : 600, color: p.highlight ? '#8b5cf6' : '#94a3b8', minWidth: 30 }}>
+            <span style={{ fontSize: 12, fontWeight: p.highlight ? 800 : 600, color: p.highlight ? '#86daff' : '#94a3b8', minWidth: 30 }}>
               {p.pos}{p.highlight ? ' ←' : ''}
             </span>
             <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>

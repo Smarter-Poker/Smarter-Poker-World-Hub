@@ -52,7 +52,7 @@ function RiverPolarizationGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#d946ef' }}>River Polarization</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>River Polarization</h3>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {CONCEPTS.map((c, i) => (
@@ -104,7 +104,7 @@ function RiverPolarizationGuide() {
 
         {/* Mini quiz */}
         <div style={{ padding: 10, background: 'rgba(217,70,239,0.06)', borderRadius: 8, border: '1px solid rgba(217,70,239,0.15)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#d946ef', marginBottom: 6 }}>Quick Quiz</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Quick Quiz</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>{QUIZ[quizIdx].q}</div>
           {!quizAnswer && (
             <div style={{ display: 'flex', gap: 6 }}>

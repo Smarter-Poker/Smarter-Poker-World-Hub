@@ -117,7 +117,7 @@ function PositionFrequencyHeatmap() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#f59e0b' }}>Position Frequency Heatmap</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Position Frequency Heatmap</h3>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -258,12 +258,12 @@ function PositionFrequencyHeatmap() {
         {/* Selected Cell Detail */}
         {positionSummary && (
           <div style={{ marginTop: 16, padding: 14, background: 'rgba(245,158,11,0.08)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.2)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>{positionSummary.pos} Summary</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>{positionSummary.pos} Summary</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>
               Primary Action: <span style={{ color: '#10b981', fontWeight: 600 }}>{positionSummary.topAction}</span> At {positionSummary.topFreq}% Frequency.
               {' '}Combined Action Frequency Across All Lines: {positionSummary.total}%.
               {selectedCell?.action && (
-                <span> Currently Viewing: <span style={{ color: '#f59e0b', fontWeight: 600 }}>{selectedCell.action}</span> = {data[selectedCell.pos]?.[selectedCell.action] || 0}%
+                <span> Currently Viewing: <span style={{ color: '#86daff', fontWeight: 600 }}>{selectedCell.action}</span> = {data[selectedCell.pos]?.[selectedCell.action] || 0}%
                   {showDelta && ` (delta: ${(data[selectedCell.pos]?.[selectedCell.action] || 0) - (compareData[selectedCell.pos]?.[selectedCell.action] || 0)})`}
                 </span>
               )}

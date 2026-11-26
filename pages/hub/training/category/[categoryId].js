@@ -127,17 +127,24 @@ export default function CategoryPage() {
   const Icon = category.Icon;
   const playGame = (game, overrides = variant !== 'ALL' && game.category !== 'PSYCHOLOGY'
     ? { variant, bettingStructure: VARIANT_METADATA[variant]?.defaultStructure }
-    : null) => router.push({
-    pathname: '/hub/training/arena/[gameId]',
-    query: {
-      gameId: game.id,
-      start: '1',
-      source: 'training-category',
-      ...(overrides?.variant ? { variant: overrides.variant } : {}),
-      ...(overrides?.bettingStructure ? { bettingStructure: overrides.bettingStructure } : {}),
-      ...(overrides?.targetStreet ? { targetStreet: overrides.targetStreet } : {}),
-    },
-  });
+    : null) => {
+    if (!game) return;
+    const focusPosition = overrides?.heroPosition || overrides?.position || (Array.isArray(overrides?.targetPositions) ? overrides.targetPositions[0] : overrides?.targetPositions) || null;
+    router.push({
+      pathname: '/hub/training/arena/[gameId]',
+      query: {
+        gameId: game.id,
+        start: '1',
+        source: 'training-category',
+        ...(overrides?.variant ? { variant: overrides.variant } : {}),
+        ...(overrides?.bettingStructure ? { bettingStructure: overrides.bettingStructure } : {}),
+        ...(overrides?.format ? { format: overrides.format } : {}),
+        ...(overrides?.targetStreet ? { targetStreet: overrides.targetStreet } : {}),
+        ...(focusPosition ? { position: focusPosition } : {}),
+        ...(Number.isInteger(overrides?.questionsCount) ? { hands: String(overrides.questionsCount) } : {}),
+      },
+    });
+  };
 
   return (
     <PageTransition>

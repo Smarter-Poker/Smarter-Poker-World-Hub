@@ -192,9 +192,9 @@ function RangeMemorizationDrill() {
           {[
             { label: 'Correct', value: stats.correct, color: '#10b981' },
             { label: 'Wrong', value: stats.wrong, color: '#ef4444' },
-            { label: 'Accuracy', value: `${accuracy}%`, color: accuracy >= 80 ? '#10b981' : accuracy >= 60 ? '#f59e0b' : '#ef4444' },
-            { label: 'Streak', value: stats.streak, color: '#f59e0b' },
-            { label: 'Best', value: stats.bestStreak, color: '#8b5cf6' },
+            { label: 'Accuracy', value: `${accuracy}%`, color: accuracy >= 80 ? '#10b981' : accuracy >= 60 ? '#86daff' : '#ef4444' },
+            { label: 'Streak', value: stats.streak, color: '#86daff' },
+            { label: 'Best', value: stats.bestStreak, color: '#86daff' },
           ].map(s => (
             <div key={s.label} style={{ textAlign: 'center', flex: 1, minWidth: 60 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>

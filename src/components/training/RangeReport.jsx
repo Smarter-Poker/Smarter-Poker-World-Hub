@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 
 const CATEGORY_COLORS = {
     made: { color: '#22c55e', label: 'Made Hands', gradient: 'linear-gradient(135deg, #16a34a, #22c55e)' },
-    draw: { color: '#f59e0b', label: 'Draws', gradient: 'linear-gradient(135deg, #d97706, #f59e0b)' },
+    draw: { color: '#86daff', label: 'Draws', gradient: 'linear-gradient(135deg, #86daff, #86daff)' },
     air: { color: '#64748b', label: 'Air', gradient: 'linear-gradient(135deg, #475569, #64748b)' },
 };
 

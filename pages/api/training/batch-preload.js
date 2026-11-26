@@ -519,13 +519,15 @@ export default async function handler(req, res) {
           const gameLevel = Math.min(12, Math.max(1, parseInt(level, 10) || 1));
           const requestedQuestionCount = Math.min(50, Math.max(1, parseInt(count, 10) || 25));
           const attemptTargetHands = trainingMasteryMinimum(gameLevel);
-          const isTenHandCustomSession = Boolean(createDuelRequested || duelPayload || syncedHandId);
+          const isTenHandCustomSession = Boolean(
+              createDuelRequested || duelPayload || syncedHandId || requestedQuestionCount === 10
+          );
           const effectiveSessionKind = isTenHandCustomSession ? 'custom' : 'campaign';
           const effectiveTargetHands = isTenHandCustomSession ? 10 : attemptTargetHands;
           const isSingleHandRecovery = requestedQuestionCount === 1;
           // Campaign attempts always own the Level Registry's complete hand
-          // count. Duels and server-resolved synced-hand drills use the
-          // approved 10-hand custom challenge contract.
+          // count. Duels, synced-hand drills, and 10-hand leak-fix/shared-pack
+          // sprints use the approved 10-hand custom challenge contract.
           const questionCount = isSingleHandRecovery ? 1 : effectiveTargetHands;
           const gameMode = normalizeTrainingGameMode(rawGameMode);
           const handSelection = normalizeTrainingHandSelection(rawHandSelection);
@@ -549,7 +551,7 @@ export default async function handler(req, res) {
 
           // ●●● PHASE 15: Parse targeting params ●●●
           const targetPositions = rawTargetPositions
-              ? rawTargetPositions.split(',').map(p => p.trim().toUpperCase()).filter(p => ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB', 'HJ', 'UTG+1', 'MP+1'].includes(p))
+              ? rawTargetPositions.split(',').map(p => p.trim().toUpperCase()).filter(p => ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB', 'HJ', 'LJ', 'UTG+1', 'UTG+2', 'MP+1'].includes(p))
               : null;
           const validStreets = ['flop', 'turn', 'river', 'preflop'];
           const targetStreet = rawTargetStreet && validStreets.includes(rawTargetStreet.toLowerCase())

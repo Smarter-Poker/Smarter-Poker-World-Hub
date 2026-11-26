@@ -239,12 +239,14 @@ export default function GTOQuestionCard({
     const reduceMotion = useReducedMotion();
     const { viewMode } = useTrainingSettings();
 
-    // Reset selection/hover when a new question arrives so stale
-    // highlights don't carry over between questions
+    // Reset selection/hover when a new question arrives or a Practice Again
+    // replay clears showFeedback so stale highlights don't carry over
     useEffect(() => {
-        setSelectedId(null);
-        setHoveredId(null);
-    }, [question]);
+        if (!showFeedback) {
+            setSelectedId(null);
+            setHoveredId(null);
+        }
+    }, [question, showFeedback]);
 
     // BUG-D FIX: Fisher-Yates shuffle options per question to eliminate position bias
     const shuffledOptions = useMemo(() => {

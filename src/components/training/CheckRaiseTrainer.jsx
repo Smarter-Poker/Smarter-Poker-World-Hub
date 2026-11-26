@@ -157,7 +157,7 @@ function CheckRaiseTrainer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {[
                 { label: 'Value Range', range: spot.valueRange, color: '#10b981' },
-                { label: 'Bluff Range', range: spot.bluffRange, color: '#f59e0b' },
+                { label: 'Bluff Range', range: spot.bluffRange, color: '#86daff' },
                 { label: 'Check-Call Range', range: spot.checkCallRange, color: '#3b82f6' },
               ].map(r => (
                 <div key={r.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `3px solid ${r.color}` }}>

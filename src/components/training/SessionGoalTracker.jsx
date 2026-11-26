@@ -8,10 +8,10 @@ import React, { useState, useCallback } from 'react';
 
 const DEFAULT_GOALS = [
   { id: 'hands', label: 'Hands Played', target: 500, current: 0, unit: 'hands', icon: '', color: '#3b82f6'},
-  { id: 'study', label: 'Study Time', target: 60, current: 0, unit: 'min', icon: '', color: '#8b5cf6'},
+  { id: 'study', label: 'Study Time', target: 60, current: 0, unit: 'min', icon: '', color: '#86daff'},
   { id: 'drills', label: 'Drills Completed', target: 20, current: 0, unit: 'drills', icon: '', color: '#10b981'},
-  { id: 'accuracy', label: 'GTO Accuracy', target: 75, current: 0, unit: '%', icon: '✓', color: '#f59e0b'},
-  { id: 'reviews', label: 'Hand Reviews', target: 10, current: 0, unit: 'hands', icon: '', color: '#ec4899'},
+  { id: 'accuracy', label: 'GTO Accuracy', target: 75, current: 0, unit: '%', icon: '✓', color: '#86daff'},
+  { id: 'reviews', label: 'Hand Reviews', target: 10, current: 0, unit: 'hands', icon: '', color: '#86daff'},
   { id: 'evloss', label: 'Max EV Loss', target: 5, current: 0, unit: 'bb/100', icon: '', color: '#ef4444', inverted: true },
 ];
 
@@ -140,7 +140,7 @@ function SessionGoalTracker() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#8b5cf6' }}>Session Goals</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Session Goals</h3>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{completedCount}/{goals.length} Complete</span>
             <button
@@ -162,14 +162,14 @@ function SessionGoalTracker() {
         <div style={{ marginBottom: 16, padding: 12, background: 'rgba(139,92,246,0.08)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Session Progress</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: totalPct >= 100 ? '#10b981' : '#8b5cf6' }}>{totalPct}%</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: totalPct >= 100 ? '#10b981' : '#86daff' }}>{totalPct}%</span>
           </div>
           <div style={{ height: 10, background: 'rgba(255,255,255,0.08)', borderRadius: 5, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${totalPct}%`, background: totalPct >= 100 ? '#10b981' : 'linear-gradient(90deg, #8b5cf6, #a78bfa)', borderRadius: 5, transition: 'width 0.3s ease' }} />
           </div>
           <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Current Streak: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{currentStreak} Days</span></span>
-            {activePreset && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Preset: <span style={{ color: '#8b5cf6', fontWeight: 600 }}>{activePreset}</span></span>}
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Current Streak: <span style={{ color: '#86daff', fontWeight: 700 }}>{currentStreak} Days</span></span>
+            {activePreset && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Preset: <span style={{ color: '#86daff', fontWeight: 600 }}>{activePreset}</span></span>}
           </div>
         </div>
 
@@ -200,13 +200,13 @@ function SessionGoalTracker() {
               }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>{s.date}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: s.completed >= s.total ? '#10b981' : s.completed >= s.total - 1 ? '#f59e0b' : '#ef4444' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: s.completed >= s.total ? '#10b981' : s.completed >= s.total - 1 ? '#86daff' : '#ef4444' }}>
                     {s.completed}/{s.total} Goals
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{s.duration}</span>
-                  {s.streak && <span style={{ fontSize: 12, color: '#f59e0b'}}>▲</span>}
+                  {s.streak && <span style={{ fontSize: 12, color: '#86daff'}}>▲</span>}
                 </div>
               </div>
             ))}

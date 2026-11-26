@@ -18,7 +18,7 @@ const SPOTS = [
     tips: ['Target flat-callers specifically', 'Size larger when OOP', 'BTN is capped - they cant have premiums'],
   },
   {
-    position: 'SB vs UTG open + MP call', color: '#f59e0b',
+    position: 'SB vs UTG open + MP call', color: '#86daff',
     squeezeRange: '7-9%',
     value: 'AA-QQ, AKs, AKo',
     bluffs: 'A5s, A4s, K5s (very selective)',
@@ -56,7 +56,7 @@ function SqueezPlayGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f97316' }}>Squeeze Play Guide</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Squeeze Play Guide</h3>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {SPOTS.map((s, i) => (
