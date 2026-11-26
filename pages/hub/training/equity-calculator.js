@@ -639,13 +639,12 @@ export default function EquityCalculatorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [isOffline, setIsOffline] = useState(
-    typeof navigator !== 'undefined' ? !navigator.onLine : false,
-  );
+  const [isOffline, setIsOffline] = useState(false);
   const [offlineFallbackUsed, setOfflineFallbackUsed] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
+    setIsOffline(navigator.onLine === false);
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
     window.addEventListener('online', handleOnline);

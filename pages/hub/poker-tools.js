@@ -385,7 +385,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
             : selectedSlot.type === 'board' ? 'The Board' : 'Dead Cards';
     const statusText = error || (calculating ? 'Calculating Equity…'
         : results ? `${results[0].exact ? 'Exact' : 'Estimated'} Equity · ${results[0].total.toLocaleString('en-US')} Runouts`
-        : `Select ${required}${config.hasBoard ? '' : '–7'} Cards Per Hand`);
+        : `Select ${required}${config.hasBoard ? '' : '-7'} Cards Per Hand`);
 
     const schema = useMemo(() => {
         const canonicalPath = router.pathname === '/tools/poker-odds-calculator' ? '/tools/poker-odds-calculator' : '/hub/poker-tools';

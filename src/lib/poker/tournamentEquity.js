@@ -60,7 +60,7 @@ function bubbleFactor(stacks, prizes, baseline) {
 }
 
 export function tournamentEquity({ stacks = [], prizes = [], prizePool = 0 }) {
-    if (!Array.isArray(stacks) || stacks.length < 2 || stacks.length > 9) throw new RangeError('Enter 2–9 stacks');
+    if (!Array.isArray(stacks) || stacks.length < 2 || stacks.length > 9) throw new RangeError('Enter 2-9 stacks');
     const parsedStacks = stacks.map(Number);
     if (parsedStacks.some(s => !Number.isSafeInteger(s) || s <= 0)) throw new RangeError('Every remaining player needs a positive stack');
     if (!Array.isArray(prizes) || !prizes.length || prizes.length > stacks.length) throw new RangeError('Enter one prize per paid place');
