@@ -112,7 +112,7 @@ test('MTT Lobby design tokens & progressive disclosure contracts exist in traini
 });
 
 test('1-tap start flow, preset summary, and progressive disclosures are wired across Training surfaces', () => {
-  const hubPage = read('pages/hub/training.js');
+  const hubPage = `${read('pages/hub/training.js')}\n${read('src/components/training/lobby/TrainingLobbyHeader.jsx')}`;
   assert.ok(!hubPage.includes('data-training-preset-summary="true"'), 'Training Home must keep preset details out of the play entry point');
   assert.ok(hubPage.includes('data-start-training-cta="true"'), 'Training Home must provide a 1-tap Start Training CTA');
   assert.ok(!hubPage.includes('data-customize-preset-cta="true"'), 'Training Home must keep setup controls out of the play entry point');
@@ -516,7 +516,7 @@ test('Phase 17 full suite: PLO8/Fixed-Limit specialized curriculum, Shared Drill
   assert.equal(decodeSharedDrillPack(`${token}tampered`), null, 'Tampered shared drill pack token must return null');
 
   // 4. Verify UI wiring markers across Phase 17 files
-  const trainingHomeSrc = read('pages/hub/training.js');
+  const trainingHomeSrc = `${read('pages/hub/training.js')}\n${read('src/components/training/lobby/TrainingLobbyHeader.jsx')}`;
   assert.ok(trainingHomeSrc.includes('data-five-minute-leak-fix="true"'), 'Training Home must render Today\'s 5-Minute Leak Fix banner');
   assert.ok(trainingHomeSrc.includes('data-start-five-minute-fix-cta="true"'), 'Training Home must render 1-tap Start 5-Minute Fix CTA');
 
@@ -740,7 +740,7 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
   assert.equal(decodeClubCoachAssignment('assign1.bad.payload'), null);
 
   // 8. Verify UI wiring markers across Phase 19 files
-  const trainingHomeSrc = read('pages/hub/training.js');
+  const trainingHomeSrc = `${read('pages/hub/training.js')}\n${read('src/components/training/lobby/TrainingLobbyHeader.jsx')}`;
   assert.doesNotMatch(trainingHomeSrc, /data-srs-due-queue|data-stake-readiness-passport|evaluateClubArenaStakeReadiness/);
   assert.ok(trainingHomeSrc.includes('data-speculative-prefetch="ready"'), 'Training Home must expose speculative hover prefetch');
 

@@ -218,7 +218,7 @@ export const LANDING_GUIDES = [
     id: 'state-guides',
     name: 'US State Poker Legality & Tax Directory',
     href: '/poker-rooms/states',
-    summary: 'State-By-State Minimum Gambling Age, Live Cardroom Legal Status, Rake Models And Tax Withholding Across Fifteen Top States.',
+    summary: 'State-By-State Minimum Gambling Age, Live Cardroom Legal Status, Rake Models And Tax Withholding Across All 50 US States And DC.',
   },
   {
     id: 'series-guides',

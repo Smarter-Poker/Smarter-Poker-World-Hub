@@ -3539,7 +3539,7 @@ export async function readMcpResource(uri, { origin = SITE_ORIGIN } = {}) {
                 table_position_guides: 9,
                 stakes_level_guides: 7,
                 famous_poker_hand_breakdowns: 12,
-                us_state_poker_guides: 15,
+                us_state_poker_guides: 51,
                 player_archetype_guides: 8,
                 canonical_board_texture_guides: 12,
                 international_poker_destinations: 10,

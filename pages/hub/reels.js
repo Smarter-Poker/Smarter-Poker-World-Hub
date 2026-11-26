@@ -136,7 +136,7 @@ function ReelsConsoleScreen({
   primary,
   titleAs = 'h1',
 }) {
-  return <ReelsStatusScreen title={title} copy={consoleText(copy)} subtitle={subtitle} rows={rows} primary={primary} secondary={secondary} />;
+  return <ReelsStatusScreen title={title} titleAs={titleAs} copy={consoleText(copy)} subtitle={subtitle} rows={rows} primary={primary} secondary={secondary} />;
 }
 
 function consoleText(value) {

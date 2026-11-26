@@ -117,7 +117,7 @@ export default function PokerPositionsIndexPage() {
     <div style={styles.page}>
       <SEOHead
         title="Poker Table Positions: 9-Max And 6-Max Guide"
-        description="Complete 9-Seat Poker Position Strategy Encyclopedia Covering UTG, UTG+1, MP, Lojack, Hijack, Cutoff, Button, Small Blind, And Big Blind With Exact 100BB RFI Ranges And Winrates."
+        description="9-Seat Poker Position Strategy Encyclopedia From UTG To Big Blind With Exact 100BB GTO RFI Ranges, 3-Bet Defense, And Expected BB/100 Winrates."
         canonical={POSITIONS_BASE_PATH}
         jsonLd={jsonLd}
       />

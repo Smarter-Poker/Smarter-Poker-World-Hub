@@ -34,6 +34,14 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   const stateGuide = getStateGuideBySlug(params?.state);
   if (!stateGuide) return { notFound: true };
+  if (params?.state && String(params.state).trim().toLowerCase() !== stateGuide.slug) {
+    return {
+      redirect: {
+        destination: stateGuidePath(stateGuide.slug),
+        permanent: true,
+      },
+    };
+  }
 
   const peerStates = US_POKER_STATES.filter((s) => s.slug !== stateGuide.slug)
     .slice(0, 8)
@@ -237,6 +245,33 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [] }) 
                 <strong>Major Poker Cities:</strong> {(stateGuide.topCities || []).join(' | ')}
               </p>
             </div>
+          </div>
+        </section>
+
+        {/* Contextual Internal-Link Mesh */}
+        <section aria-label={`Live Poker Resources For ${stateGuide.name}`} style={styles.sectionPlate}>
+          <h2 style={styles.h2}>Explore Live Poker &amp; Tools For {stateGuide.name}</h2>
+          <div style={styles.peerGrid}>
+            <Link href={`/hub/poker-near-me/in/${stateGuide.code.toLowerCase()}`} style={styles.peerCard}>
+              <span style={styles.peerCode}>LIVE DIRECTORY</span>
+              <span style={styles.peerName}>Live Poker Rooms In {stateGuide.name}</span>
+              <span style={styles.peerTax}>Verified Rooms, Cash Games &amp; Schedules</span>
+            </Link>
+            <Link href={`/hub/home-games/in/${stateGuide.code.toLowerCase()}`} style={styles.peerCard}>
+              <span style={styles.peerCode}>HOME GAMES</span>
+              <span style={styles.peerName}>Home Poker Games In {stateGuide.name}</span>
+              <span style={styles.peerTax}>Public Local Games &amp; Host Schedules</span>
+            </Link>
+            <Link href="/tools/poker-tax-calculator" style={styles.peerCard}>
+              <span style={styles.peerCode}>FREE CALCULATOR</span>
+              <span style={styles.peerName}>IRS W-2G &amp; State Poker Tax Calculator</span>
+              <span style={styles.peerTax}>{stateGuide.stateIncomeTaxRate}</span>
+            </Link>
+            <Link href="/hub/tournaments/this-weekend" style={styles.peerCard}>
+              <span style={styles.peerCode}>WEEKEND SCHEDULE</span>
+              <span style={styles.peerName}>Poker Tournaments This Weekend</span>
+              <span style={styles.peerTax}>Friday To Sunday Guaranteed Events</span>
+            </Link>
           </div>
         </section>
 

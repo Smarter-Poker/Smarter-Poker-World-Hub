@@ -197,6 +197,10 @@ export default function PressKitMediaPage() {
       dateModified: '2026-11-09',
       isPartOf: { '@id': 'https://smarter.poker/#website' },
       publisher: { '@id': 'https://smarter.poker/#organization' },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'main p:first-of-type'],
+      },
     },
     {
       '@type': 'FAQPage',

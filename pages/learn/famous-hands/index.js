@@ -113,7 +113,7 @@ export default function FamousHandsIndexPage() {
     <div style={styles.page}>
       <SEOHead
         title="Famous Poker Hands: GTO Solver Breakdowns"
-        description="GTO Solver And Combinatoric Equity Breakdowns Of 12 Iconic Televised And WSOP Poker Hands: Moneymaker Vs Farha, Dwan Vs Ivey, Negreanu Vs Hansen, Adelstein Vs Lew, And More."
+        description="GTO Solver Breakdowns Of 12 Iconic Televised And WSOP Poker Hands: Moneymaker Vs Farha, Dwan Vs Ivey, Negreanu Vs Hansen, And Adelstein Vs Lew."
         canonical={FAMOUS_HANDS_BASE_PATH}
         jsonLd={jsonLd}
       />

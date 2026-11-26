@@ -880,7 +880,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
     <>
       <SEOHead
         title="Poker Events Calendar - Find Any Tournament"
-        description="Search Live Poker Tournaments By Date, Location, Buy In And Game Type On Smarter.Poker. Daily Tournaments, Series, Tour Stops And Public Home Games In One Calendar. Free To Browse."
+        description="Search Live Poker Tournaments By Date, Location, Buy-In, And Game Type On Smarter.Poker. Daily Events, Series, Tour Stops, And Home Games In One Calendar."
         canonical="/hub/events-calendar"
         jsonLd={EVENTS_SCHEMA}
       />

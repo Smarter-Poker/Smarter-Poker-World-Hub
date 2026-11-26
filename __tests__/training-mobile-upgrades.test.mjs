@@ -120,7 +120,11 @@ test('the tutorial is registered for the prefix with eight steps whose targets e
   const tut = read(TUTORIAL);
   assert.equal((tut.match(/^\s{4}\{\s*$/gm) || []).length, 8);
   assert.ok(!tut.includes(EM_DASH));
-  const dom = read(HUB);
+  const dom = [
+    read(HUB),
+    read('src/components/training/lobby/TrainingLobbyHeader.jsx'),
+    read('src/components/training/lobby/TrainingLobbyControls.jsx'),
+  ].join('\n');
   for (const t of [...tut.matchAll(/target: '([^']+)'/g)].flatMap((m) => m[1].split('|'))) {
     assert.match(dom, new RegExp(`data-tutorial="${t}"`), `no data-tutorial="${t}" on the hub`);
   }

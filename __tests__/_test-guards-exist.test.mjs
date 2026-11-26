@@ -355,6 +355,7 @@ import './training-route-runtime-inventory.test.mjs';
 import './training-request-deadline.test.mjs';
 import './training-reference-is-public-a.test.mjs';
 import './training-hub-progressive-grid.test.mjs';
+import './training-arena-lobby-ui.test.mjs';
 import './training-surface-inventory.test.mjs';
 // Training reference pages open to everyone (Dan, 2026-10-12: "THEY SHOULD
 // OPEN TO EVERYONE"): anonymous reads, signed-in writes, no anonymous writes.
@@ -883,6 +884,7 @@ import './aeo-discovery-hardening.law.test.mjs';
 import './geo-generative-engine-optimization.law.test.mjs';
 import './gsc-audit-remediation-20261126.law.test.mjs';
 import './seo-aeo-geo-phase2-20261126.law.test.mjs';
+import './seo-aeo-geo-phase3-20261126.law.test.mjs';
 import './trivia-p11-deadlock-and-sim.test.mjs';
 import './trivia-integrity-elo-horse.test.mjs';
 import './trivia-study-pool-curation.test.mjs';
@@ -915,6 +917,7 @@ import './weekly-wire-v4-enhancements.law.test.mjs';
 import './newsletter-forensic-pass-hardening.law.test.mjs';
 import './weekly-wire-v5-ecosystem-suite.law.test.mjs';
 import './newsletter-v6-forensic-hardening.law.test.mjs';
+import './seo-aeo-geo-phase4-20261126.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

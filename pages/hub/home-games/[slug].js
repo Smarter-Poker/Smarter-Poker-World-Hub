@@ -20,6 +20,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import FaqSection from '../../../src/components/seo/FaqSection';
 import { homeGameDescription } from '../../../src/lib/home-games/homeGameSeo.mjs';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
@@ -153,11 +154,32 @@ function formatTime(t) {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
+function buildHomeGameFaqs(data) {
+  if (!data?.page || !data?.group) return [];
+  const { page, group } = data;
+  const name = String(page.name || 'This Home Game').trim();
+  const location = [page.city, page.state].filter(Boolean).join(', ');
+  const stakes = formatStakesLine(group);
+  const frequency = FREQUENCY_LABELS[group.frequency] || group.frequency || 'Scheduled';
+  return [
+    {
+      question: `What Poker Games And Stakes Are Played At ${name}?`,
+      answer: `${name} Hosts ${stakes || 'Home Poker Games'} On A ${frequency} Schedule${location ? ` In ${location}` : ''}. Confirm Current Blind Levels, Seat Availability, And House Rules Directly With The Host On Smarter.Poker.`,
+    },
+    {
+      question: `How Do I Request A Seat At ${name}?`,
+      answer: `Sign In To Your Free Smarter.Poker Account And Use The Request Seat Or Follow Controls On This Page. Hosts Review Seat Requests Directly And Share Confirmed Table Details With Approved Players.`,
+    },
+  ];
+}
+
 // Build JSON-LD for crawlers. One LocalBusiness for the host, one Event per
-// upcoming game. This is what powers rich-result search cards.
+// upcoming game, plus BreadcrumbList, SpeakableSpecification, and FAQPage.
 function buildJsonLd(data) {
   const { page, group, host, upcoming_games = [] } = data;
   const canonicalUrl = `${SITE_URL}/hub/home-games/${page.slug}`;
+  const stateCode = page.state ? String(page.state).trim().toLowerCase() : '';
+  const faqs = buildHomeGameFaqs(data);
 
   const localBusiness = {
     '@context': 'https://schema.org',
@@ -251,7 +273,55 @@ function buildJsonLd(data) {
       };
     });
 
-  return [localBusiness, ...events];
+  const breadcrumbItems = [
+    { name: 'Smarter.Poker', item: `${SITE_URL}/` },
+    { name: 'Home Games', item: `${SITE_URL}/hub/home-games/near-me` },
+    ...(stateCode
+      ? [{ name: String(page.state).toUpperCase(), item: `${SITE_URL}/hub/home-games/in/${encodeURIComponent(stateCode)}` }]
+      : []),
+    { name: page.name, item: canonicalUrl },
+  ];
+
+  const breadcrumbList = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    '@id': `${canonicalUrl}#breadcrumb`,
+    itemListElement: breadcrumbItems.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.name,
+      item: item.item,
+    })),
+  };
+
+  const webPage = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    '@id': `${canonicalUrl}#webpage`,
+    url: canonicalUrl,
+    name: page.name,
+    inLanguage: 'en-US',
+    isPartOf: { '@id': `${SITE_URL}/#website` },
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', '.hgs-tagline', '.faq-section'],
+    },
+  };
+
+  const faqPage = faqs.length > 0
+    ? {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
+    }
+    : null;
+
+  return [localBusiness, webPage, breadcrumbList, ...(faqPage ? [faqPage] : []), ...events];
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -1498,6 +1568,12 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 {copyState || 'Copy Link'}
               </button>
             </section>
+
+            <FaqSection
+              title={`Frequently Asked Questions About ${page.name}`}
+              faqs={buildHomeGameFaqs(data)}
+              id="home-game-faq"
+            />
 
             <div className="hgs-footer-link">
               <button type="button" aria-label="Back To Previous Page" onClick={() => typeof window !== 'undefined' && window.history.length > 1 ? window.history.back() : router.push('/hub/poker-near-me/venues')} className="hgs-back-btn">

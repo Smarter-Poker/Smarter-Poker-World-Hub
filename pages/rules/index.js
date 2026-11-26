@@ -99,6 +99,10 @@ export default function PokerRulesIndexPage() {
       dateModified: RULES_AS_OF,
       isPartOf: { '@id': 'https://smarter.poker/#website' },
       publisher: { '@id': 'https://smarter.poker/#organization' },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'main p:first-of-type'],
+      },
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: POKER_RULES.length,
@@ -136,7 +140,7 @@ export default function PokerRulesIndexPage() {
     <div style={styles.page}>
       <SEOHead
         title="Official Poker Rules And TDA Floor Rulings"
-        description="Complete Encyclopedia Of 30 Official Poker Rules, Tournament TDA Rulings, And Robert's Rules Of Poker Cash Game Procedures: Showdown Order, String Bets, Side Pots, And Straddles."
+        description="30 Official Poker Rules, TDA Tournament Rulings, And Cash Game Procedures: Showdown Order, String Bets, Side Pots, Odd Chips, And Straddles."
         canonical={RULES_BASE_PATH}
         markdownUrl="https://smarter.poker/rules.md"
         jsonLd={jsonLd}

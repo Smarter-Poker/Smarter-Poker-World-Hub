@@ -1847,6 +1847,10 @@ export function compareJsonLd(page) {
       author: { '@id': ORGANIZATION_ID },
       publisher: { '@id': ORGANIZATION_ID },
       isPartOf: { '@id': WEBSITE_ID },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', '.cmp-lead'],
+      },
     },
     breadcrumb([
       { name: 'Home', path: '/' },
@@ -1896,6 +1900,10 @@ export function compareIndexJsonLd() {
       dateModified: AS_OF,
       publisher: { '@id': ORGANIZATION_ID },
       isPartOf: { '@id': WEBSITE_ID },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'aside[role="complementary"]', 'main p'],
+      },
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: COMPARE_PAGES.length,

@@ -703,7 +703,7 @@ export default function HomeGamesPage() {
         <>
             <SEOHead
                 title="Poker Home Games Near You: Find Or Host One"
-                description="Find Private Poker Home Games Near You On Smarter.Poker, Join The Local Community, Or Host Your Own Game With Invites, Seating And Results Handled For You. Free To Play, No Real-Money Gambling."
+                description="Find Private Poker Home Games Near You On Smarter.Poker Or Host Your Own With Free Invites, Seating, And Results Tracking. No Real-Money Gambling."
                 canonical="/hub/home-games"
                 jsonLd={HOME_GAMES_SCHEMA}
             />
