@@ -160,7 +160,7 @@ test('solver leak groups carry only exact unique mistaken Club Arena source hand
 
 test('Leak Finder wires exact solver source hands through an owner-scoped idempotent link', () => {
   const source = readFileSync(new URL('../pages/api/assistant/leaks/detect.js', import.meta.url), 'utf8');
-  assert.match(source, /select\('hand_external_id, game_id,/);
+  assert.match(source, /hand_external_id, game_id,/);
   assert.match(source, /solverSourceHands\.set\(solverLeak\.leak_type, _mistaken_hand_external_ids \|\| \[\]\)/);
   assert.match(source, /\.contains\('players', JSON\.stringify\(\[\{ \[membershipKey\]: userId \}\]\)\)[\s\S]{0,100}query = query\.in\('id', ids\)/);
   assert.match(source, /exactSourceIds[\s\S]{0,300}solver-graded mistake/);

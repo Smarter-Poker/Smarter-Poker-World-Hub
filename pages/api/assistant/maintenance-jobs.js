@@ -87,14 +87,14 @@ export async function runRecoverAudits(supabase, { p_limit = 25 } = {}) {
  * Finds due reviews, dedupes users, verifies not seated & not in cooldown,
  * enforces 72h notification throttle, and sends via notify().
  */
-export async function runDueNudges(supabase, { limit = 100 } = {}) {
+export async function runDueNudges(supabase, { limit = 500 } = {}) {
   const nowIso = new Date().toISOString();
   const { data: dueRows, error: dueError } = await supabase
     .from('leak_review_state')
     .select('user_id, leak_id, due_at')
     .eq('retired', false)
     .lte('due_at', nowIso)
-    .order('due_at', { ascending: true })
+    .order('due_at', { ascending: false })
     .limit(limit);
 
   if (dueError) {
@@ -239,9 +239,9 @@ export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
       : 'None Detected';
 
     const totalDrills = reviews.reduce((sum, r) => sum + (Number(r.reps) || 0), 0);
-    const verifiedLiveFixes = reviews.filter(r => Boolean(r.remediation_baseline_at)).length;
+    const drillsMastered = reviews.filter(r => Boolean(r.remediation_baseline_at)).length;
 
-    const summaryBody = `• Top Leak: ${topLeakName}\n• Drills Completed: ${totalDrills}\n• Verified Live Fixes: ${verifiedLiveFixes}`;
+    const summaryBody = `• Top Leak: ${topLeakName}\n• Drills Completed: ${totalDrills}\n• Drills Mastered (Live Tracking): ${drillsMastered}`;
 
     const res = await notify(supabase, {
       userId,

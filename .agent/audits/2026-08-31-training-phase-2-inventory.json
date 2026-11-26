@@ -73805,7 +73805,7 @@
         {
           "name": "playerId",
           "line": 43,
-          "references": 9,
+          "references": 10,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -73908,7 +73908,7 @@
         },
         {
           "name": "fetchPrivateHeroCards",
-          "line": 475,
+          "line": 488,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -73916,7 +73916,7 @@
         },
         {
           "name": "handNotation",
-          "line": 509,
+          "line": 522,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -73924,7 +73924,7 @@
         },
         {
           "name": "canonicalBoard",
-          "line": 522,
+          "line": 535,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -73932,7 +73932,7 @@
         },
         {
           "name": "canonicalCombo",
-          "line": 528,
+          "line": 541,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -73940,7 +73940,7 @@
         },
         {
           "name": "isSupportedHoldemHand",
-          "line": 532,
+          "line": 545,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -73948,7 +73948,7 @@
         },
         {
           "name": "questionBoard",
-          "line": 537,
+          "line": 550,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -73956,7 +73956,7 @@
         },
         {
           "name": "optionAction",
-          "line": 544,
+          "line": 557,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -73964,7 +73964,7 @@
         },
         {
           "name": "optionSizingPercent",
-          "line": 556,
+          "line": 569,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -73972,7 +73972,7 @@
         },
         {
           "name": "mapPlayedAction",
-          "line": 565,
+          "line": 578,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -73980,7 +73980,7 @@
         },
         {
           "name": "normalizedDecisionAction",
-          "line": 585,
+          "line": 598,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -73988,7 +73988,7 @@
         },
         {
           "name": "exactActionHistoryCompatible",
-          "line": 596,
+          "line": 609,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -73996,7 +73996,7 @@
         },
         {
           "name": "questionNode",
-          "line": 613,
+          "line": 626,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74004,7 +74004,7 @@
         },
         {
           "name": "nodeCompatible",
-          "line": 633,
+          "line": 646,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74012,7 +74012,7 @@
         },
         {
           "name": "fingerprint",
-          "line": 649,
+          "line": 662,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74020,7 +74020,7 @@
         },
         {
           "name": "canonicalFingerprint",
-          "line": 655,
+          "line": 668,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74028,7 +74028,7 @@
         },
         {
           "name": "exactIdentityCompatible",
-          "line": 659,
+          "line": 672,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74036,15 +74036,39 @@
         },
         {
           "name": "findQuestion",
-          "line": 699,
+          "line": 712,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "clampStackDepthBb",
+          "line": 750,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseBigBlindFromStakes",
+          "line": 758,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isHeroPlayerEntry",
+          "line": 768,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "resolveStackDepthBb",
-          "line": 737,
+          "line": 781,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74052,7 +74076,7 @@
         },
         {
           "name": "summary",
-          "line": 781,
+          "line": 842,
           "references": 31,
           "exported": false,
           "defaultExport": false,
@@ -74060,7 +74084,7 @@
         },
         {
           "name": "runWithConcurrency",
-          "line": 804,
+          "line": 865,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74068,7 +74092,7 @@
         },
         {
           "name": "replacePersistedDecisionEvidence",
-          "line": 825,
+          "line": 886,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74076,7 +74100,7 @@
         },
         {
           "name": "auditParsedHands",
-          "line": 854,
+          "line": 915,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74084,7 +74108,7 @@
         },
         {
           "name": "fetchClubHandsForKey",
-          "line": 1040,
+          "line": 1101,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74092,7 +74116,7 @@
         },
         {
           "name": "parseTimestampMicros",
-          "line": 1079,
+          "line": 1140,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74100,7 +74124,7 @@
         },
         {
           "name": "compareHandKeyDescending",
-          "line": 1089,
+          "line": 1150,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -74108,7 +74132,7 @@
         },
         {
           "name": "fetchExistingAuditRows",
-          "line": 1097,
+          "line": 1158,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74116,7 +74140,7 @@
         },
         {
           "name": "auditRowTime",
-          "line": 1112,
+          "line": 1173,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74124,7 +74148,7 @@
         },
         {
           "name": "syncClubArenaHandsForAudit",
-          "line": 1118,
+          "line": 1179,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -139566,7 +139590,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 1118,
+        "line": 1179,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -150200,7 +150224,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 1118,
+        "line": 1179,
         "references": 1,
         "exported": true,
         "defaultExport": false,

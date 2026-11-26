@@ -452,7 +452,8 @@ test('Maintenance cron: runWeeklyDigest respects 7-day throttle and builds 3-lin
   assert.ok(notificationSent, 'Notification must be dispatched');
   assert.match(notificationSent.body, /Top Leak:\s*Overfolding Big Blind/);
   assert.match(notificationSent.body, /Drills Completed:\s*8/);
-  assert.match(notificationSent.body, /Verified Live Fixes:\s*1/);
+  assert.match(notificationSent.body, /Drills Mastered \(Live Tracking\):\s*1/);
+  assert.doesNotMatch(notificationSent.body, /Verified Live Fixes/);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -517,11 +518,14 @@ test('claim-live-fix: rejects unconfirmed leaks with 409 LEAK_NOT_VERIFIED_LIVE'
         };
       }
       if (table === 'hand_audit_decisions') {
+        const chain = {
+          like: () => chain,
+          order: () => chain,
+          limit: async () => ({ data: [], error: null }),
+        };
         return {
           select: () => ({
-            eq: () => ({
-              limit: async () => ({ data: [], error: null }),
-            }),
+            eq: () => chain,
           }),
         };
       }
@@ -619,11 +623,14 @@ test('claim-live-fix: awards diamonds when leak is confirmed fixed at live table
         };
       }
       if (table === 'hand_audit_decisions') {
+        const chain = {
+          like: () => chain,
+          order: () => chain,
+          limit: async () => ({ data: decisions, error: null }),
+        };
         return {
           select: () => ({
-            eq: () => ({
-              limit: async () => ({ data: decisions, error: null }),
-            }),
+            eq: () => chain,
           }),
         };
       }
@@ -730,7 +737,12 @@ test('claim-live-fix: handles duplicate claims idempotently without error', asyn
         };
       }
       if (table === 'hand_audit_decisions') {
-        return { select: () => ({ eq: () => ({ limit: async () => ({ data: decisions, error: null }) }) }) };
+        const chain = {
+          like: () => chain,
+          order: () => chain,
+          limit: async () => ({ data: decisions, error: null }),
+        };
+        return { select: () => ({ eq: () => chain }) };
       }
       if (table === 'hand_history') {
         return { select: () => ({ in: async (col, ids) => ({ data: ids.map(id => ({ id, created_at: baselineIso })), error: null }) }) };
@@ -769,3 +781,315 @@ test('claim-live-fix: handles duplicate claims idempotently without error', asyn
   assert.equal(res.body?.alreadyAwarded, true);
   assert.equal(res.body?.diamonds, 0);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. PHASE 5 FORTRESS REGRESSION TESTS (OPS, CLAIMS, COACHING, DETECT, AUDIT)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('claim-live-fix: cap-rejected award returns success: false and REWARD_LIMIT_REACHED', async () => {
+  const userId = '99999999-9999-4999-9999-999999999998';
+  const leakId = 'river_fold_leak';
+  const baselineIso = '2026-11-20T00:00:00Z';
+  const baselineMs = new Date(baselineIso).getTime();
+
+  const decisions = [];
+  for (let i = 1; i <= 8; i++) {
+    decisions.push({
+      hand_external_id: `club-arena:10000000-0000-0000-0000-00000000000${i}`,
+      decision_key: `river_fold_leak:${i}`,
+      street: 'river',
+      spot_type: 'river_fold_leak',
+      classification: 'correct',
+      solver_verified: true,
+      solver_source: 'pio|hand-audit-v3',
+      audited_at: new Date(baselineMs + i * 3600 * 1000).toISOString(),
+    });
+  }
+
+  let queriedSolverSource = null;
+  let queriedOrderCol = null;
+  let queriedLimit = null;
+
+  const mockSupabase = {
+    from: table => {
+      if (table === 'user_leaks') {
+        return {
+          select: () => ({
+            eq: () => ({
+              limit: async () => ({
+                data: [{ id: leakId, leak_type: 'river_fold_leak', status: 'active' }],
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'leak_review_state') {
+        return {
+          select: () => ({
+            eq: () => ({
+              limit: async () => ({
+                data: [{ leak_id: leakId, reps: 5, interval_days: 28, retired: true, remediation_baseline_at: baselineIso }],
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'hand_audit_decisions') {
+        const chain = {
+          like: (_col, pat) => {
+            queriedSolverSource = pat;
+            return chain;
+          },
+          order: (col) => {
+            queriedOrderCol = col;
+            return chain;
+          },
+          limit: async (lim) => {
+            queriedLimit = lim;
+            return { data: decisions, error: null };
+          },
+        };
+        return { select: () => ({ eq: () => chain }) };
+      }
+      if (table === 'hand_history') {
+        return {
+          select: () => ({
+            in: async (_col, ids) => ({
+              data: ids.map((id, idx) => ({ id, created_at: new Date(baselineMs + (idx + 1) * 3600 * 1000).toISOString() })),
+              error: null,
+            }),
+          }),
+        };
+      }
+      return { select: () => ({ eq: () => ({ limit: async () => ({ data: [], error: null }) }) }) };
+    },
+  };
+
+  for (const capReason of ['action_limit', 'daily_cap', 'monthly_cap', 'budget_exhausted']) {
+    const claimModule = getClaimModule({
+      supabase: mockSupabase,
+      userId,
+      safeAward: async () => ({
+        ok: true,
+        data: {
+          success: false,
+          awarded: 0,
+          requested: 25,
+          reason: capReason,
+        },
+      }),
+    });
+
+    const handler = claimModule.default;
+    const req = {
+      method: 'POST',
+      headers: { authorization: 'Bearer valid-jwt' },
+      body: { leakId },
+    };
+    const res = mockRes();
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body?.success, false, `cap reason ${capReason} must return success: false`);
+    assert.equal(res.body?.awarded, false);
+    assert.equal(res.body?.alreadyAwarded, false);
+    assert.equal(res.body?.diamonds, 0);
+    assert.equal(res.body?.code, 'REWARD_LIMIT_REACHED');
+    assert.equal(res.body?.reason, capReason);
+    assert.equal(res.body?.error, 'Daily or monthly Diamond reward limit reached.');
+    assert.ok(res.body?.milestone?.idempotencyKey);
+  }
+
+  assert.equal(queriedSolverSource, '%hand-audit-v3%');
+  assert.equal(queriedOrderCol, 'audited_at');
+  assert.equal(queriedLimit, 5000);
+});
+
+test('openclaw-cron-dispatcher schedules /api/assistant/maintenance-jobs and runDueNudges orders due_at DESC with 500 limit', async () => {
+  const dispatcher = read('scripts/openclaw-cron-dispatcher.py');
+  assert.match(dispatcher, /\('\/api\/assistant\/retention-maintenance',\s*dict\(/);
+  assert.match(dispatcher, /\('\/api\/assistant\/maintenance-jobs',\s*dict\(/);
+
+  let observedOrder = null;
+  let observedLimit = null;
+  const mockSupabase = {
+    from: table => {
+      if (table === 'leak_review_state') {
+        return {
+          select: () => ({
+            eq: () => ({
+              lte: () => ({
+                order: (col, opts) => {
+                  observedOrder = { col, opts };
+                  return {
+                    limit: async lim => {
+                      observedLimit = lim;
+                      return { data: [], error: null };
+                    },
+                  };
+                },
+              }),
+            }),
+          }),
+        };
+      }
+      return { select: () => ({ eq: () => ({ limit: async () => ({ data: [], error: null }) }) }) };
+    },
+  };
+
+  const maintenanceModule = getMaintenanceModule({ supabase: mockSupabase });
+  const res = await maintenanceModule.runDueNudges(mockSupabase);
+  assert.equal(res.success, true);
+  assert.deepEqual(observedOrder, { col: 'due_at', opts: { ascending: false } });
+  assert.equal(observedLimit, 500);
+});
+
+function getCoachingModule(deps = {}) {
+  const defaultDeps = {
+    '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {}, write: {} } },
+    '../../../src/lib/personal-assistant/coachingIntelligence.mjs': {
+      buildCoachingSnapshot: deps.buildCoachingSnapshot || buildCoachingSnapshot,
+      receiptFingerprint: () => 'pa7-test-receipt',
+    },
+    '../../../src/lib/personal-assistant/leakRecord': {
+      normalizeUserLeakRow,
+    },
+    '../../../src/lib/personal-assistant/contextAuthority': {
+      ACCESS_LEVELS,
+      checkSandboxAccess: async () => ({ allowed: true, accessLevel: ACCESS_LEVELS.FULL_ACCESS }),
+    },
+    '../../../src/lib/serverAuth': {
+      getServerUserWithFallback: async () => ({ user: { id: deps.userId || '11111111-1111-4111-8111-111111111111' }, status: 200 }),
+    },
+    '../../../src/lib/supabaseServerClient': { createClient: () => deps.supabase },
+  };
+  const mod = compile('pages/api/assistant/coaching.js', { ...defaultDeps, ...deps });
+  if (deps.supabase && typeof mod._setSupabaseForTesting === 'function') {
+    mod._setSupabaseForTesting(deps.supabase);
+  }
+  return mod;
+}
+
+test('coaching.js: queries %hand-audit-v3%, preserves partial preferences on writePreferences, and hydrates claimed live-fix references', async () => {
+  const coachingSrc = read('pages/api/assistant/coaching.js');
+  assert.match(coachingSrc, /\.like\('solver_source',\s*'%hand-audit-v3%'\)/);
+  assert.doesNotMatch(coachingSrc, /\.like\('solver_source',\s*'%\|\s*hand-audit-v3'\)/);
+
+  const userId = '12121212-1212-4212-8212-121212121212';
+  let upsertedPayload = null;
+  let simulateMissingSchemaOnUpsert = false;
+
+  const existingRow = {
+    saved_view: 'timeline',
+    analysis_depth: 'expert',
+    panel_layout: { railCollapsed: true, pinnedTab: 'report' },
+    weekly_digest_opt_in: false,
+    updated_at: '2026-11-24T00:00:00.000Z',
+  };
+
+  const mockSupabase = {
+    from: table => {
+      if (table === 'pa_coaching_preferences') {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: existingRow, error: null }),
+            }),
+          }),
+          upsert: payload => {
+            upsertedPayload = { ...payload };
+            return {
+              select: () => ({
+                maybeSingle: async () => {
+                  if (simulateMissingSchemaOnUpsert) {
+                    return { data: null, error: { code: '42703', message: 'column "weekly_digest_opt_in" does not exist' } };
+                  }
+                  return { data: { ...existingRow, ...payload }, error: null };
+                },
+              }),
+            };
+          },
+        };
+      }
+      if (table === 'diamond_transactions') {
+        return {
+          select: () => ({
+            eq: (_c1, uid) => ({
+              eq: (_c2, txType) => ({
+                limit: async () => {
+                  assert.equal(uid, userId);
+                  assert.equal(txType, 'pa_leak_verified_fixed');
+                  return {
+                    data: [
+                      { reference_id: 'pa-verified-live:river_overfold:2026-11-20T00:00:00.000Z', transaction_type: 'pa_leak_verified_fixed' },
+                    ],
+                    error: null,
+                  };
+                },
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'hand_audit_decisions') {
+        const chain = {
+          like: (_col, pat) => {
+            assert.equal(pat, '%hand-audit-v3%');
+            return chain;
+          },
+          order: () => chain,
+          limit: async () => ({
+            data: [
+              { hand_external_id: 'h1', decision_key: 'flop:0', solver_verified: false, solver_source: 'hand-audit-v3:unpriced', classification: 'unpriced', audited_at: '2026-11-25T00:00:00Z' },
+              { hand_external_id: 'h2', decision_key: 'turn:0', solver_verified: false, solver_source: 'hand-audit-v3:lookup-failed', classification: 'unpriced', audited_at: '2026-11-25T00:00:00Z' },
+            ],
+            error: null,
+          }),
+        };
+        return { select: () => ({ eq: () => chain }) };
+      }
+      return { select: () => ({ eq: () => ({ limit: async () => ({ data: [], error: null }) }) }) };
+    },
+  };
+
+  const coachingMod = getCoachingModule({ supabase: mockSupabase, userId });
+
+  // 1. readHandAuditDecisions loads unpriced & lookup-failed v3 rows
+  const loadedDecisions = await coachingMod.readHandAuditDecisions(mockSupabase, userId);
+  assert.equal(loadedDecisions.length, 2);
+
+  // 2. readClaimedLiveFixReferenceIds returns Set of claimed reference IDs
+  const claimedSet = await coachingMod.readClaimedLiveFixReferenceIds(mockSupabase, userId);
+  assert.ok(claimedSet instanceof Set);
+  assert.equal(claimedSet.has('pa-verified-live:river_overfold:2026-11-20T00:00:00.000Z'), true);
+
+  // 3. Partial writePreferences preserves saved_view, analysis_depth, and panel_layout
+  const saved = await coachingMod.writePreferences(mockSupabase, userId, { weeklyDigestOptIn: true });
+  assert.equal(upsertedPayload.saved_view, 'timeline');
+  assert.equal(upsertedPayload.analysis_depth, 'expert');
+  assert.deepEqual(upsertedPayload.panel_layout, { railCollapsed: true, pinnedTab: 'report' });
+  assert.equal(upsertedPayload.weekly_digest_opt_in, true);
+  assert.equal(saved.weeklyDigestOptIn, true);
+
+  // 4. Explicit weeklyDigestOptIn throws when DB column is missing instead of faking success
+  simulateMissingSchemaOnUpsert = true;
+  await assert.rejects(
+    () => coachingMod.writePreferences(mockSupabase, userId, { weeklyDigestOptIn: true }),
+    /Weekly digest preference column is not available/,
+  );
+});
+
+test('detect.js filters non-club_arena evidence_scope and audit-hand-history.js enriches bigBlind/effectiveStackBb with LIMITS.write', () => {
+  const detectSrc = read('pages/api/assistant/leaks/detect.js');
+  assert.match(detectSrc, /ev_loss_measured,\s*evidence_scope/);
+  assert.match(detectSrc, /if\s*\(row\.evidence_scope\s*&&\s*row\.evidence_scope\s*!==\s*'club_arena'\)\s*continue;/);
+
+  const auditSrc = read('pages/api/training/audit-hand-history.js');
+  assert.match(auditSrc, /applyRateLimit\(req,\s*res,\s*LIMITS\.write\)/);
+  assert.doesNotMatch(auditSrc, /applyRateLimit\(req,\s*res,\s*LIMITS\.ai\)/);
+  assert.match(auditSrc, /analysis\?\.decisions\?\.\[0\]\?\.heroPosition\s*\|\|\s*analysis\?\.decisions\?\.\[0\]\?\.position\s*\|\|\s*'BTN'/);
+  assert.match(auditSrc, /effectiveStackBb:\s*derivedEffBb/);
+});
+

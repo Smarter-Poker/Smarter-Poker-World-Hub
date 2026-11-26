@@ -9,13 +9,25 @@ on:
     paths:
       - 'pages/hub/personal-assistant/**'
       - 'pages/share/hand.js'
+      - 'pages/_app.js'
       - 'pages/api/assistant/**'
       - 'pages/api/sandbox/**'
+      - 'pages/api/training/audit-hand-history.js'
       - 'pages/api/og/hand-card.js'
       - 'src/components/personal-assistant/**'
       - 'src/components/sandbox/**'
       - 'src/lib/personal-assistant/**'
+      - 'src/lib/training/handAuditEngine.js'
+      - 'src/lib/push/push-prefs.js'
+      - 'src/config/diamondRewards.js'
+      - 'src/hooks/useAssistant.js'
       - 'scripts/ci/pa-browser-smoke.mjs'
+      - 'scripts/verify-pa-production-hardening.mjs'
+      - 'scripts/openclaw-cron-dispatcher.py'
+      - 'supabase/migrations/**'
+      - 'next.config.js'
+      - 'tests/pa-*.test.mjs'
+      - '.github/workflows/pa-browser-smoke.yml'
   workflow_dispatch:
 
 permissions:

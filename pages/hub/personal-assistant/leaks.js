@@ -1962,10 +1962,11 @@ export default function LeakFinderPage() {
     if (trimmed.startsWith('{')) {
       try {
         const parsed = JSON.parse(trimmed);
-        if (parsed && typeof parsed.id === 'string' && parsed.id.trim()) {
-          const tableLabel = parsed.table ? `${parsed.table}` : `Hand ${parsed.id.trim().slice(0, 8)}`;
+        const candidateId = parsed && typeof parsed.id === 'string' ? parsed.id.trim() : '';
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId)) {
+          const tableLabel = parsed.table ? `${parsed.table}` : `Hand ${candidateId.slice(0, 8)}`;
           const stakesLabel = parsed.stakes ? ` (${parsed.stakes})` : '';
-          setLinkedClubHand({ id: parsed.id.trim(), label: `${tableLabel}${stakesLabel}` });
+          setLinkedClubHand({ id: candidateId, label: `${tableLabel}${stakesLabel}` });
           setTab('leaks');
           return;
         }
@@ -2322,9 +2323,9 @@ export default function LeakFinderPage() {
     }
   }, [updateLeakStatus]);
 
-  const handleOpenHandReview = useCallback((leak) => {
+  const handleOpenHandReview = useCallback((leak = undefined) => {
     if (!guardAction()) return;
-    const target = leak || selectedLeak;
+    const target = leak === undefined ? selectedLeak : leak;
     const leakParam = target?.id ? `&leak=${encodeURIComponent(String(target.id))}` : '';
     router.push(`/hub/training/hand-history-upload?source=personal-assistant-leaks${leakParam}`);
   }, [guardAction, router, selectedLeak]);
@@ -3237,45 +3238,6 @@ export default function LeakFinderPage() {
 
                   {!linkedHandLoading && (linkedHandAudit?.hand || (Array.isArray(linkedHandAudit?.streetTimeline) && linkedHandAudit.streetTimeline.length > 0)) && (
                     <InlineHandReplay audit={linkedHandAudit} />
-                  )}
-
-                  {!linkedHandLoading && Array.isArray(linkedHandAudit?.streetTimeline) && linkedHandAudit.streetTimeline.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }} aria-label="Street Action Timeline">
-                      <div style={{ fontSize: F.caption, color: T.textMuted }}>
-                        Street Action Timeline
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {linkedHandAudit.streetTimeline.map((st) => (
-                          <div
-                            key={st.street}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: S.xs,
-                              flexWrap: 'wrap',
-                              padding: `6px ${S.sm}px`,
-                              borderRadius: R.sm,
-                              background: T.surface2,
-                              fontSize: F.caption,
-                            }}
-                          >
-                            <strong style={{ textTransform: 'capitalize', minWidth: 56 }}>{st.street}</strong>
-                            {Array.isArray(st.board) && st.board.length > 0 && (
-                              <span style={pill('muted')} data-pa-verbatim="true">{st.board.join(' ')}</span>
-                            )}
-                            {st.actions.map((act, actIdx) => (
-                              <span
-                                key={`${st.street}-${actIdx}`}
-                                style={pill(act.isHero ? 'accent' : 'neutral')}
-                              >
-                                {act.isHero ? 'Hero' : (act.position || 'Player')} {act.action}
-                                {act.amount != null && act.amount > 0 ? ` ${act.amount}` : ''}
-                              </span>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   )}
 
                   {!linkedHandLoading && Array.isArray(linkedHandAudit?.decisions) && linkedHandAudit.decisions.length > 0 && (

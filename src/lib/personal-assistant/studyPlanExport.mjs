@@ -22,6 +22,13 @@ function sanitizePii(text) {
     .replace(UUID_RE, '[REDACTED_ID]');
 }
 
+function sanitizeTableCell(text) {
+  return sanitizePii(String(text ?? ''))
+    .replace(/\r?\n+/g, ' ')
+    .replace(/\|/g, '\\|')
+    .trim();
+}
+
 function formatNumber(val) {
   if (val === null || val === undefined || val === '') return 'N/A';
   const num = Number(val);
@@ -36,9 +43,9 @@ function formatPercent(val) {
 
 export function buildStudyPlanMarkdown(snapshot = {}, options = {}) {
   const rawTitle = options?.title || 'Personal Assistant Poker Study Plan';
-  const title = sanitizePii(String(rawTitle).trim());
+  const title = sanitizePii(String(rawTitle).replace(/\r?\n+/g, ' ').trim());
   const rawDate = snapshot?.generatedAt || options?.generatedAt || new Date().toISOString();
-  const generatedDate = sanitizePii(String(rawDate).trim());
+  const generatedDate = sanitizePii(String(rawDate).replace(/\r?\n+/g, ' ').trim());
 
   const funnel = snapshot?.funnelMetrics || {};
   const auditedHands = formatNumber(funnel.auditedHands);
@@ -74,27 +81,31 @@ export function buildStudyPlanMarkdown(snapshot = {}, options = {}) {
     lines.push('| :---: | :--- | :--- | :--- | :--- | :--- |');
 
     modules.forEach((mod, idx) => {
-      const rank = mod.rank || idx + 1;
-      const modTitle = sanitizePii(mod.title || 'Untitled Leak');
-      const status = sanitizePii(mod.status || 'Active');
+      const rank = sanitizeTableCell(mod.rank || idx + 1);
+      const modTitle = sanitizeTableCell(mod.title || 'Untitled Leak');
+      const status = sanitizeTableCell(mod.status || 'Active');
 
       const preRate = mod.tableVerification?.preMistakeRate ?? mod.preMistakeRate;
       const postRate = mod.tableVerification?.postMistakeRate ?? mod.postMistakeRate;
+      const hasPre = preRate !== null && preRate !== undefined && preRate !== '' && Number.isFinite(Number(preRate));
+      const hasPost = postRate !== null && postRate !== undefined && postRate !== '' && Number.isFinite(Number(postRate));
 
       let rateStr = 'N/A';
-      if (preRate != null && postRate != null) {
+      if (hasPre && hasPost) {
         rateStr = `${formatPercent(preRate)} → ${formatPercent(postRate)}`;
-      } else if (preRate != null) {
+      } else if (hasPre) {
         rateStr = `${formatPercent(preRate)} → Pending`;
+      } else if (hasPost) {
+        rateStr = `N/A → ${formatPercent(postRate)}`;
       }
 
-      const liveStatus = sanitizePii(
+      const liveStatus = sanitizeTableCell(
         mod.tableVerification?.label
         || mod.tableVerification?.status
         || 'Awaiting Verification'
       );
 
-      const targetDrill = sanitizePii(
+      const targetDrill = sanitizeTableCell(
         mod.drillParams?.street
         || mod.drillParams?.spot
         || mod.trainingGameId
@@ -106,7 +117,7 @@ export function buildStudyPlanMarkdown(snapshot = {}, options = {}) {
       if (mod.stakePoolContext?.label) {
         const poolInfo = sanitizePii(
           `Stake-Pool Context: ${mod.stakePoolContext.label} (${mod.stakePoolContext.poolMetricLabel} vs GTO ${mod.stakePoolContext.gtoBaselineLabel}, ${formatNumber(mod.stakePoolContext.sampleHands)} hands)`
-        );
+        ).replace(/\r?\n+/g, ' ');
         lines.push(`> ℹ️ *${poolInfo}*`);
       }
     });
@@ -123,12 +134,12 @@ export function buildStudyPlanMarkdown(snapshot = {}, options = {}) {
     lines.push('| :--- | :--- | :---: | :---: | :---: | :--- |');
 
     gaps.forEach((gap) => {
-      const format = sanitizePii(gap.format || 'Unknown Format');
-      const street = sanitizePii(gap.street || 'unknown');
-      const position = sanitizePii(gap.position || 'UNKNOWN');
-      const stackBucket = sanitizePii(gap.stackBucket || 'unknown');
+      const format = sanitizeTableCell(gap.format || 'Unknown Format');
+      const street = sanitizeTableCell(gap.street || 'unknown');
+      const position = sanitizeTableCell(gap.position || 'UNKNOWN');
+      const stackBucket = sanitizeTableCell(gap.stackBucket || 'unknown');
       const count = formatNumber(gap.count);
-      const tier = sanitizePii(gap.coverageHint?.label || gap.coverageHint?.tier || gap.reason || 'Awaiting Solver Coverage');
+      const tier = sanitizeTableCell(gap.coverageHint?.label || gap.coverageHint?.tier || gap.reason || 'Awaiting Solver Coverage');
 
       lines.push(`| ${format} | ${street} | ${position} | ${stackBucket} | ${count} | ${tier} |`);
     });

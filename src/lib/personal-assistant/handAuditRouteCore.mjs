@@ -12,6 +12,7 @@ import {
   auditParsedHands,
   clubArenaHandRejectionReason,
   normalizeClubArenaHand,
+  resolveStackDepthBb,
 } from '../training/handAuditEngine.js';
 import { solverDecisionGroupKey } from '../training/solverDecisionEvidence.js';
 
@@ -42,28 +43,102 @@ export const HAND_SELECT = [
   'created_at',
 ].join(', ');
 
-function buildHandMetadata(row, eligibility, heroCards) {
+const STREET_ORDER = { preflop: 0, flop: 1, turn: 2, river: 3 };
+const ORDERED_STREETS = ['preflop', 'flop', 'turn', 'river'];
+
+export function buildHandMetadata(row, eligibility = {}, heroCards = [], {
+  heroRaw = null,
+  normalizedHand = null,
+  decisions = [],
+  streetTimeline = [],
+} = {}) {
   const summary = parseHandSummary(row?.summary) || {};
   const sb = Number(row?.small_blind ?? summary?.smallBlind ?? summary?.small_blind);
-  const bb = Number(row?.big_blind ?? summary?.bigBlind ?? summary?.big_blind);
+  const bb = Number(row?.big_blind ?? summary?.bigBlind ?? summary?.big_blind ?? normalizedHand?.bigBlind);
   const stakes = Number.isFinite(sb) && Number.isFinite(bb) && bb > 0 ? `${sb}/${bb}` : null;
   const board = toCardCodes(row?.community_cards || row?.board || summary?.board) || [];
+
+  const rawPot = row?.pot_size ?? row?.potSize ?? row?.pot ?? summary?.potSize ?? summary?.pot_size ?? summary?.pot;
+  const potSize = rawPot !== null && rawPot !== undefined && rawPot !== '' && Number.isFinite(Number(rawPot))
+    ? Number(rawPot)
+    : null;
+  const potBb = potSize !== null && Number.isFinite(bb) && bb > 0
+    ? +(potSize / bb).toFixed(2)
+    : null;
+
+  const rawEffCandidates = [
+    row?.effectiveStackBb,
+    row?.effective_stack_bb,
+    row?.hero_effective_stack_bb,
+    row?.effective_stack_bb_at_deal,
+    normalizedHand?.effectiveStackBb,
+    normalizedHand?.hero?.effectiveStackBb,
+    normalizedHand?.hero?.stack,
+  ];
+  let effectiveStackBb = null;
+  for (const candidate of rawEffCandidates) {
+    if (candidate !== null && candidate !== undefined && candidate !== '') {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        effectiveStackBb = Math.round(parsed * 10) / 10;
+        break;
+      }
+    }
+  }
+  if (effectiveStackBb === null && normalizedHand) {
+    effectiveStackBb = resolveStackDepthBb(normalizedHand, {});
+  }
+
+  const rawHeroPos = normalizedHand?.hero?.position
+    || heroRaw?.position
+    || (Array.isArray(decisions) ? decisions.find(d => d?.heroPosition || d?.hero_position)?.heroPosition || decisions.find(d => d?.heroPosition || d?.hero_position)?.hero_position : null)
+    || (Array.isArray(streetTimeline)
+      ? streetTimeline.flatMap(st => Array.isArray(st?.actions) ? st.actions : []).find(a => a?.isHero && a?.position)?.position
+      : null)
+    || null;
+  const heroPosition = rawHeroPos ? String(rawHeroPos).trim().toUpperCase() || null : null;
+
+  let maxStreetIdx = board.length >= 5 ? 3 : board.length === 4 ? 2 : board.length >= 3 ? 1 : 0;
+  const considerStreet = (st) => {
+    const clean = String(st || '').trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(STREET_ORDER, clean)) {
+      maxStreetIdx = Math.max(maxStreetIdx, STREET_ORDER[clean]);
+    }
+  };
+  for (const st of Array.isArray(streetTimeline) ? streetTimeline : []) considerStreet(st?.street);
+  for (const dec of Array.isArray(decisions) ? decisions : []) considerStreet(dec?.street);
+  if (normalizedHand?.streets) {
+    for (const s of ORDERED_STREETS) {
+      if (normalizedHand.streets[s]) considerStreet(s);
+    }
+  }
+  for (const act of Array.isArray(row?.actions) ? row.actions : []) {
+    considerStreet(act?.street || act?.stage);
+  }
+  const street = ORDERED_STREETS[maxStreetIdx] || 'preflop';
+
   return {
-    id: String(row.id),
-    handNumber: row.hand_number ?? summary?.handNumber ?? null,
+    id: String(row?.id ?? ''),
+    handNumber: row?.hand_number ?? summary?.handNumber ?? null,
     format: eligibility.format,
     formatLabel: eligibility.format === 'tournament' ? 'Tournament' : 'Cash Game',
     variant: eligibility.variant,
     specialFormat: eligibility.specialFormat || null,
     stakes,
-    potSize: Number.isFinite(Number(row?.pot_size)) ? Number(row.pot_size) : null,
+    potSize,
+    pot: potSize,
+    potBb,
+    effectiveStackBb,
+    effectiveStack: effectiveStackBb,
+    heroPosition,
+    street,
     board,
-    heroCards: heroCards.length >= 2 ? heroCards : null,
-    createdAt: row.created_at || null,
+    heroCards: Array.isArray(heroCards) && heroCards.length >= 2 ? heroCards : null,
+    createdAt: row?.created_at || null,
   };
 }
 
-function formatDecisionRow(row) {
+export function formatDecisionRow(row) {
   return {
     decisionKey: row.decision_key || row.decisionKey || null,
     street: row.street || 'preflop',
@@ -76,7 +151,7 @@ function formatDecisionRow(row) {
     selectedFrequency: row.selected_frequency ?? row.selectedFrequency ?? null,
     optimalFrequency: row.optimal_frequency ?? row.optimalFrequency ?? null,
     evLoss: row.ev_loss ?? row.evLoss ?? null,
-    evLossMeasured: row.ev_loss_measured === true || row.evLossMeasured === true,
+    evLossMeasured: Boolean(row.ev_loss_measured ?? row.evLossMeasured),
     solverVerified: row.solver_verified === true || row.solverVerified === true,
     solverSource: row.solver_source || row.solverSource || null,
     matchTier: row.match_tier ?? row.matchTier ?? null,
@@ -310,7 +385,7 @@ export async function executeSingleHandAudit(req, res, {
       hydratedRow.hole_cards?.[user.id],
     ].map(toCardCodes).find(candidate => Array.isArray(candidate) && candidate.length >= 2) || [];
 
-    const handMeta = buildHandMetadata(hydratedRow, eligibility, resolvedHeroCards);
+    const handMeta = buildHandMetadata(hydratedRow, eligibility, resolvedHeroCards, { heroRaw });
 
     if (!eligibility.eligible) {
       return res.status(200).json({
@@ -399,6 +474,7 @@ export async function executeSingleHandAudit(req, res, {
           maxDecisions: 12,
           persist: shouldAuditNow,
           reconcileExisting: shouldAuditNow,
+          evidenceScope: 'club_arena',
         });
         persisted = auditRes?.persisted === true;
         const handAnalysis = auditRes?.analyses?.[0];
@@ -487,6 +563,12 @@ export async function executeSingleHandAudit(req, res, {
     const solverVerifiedCount = decisions.filter(d => d.solverVerified).length;
     const unpricedCount = decisions.length - solverVerifiedCount;
     const streetTimeline = buildStreetTimeline(normalizedHand);
+    const enrichedHandMeta = buildHandMetadata(hydratedRow, eligibility, resolvedHeroCards, {
+      heroRaw,
+      normalizedHand,
+      decisions,
+      streetTimeline,
+    });
 
     return res.status(200).json({
       success: true,
@@ -500,7 +582,7 @@ export async function executeSingleHandAudit(req, res, {
         : (solverVerifiedCount === 0 && decisions.length > 0
             ? 'No Exact Certified Solver Node Matched This Board And Action Line. Decisions Remain Explicitly Unmeasured Rather Than Estimated.'
             : null),
-      hand: handMeta,
+      hand: enrichedHandMeta,
       streetTimeline,
       decisions,
       solverVerifiedCount,

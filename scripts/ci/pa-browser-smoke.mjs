@@ -55,6 +55,14 @@ export const PRIVATE_API_PATHS = Object.freeze([
   '/api/assistant/coaching',
   '/api/assistant/stats',
   '/api/sandbox/custom-drill',
+  '/api/assistant/leaks/claim-live-fix',
+  '/api/assistant/maintenance-jobs',
+  '/api/training/audit-hand-history',
+]);
+
+export const RETIRED_API_PATHS = Object.freeze([
+  '/api/sandbox/equity-snapshot',
+  '/api/sandbox/save-hand',
 ]);
 
 export const REQUIRED_PRIVATE_HEADERS = Object.freeze({
@@ -120,11 +128,22 @@ export function privateHeaderProblems(headers) {
 }
 
 /** Computes accessible name from element attributes / innerText according to accessible name basics. */
-export function computeAccessibleName({ tagName, textContent, innerText, ariaLabel, ariaLabelledby, title, imgAlt, svgTitle } = {}) {
+export function computeAccessibleName({ tagName, textContent, innerText, ariaLabel, ariaLabelledby, labelledByText, labelLookup, title, imgAlt, svgTitle } = {}) {
   const label = String(ariaLabel || '').trim();
   if (label) return label;
+  const resolvedLabelledBy = String(labelledByText || '').trim();
+  if (resolvedLabelledBy) return resolvedLabelledBy;
   const labelledBy = String(ariaLabelledby || '').trim();
-  if (labelledBy) return labelledBy;
+  if (labelledBy && labelLookup && typeof labelLookup === 'object') {
+    const resolved = labelledBy
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((id) => String(labelLookup[id] || '').trim())
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    if (resolved) return resolved;
+  }
   const t = String(title || '').trim();
   if (t) return t;
   const txt = String(innerText ?? textContent ?? '').trim();
@@ -137,7 +156,7 @@ export function computeAccessibleName({ tagName, textContent, innerText, ariaLab
 }
 
 /** Validates SSR response for /share/hand?view=review */
-export function shareReviewProblems({ status, headers = {}, body = '', strictOg = false } = {}) {
+export function shareReviewProblems({ status, headers = {}, body = '', strictOg = true } = {}) {
   const problems = [];
   if (status !== 200) {
     problems.push(`status is ${status}, expected 200 (no redirect)`);
@@ -162,12 +181,16 @@ export function shareReviewProblems({ status, headers = {}, body = '', strictOg 
   if (body.includes('+$1,250')) {
     problems.push('HTML contains fabricated "+$1,250" default winning amount');
   }
+  const ogTitleMatches = body.match(/property=["']og:title["']/gi) || [];
+  const ogImageMatches = body.match(/property=["']og:image["']/gi) || [];
   const hasOgTitle = /property=["']og:title["']\s+content=["'][^"']*Poker Hand Review[^"']*["']/i.test(body)
     || /<title>[^<]*Poker Hand Review[^<]*<\/title>/i.test(body);
   const hasOgImage = /property=["']og:image["']\s+content=["'][^"']*view=review[^"']*["']/i.test(body);
-  if (strictOg || hasOgTitle || hasOgImage) {
+  if (strictOg || ogTitleMatches.length > 0 || ogImageMatches.length > 0) {
     if (!hasOgTitle) problems.push('og:title does not contain "Poker Hand Review"');
     if (!hasOgImage) problems.push('og:image does not contain "view=review"');
+    if (ogTitleMatches.length > 1) problems.push(`duplicate og:title tags (${ogTitleMatches.length})`);
+    if (ogImageMatches.length > 1) problems.push(`duplicate og:image tags (${ogImageMatches.length})`);
   }
   return problems;
 }
@@ -320,9 +343,18 @@ async function checkRoute(browser, baseUrl, viewport, route, storageState) {
       failures.push(`a11y-touch-targets: ${collapsedTargets.slice(0, 3).join('; ')}`);
     }
 
-    // A11y 4: Keyboard Tab reaches interactive element cleanly without errors
+    // A11y 4: Keyboard Tab actually moves focus off <body> to a focusable control
     try {
       await page.keyboard.press('Tab');
+      const focusedTag = await page.evaluate(() => {
+        const active = document.activeElement;
+        return active && active !== document.body && active !== document.documentElement
+          ? active.tagName.toLowerCase()
+          : '';
+      });
+      if (!focusedTag) {
+        failures.push('a11y-keyboard-tab: Tab did not move focus to any focusable element');
+      }
     } catch (tabErr) {
       failures.push(`a11y-keyboard-tab: Tab threw error (${String(tabErr.message).split('\n')[0]})`);
     }
@@ -370,10 +402,25 @@ async function checkPrivateApis(baseUrl) {
       failures.push(`${apiPath}: request failed (${error.message})`);
     }
   }
+  for (const retiredPath of RETIRED_API_PATHS) {
+    try {
+      const response = await fetch(new URL(retiredPath, baseUrl), {
+        method: 'POST',
+        headers: { accept: 'application/json', 'content-type': 'application/json' },
+        body: '{}',
+        redirect: 'manual',
+      });
+      const headers = Object.fromEntries(response.headers.entries());
+      if (response.status !== 410) failures.push(`${retiredPath}: answered ${response.status}, expected 410`);
+      for (const problem of privateHeaderProblems(headers)) failures.push(`${retiredPath} (${response.status}): ${problem}`);
+    } catch (error) {
+      failures.push(`${retiredPath}: request failed (${error.message})`);
+    }
+  }
   return failures;
 }
 
-export async function checkShareHandReviewSsr(baseUrl, { strictOg = false } = {}) {
+export async function checkShareHandReviewSsr(baseUrl, { strictOg = true } = {}) {
   const failures = [];
   try {
     const targetUrl = new URL(SHARE_REVIEW_PATH, baseUrl);
@@ -386,13 +433,23 @@ export async function checkShareHandReviewSsr(baseUrl, { strictOg = false } = {}
     const body = await response.text();
     const problems = shareReviewProblems({ status, headers, body, strictOg });
     for (const problem of problems) failures.push(`${SHARE_REVIEW_PATH}: ${problem}`);
+
+    // Duplicate query parameters must never crash SSR with HTTP 500
+    const dupUrl = new URL('/share/hand?hero=Ah,Kh&hero=Qs,Qd&board=As,Kd,2c&board=7h&result=won&result=lost', baseUrl);
+    const dupResponse = await fetch(dupUrl, {
+      headers: { accept: 'text/html,application/xhtml+xml' },
+      redirect: 'manual',
+    });
+    if (dupResponse.status !== 200) {
+      failures.push(`/share/hand duplicate query params answered ${dupResponse.status}, expected 200`);
+    }
   } catch (error) {
     failures.push(`${SHARE_REVIEW_PATH}: request failed (${error.message})`);
   }
   return failures;
 }
 
-export async function runSmoke({ baseUrl, storageState, strictOg = false }) {
+export async function runSmoke({ baseUrl, storageState, strictOg = true }) {
   const browser = await launchBrowser();
   const results = [];
   try {

@@ -30,8 +30,13 @@ function firstQuery(value) {
     return Array.isArray(value) ? value[0] : value;
 }
 
+function scalarParam(value) {
+    const first = firstQuery(value);
+    return typeof first === 'string' ? first : '';
+}
+
 function reviewCardList(raw, max) {
-    return String(firstQuery(raw) || '')
+    return scalarParam(raw)
         .split(',')
         .map(c => c.trim())
         .filter(c => REVIEW_CARD.test(c))
@@ -39,11 +44,11 @@ function reviewCardList(raw, max) {
 }
 
 function reviewText(raw, max = 48) {
-    return String(firstQuery(raw) || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+    return scalarParam(raw).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
 export async function getServerSideProps({ query = {}, res }) {
-    if (firstQuery(query?.view) === 'review' && res) {
+    if (scalarParam(query?.view) === 'review' && res) {
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
         res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     }
@@ -57,12 +62,29 @@ export async function getServerSideProps({ query = {}, res }) {
 
 export default function ShareHandPage({ initialQuery = {} }) {
     const router = useRouter();
-    const resolvedQuery = router.isReady && router.query && Object.keys(router.query).length > 0
+    const rawQuery = router.isReady && router.query && Object.keys(router.query).length > 0
         ? router.query
         : initialQuery;
-    const { hero, board, result, amount, stakes, venue, pot, player, hand, view, street, position, anon } = resolvedQuery;
+    const resolvedQuery = {};
+    for (const [k, v] of Object.entries(rawQuery || {})) {
+        const val = firstQuery(v);
+        if (typeof val === 'string') resolvedQuery[k] = val;
+    }
+    const hero = scalarParam(resolvedQuery.hero);
+    const board = scalarParam(resolvedQuery.board);
+    const result = scalarParam(resolvedQuery.result);
+    const amount = scalarParam(resolvedQuery.amount);
+    const stakes = scalarParam(resolvedQuery.stakes);
+    const venue = scalarParam(resolvedQuery.venue);
+    const pot = scalarParam(resolvedQuery.pot);
+    const player = scalarParam(resolvedQuery.player);
+    const hand = scalarParam(resolvedQuery.hand);
+    const view = scalarParam(resolvedQuery.view);
+    const street = scalarParam(resolvedQuery.street);
+    const position = scalarParam(resolvedQuery.position);
+    const anon = scalarParam(resolvedQuery.anon);
     const [imageLoaded, setImageLoaded] = useState(false);
-    const isReview = firstQuery(view) === 'review';
+    const isReview = view === 'review';
 
     // Review links: explicit parameters only. Hole cards show only when exactly two valid cards were passed.
     const reviewHeroList = isReview ? reviewCardList(hero, 2) : [];
@@ -110,6 +132,13 @@ export default function ShareHandPage({ initialQuery = {} }) {
             hand: hand || '',
         });
     const ogImageUrl = `https://smarter.poker/api/og/hand-card?${ogParams.toString()}`;
+    const shareQueryString = new URLSearchParams(resolvedQuery).toString();
+    const ogUrl = shareQueryString
+        ? `https://smarter.poker/share/hand?${shareQueryString}`
+        : 'https://smarter.poker/share/hand';
+    const imageAlt = isReview
+        ? (reviewDetails.length ? `${reviewTitle} (${reviewDetails.join(', ')})` : reviewTitle)
+        : `${player || 'Player'}'s poker hand`;
 
     const title = isReview
         ? `${reviewTitle} | Smarter.Poker`
@@ -130,12 +159,12 @@ export default function ShareHandPage({ initialQuery = {} }) {
                 <meta key="og-image-height" property="og:image:height" content="420" />
                 <meta key="og-image-type" property="og:image:type" content="image/png" />
                 <meta key="og-type" property="og:type" content="website" />
-                <meta key="og-url" property="og:url" content={`https://smarter.poker/share/hand`} />
+                <meta key="og-url" property="og:url" content={ogUrl} />
                 <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
                 <meta key="twitter-title" name="twitter:title" content={title} />
                 <meta key="twitter-description" name="twitter:description" content={description} />
                 <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
-                <meta key="viewport" name="viewport" content="width=device-width, initial-scale=1" />
+                <meta key="viewport" name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
                 {isReview && <meta key="robots" name="robots" content="noindex,nofollow" />}
             </Head>
             <div style={{
@@ -174,7 +203,7 @@ export default function ShareHandPage({ initialQuery = {} }) {
                 }}>
                     <img
                         src={ogImageUrl}
-                        alt={`${player || 'Player'}'s poker hand`}
+                        alt={imageAlt}
                         style={{ width: '100%', height: 'auto', display: 'block' }}
                         onLoad={() => setImageLoaded(true)}
                     />

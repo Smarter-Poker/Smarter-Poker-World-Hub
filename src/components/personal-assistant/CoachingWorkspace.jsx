@@ -131,10 +131,15 @@ export default function CoachingWorkspace({
   }, []);
 
   const hydratedPrefsForUserRef = useRef(null);
+  const workspaceRef = useRef(null);
   const loadRequestIdRef = useRef(0);
   const loadAbortRef = useRef(null);
   const lifecycleRequestIdRef = useRef(0);
   const lifecycleAbortRef = useRef(null);
+
+  useEffect(() => {
+    workspaceRef.current = workspace;
+  }, [workspace]);
 
   // Isolate all account-scoped state immediately when switching accounts or signing out.
   useEffect(() => {
@@ -146,10 +151,12 @@ export default function CoachingWorkspace({
     setSelectedLeakId(null);
     setConfirmGoalId(null);
     setStatus(null);
-    if (!userId) {
-      setWorkspace(null);
-      hydratedPrefsForUserRef.current = null;
-    }
+    setClaimedRewardLeaks({});
+    setClaimingRewardLeakId(null);
+    setWorkspace(null);
+    workspaceRef.current = null;
+    setError(null);
+    hydratedPrefsForUserRef.current = null;
   }, [userId]);
 
   useEffect(() => () => {
@@ -157,23 +164,28 @@ export default function CoachingWorkspace({
     lifecycleAbortRef.current?.abort();
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ background = false } = {}) => {
     loadAbortRef.current?.abort();
     const requestId = ++loadRequestIdRef.current;
     if (!userId) {
       setLoading(false);
       setWorkspace(null);
+      workspaceRef.current = null;
       hydratedPrefsForUserRef.current = null;
       return;
     }
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     loadAbortRef.current = controller;
-    setLoading(true);
+    const hasExistingSnapshot = Boolean(workspaceRef.current?.snapshot);
+    if (!background && !hasExistingSnapshot) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const payload = await apiRequest('GET', null, { signal: controller?.signal });
       if (requestId !== loadRequestIdRef.current) return;
       setWorkspace(payload);
+      workspaceRef.current = payload;
       if (hydratedPrefsForUserRef.current !== userId) {
         hydratedPrefsForUserRef.current = userId;
         const urlView = typeof window !== 'undefined'
@@ -196,7 +208,11 @@ export default function CoachingWorkspace({
       setSelectedLeakId(current => current || first || null);
     } catch (requestError) {
       if (requestError?.name === 'AbortError' || requestId !== loadRequestIdRef.current) return;
-      setError(requestError?.message || 'Coaching Workspace Could Not Be Loaded');
+      if (workspaceRef.current?.snapshot) {
+        setStatus({ tone: 'danger', text: requestError?.message || 'Coaching Workspace Could Not Be Refreshed' });
+      } else {
+        setError(requestError?.message || 'Coaching Workspace Could Not Be Loaded');
+      }
     } finally {
       if (requestId === loadRequestIdRef.current) {
         setLoading(false);
@@ -208,7 +224,7 @@ export default function CoachingWorkspace({
 
   useEffect(() => {
     if (typeof window === 'undefined' || !userId) return undefined;
-    const onRefresh = () => { load(); };
+    const onRefresh = () => { load({ background: true }); };
     window.addEventListener('pa-data-updated', onRefresh);
     window.addEventListener('pa-leak-review-updated', onRefresh);
     return () => {
@@ -221,10 +237,10 @@ export default function CoachingWorkspace({
     setSaving(true);
     setStatus(null);
     try {
-      await apiRequest('POST', body);
+      const payload = await apiRequest('POST', body);
       setStatus({ tone: 'success', text: successText });
-      if (reload) await load();
-      return true;
+      if (reload) await load({ background: true });
+      return payload || true;
     } catch (requestError) {
       setStatus({ tone: 'danger', text: requestError?.message || 'The Change Could Not Be Saved' });
       return false;
@@ -330,17 +346,29 @@ export default function CoachingWorkspace({
   }, [analysisDepth, view, weeklyDigestOptIn, workspace, write]);
 
   const toggleWeeklyDigest = useCallback(async (enabled) => {
-    setWeeklyDigestOptIn(enabled);
-    await write({
+    const previousOptIn = Boolean(weeklyDigestOptIn);
+    const nextEnabled = Boolean(enabled);
+    setWeeklyDigestOptIn(nextEnabled);
+    const saved = await write({
       action: 'save_preferences',
       preferences: {
         savedView: view,
         analysisDepth,
         panelLayout: workspace?.preferences?.panel_layout || {},
-        weeklyDigestOptIn: enabled,
+        weeklyDigestOptIn: nextEnabled,
       },
-    }, enabled ? 'Weekly Coaching Digest Enabled' : 'Weekly Coaching Digest Disabled', { reload: false });
-  }, [analysisDepth, view, workspace, write]);
+    }, nextEnabled ? 'Weekly Coaching Digest Enabled' : 'Weekly Coaching Digest Disabled', { reload: false });
+    if (!saved) {
+      setWeeklyDigestOptIn(previousOptIn);
+      return;
+    }
+    const serverPref = saved?.result ?? saved?.preferences ?? null;
+    const serverOptIn = serverPref?.weeklyDigestOptIn ?? serverPref?.weekly_digest_opt_in;
+    if (serverOptIn !== undefined && Boolean(serverOptIn) !== nextEnabled) {
+      setWeeklyDigestOptIn(previousOptIn);
+      setStatus({ tone: 'danger', text: 'Weekly Coaching Digest Preference Could Not Be Saved' });
+    }
+  }, [analysisDepth, view, weeklyDigestOptIn, workspace, write]);
 
   const getStudyPlanMarkdown = useCallback(async () => {
     try {
@@ -355,7 +383,12 @@ export default function CoachingWorkspace({
       `Generated: ${new Date().toISOString().slice(0, 10)}`,
       '',
       '## Priorities',
-      ...(snap?.priorities || []).map((p, i) => `${i + 1}. **${p.title}** (${p.confidence?.score}% confidence) - ${p.reason}`),
+      ...(snap?.priorities || []).map((p, i) => {
+        const score = Number.isFinite(Number(p?.confidence?.score))
+          ? `${Math.round(Number(p.confidence.score))}% Confidence`
+          : 'Unscored Confidence';
+        return `${i + 1}. **${p?.title || 'Priority'}** (${score}) - ${p?.reason || 'Measured From Evidence'}`;
+      }),
     ];
     return lines.join('\n');
   }, [workspace?.snapshot]);
@@ -363,10 +396,11 @@ export default function CoachingWorkspace({
   const handleCopyStudyPlan = useCallback(async () => {
     setExportingPlan(true);
     try {
-      const md = await getStudyPlanMarkdown();
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(md);
+      if (typeof navigator === 'undefined' || typeof navigator.clipboard?.writeText !== 'function') {
+        throw new Error('Clipboard Is Not Available');
       }
+      const md = await getStudyPlanMarkdown();
+      await navigator.clipboard.writeText(md);
       setStatus({ tone: 'success', text: 'Study Plan Copied To Clipboard' });
     } catch (_) {
       setStatus({ tone: 'danger', text: 'Could Not Copy Study Plan' });
@@ -398,6 +432,7 @@ export default function CoachingWorkspace({
 
   const handleClaimLiveFix = useCallback(async (leakId) => {
     setClaimingRewardLeakId(leakId);
+    setStatus(null);
     try {
       const token = await getFreshAccessToken();
       if (!token) throw new Error('Sign In Required');
@@ -410,12 +445,36 @@ export default function CoachingWorkspace({
         body: JSON.stringify({ leakId }),
       });
       const data = await response.json().catch(() => null);
-      if (!response.ok && data?.code !== 'already_awarded' && !data?.alreadyAwarded) {
+      const isAlreadyAwarded = Boolean(data?.alreadyAwarded || data?.code === 'already_awarded');
+      const isAwarded = Boolean(data?.awarded);
+
+      if (
+        data?.code === 'REWARDS_UNAVAILABLE'
+        || data?.code === 'REWARD_LIMIT_REACHED'
+        || (data?.awarded === false && !isAlreadyAwarded)
+      ) {
+        const limitOrUnavailableMsg = data?.code === 'REWARDS_UNAVAILABLE'
+          ? (data?.error || 'Diamond Rewards Are Temporarily Unavailable. Try Again Later.')
+          : data?.code === 'REWARD_LIMIT_REACHED'
+            ? (data?.error || 'Daily Or Monthly Diamond Reward Limit Reached. Try Again Later.')
+            : (data?.error || 'Diamond Reward Could Not Be Claimed Right Now.');
+        setStatus({ tone: 'warn', text: limitOrUnavailableMsg });
+        return;
+      }
+
+      if (!(response.ok && data?.success === true && (isAwarded || isAlreadyAwarded))) {
         throw new Error(data?.error || `Claim Failed (HTTP ${response.status})`);
       }
-      const state = (data?.alreadyAwarded || data?.code === 'already_awarded') ? 'already_awarded' : 'claimed';
+
+      const state = isAlreadyAwarded ? 'already_awarded' : 'claimed';
       setClaimedRewardLeaks(prev => ({ ...prev, [leakId]: state }));
-      setStatus({ tone: 'success', text: '25 Diamonds Claimed For Verified Live Fix' });
+      const diamondsAwarded = data?.diamonds || 25;
+      setStatus({
+        tone: 'success',
+        text: isAlreadyAwarded
+          ? 'Reward Already Claimed For Verified Live Fix'
+          : `${diamondsAwarded} Diamonds Claimed For Verified Live Fix`,
+      });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('pa-diamonds-updated'));
         window.dispatchEvent(new CustomEvent('pa-data-updated'));
@@ -467,17 +526,17 @@ export default function CoachingWorkspace({
     );
   }
 
-  if (loading) {
+  if (loading && !workspace?.snapshot) {
     return <section className={styles.statePanel} aria-busy="true"><Activity className={styles.spin} aria-hidden="true" /><h2>Building Your Coaching Plan</h2></section>;
   }
 
-  if (error) {
+  if (error && !workspace?.snapshot) {
     return (
       <section className={styles.statePanel} role="alert">
         <AlertCircle size={28} aria-hidden="true" />
         <h2>Coaching Workspace Unavailable</h2>
         <p>{error}</p>
-        <button type="button" className={styles.primaryButton} onClick={load}><RefreshCw size={17} aria-hidden="true" />Retry</button>
+        <button type="button" className={styles.primaryButton} onClick={() => load()}><RefreshCw size={17} aria-hidden="true" />Retry</button>
       </section>
     );
   }
@@ -691,7 +750,7 @@ export default function CoachingWorkspace({
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                             {claimedRewardLeaks[mod.leakId] || mod.tableVerification?.rewardClaimed ? (
                               <span className={styles.claimedBadge}>
-                                Reward Claimed
+                                {claimedRewardLeaks[mod.leakId] === 'already_awarded' ? 'Reward Already Claimed' : 'Reward Claimed'}
                               </span>
                             ) : (
                               <button

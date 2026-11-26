@@ -271,6 +271,15 @@ export default function QuickSpotDrill({
     const runIdRef = useRef(0);
     const lastOutcomeRef = useRef(null);
     const answerLockedRef = useRef(false);
+    const nextButtonRef = useRef(null);
+
+    useEffect(() => {
+        if (!loading && !confirmQuit && !finished && revealed && questions.length > 0) {
+            try {
+                nextButtonRef.current?.focus?.();
+            } catch (_) {}
+        }
+    }, [loading, confirmQuit, finished, revealed, questions.length]);
 
     useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
     useEffect(() => { questionsRef.current = questions; }, [questions]);
@@ -830,7 +839,13 @@ export default function QuickSpotDrill({
             hideClose={reviewSaving}
             closeLabel="Close drill"
             footer={!loading && !confirmQuit && questions.length > 0 && !finished && revealed ? (
-                <button type="button" className="pa-btn" onClick={handleNext} style={{ ...btn('primary', { block: true }) }}>
+                <button
+                    ref={nextButtonRef}
+                    type="button"
+                    className="pa-btn"
+                    onClick={handleNext}
+                    style={{ ...btn('primary', { block: true }) }}
+                >
                     {currentIdx + 1 >= questions.length ? 'See results' : 'Next spot'}
                 </button>
             ) : null}
@@ -1001,7 +1016,9 @@ export default function QuickSpotDrill({
                                         Could Not Update Your Review Schedule
                                     </span>
                                     <span style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
-                                        Your Answers Were Still Saved. Try Again, Or Carry On · The Leak Stays In Your Queue.
+                                        {drillToken
+                                            ? 'Your Verified Answers Were Still Saved On The Server. Try Again, Or Carry On · The Leak Stays In Your Queue.'
+                                            : 'This Practice Run Was Not Saved. Try Again, Or Carry On · The Leak Stays In Your Queue.'}
                                     </span>
                                     <button
                                         type="button"
