@@ -45,6 +45,7 @@ test('hero and HUD overlays have smaller modern-format delivery paths', () => {
   }
 
   assert.match(hub, /training-orb-hero\.avif/);
+  assert.match(hub, /rel="preload" as="image" href="\/images\/training\/training-orb-hero\.avif" type="image\/avif" fetchPriority="high"/);
   assert.match(hub, /training-orb-hero\.webp/);
   assert.match(hub, /training-card-hud-overlay\.avif/);
   assert.match(hub, /training-card-hud-overlay\.webp/);

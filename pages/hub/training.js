@@ -35,6 +35,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
+import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
@@ -441,6 +442,9 @@ export default function TrainingPage() {
 
   return (
     <PageTransition disableInitialAnimation>
+      <Head>
+        <link key="training-hero-preload" rel="preload" as="image" href="/images/training/training-orb-hero.avif" type="image/avif" fetchPriority="high" />
+      </Head>
       <SEOHead
         title="Free GTO Poker Training And Leak Detection"
         description="Free GTO Poker Training On Smarter.Poker: One-Tap Drills, A Personalised Daily Plan, Leak Detection And 100+ Scenario-Based Games Coached By Jarvis. No Real-Money Gambling."
