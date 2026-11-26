@@ -494,6 +494,7 @@ export function summarizeLiveSpotAudit(payload) {
     decisionsAnalyzed: decisions.length,
     verifiedCount,
     unpricedCount: decisions.length - verifiedCount,
+    unsupportedCount: finiteOrNull(payload?.unsupportedCount) ?? 0,
     decisions: decisions.slice(0, 6),
     drillHref,
     hasVerifiedAdvice: verifiedCount > 0,

@@ -25,6 +25,13 @@ import {
     normalizeLaunchBettingStructure,
     normalizeLaunchFormat,
 } from '../../../../src/lib/training/customTrainingLaunchContract.mjs';
+
+function sanitizeHubReturnTo(value) {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('/hub/') || trimmed.startsWith('//') || trimmed.includes('://')) return null;
+    return trimmed;
+}
 import {
     resolvePresetForGame,
     saveResumableTrainingSession,
@@ -177,12 +184,11 @@ export default function TrainingArenaPage() {
                 ? router.query.bettingStructure.trim().toLowerCase()
                 : (sharedDrillPack?.bettingStructure || coopStudyRoom?.bettingStructure || clubCoachAssignment?.bettingStructure || '');
             const bettingStructure = normalizeLaunchBettingStructure(rawBettingStructure, variant || rawVariant);
-            const rawFormat = typeof router.query.format === 'string'
+            const rawFormatInput = typeof router.query.format === 'string'
                 ? router.query.format.trim().toLowerCase()
                 : (sharedDrillPack?.format || coopStudyRoom?.format || clubCoachAssignment?.format || '');
-            const format = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(rawFormat)
-                ? rawFormat
-                : normalizeLaunchFormat(rawFormat);
+            const rawFormat = normalizeLaunchFormat(rawFormatInput) || rawFormatInput;
+            const format = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(rawFormat) ? rawFormat : null;
             const rawStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
                 ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
                 : (sharedDrillPack?.targetStreet || coopStudyRoom?.targetStreet || clubCoachAssignment?.targetStreet || '');
@@ -307,6 +313,18 @@ export default function TrainingArenaPage() {
     }, [startsWithPreset, userId, resolvedSessionId, initialConfig, gameId, gameName, level]);
     // Handle arena exit — return to level selector preserving active training context
     const handleExit = useCallback(() => {
+        const safeReturnTo = sanitizeHubReturnTo(router.query?.returnTo);
+        if (safeReturnTo) {
+            router.push(safeReturnTo);
+            return;
+        }
+        const fromParam = typeof router.query?.from === 'string' ? router.query.from.trim() : '';
+        const sourceParam = typeof router.query?.source === 'string' ? router.query.source.trim() : '';
+        if (fromParam === 'leak-finder' || sourceParam === 'leak-finder' || sourceParam.startsWith('personal-assistant')) {
+            const leakParam = typeof router.query?.leak === 'string' ? router.query.leak.trim() : '';
+            router.push(leakParam ? `/hub/personal-assistant/leaks?leak=${encodeURIComponent(leakParam)}` : '/hub/personal-assistant/leaks');
+            return;
+        }
         if (startsWithPreset && router.query.source === 'training-home') {
             router.push('/hub/training');
             return;
@@ -368,6 +386,28 @@ export default function TrainingArenaPage() {
 
     const syncedHandId = typeof router.query.syncedHandId === 'string' ? router.query.syncedHandId.trim() : '';
     const duelToken = typeof router.query.duelToken === 'string' ? router.query.duelToken.trim() : '';
+    const validatedReturnTo = sanitizeHubReturnTo(router.query.returnTo);
+    const queryFrom = typeof router.query.from === 'string' ? router.query.from.trim() : '';
+    const querySource = typeof router.query.source === 'string' ? router.query.source.trim() : '';
+    const queryLeak = typeof router.query.leak === 'string' ? router.query.leak.trim() : '';
+    const isPersonalAssistantOrigin = queryFrom === 'leak-finder' || querySource === 'leak-finder' || querySource.startsWith('personal-assistant');
+    const personalAssistantReturnHref = validatedReturnTo || (
+        queryLeak
+            ? `/hub/personal-assistant/leaks?leak=${encodeURIComponent(queryLeak)}`
+            : '/hub/personal-assistant/leaks'
+    );
+    const syncedHandReturnHref = validatedReturnTo || (
+        querySource === 'personal-assistant-live-spot' || isPersonalAssistantOrigin
+            ? personalAssistantReturnHref
+            : querySource === 'hand-history-upload'
+                ? '/hub/training/hand-history-upload'
+                : '/hub/training/live-hud-sync'
+    );
+    const syncedHandReturnLabel = (querySource === 'personal-assistant-live-spot' || isPersonalAssistantOrigin)
+        ? '← Return To Personal Assistant'
+        : querySource === 'hand-history-upload'
+            ? '← Return To Hand History Review'
+            : '← Return To Live Hand Sync';
     const resolvedHeroCards = Array.isArray(serverSyncedHand?.heroCards)
         ? serverSyncedHand.heroCards.join('')
         : '';
@@ -379,6 +419,41 @@ export default function TrainingArenaPage() {
                 <title>{gameName} - Level {level} | Smarter.Poker GTO Training</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             </Head>
+            {isPersonalAssistantOrigin && !syncedHandId && (
+                <div
+                    data-pa-return-banner="true"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        padding: '8px 16px',
+                        background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
+                        borderBottom: '1px solid rgba(103, 232, 249, 0.35)',
+                        color: '#e6f3ff',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        zIndex: 50,
+                    }}
+                >
+                    <span>
+                        ◆ Focused Personal Assistant Leak Drill Active
+                    </span>
+                    <a
+                        href={personalAssistantReturnHref}
+                        style={{
+                            color: '#83deff',
+                            textDecoration: 'none',
+                            fontWeight: 800,
+                            fontSize: 12,
+                        }}
+                    >
+                        ← Return To Personal Assistant
+                    </a>
+                </div>
+            )}
             {syncedHandId && (
                 <div
                     data-synced-hand-banner="true"
@@ -409,7 +484,7 @@ export default function TrainingArenaPage() {
                         {serverSyncedHand?.engineModule ? ` · Brain: ${serverSyncedHand.engineModule}` : ''}
                     </span>
                     <a
-                        href="/hub/training/live-hud-sync"
+                        href={syncedHandReturnHref}
                         style={{
                             color: '#6ee7b7',
                             textDecoration: 'none',
@@ -417,7 +492,7 @@ export default function TrainingArenaPage() {
                             fontSize: 12,
                         }}
                     >
-                        ← Return To Live Hand Sync
+                        {syncedHandReturnLabel}
                     </a>
                 </div>
             )}

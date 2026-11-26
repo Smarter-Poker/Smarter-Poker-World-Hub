@@ -113,6 +113,47 @@ async function readClubArenaFormatCounts(supabase, userId) {
     }
 }
 
+async function readClubArenaAggressionFactor(supabase, userId) {
+    try {
+        let query = supabase
+            .from('ca_hand_facts')
+            .select('af_bet_raise_actions, af_call_actions')
+            .eq('user_id', userId);
+        if (typeof query?.order === 'function') {
+            query = query.order('played_at', { ascending: false });
+        }
+        if (typeof query?.limit === 'function') {
+            query = query.limit(2000);
+        }
+        const res = await query;
+        if (res?.error || !Array.isArray(res?.data) || res.data.length === 0) {
+            return computeAggressionFactor(null, null);
+        }
+        let betRaiseTotal = 0;
+        let callTotal = 0;
+        let seenAny = false;
+        for (const row of res.data) {
+            if (!row || typeof row !== 'object') continue;
+            const br = Number(row.af_bet_raise_actions);
+            const c = Number(row.af_call_actions);
+            if (row.af_bet_raise_actions !== null && row.af_bet_raise_actions !== undefined && Number.isFinite(br) && br >= 0) {
+                betRaiseTotal += br;
+                seenAny = true;
+            }
+            if (row.af_call_actions !== null && row.af_call_actions !== undefined && Number.isFinite(c) && c >= 0) {
+                callTotal += c;
+                seenAny = true;
+            }
+        }
+        if (!seenAny) {
+            return computeAggressionFactor(null, null);
+        }
+        return computeAggressionFactor(betRaiseTotal, callTotal);
+    } catch (_) {
+        return computeAggressionFactor(null, null);
+    }
+}
+
 export default async function handler(req, res) {
   try {
     // Per-user training stats · never cache across auth state transitions or mutations
@@ -146,7 +187,7 @@ export default async function handler(req, res) {
       // Always count the owned session rows and active leaks live; retain the
       // stored hand total only for Club Arena scans, whose unique-hand count is
       // deliberately persisted by the deterministic audit endpoint.
-      const [storedRes, sandboxRes, leakStats, clubHandsRes, formatCounts] = await Promise.all([
+      const [storedRes, sandboxRes, leakStats, clubHandsRes, formatCounts, aggressionFactor] = await Promise.all([
         getSupabase()
           .from('user_assistant_stats')
           .select('sandbox_sessions_count, total_sessions_reviewed, total_hands_analyzed')
@@ -162,6 +203,7 @@ export default async function handler(req, res) {
           .select('hand_id', { count: 'exact', head: true })
           .eq('user_id', userId),
         readClubArenaFormatCounts(getSupabase(), userId),
+        readClubArenaAggressionFactor(getSupabase(), userId),
       ]);
 
       const stored = storedRes?.data || null;
@@ -203,6 +245,7 @@ export default async function handler(req, res) {
             tournamentHands,
             scope: formatScope,
           },
+          aggressionFactor,
           leaksFound: leakStats.activeLeaks,
           resolvedLeaks: leakStats.resolvedLeaks,
           sandboxSessions: sandboxCount,
@@ -271,6 +314,7 @@ function getDefaultStats() {
     leaksFound: 0,
     resolvedLeaks: 0,
     sandboxSessions: 0,
-    avgEvLoss: 0
+    avgEvLoss: 0,
+    aggressionFactor: computeAggressionFactor(null, null),
   };
 }

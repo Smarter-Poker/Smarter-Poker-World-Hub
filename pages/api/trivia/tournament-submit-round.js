@@ -161,6 +161,7 @@ export default async function handler(req, res) {
     try {
         res.setHeader('Cache-Control', 'private, no-store, max-age=0');
         if (req.method !== 'POST') {
+            res.setHeader('Allow', 'POST');
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
         if (!applyRateLimit(req, res, LIMITS.write)) return;

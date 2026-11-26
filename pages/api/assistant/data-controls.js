@@ -64,12 +64,77 @@ async function clubArenaHands(userId) {
     .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id || '').localeCompare(String(b.id || '')));
 }
 
+async function syncedHandHistoryRows(userId) {
+  const rows = await readAll(
+    () => db()
+      .from('training_tool_records')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('tool_id', 'synced-hand-history')
+      .order('id', { ascending: true }),
+    'Synced Hand History',
+  );
+  return rows.map((row) => {
+    const cleanRow = sanitizeExportHandRow(row, userId);
+    if (cleanRow && cleanRow.data && typeof cleanRow.data === 'object') {
+      return {
+        ...cleanRow,
+        data: sanitizeExportHandRow(cleanRow.data, userId),
+      };
+    }
+    return cleanRow;
+  });
+}
+
+async function purgeSyncedHandHistoryRecords(userId) {
+  const table = db().from('training_tool_records');
+  if (!table || typeof table.delete !== 'function') {
+    return { deleted: 0 };
+  }
+  const res = await table
+    .delete({ count: 'exact' })
+    .eq('user_id', userId)
+    .eq('tool_id', 'synced-hand-history');
+  if (res?.error) throw res.error;
+  const deleted = typeof res?.count === 'number'
+    ? res.count
+    : (Array.isArray(res?.data) ? res.data.length : 0);
+  return { deleted };
+}
+
+async function pruneSyncedHandHistoryRecords(userId, days) {
+  const retentionNum = Number(days);
+  if (!Number.isFinite(retentionNum) || retentionNum <= 0) {
+    return { deleted: 0, cutoffIso: null };
+  }
+  const cutoffIso = new Date(Date.now() - retentionNum * 86_400_000).toISOString();
+  const table = db().from('training_tool_records');
+  if (!table || typeof table.delete !== 'function') {
+    return { deleted: 0, cutoffIso };
+  }
+  let query = table
+    .delete({ count: 'exact' })
+    .eq('user_id', userId)
+    .eq('tool_id', 'synced-hand-history');
+  if (typeof query?.lt === 'function') {
+    query = query.lt('updated_at', cutoffIso);
+  } else if (typeof query?.lte === 'function') {
+    query = query.lte('updated_at', cutoffIso);
+  }
+  const res = await query;
+  if (res?.error) throw res.error;
+  const deleted = typeof res?.count === 'number'
+    ? res.count
+    : (Array.isArray(res?.data) ? res.data.length : 0);
+  return { deleted, cutoffIso };
+}
+
 async function buildExport(userId) {
   const [
     leaks, trainingLeaks, assistantStats, decisions, reviews, reviewOperations, auditJobs, drillSessions, drillAnswers, drillAttempts,
     goals, feedback, preferences, lifecycleReceipts, sandboxSessions, savedHands,
     sandboxAnalytics, sandboxQuizResults, coachResults, bookmarks, equityHistory,
-    templates, sharedScenarios, solutionBookmarks, sourceHands, privateHandFacts,
+    templates, sharedScenarios, solutionBookmarks, sourceHands, privateHandFacts, syncedHands,
   ] = await Promise.all([
     ownerRows('user_leaks', userId),
     ownerRows('user_training_leaks', userId),
@@ -97,6 +162,7 @@ async function buildExport(userId) {
     ownerRows('solution_bookmarks', userId),
     clubArenaHands(userId),
     ownerRows('ca_hand_facts', userId, '*', 'hand_id'),
+    syncedHandHistoryRows(userId),
   ]);
   if (preferences.error) throw preferences.error;
   if (assistantStats.error) throw assistantStats.error;
@@ -118,6 +184,7 @@ async function buildExport(userId) {
       drillAnswers,
       drillAttempts,
       handExamples,
+      syncedHands,
     },
     sandbox: {
       sessions: sandboxSessions,
@@ -133,6 +200,7 @@ async function buildExport(userId) {
       solutionBookmarks,
     },
     clubArena: { hands: sourceHands, privateHandFacts },
+    syncedHands,
     lifecycleReceipts,
   };
   const counts = Object.fromEntries(Object.entries(data).flatMap(([group, value]) => (
@@ -175,7 +243,7 @@ async function summary(userId) {
     leaks, trainingLeaks, decisions, reviews, reviewOperations, auditJobs,
     drillSessions, drillAnswers, drillAttempts, goals, feedback, sandboxSessions, savedHands,
     sandboxAnalytics, sandboxQuizResults, coachResults, bookmarks, equityHistory, templates, sharedScenarios,
-    solutionBookmarks, assistantStats, preference, receipts,
+    solutionBookmarks, assistantStats, syncedHands, preference, receipts,
   ] = await Promise.all([
     countOwnerRows('user_leaks', userId),
     countOwnerRows('user_training_leaks', userId),
@@ -199,15 +267,19 @@ async function summary(userId) {
     db().from('sandbox_shared_scenarios').select('id', { count: 'exact', head: true }).eq('creator_id', userId),
     countOwnerRows('solution_bookmarks', userId),
     countOwnerRows('user_assistant_stats', userId, 'user_id'),
+    db().from('training_tool_records').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('tool_id', 'synced-hand-history'),
     db().from('pa_coaching_preferences').select('retention_days, last_retention_run_at').eq('user_id', userId).maybeSingle(),
     db().from('pa_data_lifecycle_receipts').select('id, action, scope, item_counts, receipt_fingerprint, created_at')
       .eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
   ]);
-  if (sharedScenarios.error || preference.error || receipts.error) throw sharedScenarios.error || preference.error || receipts.error;
+  if (sharedScenarios.error || syncedHands.error || preference.error || receipts.error) {
+    throw sharedScenarios.error || syncedHands.error || preference.error || receipts.error;
+  }
   return {
     counts: {
       leaks, trainingLeaks, decisions, reviews, reviewOperations, auditJobs,
       drillSessions, drillAnswers, drillAttempts, assistantStats,
+      syncedHands: syncedHands.count || 0,
       goals, feedback, sandboxSessions, savedHands,
       sandboxAnalytics, sandboxQuizResults, coachResults, bookmarks, equityHistory, templates,
       sharedScenarios: sharedScenarios.count || 0,
@@ -270,20 +342,45 @@ export default async function handler(req, res) {
       if (retention.error || !retention.data || retention.data.error || retention.data.success === false) {
         throw retention.error || new Error('Retention Policy Could Not Be Applied.');
       }
-      return res.status(200).json({ success: true, preference, retention: retention.data });
+      const syncedRetention = await pruneSyncedHandHistoryRecords(user.id, preference.retention_days ?? body.retentionDays);
+      const retentionData = {
+        ...retention.data,
+        counts: {
+          ...(retention.data.counts && typeof retention.data.counts === 'object' ? retention.data.counts : {}),
+          synced_hands: syncedRetention.deleted,
+          syncedHands: syncedRetention.deleted,
+        },
+        syncedHandsDeleted: syncedRetention.deleted,
+      };
+      return res.status(200).json({
+        success: true,
+        preference,
+        retention: retentionData,
+        syncedHandsDeleted: syncedRetention.deleted,
+      });
     }
     if (req.method === 'POST' && body.action === 'request_deletion') {
-      const scope = String(body.scope || '').toLowerCase();
-      const challenge = sealDeletionChallenge({ userId: user.id, scope });
-      return res.status(200).json({ success: true, scope, challenge, confirmation: DELETE_CONFIRMATION, expiresInSeconds: 600 });
+      const rawScope = String(body.scope || '').toLowerCase();
+      const challengeScope = rawScope === 'audits' ? 'analysis' : rawScope;
+      const challenge = sealDeletionChallenge({ userId: user.id, scope: challengeScope });
+      return res.status(200).json({ success: true, scope: rawScope, challenge, confirmation: DELETE_CONFIRMATION, expiresInSeconds: 600 });
     }
     if (req.method === 'DELETE') {
-      const scope = String(body.scope || '').toLowerCase();
+      const rawScope = String(body.scope || '').toLowerCase();
+      const rpcScope = rawScope === 'audits' ? 'analysis' : rawScope;
       if (body.confirmation !== DELETE_CONFIRMATION) {
         return res.status(400).json({ success: false, error: 'Deletion Confirmation Does Not Match.' });
       }
-      openDeletionChallenge(body.challenge, { userId: user.id, scope });
-      const result = await db().rpc('purge_personal_assistant_data', { p_user_id: user.id, p_scope: scope });
+      try {
+        openDeletionChallenge(body.challenge, { userId: user.id, scope: rawScope });
+      } catch (challengeError) {
+        if (rawScope === 'audits') {
+          openDeletionChallenge(body.challenge, { userId: user.id, scope: rpcScope });
+        } else {
+          throw challengeError;
+        }
+      }
+      const result = await db().rpc('purge_personal_assistant_data', { p_user_id: user.id, p_scope: rpcScope });
       if (
         result.error
         || !result.data
@@ -293,7 +390,29 @@ export default async function handler(req, res) {
       ) {
         throw result.error || new Error('Personal Assistant Data Purge Could Not Be Verified.');
       }
-      return res.status(200).json({ success: true, scope, receipt: result.data, sourceHandsDeleted: false });
+      let syncedHandsDeleted = 0;
+      if (['all', 'analysis', 'audits'].includes(rawScope)) {
+        const purgedSynced = await purgeSyncedHandHistoryRecords(user.id);
+        syncedHandsDeleted = purgedSynced.deleted;
+      }
+      const receiptData = {
+        ...result.data,
+        counts: {
+          ...(result.data.counts && typeof result.data.counts === 'object' ? result.data.counts : {}),
+          ...(['all', 'analysis', 'audits'].includes(rawScope)
+            ? { synced_hands: syncedHandsDeleted, syncedHands: syncedHandsDeleted }
+            : {}),
+        },
+        syncedHandsDeleted,
+      };
+      return res.status(200).json({
+        success: true,
+        scope: rawScope,
+        receipt: receiptData,
+        deletedCounts: receiptData.counts,
+        syncedHandsDeleted,
+        sourceHandsDeleted: false,
+      });
     }
     return res.status(400).json({ success: false, error: 'Unsupported Data Control Action.' });
   } catch (error) {

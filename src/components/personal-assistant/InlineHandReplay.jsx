@@ -295,14 +295,18 @@ export default function InlineHandReplay({
           : `$${rawPot}`)
     : null;
 
+  const hasStackBb =
+    activeTimeline?.effectiveStackBb != null
+    || resolvedHand?.effectiveStackBb != null;
   const rawStack =
-    activeTimeline?.effectiveStack
-    ?? activeTimeline?.effectiveStackBb
-    ?? resolvedHand?.effectiveStack
+    activeTimeline?.effectiveStackBb
+    ?? activeTimeline?.effectiveStack
     ?? resolvedHand?.effectiveStackBb
+    ?? resolvedHand?.effectiveStack
     ?? null;
   const stackIsBb =
-    (activeTimeline?.effectiveStack == null && activeTimeline?.effectiveStackBb != null)
+    hasStackBb
+    || (activeTimeline?.effectiveStack == null && activeTimeline?.effectiveStackBb != null)
     || (activeTimeline?.effectiveStack == null && activeTimeline?.effectiveStackBb == null && resolvedHand?.effectiveStack == null && resolvedHand?.effectiveStackBb != null);
   const stackDisplay = rawStack != null
     ? (typeof rawStack === 'string' && (rawStack.includes('$') || /bb/i.test(rawStack))
@@ -378,8 +382,8 @@ export default function InlineHandReplay({
         </div>
       </div>
 
-      {/* Explicit strategySupported === false / declineReason banner for Omaha/Limit/Bomb Pot/etc. */}
-      {(isStrategyUnsupported || Boolean(resolvedDeclineReason)) && (
+      {/* Explicit strategySupported === false banner for Omaha/Limit/Bomb Pot/etc. */}
+      {isStrategyUnsupported && (
         <div
           role="note"
           data-testid="replay-strategy-unsupported-banner"
@@ -578,7 +582,7 @@ export default function InlineHandReplay({
         data-testid="replay-sticky-street-bar"
         style={{
           position: 'sticky',
-          bottom: 0,
+          bottom: 'var(--sp-footer-dock-height, 0px)',
           zIndex: 5,
           paddingTop: 6,
           paddingBottom: 'max(10px, env(safe-area-inset-bottom))',

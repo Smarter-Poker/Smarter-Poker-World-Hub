@@ -1183,7 +1183,9 @@ export function buildRepresentativeHandSummary(leak, relatedDecisions = []) {
     row => !['best', 'correct'].includes(String(row?.classification || '').toLowerCase()),
   );
   const pool = mistakeRows.length > 0 ? mistakeRows : rows;
-  const lossOf = row => (row?.ev_loss_measured === true ? Math.abs(finite(row?.ev_loss) ?? 0) : -1);
+  const lossOf = row => ((row?.ev_loss_measured === true || row?.evLossMeasured === true)
+    ? Math.abs(finite(row?.ev_loss ?? row?.evLossBB) ?? 0)
+    : -1);
   const sorted = [...pool].sort((a, b) => {
     const lossDiff = lossOf(b) - lossOf(a);
     if (lossDiff !== 0) return lossDiff;
@@ -1202,10 +1204,11 @@ export function buildRepresentativeHandSummary(leak, relatedDecisions = []) {
     ?? '',
   ).trim();
   const handId = rawExternalId ? rawExternalId.replace(/^club-arena:/, '') : null;
-  const solverVerified = rep?.solver_verified === true;
-  const evMeasured = rep?.ev_loss_measured === true
+  const solverVerified = rep?.solver_verified === true || rep?.solverVerified === true;
+  const repEvMeasured = rep?.ev_loss_measured === true || rep?.evLossMeasured === true;
+  const evMeasured = repEvMeasured
     || (rep === null && (leak?.evLossMeasured === true || leak?.ev_loss_measured === true));
-  const rawEvLoss = rep?.ev_loss_measured === true
+  const rawEvLoss = repEvMeasured
     ? finite(rep?.ev_loss ?? rep?.evLossBB)
     : (evMeasured ? measuredLoss(leak) : null);
   const evLossBB = evMeasured && rawEvLoss !== null
@@ -1215,14 +1218,25 @@ export function buildRepresentativeHandSummary(leak, relatedDecisions = []) {
     ?? rep?.priceOrSizing
     ?? (finite(rep?.pot_odds_pct) !== null ? `${finite(rep.pot_odds_pct)}% pot odds` : null)
     ?? (finite(rep?.bet_pct_pot) !== null ? `${finite(rep.bet_pct_pot)}% pot bet` : null)
-    ?? String(rep?.spot_type ?? leak?.spotType ?? leak?.spot_type ?? drill?.spotType ?? 'general');
+    ?? String(rep?.spot_type ?? rep?.spotType ?? leak?.spotType ?? leak?.spot_type ?? drill?.spotType ?? 'general');
+  const rawStreet = rep?.street ?? leak?.street ?? drill?.street ?? null;
+  const street = rawStreet !== null && rawStreet !== undefined && String(rawStreet).trim() !== ''
+    ? String(rawStreet).trim()
+    : null;
+  const drillPosition = drill?.position && String(drill.position).trim().toLowerCase() !== 'any'
+    ? drill.position
+    : null;
+  const rawHeroPos = rep?.hero_position ?? rep?.heroPosition ?? leak?.hero_position ?? leak?.heroPosition ?? leak?.position ?? drillPosition ?? null;
+  const heroPosition = rawHeroPos !== null && rawHeroPos !== undefined && String(rawHeroPos).trim() !== ''
+    ? String(rawHeroPos).trim().toUpperCase()
+    : null;
 
   return {
     handId: handId || null,
     handExternalId: rawExternalId || null,
     decisionKey: rep?.decision_key ?? rep?.decisionKey ?? null,
-    street: String(rep?.street || leak?.street || drill?.street || 'Preflop'),
-    heroPosition: String(rep?.hero_position || rep?.heroPosition || leak?.hero_position || leak?.position || drill?.position || 'BTN').toUpperCase(),
+    street,
+    heroPosition,
     villainPosition: rep?.villain_position || rep?.villainPosition || null,
     heroHand: rep?.hero_hand ?? rep?.heroHand ?? null,
     boardCards: Array.isArray(rep?.board_cards)
@@ -1316,7 +1330,7 @@ export function buildAdviceExplanation(leak, relatedDecisions = [], availableGam
     street: drillParams?.street || representativeHand.street || 'Preflop',
     position: drillParams?.position || representativeHand.heroPosition || 'BTN',
     spotType: drillParams?.spotType || representativeHand.spotType || normalizeRuleLeakKey(leak?.leakType || leak?.leak_type || '') || 'general',
-    limit: drillParams?.limit || 'NL100',
+    limit: Number(drillParams?.limit) || 10,
   };
   return {
     evidenceBasis,
@@ -1540,6 +1554,54 @@ export const DETECTOR_QUALIFICATION_MATRIX = Object.freeze([
   }),
 ]);
 
+export function redactHandPrescriptionsForRta(item) {
+  if (!item || typeof item !== 'object') return item;
+  const next = { ...item };
+  if ('heroHand' in next) next.heroHand = null;
+  if ('boardCards' in next) next.boardCards = [];
+  if ('solverAction' in next) next.solverAction = null;
+  if ('evLossBB' in next) next.evLossBB = null;
+  if ('handId' in next) next.handId = null;
+  if ('handExternalId' in next) next.handExternalId = null;
+  if ('exampleHands' in next) next.exampleHands = [];
+  if (next.representativeHand && typeof next.representativeHand === 'object') {
+    next.representativeHand = {
+      ...next.representativeHand,
+      handId: null,
+      handExternalId: null,
+      heroHand: null,
+      boardCards: [],
+      solverAction: null,
+      evLossBB: null,
+    };
+  }
+  return next;
+}
+
+export function redactCoachingSnapshotForRta(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return snapshot;
+  const next = { ...snapshot };
+  if (Array.isArray(next.priorities)) {
+    next.priorities = next.priorities.map(redactHandPrescriptionsForRta);
+  }
+  if (Array.isArray(next.leaks)) {
+    next.leaks = next.leaks.map(redactHandPrescriptionsForRta);
+  }
+  if (next.trainingPlan && typeof next.trainingPlan === 'object' && Array.isArray(next.trainingPlan.modules)) {
+    next.trainingPlan = {
+      ...next.trainingPlan,
+      modules: next.trainingPlan.modules.map(redactHandPrescriptionsForRta),
+    };
+  }
+  if (next.weeklyReport && typeof next.weeklyReport === 'object' && Array.isArray(next.weeklyReport.focus)) {
+    next.weeklyReport = {
+      ...next.weeklyReport,
+      focus: next.weeklyReport.focus.map(redactHandPrescriptionsForRta),
+    };
+  }
+  return next;
+}
+
 /**
  * Deterministic Training Plan generator.
  * Turns ranked active leaks, audited Club Arena/Training decisions, and
@@ -1568,6 +1630,7 @@ export function buildTrainingPlan({
   const leakById = new Map(uniqueLeaks.map(item => [leakId(item), item]));
   const reviewByLeak = new Map(uniqueReviews.map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
   const lookup = decisionIndex || buildDecisionIndex(uniqueDecisions);
+  const rtaRestricted = Boolean(liveTableActive || cooldownActive);
 
   const modules = priorities.slice(0, 6).map((priority, index) => {
     const rawLeak = leakById.get(priority.id) || priority;
@@ -1581,7 +1644,7 @@ export function buildTrainingPlan({
     if (relatedDecisions.length === 0) {
       relatedDecisions = findRuleBasedDecisions(rawLeak, priority.id, lookup);
     }
-    const exampleHands = [...new Set(
+    const exampleHands = rtaRestricted ? [] : [...new Set(
       relatedDecisions
         .map(row => String(row?.hand_external_id || '').replace(/^club-arena:/, '').trim())
         .filter(Boolean),
@@ -1608,7 +1671,7 @@ export function buildTrainingPlan({
           ? 'Review Due Today'
           : (review?.due_at || review?.dueAt ? 'Scheduled Spaced Review' : 'Start Baseline Drill'));
 
-    return {
+    const moduleItem = {
       rank: index + 1,
       leakId: priority.id,
       title: priority.title,
@@ -1649,6 +1712,7 @@ export function buildTrainingPlan({
             ? `Recover ${priority.measuredEvLoss.toFixed(2)} BB Per Spot By Completing ${targetSessions || 1} Focused ${drillParams?.street || 'Spot'} Drill Session${(targetSessions || 1) === 1 ? '' : 's'} At 85% Or Higher.`
             : `Complete ${targetSessions || 1} Focused ${drillParams?.street || 'Spot'} Drill Session${(targetSessions || 1) === 1 ? '' : 's'} At 85% Or Higher And Re-Audit Fresh Club Arena Hands.`),
     };
+    return rtaRestricted ? redactHandPrescriptionsForRta(moduleItem) : moduleItem;
   });
 
   const dueCount = modules.filter(item => item.due).length;
@@ -1678,6 +1742,8 @@ export function buildCoachingSnapshot({
   availableGameIds = null,
   audit = null,
   liveTable = null,
+  liveTableActive: explicitLiveTableActive = false,
+  cooldownActive: explicitCooldownActive = false,
   sessionWindow = null,
   poolBenchmarks = null,
   claimedReferenceIds = null,
@@ -1693,7 +1759,10 @@ export function buildCoachingSnapshot({
 
   const liveStateKnown = Boolean(liveTable) && typeof liveTable === 'object';
   const liveTableActive = liveStateKnown ? liveTable.active === true : true;
-  const cooldownActive = liveStateKnown && liveTable.cooldown === true;
+  const cooldownActive = (liveStateKnown && liveTable.cooldown === true) || explicitCooldownActive === true;
+  const rtaRestricted = (liveStateKnown && (liveTable.active === true || liveTable.cooldown === true))
+    || explicitLiveTableActive === true
+    || explicitCooldownActive === true;
 
   const trainingPlan = buildTrainingPlan({
     leaks: uniqueLeaks,
@@ -1704,7 +1773,7 @@ export function buildCoachingSnapshot({
     availableGameIds,
     decisionIndex,
     poolBenchmarks,
-    liveTableActive,
+    liveTableActive: rtaRestricted && liveTableActive,
     cooldownActive,
     claimedReferenceIds: claimedSet,
   });
@@ -1741,7 +1810,7 @@ export function buildCoachingSnapshot({
   }
   const priorityRows = priorities.map(priority => {
     const advice = adviceByLeak.get(priority.id) || null;
-    return {
+    const row = {
       ...priority,
       ...(advice ? {
         evidenceBasis: advice.evidenceBasis,
@@ -1753,6 +1822,7 @@ export function buildCoachingSnapshot({
       } : {}),
       tableVerification: tableVerificationByLeak.get(priority.id) || null,
     };
+    return rtaRestricted ? redactHandPrescriptionsForRta(row) : row;
   });
   const leakRows = leakList.map(leak => {
     const id = leakId(leak);
@@ -1763,7 +1833,7 @@ export function buildCoachingSnapshot({
       liveTableActive,
       cooldownActive,
     });
-    return {
+    const row = {
       id,
       leakId: id,
       title: title(leak?.title || leak?.situationClass || leak?.situation_class || leak?.leakType || leak?.leak_type),
@@ -1778,6 +1848,7 @@ export function buildCoachingSnapshot({
       tableVerification: tableVerificationByLeak.get(id) || null,
       ...(stakePoolContext ? { stakePoolContext } : {}),
     };
+    return rtaRestricted ? redactHandPrescriptionsForRta(row) : row;
   }).filter(row => row.id);
   const verifiedLiveMilestones = leakRows
     .map(row => row.tableVerification?.verifiedLiveMilestone)

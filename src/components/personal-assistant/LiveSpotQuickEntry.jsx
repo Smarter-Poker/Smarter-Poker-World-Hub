@@ -352,7 +352,12 @@ export default function LiveSpotQuickEntry({
       const response = await fetch(AUDIT_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ handHistoryText: text, evidenceScope }),
+        body: JSON.stringify({
+          handHistoryText: text,
+          evidenceScope,
+          source: 'personal-assistant-live-spot',
+          returnTo: '/hub/personal-assistant/leaks',
+        }),
         ...(signal ? { signal } : {}),
       });
       const payload = await response.json().catch(() => null);
@@ -468,8 +473,20 @@ export default function LiveSpotQuickEntry({
         return;
       }
 
+      // Switch to Paste tab so the uploaded file text and audit outcome are visible
+      setTab('paste');
+
       // Single chunk shortcut
       if (chunks.length === 1) {
+        if (text.length > MAX_PASTE_CHARS) {
+          setResult({
+            kind: 'error',
+            title: 'Too Large',
+            message: 'This Hand History Is Too Large. Paste Fewer Hands.',
+          });
+          setStatusAnnouncement('Hand History Is Too Large.');
+          return;
+        }
         setPasted(text);
         setStatusAnnouncement('File Loaded. Analyzing Hands.');
         runAudit(chunks[0], { evidenceScope: 'external_upload' });

@@ -16,7 +16,7 @@ import { getWorldMenuById, getWorldMenuStyleVariables } from '../../src/config/w
 import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
 import {
-    X, UserPlus, Crown, RotateCcw, Layers, Code, Check, Share2,
+    X, UserPlus, Crown, RotateCcw, Layers, Code, Check, Share2, Copy, SlidersHorizontal, Ban, ChevronDown, ChartPie, Calculator, Spade, Heart, Diamond, Club, Plus, UserRound,
 } from 'lucide-react';
 import {
     parseCardListFromParam,
@@ -106,8 +106,8 @@ const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
 ═══════════════════════════════════════════════ */
 const RANKS = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = ['spades', 'hearts', 'diamonds', 'clubs'];
-const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
-/* The four-colour deck the card art uses (public/cards/*.png). */
+const SUIT_ICONS = { spades: Spade, hearts: Heart, diamonds: Diamond, clubs: Club };
+/* Suit filters follow the Arena four-color deck. */
 const SUIT_COLORS = { spades: '#E4E6EB', hearts: '#EF4444', diamonds: '#3B82F6', clubs: '#31A24C' };
 const SUIT_NAMES = { spades: 'Spades', hearts: 'Hearts', diamonds: 'Diamonds', clubs: 'Clubs' };
 
@@ -115,7 +115,7 @@ const SUIT_NAMES = { spades: 'Spades', hearts: 'Hearts', diamonds: 'Diamonds', c
    white text), exposed as --world-* custom properties on the page root. */
 const THEME_VARS = getWorldMenuStyleVariables(getWorldMenuById('odds-calculator'));
 
-/* Custom deck face images: /cards/{suit}_{rank}.png */
+/* Use the same four-color artwork as the Arena table. */
 function getCardImage(rank, suit) {
     const r = rank === '10' ? '10' : rank.toLowerCase();
     return `/hub/club-arena/cards/4color/${suit}_${r}.webp`;
@@ -132,7 +132,7 @@ function CardSlot({ card, active, onPick, onRemove, label }) {
             <button type="button" className="odds-slot" onClick={e => { e.stopPropagation(); onRemove(); }}
                 aria-label={`Remove ${cardName(card)} From ${label}`}>
                 <span className="odds-slot__face">
-                    <img src={getCardImage(card.rank, card.suit)} alt="" loading="lazy" />
+                    <img width="360" height="504" src={getCardImage(card.rank, card.suit)} alt="" loading="lazy" />
                 </span>
             </button>
         );
@@ -140,9 +140,50 @@ function CardSlot({ card, active, onPick, onRemove, label }) {
     return (
         <button type="button" className={`odds-slot${active ? ' is-active' : ''}`} onClick={e => { e.stopPropagation(); onPick(); }}
             aria-label={`Pick A Card For ${label}`}>
-            <span className="odds-slot__face odds-slot__face--empty" aria-hidden />
+            <span className="odds-slot__face odds-slot__face--empty" aria-hidden><Plus size={16} /></span>
         </button>
     );
+}
+
+function GameSelector({ game, onChange }) {
+    const menu = useRef(null);
+    const trigger = useRef(null);
+    const [open, setOpen] = useState(false);
+    useEffect(() => {
+        if (!open) return;
+        menu.current?.querySelector('[aria-checked="true"]')?.focus();
+        const dismiss = event => {
+            if (!menu.current?.contains(event.target) && !trigger.current?.contains(event.target)) setOpen(false);
+        };
+        document.addEventListener('pointerdown', dismiss);
+        document.addEventListener('focusin', dismiss);
+        return () => {
+            document.removeEventListener('pointerdown', dismiss);
+            document.removeEventListener('focusin', dismiss);
+        };
+    }, [open]);
+    function close() { setOpen(false); trigger.current?.focus(); }
+    function handleKey(event) {
+        if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+        const items = Array.from(menu.current.querySelectorAll('button'));
+        const index = items.indexOf(document.activeElement);
+        const next = { ArrowDown: (index + 1) % items.length, ArrowUp: (index + items.length - 1) % items.length, Home: 0, End: items.length - 1 }[event.key];
+        if (next !== undefined) { event.preventDefault(); items[next].focus(); }
+    }
+    return <div className="odds-game-control">
+        <button ref={trigger} type="button" className="odds-game-trigger" aria-haspopup="menu" aria-expanded={open}
+            aria-controls={open ? 'odds-game-menu' : undefined} aria-label={`Game: ${GAME_CONFIGS[game].name}`}
+            onKeyDown={event => { if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); setOpen(true); } }}
+            onClick={() => setOpen(!open)}>
+            <Layers size={19} aria-hidden />{GAME_CONFIGS[game].name}<ChevronDown className="odds-chevron" size={16} aria-hidden />
+        </button>
+        {open && <div ref={menu} id="odds-game-menu" className="odds-game-menu" role="menu" aria-label="Poker Game" onKeyDown={handleKey}>
+            {Object.entries(GAME_CONFIGS).map(([key, cfg]) => <button type="button" role="menuitemradio"
+                key={key} aria-checked={game === key} tabIndex={-1} onClick={() => { if (game !== key) onChange(key); close(); }}>
+                {cfg.name}{game === key && <Check size={18} aria-hidden />}
+            </button>)}
+        </div>}
+    </div>;
 }
 
 export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/poker-tools' } = {}) {
@@ -420,7 +461,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                 <main className="odds-main">
                     {/* ─── TITLE ROW ─── */}
                     {!isEmbedMode && (
-                        <BankrollImageHeader art="poker_cash" section="odds" title="Poker Odds Calculator"
+                        <BankrollImageHeader art="poker-odds" section="odds" title="Poker Odds Calculator"
                             helpContent={<>
                                 <p>Tap A Card Slot To Choose From The Arena Deck. Tap A Selected Card To Remove It. Equity Includes Each Player's Share Of Split Pots.</p>
                                 <button className="odds-btn" onClick={() => openPicker(selectedSlot)}>Choose Cards</button>
@@ -591,11 +632,13 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                     )}
 
                     {/* ─── GAME SELECTOR ─── */}
-                    <label className="odds-variant">Game
-                        <select value={game} onChange={event => changeGame(event.target.value)}>
-                            {Object.entries(GAME_CONFIGS).map(([key, cfg]) => <option key={key} value={key}>{cfg.name}</option>)}
-                        </select>
-                    </label>
+                    <div className="odds-toolbar">
+                        <GameSelector game={game} onChange={changeGame} />
+                        {!isEmbedMode && <nav className="odds-shortcuts" aria-label="Calculator Shortcuts">
+                            <Link href="/hub/training/equity-calculator"><ChartPie size={18} aria-hidden />Equity Calculator</Link>
+                            <Link href="/hub/training/icm-calculator"><Calculator size={18} aria-hidden />ICM Calculator</Link>
+                        </nav>}
+                    </div>
 
                     {/* ─── BOARD ─── */}
                     {config.hasBoard && (
@@ -635,7 +678,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                         <button type="button" className="odds-seat-name"
                                             onClick={e => { e.stopPropagation(); openPicker({ type: 'hand', playerIdx: pi }); }}
                                             aria-label={`Pick Cards For ${seatName(pi)}`}>
-                                            {isHero && <Crown size={14} aria-hidden />}
+                                            {isHero ? <Crown size={15} aria-hidden /> : <UserRound size={15} aria-hidden />}
                                             {seatName(pi)}
                                         </button>
                                         {!isHero && hands.length > 2 && (
@@ -669,12 +712,12 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                 </div>
                             );
                         })}
-                        {hands.length < maxPlayers && (
+                    </section>
+                    {hands.length < maxPlayers && (
                             <button type="button" className="odds-add" onClick={addVillain} aria-label="Add Villain">
                                 <UserPlus size={18} aria-hidden /> Add Villain
                             </button>
                         )}
-                    </section>
 
                     {/* Presets */}
                     {showPresets && PRESETS[game] && (
@@ -712,12 +755,12 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                         </button>
                         <button type="button" onClick={() => openPicker({ type: 'dead' })}
                             className={`odds-btn${selectedSlot?.type === 'dead' ? ' is-on' : ''}`} aria-pressed={selectedSlot?.type === 'dead'}>
-                            Dead Cards{deadCards.length > 0 ? ` (${deadCards.length})` : ''}
+                            <Ban size={16} aria-hidden /> Dead Cards{deadCards.length > 0 ? ` (${deadCards.length})` : ''}
                         </button>
                         {PRESETS[game] && (
                             <button type="button" onClick={() => setShowPresets(!showPresets)}
                                 className={`odds-btn${showPresets ? ' is-on' : ''}`} aria-expanded={showPresets}>
-                                Presets
+                                <SlidersHorizontal size={16} aria-hidden /> Presets
                             </button>
                         )}
                         <button type="button" onClick={shareHandPermalink}
@@ -729,21 +772,25 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                         <button type="button" onClick={copySpotSummary}
                             aria-label="Copy Spot Summary For Discord Or X"
                             className="odds-btn">
-                            {hasCopiedSpotSummary ? <Check size={15} aria-hidden /> : <Share2 size={15} aria-hidden />}
+                            {hasCopiedSpotSummary ? <Check size={15} aria-hidden /> : <Copy size={16} aria-hidden />}
                             {hasCopiedSpotSummary ? 'Spot Copied' : 'Copy Spot'}
                         </button>
                     </div>
 
                     {/* ═══════════════════════════════════════════
-                        CARD PICKER — the whole deck, always displayed
+                        CARD PICKER
                     ═══════════════════════════════════════════ */}
                     <dialog ref={picker} className="odds-card-dialog" aria-label="Card Picker">
                         <div className="odds-sheet__head"><strong>Pick For {pickerTarget}</strong>
-                            <button type="button" className="odds-btn" onClick={() => picker.current.close()}>Done</button>
+                            <button type="button" className="odds-btn" onClick={() => picker.current.close()}><Check size={16} aria-hidden /> Done</button>
                         </div>
                         <div className="odds-suits" role="group" aria-label="Suit">
-                            {SUITS.map(suit => <button key={suit} type="button" aria-label={SUIT_NAMES[suit]}
-                                aria-pressed={suitFilter === suit} onClick={() => setSuitFilter(suit)}>{SUIT_SYMBOLS[suit]}</button>)}
+                            {SUITS.map(suit => {
+                                const Icon = SUIT_ICONS[suit];
+                                return <button key={suit} type="button" aria-label={SUIT_NAMES[suit]} title={SUIT_NAMES[suit]}
+                                    style={{ '--suit-color': SUIT_COLORS[suit] }} aria-pressed={suitFilter === suit}
+                                    onClick={() => setSuitFilter(suit)}><Icon size={23} aria-hidden /></button>;
+                            })}
                         </div>
                         {[suitFilter].map(suit => (
                             <div key={suit} className="odds-deck" role="group" aria-label={SUIT_NAMES[suit]}>
@@ -760,7 +807,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                             className={`odds-pick${isUsed ? ' is-used' : ''}`}
                                             style={{ '--odds-suit': SUIT_COLORS[suit] }}
                                             aria-label={`${rank} Of ${SUIT_NAMES[suit]}${isUsed ? ', In Use' : ''}`}>
-                                            <img src={getCardImage(rank, suit)} alt="" />
+                                            <img width="360" height="504" src={getCardImage(rank, suit)} alt="" />
                                         </button>
                                     );
                                 })}
@@ -936,7 +983,7 @@ const ODDS_CSS = `
 /* Seats: equity sits on the hand that earned it */
 .odds-page .odds-seats {
     display: grid; gap: 8px;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--odds-seat-min, 150px)), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--odds-seat-min, 150px)), 1fr));
 }
 .odds-page .odds-equity-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; padding: 0 6px; }
 .odds-page .odds-seat .odds-equity {
@@ -1085,22 +1132,56 @@ const ODDS_CSS = `
     .odds-page .odds-bar span { transition: none; }
 }
 
-.odds-page .odds-variant { display:flex; align-items:center; justify-content:space-between; gap:12px; font-weight:700; }
-.odds-variant select { min-height:44px; background:#0e2845; border:1px solid #60778a; color:white; border-radius:8px; padding:0 12px; }
 .odds-page .odds-main { max-width:800px; gap:8px; }
 .odds-page .odds-panel { background:linear-gradient(150deg,#102639,#071421); border-color:#4b6071; }
 .odds-page .odds-slot__face--empty { display:grid; place-items:center; border:1px dashed #7793ab; }
-.odds-slot__face--empty::after { content:'+'; color:#a9c2d6; font-size:18px; }
+
 .odds-page .odds-slots .odds-slot { width:clamp(44px,10vw,56px); }
 .odds-page .odds-card-dialog { color:#eff7ff; width:min(94vw,510px); max-height:85dvh; overflow:auto; border:1px solid #96aebd; border-radius:14px; background:#0a192a; margin:auto; padding:16px; }
 .odds-card-dialog::backdrop { background:rgb(0 7 14 / 80%); }
-.odds-suits { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:12px; }
-.odds-suits button { border:1px solid #526980; border-radius:8px; background:#102337; color:white; min-height:44px; font-size:22px; }
-.odds-suits button[aria-pressed=true] { background:#125ca9; }
-.odds-page .odds-card-dialog .odds-deck { display:grid; grid-template-columns:repeat(auto-fit,minmax(44px,1fr)); gap:5px; }
-.odds-page .odds-deck .odds-pick { display:block; padding:0; background:none; border:0; }
-.odds-pick img { display:block; width:100%; aspect-ratio:5/7; object-fit:contain; }
-.odds-page .odds-deck .odds-pick:disabled { opacity:.27; }
+.odds-page .odds-toolbar { display:flex; align-items:stretch; flex-wrap:wrap; gap:8px; margin:4px 0; }
+.odds-game-control { flex:1 1 190px; position:relative; }
+.odds-shortcuts { display:flex; flex:1.5 1 280px; gap:8px; }
+.odds-page :is(.odds-game-trigger,.odds-shortcuts a,.odds-btn,.odds-add,.odds-icon-btn,.odds-suits button) {
+    box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    min-height:44px; border-radius:10px; border:1px solid #56738d; color:#edf7ff;
+    background:linear-gradient(175deg,#233f58,#102338 76%); box-shadow:inset 0 1px 0 #ffffff22,0 2px 5px #0004;
+    padding:7px 11px; font-size:14px; line-height:1.2; font-family:inherit; font-weight:650; text-decoration:none; cursor:pointer;
+}
+.odds-page .odds-game-trigger { width:100%; justify-content:flex-start; background:linear-gradient(160deg,#184e80,#102e50); border-color:#649dcb; }
+.odds-game-trigger .odds-chevron { margin-left:auto; transition:transform .16s; }
+.odds-game-trigger[aria-expanded=true] .odds-chevron { transform:rotate(180deg); }
+.odds-shortcuts a { flex:1; white-space:nowrap; font-size:clamp(12px,3.2vw,15px); }
+.odds-shortcuts svg,.odds-btn svg,.odds-seat-name svg,.odds-add svg { color:#a2d7ff; flex:none; }
+.odds-game-menu { position:absolute; z-index:30; top:calc(100% + 4px); left:0; width:max(100%,210px); box-sizing:border-box;
+    padding:5px; background:#0c1c2d; border:1px solid #7090ab; border-radius:12px; box-shadow:0 12px 26px #0009; }
+.odds-game-menu button { width:100%; min-height:44px; display:flex; align-items:center; justify-content:space-between; padding:8px 12px; color:#edf7ff; background:transparent; border:0; border-radius:7px; font:inherit; cursor:pointer; }
+.odds-game-menu button[aria-checked=true] { background:#174b7a; }
+.odds-page .odds-main > .odds-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.odds-page .odds-actions .odds-btn,.odds-page .odds-presets .odds-btn { background:linear-gradient(175deg,#233f58,#102338 76%); border-color:#56738d; border-radius:9px; }
+.odds-page .odds-main > .odds-actions .odds-btn:last-child,.odds-page .odds-card-dialog .odds-btn { background:linear-gradient(165deg,#236db8,#104780); border:1px solid #69abdc; color:white; }
+.odds-main > .odds-actions .odds-btn:last-child { grid-column:1/-1; }
+.odds-page .odds-add { justify-self:start; align-self:start; }
+.odds-page .odds-seat-name:not(.odds-seat-name--static):hover { color:#a9ddff; }
+.odds-page .odds-slot__face--empty { border-style:solid; border-color:#47647c; background:linear-gradient(155deg,#1a334a,#081421); color:#a9cbe3; }
+.odds-page .odds-slot__face--empty svg { border-radius:50%; background:#203c55; box-sizing:content-box; padding:3px; }
+.odds-page .odds-suits { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:0 0 14px; }
+.odds-page .odds-suits button { position:relative; color:var(--suit-color); }
+.odds-suits svg { fill:currentColor; stroke-width:1.5; transition:transform .16s ease; }
+.odds-page .odds-suits button[aria-pressed=true] { border-color:var(--suit-color); background:linear-gradient(160deg,#26455e,#111e2e); }
+.odds-suits button[aria-pressed=true]::after { content:''; position:absolute; bottom:3px; width:20px; height:2px; background:currentColor; border-radius:2px; }
+.odds-suits button[aria-pressed=true] svg { transform:translateY(-2px) scale(1.1); }
+.odds-page .odds-card-dialog .odds-deck { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,54px),1fr)); gap:7px; align-items:start; }
+.odds-page .odds-deck .odds-pick { display:block; min-height:0; padding:0; border:0; background:white; overflow:hidden; box-shadow:0 1px 3px #0008; }
+.odds-page .odds-deck .odds-pick img,.odds-page .odds-slot__face img { position:static; display:block; width:100%; height:auto !important; aspect-ratio:5/7; object-fit:contain; image-rendering:auto; }
+.odds-page .odds-deck .odds-pick:disabled { opacity:.32; }
+.odds-page :is(button,a):focus-visible { outline:2px solid #a4dfff; outline-offset:2px; }
+@media(hover:hover) {
+    .odds-page :is(.odds-btn,.odds-game-trigger,.odds-shortcuts a,.odds-add,.odds-icon-btn,.odds-game-menu button,.odds-suits button,.odds-pick,.odds-slot):hover:not(:disabled) { filter:brightness(1.18); }
+}
+.odds-page :is(.odds-btn,.odds-add,.odds-game-trigger,.odds-shortcuts a,.odds-pick,.odds-slot,.odds-suits button):active:not(:disabled) { transform:translateY(1px); }
+@media(min-width:500px) { .odds-page .odds-main > .odds-actions { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media(prefers-reduced-motion:reduce) { .odds-page .odds-suits svg,.odds-game-trigger .odds-chevron { transition:none; } }
 
 @media (max-width:600px) {
     .odds-reference-section table, .odds-reference-section tbody, .odds-reference-section tr { display:block; }

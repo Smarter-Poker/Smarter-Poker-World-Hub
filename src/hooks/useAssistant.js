@@ -57,6 +57,25 @@ export function useAssistantStats(authState) {
     // fetch guest/sample stats during that window or they can win the race and
     // remain visible after the signed-in identity hydrates.
     if (!authReady) return;
+    if (hasExplicitAuth && !authUserId) {
+      setStats({
+        sessionsReviewed: 0,
+        handsAnalyzed: 0,
+        availableClubArenaHands: 0,
+        leaksFound: 0,
+        resolvedLeaks: 0,
+        sandboxSessions: 0,
+        avgEvLoss: 0,
+        isDemo: true,
+        partial: false,
+        failedSources: [],
+        dataSources: {},
+      });
+      setIsDemo(true);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
     try {
       const token = await getAuthToken();
       if (requestId !== requestIdRef.current) return;
@@ -145,6 +164,16 @@ export function useLeaks(statusFilter = null, authState) {
       setIsLoading(true);
       setError(null);
       if (!authReady) return;
+      if (hasExplicitAuth && !authUserId) {
+        setLeaks([]);
+        setDemoLeaks([]);
+        setIsDemo(true);
+        setPartial(false);
+        setUnavailableSources([]);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
       const token = await getAuthToken();
       if (requestId !== requestIdRef.current) return;
       if (authUserId && !token) throw new Error('Your account session could not be verified. Please retry.');
@@ -1015,13 +1044,33 @@ export function useQuizLeaderboard(limit = 10, authState) {
 // useLeakDetection — Trigger leak detection analysis
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function useLeakDetection() {
+export function useLeakDetection(authState = {}) {
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionProgress, setDetectionProgress] = useState(null);
   const [auditJob, setAuditJob] = useState(null);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
+  const activeAbortRef = useRef(null);
+  const hasExplicitAuth = Boolean(
+    authState
+    && typeof authState === 'object'
+    && (Object.prototype.hasOwnProperty.call(authState, 'userId')
+      || Object.prototype.hasOwnProperty.call(authState, 'ready')),
+  );
+  const authReady = !hasExplicitAuth || authState?.ready !== false;
+  const authUserId = hasExplicitAuth ? (authState?.userId || null) : (getAuthUser()?.id || null);
+
+  useEffect(() => {
+    requestIdRef.current += 1;
+    activeAbortRef.current?.abort();
+    activeAbortRef.current = null;
+    setIsDetecting(false);
+    setDetectionResult(null);
+    setDetectionProgress(null);
+    setAuditJob(null);
+    setError(null);
+  }, [authUserId]);
 
   const applyJob = useCallback((job, { initialRestore = false } = {}) => {
     setAuditJob(job || null);
@@ -1048,16 +1097,25 @@ export function useLeakDetection() {
   }, []);
 
   const readJob = useCallback(async (options = {}) => {
+    if (!authReady || !authUserId) return null;
     const token = await getAuthToken();
     if (!token) return null;
+    activeAbortRef.current?.abort();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    activeAbortRef.current = controller;
     const response = await fetch('/api/assistant/leaks/audit-jobs', {
       headers: { 'Authorization': `Bearer ${token}` },
       cache: 'no-store',
+      ...(controller ? { signal: controller.signal } : {}),
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.success === false) throw new Error(payload.error || `Audit progress failed (${response.status})`);
+    if (!response.ok || payload.success === false) {
+      const err = new Error(payload.error || `Audit progress failed (${response.status})`);
+      err.status = response.status;
+      throw err;
+    }
     return applyJob(payload.job, options);
-  }, [applyJob]);
+  }, [applyJob, authReady, authUserId]);
 
   const runDetection = useCallback(async ({ fullRescan = false } = {}) => {
     const requestId = ++requestIdRef.current;
@@ -1105,13 +1163,22 @@ export function useLeakDetection() {
     }
   }, [applyJob]);
 
-  // Restore the owner-scoped checkpoint on mount. Active jobs poll across
-  // reloads/devices; unmounting stops only this viewer, never the server job.
+  // Restore the owner-scoped checkpoint once auth is ready and signed in.
+  // Active jobs poll across reloads/devices; unmounting stops only this viewer, never the server job.
   useEffect(() => {
+    if (!authReady || !authUserId) return undefined;
     let cancelled = false;
-    readJob({ initialRestore: true }).catch(err => { if (!cancelled) console.warn('[useLeakDetection] Restore failed:', err?.message || err); });
-    return () => { cancelled = true; requestIdRef.current += 1; };
-  }, [readJob]);
+    readJob({ initialRestore: true }).catch(err => {
+      if (!cancelled && err?.name !== 'AbortError') {
+        console.warn('[useLeakDetection] Restore failed:', err?.message || err);
+      }
+    });
+    return () => {
+      cancelled = true;
+      requestIdRef.current += 1;
+      activeAbortRef.current?.abort();
+    };
+  }, [authReady, authUserId, readJob]);
 
   useEffect(() => {
     if (!isDetecting) return undefined;

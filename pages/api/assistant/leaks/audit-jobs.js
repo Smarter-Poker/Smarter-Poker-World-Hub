@@ -49,14 +49,28 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { data, error: readError } = await latestJob(user.id);
       if (readError) return res.status(503).json({ success: false, retryable: true, error: 'Audit progress is temporarily unavailable.' });
-      if (data && (data.status === 'queued' || (data.status === 'running' && new Date(data.lease_expires_at || 0) <= new Date()))) {
-        // Enforce live-play / cooldown anti-RTA gate before kicking a queued/expired worker on GET.
-        const access = await checkSandboxAccess(db(), user.id);
-        if (access?.allowed && isFeatureAccessible(access.accessLevel, 'leak_finder_detect')) {
-          await kickAuditWorker(data, { fullRescan: Boolean(data?.progress?.fullRescan) });
-        }
+      const access = await checkSandboxAccess(db(), user.id);
+      const rtaRestricted = !access?.allowed
+        || !isFeatureAccessible(access.accessLevel, 'leak_finder_view')
+        || !isFeatureAccessible(access.accessLevel, 'leak_finder_detect');
+      if (data && !rtaRestricted && (data.status === 'queued' || (data.status === 'running' && new Date(data.lease_expires_at || 0) <= new Date()))) {
+        await kickAuditWorker(data, { fullRescan: Boolean(data?.progress?.fullRescan) });
       }
-      return res.status(200).json({ success: true, job: publicAuditJob(data) });
+      const projected = publicAuditJob(data);
+      let job = projected;
+      if (projected && rtaRestricted) {
+        const { result: _omittedResult, leaks: _omittedLeaks, ...safeJob } = projected;
+        job = {
+          ...safeJob,
+          rtaRestricted: true,
+          contextState: access?.contextState || 'session_active_unknown',
+        };
+      }
+      return res.status(200).json({
+        success: true,
+        job,
+        ...(rtaRestricted ? { rtaRestricted: true, contextState: access?.contextState || 'session_active_unknown' } : {}),
+      });
     }
 
     const access = await checkSandboxAccess(db(), user.id);

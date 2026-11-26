@@ -1230,6 +1230,14 @@ export default function HandHistoryUploadPage() {
     [handleFiles]
   );
 
+  const querySource = typeof router.query?.source === 'string' ? router.query.source.trim() : '';
+  const queryLeak = typeof router.query?.leak === 'string' ? router.query.leak.trim() : '';
+  const isPaSource = querySource.startsWith('personal-assistant') || querySource.startsWith('assistant-sandbox');
+  const backHref = isPaSource
+    ? (queryLeak ? `/hub/personal-assistant/leaks?leak=${encodeURIComponent(queryLeak)}` : '/hub/personal-assistant/leaks')
+    : '/hub/training';
+  const backLabel = isPaSource ? 'Back To Personal Assistant' : 'Back To Training';
+
   return (
     <>
       {/* AEO phase 3 (2026-09-18): this page had a bare <Head> with a title
@@ -1262,23 +1270,26 @@ export default function HandHistoryUploadPage() {
         >
           <button
             type="button"
-            aria-label="Back To Training"
-            onClick={() => router.push('/hub/training')}
+            aria-label={backLabel}
+            onClick={() => router.push(backHref)}
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
               color: 'var(--sp-fg-muted)',
-              fontSize: 18,
+              fontSize: isPaSource ? 12 : 18,
+              fontWeight: isPaSource ? 700 : 400,
               cursor: 'pointer',
-              width: 36,
+              minWidth: 36,
               height: 36,
+              padding: isPaSource ? '0 12px' : 0,
               borderRadius: 8,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: 6,
             }}
           >
-            ←
+            {isPaSource ? '← Back To Personal Assistant' : '←'}
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>

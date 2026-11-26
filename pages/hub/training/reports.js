@@ -174,6 +174,13 @@ export default function VerifiedTrainingReports() {
 
   const formatRows = Array.isArray(report?.byFormat) ? report.byFormat : [];
   const dailyRows = Array.isArray(report?.byDate) ? report.byDate.slice(-14) : [];
+  const querySource = typeof router.query?.source === 'string' ? router.query.source.trim() : '';
+  const queryLeak = typeof router.query?.leak === 'string' ? router.query.leak.trim() : '';
+  const isPaSource = querySource.startsWith('personal-assistant') || querySource.startsWith('assistant-sandbox');
+  const backHref = isPaSource
+    ? (queryLeak ? `/hub/personal-assistant/leaks?leak=${encodeURIComponent(queryLeak)}` : '/hub/personal-assistant/leaks')
+    : '/hub/training';
+  const backLabel = isPaSource ? 'Back To Personal Assistant' : 'Training';
 
   return (
     <>
@@ -184,9 +191,9 @@ export default function VerifiedTrainingReports() {
       <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', paddingBottom: 76, background: '#040d18', color: 'var(--sp-fg)' }}>
         <header className="sp-intelligence-header sd-masthead" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid #688299', background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button type="button" className="sd-button" onClick={() => router.push('/hub/training')} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label="Return To Training Hub">
+            <button type="button" className="sd-button" onClick={() => router.push(backHref)} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label={isPaSource ? 'Back To Personal Assistant' : 'Return To Training Hub'}>
               <BackArrowIcon />
-              <span>Training</span>
+              <span>{backLabel}</span>
             </button>
             <div>
               <h1 style={{ margin: '3px 0 0', fontSize: 'clamp(21px, 4vw, 34px)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", color: '#f4fbff', textShadow: '0 2px 0 #000, 0 0 20px rgba(69,230,255,.35)' }}>

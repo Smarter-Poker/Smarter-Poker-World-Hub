@@ -19,6 +19,9 @@
  */
 import { selectTrustedSolverMatrix } from './solverMatrixTrust.js';
 import { customSolverProvenanceIsComplete } from './customSolverSpotContract.mjs';
+import { BLUNDER_OPTIMAL_FREQUENCY_THRESHOLD } from './solverDecisionEvidence.js';
+
+export { BLUNDER_OPTIMAL_FREQUENCY_THRESHOLD };
 
 const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
@@ -131,7 +134,7 @@ export function classifyFromPercentFrequency(selectedPct, optimalPct, isOptimalA
   if (isOptimalAction || selectedPct >= 20) return 'best';
   if (selectedPct >= 5) return 'correct';
   if (selectedPct >= 1) return 'inaccuracy';
-  return optimalPct >= 70 ? 'blunder' : 'wrong';
+  return optimalPct >= BLUNDER_OPTIMAL_FREQUENCY_THRESHOLD ? 'blunder' : 'wrong';
 }
 
 function normalizeActionLabel(key, action = null, bridged = null) {
@@ -274,6 +277,98 @@ function v2NodeMatchesPoint(v2, bridged, point) {
   return false;
 }
 
+function parseBigBlindFromStakes(stakes) {
+  if (!stakes || typeof stakes !== 'string') return null;
+  const slashMatch = /[$€£]?\s*([\d,]+(?:\.\d+)?)\s*\/\s*[$€£]?\s*([\d,]+(?:\.\d+)?)/.exec(stakes);
+  if (slashMatch) {
+    const bb = Number(slashMatch[2].replace(/,/g, ''));
+    return Number.isFinite(bb) && bb > 0 ? bb : null;
+  }
+  return null;
+}
+
+function isHeroPlayerEntry(player, hand) {
+  if (!player || typeof player !== 'object') return false;
+  if (player.isHero === true) return true;
+  const heroId = hand?.hero?.id ?? null;
+  if (heroId !== null && heroId !== undefined && String(heroId) !== '') {
+    const pId = player.id ?? player.userId ?? player.playerId ?? null;
+    if (pId !== null && pId !== undefined && String(pId) === String(heroId)) return true;
+  }
+  const heroName = hand?.hero?.name ? String(hand.hero.name).trim() : '';
+  if (heroName && player.name && String(player.name).trim() === heroName) return true;
+  return false;
+}
+
+export function resolveSolverStackDepthBb(hand, point) {
+  const explicitBbCandidates = [
+    point?.effectiveStackBb,
+    point?.effective_stack_bb,
+    point?.stackDepthBb,
+    point?.stack_depth_bb,
+    hand?.effectiveStackBb,
+    hand?.effective_stack_bb,
+    hand?.effective_stack_bb_at_deal,
+    hand?.hero?.effectiveStackBb,
+    hand?.hero?.effective_stack_bb,
+    hand?.hero?.effective_stack_bb_at_deal,
+    hand?.hero_effective_stack_bb,
+  ];
+  for (const c of explicitBbCandidates) {
+    if (c !== null && c !== undefined && c !== '') {
+      const num = Number(c);
+      if (Number.isFinite(num) && num > 0) return num;
+    }
+  }
+
+  const playersList = Array.isArray(hand?.players) ? hand.players : [];
+  const heroFromPlayers = playersList.find(p => isHeroPlayerEntry(p, hand)) || null;
+  const rawHeroStack = Number(
+    hand?.hero?.stack
+    ?? hand?.hero?.startingStack
+    ?? heroFromPlayers?.stack
+    ?? heroFromPlayers?.startingStack
+    ?? heroFromPlayers?.chips
+  );
+  const heroStack = Number.isFinite(rawHeroStack) && rawHeroStack > 0 ? rawHeroStack : null;
+  if (heroStack === null) return null;
+
+  const villainStacks = playersList
+    .filter(p => p && p !== heroFromPlayers && !isHeroPlayerEntry(p, hand))
+    .map(p => Number(p?.stack ?? p?.startingStack ?? p?.chips))
+    .filter(s => Number.isFinite(s) && s > 0);
+  const effectiveRawStack = villainStacks.length > 0
+    ? Math.min(heroStack, Math.max(...villainStacks))
+    : heroStack;
+
+  const isBbUnit = hand?.stackUnit === 'bb'
+    || hand?.hero?.stackUnit === 'bb'
+    || hand?.site === 'smarter-poker-club-arena'
+    || String(hand?.id || '').startsWith('club-arena:');
+  if (isBbUnit) {
+    return effectiveRawStack;
+  }
+
+  const hasExplicitBbProp = (hand?.bigBlind !== undefined && hand?.bigBlind !== null && hand?.bigBlind !== '')
+    || (hand?.big_blind !== undefined && hand?.big_blind !== null && hand?.big_blind !== '');
+  const explicitBb = Number(hand?.bigBlind ?? hand?.big_blind);
+  if (hasExplicitBbProp) {
+    if (!Number.isFinite(explicitBb) || explicitBb <= 0) return null;
+    return effectiveRawStack / explicitBb;
+  }
+
+  const stakesBb = parseBigBlindFromStakes(hand?.stakes ?? hand?.blindLevel);
+  if (Number.isFinite(stakesBb) && stakesBb > 0) {
+    return effectiveRawStack / stakesBb;
+  }
+
+  if (hand?.stackUnit === 'chips' || hand?.hero?.stackUnit === 'chips') {
+    return null;
+  }
+
+  return effectiveRawStack;
+}
+
 function nearestExactStack(heroStack, allowedStacks) {
   const stack = Number(heroStack);
   if (!Number.isFinite(stack) || stack <= 0) return null;
@@ -328,7 +423,7 @@ export async function findSolvedSpotV2Match(db, hand, point) {
   const normBoard = (point.board || []).map(normalizeCard);
   if (normBoard.some(c => !c || normHole.includes(c))) return null;
 
-  const stackDepth = nearestExactStack(hand?.hero?.stack, SOLVED_SPOT_STACKS);
+  const stackDepth = nearestExactStack(resolveSolverStackDepthBb(hand, point), SOLVED_SPOT_STACKS);
   if (stackDepth === null) return null;
 
   const pos = String(point?.position || '').toUpperCase();
@@ -514,7 +609,7 @@ export async function findMemoryChartMatch(db, hand, point) {
   const pos = String(point?.position || '').toUpperCase();
   if (!['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].includes(pos)) return null;
 
-  const stackDepth = nearestExactStack(hand?.hero?.stack, MEMORY_CHART_STACKS);
+  const stackDepth = nearestExactStack(resolveSolverStackDepthBb(hand, point), MEMORY_CHART_STACKS);
   if (stackDepth === null) return null;
 
   // Reject limped or multiway pots — memory_charts_gold push/fold charts apply strictly
@@ -614,11 +709,13 @@ export async function findDirectCorpusSolverMatch(db, hand, point) {
 }
 
 export default {
+  BLUNDER_OPTIMAL_FREQUENCY_THRESHOLD,
   cardIndex,
   comboIndex,
   exactBoardStrings,
   deriveV2ActionSizingPct,
   classifyFromPercentFrequency,
+  resolveSolverStackDepthBb,
   findSolvedSpotV2Match,
   findMemoryChartMatch,
   findDirectCorpusSolverMatch,
