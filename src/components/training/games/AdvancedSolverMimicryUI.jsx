@@ -119,7 +119,7 @@ const styles = {
     solverTitle: {
         fontSize: 14,
         fontWeight: 700,
-        color: '#a78bfa',
+        color: '#86daff',
     },
 
     mixedBadge: {
@@ -129,7 +129,7 @@ const styles = {
         borderRadius: 12,
         fontSize: 12,
         fontWeight: 800,
-        color: '#a78bfa',
+        color: '#86daff',
         letterSpacing: 0.5,
     },
 

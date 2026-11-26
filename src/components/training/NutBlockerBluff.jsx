@@ -13,7 +13,7 @@ const BLOCKER_SPOTS = [
     quality: 'GOOD', color: '#3b82f6',
     reason: 'You block the K-high flush and Q-high flush. Villain is less likely to have a flush, making your bluff more effective.' },
   { hand: 'A♠K♠ no pair', board: 'Q♦ J♣ 8♠ 5♥ 3♦', blocker: 'AK/AQ combos',
-    quality: 'MODERATE', color: '#f59e0b',
+    quality: 'MODERATE', color: '#86daff',
     reason: 'You block AQ (top pair) and AK. Villain has fewer strong hands in their range. Can bluff representing an overpair.' },
   { hand: '7♠6♠ missed draw', board: 'A♣ K♦ 9♥ 5♣ 2♣', blocker: 'Nothing relevant',
     quality: 'POOR', color: '#ef4444',
@@ -50,7 +50,7 @@ export default function NutBlockerBluff() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 2, textAlign: 'center', marginBottom: 4 }}>{spot.board}</div>
         <div style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 12 }}>
-          Hand: <span style={{ fontWeight: 700, color: '#8b5cf6' }}>{spot.hand}</span>
+          Hand: <span style={{ fontWeight: 700, color: '#86daff' }}>{spot.hand}</span>
         </div>
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 12 }}>
@@ -60,7 +60,7 @@ export default function NutBlockerBluff() {
           </div>
           <div style={{ background: 'rgba(139,92,246,0.1)', borderRadius: 8, padding: '6px 16px' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Blocks</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#8b5cf6' }}>{spot.blocker}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff' }}>{spot.blocker}</div>
           </div>
         </div>
 
@@ -70,10 +70,10 @@ export default function NutBlockerBluff() {
       </motion.div>
 
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 6 }}>Blocker Hierarchy (Best → Worst)</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Blocker Hierarchy (Best → Worst)</div>
         {['Block the nuts (nut flush blocker, straight blocker)', 'Block strong hands (top pair, overpairs)', 'Block calling range (remove combos that would call)', 'Unblock folding range (don\'t block hands that fold)'].map((r, i) => (
           <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0', display: 'flex', gap: 6 }}>
-            <span style={{ color: '#8b5cf6', fontWeight: 700 }}>{i + 1}.</span> {r}
+            <span style={{ color: '#86daff', fontWeight: 700 }}>{i + 1}.</span> {r}
           </div>
         ))}
       </div>

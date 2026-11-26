@@ -107,9 +107,9 @@ function DefenseFrequencyCalc() {
           {[
             { label: 'Bet Size', value: `${calc.betSize.toFixed(1)} bb`, color: '#fff' },
             { label: 'Pot Odds', value: `${calc.potOddsPct}%`, color: '#3b82f6' },
-            { label: 'Break-Even Eq', value: `${calc.breakEvenEquity}%`, color: '#f59e0b' },
+            { label: 'Break-Even Eq', value: `${calc.breakEvenEquity}%`, color: '#86daff' },
             { label: 'Alpha (Fold%)', value: `${calc.alphaPct}%`, color: '#ef4444' },
-            { label: 'Pot Odds Ratio', value: calc.ratio, color: '#8b5cf6' },
+            { label: 'Pot Odds Ratio', value: calc.ratio, color: '#86daff' },
             { label: 'Bluff Profit', value: `${calc.bluffProfit} bb`, color: calc.bluffProfitable ? '#10b981' : '#ef4444' },
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>

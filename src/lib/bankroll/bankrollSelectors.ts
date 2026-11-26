@@ -6,6 +6,11 @@
 
 import { supabase } from '../supabase';
 import { withRetry } from './retryUtils';
+import {
+  BANKROLL_RULE_CREATE_ONLY,
+  BANKROLL_RULE_UPSERT,
+  BANKROLL_SEGMENT_CREATE_ONLY,
+} from './naturalKeys.mjs';
 
 export interface LedgerEntry {
   id: string;
@@ -266,36 +271,35 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     }
   });
 
-  // Get current segment to check if it exists
+  // Make sure the segment row exists without racing a concurrent creator: a
+  // select-then-insert pair lost that race and hit the (user_id, segment_type)
+  // unique key. ON CONFLICT DO NOTHING on the natural key is idempotent.
+  const { error: err_bankroll_segments_304z4 } = await supabase
+    .from('bankroll_segments')
+    .upsert(
+      { user_id: userId, segment_type: segmentType, current_balance: 0, initial_deposit: 0 },
+      BANKROLL_SEGMENT_CREATE_ONLY,
+    );
+  if (err_bankroll_segments_304z4) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_304z4.message);
+
   const { data: existing } = await supabase
     .from('bankroll_segments')
-    .select('current_balance, initial_deposit')
+    .select('initial_deposit')
     .eq('user_id', userId)
     .eq('segment_type', segmentType)
     .maybeSingle();
 
-  if (existing) {
-    // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
-    const totalWithDeposits = segmentTotal + (existing.initial_deposit || 0);
-    const { error: err_bankroll_segments_03601 } = await supabase
-      .from('bankroll_segments')
-      .update({
-        current_balance: totalWithDeposits,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('segment_type', segmentType);
-    if (err_bankroll_segments_03601) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_03601.message);
-  } else {
-    // Create new segment
-    const { error: err_bankroll_segments_304z4 } = await supabase.from('bankroll_segments').insert({
-      user_id: userId,
-      segment_type: segmentType,
-      current_balance: segmentTotal,
-      initial_deposit: 0,
-    });
-    if (err_bankroll_segments_304z4) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_304z4.message);
-  }
+  // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
+  const totalWithDeposits = segmentTotal + (existing?.initial_deposit || 0);
+  const { error: err_bankroll_segments_03601 } = await supabase
+    .from('bankroll_segments')
+    .update({
+      current_balance: totalWithDeposits,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .eq('segment_type', segmentType);
+  if (err_bankroll_segments_03601) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_03601.message);
 }
 
 /**
@@ -945,7 +949,7 @@ export async function updateBankrollRule(
       is_strict: isStrict,
       is_active: true,
       updated_at: new Date().toISOString(),
-    })
+    }, BANKROLL_RULE_UPSERT)
     .select()
     .maybeSingle();
 
@@ -1022,18 +1026,24 @@ export async function createAlert(
  * Initialize user's bankroll (call after signup)
  */
 export async function initializeUserBankroll(userId: string): Promise<void> {
-  // Create default segments
+  // Runs on every Bankroll Manager open, so it must only CREATE what is
+  // missing. An upsert without onConflict targets the primary key ("id"), which
+  // these payloads never carry, so every returning user hit the
+  // (user_id, segment_type) / (user_id, rule_type) unique key (193 + 96
+  // refusals a day). Had it merged instead, it would have reset every balance
+  // and rule to the defaults. Conflict on the natural key and DO NOTHING.
   const segments = ['poker', 'casino', 'sports', 'life'];
-  for (const segment of segments) {
-    const { error: err_bankroll_segments_gtceu } = await supabase.from('bankroll_segments').upsert({
+  const { error: err_bankroll_segments_gtceu } = await supabase.from('bankroll_segments').upsert(
+    segments.map((segment) => ({
       user_id: userId,
       segment_type: segment,
       current_balance: 0,
       initial_deposit: 0,
       is_read_only: segment === 'life',
-    });
-    if (err_bankroll_segments_gtceu) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_gtceu.message);
-  }
+    })),
+    BANKROLL_SEGMENT_CREATE_ONLY,
+  );
+  if (err_bankroll_segments_gtceu) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_gtceu.message);
 
   // Create default rules
   const defaultRules = [
@@ -1041,15 +1051,16 @@ export async function initializeUserBankroll(userId: string): Promise<void> {
     { rule_type: 'max_buyin_percent', value: 5 },
   ];
 
-  for (const rule of defaultRules) {
-    const { error: err_bankroll_rules_t1in3 } = await supabase.from('bankroll_rules').upsert({
+  const { error: err_bankroll_rules_t1in3 } = await supabase.from('bankroll_rules').upsert(
+    defaultRules.map((rule) => ({
       user_id: userId,
       rule_type: rule.rule_type,
       value: rule.value,
       is_active: true,
-    });
-    if (err_bankroll_rules_t1in3) console.warn('[Supabase] Silent mutation failed in bankroll_rules:', err_bankroll_rules_t1in3.message);
-  }
+    })),
+    BANKROLL_RULE_CREATE_ONLY,
+  );
+  if (err_bankroll_rules_t1in3) console.warn('[Supabase] Silent mutation failed in bankroll_rules:', err_bankroll_rules_t1in3.message);
 }
 
 /**

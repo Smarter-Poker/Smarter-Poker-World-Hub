@@ -11,8 +11,8 @@ const PUSH_FOLD_CHARTS = [
     bb: '10bb', label: '10 Big Blinds',
     positions: [
       { pos: 'UTG', range: 'AA-77, AKs-ATs, KQs, AKo-AJo', pct: 12, color: '#ef4444' },
-      { pos: 'MP', range: 'AA-66, AKs-A8s, KQs-KTs, AKo-ATo', pct: 16, color: '#f59e0b' },
-      { pos: 'CO', range: 'AA-44, AKs-A5s, KQs-K9s, QJs, AKo-A9o, KQo', pct: 22, color: '#eab308' },
+      { pos: 'MP', range: 'AA-66, AKs-A8s, KQs-KTs, AKo-ATo', pct: 16, color: '#86daff' },
+      { pos: 'CO', range: 'AA-44, AKs-A5s, KQs-K9s, QJs, AKo-A9o, KQo', pct: 22, color: '#86daff' },
       { pos: 'BTN', range: 'AA-22, A2s+, K5s+, Q8s+, J8s+, T8s+, 97s+, 87s, ATo+, KTo+, QTo+, JTo', pct: 38, color: '#22c55e' },
       { pos: 'SB', range: 'AA-22, A2s+, K2s+, Q5s+, J7s+, T7s+, 97s+, 86s+, 76s, A2o+, K7o+, Q9o+, J9o+', pct: 52, color: '#3b82f6' },
     ],
@@ -22,8 +22,8 @@ const PUSH_FOLD_CHARTS = [
     bb: '8bb', label: '8 Big Blinds',
     positions: [
       { pos: 'UTG', range: 'AA-55, AKs-A8s, KQs, AKo-ATo', pct: 16, color: '#ef4444' },
-      { pos: 'MP', range: 'AA-44, AKs-A5s, KQs-K9s, QJs, AKo-A9o, KQo', pct: 22, color: '#f59e0b' },
-      { pos: 'CO', range: 'AA-22, A2s+, K7s+, Q9s+, J9s+, T9s, ATo+, KTo+, QJo', pct: 30, color: '#eab308' },
+      { pos: 'MP', range: 'AA-44, AKs-A5s, KQs-K9s, QJs, AKo-A9o, KQo', pct: 22, color: '#86daff' },
+      { pos: 'CO', range: 'AA-22, A2s+, K7s+, Q9s+, J9s+, T9s, ATo+, KTo+, QJo', pct: 30, color: '#86daff' },
       { pos: 'BTN', range: 'AA-22, A2s+, K2s+, Q6s+, J7s+, T7s+, 97s+, 86s+, A2o+, K8o+, Q9o+, JTo', pct: 45, color: '#22c55e' },
       { pos: 'SB', range: 'Nearly any two cards - 60-70%', pct: 65, color: '#3b82f6' },
     ],
@@ -33,8 +33,8 @@ const PUSH_FOLD_CHARTS = [
     bb: '5bb', label: '5 Big Blinds',
     positions: [
       { pos: 'UTG', range: 'AA-22, A2s+, K5s+, Q8s+, J9s+, T9s, ATo+, KTo+, QJo', pct: 28, color: '#ef4444' },
-      { pos: 'MP', range: 'AA-22, A2s+, K3s+, Q6s+, J8s+, T8s+, 98s, A2o+, K9o+, QTo+', pct: 35, color: '#f59e0b' },
-      { pos: 'CO', range: 'AA-22, A2s+, K2s+, Q3s+, J6s+, T7s+, 96s+, 86s+, A2o+, K5o+, Q8o+, J9o+', pct: 48, color: '#eab308' },
+      { pos: 'MP', range: 'AA-22, A2s+, K3s+, Q6s+, J8s+, T8s+, 98s, A2o+, K9o+, QTo+', pct: 35, color: '#86daff' },
+      { pos: 'CO', range: 'AA-22, A2s+, K2s+, Q3s+, J6s+, T7s+, 96s+, 86s+, A2o+, K5o+, Q8o+, J9o+', pct: 48, color: '#86daff' },
       { pos: 'BTN', range: 'Almost any two cards (65%+)', pct: 65, color: '#22c55e' },
       { pos: 'SB', range: 'Any two cards', pct: 80, color: '#3b82f6' },
     ],
@@ -44,8 +44,8 @@ const PUSH_FOLD_CHARTS = [
     bb: '15bb', label: '15 Big Blinds',
     positions: [
       { pos: 'UTG', range: 'AA-88, AKs-ATs, KQs, AKo-AQo', pct: 10, color: '#ef4444' },
-      { pos: 'MP', range: 'AA-77, AKs-A9s, KQs-KJs, AKo-AJo, KQo', pct: 13, color: '#f59e0b' },
-      { pos: 'CO', range: 'AA-55, AKs-A7s, KQs-KTs, QJs-QTs, AKo-ATo, KQo-KJo', pct: 18, color: '#eab308' },
+      { pos: 'MP', range: 'AA-77, AKs-A9s, KQs-KJs, AKo-AJo, KQo', pct: 13, color: '#86daff' },
+      { pos: 'CO', range: 'AA-55, AKs-A7s, KQs-KTs, QJs-QTs, AKo-ATo, KQo-KJo', pct: 18, color: '#86daff' },
       { pos: 'BTN', range: 'AA-33, A2s+, K6s+, Q8s+, J8s+, T8s+, 98s, 87s, ATo+, KTo+, QTo+', pct: 30, color: '#22c55e' },
       { pos: 'SB', range: 'AA-22, A2s+, K4s+, Q7s+, J8s+, T8s+, 97s+, 87s, A5o+, K9o+, QTo+', pct: 40, color: '#3b82f6' },
     ],

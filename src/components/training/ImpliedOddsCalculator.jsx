@@ -61,7 +61,7 @@ function ImpliedOddsCalculator() {
             { label: 'Pot', value: pot, set: setPot, min: 2, max: 100, step: 1, color: '#10b981', display: `${pot} bb` },
             { label: 'Bet Size', value: bet, set: setBet, min: 1, max: 100, step: 1, color: '#ef4444', display: `${bet} bb` },
             { label: 'Outs', value: outs, set: setOuts, min: 1, max: 20, step: 1, color: '#3b82f6', display: `${outs}` },
-            { label: 'Eff Stack', value: stack, set: setStack, min: 20, max: 300, step: 5, color: '#f59e0b', display: `${stack} bb` },
+            { label: 'Eff Stack', value: stack, set: setStack, min: 20, max: 300, step: 5, color: '#86daff', display: `${stack} bb` },
           ].map(s => (
             <div key={s.label} style={{ padding: 6, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{s.label}</div>
@@ -83,7 +83,7 @@ function ImpliedOddsCalculator() {
           </div>
           <div style={{ padding: 10, background: profitableWithoutImplied ? 'rgba(16,185,129,0.08)' : 'rgba(249,115,22,0.08)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Direct Odds</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: profitableWithoutImplied ? '#10b981' : '#f97316' }}>
+            <div style={{ fontSize: 16, fontWeight: 900, color: profitableWithoutImplied ? '#10b981' : '#86daff' }}>
               {profitableWithoutImplied ? 'Profitable!' : 'Need Implied'}
             </div>
           </div>

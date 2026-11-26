@@ -214,7 +214,7 @@ const styles = {
     claimableTitle: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#ffd700',
+        color: '#86daff',
         marginBottom: 10
     },
     claimBtn: {

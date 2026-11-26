@@ -74,6 +74,16 @@ export function normalizeSoloRunRecovery(value, { mode, accountId, now = Date.no
             && value.survivalLevel >= 1 && value.survivalLevel <= 10
             ? value.survivalLevel
             : null);
+    const answeredCount = value.answeredCount == null
+        ? null
+        : (Number.isInteger(value.answeredCount) && value.answeredCount >= 0
+            ? value.answeredCount
+            : null);
+    const totalQuestions = value.totalQuestions == null
+        ? null
+        : (Number.isInteger(value.totalQuestions) && value.totalQuestions > 0
+            ? value.totalQuestions
+            : null);
 
     return Object.freeze({
         version: SOLO_RUN_RECOVERY_VERSION,
@@ -86,6 +96,8 @@ export function normalizeSoloRunRecovery(value, { mode, accountId, now = Date.no
         settlementRequestId,
         pendingTimeoutQuestionId,
         survivalLevel,
+        answeredCount,
+        totalQuestions,
     });
 }
 
@@ -99,6 +111,8 @@ export function createSoloRunRecovery({
     settlementRequestId = null,
     pendingTimeoutQuestionId = null,
     survivalLevel = null,
+    answeredCount = null,
+    totalQuestions = null,
 } = {}) {
     return normalizeSoloRunRecovery({
         version: SOLO_RUN_RECOVERY_VERSION,
@@ -111,6 +125,8 @@ export function createSoloRunRecovery({
         settlementRequestId,
         pendingTimeoutQuestionId,
         survivalLevel,
+        answeredCount,
+        totalQuestions,
     }, { mode, accountId, now: createdAt });
 }
 

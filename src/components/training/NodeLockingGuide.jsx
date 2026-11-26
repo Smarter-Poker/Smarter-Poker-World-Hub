@@ -15,10 +15,10 @@ const CONCEPTS = [
   { title: 'Lock: Villain Over-Calls', icon: '▲', color: '#ef4444',
     content: 'When villain calls too much, lock their calling frequency high. Solver will tell you to value bet thinner and bluff less.',
     example: 'Villain calls 80% of river bets → Lock → Solver says: bet top pair for value, never bluff.' },
-  { title: 'Lock: Villain Over-Bluffs', icon: '◇', color: '#f59e0b',
+  { title: 'Lock: Villain Over-Bluffs', icon: '◇', color: '#86daff',
     content: 'When villain bluffs too much on the river, lock their bluff frequency high. Solver says call down wider.',
     example: 'Villain bluffs 40% of river bets → Lock → Solver says: call with any pair, fold only air.' },
-  { title: 'Practical Application', icon: '●', color: '#8b5cf6',
+  { title: 'Practical Application', icon: '●', color: '#86daff',
     content: 'Use HUD stats to identify leaks. Enter the leak into the solver via node locking. Apply the solver\'s counter-strategy at the table.',
     example: '1) Notice villain folds to 3-bet 75% | 2) Lock this in solver | 3) Solver says 3-bet very wide | 4) Print money.' },
 ];

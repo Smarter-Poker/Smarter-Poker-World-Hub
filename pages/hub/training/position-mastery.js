@@ -472,7 +472,7 @@ export default function PositionMasteryPage() {
                 >
                   {[
                     { color: 'var(--sp-accent-red)', label: '0-30%' },
-                    { color: 'var(--sp-accent-orange)', label: '30-45%' },
+                    { color: '#86daff', label: '30-45%' },
                     { color: '#86daff', label: '45-60%' },
                     { color: '#84cc16', label: '60-75%' },
                     { color: 'var(--sp-accent-green)', label: '75%+' },

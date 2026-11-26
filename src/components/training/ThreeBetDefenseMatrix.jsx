@@ -16,7 +16,7 @@ const MATCHUPS = [
     note: 'UTG vs BTN 3-bet: very tight defense. BTNs 3-bet range is wide but UTG must respect it.',
   },
   {
-    opener: 'CO', threeBetter: 'BTN', color: '#f59e0b',
+    opener: 'CO', threeBetter: 'BTN', color: '#86daff',
     defense: { fourBet: 10, call: 22, fold: 68 },
     fourBetRange: 'AA, KK, QQ, AKs, AKo (value) + A5s, A4s, KTs (bluffs)',
     callRange: 'JJ, TT, 99, AQs, AQo, AJs, KQs, KJs, QJs, JTs, T9s',
@@ -48,7 +48,7 @@ function ThreeBetDefenseMatrix() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f472b6' }}>3-Bet Defense Matrix</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>3-Bet Defense Matrix</h3>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {MATCHUPS.map((m, i) => (
@@ -79,7 +79,7 @@ function ThreeBetDefenseMatrix() {
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-            <span style={{ color: '#e879f9' }}>4-Bet</span>
+            <span style={{ color: '#86daff' }}>4-Bet</span>
             <span style={{ color: '#3b82f6' }}>Call</span>
             <span style={{ color: '#6b7280' }}>Fold</span>
           </div>
@@ -88,7 +88,7 @@ function ThreeBetDefenseMatrix() {
         {/* Range details */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
           {[
-            { label: '4-Bet Range', range: matchup.fourBetRange, color: '#e879f9', pct: matchup.defense.fourBet },
+            { label: '4-Bet Range', range: matchup.fourBetRange, color: '#86daff', pct: matchup.defense.fourBet },
             { label: 'Call Range', range: matchup.callRange, color: '#3b82f6', pct: matchup.defense.call },
             { label: 'Fold Range', range: matchup.foldRange, color: '#6b7280', pct: matchup.defense.fold },
           ].map(r => (

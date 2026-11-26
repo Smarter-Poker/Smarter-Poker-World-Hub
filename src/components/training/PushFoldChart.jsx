@@ -16,7 +16,7 @@ const PUSHFOLD_RANGES = [
     percentage: '~30%',
     reasoning: 'One more player behind than BTN. Tighten up slightly but still shove aggressively.',
     keyHands: 'Shove 55 (59% vs calling range), shove A5s (58%), fold J7s (44%)' },
-  { stack: '10 BB - Button', color: '#f59e0b', icon: '⌁',
+  { stack: '10 BB - Button', color: '#86daff', icon: '⌁',
     shoveRange: 'Any pair, A2s+, K2s+, Q4s+, J7s+, T7s+, 97s+, 87s, 76s, A2o+, K5o+, Q8o+, J9o+, T9o',
     percentage: '~55%',
     reasoning: 'At 10 BB, you MUST shove wide from BTN. Fold equity alone makes most hands profitable.',
@@ -26,7 +26,7 @@ const PUSHFOLD_RANGES = [
     percentage: '~15%',
     reasoning: 'UTG with 10 BB is the tightest shove spot. 5+ players can wake up with a hand.',
     keyHands: 'Shove 66 (54%), shove ATs (60%), fold K9s (too many players behind)' },
-  { stack: '5 BB - Any Position', color: '#8b5cf6', icon: '▼',
+  { stack: '5 BB - Any Position', color: '#86daff', icon: '▼',
     shoveRange: 'BTN: Any two. CO: ~70%. MP: ~45%. UTG: ~30%.',
     percentage: 'Varies by position',
     reasoning: 'At 5 BB, every orbit costs you ~30% of your stack. You cannot afford to wait.',
@@ -69,7 +69,7 @@ export default function PushFoldChart() {
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{chart.reasoning}</p>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Hands</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key Hands</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{chart.keyHands}</div>
         </div>
       </motion.div>

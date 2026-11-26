@@ -2,7 +2,7 @@ import { TRAINING_LIBRARY } from '../../data/TRAINING_LIBRARY.js';
 import { normalizeCustomTrainingConfig } from './customTrainerConfigContract.mjs';
 
 const CANONICAL_GAME_IDS = new Set(TRAINING_LIBRARY.map((game) => game.id));
-const POSITIONS = new Set(['BTN', 'CO', 'HJ', 'MP', 'UTG', 'SB', 'BB']);
+const POSITIONS = new Set(['BTN', 'CO', 'HJ', 'LJ', 'MP', 'MP+1', 'UTG', 'UTG+1', 'UTG+2', 'SB', 'BB']);
 const STREETS = new Set(['preflop', 'flop', 'turn', 'river', 'all']);
 const VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6', 'plo8']);
 const BETTING_STRUCTURES = new Set(['no_limit', 'pot_limit', 'fixed_limit']);

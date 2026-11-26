@@ -314,7 +314,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                             &larr; Back To Magazine Newsstand
                         </Link>
                         <Link
-                            href="/hub/poker-near-me"
+                            href="/hub/poker-near-me/lobby"
                             style={{ color: '#60a5fa', fontSize: '13.5px', fontWeight: 800, textDecoration: 'none' }}
                         >
                             Explore Poker Near Me Directory &rarr;

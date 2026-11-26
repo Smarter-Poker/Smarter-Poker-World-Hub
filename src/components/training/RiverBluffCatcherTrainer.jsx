@@ -88,14 +88,14 @@ function RiverBluffCatcherTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#ec4899' }}>River Bluff Catcher</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>River Bluff Catcher</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{stats.correct}/{stats.total} ({accuracy}%)</span>
         </div>
 
         {/* Scenario */}
         <div style={{ padding: 14, background: 'rgba(236,72,153,0.06)', borderRadius: 10, border: '1px solid rgba(236,72,153,0.15)', marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: 3, marginBottom: 6 }}>{spot.board}</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#ec4899', marginBottom: 4 }}>Hero: {spot.hero}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Hero: {spot.hero}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{spot.position} | {spot.heroRange}</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{spot.action}</div>
         </div>
@@ -116,7 +116,7 @@ function RiverBluffCatcherTrainer() {
           </div>
           <div style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>MDF</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b' }}>{spot.mdf}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff' }}>{spot.mdf}</div>
           </div>
         </div>
 

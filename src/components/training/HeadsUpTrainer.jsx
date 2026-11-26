@@ -97,7 +97,7 @@ function HeadsUpTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#eab308' }}>Heads-Up Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>Heads-Up Trainer</h3>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
             <input type="checkbox" checked={showRanges} onChange={e => setShowRanges(e.target.checked)} style={{ accentColor: '#eab308' }} />
             Show Ranges
@@ -118,7 +118,7 @@ function HeadsUpTrainer() {
         {/* Scenario Header */}
         <div style={{ padding: 14, background: 'rgba(234,179,8,0.06)', borderRadius: 10, border: '1px solid rgba(234,179,8,0.15)', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#eab308' }}>{scenario.name}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#86daff' }}>{scenario.name}</span>
             <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 4, background: 'rgba(234,179,8,0.15)', color: '#eab308' }}>{scenario.position}</span>
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{scenario.description}</div>
@@ -126,20 +126,20 @@ function HeadsUpTrainer() {
 
         {/* Frequency Bars */}
         <div style={{ marginBottom: 16 }}>
-          {scenario.rangeSize && <StatRow label="Range Size" value={scenario.rangeSize} color="#eab308" />}
+          {scenario.rangeSize && <StatRow label="Range Size" value={scenario.rangeSize} color="#86daff" />}
           {scenario.raise !== undefined && <StatRow label="Raise" value={scenario.raise} color="#10b981" />}
           {scenario.call !== undefined && <StatRow label="Call" value={scenario.call} color="#3b82f6" />}
-          {scenario.limp !== undefined && <StatRow label="Limp" value={scenario.limp} color="#f59e0b" />}
+          {scenario.limp !== undefined && <StatRow label="Limp" value={scenario.limp} color="#86daff" />}
           {scenario.fold !== undefined && <StatRow label="Fold" value={scenario.fold} color="#ef4444" />}
-          {scenario.cbetFreq !== undefined && <StatRow label="C-Bet" value={scenario.cbetFreq} color="#8b5cf6" />}
+          {scenario.cbetFreq !== undefined && <StatRow label="C-Bet" value={scenario.cbetFreq} color="#86daff" />}
           {scenario.checkFreq !== undefined && <StatRow label="Check" value={scenario.checkFreq} color="#6b7280" />}
-          {scenario.donkFreq !== undefined && <StatRow label="Donk Bet" value={scenario.donkFreq} color="#ec4899" />}
+          {scenario.donkFreq !== undefined && <StatRow label="Donk Bet" value={scenario.donkFreq} color="#86daff" />}
           {scenario.limpraise !== undefined && <StatRow label="Limp-Raise" value={scenario.limpraise} color="#dc2626" />}
         </div>
 
         {/* Key Adjustments */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#eab308', marginBottom: 8 }}>Key Adjustments</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>Key Adjustments</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {scenario.keyAdjustments.map((adj, i) => (
               <div key={i} style={{
@@ -168,7 +168,7 @@ function HeadsUpTrainer() {
             )}
             {scenario.limpSample && (
               <div style={{ padding: 10, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.12)' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Limp Range</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Limp Range</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{scenario.limpSample}</div>
               </div>
             )}

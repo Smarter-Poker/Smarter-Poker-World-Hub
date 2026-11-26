@@ -14,7 +14,7 @@ const TABLE_TIERS = [
     focus: 'Good balance of quality and volume. Most profitable for many players.',
     advice: 'Use HUD stats. Pre-program bet sizes. Have opening ranges memorized.',
     hourlyBB: '5-8 bb/100', volume: 'Medium' },
-  { tables: '6-8', label: 'Grinder', color: '#f59e0b', icon: '⌁',
+  { tables: '6-8', label: 'Grinder', color: '#86daff', icon: '⌁',
     focus: 'Volume-focused. ABC strategy with exploitative adjustments.',
     advice: 'Simplify decisions. Use preset actions. Accept some EV loss per table for total hourly rate.',
     hourlyBB: '3-5 bb/100', volume: 'High' },
@@ -75,10 +75,10 @@ export default function MultiTableStrategy() {
       </motion.div>
 
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>Multi-Tabling Tips</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Multi-Tabling Tips</div>
         {TIPS.map((t, i) => (
           <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '3px 0', display: 'flex', gap: 6 }}>
-            <span style={{ color: '#f59e0b' }}>{i + 1}.</span> {t}
+            <span style={{ color: '#86daff' }}>{i + 1}.</span> {t}
           </div>
         ))}
       </div>

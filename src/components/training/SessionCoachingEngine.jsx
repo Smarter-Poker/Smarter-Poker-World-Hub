@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const COACHING_MODES = [
   { id: 'realtime', label: 'Real-Time', icon: '', color: '#ef4444', desc: 'Tips after every decision'},
   { id: 'post', label: 'Post-Hand', icon: '', color: '#3b82f6', desc: 'Analysis after each hand'},
-  { id: 'session', label: 'Session Review', icon: '', color: '#8b5cf6', desc: 'End-of-session summary'},
+  { id: 'session', label: 'Session Review', icon: '', color: '#86daff', desc: 'End-of-session summary'},
 ];
 
 const RECENT_TIPS = [
@@ -55,7 +55,7 @@ const SESSION_STATS = {
 const COACHING_FOCUS = [
   { area: 'C-Bet Frequency', your: '72%', gto: '58%', status: 'over', color: '#ef4444',
     tip: 'You\'re c-betting too often. Check back on boards that favor the caller\'s range.' },
-  { area: 'River Fold Freq', your: '68%', gto: '52%', status: 'over', color: '#f59e0b',
+  { area: 'River Fold Freq', your: '68%', gto: '52%', status: 'over', color: '#86daff',
     tip: 'Folding too much on rivers. You\'re being exploited by river bluffs.' },
   { area: '3-Bet %', your: '5%', gto: '8%', status: 'under', color: '#3b82f6',
     tip: 'Add more 3-bet bluffs. You\'re too passive preflop - opponents play freely against you.' },
@@ -104,7 +104,7 @@ export default function SessionCoachingEngine() {
 
       {/* Coaching Focus Areas */}
       <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 10 }}>FOCUS AREAS</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 10 }}>FOCUS AREAS</div>
         <div style={{ display: 'grid', gap: 8 }}>
           {COACHING_FOCUS.map((f, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: `3px solid ${f.color}` }}>

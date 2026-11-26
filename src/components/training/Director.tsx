@@ -482,7 +482,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                     {assets.failedAssets.length > 0 && assets.isReady && (
                         <div style={{
                             fontSize: '12px',
-                            color: '#f59e0b',
+                            color: '#86daff',
                             marginTop: '12px',
                             opacity: 0.7
                         }}>
@@ -573,7 +573,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                     </div>
 
                     {/* Score */}
-                    <div style={{ color: '#FFD700', fontWeight: 700 }}>
+                    <div style={{ color: '#86daff', fontWeight: 700 }}>
                         {totalCorrect}/{totalQuestions} Correct
                     </div>
 
@@ -605,7 +605,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                     transform: 'translateX(-50%)',
                     fontSize: '36px',
                     fontWeight: 900,
-                    color: '#FFD700',
+                    color: '#86daff',
                     textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
                     zIndex: 50
                 }}
@@ -674,7 +674,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                                     fontSize: '14px',
                                     fontWeight: 600,
                                     marginTop: '8px',
-                                    color: '#FFD700'
+                                    color: '#86daff'
                                 }}
                             >
                                 {lastReward.displayText}
@@ -763,7 +763,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             }}
                         >
                             <div style={{ fontWeight: 700, fontSize: '14px' }}>{player.name}</div>
-                            <div style={{ color: '#FFD700', fontSize: '16px', fontWeight: 700 }}>
+                            <div style={{ color: '#86daff', fontSize: '16px', fontWeight: 700 }}>
                                 {player.stack}
                             </div>
                             {player.currentBet > 0 && (
@@ -934,7 +934,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                                             fontSize: '13px',
                                             lineHeight: 1.6
                                         }}>
-                                            <div style={{ color: '#FFD700', marginBottom: '4px' }}>
+                                            <div style={{ color: '#86daff', marginBottom: '4px' }}>
                                                 Alternative Lines:
                                             </div>
                                             <div>• CALL Is 2Nd Best (+0.3 EV)</div>

@@ -24,13 +24,13 @@ const RVR_MATCHUPS = [
     equity: 'CO: ~42% | SB: ~58%',
     insight: 'SB is 3-betting tight and has significant equity advantage. CO must tighten their continuing range.',
     key: 'Against SB 3-bets, respect the range. They\'re usually strong from that position.' },
-  { matchup: 'Loose Open vs Tight 3-Bet', color: '#f59e0b', icon: '◆',
+  { matchup: 'Loose Open vs Tight 3-Bet', color: '#86daff', icon: '◆',
     range1: 'Loose Open: Any pair, any suited, any broadway (~50%)',
     range2: 'Tight 3-Bet: JJ+, AQs+, AKo (~4%)',
     equity: 'Loose: ~35% | Tight: ~65%',
     insight: 'When a tight player 3-bets your wide open, you\'re in trouble. Fold most of your range.',
     key: 'Equity disparity grows as ranges widen vs tighten. Respect tight 3-bettors.' },
-  { matchup: 'Postflop: PFR vs Caller on A♠7♦2♣', color: '#8b5cf6', icon: '●',
+  { matchup: 'Postflop: PFR vs Caller on A♠7♦2♣', color: '#86daff', icon: '●',
     range1: 'PFR: AA, KK, QQ, AK, AQ, AJ, KQs (~top 15%)',
     range2: 'Caller: 77-JJ, A7s-ATs, KQs, QJs (~mid range)',
     equity: 'PFR: ~62% | Caller: ~38%',
@@ -77,7 +77,7 @@ export default function RangeVsRange() {
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{match.insight}</p>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Takeaway</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key Takeaway</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{match.key}</div>
         </div>
       </motion.div>

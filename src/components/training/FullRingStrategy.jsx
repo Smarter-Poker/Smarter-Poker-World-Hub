@@ -21,12 +21,12 @@ const FR_CONCEPTS = [
     ranges: 'In 3-way+ pots, suited connectors gain value, offsuit broadways lose value. Pairs and sets are gold.',
     keyDiff: '6-max pots are usually heads-up. Full ring pots are often 3-4 way. Adjust your hand selection accordingly.',
     tip: 'In multiway pots, bet for value with strong hands. Bluff less - someone usually has something.' },
-  { concept: 'Blind Defense is Less Critical', icon: '■', color: '#f59e0b',
+  { concept: 'Blind Defense is Less Critical', icon: '■', color: '#86daff',
     detail: 'You\'re in the blinds only 22% of the time (vs 33% in 6-max). You can afford to fold more from the blinds.',
     ranges: 'BB defense: ~35-45% vs CO/BTN. Tighter than 6-max because more players = stronger open ranges.',
     keyDiff: 'In 6-max, blind defense is critical. In full ring, you can survive with tighter blind play.',
     tip: 'Don\'t over-defend your BB in full ring. Respect EP and MP opens - they have real hands.' },
-  { concept: 'Nit Strategy & Table Image', icon: '◇', color: '#8b5cf6',
+  { concept: 'Nit Strategy & Table Image', icon: '◇', color: '#86daff',
     detail: 'Full ring allows you to cultivate a tight image, then exploit it with well-timed aggression.',
     ranges: 'Play tight for 30 minutes, then make a big 3-bet bluff. Your table image makes it credible.',
     keyDiff: 'In 6-max, everyone plays wide and image matters less. In full ring, a tight image is a weapon.',
@@ -72,7 +72,7 @@ export default function FullRingStrategy() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.keyDiff}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Pro Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Pro Tip</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.tip}</div>
           </div>
         </div>

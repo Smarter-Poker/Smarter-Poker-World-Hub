@@ -20,7 +20,7 @@ const SCENARIOS = [
     type: 'Semi-Bluff', sizing: 'x/r to 3x c-bet',
     reasoning: 'Open-ended straight draw + flush draw = 15 outs. Massive semi-bluff. Check-raise puts pressure on villains marginal hands while you have huge equity if called. Best semi-bluff candidate possible.',
     frequency: '90% x/r, 10% call',
-    color: '#f59e0b',
+    color: '#86daff',
     tips: ['Best x/r bluffs have max equity when called', 'Combo draws (flush + straight) are ideal', 'If called, you still win ~50% of the time'],
   },
   {
@@ -52,7 +52,7 @@ const SCENARIOS = [
     type: 'Semi-Bluff', sizing: 'x/r to 2.5x turn bet',
     reasoning: 'Open-ended straight draw + flush draw on the turn. 15 clean outs. Check-raise as a semi-bluff - massive fold equity + huge equity when called. If villain folds, great. If they call, you hit ~33% of rivers.',
     frequency: '75% x/r, 25% call',
-    color: '#f59e0b',
+    color: '#86daff',
     tips: ['Turn semi-bluffs are very powerful', 'You threaten an all-in river if called', 'Combo draws are the #1 turn x/r bluff'],
   },
 ];
@@ -97,7 +97,7 @@ function CheckRaiseStrategyGuide() {
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Frequency</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b' }}>{spot.frequency}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff' }}>{spot.frequency}</div>
           </div>
         </div>
 

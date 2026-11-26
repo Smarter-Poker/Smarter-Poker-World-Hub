@@ -19,7 +19,7 @@ const ACTION_STYLES = {
     call: { color: '#22c55e', label: 'Call', abbr: 'C' },
     check: { color: '#3b82f6', label: 'Check', abbr: 'X' },
     fold: { color: '#64748b', label: 'Fold', abbr: 'F' },
-    allin: { color: '#a855f7', label: 'All-In', abbr: 'A' },
+    allin: { color: '#86daff', label: 'All-In', abbr: 'A' },
 };
 
 /**
@@ -125,7 +125,7 @@ function generateVillainResponses(heroAction, street, heroFreq) {
     } else if (heroAction === 'call') {
         if (street === 'river') {
             responses.push(
-                { id: `v-show-${heroAction}`, type: 'terminal', action: 'check', label: 'Showdown', abbr: 'SD', frequency: 100, color: '#eab308', children: [], depth: 2 },
+                { id: `v-show-${heroAction}`, type: 'terminal', action: 'check', label: 'Showdown', abbr: 'SD', frequency: 100, color: '#86daff', children: [], depth: 2 },
             );
         } else {
             responses.push(

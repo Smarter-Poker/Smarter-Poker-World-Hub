@@ -62,7 +62,7 @@ export const TRIVIA_MODES = {
         diamondReward: 3,
         perfectBonus: 5,
         icon: 'trophy',
-        color: '#fbbf24'
+        color: '#86daff'
     },
     rules: {
         id: 'rules',
@@ -86,7 +86,7 @@ export const TRIVIA_MODES = {
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'graduation',
-        color: '#8b5cf6'
+        color: '#0ea5e9'
     },
     arcade: {
         id: 'arcade',
@@ -157,7 +157,7 @@ export const TRIVIA_MODES = {
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'users',
-        color: '#f97316'
+        color: '#38bdf8'
     },
     cash: {
         id: 'cash',
@@ -193,7 +193,7 @@ export const TRIVIA_MODES = {
         diamondReward: 8,
         perfectBonus: 15,
         icon: 'brain',
-        color: '#a855f7'
+        color: '#86daff'
     },
     // Standalone-route modes. These live at their own pages (mixed.js,
     // endless.js, time-attack.js, pvp.js, tournaments.js) rather than under
@@ -209,7 +209,7 @@ export const TRIVIA_MODES = {
         diamondReward: 5,
         perfectBonus: 10,
         icon: 'shuffle',
-        color: '#eab308'
+        color: '#0ea5e9'
     },
     endless: {
         id: 'endless',
@@ -221,7 +221,7 @@ export const TRIVIA_MODES = {
         diamondReward: 1,
         perfectBonus: 0,
         icon: 'infinity',
-        color: '#f43f5e'
+        color: '#ef4444'
     },
     'time-attack': {
         id: 'time-attack',
@@ -246,7 +246,7 @@ export const TRIVIA_MODES = {
         diamondReward: 0,
         perfectBonus: 0,
         icon: 'swords',
-        color: '#ec4899'
+        color: '#38bdf8'
     },
     tournaments: {
         id: 'tournaments',
@@ -258,7 +258,7 @@ export const TRIVIA_MODES = {
         diamondReward: 0,
         perfectBonus: 0,
         icon: 'trophy',
-        color: '#f59e0b'
+        color: '#86daff'
     }
 } as const;
 
@@ -438,7 +438,7 @@ export function calculateCreditedDiamonds(
 export function getDifficultyColor(difficulty: string): string {
     switch (difficulty) {
         case 'easy': return '#22c55e';
-        case 'medium': return '#fbbf24';
+        case 'medium': return '#86daff';
         case 'hard': return '#ef4444';
         default: return '#6b7280';
     }

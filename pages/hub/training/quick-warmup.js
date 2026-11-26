@@ -472,7 +472,7 @@ export default function QuickWarmupPage() {
                     style={{
                       fontSize: 28,
                       fontWeight: 900,
-                      color: (results?.accuracy || 0) >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
+                      color: (results?.accuracy || 0) >= 75 ? 'var(--sp-accent-green)' : '#86daff',
                     }}
                   >
                     {results?.accuracy || 0}%

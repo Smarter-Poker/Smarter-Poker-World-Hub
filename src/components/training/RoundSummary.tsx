@@ -365,7 +365,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                         </div>
                         <h1 style={{
                             ...styles.title,
-                            color: passed ? '#ffd700' : '#ff6666',
+                            color: passed ? '#86daff' : '#ff6666',
                         }}>
                             {passed ? 'LEVEL CLEARED!' : 'KEEP PRACTICING'}
                         </h1>
@@ -529,7 +529,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                         )}
                                         {aiCoaching.areasToImprove?.length > 0 && (
                                             <div style={{ flex: 1, minWidth: 140 }}>
-                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>
                                                      FOCUS AREAS
                                                 </div>
                                                 {aiCoaching.areasToImprove.slice(0, 2).map((a, i) => (
@@ -549,7 +549,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                             borderRadius: 8,
                                             border: '1px solid rgba(255, 215, 0, 0.3)'
                                         }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#ffd700', marginBottom: 4 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>
                                                  RECOMMENDED NEXT
                                             </div>
                                             <p style={{ fontSize: 12, color: '#fff', margin: 0, fontWeight: 500 }}>

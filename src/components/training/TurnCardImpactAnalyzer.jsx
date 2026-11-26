@@ -21,7 +21,7 @@ const TURN_CATEGORIES = [
   {
     name: 'Overcard (K/Q)',
     example: 'Flop: 9♣ 6♦ 2♠ → Turn: K♦',
-    color: '#f59e0b',
+    color: '#86daff',
     icon: 'K',
     rangeImpact: 'Moderate advantage shift to aggressor (has KQ, KJ, AK)',
     forIP: { change: 'Positive', detail: 'Good barrel card. Represents overpairs and strong Kx hands. Forces defender to fold medium pairs.' },
@@ -32,7 +32,7 @@ const TURN_CATEGORIES = [
   {
     name: 'Board Pairs',
     example: 'Flop: J♥ 8♣ 5♦ → Turn: J♠',
-    color: '#8b5cf6',
+    color: '#86daff',
     icon: 'J=J',
     rangeImpact: 'Reduces combos of trips for both. Favors aggressor on high pair, defender on low pair.',
     forIP: { change: 'Mixed', detail: 'If board pairs the high card (J), good for aggressor. If pairs low card, defender benefits from more combos.' },
@@ -83,7 +83,7 @@ function TurnCardImpactAnalyzer() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#a78bfa' }}>Turn Card Impact Analyzer</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Turn Card Impact Analyzer</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {TURN_CATEGORIES.map((t, i) => (
@@ -113,13 +113,13 @@ function TurnCardImpactAnalyzer() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 12, borderRadius: 8, borderLeft: '4px solid #10b981', background: cat.forIP.change === 'Positive' ? 'rgba(16,185,129,0.06)' : cat.forIP.change === 'Negative' ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.03)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: cat.forIP.change === 'Positive' ? '#10b981' : cat.forIP.change === 'Negative' ? '#ef4444' : '#f59e0b', marginBottom: 4 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: cat.forIP.change === 'Positive' ? '#10b981' : cat.forIP.change === 'Negative' ? '#ef4444' : '#86daff', marginBottom: 4 }}>
               For Aggressor (IP): {cat.forIP.change}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{cat.forIP.detail}</div>
           </div>
           <div style={{ padding: 12, borderRadius: 8, borderLeft: '4px solid #3b82f6', background: cat.forOOP.change === 'Positive' ? 'rgba(16,185,129,0.06)' : cat.forOOP.change === 'Negative' ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.03)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: cat.forOOP.change === 'Positive' ? '#10b981' : cat.forOOP.change === 'Negative' ? '#ef4444' : '#f59e0b', marginBottom: 4 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: cat.forOOP.change === 'Positive' ? '#10b981' : cat.forOOP.change === 'Negative' ? '#ef4444' : '#86daff', marginBottom: 4 }}>
               For Defender (OOP): {cat.forOOP.change}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{cat.forOOP.detail}</div>

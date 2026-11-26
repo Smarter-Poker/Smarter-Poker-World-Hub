@@ -1,7 +1,7 @@
 const NON_SCORING_TOOLS = new Set(['focus-timer', 'risk-analyzer', 'gto-preloader']);
 const VALID_VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6', 'plo8']);
 const VALID_STREETS = new Set(['preflop', 'flop', 'turn', 'river']);
-const VALID_POSITIONS = new Set(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
+const VALID_POSITIONS = new Set(['UTG', 'UTG+1', 'UTG+2', 'MP', 'MP+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
 
 function verifiedCounts(session) {
   const total = Number(session?.hands_played ?? session?.total_questions ?? session?.questions_answered);
@@ -297,19 +297,18 @@ export function analyzeVerifiedTrainingWeaknesses(sessionsOrOptions, recentAnswe
         // Also populate gameAccuracy if no completed 25-hand session rows existed yet
       }
     }
-    if (Object.keys(gameAccuracy).length === 0) {
-      for (const ans of recentAnswers) {
-        const gameId = String(ans?.game_id || ans?.gameId || 'cash-001').trim();
-        if (!gameId || NON_SCORING_TOOLS.has(gameId)) continue;
-        const isCorrect = Boolean(ans?.is_correct ?? ans?.isCorrect);
-        const evLossBb = estimateHandEvLossBb(ans, isCorrect);
-        totalHands += 1;
-        if (isCorrect) totalCorrect += 1;
-        if (!gameAccuracy[gameId]) gameAccuracy[gameId] = { total: 0, correct: 0, evLossBb: 0 };
-        gameAccuracy[gameId].total += 1;
-        if (isCorrect) gameAccuracy[gameId].correct += 1;
-        gameAccuracy[gameId].evLossBb = Math.round((gameAccuracy[gameId].evLossBb + evLossBb) * 100) / 100;
-      }
+    const sessionCoveredGameIds = new Set(Object.keys(gameAccuracy));
+    for (const ans of recentAnswers) {
+      const gameId = String(ans?.game_id || ans?.gameId || 'cash-001').trim();
+      if (!gameId || NON_SCORING_TOOLS.has(gameId) || sessionCoveredGameIds.has(gameId)) continue;
+      const isCorrect = Boolean(ans?.is_correct ?? ans?.isCorrect);
+      const evLossBb = estimateHandEvLossBb(ans, isCorrect);
+      totalHands += 1;
+      if (isCorrect) totalCorrect += 1;
+      if (!gameAccuracy[gameId]) gameAccuracy[gameId] = { total: 0, correct: 0, evLossBb: 0 };
+      gameAccuracy[gameId].total += 1;
+      if (isCorrect) gameAccuracy[gameId].correct += 1;
+      gameAccuracy[gameId].evLossBb = Math.round((gameAccuracy[gameId].evLossBb + evLossBb) * 100) / 100;
     }
   }
 

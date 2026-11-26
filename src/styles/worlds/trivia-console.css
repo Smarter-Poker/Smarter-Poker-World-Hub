@@ -85,6 +85,7 @@ body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
 .tc-ink--silver { color: var(--tc-ink-silver); }
 .tc-ink--white { color: var(--tc-ink-white); }
 .tc-ink--blue { color: var(--tc-ink-blue); }
+.tc-ink--cyan { color: var(--sd-ice, var(--tc-ink-blue, #86daff)); }
 .tc-ink--green { color: var(--tc-ink-green); }
 .tc-ink--red { color: var(--tc-ink-red); }
 .tc-ink--muted { color: var(--tc-ink-muted); }

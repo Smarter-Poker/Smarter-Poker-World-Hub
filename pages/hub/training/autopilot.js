@@ -127,7 +127,7 @@ const SPOT_DEFINITIONS = [
     name: 'C-Betting (Flop)',
     position: 'any',
     street: 'flop',
-    color: 'var(--sp-accent-orange)',
+    color: '#86daff',
     iconKind: 'explosion',
     icon: '▲',
     gameId: 'cash-002',
@@ -512,7 +512,7 @@ export default function AutopilotPage() {
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: r.accuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
+                        color: r.accuracy >= 75 ? 'var(--sp-accent-green)' : '#86daff',
                         marginTop: 4,
                       }}
                     >

@@ -20,7 +20,7 @@ const SRP_SPOTS = [
       { board: 'Low (762)', cbet: '35-45%', size: '50%', note: 'Low boards connect with caller\'s range. Check with air more.' },
       { board: 'Monotone (K♠8♠3♠)', cbet: '25-35%', size: '33%', note: 'Very dangerous. Only bet with flush draws or strong hands.' },
     ]},
-  { title: 'IP as Caller', icon: '○', color: '#f59e0b',
+  { title: 'IP as Caller', icon: '○', color: '#86daff',
     situations: [
       { board: 'Vs C-bet', cbet: 'Call 55-65%', size: 'Raise 10%', note: 'Call with any piece. Raise sets, two pair, strong draws.' },
       { board: 'Vs Check', cbet: 'Bet 45-55%', size: '55-66%', note: 'When PFR checks, stab with a wide range.' },
@@ -59,7 +59,7 @@ export default function SingleRaisedPotGuide() {
               <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{s.board}</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 800, color: spot.color, background: `${spot.color}15`, padding: '2px 8px', borderRadius: 4 }}>{s.cbet}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.size}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#86daff', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.size}</span>
               </div>
             </div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.note}</div>

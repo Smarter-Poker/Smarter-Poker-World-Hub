@@ -18,11 +18,11 @@ const PLO_BASICS = [
     detail: 'You can only bet the size of the pot. This means hands rarely get all-in preflop, and postflop play is where the action is.',
     examples: 'Pot preflop: $3.50 in a $1/$2 game. By the turn, pot sizes explode. A $10 pot on the flop becomes $80+ by river.',
     tip: 'PLO pots grow geometrically. If you pot every street, you\'re always getting all-in by the river with 100bb stacks.' },
-  { title: 'Drawing vs Made Hands', icon: '◆', color: '#f59e0b',
+  { title: 'Drawing vs Made Hands', icon: '◆', color: '#86daff',
     detail: 'In PLO, draws are often favorites over made hands. A wrap + flush draw can have 60%+ equity against top set.',
     examples: 'On J♥T♣5♥: Q♥9♥8♠7♦ (wrap + flush draw) has ~58% vs A♠A♣J♦5♠ (top two pair).',
     tip: 'Don\'t overvalue bare top pair or even two pair. In PLO, if you can\'t improve, you\'re often behind.' },
-  { title: 'The Nuts Matters', icon: '★', color: '#8b5cf6',
+  { title: 'The Nuts Matters', icon: '★', color: '#86daff',
     detail: 'In PLO, someone almost always has the nuts or near-nuts. Non-nut hands are dangerous, especially in multiway pots.',
     examples: 'A non-nut flush (Q-high flush) in PLO is often just a bluff catcher. In NLHE it\'s a monster.',
     tip: 'When the board pairs and you have a flush, proceed with extreme caution. Full houses are common in PLO.' },
@@ -59,7 +59,7 @@ export default function PLOBasicsGuide() {
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.examples}</div>
         </div>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>PRO TIP</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>PRO TIP</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.tip}</div>
         </div>
       </motion.div>

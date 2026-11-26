@@ -14,7 +14,7 @@ const LIMP_SCENARIOS = [
     hands: ['Literally anything you\'re dealt', 'Check and see a free flop', 'Raise strong hands to ISO'],
     reason: 'Free flop from the BB. Only raise to isolate limpers with premium hands.',
     tip: 'Raise to 4-5x + 1x per limper with AA-TT, AQ+. Check everything else.' },
-  { title: 'Overlimp IP', verdict: 'SOMETIMES ✓', color: '#f59e0b',
+  { title: 'Overlimp IP', verdict: 'SOMETIMES ✓', color: '#86daff',
     hands: ['Small pairs (22-77) for set-mining', 'Suited connectors IP', 'Suited aces'],
     reason: 'When 2+ limpers, overlimping IP gives great implied odds. You invest 1 BB to win 5+.',
     tip: 'Only overlimp in position. OOP overlimping is a leak.' },

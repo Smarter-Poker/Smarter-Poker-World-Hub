@@ -117,6 +117,8 @@ import './the-welcome-package-is-earned-by-phone-verification.law.test.mjs';
 import './phone-verification-uptake.test.mjs';
 // Cancellation's transactional storage cases belong to the same required CHECK 8 registry.
 import './horses-tournament-intent-storage.test.mjs';
+// API/server @vercel/nft static-page trace guard (incident 86bcafc1, 2026-11-26).
+import './api-routes-never-trace-static-pages.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
@@ -780,6 +782,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/newsletter-forensic-pass-hardening.law.test.mjs',
     '__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs',
     '__tests__/smarter-poker-magazine.law.test.mjs',
+    '__tests__/api-routes-never-trace-static-pages.law.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {
@@ -912,6 +915,7 @@ import './trivia-launch-gateboard-laws.test.mjs';
 import './trivia-smarterdesign-competitive-admin-laws.test.mjs';
 import './trivia-smarterdesign-gameplay-laws.test.mjs';
 import './trivia-smarterdesign-lobby-laws.test.mjs';
+import './trivia-pass2-fortress-laws.test.mjs';
 import './newsletter-zero-broken-links-and-images.law.test.mjs';
 import './smarter-poker-magazine.law.test.mjs';
 import './newsletter-end-to-end-wiring-and-ops.law.test.mjs';
@@ -921,6 +925,8 @@ import './weekly-wire-v5-ecosystem-suite.law.test.mjs';
 import './newsletter-v6-forensic-hardening.law.test.mjs';
 import './seo-aeo-geo-phase4-20261126.law.test.mjs';
 import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
+import './seo-aeo-geo-phase6-20261126.law.test.mjs';
+import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

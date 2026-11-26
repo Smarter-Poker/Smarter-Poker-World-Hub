@@ -16,12 +16,12 @@ const PROGRESS_AREAS = [
     metrics: 'C-Bet: 55-65% IP | Turn Barrel: 45-55% | River Bet: 35-45%',
     checkpoints: '[ ] Can identify wet vs dry boards | [ ] Plan all three streets before acting | [ ] Comfortable with check-raises',
     mastery: 'When you can articulate your range on every street and your opponent\'s range too.' },
-  { area: 'Hand Reading', icon: '○', color: '#f59e0b',
+  { area: 'Hand Reading', icon: '○', color: '#86daff',
     skills: ['Range narrowing per street', 'Combo counting on boards', 'Blocker awareness', 'Behavioral tells (live)'],
     metrics: 'Accuracy improves with volume - track your predictions vs actual holdings.',
     checkpoints: '[ ] Can count combos quickly | [ ] Understand how board texture filters ranges | [ ] Use blockers in bluff decisions',
     mastery: 'When you regularly predict villain\'s holding within a 5-combo range on the river.' },
-  { area: 'Mental Game', icon: '◇', color: '#8b5cf6',
+  { area: 'Mental Game', icon: '◇', color: '#86daff',
     skills: ['Tilt recognition and control', 'Session management', 'Emotional regulation', 'Focus and attention span'],
     metrics: 'Tilt sessions per month < 2 | Average session rating > 7/10',
     checkpoints: '[ ] Can identify when tilting | [ ] Have a stop-loss rule | [ ] Meditate or warm up before sessions',
@@ -73,7 +73,7 @@ export default function ProgressDashboard() {
             <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{area.metrics}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Checkpoints</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Checkpoints</div>
             <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{area.checkpoints}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>

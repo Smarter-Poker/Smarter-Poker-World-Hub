@@ -29,7 +29,7 @@ const SIZES = [
   {
     name: '75-100% Pot',
     label: 'Large',
-    color: '#f59e0b',
+    color: '#86daff',
     icon: '',
     when: 'Polarized - nuts or air',
     logic: 'Large bets are polarized: you either have the nuts or nothing. Use for maximum value from strong hands, or as bluffs when you need fold equity against medium-strength hands.',
@@ -49,7 +49,7 @@ const SIZES = [
   {
     name: 'Check',
     label: 'Check',
-    color: '#8b5cf6',
+    color: '#86daff',
     icon: '',
     when: 'Showdown value or give up',
     logic: 'Check when you have showdown value (medium pairs, weak top pair) or when you\'ve given up with air. Checking induces bluffs from missed draws and keeps the pot small with marginal hands.',
@@ -65,7 +65,7 @@ function RiverSizingGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#e879f9' }}>River Sizing Guide</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>River Sizing Guide</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {SIZES.map((sz, i) => (

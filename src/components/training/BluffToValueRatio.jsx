@@ -96,9 +96,9 @@ function BluffToValueRatio() {
             { label: 'Value Combos', value: valueCombos, color: '#10b981' },
             { label: 'Bluff Combos', value: calc.bluffCombos, color: '#ef4444' },
             { label: 'Total Bets', value: calc.totalBets, color: '#f43f5e' },
-            { label: 'Bluff Ratio', value: `${calc.bluffRatio}:1`, color: '#f59e0b' },
+            { label: 'Bluff Ratio', value: `${calc.bluffRatio}:1`, color: '#86daff' },
             { label: 'Villain MDF', value: `${calc.mdfPct}%`, color: '#3b82f6' },
-            { label: 'Pot Odds', value: `${calc.potOdds}%`, color: '#8b5cf6' },
+            { label: 'Pot Odds', value: `${calc.potOdds}%`, color: '#86daff' },
           ].map(s => (
             <div key={s.label} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>

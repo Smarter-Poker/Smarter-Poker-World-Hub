@@ -22,7 +22,7 @@ const SQUEEZE_SPOTS = [
       { action: 'C-bet 60-70%', detail: 'Slightly higher c-bet frequency because of the dead money and strong perceived range.' },
       { action: 'Don\'t slow play', detail: 'With dead money in the pot, build it with your strong hands. No need to get cute.' },
     ]},
-  { title: 'You Squeezed and Got 4-Bet', color: '#8b5cf6',
+  { title: 'You Squeezed and Got 4-Bet', color: '#86daff',
     desc: 'Someone 4-bet your squeeze. This is a big decision point.',
     strategy: [
       { action: 'With AA, KK: 5-bet shove', detail: 'Always. These hands are too strong to flat and risk seeing a flop multi-way.' },

@@ -194,7 +194,7 @@ const styles = {
     statValue: {
         fontSize: 14,
         fontWeight: 800,
-        color: '#FFD700',
+        color: '#86daff',
         marginLeft: 4,
     },
 

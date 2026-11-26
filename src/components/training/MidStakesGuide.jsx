@@ -18,11 +18,11 @@ const MID_CONCEPTS = [
     detail: '3-bet pots are where the money is at mid-stakes. SPR is low, decisions are magnified, and small edges compound.',
     key: 'In 3-bet pots as the aggressor: c-bet 33% on most flops, barrel turns that improve your range, and give up on bad runouts.',
     example: 'As 3-bettor on K♠7♥2♦: c-bet small (33%). You have range advantage but not nut advantage on all runouts.' },
-  { title: 'Position is Everything', icon: '·', color: '#f59e0b',
+  { title: 'Position is Everything', icon: '·', color: '#86daff',
     detail: 'Your win rate IP vs OOP at mid-stakes will diverge sharply. Tighten up OOP, widen IP, and fight hard for button.',
     key: 'Expect ~80% of your profit from CO+BTN. Break even from blinds. Small loss from EP/MP.',
     example: 'If you\'re losing >5bb/100 from the BB at NL100, you\'re probably defending too wide or playing too passively postflop.' },
-  { title: 'Study and Review', icon: '□', color: '#8b5cf6',
+  { title: 'Study and Review', icon: '□', color: '#86daff',
     detail: 'At mid-stakes, the players who study the most win the most. Solver work, hand reviews, and database analysis separate winners from losers.',
     key: 'Spend 50% of your "poker time" studying. Review every session. Run solver sims on your toughest spots.',
     example: 'After each session: filter for your biggest losing hands, run them through a solver, and find where you deviated.' },
@@ -59,7 +59,7 @@ export default function MidStakesGuide() {
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.key}</div>
         </div>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>EXAMPLE</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>EXAMPLE</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.example}</div>
         </div>
       </motion.div>

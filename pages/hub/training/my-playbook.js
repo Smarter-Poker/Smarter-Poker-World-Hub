@@ -527,7 +527,7 @@ export default function MyPlaybookPage() {
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: p.pinned ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
+                          color: p.pinned ? '#86daff' : 'var(--sp-fg-faint)',
                           fontSize: 14,
                           cursor: 'pointer',
                           display: 'inline-flex',

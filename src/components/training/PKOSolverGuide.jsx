@@ -12,7 +12,7 @@ const BOUNTY_SCENARIOS = [
     calling: '+3-5% wider calling range. Call with hands like A9o, KTo, 55 that you\'d normally fold.',
     shoving: 'Shove range barely changes. Maybe add lowest suited Aces (A2s-A5s).',
     example: 'You have 25bb, villain covers. Bounty = 2.5bb. Standard play with slight widening.' },
-  { name: 'Medium Bounty (0.3x)', ratio: 0.3, icon: '●', color: '#f59e0b',
+  { name: 'Medium Bounty (0.3x)', ratio: 0.3, icon: '●', color: '#86daff',
     adjust: 'Significant adjustment. Bounty is worth 30% of your stack. Call 10-15% wider than standard.',
     calling: '+10-15% wider. Call with suited connectors (54s+), any Ace, suited Kings, pocket pairs.',
     shoving: 'Shove range widens ~10%. Include hands like K5s, Q8s, J9o from late position.',
@@ -100,7 +100,7 @@ export default function PKOSolverGuide() {
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1fr', padding: '8px 12px',
             borderBottom: '1px solid rgba(255,255,255,0.03)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
             <span style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'monospace' }}>{row.stack}</span>
-            <span style={{ fontSize: 12, color: '#f59e0b', fontFamily: 'monospace' }}>{row.bounty}</span>
+            <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'monospace' }}>{row.bounty}</span>
             <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 700, fontFamily: 'monospace' }}>{row.adj}</span>
             <span style={{ fontSize: 12, color: '#3b82f6', fontWeight: 700, fontFamily: 'monospace' }}>{row.evGain}</span>
           </div>

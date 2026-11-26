@@ -30,7 +30,7 @@ const SITUATIONS = [
     tip: 'With strong value, bet bigger. Opponents have strong enough hands to call.',
   },
   {
-    name: 'Bluff - Semi', hand: 'Flush/Straight Draw', color: '#f59e0b',
+    name: 'Bluff - Semi', hand: 'Flush/Straight Draw', color: '#86daff',
     sizes: [
       { pct: '25%', verdict: 'Weak', reason: 'Not enough fold equity. Opponent calls too wide.' },
       { pct: '50%', verdict: 'Good', reason: 'Balance of fold equity and price. Risk little with live draw.' },
@@ -52,7 +52,7 @@ const SITUATIONS = [
     tip: 'Pure bluffs need maximum fold equity. Bet big or dont bluff at all.',
   },
   {
-    name: 'Protection Bet', hand: 'Overpair on Wet Board', color: '#e879f9',
+    name: 'Protection Bet', hand: 'Overpair on Wet Board', color: '#86daff',
     sizes: [
       { pct: '25%', verdict: 'Bad', reason: 'Gives draws correct odds. They profit from calling.' },
       { pct: '50%', verdict: 'OK', reason: 'Borderline. Some draws still have odds.' },

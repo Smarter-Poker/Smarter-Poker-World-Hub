@@ -525,7 +525,7 @@ export default function GtoNewsPage() {
               border: `1px solid ${showBookmarksOnly ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.08)'}`,
               borderRadius: 6,
               padding: '4px 10px',
-              color: showBookmarksOnly ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
+              color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
@@ -777,7 +777,7 @@ export default function GtoNewsPage() {
                       fontSize: 14,
                       padding: 0,
                       display: 'inline-flex',
-                      color: bookmarks.has(a.id) ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
+                      color: bookmarks.has(a.id) ? '#86daff' : 'var(--sp-fg-faint)',
                     }}
                   >
                     {/* TRAIN-NEWS-A11Y-1: SVG bookmark star */}

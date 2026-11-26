@@ -26,9 +26,9 @@ export default function StackEffectiveCalc() {
   const sprAnalysis = useMemo(() => {
     const spr = heroEffective / 6.5; // assume ~6.5 BB pot
     if (spr <= 2) return { label: 'Very Short', color: '#ef4444', advice: 'Commit with any piece of the flop. Push/fold territory.' };
-    if (spr <= 5) return { label: 'Short', color: '#f59e0b', advice: 'Top pair is gold. Set-mine less. Play more straightforwardly.' };
+    if (spr <= 5) return { label: 'Short', color: '#86daff', advice: 'Top pair is gold. Set-mine less. Play more straightforwardly.' };
     if (spr <= 10) return { label: 'Medium', color: '#3b82f6', advice: 'Standard play. Can set-mine, float, and play draws.' };
-    if (spr <= 20) return { label: 'Deep', color: '#8b5cf6', advice: 'Implied odds matter. Position is king. Play speculative hands.' };
+    if (spr <= 20) return { label: 'Deep', color: '#86daff', advice: 'Implied odds matter. Position is king. Play speculative hands.' };
     return { label: 'Very Deep', color: '#22c55e', advice: 'Huge implied odds. Suited connectors and small pairs go up in value.' };
   }, [heroEffective]);
 
@@ -62,7 +62,7 @@ export default function StackEffectiveCalc() {
                 color: p.active ? '#fff' : '#64748b', fontSize: 12, fontWeight: 700 }}>
               {p.active ? '✓' : '×'}
             </button>
-            <span style={{ fontSize: 13, fontWeight: 600, color: i === 0 ? '#8b5cf6' : '#94a3b8', minWidth: 70 }}>{p.name}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: i === 0 ? '#86daff' : '#94a3b8', minWidth: 70 }}>{p.name}</span>
             <input type="range" min={5} max={200} value={p.stack} onChange={e => updateStack(i, +e.target.value)}
               style={{ flex: 1, accentColor: '#8b5cf6' }} />
             <span style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', minWidth: 45, textAlign: 'right' }}>{p.stack} BB</span>
@@ -74,7 +74,7 @@ export default function StackEffectiveCalc() {
       <motion.div key={heroEffective} initial={{ scale: 0.95 }} animate={{ scale: 1 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, textAlign: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Effective Stack (Hero)</div>
-        <div style={{ fontSize: 36, fontWeight: 800, color: '#8b5cf6' }}>{heroEffective} BB</div>
+        <div style={{ fontSize: 36, fontWeight: 800, color: '#86daff' }}>{heroEffective} BB</div>
         <div style={{ fontSize: 12, color: '#94a3b8' }}>
           {activePlayers.length} Active Players | Smallest Covers: {activePlayers.map(p => p.stack).sort((a,b) => a-b)[0]} BB
         </div>
@@ -93,7 +93,7 @@ export default function StackEffectiveCalc() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {[
           { depth: '< 25 BB', hands: 'Push/fold: pairs, Ax, Kx', color: '#ef4444' },
-          { depth: '25-50 BB', hands: 'Top pair plays well, less set-mining', color: '#f59e0b' },
+          { depth: '25-50 BB', hands: 'Top pair plays well, less set-mining', color: '#86daff' },
           { depth: '50-100 BB', hands: 'Standard GTO ranges apply', color: '#3b82f6' },
           { depth: '100+ BB', hands: 'Widen with suited connectors, small pairs', color: '#22c55e' },
         ].map((s, i) => (

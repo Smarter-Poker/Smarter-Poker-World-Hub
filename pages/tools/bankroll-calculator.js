@@ -318,10 +318,10 @@ export default function BankrollCalculatorPage({
             <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Tournament ICM Calculator
             </Link>
-            <Link href="/research/bankroll-risk-of-ruin-and-kelly-criterion-empirical-model" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              Research: Risk Of Ruin &amp; Kelly Criterion Study
+            <Link href="/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Research: Equity Variance &amp; Bankroll Risk Of Ruin Study
             </Link>
-            <Link href="/learn/bankroll-management-and-risk-of-ruin" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/risk-of-ruin" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Lesson: Bankroll Management &amp; Risk Of Ruin
             </Link>
           </div>

@@ -84,7 +84,7 @@ export default function GhostReplayEngine({ sessionName, handHistory = [], onClo
                 {/* Felt / Mini Arena */}
                 <div style={styles.felt}>
                     <div style={styles.potOverlay}>
-                        <span style={{ color: '#fbbf24', fontSize: 12, marginRight: 4 }}>●</span>
+                        <span style={{ color: '#86daff', fontSize: 12, marginRight: 4 }}>●</span>
                         Pot: {data.pot || '?'} BB
                     </div>
 

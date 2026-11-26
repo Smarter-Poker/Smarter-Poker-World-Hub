@@ -92,7 +92,7 @@ function BlockerAnalysis() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#d946ef' }}>Blocker Analysis</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Blocker Analysis</h3>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {SCENARIOS.map(s => (
@@ -109,7 +109,7 @@ function BlockerAnalysis() {
           {scenario.board !== 'Preflop' && (
             <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: 5, marginBottom: 6 }}>{scenario.board}</div>
           )}
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#d946ef', marginBottom: 6 }}>Hero: {scenario.heroHand}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Hero: {scenario.heroHand}</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{scenario.situation}</div>
         </div>
 
@@ -145,7 +145,7 @@ function BlockerAnalysis() {
 
         {/* Analysis */}
         <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#d946ef', marginBottom: 4 }}>Analysis</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Analysis</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{scenario.analysis}</div>
         </div>
 
@@ -153,7 +153,7 @@ function BlockerAnalysis() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {scenario.tips.map((tip, i) => (
             <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', paddingLeft: 12, position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 0, color: '#d946ef' }}>•</span>{tip}
+              <span style={{ position: 'absolute', left: 0, color: '#86daff' }}>•</span>{tip}
             </div>
           ))}
         </div>

@@ -17,7 +17,7 @@ export default function SmartPracticeCard({ handHistory, onStartPractice }) {
     if (!profile.hasData || !profile.topWeakness) return null;
 
     const w = profile.topWeakness;
-    const color = w.accuracy < 40 ? '#ef4444' : w.accuracy < 60 ? '#fbbf24' : '#22c55e';
+    const color = w.accuracy < 40 ? '#ef4444' : w.accuracy < 60 ? '#86daff' : '#22c55e';
 
     return (
         <motion.div

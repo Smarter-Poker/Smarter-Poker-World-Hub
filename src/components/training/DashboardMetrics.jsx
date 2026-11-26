@@ -263,7 +263,7 @@ export function AccuracyByPositionChart({ handHistory = [], previousStats = null
                                 visible={hoveredPos === d.pos}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <span style={{ fontSize: 12, color: acc >= 80 ? '#22c55e' : acc >= 50 ? '#fbbf24' : '#ef4444' }}>
+                                    <span style={{ fontSize: 12, color: acc >= 80 ? '#22c55e' : acc >= 50 ? '#86daff' : '#ef4444' }}>
                                         {acc}%
                                     </span>
                                     <TrendArrow current={acc} previous={prevAcc} showPercentage={false} />
@@ -283,7 +283,7 @@ export function AccuracyByPositionChart({ handHistory = [], previousStats = null
                             />
                             <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 'bold' }}>{d.pos}</span>
                             {posHistory.length > 0 && (
-                                <Sparkline data={posHistory} color={acc >= 80 ? '#22c55e' : acc >= 50 ? '#fbbf24' : '#ef4444'} height={12} width={28} />
+                                <Sparkline data={posHistory} color={acc >= 80 ? '#22c55e' : acc >= 50 ? '#86daff' : '#ef4444'} height={12} width={28} />
                             )}
                         </div>
                     );

@@ -135,7 +135,7 @@ export default function LeaderboardPanel({ userId, gameId }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.title}>
-                    <span style={{ color: '#ffd700' }}>★</span> Leaderboard
+                    <span style={{ color: '#86daff' }}>★</span> Leaderboard
                 </div>
             </div>
 
@@ -223,7 +223,7 @@ const styles = {
     periodBtnActive: {
         background: 'rgba(255,215,0,0.1)',
         borderColor: 'rgba(255,215,0,0.25)',
-        color: '#ffd700',
+        color: '#86daff',
     },
     loadingText: {
         color: '#64748b', fontSize: 12, textAlign: 'center', padding: 12,

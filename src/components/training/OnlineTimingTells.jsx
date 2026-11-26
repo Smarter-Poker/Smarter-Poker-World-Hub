@@ -16,7 +16,7 @@ const TIMING_TELLS = [
     exploit: 'Barrel again on the turn if their draw doesn\'t complete. They\'re chasing.',
     reliability: 'High - instant callers rarely have the nuts (they\'d raise) or total air (they\'d fold).',
     caveat: 'Some players instant-call with strong hands to disguise. Look for patterns over many hands.' },
-  { tell: 'Long Tank Then Bet', icon: '○', color: '#f59e0b',
+  { tell: 'Long Tank Then Bet', icon: '○', color: '#86daff',
     meaning: 'Genuinely thinking about their decision. Could go either way - but often leans toward bluffing.',
     exploit: 'Long tank → bet is slightly more likely to be a bluff. They\'re deciding whether to take the risk.',
     reliability: 'Medium - many players genuinely tank with strong hands too, deciding on sizing.',
@@ -26,7 +26,7 @@ const TIMING_TELLS = [
     exploit: 'Attack this weakness. They\'re unsure about their hand - put pressure on them.',
     reliability: 'Medium-high - the hesitation reveals they considered aggression but chickened out.',
     caveat: 'Could be a trap. Some players tank-check with the nuts to induce a bet.' },
-  { tell: 'Instant Raise', icon: '▲', color: '#8b5cf6',
+  { tell: 'Instant Raise', icon: '▲', color: '#86daff',
     meaning: 'Pre-selected raise or immediately clicked raise. Very strong hand - they knew they were raising.',
     exploit: 'Fold everything except the nuts. Instant raises are almost never bluffs at low/mid stakes.',
     reliability: 'Very high - the speed indicates confidence and a pre-planned action.',
@@ -71,7 +71,7 @@ export default function OnlineTimingTells() {
             <div style={{ fontSize: 12, fontWeight: 700, color: tell.color }}>Reliability: {tell.reliability}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Caveat</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Caveat</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tell.caveat}</div>
           </div>
         </div>

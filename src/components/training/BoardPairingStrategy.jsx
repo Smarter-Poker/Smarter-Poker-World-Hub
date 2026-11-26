@@ -51,7 +51,7 @@ export default function BoardPairingStrategy() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ textAlign: 'center', marginBottom: 12 }}>
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 4 }}>{board.board}</div>
-          <div style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, marginTop: 4 }}>{board.type}</div>
+          <div style={{ fontSize: 12, color: '#86daff', fontWeight: 600, marginTop: 4 }}>{board.type}</div>
         </div>
 
         {/* PFR advantage bar */}
@@ -68,14 +68,14 @@ export default function BoardPairingStrategy() {
 
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{board.strategy}</p>
         <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Insight</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key Insight</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.key}</div>
         </div>
       </motion.div>
 
       {/* General rules */}
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 8 }}>Paired Board Rules</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>Paired Board Rules</div>
         {[
           'Higher the pair = more PFR advantage',
           'Small sizing (25-33%) works best on paired boards',
@@ -84,7 +84,7 @@ export default function BoardPairingStrategy() {
           'Paired boards reduce the total number of possible combinations',
         ].map((r, i) => (
           <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '3px 0', display: 'flex', gap: 6 }}>
-            <span style={{ color: '#f59e0b' }}>{i + 1}.</span> {r}
+            <span style={{ color: '#86daff' }}>{i + 1}.</span> {r}
           </div>
         ))}
       </div>

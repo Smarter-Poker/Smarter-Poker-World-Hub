@@ -19,9 +19,11 @@ import styles from './CompetitiveLobbyBriefing.module.css';
 const disabledResource = () => ({ status: 'disabled', data: null, error: null, receivedAt: null });
 const waitingResource = () => ({ status: 'loading', data: null, error: null, receivedAt: null });
 
-// Deduplicate concurrent / StrictMode schedule reads across mounts (15s TTL).
+// Deduplicate concurrent / StrictMode competitive lobby reads across mounts (15s TTL).
 const SCHEDULE_CACHE_TTL_MS = 15_000;
 const scheduleFetchCache = new Map();
+const PVP_RESUME_CACHE_TTL_MS = 15_000;
+const pvpResumeFetchCache = new Map();
 
 function readDeduplicatedSchedule(url, cacheKey, requestImpl, forceRefresh) {
     const now = Date.now();
@@ -49,6 +51,35 @@ function readDeduplicatedSchedule(url, cacheKey, requestImpl, forceRefresh) {
             throw err;
         });
     scheduleFetchCache.set(cacheKey, { data: null, receivedAt: now, promise });
+    return promise;
+}
+
+function readDeduplicatedPvpResume(url, cacheKey, requestImpl, forceRefresh) {
+    const now = Date.now();
+    if (!forceRefresh) {
+        const cached = pvpResumeFetchCache.get(cacheKey);
+        if (cached && cached.promise) return cached.promise;
+        if (cached && cached.data && (now - cached.receivedAt) < PVP_RESUME_CACHE_TTL_MS) {
+            return Promise.resolve(cached.data);
+        }
+    }
+    const promise = requestImpl(url, {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+    })
+        .then(async (response) => {
+            if (!response.ok) throw responseError(response.status);
+            const json = await response.json();
+            pvpResumeFetchCache.set(cacheKey, { data: json, receivedAt: Date.now(), promise: null });
+            return json;
+        })
+        .catch((err) => {
+            pvpResumeFetchCache.delete(cacheKey);
+            throw err;
+        });
+    pvpResumeFetchCache.set(cacheKey, { data: null, receivedAt: now, promise });
     return promise;
 }
 
@@ -257,6 +288,15 @@ export default function CompetitiveLobbyBriefing({
                 controller.abort();
             };
         }
+        if (authState === 'loading') {
+            setScheduleResource((previous) => (
+                previous.data ? previous : waitingResource()
+            ));
+            return () => {
+                scheduleRequestGuardRef.current.invalidate();
+                controller.abort();
+            };
+        }
 
         setScheduleResource((previous) => ({
             ...previous,
@@ -324,7 +364,8 @@ export default function CompetitiveLobbyBriefing({
             status: previous.data ? 'refreshing' : 'loading',
             error: null,
         }));
-        readJson(requestPlan.pvpResume, controller.signal, authedFetch)
+        const pvpCacheKey = `${requestPlan.pvpResume}|${accountKey || 'anon'}`;
+        readDeduplicatedPvpResume(requestPlan.pvpResume, pvpCacheKey, authedFetch, refreshVersion > 0)
             .then((raw) => {
                 if (!pvpRequestIsCurrent()) return;
                 const data = sanitizePvpResume(raw);

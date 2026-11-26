@@ -33,7 +33,7 @@ export const STREAK_TIERS = [
         maxDays: 29,
         multiplier: 2.5,
         badge: 'Dumbbell',
-        color: '#fbbf24',
+        color: '#38bdf8',
         title: 'Dedicated Mind',
         unlockReward: { type: 'badge', id: 'dedicated_mind' }
     },
@@ -43,7 +43,7 @@ export const STREAK_TIERS = [
         maxDays: 99,
         multiplier: 3.0,
         badge: 'Trophy',
-        color: '#a78bfa',
+        color: '#bdd0e2',
         title: 'Iron Mind',
         unlockReward: { type: 'title', id: 'iron_mind', diamonds: 100 }
     },

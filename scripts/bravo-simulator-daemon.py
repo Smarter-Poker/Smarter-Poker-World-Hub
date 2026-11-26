@@ -721,14 +721,17 @@ class PatternModel:
         delta = datetime.now(timezone.utc) - self._newest_snapshot
         return delta.total_seconds() / 86400.0
 
-    # observation_kind is added by the data-truth migration and buyin_range is
-    # not present in every deployment. Required legacy fields still include the
-    # batch id so a pre-migration simulated source cannot be accepted as Bravo.
+    # observation_kind is added by the data-truth migration. Required legacy
+    # fields still include the batch id so a pre-migration simulated source
+    # cannot be accepted as Bravo. buyin_range is NOT requested: it lives on
+    # venue_live_tables, never on game_live_history, so asking for it made
+    # every run open with a refused query (column game_live_history.buyin_range
+    # does not exist) before the strip-and-retry fallback dropped it.
     _HISTORY_REQUIRED_FIELDS = (
         'bravo_slug', 'venue_name', 'game_type', 'stakes', 'tables', 'waiting',
         'snapshot_time', 'source', 'batch_id',
     )
-    _HISTORY_OPTIONAL_FIELDS = ('observation_kind', 'buyin_range')
+    _HISTORY_OPTIONAL_FIELDS = ('observation_kind',)
 
     def _fetch_history(self, source: str) -> list:
         """

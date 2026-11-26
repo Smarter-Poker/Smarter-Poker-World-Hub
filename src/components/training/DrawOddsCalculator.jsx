@@ -102,9 +102,9 @@ function DrawOddsCalculator() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8, marginBottom: 16 }}>
           {[
             { label: 'Exact Equity', value: `${calc.equityPct}%`, color: '#34d399' },
-            { label: `Rule of ${street === 'flop' ? '4' : '2'}`, value: `~${calc.ruleOf}%`, color: '#a78bfa' },
+            { label: `Rule of ${street === 'flop' ? '4' : '2'}`, value: `~${calc.ruleOf}%`, color: '#86daff' },
             { label: 'Pot Odds', value: `${calc.potOddsPct}%`, color: '#3b82f6' },
-            { label: 'Odds Ratio', value: calc.ratio, color: '#f59e0b' },
+            { label: 'Odds Ratio', value: calc.ratio, color: '#86daff' },
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>

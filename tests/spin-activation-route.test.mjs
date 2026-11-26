@@ -176,7 +176,7 @@ const buildHandler = new Function(
 async function invoke(body = {}, options = {}) {
   const calls = [];
   const rows = {
-    clubs: { id: 'club', owner_id: 'actor', union_id: null },
+    clubs: { id: 'c1000000-0000-4000-8000-000000000001', owner_id: 'actor', union_id: null },
     unions: null,
     profiles: { role: 'player' },
     union_admins: null,
@@ -202,7 +202,7 @@ async function invoke(body = {}, options = {}) {
           return this;
         },
         async maybeSingle() {
-          if (table === 'clubs' || table === 'unions') assert.equal(filters.id, 'club');
+          if (table === 'clubs' || table === 'unions') assert.equal(filters.id, 'c1000000-0000-4000-8000-000000000001');
           if (table === 'profiles') assert.equal(filters.id, 'actor');
           if (table === 'union_admins') {
             assert.equal(filters.user_id, 'actor');
@@ -245,7 +245,7 @@ async function invoke(body = {}, options = {}) {
           },
       body: {
         action: 'activate',
-        clubId: 'club',
+        clubId: 'c1000000-0000-4000-8000-000000000001',
         seedAmount: 0,
         offeredMaxStake: 5,
         sourceWallet: 'chip_treasury',
@@ -275,9 +275,9 @@ for (const seed of [0, '0', ' 0 ', 20, '20', '2e1']) {
         name: 'fn_spin_owner_command',
         args: {
           p_request_id: 'a3000000-0000-4000-8000-000000000001',
-          p_owner_id: 'club',
+          p_owner_id: 'c1000000-0000-4000-8000-000000000001',
           p_action: 'activate',
-          p_club_id: 'club',
+          p_club_id: 'c1000000-0000-4000-8000-000000000001',
           p_seed_amount: Number(seed),
           p_offered_max_stake: 5,
           p_source_wallet: 'chip_treasury',
@@ -380,7 +380,7 @@ test('actual handler retains standalone and union wallet boundaries', async () =
       { sourceWallet },
       {
         rows: {
-          clubs: { id: 'club', owner_id: 'other', union_id: 'union' },
+          clubs: { id: 'c1000000-0000-4000-8000-000000000001', owner_id: 'other', union_id: 'union' },
           union_admins: { role: 'union_lead' },
         },
       }
@@ -393,7 +393,7 @@ test('actual handler retains standalone and union wallet boundaries', async () =
       { sourceWallet },
       {
         rows: {
-          clubs: { id: 'club', owner_id: 'actor', union_id: 'union' },
+          clubs: { id: 'c1000000-0000-4000-8000-000000000001', owner_id: 'actor', union_id: 'union' },
           union_admins: { role: 'union_lead' },
         },
       }
@@ -404,13 +404,13 @@ test('actual handler retains standalone and union wallet boundaries', async () =
 });
 test('actual handler refuses other club owners, union club owners and non-lead admins', async () => {
   for (const rows of [
-    { clubs: { id: 'club', owner_id: 'other', union_id: null } },
-    { clubs: { id: 'club', owner_id: 'actor', union_id: 'union' } },
+    { clubs: { id: 'c1000000-0000-4000-8000-000000000001', owner_id: 'other', union_id: null } },
+    { clubs: { id: 'c1000000-0000-4000-8000-000000000001', owner_id: 'actor', union_id: 'union' } },
     {
-      clubs: { id: 'club', owner_id: 'actor', union_id: 'union' },
+      clubs: { id: 'c1000000-0000-4000-8000-000000000001', owner_id: 'actor', union_id: 'union' },
       union_admins: { role: 'admin' },
     },
-    { unions: { id: 'club' } },
+    { unions: { id: 'c1000000-0000-4000-8000-000000000001' } },
   ]) {
     const { res, calls } = await invoke({}, { rows });
     assert.equal(res.code, 403);
@@ -419,9 +419,9 @@ test('actual handler refuses other club owners, union club owners and non-lead a
 });
 test('actual handler permits union-id lead and existing platform admin roles', async () => {
   for (const rows of [
-    { unions: { id: 'club' }, union_admins: { role: 'union_lead' } },
-    { unions: { id: 'club' }, profiles: { role: 'admin' } },
-    { unions: { id: 'club' }, profiles: { role: 'superadmin' } },
+    { unions: { id: 'c1000000-0000-4000-8000-000000000001' }, union_admins: { role: 'union_lead' } },
+    { unions: { id: 'c1000000-0000-4000-8000-000000000001' }, profiles: { role: 'admin' } },
+    { unions: { id: 'c1000000-0000-4000-8000-000000000001' }, profiles: { role: 'superadmin' } },
   ])
     assert.equal((await invoke({ sourceWallet: 'chip_balance' }, { rows })).res.code, 200);
 });
@@ -439,6 +439,8 @@ test('actual handler keeps authentication, method, rate and payload gates', asyn
   }
   for (const [body, code] of [
     [{ clubId: null }, 400],
+    // A route slug is refused before the database (22P02 in production, 2026-11-26).
+    [{ clubId: 'kings-club' }, 400],
     [{ padding: 'x'.repeat(2100) }, 413],
     [{ action: 'unknown' }, 400],
   ]) {
@@ -450,7 +452,7 @@ test('actual handler keeps authentication, method, rate and payload gates', asyn
 test('actual handler preserves state read and deactivate behavior', async () => {
   const result = await invoke(
     { action: 'get_state' },
-    { rows: { clubs: { id: 'club', owner_id: 'other', union_id: null } } }
+    { rows: { clubs: { id: 'c1000000-0000-4000-8000-000000000001', owner_id: 'other', union_id: null } } }
   );
   assert.equal(result.res.code, 200);
   assert.equal(result.res.body.canManage, false);
@@ -494,7 +496,7 @@ test('a saved owner mismatch cannot submit money or retire the original request'
 });
 
 test('a matching saved owner reaches the exact canonical command', async () => {
-  const { res, calls } = await invoke({ expectedOwnerId: 'club' });
+  const { res, calls } = await invoke({ expectedOwnerId: 'c1000000-0000-4000-8000-000000000001' });
   assert.equal(res.code, 200);
-  assert.equal(calls[0].args.p_owner_id, 'club');
+  assert.equal(calls[0].args.p_owner_id, 'c1000000-0000-4000-8000-000000000001');
 });

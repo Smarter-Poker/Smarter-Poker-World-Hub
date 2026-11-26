@@ -21,7 +21,7 @@ const MATCHUPS = [
   {
     name: 'CO Open vs BTN Flat',
     range1: { label: 'CO (22%)', color: '#10b981', hands: 'AA-22, AKs-A7s, A5s-A4s, KQs-KTs, QJs-QTs, JTs, T9s, 98s, 87s, 76s, AKo-ATo, KQo-KJo, QJo' },
-    range2: { label: 'BTN Flat (18%)', color: '#f59e0b', hands: 'TT-22, AQs-A9s, A5s-A4s, KQs-K9s, QJs-Q9s, JTs-J9s, T9s-T8s, 98s-97s, 87s-86s, 76s, 65s, AQo-AJo, KQo' },
+    range2: { label: 'BTN Flat (18%)', color: '#86daff', hands: 'TT-22, AQs-A9s, A5s-A4s, KQs-K9s, QJs-Q9s, JTs-J9s, T9s-T8s, 98s-97s, 87s-86s, 76s, 65s, AQo-AJo, KQo' },
     boards: [
       { texture: 'K♠ 8♦ 3♣', eq1: 53, eq2: 47, note: 'K-high dry - CO has more Kx combos, range advantage' },
       { texture: '9♥ 7♣ 5♦', eq1: 48, eq2: 52, note: 'Medium connected - BTN has more suited connectors' },
@@ -31,7 +31,7 @@ const MATCHUPS = [
   },
   {
     name: 'SB vs BB (Limped)',
-    range1: { label: 'SB Limp (50%)', color: '#e879f9', hands: 'Wide - nearly any two cards except strongest 3-bets' },
+    range1: { label: 'SB Limp (50%)', color: '#86daff', hands: 'Wide - nearly any two cards except strongest 3-bets' },
     range2: { label: 'BB Check (100%)', color: '#6b7280', hands: 'Random hand - entire range' },
     boards: [
       { texture: 'A♠ J♦ 5♣', eq1: 52, eq2: 48, note: 'SB slight edge - has more Ax combos in limp range' },

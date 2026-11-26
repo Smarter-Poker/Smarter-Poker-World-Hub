@@ -432,7 +432,7 @@ export default function TrainingProgress() {
               iconKind="streak"
               label="Current Streak"
               value={`${stats.streak} days`}
-              color={stats.streak >= 7 ? '#FF6B35' : stats.streak >= 3 ? '#FFB800' : 'var(--sp-fg-muted)'}
+              color={stats.streak >= 7 ? '#FF6B35' : stats.streak >= 3 ? '#86daff' : 'var(--sp-fg-muted)'}
             />
           </div>
 
@@ -513,7 +513,9 @@ export default function TrainingProgress() {
 function StatCard({ iconKind, icon, label, value, color = '#00E0FF' }) {
   return (
     <motion.div className="sp-journey-stat-card" style={styles.statCard} whileHover={{ scale: 1.02 }} transition={{ duration: MOTION.standard }}>
-      <div style={{ fontSize: '32px', marginBottom: '8px' }}>{icon}</div>
+      <div style={{ fontSize: '32px', marginBottom: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        {iconKind ? <StatIcon kind={iconKind} size={28} color={color} /> : icon}
+      </div>
       <div style={{ ...styles.statValue, color }}>{value}</div>
       <div style={styles.statLabel}>{label}</div>
     </motion.div>
@@ -525,7 +527,7 @@ function CategoryCard({ category, total, correct, accuracy }) {
     <div className="sp-journey-data-card" style={styles.categoryCard}>
       <div style={styles.categoryHeader}>
         <span style={styles.categoryName}>{category}</span>
-        <span style={{ ...styles.categoryAccuracy, color: accuracy >= 70 ? '#31A24C' : '#FFB800' }}>
+        <span style={{ ...styles.categoryAccuracy, color: accuracy >= 70 ? '#31A24C' : '#86daff' }}>
           {accuracy}%
         </span>
       </div>

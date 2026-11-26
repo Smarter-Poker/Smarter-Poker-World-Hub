@@ -386,7 +386,9 @@ class GenericTournamentFallbackTests(unittest.TestCase):
             )
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["event_date"], "2026-10-11")
-        self.assertIsNone(rows[0]["day_of_week"])
+        # day_of_week is NOT NULL in production; a dated row carries the
+        # weekday of its own date (2026-10-11 is a Sunday).
+        self.assertEqual(rows[0]["day_of_week"], "Sunday")
         self.assertFalse(rows[0]["is_recurring"])
 
     def test_future_dated_pdf_at_old_upload_path_remains_a_fact(self):
@@ -406,7 +408,9 @@ class GenericTournamentFallbackTests(unittest.TestCase):
             )
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["event_date"], "2026-10-11")
-        self.assertIsNone(rows[0]["day_of_week"])
+        # day_of_week is NOT NULL in production; a dated row carries the
+        # weekday of its own date (2026-10-11 is a Sunday).
+        self.assertEqual(rows[0]["day_of_week"], "Sunday")
         self.assertFalse(rows[0]["is_recurring"])
 
     def test_dom_json_and_truncated_names_are_rejected(self):
@@ -601,6 +605,35 @@ class GenericTournamentFallbackTests(unittest.TestCase):
         )
         self.assertFalse(dated["is_recurring"])
         self.assertTrue(recurring["is_recurring"])
+
+    def test_dated_event_without_day_label_carries_its_own_weekday(self):
+        # 2026-11-26 production: three inserts refused with
+        # 'null value in column "day_of_week"' because a dated listing with
+        # no day label was written with day_of_week=None (column is NOT NULL).
+        row = DAEMON.make_rec(
+            "Players Casino", 2884, "offline-batch", None, "2026-11-29",
+            "12:00 PM", 180, "NLH", "Bounty", None, None,
+            "https://example.com/tournaments", "website", "a" * 64, state="CA",
+        )
+        self.assertIsNotNone(row)
+        self.assertEqual(row["day_of_week"], "Sunday")
+        self.assertEqual(row["event_date"], "2026-11-29")
+        self.assertFalse(row["is_recurring"])
+
+    def test_every_make_rec_shape_has_a_non_null_day_of_week(self):
+        for day in (None, "", "Daily", "Friday"):
+            for event_date in (None, "", "2026-10-02"):
+                with self.subTest(day=day, event_date=event_date):
+                    row = DAEMON.make_rec(
+                        "Verified Room", 99, "offline-batch", day, event_date,
+                        "7:00 PM", 150, "NLH", None, None, "Evening Event",
+                        "https://example.com/tournaments", "website", "c" * 64, state="NV",
+                    )
+                    self.assertIsNotNone(row)
+                    self.assertTrue(row["day_of_week"])
+        self.assertIsNone(DAEMON.weekday_label("1970-01-01"))
+        self.assertEqual(DAEMON.weekday_label("2026-10-02"), "Friday")
+        self.assertIsNone(DAEMON.weekday_label("not-a-date"))
 
     def test_valid_empty_requires_explicit_source_marker(self):
         self.assertTrue(DAEMON.source_confirms_valid_empty(

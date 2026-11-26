@@ -97,7 +97,7 @@ function ContinuationBetTrainer() {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: '#f97316' }}>C-Bet Trainer</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: '#86daff' }}>C-Bet Trainer</h3>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
             Score: <span style={{ color: '#10b981', fontWeight: 700 }}>{score.correct}</span>/{score.total}
           </span>
@@ -120,7 +120,7 @@ function ContinuationBetTrainer() {
           <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: 8, color: '#fff', marginBottom: 8 }}>{scenario.board}</div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
             <span>{scenario.position}</span>
-            <span>SPR: <span style={{ color: '#f97316', fontWeight: 700 }}>{scenario.spr}</span></span>
+            <span>SPR: <span style={{ color: '#86daff', fontWeight: 700 }}>{scenario.spr}</span></span>
             <span>Advantage: <span style={{ color: '#10b981', fontWeight: 700 }}>{scenario.rangeAdvantage}</span></span>
           </div>
         </div>
@@ -130,7 +130,7 @@ function ContinuationBetTrainer() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, justifyContent: 'center' }}>
             {[
               { id: 'bet33', label: 'Bet 33%', color: '#3b82f6' },
-              { id: 'bet67', label: 'Bet 67%', color: '#8b5cf6' },
+              { id: 'bet67', label: 'Bet 67%', color: '#86daff' },
               { id: 'check', label: 'Check', color: '#6b7280' },
             ].map(a => (
               <button key={a.id} onClick={() => handleDecision(a.id)}
@@ -154,20 +154,20 @@ function ContinuationBetTrainer() {
                 {userDecision === bestAction ? '✓ Correct!': '✕ Incorrect'}
               </span>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginLeft: 12 }}>
-                Optimal: <span style={{ fontWeight: 700, color: '#f97316' }}>{bestAction === 'bet33' ? 'Bet 33%' : bestAction === 'bet67' ? 'Bet 67%' : 'Check'}</span> ({scenario.cbetBreakdown[bestAction]}% Frequency)
+                Optimal: <span style={{ fontWeight: 700, color: '#86daff' }}>{bestAction === 'bet33' ? 'Bet 33%' : bestAction === 'bet67' ? 'Bet 67%' : 'Check'}</span> ({scenario.cbetBreakdown[bestAction]}% Frequency)
               </span>
             </div>
 
             {/* Frequency Breakdown */}
             <div style={{ marginBottom: 12 }}>
               <FrequencyBar label="Bet 33%" pct={scenario.cbetBreakdown.bet33} color="#3b82f6" />
-              <FrequencyBar label="Bet 67%" pct={scenario.cbetBreakdown.bet67} color="#8b5cf6" />
+              <FrequencyBar label="Bet 67%" pct={scenario.cbetBreakdown.bet67} color="#86daff" />
               <FrequencyBar label="Check" pct={scenario.cbetBreakdown.check} color="#6b7280" />
             </div>
 
             {/* Reasoning */}
             <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316', marginBottom: 6 }}>Strategy</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>Strategy</div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{scenario.reasoning}</div>
             </div>
 
@@ -175,7 +175,7 @@ function ContinuationBetTrainer() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
               {[
                 { label: 'Value Bet', hands: scenario.keyHands.valueBet, color: '#10b981' },
-                { label: 'Bluff', hands: scenario.keyHands.bluff, color: '#f59e0b' },
+                { label: 'Bluff', hands: scenario.keyHands.bluff, color: '#86daff' },
                 { label: 'Check', hands: scenario.keyHands.check, color: '#6b7280' },
               ].map(k => (
                 <div key={k.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 6, borderTop: `2px solid ${k.color}` }}>
@@ -198,7 +198,7 @@ function ContinuationBetTrainer() {
         <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Overall C-Bet Frequency</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#f97316' }}>{scenario.optimalCbet}%</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#86daff' }}>{scenario.optimalCbet}%</span>
           </div>
           <div style={{ height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${scenario.optimalCbet}%`, background: 'linear-gradient(90deg, #f97316, #fb923c)', borderRadius: 4 }} />

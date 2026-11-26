@@ -442,7 +442,7 @@ const CARDS = [
   },
 ];
 
-const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)', PLO8: 'var(--sp-accent-cyan)' };
+const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: '#86daff', Theory: '#7dd3fc', PLO8: 'var(--sp-accent-cyan)' };
 
 function calculateSM2(quality, prevInterval = 0, prevEase = 2.5) {
   let ease = prevEase;
@@ -493,6 +493,7 @@ export default function FlashcardsPage() {
   // Track deck generation trigger — only category filter change should regenerate
   const [deckGenKey, setDeckGenKey] = useState(0);
   const sm2LoadedRef = useRef(false);
+  const userInteractedRef = useRef(false);
   const [activeVariant, setActiveVariant] = useState('nlh');
   const [heroPosition, setHeroPosition] = useState('BTN');
   const [activeStreet, setActiveStreet] = useState('flop');
@@ -533,7 +534,9 @@ export default function FlashcardsPage() {
             } catch (_e) {}
             return merged;
           });
-          setDeckGenKey((k) => k + 1);
+          if (!userInteractedRef.current) {
+            setDeckGenKey((k) => k + 1);
+          }
         }
       })
       .catch(() => {});
@@ -614,6 +617,7 @@ export default function FlashcardsPage() {
 
   const manualAdvance = (quality) => {
     if (!current) return;
+    userInteractedRef.current = true;
     const prev = sm2Data[current.id] || { interval: 0, ease: 2.5 };
     const nextStats = calculateSM2(quality, prev.interval, prev.ease);
 
@@ -727,7 +731,7 @@ export default function FlashcardsPage() {
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-orange)' }}>{stats.dueCount}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#86daff' }}>{stats.dueCount}</div>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
               Due
             </div>
@@ -779,7 +783,12 @@ export default function FlashcardsPage() {
                 animate={{ opacity: 1, rotateY: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: MOTION.standard }}
-                onClick={() => !flipped && setFlipped(true)}
+                onClick={() => {
+                  if (!flipped) {
+                    userInteractedRef.current = true;
+                    setFlipped(true);
+                  }
+                }}
                 style={{
                   minHeight: 220,
                   padding: '28px 24px',
@@ -816,8 +825,8 @@ export default function FlashcardsPage() {
                     let label = 'New', bg = 'rgba(59,130,246,0.1)', clr = 'var(--sp-accent-blue)';
                     if (s) {
                       if (s.interval >= 21) { label = 'Mastered'; bg = 'rgba(34,197,94,0.1)'; clr = 'var(--sp-accent-green)'; }
-                      else if (s.interval >= 3) { label = 'Review'; bg = 'rgba(249,115,22,0.1)'; clr = 'var(--sp-accent-orange)'; }
-                      else { label = 'Learning'; bg = 'rgba(251,191,36,0.1)'; clr = 'var(--sp-accent-amber)'; }
+                      else if (s.interval >= 3) { label = 'Review'; bg = 'rgba(134,218,255,0.12)'; clr = '#86daff'; }
+                      else { label = 'Learning'; bg = 'rgba(134,218,255,0.12)'; clr = '#86daff'; }
                     }
                     return (
                       <span style={{ padding: '2px 6px', borderRadius: 4, background: bg, color: clr, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
@@ -954,7 +963,7 @@ export default function FlashcardsPage() {
                   style={{
                     fontSize: 12,
                     display: 'block',
-                    color: 'rgba(251,191,36,0.6)',
+                    color: '#86daff',
                     marginTop: 2,
                   }}
                 >

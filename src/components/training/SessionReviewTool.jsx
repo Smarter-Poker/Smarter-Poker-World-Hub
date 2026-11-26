@@ -21,12 +21,12 @@ const REVIEW_STEPS = [
     questions: 'What was my thought process? Was there a better line? What range did villain likely have?',
     tool: 'Use a solver (GTO Wizard, PioSolver) to check your close decisions.',
     time: '15-20 minutes' },
-  { step: '4. Emotional Assessment', icon: '', color: '#f59e0b',
+  { step: '4. Emotional Assessment', icon: '', color: '#86daff',
     what: 'Evaluate your mental state during the session. Were there tilt moments?',
     questions: 'Did I play differently after bad beats? Was I making revenge calls? Did I lose focus?',
     tool: 'Keep a simple emotional journal. Rate your tilt level 1-10 for each session.',
     time: '5 minutes' },
-  { step: '5. Action Items', icon: '✓', color: '#8b5cf6',
+  { step: '5. Action Items', icon: '✓', color: '#86daff',
     what: 'Create 1-3 specific, actionable improvement goals based on your review.',
     questions: 'What\'s the ONE thing I can improve next session? Is it a preflop range issue or postflop?',
     tool: 'Write down your focus areas. Review them before your next session.',
@@ -72,7 +72,7 @@ export default function SessionReviewTool() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{step.what}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Questions</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key Questions</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{step.questions}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>

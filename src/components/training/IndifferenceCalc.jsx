@@ -14,7 +14,7 @@ const INDIFF_SPOTS = [
     explain: 'Half-pot bets require villain to defend 67% of range. The most common bet sizing in poker.',
     implication: 'You can bluff 1 in 3 times. For every 2 value bets, include 1 bluff.',
     practical: 'Standard c-bet sizing. Good balance of fold equity and pot-building.' },
-  { bet: '75% Pot', mdf: '57%', bluffFreq: '43%', color: '#f59e0b', icon: '●',
+  { bet: '75% Pot', mdf: '57%', bluffFreq: '43%', color: '#86daff', icon: '●',
     explain: 'Three-quarter pot gives villain more reason to fold. They only need to defend 57% of range.',
     implication: 'Higher fold equity. Good for semi-bluffs where you want folds but have equity if called.',
     practical: 'Use on wet boards where you want to charge draws. Strong sizing for value+bluff combos.' },
@@ -22,7 +22,7 @@ const INDIFF_SPOTS = [
     explain: 'Pot-sized bets force villain to fold half their range. Maximum pressure at standard sizing.',
     implication: 'You can be 50/50 value and bluffs. Very polarized - you have the nuts or nothing.',
     practical: 'River pot-sized bets should be 1:1 value-to-bluff. If you\'re not bluffing enough, you\'re leaving money on the table.' },
-  { bet: '150% Pot (Overbet)', mdf: '40%', bluffFreq: '60%', color: '#8b5cf6', icon: '●',
+  { bet: '150% Pot (Overbet)', mdf: '40%', bluffFreq: '60%', color: '#86daff', icon: '●',
     explain: 'Overbets force villain to fold 60% of range! Only the top of their range can call.',
     implication: 'You can have MORE bluffs than value hands. 3 bluffs for every 2 value bets.',
     practical: 'Overbets on the river are massively underused. If you have the nut advantage, overbet your entire range.' },
@@ -70,7 +70,7 @@ export default function IndifferenceCalc() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.implication}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Practical Use</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Practical Use</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.practical}</div>
           </div>
         </div>

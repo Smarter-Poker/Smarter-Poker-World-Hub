@@ -878,7 +878,7 @@ const styles = {
   streakNumber: {
     fontSize: '72px',
     fontWeight: 800,
-    background: 'linear-gradient(135deg, #25c8ff, #f2b84b)',
+    background: 'linear-gradient(135deg, #25c8ff, #86daff)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   },

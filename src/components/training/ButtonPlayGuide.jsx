@@ -14,11 +14,11 @@ const BTN_SECTIONS = [
     desc: 'Blinds will 3-bet you frequently. Have a solid defense strategy.',
     hands: '4-bet: AA-QQ, AKs | Call: TT-JJ, AQs, AJs, KQs, 99, 88, suited connectors',
     sizing: '4-bet to 2.5x their 3-bet. In position, flatting is very profitable.' },
-  { title: 'Stealing Blinds', color: '#f59e0b', icon: '□‍▼',
+  { title: 'Stealing Blinds', color: '#86daff', icon: '□‍▼',
     desc: 'Every steal attempt wins you ~1.5 BB. Even folding 60% of the time is hugely profitable.',
     hands: 'Open any two cards if blinds are tight. Standard: top 45-50% of hands.',
     sizing: 'Min-raise or 2.2x. Small sizing keeps risk low while maintaining fold equity.' },
-  { title: 'Postflop IP Edge', color: '#8b5cf6', icon: '◇',
+  { title: 'Postflop IP Edge', color: '#86daff', icon: '◇',
     desc: 'Position is the biggest edge in poker. Use it ruthlessly from the BTN.',
     hands: 'Float light, stab at checked pots, control pot size with medium hands.',
     sizing: 'C-bet 60%+ of flops. Use delayed c-bets on turn. Exploit information from acting last.' },
@@ -60,7 +60,7 @@ export default function ButtonPlayGuide() {
         </div>
 
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>SIZING</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>SIZING</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{section.sizing}</div>
         </div>
       </motion.div>
@@ -71,7 +71,7 @@ export default function ButtonPlayGuide() {
         {[
           { pos: 'BTN', rate: '+25 bb/100', width: '100%', color: '#22c55e' },
           { pos: 'CO', rate: '+15 bb/100', width: '60%', color: '#3b82f6' },
-          { pos: 'HJ', rate: '+5 bb/100', width: '30%', color: '#f59e0b' },
+          { pos: 'HJ', rate: '+5 bb/100', width: '30%', color: '#86daff' },
           { pos: 'UTG', rate: '-5 bb/100', width: '10%', color: '#ef4444' },
           { pos: 'BB', rate: '-35 bb/100', width: '0%', color: '#ef4444' },
         ].map((p, i) => (

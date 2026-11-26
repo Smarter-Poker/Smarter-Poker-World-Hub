@@ -8,11 +8,11 @@ import React, { useState, useMemo } from 'react';
 
 const SPR_ZONES = [
   { max: 1, label: 'Ultra Low', color: '#ef4444', strategy: 'Commit with any pair or draw. Pot is laying huge odds. Shove or fold mentality.', hands: 'Any pair, any draw, Ace-high' },
-  { max: 3, label: 'Low', color: '#f59e0b', strategy: 'Top pair is a strong commit hand. Sets are the nuts. Draws can get it in with fold equity.', hands: 'Top pair+, strong draws, overpairs' },
-  { max: 6, label: 'Medium-Low', color: '#eab308', strategy: 'Need top pair good kicker+ to stack off. Sets and two pair are premium. Draws need implied odds.', hands: 'TPGK+, sets, two pair, nut draws' },
+  { max: 3, label: 'Low', color: '#86daff', strategy: 'Top pair is a strong commit hand. Sets are the nuts. Draws can get it in with fold equity.', hands: 'Top pair+, strong draws, overpairs' },
+  { max: 6, label: 'Medium-Low', color: '#86daff', strategy: 'Need top pair good kicker+ to stack off. Sets and two pair are premium. Draws need implied odds.', hands: 'TPGK+, sets, two pair, nut draws' },
   { max: 10, label: 'Medium', color: '#22c55e', strategy: 'Multi-street planning matters. Can bluff multiple streets. Sets and two pair preferred for stacking.', hands: 'Two pair+, sets, nut draws with backup equity' },
   { max: 16, label: 'Medium-High', color: '#3b82f6', strategy: 'Deep play. Position and skill edge maximized. Implied odds for speculative hands are excellent.', hands: 'Sets+, nut straights/flushes for full stacks' },
-  { max: Infinity, label: 'Deep', color: '#8b5cf6', strategy: 'Ultra-deep play. Speculative hands gain massive value. Avoid one-pair stacking. Implied odds dominate.', hands: 'Nut hands only for full stacks. Spec hands for implied odds.' },
+  { max: Infinity, label: 'Deep', color: '#86daff', strategy: 'Ultra-deep play. Speculative hands gain massive value. Avoid one-pair stacking. Implied odds dominate.', hands: 'Nut hands only for full stacks. Spec hands for implied odds.' },
 ];
 
 const PREFLOP_SCENARIOS = [

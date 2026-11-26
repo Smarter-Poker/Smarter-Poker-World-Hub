@@ -270,7 +270,7 @@ const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) 
                     <div style={{ fontSize: 12, fontWeight: 800, color: suit.color, marginBottom: 2 }}>
                         {rank}{suit.symbol}
                     </div>
-                    <div style={{ fontSize: 12, color: '#fbbf24', textTransform: 'uppercase', marginBottom: 3 }}>
+                    <div style={{ fontSize: 12, color: '#86daff', textTransform: 'uppercase', marginBottom: 3 }}>
                         {strategy.runoutType?.replace(/_/g, ' ')}
                     </div>
                     <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 3 }}>
@@ -330,7 +330,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
                         {rank}{suitInfo?.symbol || ''}
                     </span>
                     <span style={{
-                        fontSize: 12, color: '#fbbf24', fontWeight: 700,
+                        fontSize: 12, color: '#86daff', fontWeight: 700,
                         background: 'rgba(251,191,36,0.1)',
                         padding: '2px 8px', borderRadius: 12,
                         textTransform: 'uppercase',

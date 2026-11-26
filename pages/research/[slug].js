@@ -11,6 +11,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
+import { firstThatFits, fitMetaDescription } from '../../src/lib/seo/titleFit.js';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
@@ -210,11 +211,14 @@ export default function ResearchReportDetailPage({ report }) {
     }
   };
 
+  const metaTitle = firstThatFits([report.shortTitle]);
+  const metaDescription = fitMetaDescription(report.summary, 158);
+
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title={report.shortTitle}
-        description={report.summary}
+        title={metaTitle}
+        description={metaDescription}
         canonical={path}
         ogImage={ogImageUrl}
         ogType="article"

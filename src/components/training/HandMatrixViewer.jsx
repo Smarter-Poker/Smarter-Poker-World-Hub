@@ -120,7 +120,7 @@ export default function HandMatrixViewer() {
       {/* Color Mode */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
         {[
-          { id: 'combined', label: 'Combined', color: '#8b5cf6' },
+          { id: 'combined', label: 'Combined', color: '#86daff' },
           { id: 'raise', label: 'Raise/Open', color: '#ef4444' },
           { id: 'call', label: 'Call', color: '#22c55e' },
         ].map(m => (
@@ -163,7 +163,7 @@ export default function HandMatrixViewer() {
         {[
           { color: '#dc2626', label: 'Raise 80%+' },
           { color: '#ef4444', label: 'Raise 50%+' },
-          { color: '#f97316', label: 'Raise 20%+' },
+          { color: '#86daff', label: 'Raise 20%+' },
           { color: '#22c55e', label: 'Call 80%+' },
           { color: '#4ade80', label: 'Call 50%+' },
           { color: '#86efac', label: 'Call 20%+' },

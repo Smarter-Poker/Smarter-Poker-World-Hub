@@ -27,7 +27,7 @@ const MODULES = [
       { q: 'Am I chasing losses by moving up?', flag: 'NEVER move up to recover. Move DOWN to rebuild.' },
       { q: 'Do I separate poker money from life money?', flag: 'Dedicated bankroll = better decisions at the table' },
     ]},
-  { title: 'Peak Performance', icon: '⌁', color: '#f59e0b',
+  { title: 'Peak Performance', icon: '⌁', color: '#86daff',
     content: [
       { q: 'Sleep: 7-8 hours before big sessions', flag: 'Tired brains make -EV decisions. Non-negotiable.' },
       { q: 'Exercise: Move your body daily', flag: 'Physical health → mental clarity → better poker' },
@@ -94,7 +94,7 @@ export default function MentalGameCoach() {
 
       {/* Quick reminder */}
       <div style={{ marginTop: 16, background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(34,197,94,0.08))', borderRadius: 10, padding: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', marginBottom: 4 }}>Remember</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff', marginBottom: 4 }}>Remember</div>
         <div style={{ fontSize: 12, color: '#94a3b8' }}>The Best Poker Players In The World Aren't The Smartest - They're The Most Disciplined.</div>
       </div>
     </div>

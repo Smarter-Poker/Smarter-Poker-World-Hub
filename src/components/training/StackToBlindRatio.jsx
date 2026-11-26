@@ -16,7 +16,7 @@ const SBR_ZONES = [
     preflop: 'Standard opening ranges. 3-bet sizing matters - don\'t bloat pots unnecessarily.',
     postflop: 'Two streets of value typically. Thin value bets become risky.',
     avoid: 'Don\'t call 3-bets OOP with speculative hands. Implied odds are shrinking.' },
-  { zone: 'Short Stack (20-40 BB)', range: '20-40 BB', color: '#f59e0b', icon: '▲',
+  { zone: 'Short Stack (20-40 BB)', range: '20-40 BB', color: '#86daff', icon: '▲',
     strategy: 'Simplified poker. Many hands become shove-or-fold preflop. Postflop gets compressed.',
     preflop: 'Tighten up opens. 3-bet shove with 20-25 BB. Open-raise smaller (2-2.2x).',
     postflop: 'Typically one bet commits you. SPR is so low that top pair is often a cooler.',

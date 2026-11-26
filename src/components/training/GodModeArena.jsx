@@ -1061,6 +1061,11 @@ function GodModeArenaInner({
     // attempt-scoped value when this normalized contract changes.
   }, []);
 
+  const handleTableConfigChange = useCallback((patch) => {
+    if (!patch || typeof patch !== 'object') return;
+    setTrainerConfig((current) => normalizeTrainingSessionConfig({ ...(current || {}), ...patch }, current));
+  }, []);
+
   const {
     currentQuestion,
     questionNumber,
@@ -1683,12 +1688,16 @@ function GodModeArenaInner({
   }, [gameComplete]);
 
   // Wrapped nextQuestion with transition guard
-  const handleNextQuestion = useCallback(() => {
+  const handleNextQuestion = useCallback((arg) => {
+    if (arg && typeof arg === 'object' && arg.retry === true) {
+      nextQuestion(arg);
+      return;
+    }
     if (isTransitioning) return;
     setIsTransitioning(true);
     // Small delay for visual breathing room
     setTimeout(() => {
-      nextQuestion();
+      nextQuestion(arg);
       setIsTransitioning(false);
     }, 350);
   }, [nextQuestion, isTransitioning]);
@@ -5155,6 +5164,7 @@ function GodModeArenaInner({
                   difficultyLevel={computedDifficultyLevel}
                   // Settings gear — relocated to scenario description area
                   onConfigClick={presetOnly ? null : handleConfigClick}
+                  onTableConfigChange={handleTableConfigChange}
                   trainerConfig={resolvedTrainerConfig}
                 />
                 {answerSaveNotice}
@@ -5236,6 +5246,7 @@ function GodModeArenaInner({
             // Phase 351+: Pre-decision hints
             getPreDecisionPreview={getPreDecisionPreview}
             getKeyConceptReminders={getKeyConceptReminders}
+            onTableConfigChange={handleTableConfigChange}
             trainerConfig={resolvedTrainerConfig}
           />
           {answerSaveNotice}

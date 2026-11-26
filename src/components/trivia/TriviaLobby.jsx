@@ -82,6 +82,44 @@ function formatRecoveryProgress(record) {
   return 'Active Session Ready To Resume';
 }
 
+const PVP_RATINGS_CACHE_TTL_MS = 15_000;
+const pvpRatingsFetchCache = new Map();
+
+function readDeduplicatedPvpRatings(accountKey) {
+  const cacheKey = String(accountKey || '');
+  const now = Date.now();
+  const cached = pvpRatingsFetchCache.get(cacheKey);
+  if (cached && cached.promise) return cached.promise;
+  if (cached && cached.receivedAt && (now - cached.receivedAt) < PVP_RATINGS_CACHE_TTL_MS) {
+    return Promise.resolve(cached.badge);
+  }
+  const promise = authedFetch('/api/trivia/pvp/ratings?limit=1', {
+    method: 'GET',
+    cache: 'no-store',
+  })
+    .then(async (response) => {
+      if (!response.ok) return null;
+      const payload = await response.json().catch(() => null);
+      if (payload?.success !== true) return null;
+      const viewer = payload?.viewer;
+      const badge = viewer && Number.isFinite(Number(viewer.elo))
+        ? {
+            elo: Math.round(Number(viewer.elo)),
+            tier: typeof viewer.tier === 'string' && viewer.tier ? viewer.tier : 'Bronze',
+            unrated: viewer.unrated === true,
+          }
+        : null;
+      pvpRatingsFetchCache.set(cacheKey, { badge, receivedAt: Date.now(), promise: null });
+      return badge;
+    })
+    .catch(() => {
+      pvpRatingsFetchCache.delete(cacheKey);
+      return null;
+    });
+  pvpRatingsFetchCache.set(cacheKey, { badge: null, receivedAt: 0, promise });
+  return promise;
+}
+
 export default function TriviaLobby({
   userDiamonds = 0,
   isVip = false,
@@ -157,29 +195,11 @@ export default function TriviaLobby({
     if (authState !== 'authenticated' || !accountKey) return undefined;
     const controller = new AbortController();
     let active = true;
-    const loadPvpElo = async () => {
-      try {
-        const response = await authedFetch('/api/trivia/pvp/ratings?limit=1', {
-          method: 'GET',
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        if (!active || !response.ok) return;
-        const payload = await response.json().catch(() => null);
-        if (!active || payload?.success !== true) return;
-        const viewer = payload?.viewer;
-        if (viewer && Number.isFinite(Number(viewer.elo))) {
-          setPvpEloBadge({
-            elo: Math.round(Number(viewer.elo)),
-            tier: typeof viewer.tier === 'string' && viewer.tier ? viewer.tier : 'Bronze',
-            unrated: viewer.unrated === true,
-          });
-        }
-      } catch (error) {
-        if (error?.name === 'AbortError') return;
+    void readDeduplicatedPvpRatings(accountKey).then((badge) => {
+      if (active && !controller.signal.aborted && badge) {
+        setPvpEloBadge(badge);
       }
-    };
-    void loadPvpElo();
+    });
     return () => {
       active = false;
       controller.abort();
@@ -603,7 +623,12 @@ export default function TriviaLobby({
                       : `Play ${modeName}. ${modeDescription}. Entry ${costText}. Reward ${rewardText}${typeof mode.diamondReward === 'number' ? ' Diamonds' : ''}.`
                   }
                 >
-                  {unavailable ? 'Maintenance' : `Play ${modeName}`}
+                  <span className="mode-card__action-full">
+                    {unavailable ? 'Maintenance' : `Play ${modeName}`}
+                  </span>
+                  <span className="mode-card__action-compact" aria-hidden="true">
+                    {unavailable ? 'Closed' : 'Play'}
+                  </span>
                 </button>
               </article>
             );
@@ -987,6 +1012,10 @@ export default function TriviaLobby({
           touch-action: manipulation;
         }
 
+        .mode-card__action-compact {
+          display: none;
+        }
+
         .mode-card__action:focus-visible,
         .lobby-daily-cta:focus-visible,
         .lobby-continue-card__action:focus-visible,
@@ -1065,11 +1094,56 @@ export default function TriviaLobby({
 
         @media (max-width: 640px) {
           .trivia-lobby {
+            gap: 10px;
             padding: 8px 10px 24px;
           }
 
           .lobby-metrics {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .lobby-utility-bar {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            gap: 8px;
+          }
+
+          .lobby-utility-bar::-webkit-scrollbar,
+          .lobby-utility-links::-webkit-scrollbar,
+          .mode-filters::-webkit-scrollbar {
+            display: none;
+          }
+
+          .lobby-utility-links {
+            flex-wrap: nowrap;
+            flex: 0 0 auto;
+            gap: 6px;
+          }
+
+          .lobby-utility-link,
+          .lobby-elo-pill {
+            flex: 0 0 auto;
+            white-space: nowrap;
+            padding: 6px 12px;
+            font-size: 13px;
+          }
+
+          .mode-filters {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            gap: 6px;
+            padding-bottom: 2px;
+          }
+
+          .mode-filter {
+            flex: 0 0 auto;
+            white-space: nowrap;
+            padding: 6px 12px;
+            font-size: 13px;
           }
 
           .lobby-masthead__cta,
@@ -1081,6 +1155,87 @@ export default function TriviaLobby({
 
           .modes-grid {
             grid-template-columns: 1fr;
+            gap: 8px;
+          }
+
+          .mode-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas:
+              'head action'
+              'title action'
+              'desc action'
+              'meta action';
+            align-items: center;
+            gap: 2px 10px;
+            padding: 10px 12px;
+          }
+
+          .mode-card__head {
+            grid-area: head;
+            justify-content: flex-start;
+            gap: 8px;
+            font-size: 11px;
+          }
+
+          .mode-card__title {
+            grid-area: title;
+            font-size: 17px;
+            line-height: 1.15;
+          }
+
+          .mode-card__description {
+            grid-area: desc;
+            font-size: 12px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+
+          .mode-card__meta {
+            grid-area: meta;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 8px;
+            margin: 2px 0 0;
+            padding-top: 0;
+            border-top: 0;
+          }
+
+          .mode-card__row {
+            gap: 4px;
+            font-size: 12px;
+          }
+
+          .mode-card__row dt {
+            display: none;
+          }
+
+          .mode-card__row + .mode-card__row::before {
+            content: '·';
+            color: var(--sd-silver, #bdd0e2);
+            margin-right: 4px;
+          }
+
+          .mode-card__action {
+            grid-area: action;
+            width: auto;
+            min-width: 72px;
+            min-height: 44px;
+            padding: 8px 14px;
+            font-size: 14px;
+            align-self: center;
+          }
+
+          .mode-card__action-full {
+            display: none;
+          }
+
+          .mode-card__action-compact {
+            display: inline;
           }
         }
 

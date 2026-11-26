@@ -105,7 +105,7 @@ export default function AnimatedAccuracyBar({
                     {personalBest !== null && (
                         <span style={{
                             fontSize: 12,
-                            color: isNewPB ? '#FFD700' : 'rgba(255,255,255,0.3)',
+                            color: isNewPB ? '#86daff' : 'rgba(255,255,255,0.3)',
                             fontWeight: 600,
                         }}>
                             {isNewPB ? '★ NEW PB!' : `PB: ${personalBest}%`}

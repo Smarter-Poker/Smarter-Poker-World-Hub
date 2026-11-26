@@ -2546,22 +2546,33 @@ export default function UserProfilePage() {
         // ═══════════════════════════════════════════════════════════
         // PARALLEL BATCH 1: Friendship + Stats (all independent)
         // ═══════════════════════════════════════════════════════════
+        // FRIENDSHIPS ARE READ ONLY BY A SIGNED-IN VIEWER (2026-11-26).
+        // `friendships` grants SELECT to authenticated and nothing to anon, so a
+        // signed-out visitor or a crawler opening a profile was refused twice
+        // per open (76 `permission denied for table friendships` in a day).
+        // The friend count comes from profiles.friends_count either way; a
+        // signed-out visitor's friends grid was always empty.
+        const NO_FRIEND_ROWS = Promise.resolve({ data: [], count: null, error: null });
         const batch1Promises = [
           // FRIEND COUNT: Two-direction queries (matches Friends API pattern exactly)
           // Query 1: friendships where profile is the sender
-          supabase
-            .from('friendships')
-            .select('friend_id', { count: 'exact' })
-            .eq('user_id', socialId)
-            .eq('status', 'accepted')
-            .limit(20),
+          user
+            ? supabase
+                .from('friendships')
+                .select('friend_id', { count: 'exact' })
+                .eq('user_id', socialId)
+                .eq('status', 'accepted')
+                .limit(20)
+            : NO_FRIEND_ROWS,
           // Query 2: friendships where profile is the receiver
-          supabase
-            .from('friendships')
-            .select('user_id', { count: 'exact' })
-            .eq('friend_id', socialId)
-            .eq('status', 'accepted')
-            .limit(20),
+          user
+            ? supabase
+                .from('friendships')
+                .select('user_id', { count: 'exact' })
+                .eq('friend_id', socialId)
+                .eq('status', 'accepted')
+                .limit(20)
+            : NO_FRIEND_ROWS,
           supabase
             .from('social_follows')
             .select('*', { count: 'exact', head: true })

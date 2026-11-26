@@ -12,7 +12,7 @@ const SECTIONS = [
   { title: 'Facing 3-Bets', icon: '■', color: '#ef4444',
     content: 'When 3-bet from BTN/blinds, 4-bet with QQ+/AKs for value. Call with TT-JJ, AQs, suited connectors with position. Fold the bottom of your range.',
     range: { '4bet': 'QQ+, AKs', call: 'TT-JJ, AQs, AJs, KQs, 98s-JTs', fold: 'Weak Ax, low SCs, offsuit trash' } },
-  { title: 'vs BTN 3-Bet', icon: 'VS', color: '#f59e0b',
+  { title: 'vs BTN 3-Bet', icon: 'VS', color: '#86daff',
     content: 'BTN 3-bets wider than blinds. Defend more hands. Add some 4-bet bluffs (A5s, A4s). Call wider with hands that play well postflop.',
     range: { defend: 'All value hands + TT, 99, AQo, AJs, KQs, some SCs' } },
   { title: 'Postflop IP', icon: '◆', color: '#22c55e',
@@ -62,7 +62,7 @@ export default function CutoffStrategy() {
         <div style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginBottom: 4 }}>CO Vs Other Positions</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, fontSize: 12 }}>
           <div><span style={{ color: '#64748b' }}>Vs UTG Open</span><br/><span style={{ fontWeight: 700, color: '#ef4444' }}>Tight 3-Bet</span></div>
-          <div><span style={{ color: '#64748b' }}>Vs HJ Open</span><br/><span style={{ fontWeight: 700, color: '#f59e0b' }}>Mixed</span></div>
+          <div><span style={{ color: '#64748b' }}>Vs HJ Open</span><br/><span style={{ fontWeight: 700, color: '#86daff' }}>Mixed</span></div>
           <div><span style={{ color: '#64748b' }}>Steal Blinds</span><br/><span style={{ fontWeight: 700, color: '#22c55e' }}>Open Wide</span></div>
         </div>
       </div>

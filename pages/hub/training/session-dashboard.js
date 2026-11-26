@@ -254,13 +254,13 @@ function PerformanceTable({ sessions }) {
                     style={{
                       fontWeight: 700,
                       fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      color: g.avgAccuracy >= 75 ? 'var(--sp-accent-green)' : g.avgAccuracy >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
+                      color: g.avgAccuracy >= 75 ? 'var(--sp-accent-green)' : g.avgAccuracy >= 50 ? '#86daff' : 'var(--sp-accent-red)',
                     }}
                   >
                   {g.avgAccuracy === null ? '-' : `${g.avgAccuracy}%`}
                   </span>
                 </td>
-                <td style={{ padding: '8px 12px', color: 'var(--sp-accent-orange)', fontWeight: 600, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                <td style={{ padding: '8px 12px', color: '#86daff', fontWeight: 600, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                   {g.avgEV === null ? '-' : `${g.avgEV.toFixed(3)} BB`}
                 </td>
               </tr>
@@ -359,7 +359,7 @@ function StreakTracker({ sessions }) {
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: streaks.current > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: streaks.current > 0 ? '#86daff' : 'var(--sp-fg-faint)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
             {streaks.current}
           </div>
           <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Current</div>
@@ -470,7 +470,7 @@ function CoachingCard({ session }) {
 
   if (error || (!coaching && !loadingCoach)) return null;
 
-  const gradeColors = { A: 'var(--sp-accent-green)', B: 'var(--sp-accent-blue)', C: 'var(--sp-accent-amber)', D: 'var(--sp-accent-red)' };
+  const gradeColors = { A: 'var(--sp-accent-green)', B: 'var(--sp-accent-blue)', C: '#86daff', D: 'var(--sp-accent-red)' };
   const gradeColor = gradeColors[coaching?.overallGrade] || 'var(--sp-fg-dim)';
 
   return (
@@ -487,6 +487,7 @@ function CoachingCard({ session }) {
     >
       <button
         type="button"
+        aria-expanded={expanded}
         onClick={() => setExpanded(!expanded)}
         style={{
           width: '100%',
@@ -525,7 +526,7 @@ function CoachingCard({ session }) {
           )}
         </div>
         <span style={{ color: 'var(--sp-fg-dim)', fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-
+          ▾
         </span>
       </button>
 
@@ -560,7 +561,7 @@ function CoachingCard({ session }) {
                     )}
                     {coaching.areasToImprove?.length > 0 && (
                       <div style={{ padding: 10, borderRadius: 8, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.1)' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-orange)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Work On</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Work On</div>
                         {coaching.areasToImprove.map((s, i) => (
                           <div key={i} style={{ color: 'var(--sp-fg-muted)', fontSize: 12, marginBottom: 3 }}>- {s}</div>
                         ))}
@@ -883,7 +884,7 @@ export default function SessionDashboard() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{e.hands}h</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color: e.acc >= 80 ? 'var(--sp-accent-green)' : e.acc >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)' }}>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: e.acc >= 80 ? 'var(--sp-accent-green)' : e.acc >= 60 ? '#86daff' : 'var(--sp-accent-red)' }}>
                               {e.acc}%
                             </span>
                           </div>
@@ -900,9 +901,9 @@ export default function SessionDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
                   <StatTile label="Sessions" value={stats.sessions} color="#00d4ff" icon="●" />
                   <StatTile label="Hands Played" value={stats.totalHands} color="#22c55e" icon="◇" />
-                  <StatTile label="Avg Accuracy" value={stats.avgAccuracy === null ? '-' : `${stats.avgAccuracy}%`} color={stats.avgAccuracy !== null && stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'} icon="◆" />
+                  <StatTile label="Avg Accuracy" value={stats.avgAccuracy === null ? '-' : `${stats.avgAccuracy}%`} color={stats.avgAccuracy !== null && stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : '#86daff'} icon="◆" />
                   <StatTile label="Measured EV Loss" value={stats.totalEV === null ? '-' : stats.totalEV.toFixed(3)} color="#ef4444" icon="▼" subtitle={stats.totalEV === null ? 'No Solver-Measured Decisions' : `${stats.measuredEVDecisions} Measured Decisions`} />
-                  <StatTile label="Pass Rate" value={stats.accuracySessions > 0 ? `${Math.round((stats.wins / stats.accuracySessions) * 100)}%` : '-'} color="#a855f7" icon="★" subtitle={`${stats.wins}/${stats.accuracySessions} Scored Sessions`} />
+                  <StatTile label="Pass Rate" value={stats.accuracySessions > 0 ? `${Math.round((stats.wins / stats.accuracySessions) * 100)}%` : '-'} color="#86daff" icon="★" subtitle={`${stats.wins}/${stats.accuracySessions} Scored Sessions`} />
                 </div>
               )}
 
@@ -1003,7 +1004,7 @@ export default function SessionDashboard() {
                             <span style={{ color: 'var(--sp-fg)', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {game}
                             </span>
-                            <span style={{ color: acc === null ? 'var(--sp-fg-faint)' : acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                            <span style={{ color: acc === null ? 'var(--sp-fg-faint)' : acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? '#86daff' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                               {acc === null ? '-' : `${Math.round(acc)}%`}
                             </span>
                             <span style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>{dateStr}</span>

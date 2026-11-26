@@ -209,7 +209,7 @@ export default function ChallengesPage() {
               </span>
               <h2>Sign In To Track Goals</h2>
               <p>Sign In To Review Challenge Availability And Historical Snapshots.</p>
-              <Link href="/auth/signup" className={casinoStyles.primaryButton}>
+              <Link href="/auth/login?redirect=/hub/training/challenges" className={casinoStyles.primaryButton}>
                 Sign In
               </Link>
             </div>

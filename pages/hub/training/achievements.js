@@ -29,8 +29,8 @@ const RARITY_COLORS = {
   common: 'var(--sp-fg-muted)',
   uncommon: 'var(--sp-accent-green)',
   rare: 'var(--sp-accent-blue)',
-  epic: 'var(--sp-accent-purple)',
-  legendary: 'var(--sp-accent-amber)',
+  epic: '#86daff',
+  legendary: '#67e8f9',
 };
 
 // BUG FIX (TRAIN-ACHIEVEMENTS-A11Y-1): replaced emoji map with SVG icon

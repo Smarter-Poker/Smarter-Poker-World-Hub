@@ -11,9 +11,9 @@ import { motion } from 'framer-motion';
 const ACTION_CONFIG = {
     FOLD:    { label: 'Fold',    color: '#94a3b8', icon: '×',  desc: 'Folding accuracy' },
     CALL:    { label: 'Call',    color: '#22c55e', icon: '=',  desc: 'Calling accuracy' },
-    RAISE:   { label: 'Raise',   color: '#f97316', icon: '↑',  desc: 'Raising accuracy' },
+    RAISE:   { label: 'Raise',   color: '#86daff', icon: '↑',  desc: 'Raising accuracy' },
     BET:     { label: 'Bet',     color: '#3b82f6', icon: '►',  desc: 'Betting accuracy' },
-    CHECK:   { label: 'Check',   color: '#8b5cf6', icon: '✓',  desc: 'Checking accuracy' },
+    CHECK:   { label: 'Check',   color: '#86daff', icon: '✓',  desc: 'Checking accuracy' },
     'ALL-IN':{ label: 'All-In',  color: '#ef4444', icon: '★',  desc: 'All-in accuracy' },
 };
 
@@ -101,7 +101,7 @@ export default function ActionAccuracyPanel({ actionAccuracy }) {
                                 <div style={styles.gaugeCenter}>
                                     <span style={{
                                         fontSize: 13, fontWeight: 'bold',
-                                        color: action.accuracy >= 75 ? '#22c55e' : action.accuracy >= 50 ? '#fbbf24' : '#ef4444',
+                                        color: action.accuracy >= 75 ? '#22c55e' : action.accuracy >= 50 ? '#86daff' : '#ef4444',
                                     }}>
                                         {action.accuracy}
                                     </span>
@@ -123,7 +123,7 @@ export default function ActionAccuracyPanel({ actionAccuracy }) {
                                 <div style={{
                                     ...styles.evBadge,
                                     background: action.avgEvLoss > 0.5 ? 'rgba(239,68,68,0.15)' : 'rgba(251,191,36,0.1)',
-                                    color: action.avgEvLoss > 0.5 ? '#ef4444' : '#fbbf24',
+                                    color: action.avgEvLoss > 0.5 ? '#ef4444' : '#86daff',
                                     borderColor: action.avgEvLoss > 0.5 ? 'rgba(239,68,68,0.3)' : 'rgba(251,191,36,0.2)',
                                 }}>
                                     -{action.avgEvLoss.toFixed(2)} EV

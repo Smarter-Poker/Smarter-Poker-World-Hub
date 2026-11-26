@@ -91,7 +91,7 @@ function FlopCBetMatrix() {
         {/* Strategy */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color: strat.freq > 50 ? '#10b981' : strat.freq > 30 ? '#f59e0b' : '#ef4444' }}>{strat.freq}%</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: strat.freq > 50 ? '#10b981' : strat.freq > 30 ? '#86daff' : '#ef4444' }}>{strat.freq}%</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>C-Bet Frequency</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
@@ -116,7 +116,7 @@ function FlopCBetMatrix() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
           {['dry', 'mid', 'wet'].map(cat => {
             const s = STRATEGIES[position][cat];
-            const color = cat === 'dry' ? '#3b82f6' : cat === 'wet' ? '#ef4444' : '#f59e0b';
+            const color = cat === 'dry' ? '#3b82f6' : cat === 'wet' ? '#ef4444' : '#86daff';
             return (
               <div key={cat} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, textAlign: 'center', borderTop: `3px solid ${color}` }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color, marginBottom: 2 }}>{cat.toUpperCase()}</div>

@@ -674,8 +674,8 @@ export default function MultiTablePage() {
                 const gradeColor = {
                   A: 'var(--sp-accent-green)',
                   B: 'var(--sp-accent-blue)',
-                  C: 'var(--sp-accent-amber)',
-                  D: 'var(--sp-accent-orange)',
+                  C: '#86daff',
+                  D: '#7dd3fc',
                   F: 'var(--sp-accent-red)',
                 }[grade];
                 return (
@@ -896,7 +896,7 @@ export default function MultiTablePage() {
                 fontSize: 24,
                 fontWeight: 800,
                 margin: '0 0 8px',
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #86daff)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",

@@ -51,8 +51,11 @@ export default function PokerIdentityMark({
         <img
           src={safeSrc}
           alt=""
+          width={size}
+          height={size}
           loading={priority ? 'eager' : loading}
-          fetchPriority={priority ? 'high' : 'auto'}
+          fetchpriority={priority ? 'high' : undefined}
+          decoding="async"
           onError={() => setImageFailed(true)}
         />
       ) : (

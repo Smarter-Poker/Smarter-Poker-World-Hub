@@ -45,7 +45,7 @@ const IMAGES = [
   {
     name: 'Loose-Passive (Fish)',
     icon: '▲',
-    color: '#f59e0b',
+    color: '#86daff',
     perception: 'Opponents think you call too much and don\'t raise enough.',
     exploits: [
       { adj: 'Tighten up', reason: 'If this is your actual style, you\'re losing money. Play fewer, stronger hands.' },
@@ -70,7 +70,7 @@ function TableImageTracker() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f97316' }}>Table Image Tracker</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Table Image Tracker</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {IMAGES.map((im, i) => (
@@ -109,7 +109,7 @@ function TableImageTracker() {
         </div>
 
         <div style={{ padding: 10, background: 'rgba(249,115,22,0.06)', borderRadius: 8, border: '1px solid rgba(249,115,22,0.12)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316', marginBottom: 4 }}>Meta Tips</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>Meta Tips</div>
           {TIPS.map((t, i) => (
             <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2, lineHeight: 1.4 }}>• {t}</div>
           ))}

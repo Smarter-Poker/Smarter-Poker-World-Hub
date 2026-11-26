@@ -21,12 +21,12 @@ const BUYIN_TOPICS = [
     why: 'With 70bb you\'re too deep for short-stack play but too shallow for deep-stack maneuvers. It\'s an awkward, -EV stack size.',
     when: 'After every hand where you lose chips. Most sites let you add chips between hands. Do it automatically.',
     math: 'If you lose a 30bb pot and drop to 70bb, immediately top up to 100bb. The difference in EV is significant.' },
-  { title: 'Deep Stack Games (200bb+)', icon: '▲', color: '#8b5cf6',
+  { title: 'Deep Stack Games (200bb+)', icon: '▲', color: '#86daff',
     detail: 'Some games allow 200bb+ buy-ins. These are extremely skill-intensive - the best players in the world thrive in deep games.',
     why: 'At 200bb, you can play every hand type: set-mining, floating, multi-street bluffs, thin value bets. Maximum skill expression.',
     when: 'Only if you\'re a strong post-flop player with deep-stack experience. Weak players get crushed at 200bb.',
     math: 'SPR after a 3x open at 200bb ≈ 12. You can comfortably bet 3 streets and still have fold equity on the river.' },
-  { title: 'Table Stakes & Risk', icon: '▲', color: '#f59e0b',
+  { title: 'Table Stakes & Risk', icon: '▲', color: '#86daff',
     detail: 'Never have more than 5% of your bankroll on any single table. If you\'re playing NL100, you need at least $2,000.',
     why: 'Variance in poker is extreme. Even winning players can lose 10+ buy-ins in a row. Bankroll management prevents going broke.',
     when: 'Always. This is non-negotiable. If you can\'t afford 20 buy-ins, move down in stakes.',
@@ -65,7 +65,7 @@ export default function CashGameBuyIn() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.why}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>WHEN</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>WHEN</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.when}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6', fontFamily: 'monospace' }}>

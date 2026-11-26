@@ -351,7 +351,7 @@ export default function SessionNotesPage() {
                 >
                   Last Session Accuracy:{' '}
                   <span
-                    style={{ fontWeight: 800, color: recentAccuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)' }}
+                    style={{ fontWeight: 800, color: recentAccuracy >= 75 ? 'var(--sp-accent-green)' : '#86daff' }}
                   >
                     {recentAccuracy}%
                   </span>
@@ -742,7 +742,7 @@ export default function SessionNotesPage() {
                             style={{
                               fontSize: 12,
                               fontWeight: 700,
-                              color: note.accuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
+                              color: note.accuracy >= 75 ? 'var(--sp-accent-green)' : '#86daff',
                             }}
                           >
                             {note.accuracy}%

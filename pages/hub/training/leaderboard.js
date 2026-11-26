@@ -160,7 +160,7 @@ export default function TrainingLeaderboard({ seed = null }) {
               cleaned-emoji artifact — original title was '★ Training
               Leaderboard'). Restore the icon as proper SVG. */}
           <h1 style={{ ...styles.title, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <TrophyIcon size={24} color="#FFD700" />
+            <TrophyIcon size={24} color="#86daff" />
             Training Leaderboard
           </h1>
 
@@ -306,9 +306,9 @@ function LeaderboardEntry({
   isCurrentUser,
 }) {
   const getRankColor = () => {
-    if (rank === 1) return '#FFD700'; // Gold
+    if (rank === 1) return '#86daff'; // Ice Cyan
     if (rank === 2) return '#C0C0C0'; // Silver
-    if (rank === 3) return '#CD7F32'; // Bronze
+    if (rank === 3) return '#7dd3fc'; // Frost Blue
     return '#00E0FF';
   };
 
@@ -316,9 +316,9 @@ function LeaderboardEntry({
   // ●●● were stripped but never replaced). Return a SVG MedalIcon for
   // top-3 ranks; rank colour from getRankColor() flows via currentColor.
   const getRankIcon = () => {
-    if (rank === 1) return <MedalIcon rank={1} size={26} color="#FFD700" />;
+    if (rank === 1) return <MedalIcon rank={1} size={26} color="#86daff" />;
     if (rank === 2) return <MedalIcon rank={2} size={24} color="#C0C0C0" />;
-    if (rank === 3) return <MedalIcon rank={3} size={24} color="#CD7F32" />;
+    if (rank === 3) return <MedalIcon rank={3} size={24} color="#86daff" />;
     return null;
   };
 

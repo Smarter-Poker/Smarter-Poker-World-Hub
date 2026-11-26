@@ -374,7 +374,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
                     </span>
                     {isMixed && (
                         <span style={{
-                            fontSize: 12, color: '#fbbf24',
+                            fontSize: 12, color: '#86daff',
                             background: 'rgba(251, 191, 36, 0.15)',
                             padding: '2px 8px', borderRadius: 20, fontWeight: 600,
                         }}>
@@ -808,7 +808,7 @@ export default function PostflopRangeViewer({
                 padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 8,
             }}>
                 <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                    <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+                    <span style={{ color: '#86daff', fontWeight: 700 }}>
                         {boardTexture.replace(/_/g, ' ')}
                     </span>
                 </div>

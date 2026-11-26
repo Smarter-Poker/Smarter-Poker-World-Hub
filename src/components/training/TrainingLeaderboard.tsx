@@ -131,7 +131,7 @@ const styles = {
         margin: 0,
         fontSize: 18,
         fontWeight: 700,
-        color: '#ffd700'
+        color: '#86daff'
     },
     periodTabs: {
         display: 'flex',
@@ -150,7 +150,7 @@ const styles = {
     },
     periodTabActive: {
         background: 'rgba(255,215,0,0.2)',
-        color: '#ffd700'
+        color: '#86daff'
     },
     list: {
         padding: 12,
@@ -224,7 +224,7 @@ const styles = {
         color: '#888'
     },
     xp: {
-        color: '#ffd700',
+        color: '#86daff',
         fontWeight: 600,
         fontSize: 14
     }

@@ -361,9 +361,17 @@ export default async function handler(req, res) {
           const hhQuery = supabase
             .from('hand_history')
             .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at');
+          // hand_number is an integer column. A synced hand's text key (or
+          // `hand-nonexistent`) reached Postgres as 22P02 on every lookup
+          // (2026-11-26); only a uuid or a whole number is asked about here,
+          // and anything else goes straight to the synced records below.
+          const isHandNumber =
+            /^\d{1,10}$/.test(requestedHandId) && Number(requestedHandId) <= 2147483647;
           const { data: hhData } = isUuid
             ? await hhQuery.eq('id', requestedHandId).maybeSingle()
-            : await hhQuery.eq('hand_number', requestedHandId).maybeSingle();
+            : isHandNumber
+              ? await hhQuery.eq('hand_number', requestedHandId).maybeSingle()
+              : { data: null };
           liveRow = hhData || null;
         } catch (_) {
           liveRow = null;

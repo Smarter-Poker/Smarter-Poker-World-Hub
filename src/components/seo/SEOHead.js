@@ -121,6 +121,61 @@ if (schemas && schemas.organization) {
 }
 
 /**
+ * Ensure every Article, NewsArticle, TechArticle, or BlogPosting node rendered
+ * through SEOHead carries an absolute Google Rich Results compliant `image`
+ * (defaulting to the page's resolved Open Graph image when omitted).
+ */
+const ARTICLE_SCHEMA_TYPES = new Set(['Article', 'NewsArticle', 'TechArticle', 'BlogPosting']);
+
+function toAbsoluteMediaUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) return `https://smarter.poker${trimmed}`;
+  return trimmed;
+}
+
+function enrichArticleNodeImage(node, defaultImage, imageMetadata) {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) return node;
+  const rawType = node['@type'];
+  const types = Array.isArray(rawType) ? rawType : [rawType];
+  if (!types.some((t) => ARTICLE_SCHEMA_TYPES.has(t))) return node;
+
+  if (node.image) {
+    if (typeof node.image === 'string' && node.image.startsWith('/')) {
+      return { ...node, image: toAbsoluteMediaUrl(node.image) };
+    }
+    return node;
+  }
+
+  const fallbackUrl = toAbsoluteMediaUrl(defaultImage) || 'https://smarter.poker/images/og-default.png';
+  return {
+    ...node,
+    image: {
+      '@type': 'ImageObject',
+      url: fallbackUrl,
+      width: imageMetadata?.width || 1200,
+      height: imageMetadata?.height || 630,
+    },
+  };
+}
+
+export function enrichArticleJsonLdImages(jsonLd, defaultImage, imageMetadata) {
+  if (!jsonLd) return jsonLd;
+  if (typeof jsonLd === 'object' && !Array.isArray(jsonLd) && Array.isArray(jsonLd['@graph'])) {
+    return {
+      ...jsonLd,
+      '@graph': enrichArticleJsonLdImages(jsonLd['@graph'], defaultImage, imageMetadata),
+    };
+  }
+  if (Array.isArray(jsonLd)) {
+    return jsonLd.map((node) => enrichArticleNodeImage(node, defaultImage, imageMetadata));
+  }
+  return enrichArticleNodeImage(jsonLd, defaultImage, imageMetadata);
+}
+
+/**
  * Normalize a JSON-LD graph array so that:
  * 1. Child nodes inside @graph never carry a redundant @context key.
  * 2. Any @graph that references https://smarter.poker/#organization or
@@ -474,7 +529,9 @@ export default function SEOHead(props) {
     }
   }
 
-  const normalizedJsonLd = props.jsonLd ? normalizeJsonLdGraph(props.jsonLd) : props.jsonLd;
+  const normalizedJsonLd = props.jsonLd
+    ? enrichArticleJsonLdImages(normalizeJsonLdGraph(props.jsonLd), ogImage, imageMetadata)
+    : props.jsonLd;
 
   return (
     <SharedSEOHead {...props} ogImage={ogImage} jsonLd={normalizedJsonLd}>

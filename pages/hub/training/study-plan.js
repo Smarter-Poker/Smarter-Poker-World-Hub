@@ -58,7 +58,7 @@ const FOCUS_AREAS = [
     name: 'C-Bet Decisions',
     positions: [],
     streets: ['flop'],
-    color: 'var(--sp-accent-orange)',
+    color: '#86daff',
     icon: '',
   },
   {
@@ -953,7 +953,7 @@ export default function StudyPlanPage() {
                           style={{
                             fontSize: 13,
                             fontWeight: 800,
-                            color: w.accuracy < 50 ? 'var(--sp-accent-red)' : w.accuracy < 70 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
+                            color: w.accuracy < 50 ? 'var(--sp-accent-red)' : w.accuracy < 70 ? '#86daff' : 'var(--sp-accent-green)',
                           }}
                         >
                           {w.accuracy}%

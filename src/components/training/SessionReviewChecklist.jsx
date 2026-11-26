@@ -28,7 +28,7 @@ const CATEGORIES = [
     ],
   },
   {
-    name: 'Mental Game', color: '#f59e0b',
+    name: 'Mental Game', color: '#86daff',
     items: [
       { text: 'Did I maintain composure after bad beats?', key: 'mg1' },
       { text: 'Was I playing my A-game throughout the session?', key: 'mg2' },
@@ -38,7 +38,7 @@ const CATEGORIES = [
     ],
   },
   {
-    name: 'Game Selection', color: '#e879f9',
+    name: 'Game Selection', color: '#86daff',
     items: [
       { text: 'Was I at the most profitable table available?', key: 'gs1' },
       { text: 'Did I adjust my strategy to opponent tendencies?', key: 'gs2' },
@@ -71,7 +71,7 @@ function SessionReviewChecklist() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 18, color: '#14b8a6' }}>Session Review</h3>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444' }}>{score}%</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: score >= 70 ? '#10b981' : score >= 40 ? '#86daff' : '#ef4444' }}>{score}%</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{positives} Yes / {negatives} No</div>
           </div>
         </div>

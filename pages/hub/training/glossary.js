@@ -313,7 +313,7 @@ export default function GlossaryPage() {
                     fontSize: 12,
                     padding: 0,
                     display: 'inline-flex',
-                    color: favorites.has(t.term) ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
+                    color: favorites.has(t.term) ? '#86daff' : 'var(--sp-fg-faint)',
                   }}
                 >
                   {/* TRAIN-GLOSSARY-A11Y-1: SVG StarToggle replaces ★/☆ */}

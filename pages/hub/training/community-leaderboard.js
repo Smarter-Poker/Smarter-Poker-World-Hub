@@ -311,7 +311,7 @@ export default function CommunityLeaderboardPage() {
                   flexShrink: 0,
                   border: `1px solid ${category === c.id ? 'rgba(251,191,36,0.2)' : 'transparent'}`,
                   background: category === c.id ? 'rgba(251,191,36,0.06)' : 'transparent',
-                  color: category === c.id ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
+                  color: category === c.id ? '#86daff' : 'var(--sp-fg-dim)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',

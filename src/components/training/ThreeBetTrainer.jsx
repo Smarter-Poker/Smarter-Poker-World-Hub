@@ -195,8 +195,8 @@ export default function ThreeBetTrainer() {
                 <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
                     {[
                         { id: '3bet', label: '3-Bet', color: '#3b82f6' },
-                        { id: '4bet', label: '4-Bet', color: '#a855f7' },
-                        { id: 'squeeze', label: 'Squeeze', color: '#f59e0b' },
+                        { id: '4bet', label: '4-Bet', color: '#86daff' },
+                        { id: 'squeeze', label: 'Squeeze', color: '#86daff' },
                     ].map(m => (
                         <button
                             key={m.id}
@@ -245,7 +245,7 @@ export default function ThreeBetTrainer() {
                                 padding: '3px 8px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 3, border: '1px solid', cursor: 'pointer',
                                 background: selectedSpot === key ? 'rgba(168,85,247,0.1)' : 'rgba(0,0,0,0.15)',
-                                color: selectedSpot === key ? '#a855f7' : '#94a3b8',
+                                color: selectedSpot === key ? '#86daff' : '#94a3b8',
                                 borderColor: selectedSpot === key ? 'rgba(168,85,247,0.2)' : 'rgba(100,116,139,0.08)',
                             }}
                         >
@@ -260,7 +260,7 @@ export default function ThreeBetTrainer() {
                                 padding: '3px 8px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 3, border: '1px solid', cursor: 'pointer',
                                 background: selectedSpot === key ? 'rgba(245,158,11,0.1)' : 'rgba(0,0,0,0.15)',
-                                color: selectedSpot === key ? '#f59e0b' : '#94a3b8',
+                                color: selectedSpot === key ? '#86daff' : '#94a3b8',
                                 borderColor: selectedSpot === key ? 'rgba(245,158,11,0.2)' : 'rgba(100,116,139,0.08)',
                             }}
                         >
@@ -312,7 +312,7 @@ export default function ThreeBetTrainer() {
                 </div>
                 <div>
                     <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>SIZING</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>
                         {currentData.sizing || '-'}
                     </div>
                 </div>
@@ -332,7 +332,7 @@ export default function ThreeBetTrainer() {
             <div style={{ padding: 12 }}>
                 <RangeGrid
                     range={currentData.range}
-                    color={mode === '3bet' ? '#3b82f6' : mode === '4bet' ? '#a855f7' : '#f59e0b'}
+                    color={mode === '3bet' ? '#3b82f6' : mode === '4bet' ? '#86daff' : '#86daff'}
                 />
 
                 {/* Position frequency chart for 3-bet mode */}

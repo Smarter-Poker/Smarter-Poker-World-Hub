@@ -21,12 +21,12 @@ const TELLS = [
     strong: 'Confident, smooth bet motion with exact chips → practiced/prepared = usually strong.',
     weak: 'Hesitant bet, counting chips slowly, pushing in uncertainty → often weak or bluffing.',
     counter: 'This is one of the most reliable tells. The WAY someone bets matters more than the amount.' },
-  { tell: 'Eye Contact & Gaze', icon: '○', color: '#f59e0b',
+  { tell: 'Eye Contact & Gaze', icon: '○', color: '#86daff',
     reliable: 'Medium',
     strong: 'Staring you down while waiting for your decision → usually bluffing (trying to intimidate).',
     weak: 'Looking away, avoiding eye contact, looking at phone → usually strong (doesn\'t want attention).',
     counter: 'This tell is reversed from what you\'d expect. Strength = avoidance. Weakness = confrontation.' },
-  { tell: 'Posture & Body Language', icon: '◇', color: '#8b5cf6',
+  { tell: 'Posture & Body Language', icon: '◇', color: '#86daff',
     reliable: 'Medium-High',
     strong: 'Leaning back, relaxed, still body → usually strong hand. Comfortable and confident.',
     weak: 'Leaning forward, rigid, touching face/neck → usually uncomfortable = bluffing or marginal.',
@@ -76,7 +76,7 @@ export default function LivePokerTells() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tell.weak}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Counter / Caveat</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Counter / Caveat</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tell.counter}</div>
           </div>
         </div>

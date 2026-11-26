@@ -24,13 +24,13 @@ const EV_EXAMPLES = [
     calc: 'EV = (0.50 × $300) + 0.50 × [(0.35 × $1100) - $400] = $150 + 0.50 × [-$15] = +$142.50',
     result: '+$142.50 EV - SHOVE. Massive +EV from fold equity combined with live equity when called.',
     lesson: 'Semi-bluffs are powerful because you win TWO ways: fold equity + equity when called.' },
-  { scenario: 'Set Mining Decision', icon: '◇', color: '#f59e0b',
+  { scenario: 'Set Mining Decision', icon: '◇', color: '#86daff',
     setup: 'You hold 44. Cost to call: $15. Effective stacks: $300. You flop a set ~12% of the time.',
     formula: 'EV = (SetFreq × AvgWin) - (MissFreq × CallCost)',
     calc: 'Assume you win $200 average when hitting set. EV = (0.12 × $200) - (0.88 × $15) = $24 - $13.20 = +$10.80',
     result: '+$10.80 EV - CALL. You need ~15:1 implied odds; here you have 20:1.',
     lesson: 'Set mining is profitable when stacks are deep enough. Rule of thumb: need 15x the call amount in effective stacks.' },
-  { scenario: 'Fold Equity Minimum', icon: '■', color: '#8b5cf6',
+  { scenario: 'Fold Equity Minimum', icon: '■', color: '#86daff',
     setup: 'You want to bluff $100 into a $150 pot. How often must villain fold to break even?',
     formula: 'Break-Even% = BetSize / (BetSize + Pot)',
     calc: 'BE% = $100 / ($100 + $150) = $100 / $250 = 40%',
@@ -81,7 +81,7 @@ export default function EVCalculatorGuide() {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e' }}>{ex.result}</div>
         </div>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Lesson</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Lesson</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{ex.lesson}</div>
         </div>
       </motion.div>

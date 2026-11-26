@@ -241,7 +241,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                             background: handData.street === 'preflop' ? 'rgba(167,139,250,0.15)' :
                                                 handData.street === 'flop' ? 'rgba(74,222,128,0.15)' :
                                                 handData.street === 'turn' ? 'rgba(251,146,60,0.15)' : 'rgba(248,113,113,0.15)',
-                                            color: handData.street === 'preflop' ? '#a78bfa' :
+                                            color: handData.street === 'preflop' ? '#86daff' :
                                                 handData.street === 'flop' ? '#4ade80' :
                                                 handData.street === 'turn' ? '#fb923c' : '#f87171',
                                         }}>
@@ -256,7 +256,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 {handData.handCategory && (
                                     <div style={{
                                         marginTop: 6, fontSize: 12, fontWeight: 600, fontStyle: 'italic',
-                                        color: handData.handCategory.includes('monster') ? '#f97316' :
+                                        color: handData.handCategory.includes('monster') ? '#86daff' :
                                             handData.handCategory.includes('nut') ? '#22c55e' :
                                             handData.handCategory.includes('combo') ? '#a855f7' :
                                             handData.handCategory.includes('draw') ? '#3b82f6' :

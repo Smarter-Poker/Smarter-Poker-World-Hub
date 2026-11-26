@@ -321,19 +321,19 @@ export const TRIVIA_ACHIEVEMENTS = [
 // Category groupings
 export const ACHIEVEMENT_CATEGORIES = [
     { id: 'basics', name: 'Basics', icon: 'BookOpen', color: '#60a5fa' },
-    { id: 'mastery', name: 'Mastery', icon: 'GraduationCap', color: '#fbbf24' },
-    { id: 'streaks', name: 'Streaks', icon: 'Flame', color: '#f97316' },
+    { id: 'mastery', name: 'Mastery', icon: 'GraduationCap', color: '#86daff' },
+    { id: 'streaks', name: 'Streaks', icon: 'Flame', color: '#38bdf8' },
     { id: 'speed', name: 'Speed', icon: 'Zap', color: '#22c55e' },
-    { id: 'arcade', name: 'Arcade', icon: 'Gem', color: '#00d4ff' },
-    { id: 'special', name: 'Special', icon: 'Star', color: '#a78bfa' }
+    { id: 'arcade', name: 'Arcade', icon: 'Gem', color: '#0ea5e9' },
+    { id: 'special', name: 'Special', icon: 'Star', color: '#f2f7ff' }
 ];
 
 // Rarity configurations
 export const RARITY_CONFIG = {
     common: { color: '#94a3b8', label: 'Common' },
     rare: { color: '#60a5fa', label: 'Rare' },
-    epic: { color: '#a855f7', label: 'Epic' },
-    legendary: { color: '#ffd700', label: 'Legendary' }
+    epic: { color: '#38bdf8', label: 'Epic' },
+    legendary: { color: '#86daff', label: 'Legendary' }
 };
 
 /**

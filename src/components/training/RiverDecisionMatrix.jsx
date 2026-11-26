@@ -26,7 +26,7 @@ const MATRIX = [
   {
     handStrength: 'Medium (Bluff Catcher)',
     icon: '●',
-    color: '#f59e0b',
+    color: '#86daff',
     vsCheck: { action: 'Check Back', sizing: 'Showdown', note: 'Not strong enough to value bet - worse hands fold, better hands call. Show down.' },
     vsBet: { action: 'Call (maybe)', sizing: 'MDF-based', note: 'Depends on sizing and villain. Call based on MDF, lean fold vs passive players.' },
     examples: 'Top pair weak kicker, second pair, pocket pair below top card',
@@ -34,7 +34,7 @@ const MATRIX = [
   {
     handStrength: 'Weak Made Hand',
     icon: '●',
-    color: '#f97316',
+    color: '#86daff',
     vsCheck: { action: 'Check Back', sizing: 'Show down', note: 'Marginal showdown value. Betting gets called by better only. Check and pray.' },
     vsBet: { action: 'Fold', sizing: '-', note: 'Too weak to bluff-catch. Fold and save chips for better spots.' },
     examples: 'Bottom pair, third pair, ace-high on paired/connected board',
@@ -55,7 +55,7 @@ function RiverDecisionMatrix() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#e879f9' }}>River Decision Matrix</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>River Decision Matrix</h3>
 
         {/* Header */}
         <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr', gap: 4, marginBottom: 4 }}>

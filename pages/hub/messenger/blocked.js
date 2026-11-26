@@ -84,7 +84,7 @@ export default function BlockedUsers() {
                         <div style={styles.emptyState}>
                             <h2 style={styles.emptyTitle}>Sign In Required</h2>
                             <p style={styles.emptyText}>Sign In To See Who You Have Blocked.</p>
-                            <Link href="/login" style={{ color: '#0084FF', fontWeight: 600 }}>
+                            <Link href="/auth/login" style={{ color: '#0084FF', fontWeight: 600 }}>
                                 Sign In
                             </Link>
                         </div>

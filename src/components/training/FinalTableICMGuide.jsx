@@ -70,7 +70,7 @@ function FinalTableICMGuide() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#fbbf24' }}>Final Table ICM</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#86daff' }}>Final Table ICM</h3>
 
         {/* Stack display */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
@@ -79,7 +79,7 @@ function FinalTableICMGuide() {
             return (
               <div key={s.seat} style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{s.position}</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: pct > 30 ? '#10b981' : pct > 15 ? '#f59e0b' : '#ef4444' }}>{s.chips}bb</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: pct > 30 ? '#10b981' : pct > 15 ? '#86daff' : '#ef4444' }}>{s.chips}bb</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{pct}%</div>
                 <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginTop: 4 }}>
                   <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: pct > 30 ? '#10b981' : pct > 15 ? '#f59e0b' : '#ef4444' }} />
@@ -99,7 +99,7 @@ function FinalTableICMGuide() {
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
             {PAYOUTS.map(p => (
               <div key={p.place} style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, textAlign: 'center' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>{p.place}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>{p.place}</div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>${p.amount}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{p.pct}%</div>
               </div>
@@ -120,7 +120,7 @@ function FinalTableICMGuide() {
 
         {/* Active scenario */}
         <div style={{ padding: 12, background: 'rgba(251,191,36,0.06)', borderRadius: 10, border: '1px solid rgba(251,191,36,0.15)', marginBottom: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', marginBottom: 6 }}>{scenario.title}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', marginBottom: 6 }}>{scenario.title}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>{scenario.situation}</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Hero: {scenario.hero}</div>
 
@@ -130,13 +130,13 @@ function FinalTableICMGuide() {
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{scenario.chipEV}</div>
             </div>
             <div style={{ padding: 8, background: 'rgba(251,191,36,0.08)', borderRadius: 6 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#fbbf24', marginBottom: 2 }}>ICM Play</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#86daff', marginBottom: 2 }}>ICM Play</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{scenario.icmPlay}</div>
             </div>
           </div>
 
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-            <span style={{ fontWeight: 700, color: '#f59e0b' }}>Adjustment: </span>{scenario.adjustment}
+            <span style={{ fontWeight: 700, color: '#86daff' }}>Adjustment: </span>{scenario.adjustment}
           </div>
           <div style={{ textAlign: 'right', marginTop: 6 }}>
             <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: scenario.impact === 'Very High' ? 'rgba(239,68,68,0.15)' : scenario.impact === 'High' ? 'rgba(249,115,22,0.15)' : scenario.impact === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)', color: scenario.impact === 'Very High' ? '#ef4444' : scenario.impact === 'High' ? '#f97316' : scenario.impact === 'Medium' ? '#f59e0b' : '#10b981' }}>

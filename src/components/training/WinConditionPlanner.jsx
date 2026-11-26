@@ -21,12 +21,12 @@ const WIN_CONDITIONS = [
     plan: 'See cheap cards to realize your equity. Call or raise to set your price. Don\'t overpay for draws.',
     streets: 'Flop: call or raise (semi-bluff) → Turn: re-evaluate pot odds → River: value bet if hit, give up if miss',
     keyQ: 'Am I getting the right price? Count outs × 2 (turn only) or × 4 (both cards) for rough equity.' },
-  { condition: 'Win by Pot Control (Medium Hands)', icon: '■', color: '#f59e0b',
+  { condition: 'Win by Pot Control (Medium Hands)', icon: '■', color: '#86daff',
     hands: 'Second pair, weak top pair, pocket pairs below top pair',
     plan: 'Keep the pot small. Check-call or check-check. Don\'t bloat pots with mediocre holdings.',
     streets: 'Flop: check-call → Turn: check-check or small bet → River: showdown cheaply',
     keyQ: 'Do I beat their bluffs and some value? If yes, call. If I only beat bluffs, consider folding.' },
-  { condition: 'Win by Set Mining (Implied Odds)', icon: '◇', color: '#8b5cf6',
+  { condition: 'Win by Set Mining (Implied Odds)', icon: '◇', color: '#86daff',
     hands: '22-99 preflop, speculative suited connectors',
     plan: 'Call small raises preflop. If you hit your set, win a big pot. If you miss, fold cheaply on the flop.',
     streets: 'Pre: call 2-3x opens → Flop: hit set = fast-play, miss = fold → Stack opponent\'s overpair',
@@ -75,7 +75,7 @@ export default function WinConditionPlanner() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{cond.streets}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Question</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Key Question</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{cond.keyQ}</div>
           </div>
         </div>

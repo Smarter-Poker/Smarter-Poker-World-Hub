@@ -48,7 +48,7 @@ Usage:
 """
 
 import argparse, hashlib, html as html_lib, io, json, os, re, sys, time, urllib.request, urllib.parse, urllib.error, uuid
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from scraper_data_truth import (
     QUALITY_INFERRED,
@@ -819,6 +819,22 @@ def expand_to_dated_rows(template: dict,
         rows.append(row)
     return rows
 
+def weekday_label(event_date) -> str | None:
+    """Title Case weekday of an ISO date (or date object), None when undated.
+
+    The sentinel 1970-01-01 marks an undated recurring template and has no
+    weekday of its own.
+    """
+    if not event_date:
+        return None
+    try:
+        d = event_date if isinstance(event_date, date) else date.fromisoformat(str(event_date)[:10])
+    except (TypeError, ValueError):
+        return None
+    if d.isoformat() == "1970-01-01":
+        return None
+    return ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[d.weekday()]
+
 # ── Record factory  ──────────────────────────────────────────────────────────
 
 def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
@@ -867,7 +883,11 @@ def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
     r = {
         "venue_id": venue_id,
         "venue_name": venue_name,
-        "day_of_week": day or ("Daily" if not event_date else None),
+        # venue_daily_tournaments.day_of_week is NOT NULL. A dated listing with
+        # no day label takes the weekday of its own event_date ("Friday"), the
+        # same Title Case label every other dated row carries; only an undated
+        # listing with no label is "Daily".
+        "day_of_week": day or weekday_label(event_date) or "Daily",
         "event_date": event_date or "1970-01-01",  # sentinel for recurring (NULL breaks upsert key)
         "start_time": start_time,
         "buy_in": buy_in,

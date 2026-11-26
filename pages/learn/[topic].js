@@ -28,7 +28,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
-import { firstThatFits } from '../../src/lib/seo/titleFit.js';
+import { firstThatFits, fitMetaDescription } from '../../src/lib/seo/titleFit.js';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -223,10 +223,11 @@ function DataTable({ table }) {
 export default function LessonPage({ lesson, related, glossary, cta }) {
   const path = lessonPath(lesson.slug);
   const title = firstThatFits([lesson.title]);
+  const metaDescription = fitMetaDescription(lesson.summary, 158);
 
   return (
     <>
-      <SEOHead title={title} description={lesson.summary} canonical={path} ogType="article" jsonLd={lessonSchema(lesson)} />
+      <SEOHead title={title} description={metaDescription} canonical={path} ogType="article" jsonLd={lessonSchema(lesson)} />
 
       <main style={styles.page}>
         <article style={styles.article}>
