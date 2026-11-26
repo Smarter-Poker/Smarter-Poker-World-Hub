@@ -218,7 +218,14 @@ function TournamentTable({ rows, empty }) {
 
 export default function TriviaOperationsPage() {
     const [state, setState] = useState({ loading: true, snapshot: null, error: null });
-    const [actionState, setActionState] = useState({ busy: false, item: null, error: null, pending: null });
+    const [actionState, setActionState] = useState({
+        busy: false,
+        item: null,
+        error: null,
+        pending: null,
+        mfaRequired: false,
+        mfaStepUpUrl: null,
+    });
     const [questionForm, setQuestionForm] = useState({ targetId: '', reasonCode: 'operator_review', reason: '' });
     const [pvpReason, setPvpReason] = useState('');
     const [tournamentForm, setTournamentForm] = useState({ targetId: '', reason: '' });
@@ -286,7 +293,7 @@ export default function TriviaOperationsPage() {
     async function executeAction(input, retry = false) {
         const token = resolveAccessToken();
         const operation = retry ? input : { ...input, requestKey: requestKey() };
-        setActionState({ busy: true, item: null, error: null, pending: operation });
+        setActionState({ busy: true, item: null, error: null, pending: operation, mfaRequired: false, mfaStepUpUrl: null });
         try {
             const { response, token: activeToken } = await fetchWithTokenRefresh(
                 '/api/admin/trivia-operations',
@@ -303,9 +310,27 @@ export default function TriviaOperationsPage() {
                 return;
             }
             const body = typeof response?.json === 'function' ? await response.json().catch(() => ({})) : {};
+            if (response.status === 403 && body?.requiresMfa === true) {
+                setActionState({
+                    busy: false,
+                    item: null,
+                    error: body?.error || 'MFA Verification Required Before Executing Operator Writes.',
+                    pending: null,
+                    mfaRequired: true,
+                    mfaStepUpUrl: '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations',
+                });
+                return;
+            }
             const item = body?.item || null;
             if (item?.receiptId) {
-                setActionState({ busy: false, item, error: body.success ? null : item.result?.detail || item.result?.error || 'Action was not completed.', pending: null });
+                setActionState({
+                    busy: false,
+                    item,
+                    error: body.success ? null : item.result?.detail || item.result?.error || 'Action was not completed.',
+                    pending: null,
+                    mfaRequired: false,
+                    mfaStepUpUrl: null,
+                });
                 try {
                     await refreshSnapshot();
                 } catch (_refreshError) {
@@ -319,12 +344,21 @@ export default function TriviaOperationsPage() {
                 item: null,
                 error: body?.error || `Action failed (HTTP ${response.status}).`,
                 pending: unknownOutcome ? operation : null,
+                mfaRequired: false,
+                mfaStepUpUrl: null,
             });
         } catch (error) {
             // An unknown transport outcome keeps the exact request key. The
             // retry button replays that durable operation instead of creating
             // a second side effect.
-            setActionState({ busy: false, item: null, error: error?.message || 'Action response was not received.', pending: operation });
+            setActionState({
+                busy: false,
+                item: null,
+                error: error?.message || 'Action response was not received.',
+                pending: operation,
+                mfaRequired: false,
+                mfaStepUpUrl: null,
+            });
         }
     }
 
@@ -372,6 +406,15 @@ export default function TriviaOperationsPage() {
     const tonightFill = data.tonight_fill_monitor || null;
     const burnIn = data.burnin_scorecard || null;
     const burnInNights = Array.isArray(burnIn?.nights) ? burnIn.nights : [];
+    const legacyObservation = data.legacy_observation || null;
+    const launchReadiness = data.launch_readiness || null;
+    const launchGates = launchReadiness?.gates || {};
+    const operatorMfa = data.operator_mfa || {
+        verified: false,
+        expiresAt: null,
+        reason: 'MFA challenge required',
+        stepUpUrl: '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations',
+    };
     const economics = data.treasury_economics || {};
     const rakeAccounts = economics.rake_accounts || {};
     const pvpMix = economics.pvp_24h_mix || {};
@@ -403,11 +446,29 @@ export default function TriviaOperationsPage() {
                 </section>
             ) : null}
 
-            {actionState.item || actionState.error ? (
-                <section style={actionState.item?.outcome === 'succeeded' ? S.resultPanel : S.issuePanel} aria-live="polite">
-                    <h2 style={S.h2}>{actionState.item?.outcome === 'succeeded' ? 'Action recorded' : 'Action result'}</h2>
+            {actionState.item || actionState.error || actionState.mfaRequired ? (
+                <section
+                    style={actionState.item?.outcome === 'succeeded' ? S.resultPanel : (actionState.mfaRequired ? S.mfaPanel : S.issuePanel)}
+                    aria-live="polite"
+                    data-mfa-stepup-required={actionState.mfaRequired ? 'true' : undefined}
+                >
+                    <h2 style={S.h2}>
+                        {actionState.mfaRequired
+                            ? 'MFA Step-Up Verification Required'
+                            : (actionState.item?.outcome === 'succeeded' ? 'Action Recorded' : 'Action Result')}
+                    </h2>
                     {actionState.item?.receiptId ? <p style={S.note}>Receipt: <code>{actionState.item.receiptId}</code>{actionState.item.replayed ? ' (replayed)' : ''}</p> : null}
                     {actionState.error ? <p style={S.errorText}>{actionState.error}</p> : null}
+                    {actionState.mfaRequired ? (
+                        <div style={S.actions}>
+                            <a
+                                href={actionState.mfaStepUpUrl || '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations'}
+                                style={S.mfaLink}
+                            >
+                                Verify MFA Session
+                            </a>
+                        </div>
+                    ) : null}
                     {actionState.pending ? (
                         <ActionButton disabled={actionState.busy} onClick={() => executeAction(actionState.pending, true)}>
                             Retry Same Request
@@ -415,6 +476,93 @@ export default function TriviaOperationsPage() {
                     ) : null}
                 </section>
             ) : null}
+
+            <Panel title="Phase 12 Launch Certification Gateboard">
+                <div style={S.burnInHeader}>
+                    <span
+                        style={{
+                            ...S.badge,
+                            ...(launchReadiness?.ready_to_unlock_public_card ? burnInTone('passed') : burnInTone('pending')),
+                        }}
+                    >
+                        {`${fmt(launchReadiness?.passed_gates ?? 0)} / ${fmt(launchReadiness?.total_gates ?? 4)} Gates Passed`}
+                    </span>
+                    <span
+                        style={{
+                            ...S.badge,
+                            ...(launchReadiness?.ready_to_unlock_public_card ? burnInTone('passed') : S.neutralBadge),
+                        }}
+                    >
+                        {launchReadiness?.ready_to_unlock_public_card
+                            ? 'Public Hub Card: Ready To Unlock (4/4 Passed)'
+                            : 'Public Hub Card: Owner-Only Until 4/4 Gates Pass'}
+                    </span>
+                </div>
+                <div style={S.grid}>
+                    <Metric
+                        label="7-Night Burn-In"
+                        value={launchGates.burnin_7_nights?.passed ? 'PASSED' : (launchGates.burnin_7_nights?.status === 'failed' ? 'FAILED' : 'PENDING')}
+                        detail={launchGates.burnin_7_nights?.detail || '0/7 nights certified'}
+                    />
+                    <Metric
+                        label="Operator MFA HTTP Write"
+                        value={launchGates.operator_mfa_http_write?.passed ? 'PASSED' : 'PENDING'}
+                        detail={launchGates.operator_mfa_http_write?.detail || 'Awaiting live MFA-verified operator write'}
+                    />
+                    <Metric
+                        label="Legacy-Traffic Observation Window"
+                        value={launchGates.legacy_observation_window?.passed ? 'PASSED' : (launchGates.legacy_observation_window?.status === 'attention' ? 'ATTENTION' : 'PENDING')}
+                        detail={launchGates.legacy_observation_window?.detail || '0 / 72h zero-legacy window'}
+                    />
+                    <Metric
+                        label="Physical iOS/Android & Push Review"
+                        value={launchGates.physical_device_human_review?.passed ? 'PASSED' : 'PENDING'}
+                        detail={launchGates.physical_device_human_review?.detail || '0/3 physical device sign-offs recorded'}
+                    />
+                </div>
+                <p style={S.note}>Public Hub Card Remains Owner-Only Until All Four Certification Gates Pass. Pending Exit Gates Never Degrade Operations Health.</p>
+            </Panel>
+
+            <Panel title="Legacy-Traffic Observation Window">
+                <div style={S.burnInHeader}>
+                    <span
+                        style={{
+                            ...S.badge,
+                            ...(legacyObservation?.window_satisfied
+                                ? burnInTone('passed')
+                                : (legacyObservation?.zero_legacy_traffic ? burnInTone('pending') : burnInTone('failed'))),
+                        }}
+                    >
+                        {legacyObservation?.window_satisfied
+                            ? '72h Window Satisfied'
+                            : (legacyObservation?.zero_legacy_traffic ? 'Zero Legacy Traffic (Observing)' : 'Legacy Traffic Attention')}
+                    </span>
+                    <span style={{ ...S.badge, ...S.neutralBadge }}>
+                        {`${fmt(legacyObservation?.observation_hours ?? 0)} / ${fmt(legacyObservation?.required_observation_hours ?? 72)}h`}
+                    </span>
+                </div>
+                <div style={S.grid}>
+                    <Metric label="Solo 7d" value={legacyObservation?.legacy_rows?.solo_7d ?? 0} detail="engine_version IS NULL" />
+                    <Metric label="PvP 7d" value={legacyObservation?.legacy_rows?.pvp_7d ?? 0} detail="engine_version IS NULL" />
+                    <Metric label="Tournaments 7d" value={legacyObservation?.legacy_rows?.tournaments_7d ?? 0} detail="engine_version IS NULL" />
+                    <Metric
+                        label="Retired RPC Delta vs Baseline"
+                        value={legacyObservation?.total_retired_rpc_delta ?? 0}
+                        detail="10 retired/superseded legacy RPCs"
+                    />
+                    <Metric
+                        label="Solo Journal & Ledger"
+                        value={(legacyObservation?.solo_journal_enabled && legacyObservation?.ledger_clean && (legacyObservation?.legacy_rows_pending_backfill ?? 0) === 0) ? 'Clean' : 'Attention'}
+                        detail={`Pending backfill: ${fmt(legacyObservation?.legacy_rows_pending_backfill ?? 0)}`}
+                    />
+                    <Metric
+                        label="Baseline Recorded"
+                        value={legacyObservation?.baseline_recorded_at ? fmtTime(legacyObservation.baseline_recorded_at) : 'Not Recorded'}
+                        detail={`${fmt(legacyObservation?.observation_hours ?? 0)} / ${fmt(legacyObservation?.required_observation_hours ?? 72)}h elapsed`}
+                    />
+                </div>
+                <p style={S.note}>Tracks All Five Phase 12 Pre-Deletion Legacy Queries Against The Anchored Baseline Snapshot Before Any Legacy Route Or RPC Retirement.</p>
+            </Panel>
 
             <Panel title="Release controls">
                 <div style={S.grid}>
@@ -659,7 +807,24 @@ export default function TriviaOperationsPage() {
                     <Metric label="Capabilities" value={(data.authority?.capabilities || []).join(', ') || 'None'} />
                     <Metric label="Recent receipts" value={data.operator_events?.length || 0} />
                     <Metric label="Durable alert episodes" value={data.operations_health?.activeEpisodes?.length || 0} />
+                    <Metric
+                        label="Operator MFA Session"
+                        value={operatorMfa.verified ? 'Verified' : 'Unverified'}
+                        detail={operatorMfa.verified
+                            ? (operatorMfa.expiresAt ? `Expires ${fmtTime(operatorMfa.expiresAt)}` : 'Active')
+                            : (operatorMfa.reason || 'MFA challenge required')}
+                    />
                 </div>
+                {!operatorMfa.verified ? (
+                    <div style={S.actions}>
+                        <a
+                            href={operatorMfa.stepUpUrl || '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations'}
+                            style={S.mfaLink}
+                        >
+                            Verify MFA Session
+                        </a>
+                    </div>
+                ) : null}
             </Panel>
 
             {can('question_quarantine') || can('question_release') ? (
@@ -959,7 +1124,9 @@ const S = {
     panel: { marginBottom: 20, padding: 'clamp(16px, 2vw, 24px)', background: '#0d141d', border: '1px solid #283746', borderRadius: 10 },
     panelHead: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 16 },
     issuePanel: { marginBottom: 20, padding: 20, background: '#2b1115', border: '1px solid #9f303b', borderRadius: 10 },
+    mfaPanel: { marginBottom: 20, padding: 20, background: '#291e0b', border: '1px solid #d97706', borderRadius: 10 },
     resultPanel: { marginBottom: 20, padding: 20, background: '#0d261c', border: '1px solid #2d8b60', borderRadius: 10 },
+    mfaLink: { display: 'inline-flex', alignItems: 'center', minHeight: 42, padding: '9px 15px', border: '1px solid #f59e0b', borderRadius: 6, background: '#78350f', color: '#fffbeb', fontWeight: 750, textDecoration: 'none' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(210px, 100%), 1fr))', gap: 12 },
     metric: { minWidth: 0, padding: 14, background: '#111d29', border: '1px solid #2a3c4d', borderRadius: 8 },
     metricLabel: { color: '#a9bac9', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' },

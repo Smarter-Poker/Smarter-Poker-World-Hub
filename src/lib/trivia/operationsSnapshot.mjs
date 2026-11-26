@@ -781,6 +781,260 @@ export function normalizeBurnInScorecard(value) {
     };
 }
 
+export const LEGACY_OBSERVATION_RPC_NAMES = Object.freeze([
+    'trivia_legacy_session_answer_v1',
+    'trivia_legacy_session_answer_before_phase9_v1',
+    'trivia_solo_spend_before_phase9_v1',
+    'trivia_paid_skip_adopt_legacy_v1',
+    'trivia_operator_execute_before_payout_control_v1',
+    'trivia_tournament_field_v1',
+    'trivia_tournament_bracket_v1',
+    'trivia_tournament_match_v1',
+    'trivia_tournament_results_v1',
+    'create_trivia_pvp_session_v2',
+    'enter_trivia_tournament_v2',
+]);
+
+export const LAUNCH_READINESS_GATE_KEYS = Object.freeze([
+    'burnin_7_nights',
+    'operator_mfa_http_write',
+    'legacy_observation_window',
+    'physical_device_human_review',
+]);
+
+export function normalizeLegacyObservation(value) {
+    if (!plainObject(value)) {
+        return {
+            available: false,
+            contract: 'trivia-phase12-legacy-observation/1',
+            generated_at: null,
+            baseline_recorded_at: null,
+            observation_hours: 0,
+            required_observation_hours: 72,
+            legacy_rows: {
+                solo_7d: 0,
+                pvp_7d: 0,
+                tournaments_7d: 0,
+                total_7d: 0,
+            },
+            rpc_stats: {},
+            rpc_deltas: {},
+            total_retired_rpc_delta: 0,
+            ledger_clean: false,
+            legacy_rows_pending_backfill: 0,
+            solo_journal_enabled: false,
+            zero_legacy_traffic: false,
+            window_satisfied: false,
+        };
+    }
+
+    const rawRows = plainObject(value.legacy_rows) ? value.legacy_rows : {};
+    const solo7d = toNonNegInt(rawRows.solo_7d);
+    const pvp7d = toNonNegInt(rawRows.pvp_7d);
+    const tournaments7d = toNonNegInt(rawRows.tournaments_7d);
+    const total7d = finite(rawRows.total_7d)
+        ? toNonNegInt(rawRows.total_7d)
+        : (solo7d + pvp7d + tournaments7d);
+
+    const rawStats = plainObject(value.rpc_stats) ? value.rpc_stats : {};
+    const rawDeltas = plainObject(value.rpc_deltas) ? value.rpc_deltas : {};
+    const rpcStats = {};
+    const rpcDeltas = {};
+    for (const fnName of LEGACY_OBSERVATION_RPC_NAMES) {
+        rpcStats[fnName] = toNonNegInt(rawStats[fnName]);
+        rpcDeltas[fnName] = toNonNegInt(rawDeltas[fnName]);
+    }
+
+    const observationHours = finite(value.observation_hours)
+        ? Math.max(0, Math.round(Number(value.observation_hours) * 100) / 100)
+        : 0;
+    const requiredObservationHours = finite(value.required_observation_hours)
+        ? Math.max(1, Math.trunc(Number(value.required_observation_hours)))
+        : 72;
+    const totalRetiredRpcDelta = toNonNegInt(value.total_retired_rpc_delta);
+    const ledgerClean = value.ledger_clean === true;
+    const legacyRowsPendingBackfill = toNonNegInt(value.legacy_rows_pending_backfill);
+    const soloJournalEnabled = value.solo_journal_enabled === true;
+    const zeroLegacyTraffic = value.zero_legacy_traffic === true
+        && total7d === 0
+        && totalRetiredRpcDelta === 0
+        && ledgerClean
+        && legacyRowsPendingBackfill === 0
+        && soloJournalEnabled;
+    const windowSatisfied = value.window_satisfied === true
+        && zeroLegacyTraffic
+        && observationHours >= requiredObservationHours;
+
+    return {
+        available: typeof value.baseline_recorded_at === 'string' || typeof value.generated_at === 'string',
+        contract: typeof value.contract === 'string' ? value.contract : 'trivia-phase12-legacy-observation/1',
+        generated_at: typeof value.generated_at === 'string' ? value.generated_at : null,
+        baseline_recorded_at: typeof value.baseline_recorded_at === 'string' ? value.baseline_recorded_at : null,
+        observation_hours: observationHours,
+        required_observation_hours: requiredObservationHours,
+        legacy_rows: {
+            solo_7d: solo7d,
+            pvp_7d: pvp7d,
+            tournaments_7d: tournaments7d,
+            total_7d: total7d,
+        },
+        rpc_stats: rpcStats,
+        rpc_deltas: rpcDeltas,
+        total_retired_rpc_delta: totalRetiredRpcDelta,
+        ledger_clean: ledgerClean,
+        legacy_rows_pending_backfill: legacyRowsPendingBackfill,
+        solo_journal_enabled: soloJournalEnabled,
+        zero_legacy_traffic: zeroLegacyTraffic,
+        window_satisfied: windowSatisfied,
+    };
+}
+
+export function normalizeLaunchReadiness(value) {
+    const emptyGates = {
+        burnin_7_nights: {
+            passed: false,
+            status: 'pending',
+            scorecard: '0/7',
+            passed_nights: 0,
+            total_nights: 7,
+            failed_nights: 0,
+            ledger_clean: false,
+            detail: '0/7 nights certified',
+        },
+        operator_mfa_http_write: {
+            passed: false,
+            status: 'pending',
+            signed_at: null,
+            evidence_ref: null,
+            detail: 'Awaiting live MFA-verified operator write',
+        },
+        legacy_observation_window: {
+            passed: false,
+            status: 'pending',
+            observation_hours: 0,
+            required_observation_hours: 72,
+            zero_legacy_traffic: false,
+            total_7d: 0,
+            total_retired_rpc_delta: 0,
+            detail: '0 / 72h zero-legacy window',
+        },
+        physical_device_human_review: {
+            passed: false,
+            status: 'pending',
+            ios_signed_at: null,
+            android_signed_at: null,
+            push_signed_at: null,
+            detail: '0/3 physical device sign-offs recorded',
+        },
+    };
+
+    if (!plainObject(value)) {
+        return {
+            available: false,
+            contract: 'trivia-phase12-launch-readiness/1',
+            generated_at: null,
+            ready_to_unlock_public_card: false,
+            passed_gates: 0,
+            total_gates: 4,
+            gates: emptyGates,
+        };
+    }
+
+    const rawGates = plainObject(value.gates) ? value.gates : {};
+    const rawBurnIn = plainObject(rawGates.burnin_7_nights) ? rawGates.burnin_7_nights : {};
+    const rawMfa = plainObject(rawGates.operator_mfa_http_write) ? rawGates.operator_mfa_http_write : {};
+    const rawLegacy = plainObject(rawGates.legacy_observation_window) ? rawGates.legacy_observation_window : {};
+    const rawPhysical = plainObject(rawGates.physical_device_human_review) ? rawGates.physical_device_human_review : {};
+
+    const burnInPassed = rawBurnIn.passed === true;
+    const mfaPassed = rawMfa.passed === true;
+    const legacyPassed = rawLegacy.passed === true;
+    const physicalPassed = rawPhysical.passed === true
+        && typeof rawPhysical.ios_signed_at === 'string'
+        && typeof rawPhysical.android_signed_at === 'string'
+        && typeof rawPhysical.push_signed_at === 'string';
+
+    const gates = {
+        burnin_7_nights: {
+            passed: burnInPassed,
+            status: ['passed', 'pending', 'failed'].includes(rawBurnIn.status)
+                ? rawBurnIn.status
+                : (burnInPassed ? 'passed' : 'pending'),
+            scorecard: typeof rawBurnIn.scorecard === 'string' ? rawBurnIn.scorecard : '0/7',
+            passed_nights: toNonNegInt(rawBurnIn.passed_nights),
+            total_nights: finite(rawBurnIn.total_nights) ? Math.max(1, Math.trunc(Number(rawBurnIn.total_nights))) : 7,
+            failed_nights: toNonNegInt(rawBurnIn.failed_nights),
+            ledger_clean: rawBurnIn.ledger_clean === true,
+            detail: typeof rawBurnIn.detail === 'string' ? rawBurnIn.detail : '0/7 nights certified',
+        },
+        operator_mfa_http_write: {
+            passed: mfaPassed,
+            status: mfaPassed ? 'passed' : 'pending',
+            signed_at: typeof rawMfa.signed_at === 'string' ? rawMfa.signed_at : null,
+            evidence_ref: typeof rawMfa.evidence_ref === 'string' ? rawMfa.evidence_ref : null,
+            detail: typeof rawMfa.detail === 'string' ? rawMfa.detail : 'Awaiting live MFA-verified operator write',
+        },
+        legacy_observation_window: {
+            passed: legacyPassed,
+            status: ['passed', 'pending', 'attention'].includes(rawLegacy.status)
+                ? rawLegacy.status
+                : (legacyPassed ? 'passed' : 'pending'),
+            observation_hours: finite(rawLegacy.observation_hours)
+                ? Math.max(0, Math.round(Number(rawLegacy.observation_hours) * 100) / 100)
+                : 0,
+            required_observation_hours: finite(rawLegacy.required_observation_hours)
+                ? Math.max(1, Math.trunc(Number(rawLegacy.required_observation_hours)))
+                : 72,
+            zero_legacy_traffic: rawLegacy.zero_legacy_traffic === true,
+            total_7d: toNonNegInt(rawLegacy.total_7d),
+            total_retired_rpc_delta: toNonNegInt(rawLegacy.total_retired_rpc_delta),
+            detail: typeof rawLegacy.detail === 'string' ? rawLegacy.detail : '0 / 72h zero-legacy window',
+        },
+        physical_device_human_review: {
+            passed: physicalPassed,
+            status: physicalPassed ? 'passed' : 'pending',
+            ios_signed_at: typeof rawPhysical.ios_signed_at === 'string' ? rawPhysical.ios_signed_at : null,
+            android_signed_at: typeof rawPhysical.android_signed_at === 'string' ? rawPhysical.android_signed_at : null,
+            push_signed_at: typeof rawPhysical.push_signed_at === 'string' ? rawPhysical.push_signed_at : null,
+            detail: typeof rawPhysical.detail === 'string' ? rawPhysical.detail : '0/3 physical device sign-offs recorded',
+        },
+    };
+
+    const passedGates = LAUNCH_READINESS_GATE_KEYS.filter((key) => gates[key].passed === true).length;
+    const readyToUnlockPublicCard = passedGates === 4 && value.ready_to_unlock_public_card === true;
+
+    return {
+        available: typeof value.generated_at === 'string' || plainObject(value.gates),
+        contract: typeof value.contract === 'string' ? value.contract : 'trivia-phase12-launch-readiness/1',
+        generated_at: typeof value.generated_at === 'string' ? value.generated_at : null,
+        ready_to_unlock_public_card: readyToUnlockPublicCard,
+        passed_gates: passedGates,
+        total_gates: 4,
+        gates,
+    };
+}
+
+export function normalizeOperatorMfa(value) {
+    const defaultStepUpUrl = '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations';
+    if (!plainObject(value)) {
+        return {
+            verified: false,
+            expiresAt: null,
+            reason: 'MFA challenge required',
+            stepUpUrl: defaultStepUpUrl,
+        };
+    }
+    const verified = value.verified === true;
+    return {
+        verified,
+        expiresAt: verified && typeof value.expiresAt === 'string' ? value.expiresAt : null,
+        reason: verified ? null : (typeof value.reason === 'string' && value.reason.trim() ? value.reason.trim() : 'MFA challenge required'),
+        stepUpUrl: typeof value.stepUpUrl === 'string' && value.stepUpUrl.startsWith('/')
+            ? value.stepUpUrl
+            : defaultStepUpUrl,
+    };
+}
+
 /**
  * Build the browser-safe read-only control-room payload.
  *
@@ -822,6 +1076,9 @@ export function buildTriviaOperationsSnapshot(input = {}) {
     const integrityReview = normalizeIntegrityReview(input.integrityReview);
     const playerFunnel = normalizePlayerFunnel(input.playerFunnel);
     const burnInScorecard = normalizeBurnInScorecard(input.burnInScorecard);
+    const legacyObservation = normalizeLegacyObservation(input.legacyObservation);
+    const launchReadiness = normalizeLaunchReadiness(input.launchReadiness);
+    const operatorMfa = normalizeOperatorMfa(input.operatorMfa);
     const issues = [];
 
     for (const source of Object.keys(sourceErrors).sort()) {
@@ -945,6 +1202,9 @@ export function buildTriviaOperationsSnapshot(input = {}) {
         treasury_economics: treasuryEconomics,
         tonight_fill_monitor: tonightFillMonitor,
         burnin_scorecard: burnInScorecard,
+        legacy_observation: legacyObservation,
+        launch_readiness: launchReadiness,
+        operator_mfa: operatorMfa,
         integrity_review: integrityReview,
         player_funnel: playerFunnel,
         authority,
