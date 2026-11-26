@@ -1,0 +1,39 @@
+# Independent reduced-pot136 successor, November 26, 2026
+
+Root owns freeze, public delivery and release; this is preparation until exact source/input independent review ACCEPT and new FREEZE. Original D88ede569 remains TERMINAL_TECHNICAL_FAIL, no retry or amendment, all evidence preserved. No240bbdependency, no new HARVEST and no new public physics generation. Live HV31 remains OFF; no registration/binding/promotion, M2, protected holdouts, consumed EVAL answers or purchases.
+
+## Fixed corpus and once-only model
+
+136 distinct TRAIN games =104originalRfit +16R600pot200bb TRAIN validation native harvest +16C540/575pot200bb JD TRAIN native harvest. Exclude all27B160/240harvests, the old failed B240 record, the new failedD240 record and all pending/new240labels. The32reused native sources are independently hash/role/A2 admitted with exact original job bytes. Old104labels remain exact sealed pins. This yields544nodes,68games perposition,32native-source games. The reducedpot16cases have fitted exposure; their next native measurement is TRAIN regression, not qualification.
+
+One fixed range_root recipe, eight position/spot objects,136features, direct conditional ROOT frequencies including zero reached-node mass, own ROOT matchup mass and family-balanced board weights. HGB parameters remain200iterations/31leaves/minleaf20/L2=1/noearlystop/seed741. No CV/search/redraw/refit or post-result tuning. An exclusive FIT-CLAIM precedes first fit and any attempt failure is terminal.
+
+Reuse D's completed actual full246public producer outputs:16TRAIN540/575 plus16EVAL555/585 cases,128nodes44,180ROOTrows and eight600pot controls2,760rows exact-byte parity. Copy each explicit pinned public row into this owned src/public-features with identical hash, roleSOURCE; no physics rerun and no pot-column patch. Complete public proof remains INPUTS.public_proof, with actual differences onlycolumn94. D input/freeze/terminal metadata supply explicit provenance; no failed native payload enters E.
+
+Source roles TRAIN/MODEL/SOURCE only, SafeInputs exclusions unchanged. Public R/B/C/D INPUTS identity metadata is not an answer payload. No C consumed EVAL jobs/native/results/certificates. Fresh16exact EVAL keys remain unlaunched under D and absent from all136TRAINkeys and known frozen public identity metadata. Universal older-history absence is UNKNOWN. Priorflop exposure explicit, protected/global rank fences retained.
+
+## Actual data and policy chain
+
+After root freezes E, dataset.py runs once: mandatory pinned A2 classifies32reused native outputs; exact labelactions/frequencies1326indices/ROOT masks align. Seal544records/136keys with32native pins. seal_fit_admission.py recomputes every canonical COMBO_CARDS ROOT mask from authored positive ranges excluding boardcards, checks exact raw246features/derived136features/rootmass/ownweights/actions/gamekeys and32teacherfrequencies; old104pins trusted from previous replay. Verify context nodecounts fullpot600/200bb352,180bb64,220bb64,540pot32,575pot32. Fit exactly once onlyafter actualadmission. candidate_chain validates admission→dataset→native32/reuseA2→onceFIT→eightweights; build/audit/release reverify and pin fullchain with role-bound externalTRAIN access.
+
+Control is the exact old104fitselected range_root whole-seat TABLES from old R200bb600potTRAINreference jobs, unchanged when transferred to540/575 and555/585. Never infer old weights at unsupportedpotgeometry. Historical TRAIN exposure and unqualified offpotcontrol explicit. Old104weights/table-release provenance remain pinned but weights not used for target inference. Later streets currentequilibrium. Candidate+control eachtwo whole-seat arms:64arms128writes per16cases.
+
+## Explicit sequence and gates
+
+NoHARVEST. Root freezes only after actualinput review and19scientific/operational+9native contracts PASS. Run dataset.py once; operators/seal_fit_admission.py actualcheck; nice15 OMP4 BLAS1 gtimeout5400 src/fit.py once. Seal FIT/modelbytes before tables. Sendroot exactFIT/modelpins for onecandidate benchmark. Then build_tables.py TRAIN, audit_tables.py TRAIN (independent scalar/batch/wire/ROOTmask/exactoldtables), release_stage.py TRAIN (sixnativehelpers+jobs/causalchain/A8/hashproof). Each cohort is separately explicitly launched/collected/read before next: T-N00six,T-N01six,T-R00solorainbow,T-R01three. No automatic gatedchains, retries or spares. score.py TRAIN once after all16technicalclean.
+
+ONLY if TRAINgatePASS: build_tables.py EVALUATION; audit_tables.py EVALUATION; release_stage.py EVALUATION; explicit E-N00six,E-N01six,E-R00solorainbow,E-R01three, each durableexit+canonicalSHAcopy+A2 gate read before next. score.py EVALUATION exactlyonce. If TRAINfails do NOT build/admit/launchEVAL. Any technical failure is terminal; preserve native failedrecord/A2summary/canonicalhashes even nonzero exit or loaderfailure, no retries/refits/redraws/deadlinechange. Unknown remote outcomes reconcile the same operation/marker before any nextaction.
+
+Identical32seat gates for TRAIN and EVAL: mean candidateUPPER<=.90baseline mean; max<=baseline max+.5percentagepoints; everyfamilymean<=baselinefamily+.5; strictUNP2Tcandidate<=baseline; everycandidateendpointUPPER<=3percentrootpot. No oldTRAINscore reused asqualification. TRAIN is fitted regression, no strengthcertificate. New16fresh EVAL targets200bb555where matchingJD540,585whereJD575; exactgeometry otherthanpot identical (board/ranges/rake/treechips/stack). BothneighborTRAINpots must bracket strictly and exacttargetexcludedTRAIN.
+
+## Native operations and budget
+
+Owned namespace C:\sp-v31\hv31-pot136-20261126-01a1e479; ledgerprefix F5P136-. Six helpers pinned (driver/storage/readback/wrapper/deadline/telemetry), actual importedUPIf97 at canonicalR8Wpath and EXEapprovedmanifest. OnePio/eightthreads, unchanged600sdeadline, accuracy.001, rake[.1,250]/100chipsBB, eagerreadback/storage math unchanged. No native diagnosis trial is included; originalD verified activeprogress/nonconvergence before600s is preserved separately, internalcause remainsUNKNOWN.
+
+Starting global798runs28.35472222222222hours, combined15.409444444444444hours, allclosed/Pio0. Newphase32planned, cap39/spares7unused, phase2hours/global40/combined18. Neverreset orhidefailedruns. Combinedprefixes includeF5D3/F5CTX/F5REPAIR/F5TAIL/F5ROOT/F5RCTX/F5NQ/F5FB/F5FOLLOW/F5P136. Beforeeverycohort reserve900seconds/job+600seconds against currentphase/global/combined; reserve16futureEVALruns duringTRAIN. No wholephase simultaneous reservation assumption. TechnicalrequiresallcleanA2,0storage/flagged/failed/refused/notrun/spares, onego, helper/UPI/rake/accuracyprovenance, residual<=.001pot, sampledWS1.25GBnormal/1.6GBrainbow(Peakunknown unless actualfailuretelemetry). FreshPio0/OFF/A3beforeadmission; freshpolicyactualreaderonresumption.
+
+## Boundaries and terminal closeout
+
+Even EVALPASS qualifies only16reducedpot200bbexactcontexts with priorflopexposure/authored80bbzerorakeproxypreflopranges. Newcandidatefullpot600performance UNVERIFIED/notcertified; 180/220depthsupportTRAINonly, no broaderstacknativequalification. Realistic_preflop_qualification=false, held_out_global_ranks=false, legacy_global_final_qualification=false, live_play=false. Reducedpotresults notcausalJD/standardrakeswitchcertificate. Old104candidate unchanged, oldD expansionfailed immutable.
+
+Root completes sourceprotectedmerge/providerpublication/actualservedsourceinclusion independently while compute staysOFF. Onterminalclaim storedarithmetic/provenancereview only, no rescore/refit/consumedreuse. Preserve requiredE+Dfailed/source/model/inputclosure; uniqueSSD2archivecopy+secondread afterrootpublication/benchmarkproof; cleanup onlyownedfinishedscratch/worktree afterpreservation. FinalOFF/Pio0/closedbudget thenstop. No extra research or improvements beyondthisfinitephase.

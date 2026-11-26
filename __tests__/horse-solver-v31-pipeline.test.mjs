@@ -227,10 +227,11 @@ test('sealed context fallback preserves independent JD and original candidate pr
   assert.match(result.stderr, /OK/);
 });
 
-test('dormant pot and depth repair preserves admission and durable native failure contracts', () => {
+for (const folder of ['pot-depth-repair', 'pot-repair136']) {
+test(`dormant ${folder} preserves admission and durable native failure contracts`, () => {
   const python = process.env.V31_NUMERIC_PYTHON || process.env.PYTHON_BIN || 'python3';
   for (const suite of ['test_source_contract.py', 'driver/test_native_telemetry.py']) {
-    const result = spawnSync(python, ['-I', '-B', 'scripts/horse-solver-v31/pot-depth-repair/' + suite], {
+    const result = spawnSync(python, ['-I', '-B', 'scripts/horse-solver-v31/' + folder + '/' + suite], {
       cwd: ROOT, encoding: 'utf8', timeout: 120_000,
       env: { ...process.env, OMP_NUM_THREADS: '1', OPENBLAS_NUM_THREADS: '1', MKL_NUM_THREADS: '1' },
     });
@@ -241,8 +242,8 @@ test('dormant pot and depth repair preserves admission and durable native failur
   }
 });
 
-test('pot and depth repair publication contains its exact maintained source and no private inputs', () => {
-  const base = 'scripts/horse-solver-v31/pot-depth-repair/';
+test(`${folder} publication contains its exact maintained source and no private inputs`, () => {
+  const base = 'scripts/horse-solver-v31/' + folder + '/';
   const manifest = JSON.parse(read(base + 'source-manifest.json'));
   assert.equal(manifest.live_play, false);
   assert.equal(manifest.private_inputs_included, false);
@@ -253,3 +254,4 @@ test('pot and depth repair publication contains its exact maintained source and 
     assert.equal(actual, expected, `published source drift: ${path}`);
   }
 });
+}
