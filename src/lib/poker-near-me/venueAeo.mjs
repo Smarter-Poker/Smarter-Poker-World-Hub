@@ -102,28 +102,34 @@ export function buildVenueSpeakableJsonLd(canonicalUrl) {
 
 /**
  * Builds a 40-60 word factual summary for a poker tournament series.
+ * Accepts both snake_case DB/API records and camelCase SSR toSeoSeries objects.
  */
 export function buildSeriesFactKernel(series, venueName, dateRange) {
   if (!series || !series.name) return '';
   const name = clean(series.name);
   const vName = venueName ? clean(venueName) : 'verified host venues';
   const dates = dateRange ? clean(dateRange) : 'scheduled dates';
-  const mainBuyin = series.main_event_buyin ? `$${Number(series.main_event_buyin).toLocaleString('en-US')}` : 'TBD';
-  const totalGtd = series.total_guaranteed ? `$${Number(series.total_guaranteed).toLocaleString('en-US')}` : 'competitive prize pools';
+  const buyinRaw = series.main_event_buyin ?? series.mainEventBuyin;
+  const gtdRaw = series.total_guaranteed ?? series.main_event_guaranteed ?? series.mainEventGuaranteed;
+  const mainBuyin = Number(buyinRaw) > 0 ? `$${Number(buyinRaw).toLocaleString('en-US')}` : 'TBD';
+  const totalGtd = Number(gtdRaw) > 0 ? `$${Number(gtdRaw).toLocaleString('en-US')}` : 'competitive prize pools';
 
   return `${name} is an official poker tournament series running at ${vName} during ${dates}. The schedule features a ${mainBuyin} Main Event buy-in with ${totalGtd} in total guarantees across scheduled events. Explore complete event dates, blind structures, and tournament results on Smarter.Poker.`;
 }
 
 /**
  * Generates conversational People Also Ask (PAA) question/answer pairs for tournament series.
+ * Accepts both snake_case DB/API records and camelCase SSR toSeoSeries objects.
  */
 export function buildSeriesPaaQuestions(series, venueName, dateRange) {
   if (!series || !series.name) return [];
   const name = clean(series.name);
   const vName = venueName ? clean(venueName) : 'the host card room';
   const dates = dateRange ? clean(dateRange) : 'the published series window';
-  const mainBuyin = series.main_event_buyin ? `$${Number(series.main_event_buyin).toLocaleString('en-US')}` : 'to be announced';
-  const totalGtd = series.total_guaranteed ? `$${Number(series.total_guaranteed).toLocaleString('en-US')}` : 'announced per event';
+  const buyinRaw = series.main_event_buyin ?? series.mainEventBuyin;
+  const gtdRaw = series.total_guaranteed ?? series.main_event_guaranteed ?? series.mainEventGuaranteed;
+  const mainBuyin = Number(buyinRaw) > 0 ? `$${Number(buyinRaw).toLocaleString('en-US')}` : 'to be announced';
+  const totalGtd = Number(gtdRaw) > 0 ? `$${Number(gtdRaw).toLocaleString('en-US')}` : 'announced per event';
 
   return [
     {

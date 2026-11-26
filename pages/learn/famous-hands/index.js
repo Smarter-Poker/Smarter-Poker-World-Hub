@@ -266,6 +266,8 @@ export default function FamousHandsIndexPage() {
                   </Link>
                   <Link
                     href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(h.heroHandCode)}&hand2=${encodeURIComponent(h.villainHandCode)}`}
+                    rel="nofollow"
+                    prefetch={false}
                     style={styles.toolLink}
                   >
                     Simulate In Odds Calculator

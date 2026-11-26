@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import FaqSection from '../../../src/components/seo/FaqSection';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -75,7 +76,21 @@ export async function getStaticProps({ params }) {
   };
 }
 
-function categorySchema({ category, path, description, lessons }) {
+function categoryFaqs({ category, intro, lessons, feature }) {
+  const topLessons = lessons.slice(0, 3).map((l) => l.title).join(', ');
+  return [
+    {
+      question: `What Does ${category} Poker Strategy Cover?`,
+      answer: `${intro} This cluster includes ${lessons.length} free worked lessons${topLessons ? `, starting with ${topLessons}` : ''}.`,
+    },
+    {
+      question: `How Can I Practice ${category} Poker Strategy For Free?`,
+      answer: `Pair these ${lessons.length} ${category} lessons with the free ${feature.toolName} and ${feature.name} on Smarter.Poker to drill solver-backed frequencies with no real-money risk.`,
+    },
+  ];
+}
+
+function categorySchema({ category, path, description, lessons, faqs }) {
   const url = `${SITE_URL}${path}`;
   return [
     {
@@ -105,6 +120,15 @@ function categorySchema({ category, path, description, lessons }) {
       },
     },
     {
+      '@type': 'FAQPage',
+      '@id': `${url}#faq`,
+      mainEntity: faqs.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
+    },
+    {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Smarter.Poker', item: `${SITE_URL}/` },
@@ -117,16 +141,17 @@ function categorySchema({ category, path, description, lessons }) {
 
 export default function LearnCategoryPillarPage({ category, intro, lessons, otherCategories, feature }) {
   const path = learnCategoryPath(category);
-  const description = `${lessons.length} Free ${category} Poker Strategy Lessons On Smarter.Poker: ${intro} Every Lesson Includes Complete Worked Answers And Interactive Practice Tools.`;
+  const faqs = categoryFaqs({ category, intro, lessons, feature });
+  const description = `Master ${category} Poker Strategy With ${lessons.length} Free GTO Lessons & Worked Examples On Smarter.Poker: ${intro} Includes Interactive Practice Tools.`;
 
   return (
     <>
       <SEOHead
-        title={`${category} Poker Strategy: ${lessons.length} Free Lessons`}
+        title={`${category} Poker Strategy: ${lessons.length} Free GTO Lessons`}
         description={description}
         canonical={path}
         markdownUrl={`${SITE_URL}${path}.md`}
-        jsonLd={categorySchema({ category, path, description, lessons })}
+        jsonLd={categorySchema({ category, path, description, lessons, faqs })}
       />
 
       <main style={styles.page}>
@@ -185,12 +210,34 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
                 </Link>
               </li>
               <li>
+                <Link href="/tools/preflop-ranges/btn" style={styles.chip}>
+                  BTN Preflop Ranges
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools/board-texture-analyzer" style={styles.chip}>
+                  Board Texture Analyzer
+                </Link>
+              </li>
+              <li>
+                <Link href="/compare/smarter-poker-vs-piosolver" style={styles.chip}>
+                  Smarter.Poker Vs PioSOLVER
+                </Link>
+              </li>
+              <li>
+                <Link href="/compare/smarter-poker-vs-flopzilla" style={styles.chip}>
+                  Smarter.Poker Vs Flopzilla
+                </Link>
+              </li>
+              <li>
                 <Link href="/glossary" style={styles.chip}>
                   Poker Glossary
                 </Link>
               </li>
             </ul>
           </section>
+
+          <FaqSection heading={`${category} Poker Strategy Questions`} items={faqs} />
 
           <section style={styles.section}>
             <h2 style={styles.h2}>Other Poker Strategy Topic Clusters</h2>

@@ -211,26 +211,32 @@ export default function SEOHead(props) {
   const imageMetadata = shareImageMetadata(ogImage);
   const { geoRegion, geoPlacename, geoPosition, markdownUrl, calendarUrl } = props;
 
-  // Auto-resolve markdownUrl for known routes that serve clean .md representations
+  // Auto-resolve markdownUrl for known routes that serve clean .md representations.
+  // Never emit unexpanded Next.js dynamic route brackets (e.g. [state], [slug]) to crawlers.
   let resolvedMarkdownUrl = markdownUrl;
+  const safeMarkdownFallback = (pathCandidate) =>
+    typeof pathCandidate === 'string' && !/\[[^\]]+\]/.test(pathCandidate)
+      ? `https://smarter.poker${pathCandidate}.md`
+      : undefined;
   if (!resolvedMarkdownUrl && typeof pathname === 'string') {
-    const cleanCanon = typeof props.canonical === 'string'
+    const rawCanon = typeof props.canonical === 'string'
       ? (props.canonical.startsWith('http') ? props.canonical : `https://smarter.poker${props.canonical}`)
       : null;
+    const cleanCanon = rawCanon && !/\[[^\]]+\]/.test(rawCanon) ? rawCanon : null;
     if (pathname.startsWith('/features/')) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (pathname === '/features') {
       resolvedMarkdownUrl = 'https://smarter.poker/features.md';
     } else if (pathname.startsWith('/compare/')) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (pathname === '/compare') {
       resolvedMarkdownUrl = 'https://smarter.poker/compare.md';
     } else if (pathname.startsWith('/glossary/')) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (pathname === '/glossary') {
       resolvedMarkdownUrl = 'https://smarter.poker/glossary.md';
     } else if (pathname.startsWith('/learn/')) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (pathname === '/learn') {
       resolvedMarkdownUrl = 'https://smarter.poker/learn.md';
     } else if (pathname === '/tools/embeds') {
@@ -303,7 +309,7 @@ export default function SEOHead(props) {
       pathname === '/press' ||
       pathname === '/search'
     ) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
     } else if (pathname === '/hub/venues/[id]' || /^\/hub\/venues\/[^/]+$/.test(pathname)) {
@@ -313,7 +319,7 @@ export default function SEOHead(props) {
     } else if (pathname === '/hub/tours/[code]' || /^\/hub\/tours\/[^/]+$/.test(pathname)) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : undefined;
     } else if (pathname === '/research' || pathname.startsWith('/research/')) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (pathname === '/editorial-standards') {
       resolvedMarkdownUrl = 'https://smarter.poker/editorial-standards.md';
     } else if (pathname === '/verification-methodology') {
@@ -368,15 +374,15 @@ export default function SEOHead(props) {
     } else if (pathname === '/hub/training/equity-calculator') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
     } else if (pathname === '/hub/personal-assistant' || pathname.startsWith('/hub/personal-assistant/')) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (pathname === '/hub/install') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/install.md';
     } else if (pathname === '/hub/vip-membership/compare') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/vip-membership/compare.md';
     } else if (/^\/hub\/training\/[a-z0-9-]+$/.test(pathname)) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (/^\/hub\/trivia\/[a-z0-9-]+$/.test(pathname)) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (
       pathname === '/hub/commander/venues' ||
       pathname === '/hub/commander/tournaments' ||
@@ -412,7 +418,7 @@ export default function SEOHead(props) {
       pathname.startsWith('/hub/home-games/in/') ||
       pathname === '/hub/home-games/[slug]'
     ) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     } else if (pathname === '/hub/daily-tournaments') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/daily-tournaments.md';
     } else if (pathname === '/hub/events-calendar') {
@@ -444,8 +450,11 @@ export default function SEOHead(props) {
         resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me.md';
       }
     } else if (pathname === '/hub/poker-near-me/in' || pathname.startsWith('/hub/poker-near-me/in/')) {
-      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : safeMarkdownFallback(pathname);
     }
+  }
+  if (resolvedMarkdownUrl && /\[[^\]]+\]/.test(resolvedMarkdownUrl)) {
+    resolvedMarkdownUrl = undefined;
   }
 
   // Auto-resolve calendarUrl for known routes that serve clean .ics calendar feeds
