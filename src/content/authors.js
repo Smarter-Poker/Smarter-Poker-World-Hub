@@ -88,7 +88,7 @@ export const EDITORIAL_AUTHORS = [
     primaryDoi: '10.5281/zenodo.24115454',
     orcidStyleId: 'https://smarter.poker/authors/live-venue-intelligence-team#org',
     summary:
-      'The Smarter.Poker Live Venue Intelligence Team Maintains And Verifies The Nationwide Poker Near Me Directory Covering 324+ Active US Poker Venues, 4,500+ Weekly Scheduled Tournaments, 15 US State Gaming Law And Tax Guides, 12 Regional Market Guides, And 10 International Poker Destination Profiles.',
+      'The Smarter.Poker Live Venue Intelligence Team Maintains And Verifies The Nationwide Poker Near Me Directory Covering 324+ Active US Poker Venues, 4,500+ Weekly Scheduled Tournaments, All 50 US States And DC Gaming Law And Tax Guides, 12 Regional Market Guides, And 10 International Poker Destination Profiles.',
     credentials: [
       'Direct Floor Verification & Club Commander Live Telemetry Integration For Waitlists, Table Counts, And Tournament Clocks.',
       'State-By-State Statutory Audit Covering State Gaming Commissions, Tribal Gaming Compacts, And Texas Social Club Models.',
@@ -114,7 +114,7 @@ export const EDITORIAL_AUTHORS = [
       { name: 'Bad Beat Jackpot & Promo EV Calculator', href: '/tools/promo-ev-calculator' },
     ],
     researchReports: [
-      { name: '15 US State Poker Laws & Tax Directory', href: '/poker-rooms/states' },
+      { name: 'All 50 US States & DC Poker Laws & Tax Directory', href: '/poker-rooms/states' },
       { name: '12 US Regional Poker Market Guides', href: '/poker-rooms/guides' },
       { name: '10 International Poker Destination Guides', href: '/poker-rooms/international' },
       { name: '30 Official TDA & RROP Floor Rulings', href: '/rules' },

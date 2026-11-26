@@ -75,6 +75,25 @@ async function verifyBrowserSession(context) {
   }
 }
 
+export async function findCatalogPlayButton(page, game) {
+  const entry = page.locator(`[data-training-play-game="${game.id}"]`);
+  const pagination = page.getByRole('navigation', { name: 'Training Game Pages' });
+  const next = pagination.getByRole('button', { name: 'Next', exact: true });
+  await page.locator('[data-training-play-game]').first().waitFor({ timeout: ANSWER_TIMEOUT });
+  for (let index = 0; index < TRAINING_LIBRARY.length; index++) {
+    if (await entry.count()) {
+      return await entry.evaluate(element => element.tagName === 'BUTTON')
+        ? entry
+        : entry.getByRole('button', { name: `Play ${game.name},`, exact: false });
+    }
+    assert.ok(await next.count() && await next.isEnabled(), 'catalog Play control missing');
+    const current = await pagination.locator('span').textContent();
+    await next.click();
+    await pagination.locator('span').filter({ hasNotText: current || '' }).waitFor();
+  }
+  throw new Error('catalog pagination exceeded the game count');
+}
+
 async function verifyGame(page, origin, game, entry, throughResults, recordPacer) {
   entry.stage = 'open';
   const url = new URL('/hub/training/arena/' + encodeURIComponent(game.id), origin);
@@ -86,7 +105,7 @@ async function verifyGame(page, origin, game, entry, throughResults, recordPacer
   assert.ok(opened?.ok(), 'game entry did not load');
   if (throughResults) {
     entry.stage = 'play';
-    const play = page.locator('[data-training-play-game="' + game.id + '"]');
+    const play = await findCatalogPlayButton(page, game);
     await Promise.all([
       page.waitForURL(candidate => candidate.origin === origin && candidate.pathname === url.pathname
         && candidate.searchParams.get('start') === '1', { timeout: ANSWER_TIMEOUT }),

@@ -364,7 +364,7 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'CollectionPage',
         '@id': `${SITE}/poker-rooms/states#states`,
-        name: 'Smarter.Poker 15 US State Poker Legality, Tax Withholding & Room Directory',
+        name: `Smarter.Poker ${US_POKER_STATES.length} US State & DC Poker Legality, Tax Withholding & Room Directory`,
         url: `${SITE}/poker-rooms/states`,
         dateModified: STATES_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },

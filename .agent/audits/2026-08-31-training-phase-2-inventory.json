@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 395,
-    "componentFiles": 60,
+    "dependencyFiles": 401,
+    "componentFiles": 62,
     "hookFiles": 16,
-    "ctas": 537,
-    "dialogs": 16,
+    "ctas": 538,
+    "dialogs": 18,
     "persistenceFiles": 92,
     "realtimeFiles": 6,
     "tests": 192,
     "markerCandidates": 391,
-    "possibleUnwiredFunctions": 452,
+    "possibleUnwiredFunctions": 457,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -1666,7 +1666,7 @@
         "success": true,
         "authExpiry": false
       },
-      "ctaCount": 14,
+      "ctaCount": 13,
       "dialogCount": 0,
       "apiReferences": [
         "/api/training/equity"
@@ -2285,13 +2285,13 @@
         "empty": true,
         "error": true,
         "retry": false,
-        "offline": false,
+        "offline": true,
         "stale": false,
         "success": true,
         "authExpiry": false
       },
       "ctaCount": 5,
-      "dialogCount": 0,
+      "dialogCount": 1,
       "apiReferences": [
         "/api/news/spot-vote",
         "/api/training/equity",
@@ -2326,17 +2326,16 @@
         "loading": true,
         "empty": false,
         "error": true,
-        "retry": false,
+        "retry": true,
         "offline": true,
         "stale": false,
         "success": true,
-        "authExpiry": false
+        "authExpiry": true
       },
-      "ctaCount": 12,
+      "ctaCount": 11,
       "dialogCount": 0,
       "apiReferences": [
-        "/api/og/tool-card",
-        "/api/training/icm-calc"
+        "/api/og/tool-card"
       ],
       "persistenceWrites": {
         "localStorage": 0,
@@ -9425,6 +9424,9 @@
       },
       "reachableFiles": [
         "pages/hub/training/equity-calculator.js",
+        "src/components/bankroll/BankrollHelp.jsx",
+        "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/poker/PlayingCard.jsx",
         "src/components/seo/SEOHead.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -9448,6 +9450,9 @@
         "src/lib/poker-engine/brain/plo8-brain.js",
         "src/lib/poker-engine/brain/session-analytics.js",
         "src/lib/poker-engine/brain/tournament-brain.js",
+        "src/lib/poker/localTrainingEquity.js",
+        "src/lib/poker/runLocalTrainingEquity.js",
+        "src/lib/poker/trainingEquity.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -9473,6 +9478,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/equity-calculator.js",
+            "src/components/poker/PlayingCard.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/brain/core.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
@@ -9526,6 +9532,7 @@
             "src/lib/poker-engine/brain/core.js",
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/poker/runLocalTrainingEquity.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -9568,6 +9575,8 @@
             "src/lib/poker-engine/ChipBridge.js",
             "src/lib/poker-engine/SupabaseResilience.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/poker/localTrainingEquity.js",
+            "src/lib/poker/runLocalTrainingEquity.js",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/solverMatrixTrust.js"
           ],
@@ -9603,6 +9612,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/equity-calculator.js",
+            "src/lib/poker/runLocalTrainingEquity.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
@@ -12501,6 +12511,8 @@
       },
       "reachableFiles": [
         "pages/hub/training/hand-lab.js",
+        "src/components/bankroll/BankrollHelp.jsx",
+        "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/sandbox/paTokens.js",
@@ -12542,6 +12554,9 @@
         "src/lib/messenger/liveInvite.mjs",
         "src/lib/newsletter/weeklyWireCatalog.mjs",
         "src/lib/ownProfile.js",
+        "src/lib/poker/localTrainingEquity.js",
+        "src/lib/poker/runLocalTrainingEquity.js",
+        "src/lib/poker/trainingEquity.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/pushMenuState.mjs",
@@ -12643,6 +12658,7 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/poker/runLocalTrainingEquity.js",
             "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
@@ -12705,6 +12721,8 @@
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/poker/localTrainingEquity.js",
+            "src/lib/poker/runLocalTrainingEquity.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
@@ -12758,10 +12776,12 @@
         "offline": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/hand-lab.js",
             "src/components/seo/HubPageSummary.js",
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/lib/poker/runLocalTrainingEquity.js"
           ],
           "tests": [
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
@@ -12817,6 +12837,8 @@
       },
       "reachableFiles": [
         "pages/hub/training/icm-calculator.js",
+        "src/components/bankroll/BankrollHelp.jsx",
+        "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/seo/AiPromptLauncher.js",
         "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/SEOHead.js",
@@ -12824,23 +12846,19 @@
         "src/engine/EventBus.js",
         "src/hooks/useOnlineStatus.js",
         "src/hooks/useTrainingBus.js",
-        "src/lib/authUtils.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
+        "src/lib/poker/tournamentEquity.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
-        "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js",
-        "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/seo/wikidataRegistry.mjs"
       ],
       "states": {
         "loading": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/icm-calculator.js",
-            "src/lib/authUtils.js"
+            "pages/hub/training/icm-calculator.js"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -12861,6 +12879,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/lib/poker/tournamentEquity.js",
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
@@ -12884,10 +12903,7 @@
           "evidence": [
             "pages/hub/training/icm-calculator.js",
             "src/components/seo/CitationBacklinkBox.js",
-            "src/hooks/useOnlineStatus.js",
-            "src/lib/authUtils.js",
-            "src/lib/supabase.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "src/hooks/useOnlineStatus.js"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -12908,8 +12924,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/lib/authUtils.js",
-            "src/lib/training/boundedTrainingFetch.js"
+            "pages/hub/training/icm-calculator.js"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -12931,7 +12946,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/icm-calculator.js",
-            "src/lib/authUtils.js"
+            "src/lib/poker/tournamentEquity.js"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -12952,9 +12967,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/hooks/useOnlineStatus.js",
-            "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/hooks/useOnlineStatus.js"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -12997,8 +13010,7 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "pages/hub/training/icm-calculator.js"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -27719,6 +27731,7 @@
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
         "src/lib/poker-engine/brain/plo8-brain.js",
+        "src/lib/poker/trainingEquity.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/horseBrainTrainingAdapter.js",
@@ -27767,112 +27780,16 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "parseCardStr",
-          "line": 51,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "getRank",
-          "line": 62,
-          "references": 11,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "getSuit",
-          "line": 63,
-          "references": 8,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "evaluate5Fast",
-          "line": 65,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "bestOf7",
-          "line": 97,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "bestOmaha5",
-          "line": 117,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "toLowRankValue",
-          "line": 145,
-          "references": 6,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "bestOmahaLow8",
-          "line": 150,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "normalizeEquityVariant",
-          "line": 181,
-          "references": 3,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "shufflePartial",
-          "line": 193,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "calcEquity",
-          "line": 200,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "handler",
-          "line": 320,
+          "line": 53,
           "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
-          "name": "roundPct",
-          "line": 290,
-          "references": 6,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "normalizeHandEntry",
-          "line": 353,
+          "line": 86,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -29062,6 +28979,7 @@
       "imports": [
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/poker/tournamentEquity.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -29075,7 +28993,7 @@
       },
       "states": {
         "loading": false,
-        "empty": true,
+        "empty": false,
         "error": true,
         "retry": false,
         "offline": false,
@@ -29099,32 +29017,8 @@
       },
       "functions": [
         {
-          "name": "computeICM",
-          "line": 35,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "recurse",
-          "line": 47,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "computeBubbleFactor",
-          "line": 86,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "handler",
-          "line": 113,
+          "line": 40,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -34236,10 +34130,13 @@
     {
       "file": "pages/hub/training/equity-calculator.js",
       "imports": [
+        "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/poker/PlayingCard.jsx",
         "src/components/seo/SEOHead.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/poker/runLocalTrainingEquity.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/training/horseBrainTrainingAdapter.js"
       ],
@@ -34255,7 +34152,7 @@
         {
           "element": "button",
           "name": "`Select hole card ${idx + 1}`",
-          "line": 112,
+          "line": 115,
           "handler": "() => {\n                setSlot(idx);\n                setOpen(true);\n              }",
           "destination": null,
           "type": "button",
@@ -34265,7 +34162,7 @@
         {
           "element": "button",
           "name": "X",
-          "line": 234,
+          "line": 220,
           "handler": "() => setOpen(false)",
           "destination": null,
           "type": "button",
@@ -34275,7 +34172,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 254,
+          "line": 240,
           "handler": "() => !used && handlePick(rank, suit)",
           "destination": null,
           "type": "button",
@@ -34285,7 +34182,7 @@
         {
           "element": "button",
           "name": "`Select board card ${idx + 1}`",
-          "line": 335,
+          "line": 320,
           "handler": "() => setActiveSlot(idx)",
           "destination": null,
           "type": "button",
@@ -34295,7 +34192,7 @@
         {
           "element": "button",
           "name": "X",
-          "line": 456,
+          "line": 425,
           "handler": "() => setActiveSlot(null)",
           "destination": null,
           "type": "button",
@@ -34305,7 +34202,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 476,
+          "line": 445,
           "handler": "() => !used && handlePick(rank, suit)",
           "destination": null,
           "type": "button",
@@ -34314,18 +34211,8 @@
         },
         {
           "element": "button",
-          "name": "← Training",
-          "line": 1025,
-          "handler": "() => router.push('/hub/training')",
-          "destination": null,
-          "type": "button",
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
           "name": "<dynamic>",
-          "line": 1090,
+          "line": 1078,
           "handler": "() => changeVariant(v.id)",
           "destination": null,
           "type": "button",
@@ -34335,7 +34222,7 @@
         {
           "element": "button",
           "name": "-Way",
-          "line": 1150,
+          "line": 1138,
           "handler": "() => changePlayerCount(n)",
           "destination": null,
           "type": "button",
@@ -34345,7 +34232,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1235,
+          "line": 1223,
           "handler": "calculate",
           "destination": null,
           "type": "button",
@@ -34355,7 +34242,7 @@
         {
           "element": "button",
           "name": "Clear All",
-          "line": 1258,
+          "line": 1246,
           "handler": "clearAll",
           "destination": null,
           "type": "button",
@@ -34365,7 +34252,7 @@
         {
           "element": "button",
           "name": "Retry Server Simulation",
-          "line": 1293,
+          "line": 1281,
           "handler": "() => {\n                    setRetryCount((c) => c + 1);\n                    calculate();\n                  }",
           "destination": null,
           "type": "button",
@@ -34375,7 +34262,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 1345,
+          "line": 1333,
           "handler": "() => {\n                  setRetryCount((c) => c + 1);\n                  calculate();\n                }",
           "destination": null,
           "type": "button",
@@ -34385,7 +34272,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1466,
+          "line": 1454,
           "handler": "() => loadPreset(preset)",
           "destination": null,
           "type": "button",
@@ -34425,7 +34312,7 @@
       "functions": [
         {
           "name": "CardPicker",
-          "line": 72,
+          "line": 75,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -34433,7 +34320,7 @@
         },
         {
           "name": "BoardPicker",
-          "line": 297,
+          "line": 282,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -34441,7 +34328,7 @@
         },
         {
           "name": "EquityBar",
-          "line": 519,
+          "line": 487,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -34449,7 +34336,7 @@
         },
         {
           "name": "formatHand",
-          "line": 642,
+          "line": 610,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -34457,15 +34344,23 @@
         },
         {
           "name": "EquityCalculatorPage",
-          "line": 657,
+          "line": 625,
           "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "showLocalResults",
+          "line": 856,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "handlePick",
-          "line": 76,
+          "line": 79,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -34473,7 +34368,7 @@
         },
         {
           "name": "removeCard",
-          "line": 88,
+          "line": 91,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -34481,7 +34376,7 @@
         },
         {
           "name": "handleOnline",
-          "line": 681,
+          "line": 648,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -34489,7 +34384,7 @@
         },
         {
           "name": "handleOffline",
-          "line": 682,
+          "line": 649,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -34502,7 +34397,7 @@
       "markers": [
         {
           "kind": "SIMULATION",
-          "line": 5,
+          "line": 7,
           "excerpt": "* on specific boards. Uses server-side Monte Carlo simulation.",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -34510,7 +34405,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 975,
+          "line": 936,
           "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -34518,7 +34413,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 991,
+          "line": 952,
           "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -34526,7 +34421,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 1002,
+          "line": 963,
           "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -34534,7 +34429,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1278,
+          "line": 1266,
           "excerpt": "data-offline-equity-fallback=\"true\"",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -34542,7 +34437,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 1310,
+          "line": 1298,
           "excerpt": "Retry Server Simulation {retryCount > 0 ? `(${retryCount})` : ''}",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -36336,6 +36231,7 @@
     {
       "file": "pages/hub/training/hand-lab.js",
       "imports": [
+        "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
@@ -36345,10 +36241,10 @@
         "src/hooks/useTrainingBus.js",
         "src/hooks/useTrainingFeedback.js",
         "src/lib/authUtils.js",
-        "src/lib/newsletter/weeklyWireCatalog.mjs"
+        "src/lib/newsletter/weeklyWireCatalog.mjs",
+        "src/lib/poker/runLocalTrainingEquity.js"
       ],
       "links": [
-        "/hub/training",
         "/hub/training/hand-lab"
       ],
       "apiReferences": [
@@ -36360,18 +36256,8 @@
       "ctas": [
         {
           "element": "button",
-          "name": "← Hub",
-          "line": 478,
-          "handler": "() => router.push('/hub/training')",
-          "destination": null,
-          "type": null,
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
           "name": "Clear Board",
-          "line": 485,
+          "line": 488,
           "handler": "clearAll",
           "destination": null,
           "type": null,
@@ -36381,7 +36267,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 521,
+          "line": 524,
           "handler": "() => handlePickSpotOption(opt.key)",
           "destination": null,
           "type": "button",
@@ -36391,7 +36277,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 634,
+          "line": 637,
           "handler": "() => handleVariantChange(v.id)",
           "destination": null,
           "type": "button",
@@ -36400,8 +36286,18 @@
         },
         {
           "element": "button",
+          "name": "Done",
+          "line": 841,
+          "handler": "() => deckDialog.current.close()",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
           "name": "<dynamic>",
-          "line": 858,
+          "line": 852,
           "handler": "() => handleCardSelect(rank, suit)",
           "destination": null,
           "type": null,
@@ -36410,315 +36306,13 @@
         }
       ],
       "dialogs": {
-        "native": 0,
+        "native": 1,
         "aria": 0,
         "modalComponents": []
       },
       "states": {
         "loading": false,
         "empty": true,
-        "error": true,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": true,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [
-        {
-          "name": "normaliseSpotVotes",
-          "line": 86,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "cardToAscii",
-          "line": 105,
-          "references": 6,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "cardsToAscii",
-          "line": 115,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "HandLabV2",
-          "line": 119,
-          "references": 1,
-          "exported": true,
-          "defaultExport": true,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "getSuitColor",
-          "line": 891,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "spotHoleCount",
-          "line": 209,
-          "references": 5,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "handlePickSpotOption",
-          "line": 261,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "savedHoleCount",
-          "line": 313,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "handleVariantChange",
-          "line": 339,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "handleCardSelect",
-          "line": 352,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "runAnalysis",
-          "line": 392,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "clearAll",
-          "line": 456,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        }
-      ],
-      "possibleUnwiredFunctions": [
-        "HandLabV2"
-      ],
-      "markers": [
-        {
-          "kind": "PLACEHOLDER",
-          "line": 685,
-          "excerpt": "<span style={styles.placeholder}>Card {idx + 1}</span>",
-          "disposition": "visible-ui-state",
-          "review": "accepted",
-          "rationale": "Visible empty/loading UI presentation, not fabricated product data."
-        },
-        {
-          "kind": "PLACEHOLDER",
-          "line": 715,
-          "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
-          "disposition": "visible-ui-state",
-          "review": "accepted",
-          "rationale": "Visible empty/loading UI presentation, not fabricated product data."
-        },
-        {
-          "kind": "PLACEHOLDER",
-          "line": 987,
-          "excerpt": "placeholder: {",
-          "disposition": "visible-ui-state",
-          "review": "accepted",
-          "rationale": "Visible empty/loading UI presentation, not fabricated product data."
-        }
-      ]
-    },
-    {
-      "file": "pages/hub/training/icm-calculator.js",
-      "imports": [
-        "src/components/seo/AiPromptLauncher.js",
-        "src/components/seo/CitationBacklinkBox.js",
-        "src/components/seo/SEOHead.js",
-        "src/components/training/VerifiedToolGateway.jsx",
-        "src/engine/EventBus.js",
-        "src/hooks/useOnlineStatus.js",
-        "src/hooks/useTrainingBus.js",
-        "src/lib/authUtils.js",
-        "src/lib/seo/hubPageSchema.js"
-      ],
-      "links": [
-        "/hub/training",
-        "/hub/training/arena/mtt-002?level=1",
-        "/hub/training/icm-calculator"
-      ],
-      "apiReferences": [
-        "/api/og/tool-card",
-        "/api/training/icm-calc"
-      ],
-      "apiReferencePrefixes": [],
-      "ctas": [
-        {
-          "element": "button",
-          "name": "← Training",
-          "line": 366,
-          "handler": "() => router.push('/hub/training')",
-          "destination": null,
-          "type": null,
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "<dynamic>",
-          "line": 416,
-          "handler": "() => loadPreset(p)",
-          "destination": null,
-          "type": null,
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "-",
-          "line": 468,
-          "handler": "removePlayer",
-          "destination": null,
-          "type": null,
-          "disabled": "stacks.length <= 2",
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "+",
-          "line": 487,
-          "handler": "addPlayer",
-          "destination": null,
-          "type": null,
-          "disabled": "stacks.length >= 9",
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "-",
-          "line": 581,
-          "handler": "removePrize",
-          "destination": null,
-          "type": null,
-          "disabled": "prizes.length <= 1",
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "+",
-          "line": 600,
-          "handler": "addPrize",
-          "destination": null,
-          "type": null,
-          "disabled": "prizes.length >= 9",
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "<dynamic>",
-          "line": 1034,
-          "handler": "() => setIcmView(tab.key)",
-          "destination": null,
-          "type": null,
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "View Freeroll Schedule",
-          "line": 1102,
-          "handler": "() => router.push('/freerolls')",
-          "destination": null,
-          "type": null,
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "link",
-          "name": "Compare ICM Calculator Vs. ICMIZER",
-          "line": 1235,
-          "handler": null,
-          "destination": "/compare",
-          "type": null,
-          "disabled": null,
-          "wiring": "destination"
-        },
-        {
-          "element": "link",
-          "name": "Play Daily Freerolls",
-          "line": 1252,
-          "handler": null,
-          "destination": "/freerolls",
-          "type": null,
-          "disabled": null,
-          "wiring": "destination"
-        },
-        {
-          "element": "link",
-          "name": "Poker Odds Calculator",
-          "line": 1269,
-          "handler": null,
-          "destination": "/tools/poker-odds-calculator",
-          "type": null,
-          "disabled": null,
-          "wiring": "destination"
-        },
-        {
-          "element": "link",
-          "name": "13x13 GTO Preflop Ranges",
-          "line": 1286,
-          "handler": null,
-          "destination": "/tools/preflop-ranges",
-          "type": null,
-          "disabled": null,
-          "wiring": "destination"
-        }
-      ],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": true,
-        "empty": false,
         "error": true,
         "retry": false,
         "offline": true,
@@ -36742,8 +36336,308 @@
       },
       "functions": [
         {
+          "name": "normaliseSpotVotes",
+          "line": 88,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "cardToAscii",
+          "line": 107,
+          "references": 6,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "cardsToAscii",
+          "line": 117,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "HandLabV2",
+          "line": 121,
+          "references": 1,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getSuitColor",
+          "line": 884,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "spotHoleCount",
+          "line": 216,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handlePickSpotOption",
+          "line": 268,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "savedHoleCount",
+          "line": 320,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleVariantChange",
+          "line": 346,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleCardSelect",
+          "line": 359,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "runAnalysis",
+          "line": 399,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "clearAll",
+          "line": 465,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "openDeck",
+          "line": 128,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "HandLabV2"
+      ],
+      "markers": [
+        {
+          "kind": "PLACEHOLDER",
+          "line": 688,
+          "excerpt": "<span style={styles.placeholder}>Card {idx + 1}</span>",
+          "disposition": "visible-ui-state",
+          "review": "accepted",
+          "rationale": "Visible empty/loading UI presentation, not fabricated product data."
+        },
+        {
+          "kind": "PLACEHOLDER",
+          "line": 718,
+          "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
+          "disposition": "visible-ui-state",
+          "review": "accepted",
+          "rationale": "Visible empty/loading UI presentation, not fabricated product data."
+        },
+        {
+          "kind": "PLACEHOLDER",
+          "line": 980,
+          "excerpt": "placeholder: {",
+          "disposition": "visible-ui-state",
+          "review": "accepted",
+          "rationale": "Visible empty/loading UI presentation, not fabricated product data."
+        }
+      ]
+    },
+    {
+      "file": "pages/hub/training/icm-calculator.js",
+      "imports": [
+        "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/AiPromptLauncher.js",
+        "src/components/seo/CitationBacklinkBox.js",
+        "src/components/seo/SEOHead.js",
+        "src/components/training/VerifiedToolGateway.jsx",
+        "src/engine/EventBus.js",
+        "src/hooks/useOnlineStatus.js",
+        "src/hooks/useTrainingBus.js",
+        "src/lib/poker/tournamentEquity.js",
+        "src/lib/seo/hubPageSchema.js"
+      ],
+      "links": [
+        "/hub/training",
+        "/hub/training/arena/mtt-002?level=1",
+        "/hub/training/icm-calculator"
+      ],
+      "apiReferences": [
+        "/api/og/tool-card"
+      ],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "button",
+          "name": "View Freeroll Schedule",
+          "line": 370,
+          "handler": "() => router.push('/freerolls')",
+          "destination": null,
+          "type": null,
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "link",
+          "name": "Compare ICM Calculator Vs. ICMIZER",
+          "line": 503,
+          "handler": null,
+          "destination": "/compare",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Play Daily Freerolls",
+          "line": 520,
+          "handler": null,
+          "destination": "/freerolls",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Poker Odds Calculator",
+          "line": 537,
+          "handler": null,
+          "destination": "/tools/poker-odds-calculator",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "13x13 GTO Preflop Ranges",
+          "line": 554,
+          "handler": null,
+          "destination": "/tools/preflop-ranges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 608,
+          "handler": "() => loadPreset(p)",
+          "destination": null,
+          "type": null,
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "-",
+          "line": 660,
+          "handler": "removePlayer",
+          "destination": null,
+          "type": null,
+          "disabled": "stacks.length <= 2",
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "+",
+          "line": 679,
+          "handler": "addPlayer",
+          "destination": null,
+          "type": null,
+          "disabled": "stacks.length >= 9",
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "-",
+          "line": 773,
+          "handler": "removePrize",
+          "destination": null,
+          "type": null,
+          "disabled": "prizes.length <= 1",
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "+",
+          "line": 792,
+          "handler": "addPrize",
+          "destination": null,
+          "type": null,
+          "disabled": "prizes.length >= 9",
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 1226,
+          "handler": "() => setIcmView(tab.key)",
+          "destination": null,
+          "type": null,
+          "disabled": null,
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "retry": true,
+        "offline": true,
+        "stale": false,
+        "success": true,
+        "authExpiry": true
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
           "name": "ICMCalculatorPage",
-          "line": 191,
+          "line": 182,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -44949,6 +44843,145 @@
       "markers": []
     },
     {
+      "file": "src/components/bankroll/BankrollHelp.jsx",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "button",
+          "name": "`Help For ${title}`",
+          "line": 46,
+          "handler": "() => { if (!dialog.current.open) dialog.current.showModal(); }",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Close Help",
+          "line": 52,
+          "handler": "close",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Page Tutorial",
+          "line": 56,
+          "handler": "() => { launchTutorial.current = true; close(); }",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 1,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "BankrollHelp",
+          "line": 37,
+          "references": 2,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "close",
+          "line": 42,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/components/bankroll/BankrollImageHeader.jsx",
+      "imports": [
+        "src/components/bankroll/BankrollHelp.jsx"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "BankrollImageHeader",
+          "line": 4,
+          "references": 2,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
       "file": "src/components/diamonds/CapHitPopup.jsx",
       "imports": [],
       "links": [],
@@ -45536,7 +45569,7 @@
         },
         {
           "name": "PlayingCard",
-          "line": 168,
+          "line": 169,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -45544,7 +45577,7 @@
         },
         {
           "name": "onKey",
-          "line": 210,
+          "line": 212,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -65704,6 +65737,335 @@
       "markers": []
     },
     {
+      "file": "src/lib/poker/localTrainingEquity.js",
+      "imports": [
+        "src/lib/poker/trainingEquity.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": true,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "localTrainingEquity",
+          "line": 5,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "localTrainingEquity"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/poker/runLocalTrainingEquity.js",
+      "imports": [
+        "src/lib/poker/localTrainingEquity.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "retry": false,
+        "offline": true,
+        "stale": false,
+        "success": true,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "runLocalTrainingEquity",
+          "line": 3,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "runLocalTrainingEquity"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/poker/tournamentEquity.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": true,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "computeICM",
+          "line": 1,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "recurse",
+          "line": 13,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bubbleFactor",
+          "line": 50,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "tournamentEquity",
+          "line": 62,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "move",
+          "line": 52,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "tournamentEquity"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/poker/trainingEquity.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "parseCardStr",
+          "line": 4,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getRank",
+          "line": 15,
+          "references": 7,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getSuit",
+          "line": 16,
+          "references": 6,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "evaluate5Fast",
+          "line": 18,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bestOf7",
+          "line": 50,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bestOmaha5",
+          "line": 70,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "toLowRankValue",
+          "line": 98,
+          "references": 6,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bestOmahaLow8",
+          "line": 103,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalizeEquityVariant",
+          "line": 134,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "shufflePartial",
+          "line": 146,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "calcEquity",
+          "line": 153,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "roundPct",
+          "line": 243,
+          "references": 6,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "parseCardStr",
+        "calcEquity"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/push-client.js",
       "imports": [
         "src/lib/authUtils.js"
@@ -78421,6 +78783,10 @@
     },
     {
       "from": "pages/api/training/equity.js",
+      "to": "src/lib/poker/trainingEquity.js"
+    },
+    {
+      "from": "pages/api/training/equity.js",
       "to": "src/lib/serverAuth.js"
     },
     {
@@ -78730,6 +79096,10 @@
     {
       "from": "pages/api/training/icm-calc.js",
       "to": "src/lib/apiRateLimit.js"
+    },
+    {
+      "from": "pages/api/training/icm-calc.js",
+      "to": "src/lib/poker/tournamentEquity.js"
     },
     {
       "from": "pages/api/training/icm-calc.js",
@@ -79801,6 +80171,14 @@
     },
     {
       "from": "pages/hub/training/equity-calculator.js",
+      "to": "src/components/bankroll/BankrollImageHeader.jsx"
+    },
+    {
+      "from": "pages/hub/training/equity-calculator.js",
+      "to": "src/components/poker/PlayingCard.jsx"
+    },
+    {
+      "from": "pages/hub/training/equity-calculator.js",
       "to": "src/components/seo/SEOHead.js"
     },
     {
@@ -79814,6 +80192,10 @@
     {
       "from": "pages/hub/training/equity-calculator.js",
       "to": "src/lib/authUtils.js"
+    },
+    {
+      "from": "pages/hub/training/equity-calculator.js",
+      "to": "src/lib/poker/runLocalTrainingEquity.js"
     },
     {
       "from": "pages/hub/training/equity-calculator.js",
@@ -80033,6 +80415,10 @@
     },
     {
       "from": "pages/hub/training/hand-lab.js",
+      "to": "src/components/bankroll/BankrollImageHeader.jsx"
+    },
+    {
+      "from": "pages/hub/training/hand-lab.js",
       "to": "src/components/poker/PlayingCard.jsx"
     },
     {
@@ -80072,6 +80458,14 @@
       "to": "src/lib/newsletter/weeklyWireCatalog.mjs"
     },
     {
+      "from": "pages/hub/training/hand-lab.js",
+      "to": "src/lib/poker/runLocalTrainingEquity.js"
+    },
+    {
+      "from": "pages/hub/training/icm-calculator.js",
+      "to": "src/components/bankroll/BankrollImageHeader.jsx"
+    },
+    {
       "from": "pages/hub/training/icm-calculator.js",
       "to": "src/components/seo/AiPromptLauncher.js"
     },
@@ -80101,7 +80495,7 @@
     },
     {
       "from": "pages/hub/training/icm-calculator.js",
-      "to": "src/lib/authUtils.js"
+      "to": "src/lib/poker/tournamentEquity.js"
     },
     {
       "from": "pages/hub/training/icm-calculator.js",
@@ -81368,6 +81762,10 @@
       "to": "src/lib/training/weaknessAnalysis.mjs"
     },
     {
+      "from": "src/components/bankroll/BankrollImageHeader.jsx",
+      "to": "src/components/bankroll/BankrollHelp.jsx"
+    },
+    {
       "from": "src/components/gates/FeatureGatePopup.jsx",
       "to": "src/contexts/AvatarContext.jsx"
     },
@@ -82408,6 +82806,14 @@
       "to": "src/lib/poker-engine/SupabaseResilience.js"
     },
     {
+      "from": "src/lib/poker/localTrainingEquity.js",
+      "to": "src/lib/poker/trainingEquity.js"
+    },
+    {
+      "from": "src/lib/poker/runLocalTrainingEquity.js",
+      "to": "src/lib/poker/localTrainingEquity.js"
+    },
+    {
       "from": "src/lib/push-client.js",
       "to": "src/lib/authUtils.js"
     },
@@ -82765,6 +83171,8 @@
     }
   ],
   "componentFiles": [
+    "src/components/bankroll/BankrollHelp.jsx",
+    "src/components/bankroll/BankrollImageHeader.jsx",
     "src/components/diamonds/CapHitPopup.jsx",
     "src/components/gates/FeatureGatePopup.jsx",
     "src/components/poker/ActionButton.jsx",
@@ -84851,11 +85259,11 @@
       "effectRef": "pages/hub/training/drill-builder.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:112:1",
+      "id": "pages/hub/training/equity-calculator.js:115:1",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "`Select hole card ${idx + 1}`",
-      "line": 112,
+      "line": 115,
       "handler": "() => {\n                setSlot(idx);\n                setOpen(true);\n              }",
       "destination": null,
       "type": "button",
@@ -84864,11 +85272,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:234:2",
+      "id": "pages/hub/training/equity-calculator.js:220:2",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "X",
-      "line": 234,
+      "line": 220,
       "handler": "() => setOpen(false)",
       "destination": null,
       "type": "button",
@@ -84877,11 +85285,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:254:3",
+      "id": "pages/hub/training/equity-calculator.js:240:3",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 254,
+      "line": 240,
       "handler": "() => !used && handlePick(rank, suit)",
       "destination": null,
       "type": "button",
@@ -84890,11 +85298,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:335:4",
+      "id": "pages/hub/training/equity-calculator.js:320:4",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "`Select board card ${idx + 1}`",
-      "line": 335,
+      "line": 320,
       "handler": "() => setActiveSlot(idx)",
       "destination": null,
       "type": "button",
@@ -84903,11 +85311,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:456:5",
+      "id": "pages/hub/training/equity-calculator.js:425:5",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "X",
-      "line": 456,
+      "line": 425,
       "handler": "() => setActiveSlot(null)",
       "destination": null,
       "type": "button",
@@ -84916,11 +85324,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:476:6",
+      "id": "pages/hub/training/equity-calculator.js:445:6",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 476,
+      "line": 445,
       "handler": "() => !used && handlePick(rank, suit)",
       "destination": null,
       "type": "button",
@@ -84929,24 +85337,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1025:7",
-      "file": "pages/hub/training/equity-calculator.js",
-      "element": "button",
-      "name": "← Training",
-      "line": 1025,
-      "handler": "() => router.push('/hub/training')",
-      "destination": null,
-      "type": "button",
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/equity-calculator.js"
-    },
-    {
-      "id": "pages/hub/training/equity-calculator.js:1090:8",
+      "id": "pages/hub/training/equity-calculator.js:1078:7",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1090,
+      "line": 1078,
       "handler": "() => changeVariant(v.id)",
       "destination": null,
       "type": "button",
@@ -84955,11 +85350,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1150:9",
+      "id": "pages/hub/training/equity-calculator.js:1138:8",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "-Way",
-      "line": 1150,
+      "line": 1138,
       "handler": "() => changePlayerCount(n)",
       "destination": null,
       "type": "button",
@@ -84968,11 +85363,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1235:10",
+      "id": "pages/hub/training/equity-calculator.js:1223:9",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1235,
+      "line": 1223,
       "handler": "calculate",
       "destination": null,
       "type": "button",
@@ -84981,11 +85376,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1258:11",
+      "id": "pages/hub/training/equity-calculator.js:1246:10",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "Clear All",
-      "line": 1258,
+      "line": 1246,
       "handler": "clearAll",
       "destination": null,
       "type": "button",
@@ -84994,11 +85389,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1293:12",
+      "id": "pages/hub/training/equity-calculator.js:1281:11",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "Retry Server Simulation",
-      "line": 1293,
+      "line": 1281,
       "handler": "() => {\n                    setRetryCount((c) => c + 1);\n                    calculate();\n                  }",
       "destination": null,
       "type": "button",
@@ -85007,11 +85402,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1345:13",
+      "id": "pages/hub/training/equity-calculator.js:1333:12",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "Retry",
-      "line": 1345,
+      "line": 1333,
       "handler": "() => {\n                  setRetryCount((c) => c + 1);\n                  calculate();\n                }",
       "destination": null,
       "type": "button",
@@ -85020,11 +85415,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1466:14",
+      "id": "pages/hub/training/equity-calculator.js:1454:13",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1466,
+      "line": 1454,
       "handler": "() => loadPreset(preset)",
       "destination": null,
       "type": "button",
@@ -85449,24 +85844,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:478:1",
-      "file": "pages/hub/training/hand-lab.js",
-      "element": "button",
-      "name": "← Hub",
-      "line": 478,
-      "handler": "() => router.push('/hub/training')",
-      "destination": null,
-      "type": null,
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/hand-lab.js"
-    },
-    {
-      "id": "pages/hub/training/hand-lab.js:485:2",
+      "id": "pages/hub/training/hand-lab.js:488:1",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "Clear Board",
-      "line": 485,
+      "line": 488,
       "handler": "clearAll",
       "destination": null,
       "type": null,
@@ -85475,11 +85857,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:521:3",
+      "id": "pages/hub/training/hand-lab.js:524:2",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 521,
+      "line": 524,
       "handler": "() => handlePickSpotOption(opt.key)",
       "destination": null,
       "type": "button",
@@ -85488,11 +85870,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:634:4",
+      "id": "pages/hub/training/hand-lab.js:637:3",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 634,
+      "line": 637,
       "handler": "() => handleVariantChange(v.id)",
       "destination": null,
       "type": "button",
@@ -85501,11 +85883,24 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:858:5",
+      "id": "pages/hub/training/hand-lab.js:841:4",
+      "file": "pages/hub/training/hand-lab.js",
+      "element": "button",
+      "name": "Done",
+      "line": 841,
+      "handler": "() => deckDialog.current.close()",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/hand-lab.js"
+    },
+    {
+      "id": "pages/hub/training/hand-lab.js:852:5",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 858,
+      "line": 852,
       "handler": "() => handleCardSelect(rank, suit)",
       "destination": null,
       "type": null,
@@ -85514,102 +85909,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:366:1",
-      "file": "pages/hub/training/icm-calculator.js",
-      "element": "button",
-      "name": "← Training",
-      "line": 366,
-      "handler": "() => router.push('/hub/training')",
-      "destination": null,
-      "type": null,
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/icm-calculator.js"
-    },
-    {
-      "id": "pages/hub/training/icm-calculator.js:416:2",
-      "file": "pages/hub/training/icm-calculator.js",
-      "element": "button",
-      "name": "<dynamic>",
-      "line": 416,
-      "handler": "() => loadPreset(p)",
-      "destination": null,
-      "type": null,
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/icm-calculator.js"
-    },
-    {
-      "id": "pages/hub/training/icm-calculator.js:468:3",
-      "file": "pages/hub/training/icm-calculator.js",
-      "element": "button",
-      "name": "-",
-      "line": 468,
-      "handler": "removePlayer",
-      "destination": null,
-      "type": null,
-      "disabled": "stacks.length <= 2",
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/icm-calculator.js"
-    },
-    {
-      "id": "pages/hub/training/icm-calculator.js:487:4",
-      "file": "pages/hub/training/icm-calculator.js",
-      "element": "button",
-      "name": "+",
-      "line": 487,
-      "handler": "addPlayer",
-      "destination": null,
-      "type": null,
-      "disabled": "stacks.length >= 9",
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/icm-calculator.js"
-    },
-    {
-      "id": "pages/hub/training/icm-calculator.js:581:5",
-      "file": "pages/hub/training/icm-calculator.js",
-      "element": "button",
-      "name": "-",
-      "line": 581,
-      "handler": "removePrize",
-      "destination": null,
-      "type": null,
-      "disabled": "prizes.length <= 1",
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/icm-calculator.js"
-    },
-    {
-      "id": "pages/hub/training/icm-calculator.js:600:6",
-      "file": "pages/hub/training/icm-calculator.js",
-      "element": "button",
-      "name": "+",
-      "line": 600,
-      "handler": "addPrize",
-      "destination": null,
-      "type": null,
-      "disabled": "prizes.length >= 9",
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/icm-calculator.js"
-    },
-    {
-      "id": "pages/hub/training/icm-calculator.js:1034:7",
-      "file": "pages/hub/training/icm-calculator.js",
-      "element": "button",
-      "name": "<dynamic>",
-      "line": 1034,
-      "handler": "() => setIcmView(tab.key)",
-      "destination": null,
-      "type": null,
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/icm-calculator.js"
-    },
-    {
-      "id": "pages/hub/training/icm-calculator.js:1102:8",
+      "id": "pages/hub/training/icm-calculator.js:370:1",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "View Freeroll Schedule",
-      "line": 1102,
+      "line": 370,
       "handler": "() => router.push('/freerolls')",
       "destination": null,
       "type": null,
@@ -85618,11 +85922,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1235:9",
+      "id": "pages/hub/training/icm-calculator.js:503:2",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
       "name": "Compare ICM Calculator Vs. ICMIZER",
-      "line": 1235,
+      "line": 503,
       "handler": null,
       "destination": "/compare",
       "type": null,
@@ -85631,11 +85935,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1252:10",
+      "id": "pages/hub/training/icm-calculator.js:520:3",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
       "name": "Play Daily Freerolls",
-      "line": 1252,
+      "line": 520,
       "handler": null,
       "destination": "/freerolls",
       "type": null,
@@ -85644,11 +85948,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1269:11",
+      "id": "pages/hub/training/icm-calculator.js:537:4",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
       "name": "Poker Odds Calculator",
-      "line": 1269,
+      "line": 537,
       "handler": null,
       "destination": "/tools/poker-odds-calculator",
       "type": null,
@@ -85657,16 +85961,94 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1286:12",
+      "id": "pages/hub/training/icm-calculator.js:554:5",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
       "name": "13x13 GTO Preflop Ranges",
-      "line": 1286,
+      "line": 554,
       "handler": null,
       "destination": "/tools/preflop-ranges",
       "type": null,
       "disabled": null,
       "wiring": "destination",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:608:6",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 608,
+      "handler": "() => loadPreset(p)",
+      "destination": null,
+      "type": null,
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:660:7",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "button",
+      "name": "-",
+      "line": 660,
+      "handler": "removePlayer",
+      "destination": null,
+      "type": null,
+      "disabled": "stacks.length <= 2",
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:679:8",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "button",
+      "name": "+",
+      "line": 679,
+      "handler": "addPlayer",
+      "destination": null,
+      "type": null,
+      "disabled": "stacks.length >= 9",
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:773:9",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "button",
+      "name": "-",
+      "line": 773,
+      "handler": "removePrize",
+      "destination": null,
+      "type": null,
+      "disabled": "prizes.length <= 1",
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:792:10",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "button",
+      "name": "+",
+      "line": 792,
+      "handler": "addPrize",
+      "destination": null,
+      "type": null,
+      "disabled": "prizes.length >= 9",
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:1226:11",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 1226,
+      "handler": "() => setIcmView(tab.key)",
+      "destination": null,
+      "type": null,
+      "disabled": null,
+      "wiring": "handler",
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
@@ -87826,6 +88208,45 @@
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/weakness-scanner.js"
+    },
+    {
+      "id": "src/components/bankroll/BankrollHelp.jsx:46:1",
+      "file": "src/components/bankroll/BankrollHelp.jsx",
+      "element": "button",
+      "name": "`Help For ${title}`",
+      "line": 46,
+      "handler": "() => { if (!dialog.current.open) dialog.current.showModal(); }",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/bankroll/BankrollHelp.jsx"
+    },
+    {
+      "id": "src/components/bankroll/BankrollHelp.jsx:52:2",
+      "file": "src/components/bankroll/BankrollHelp.jsx",
+      "element": "button",
+      "name": "Close Help",
+      "line": 52,
+      "handler": "close",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/bankroll/BankrollHelp.jsx"
+    },
+    {
+      "id": "src/components/bankroll/BankrollHelp.jsx:56:3",
+      "file": "src/components/bankroll/BankrollHelp.jsx",
+      "element": "button",
+      "name": "Page Tutorial",
+      "line": 56,
+      "handler": "() => { launchTutorial.current = true; close(); }",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
       "id": "src/components/diamonds/CapHitPopup.jsx:53:1",
@@ -91093,10 +91514,22 @@
   ],
   "dialogLedger": [
     {
+      "id": "pages/hub/training/hand-lab.js:dialog:1",
+      "file": "pages/hub/training/hand-lab.js",
+      "kind": "native-dialog",
+      "effectRef": "pages/hub/training/hand-lab.js"
+    },
+    {
       "id": "pages/hub/training/preflop-charts.js:dialog:1",
       "file": "pages/hub/training/preflop-charts.js",
       "kind": "VIPGateModal",
       "effectRef": "pages/hub/training/preflop-charts.js"
+    },
+    {
+      "id": "src/components/bankroll/BankrollHelp.jsx:dialog:1",
+      "file": "src/components/bankroll/BankrollHelp.jsx",
+      "kind": "native-dialog",
+      "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
       "id": "src/components/diamonds/CapHitPopup.jsx:dialog:1",
@@ -92279,6 +92712,7 @@
         "src/lib/poker-engine/brain/plo8-brain.js",
         "src/lib/poker-engine/brain/session-analytics.js",
         "src/lib/poker-engine/brain/tournament-brain.js",
+        "src/lib/poker/trainingEquity.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthContract.mjs",
@@ -93138,6 +93572,7 @@
         "pages/api/training/icm-calc.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/poker/tournamentEquity.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -98103,6 +98538,9 @@
       "file": "pages/hub/training/equity-calculator.js",
       "reachableFiles": [
         "pages/hub/training/equity-calculator.js",
+        "src/components/bankroll/BankrollHelp.jsx",
+        "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/poker/PlayingCard.jsx",
         "src/components/seo/SEOHead.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -98126,6 +98564,9 @@
         "src/lib/poker-engine/brain/plo8-brain.js",
         "src/lib/poker-engine/brain/session-analytics.js",
         "src/lib/poker-engine/brain/tournament-brain.js",
+        "src/lib/poker/localTrainingEquity.js",
+        "src/lib/poker/runLocalTrainingEquity.js",
+        "src/lib/poker/trainingEquity.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -99003,6 +99444,8 @@
       "file": "pages/hub/training/hand-lab.js",
       "reachableFiles": [
         "pages/hub/training/hand-lab.js",
+        "src/components/bankroll/BankrollHelp.jsx",
+        "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/sandbox/paTokens.js",
@@ -99044,6 +99487,9 @@
         "src/lib/messenger/liveInvite.mjs",
         "src/lib/newsletter/weeklyWireCatalog.mjs",
         "src/lib/ownProfile.js",
+        "src/lib/poker/localTrainingEquity.js",
+        "src/lib/poker/runLocalTrainingEquity.js",
+        "src/lib/poker/trainingEquity.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/pushMenuState.mjs",
@@ -99365,6 +99811,8 @@
       "file": "pages/hub/training/icm-calculator.js",
       "reachableFiles": [
         "pages/hub/training/icm-calculator.js",
+        "src/components/bankroll/BankrollHelp.jsx",
+        "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/seo/AiPromptLauncher.js",
         "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/SEOHead.js",
@@ -99372,48 +99820,19 @@
         "src/engine/EventBus.js",
         "src/hooks/useOnlineStatus.js",
         "src/hooks/useTrainingBus.js",
-        "src/lib/authUtils.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
+        "src/lib/poker/tournamentEquity.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
-        "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js",
-        "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/seo/wikidataRegistry.mjs"
       ],
       "apiReferences": [
         "/api/og/tool-card",
-        "/api/seo/referral-stats",
-        "/api/training/challenges",
-        "/api/training/icm-calc",
-        "/api/training/save-session"
+        "/api/seo/referral-stats"
       ],
-      "persistence": [
-        {
-          "file": "src/lib/authUtils.js",
-          "writes": {
-            "localStorage": 2,
-            "sessionStorage": 2,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/training/boundedTrainingFetch.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 1,
-            "rpc": 0
-          }
-        }
-      ],
+      "persistence": [],
       "realtime": [],
       "tests": [
         "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -106454,6 +106873,27 @@
       ]
     },
     {
+      "file": "src/components/bankroll/BankrollHelp.jsx",
+      "reachableFiles": [
+        "src/components/bankroll/BankrollHelp.jsx"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/components/bankroll/BankrollImageHeader.jsx",
+      "reachableFiles": [
+        "src/components/bankroll/BankrollHelp.jsx",
+        "src/components/bankroll/BankrollImageHeader.jsx"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/components/diamonds/CapHitPopup.jsx",
       "reachableFiles": [
         "src/components/diamonds/CapHitPopup.jsx"
@@ -112320,6 +112760,53 @@
       ]
     },
     {
+      "file": "src/lib/poker/localTrainingEquity.js",
+      "reachableFiles": [
+        "src/lib/poker/localTrainingEquity.js",
+        "src/lib/poker/trainingEquity.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/lib/poker/runLocalTrainingEquity.js",
+      "reachableFiles": [
+        "src/lib/poker/localTrainingEquity.js",
+        "src/lib/poker/runLocalTrainingEquity.js",
+        "src/lib/poker/trainingEquity.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/lib/poker/tournamentEquity.js",
+      "reachableFiles": [
+        "src/lib/poker/tournamentEquity.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-reference-is-public-a.test.mjs"
+      ]
+    },
+    {
+      "file": "src/lib/poker/trainingEquity.js",
+      "reachableFiles": [
+        "src/lib/poker/trainingEquity.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-reconciled-workflows.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/push-client.js",
       "reachableFiles": [
         "src/lib/authUtils.js",
@@ -114704,7 +115191,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 5,
+        "line": 7,
         "excerpt": "* on specific boards. Uses server-side Monte Carlo simulation.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -114713,7 +115200,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 975,
+        "line": 936,
         "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -114722,7 +115209,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 991,
+        "line": 952,
         "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -114731,7 +115218,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 1002,
+        "line": 963,
         "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -114740,7 +115227,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "FALLBACK",
-        "line": 1278,
+        "line": 1266,
         "excerpt": "data-offline-equity-fallback=\"true\"",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -114749,7 +115236,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 1310,
+        "line": 1298,
         "excerpt": "Retry Server Simulation {retryCount > 0 ? `(${retryCount})` : ''}",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -114814,7 +115301,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 685,
+        "line": 688,
         "excerpt": "<span style={styles.placeholder}>Card {idx + 1}</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -114823,7 +115310,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 715,
+        "line": 718,
         "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -114832,7 +115319,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 987,
+        "line": 980,
         "excerpt": "placeholder: {",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -118215,7 +118702,7 @@
       {
         "file": "pages/api/training/equity.js",
         "name": "handler",
-        "line": 320,
+        "line": 53,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -118371,7 +118858,7 @@
       {
         "file": "pages/api/training/icm-calc.js",
         "name": "handler",
-        "line": 113,
+        "line": 40,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -119021,7 +119508,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "name": "EquityCalculatorPage",
-        "line": 657,
+        "line": 625,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -119242,7 +119729,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "name": "HandLabV2",
-        "line": 119,
+        "line": 121,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -119255,7 +119742,7 @@
       {
         "file": "pages/hub/training/icm-calculator.js",
         "name": "ICMCalculatorPage",
-        "line": 191,
+        "line": 182,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -121966,6 +122453,90 @@
         "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
         "externalReferenceFiles": [
           "__tests__/horse-poker-gto-policy.test.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/poker/localTrainingEquity.js",
+        "name": "localTrainingEquity",
+        "line": 5,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/odds-calculator-accuracy.test.mjs",
+          "src/lib/poker/runLocalTrainingEquity.js",
+          "src/lib/poker/trainingEquity.worker.js"
+        ]
+      },
+      {
+        "file": "src/lib/poker/runLocalTrainingEquity.js",
+        "name": "runLocalTrainingEquity",
+        "line": 3,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/training/equity-calculator.js",
+          "pages/hub/training/hand-lab.js"
+        ]
+      },
+      {
+        "file": "src/lib/poker/tournamentEquity.js",
+        "name": "tournamentEquity",
+        "line": 62,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/odds-calculator-accuracy.test.mjs",
+          "pages/api/training/icm-calc.js",
+          "pages/hub/training/icm-calculator.js"
+        ]
+      },
+      {
+        "file": "src/lib/poker/trainingEquity.js",
+        "name": "parseCardStr",
+        "line": 4,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/odds-calculator-accuracy.test.mjs",
+          "pages/api/training/equity.js",
+          "src/lib/poker/localTrainingEquity.js"
+        ]
+      },
+      {
+        "file": "src/lib/poker/trainingEquity.js",
+        "name": "calcEquity",
+        "line": 153,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/odds-calculator-accuracy.test.mjs",
+          "pages/api/training/equity.js",
+          "src/lib/poker/localTrainingEquity.js"
         ]
       },
       {
@@ -125605,7 +126176,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 5,
+        "line": 7,
         "excerpt": "* on specific boards. Uses server-side Monte Carlo simulation.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -125614,7 +126185,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 975,
+        "line": 936,
         "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -125623,7 +126194,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 991,
+        "line": 952,
         "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -125632,7 +126203,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 1002,
+        "line": 963,
         "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -125641,7 +126212,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "FALLBACK",
-        "line": 1278,
+        "line": 1266,
         "excerpt": "data-offline-equity-fallback=\"true\"",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -125650,7 +126221,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 1310,
+        "line": 1298,
         "excerpt": "Retry Server Simulation {retryCount > 0 ? `(${retryCount})` : ''}",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -125715,7 +126286,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 685,
+        "line": 688,
         "excerpt": "<span style={styles.placeholder}>Card {idx + 1}</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -125724,7 +126295,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 715,
+        "line": 718,
         "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -125733,7 +126304,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 987,
+        "line": 980,
         "excerpt": "placeholder: {",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -129116,7 +129687,7 @@
       {
         "file": "pages/api/training/equity.js",
         "name": "handler",
-        "line": 320,
+        "line": 53,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -129272,7 +129843,7 @@
       {
         "file": "pages/api/training/icm-calc.js",
         "name": "handler",
-        "line": 113,
+        "line": 40,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -129922,7 +130493,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "name": "EquityCalculatorPage",
-        "line": 657,
+        "line": 625,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -130143,7 +130714,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "name": "HandLabV2",
-        "line": 119,
+        "line": 121,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -130156,7 +130727,7 @@
       {
         "file": "pages/hub/training/icm-calculator.js",
         "name": "ICMCalculatorPage",
-        "line": 191,
+        "line": 182,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132867,6 +133438,90 @@
         "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
         "externalReferenceFiles": [
           "__tests__/horse-poker-gto-policy.test.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/poker/localTrainingEquity.js",
+        "name": "localTrainingEquity",
+        "line": 5,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/odds-calculator-accuracy.test.mjs",
+          "src/lib/poker/runLocalTrainingEquity.js",
+          "src/lib/poker/trainingEquity.worker.js"
+        ]
+      },
+      {
+        "file": "src/lib/poker/runLocalTrainingEquity.js",
+        "name": "runLocalTrainingEquity",
+        "line": 3,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/training/equity-calculator.js",
+          "pages/hub/training/hand-lab.js"
+        ]
+      },
+      {
+        "file": "src/lib/poker/tournamentEquity.js",
+        "name": "tournamentEquity",
+        "line": 62,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/odds-calculator-accuracy.test.mjs",
+          "pages/api/training/icm-calc.js",
+          "pages/hub/training/icm-calculator.js"
+        ]
+      },
+      {
+        "file": "src/lib/poker/trainingEquity.js",
+        "name": "parseCardStr",
+        "line": 4,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/odds-calculator-accuracy.test.mjs",
+          "pages/api/training/equity.js",
+          "src/lib/poker/localTrainingEquity.js"
+        ]
+      },
+      {
+        "file": "src/lib/poker/trainingEquity.js",
+        "name": "calcEquity",
+        "line": 153,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/odds-calculator-accuracy.test.mjs",
+          "pages/api/training/equity.js",
+          "src/lib/poker/localTrainingEquity.js"
         ]
       },
       {

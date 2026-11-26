@@ -83,6 +83,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'award-diamonds-v2-concurrency',
     'chart-question-node',
     'leak-engine-wiring',
+    'odds-calculator-accuracy',
     'preflop-local-practice-authority',
     'training-acl-closeout-authority',
     'training-advisor-followup-migration',

@@ -10,6 +10,7 @@
 import React from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import FaqSection from '../../../src/components/seo/FaqSection';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
@@ -98,7 +99,7 @@ export default function PokerMarketGuidesIndexPage() {
         <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
           <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
           {' / '}
-          <Link href="/hub/poker-near-me" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Near Me</Link>
+          <Link href="/hub/poker-near-me/lobby" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Near Me</Link>
           {' / '}
           <span>US Regional Poker Market Guides</span>
         </nav>
@@ -217,7 +218,7 @@ export default function PokerMarketGuidesIndexPage() {
             Live Poker Room Finder &amp; Rake Economics Tools
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/hub/poker-near-me" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/hub/poker-near-me/lobby" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Poker Near Me (324+ Live Venues)
             </Link>
             <Link href="/poker-rooms/international" style={{ padding: '8px 14px', background: '#10b981', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
@@ -261,6 +262,12 @@ export default function PokerMarketGuidesIndexPage() {
             </Link>
           </div>
         </section>
+
+        <FaqSection
+          title="Frequently Asked Questions About US Poker Destinations"
+          faqs={DIRECTORY_FAQS.map((item) => ({ question: item.q, answer: item.a }))}
+          id="market-guides-faq"
+        />
 
         <CitationBacklinkBox
           title="Top 12 US Regional Live Poker Market Strategy & Rake Guides"

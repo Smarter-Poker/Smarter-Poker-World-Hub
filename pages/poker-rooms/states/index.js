@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- *  TOP 15 US STATE POKER LEGALITY, TAX & ROOM DIRECTORY HUB (/poker-rooms/states)
+ *  ALL 50 US STATES & DC POKER LEGALITY, TAX & ROOM DIRECTORY HUB (/poker-rooms/states)
  * ═══════════════════════════════════════════════════════════════════════════════
  * Interactive directory covering the top 15 US poker states with legal age,
  * state income tax rates, rake models, W-2G withholding rules, and regulated
@@ -152,7 +152,7 @@ export default function USStatePokerDirectoryPage() {
           </p>
 
           <div style={styles.quickCrossLinks}>
-            <Link href="/hub/poker-near-me" style={styles.crossBtnCyan}>
+            <Link href="/hub/poker-near-me/lobby" style={styles.crossBtnCyan}>
               Find Live Poker Rooms Near Me
             </Link>
             <Link href="/poker-rooms/guides" style={styles.crossBtnEmerald}>
@@ -268,7 +268,7 @@ export default function USStatePokerDirectoryPage() {
                   <Link href={stateGuidePath(s.slug)} style={styles.readGuideLink}>
                     View {s.name} Laws &amp; Tax Guide
                   </Link>
-                  <Link href="/hub/poker-near-me" style={styles.toolLink}>
+                  <Link href="/hub/poker-near-me/lobby" style={styles.toolLink}>
                     Live Rooms
                   </Link>
                 </div>
