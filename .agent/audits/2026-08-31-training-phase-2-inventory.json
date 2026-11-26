@@ -133902,7 +133902,8 @@
       "tests": [
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
-        "__tests__/training-session-config-contract.test.mjs"
+        "__tests__/training-session-config-contract.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },
     {
