@@ -160,6 +160,24 @@ async function installBankrollSession(page: Page) {
   return user;
 }
 
+test('Dealer Vault announces its stored document count for empty, singular and plural inventories', async ({ page }) => {
+  const user = await installBankrollSession(page);
+  const documents = [1, 2, 3].map(id => ({ id: String(id), category: 'other', label: 'Fixture ' + id }));
+  let count = 0;
+  await page.route('**/rest/v1/dealer_documents*', route => {
+    const request = route.request();
+    if (request.method() !== 'GET' || new URL(request.url()).searchParams.get('user_id') !== 'eq.' + user.id) return route.abort();
+    return route.fulfill({ json: documents.slice(0, count) });
+  });
+  for (const [total, caption] of [[0, '0 Documents Stored'], [1, '1 Document Stored'], [3, '3 Documents Stored']] as const) {
+    count = total;
+    await page.goto('/hub/toke-tracker/vault', { waitUntil: 'domcontentloaded' });
+    const disclosure = page.getByRole('button', { name: /^Documents / });
+    await expect(disclosure).toHaveAccessibleName(new RegExp('^Documents ' + caption + '(?: |$)'));
+    await expect(disclosure.getByText(caption, { exact: true })).toHaveText(caption, { useInnerText: true });
+  }
+});
+
 test('A named completed trip wraps and opens its matching report from the keyboard', async ({ page }) => {
   const user = await installBankrollSession(page);
   const trip = {

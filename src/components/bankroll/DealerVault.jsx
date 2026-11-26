@@ -410,7 +410,7 @@ function DealerVault({ userId, completedGigs = [] }) {
 
                     <div>
                         <div className="sd-section-title">Documents</div>
-                        {userId && !isLoading && !readError && <div style={s.headerSub}>{docs.length} Document{docs.length !== 1 ? 's' : ''} Stored</div>}
+                        {userId && !isLoading && !readError && <div style={s.headerSub}>{`${docs.length} ${docs.length === 1 ? 'Document' : 'Documents'} Stored`}</div>}
                     </div>
                 </div>
                 <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
