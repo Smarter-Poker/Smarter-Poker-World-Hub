@@ -46,6 +46,16 @@ test('Phase 2 Training surface inventory is exhaustive and current', () => {
   const redirected = manifest.routeCoverage.find(route => route.route === '/hub/training/analyzer');
   assert.equal(redirected.redirectDestination, '/hub/training/hand-history-upload');
   assert.ok(redirected.reachableFiles.includes('pages/hub/training/hand-history-upload.js'));
+  const aggregate = manifest.routeCoverage.find(route => route.route === '/hub/training/aggregate');
+  assert.equal(aggregate.linkedDestination, '/hub/training/reports');
+  assert.ok(aggregate.reachableFiles.includes('pages/hub/training/reports.js'));
+  const rake = manifest.routeCoverage.find(route => route.route === '/hub/training/custom-rake');
+  assert.equal(rake.states.loading.status, 'not-applicable');
+  assert.match(rake.states.loading.rationale, /Local Controls/);
+  const risk = manifest.routeCoverage.find(route => route.route === '/hub/training/risk-analyzer');
+  for (const state of ['loading', 'error', 'retry']) {
+    assert.equal(risk.states[state].status, 'implemented-or-detected');
+  }
   assert.deepEqual(manifest.gaps.missingLinks, []);
   assert.deepEqual(manifest.gaps.missingApiDefinitions, []);
   assert.equal(manifest.frozenInvariants.globalHeader, 'unchanged');

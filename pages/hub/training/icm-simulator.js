@@ -47,7 +47,6 @@ export default function IcmSimulatorPage() {
   const [icmVariant, setIcmVariant] = useState('nlh');
 
 
-
   const runSim = async () => {
     setCalculating(true);
     setCalculationError('');
@@ -498,74 +497,6 @@ export default function IcmSimulatorPage() {
                 </div>
               )}
 
-              {icmBrainEval && (
-                <div
-                  data-specialty-brain-panel="true"
-                  data-icm-brain-panel="true"
-                  data-brain-engine={icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
-                  data-recommended-action={icmBrainEval.recommendedAction || icmBrainEval.correctAnswerText || 'Call'}
-                  style={{
-                    marginTop: 20,
-                    padding: 16,
-                    borderRadius: 12,
-                    border: '1px solid rgba(56, 189, 248, 0.35)',
-                    background: 'rgba(2, 6, 23, 0.65)',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
-                      Horse Brain ICM Pressure Guidance
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                      {`Hero Depth: ${heroStackBb} BB · Engine: ${icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}`}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        data-brain-variant-tab={v}
-                        onClick={() => setIcmVariant(v)}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          border: icmVariant === v ? '1px solid rgba(56, 189, 248, 0.7)' : '1px solid rgba(255,255,255,0.12)',
-                          background: icmVariant === v ? 'rgba(56, 189, 248, 0.24)' : 'rgba(255,255,255,0.04)',
-                          color: icmVariant === v ? '#e0f2fe' : 'var(--sp-fg-muted)',
-                        }}
-                      >
-                        {v.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                  <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
-                    {icmBrainEval.explanation || icmBrainEval.coachingExplanation}
-                  </p>
-                  <button
-                    type="button"
-                    data-launch-club-arena-cta="true"
-                    data-launch-icm-arena="true"
-                    data-launch-href={icmArenaHref}
-                    onClick={() => router.push(icmArenaHref)}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: 8,
-                      border: '1px solid rgba(56, 189, 248, 0.5)',
-                      background: 'rgba(56, 189, 248, 0.16)',
-                      color: 'var(--sp-accent-cyan)',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Drill ICM Preflop In Club Arena →
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>

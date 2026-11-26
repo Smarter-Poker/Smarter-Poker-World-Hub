@@ -1154,7 +1154,7 @@ test('reports and custom solve do not manufacture successful activity', () => {
   const solverApi = fs.readFileSync(path.join(ROOT, 'pages/api/training/solver-api.js'), 'utf8');
   const routeAudit = fs.readFileSync(path.join(ROOT, 'scripts/training-route-wiring-audit.js'), 'utf8');
 
-  assert.match(reports, /export \{ default \} from '\.\/reports'/);
+  assert.match(reports, /import VerifiedTrainingReports from '\.\/reports'[\s\S]*export default VerifiedTrainingReports/);
   assert.match(routeAudit, /defaultExportPattern[\s\S]*default\(\?:\\s\+as\\s\+default\)\?/);
   assert.match(sharedReports, /No Verified Training Data Yet/);
   assert.match(sharedReports, /No Sample Or Estimated Player Statistics Are Displayed/);

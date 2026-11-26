@@ -10,7 +10,7 @@
  * superseded here: this answer-revealed study surface has no grading controls,
  * while the signed Arena owns blind answers and persistent feedback.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
@@ -18,18 +18,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Card from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
-import {
-  evaluateTrainingSpotWithHorseBrain,
-  buildCustomTrainingArenaHref,
-} from '../../../src/lib/training/horseBrainTrainingAdapter';
 
-const SPOT_HERO_CARDS_BY_VARIANT = {
-  nlh: ['Ah', 'Kd'],
-  plo4: ['Ah', 'Kh', 'Qd', 'Jd'],
-  plo5: ['Ah', 'Kh', 'Qd', 'Jd', 'Tc'],
-  plo6: ['Ah', 'Kh', 'Qd', 'Jd', 'Tc', '9c'],
-  plo8: ['Ah', 'Kh', 'Qd', 'Jd'],
-};
 
 const FORMAT_OPTIONS = [
   { value: '', label: 'All' },
@@ -100,59 +89,9 @@ export default function SpotTrainerPage() {
   const [error, setError] = useState(null);
   const [format, setFormat] = useState('');
   const [position, setPosition] = useState('');
-  const [geoStackBb, setGeoStackBb] = useState(100);
-  const [geoFacingBetBb, setGeoFacingBetBb] = useState(4);
-  const [spotVariant, setSpotVariant] = useState('nlh');
   const requestAbortRef = useRef(null);
 
-  const potGeometryEval = useMemo(() => {
-    const basePot = Number(spot?.decisionNode?.potBb) > 0 ? Number(spot.decisionNode.potBb) : 12;
-    const stack = geoStackBb;
-    const facingBet = geoFacingBetBb;
-    const defaultHero = SPOT_HERO_CARDS_BY_VARIANT[spotVariant] || SPOT_HERO_CARDS_BY_VARIANT.nlh;
-    const heroCards =
-      spotVariant === 'nlh' && Array.isArray(spot?.heroCards) && spot.heroCards.length === 2
-        ? spot.heroCards
-        : defaultHero;
-    const boardCards = Array.isArray(spot?.board) && spot.board.length >= 3 ? spot.board : ['Kh', '9d', '4c'];
-    const spr = Math.round((stack / basePot) * 100) / 100;
-    const potOddsPct = Math.round((facingBet / (basePot + 2 * facingBet)) * 1000) / 10;
-    const mdfPct = Math.round((basePot / (basePot + facingBet)) * 1000) / 10;
-    const geometricSizePct = Math.round((((Math.pow((2 * stack + basePot) / basePot, 1 / 2) - 1) / 2) * 100));
-    const brain = evaluateTrainingSpotWithHorseBrain({
-      variant: spotVariant,
-      heroCards,
-      boardCards,
-      pot: basePot,
-      toCall: facingBet,
-      effectiveStackBb: stack,
-      street: spot?.street || 'flop',
-      heroPosition: spot?.heroPosition || 'BTN',
-    });
-    return {
-      basePotBb: basePot,
-      spr,
-      potOddsPct,
-      mdfPct,
-      geometricSizePct,
-      brain,
-    };
-  }, [spot, geoStackBb, geoFacingBetBb, spotVariant]);
 
-  const spotArenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        {
-          format: format === 'mtt' ? 'mtt' : 'cash',
-          variant: spotVariant,
-          streets: [String(spot?.street || 'flop').toLowerCase()],
-          positions: [position || spot?.heroPosition || 'BTN'],
-          stackDepth: geoStackBb,
-        },
-        'spot-trainer',
-      ),
-    [format, spotVariant, spot?.street, spot?.heroPosition, position, geoStackBb],
-  );
 
   const fetchSpot = useCallback(async () => {
     requestAbortRef.current?.abort();
@@ -526,123 +465,6 @@ export default function SpotTrainerPage() {
             )}
           </AnimatePresence>
 
-          <section
-            data-specialty-brain-panel="true"
-            data-pot-geometry-simulator="true"
-            data-brain-engine={potGeometryEval.brain?.brainEvaluation?.engineModule || potGeometryEval.brain?.engineModule || 'holdem-brain.js'}
-            data-recommended-action={potGeometryEval.brain?.correctAnswerText || potGeometryEval.brain?.recommendedAction || 'CALL'}
-            data-geometry-stack-bb={geoStackBb}
-            data-geometry-facing-bet-bb={geoFacingBetBb}
-            data-geometry-spr={potGeometryEval.spr}
-            data-geometry-pot-odds={potGeometryEval.potOddsPct}
-            data-geometry-mdf={potGeometryEval.mdfPct}
-            data-geometry-recommended-action={potGeometryEval.brain?.correctAnswerText || potGeometryEval.brain?.recommendedAction || 'CALL'}
-            style={{
-              marginTop: 20,
-              padding: '14px 18px',
-              background: 'linear-gradient(145deg, rgba(6,182,212,0.10), rgba(15,23,42,0.92))',
-              borderRadius: 10,
-              border: '1px solid rgba(34,211,238,0.28)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: '#67e8f9', letterSpacing: 1, textTransform: 'uppercase' }}>
-                Postflop Pot Geometry &amp; SPR Sensitivity Lab
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
-                {`Engine: ${potGeometryEval.brain?.brainEvaluation?.engineModule || potGeometryEval.brain?.engineModule || 'holdem-brain.js'} · Action: ${potGeometryEval.brain?.correctAnswerText || potGeometryEval.brain?.recommendedAction || 'CALL'}`}
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700, marginBottom: 4 }}>Variant</div>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      data-brain-variant-tab={v}
-                      onClick={() => setSpotVariant(v)}
-                      style={filterButtonStyle(spotVariant === v)}
-                    >
-                      {v.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700, marginBottom: 4 }}>Effective Stack</div>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {[20, 50, 100, 200].map((stk) => (
-                    <button
-                      key={stk}
-                      type="button"
-                      data-geometry-stack-option={stk}
-                      onClick={() => setGeoStackBb(stk)}
-                      style={filterButtonStyle(geoStackBb === stk)}
-                    >
-                      {stk} BB
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700, marginBottom: 4 }}>Facing Bet Size</div>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {[2, 4, 9, 18].map((bet) => (
-                    <button
-                      key={bet}
-                      type="button"
-                      data-geometry-bet-option={bet}
-                      onClick={() => setGeoFacingBetBb(bet)}
-                      style={filterButtonStyle(geoFacingBetBb === bet)}
-                    >
-                      {bet} BB
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 8 }}>
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '6px 10px' }}>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>SPR</div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: '#e2e8f0' }}>{potGeometryEval.spr}</div>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '6px 10px' }}>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Required Equity</div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: '#fbbf24' }}>{potGeometryEval.potOddsPct}%</div>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '6px 10px' }}>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>MDF</div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: '#38bdf8' }}>{potGeometryEval.mdfPct}%</div>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '6px 10px' }}>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>2-Street Geometric</div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: '#a78bfa' }}>{potGeometryEval.geometricSizePct}% Pot</div>
-              </div>
-            </div>
-            <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5, marginBottom: 12 }}>
-              {potGeometryEval.brain?.explanation || potGeometryEval.brain?.coachingSummary}
-            </div>
-            <button
-              type="button"
-              data-launch-club-arena-cta="true"
-              data-launch-href={spotArenaHref}
-              onClick={() => router.push(spotArenaHref)}
-              style={{
-                padding: '8px 14px',
-                borderRadius: 8,
-                border: '1px solid rgba(103,232,249,0.6)',
-                background: 'linear-gradient(180deg, rgba(8,145,178,0.65), rgba(3,50,74,0.88))',
-                color: '#e8fbff',
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >
-              Drill Calibrated Spot In Club Arena →
-            </button>
-          </section>
 
           <section
             style={{

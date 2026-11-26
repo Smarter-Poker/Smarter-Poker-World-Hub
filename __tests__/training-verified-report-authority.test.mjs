@@ -206,7 +206,7 @@ test('all report routes use the shared verified surface and contain no manufactu
 
   assert.match(reportPage, /Verified Training Reports/);
   assert.match(reportPage, /EV Appears Only For Solver-Verified Decisions With Measured Loss/);
-  assert.match(legacyPage, /export \{ default \} from '\.\/reports'/);
+  assert.match(legacyPage, /import VerifiedTrainingReports from '\.\/reports'[\s\S]*export default VerifiedTrainingReports/);
   assert.doesNotMatch(reportPage, /GTODeviationHeatmap|calculateGTOProximity|GTO_BASELINES|<StatCard/);
   assert.doesNotMatch(api, /GTO_BASELINES|gtoProximityScore|scorecardStats/);
   assert.doesNotMatch(reportPage, /Frequency Deviation Analysis|GTO PROXIMITY SCORE|Your Stats Are Close To GTO/);

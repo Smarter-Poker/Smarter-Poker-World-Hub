@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
+import { encodeClubCoachAssignment, buildThreeHandLeakReceipt, buildSessionStudyDossierMarkdown } from '../src/lib/training/trainingPresets.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -151,7 +152,8 @@ test('1-tap start flow, preset summary, and progressive disclosures are wired ac
   assert.ok(categoryPage.includes('data-category-quick-start="true"'), 'category/[categoryId].js must provide 1-tap Start Sector Training CTA');
 
   const sessionDashboard = read('pages/hub/training/session-dashboard.js');
-  assert.ok(sessionDashboard.includes('data-dashboard-detailed-diagnostics="true"'), 'session-dashboard.js must wrap specialized split-pot & pacing diagnostics inside a disclosure');
+  assert.doesNotMatch(sessionDashboard, /data-dashboard-detailed-diagnostics|data-decision-pacing-telemetry/);
+  assert.match(sessionDashboard, /authedFetch\('\/api\/training\/get-sessions/);
 
   const autopilot = read('pages/hub/training/autopilot.js');
   assert.ok(autopilot.includes('data-autopilot-preset-summary="true"'), 'autopilot.js must display preset queue summary');
@@ -556,7 +558,6 @@ test('Phase 18 full suite: Real-Time Co-Op Study Room, Post-Session 3-Hand Leak 
   const {
     encodeCoopStudyRoom,
     decodeCoopStudyRoom,
-    buildThreeHandLeakReceipt,
     decodeSharedDrillPack,
     RANGE_PAINTER_5X5_CLUSTERS,
     scoreRangePainterEstimate,
@@ -642,23 +643,17 @@ test('Phase 18 full suite: Real-Time Co-Op Study Room, Post-Session 3-Hand Leak 
   assert.ok(udtSrc.includes('data-table-range-matrix-painter="true"'), 'UniversalDynamicTable study drawer must include Interactive Range Matrix Painter');
   assert.ok(udtSrc.includes('data-coop-study-room-panel="true"'), 'UniversalDynamicTable study drawer must include Real-Time Co-Op Study Room vote panel');
 
-  for (const relPath of [
-    'src/components/training/GodModeArena.jsx',
-    'pages/hub/training/live-hud-sync.js',
-    'pages/hub/training.js',
-  ]) {
-    const src = read(relPath);
-    assert.ok(src.includes('data-three-hand-leak-receipt="true"'), `${relPath} must expose data-three-hand-leak-receipt="true"`);
+  for (const file of ['pages/hub/training.js', 'pages/hub/training/live-hud-sync.js', 'src/components/training/GodModeArena.jsx']) {
+    assert.doesNotMatch(read(file), /data-three-hand-leak-receipt|buildThreeHandLeakReceipt/);
   }
+
 });
 
 test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker Matrix, Study Dossier, Line Consistency, Adaptive Villain, Range Funnel, Tilt Guard & Hygiene', async () => {
   const {
-    encodeClubCoachAssignment,
     decodeClubCoachAssignment,
     computeIcmChopAndPayJump,
     evaluateHandBlockerImpact,
-    buildSessionStudyDossierMarkdown,
     evaluateMultiStreetLineConsistency,
     evaluateAdaptiveVillainCounterStrategy,
     computeSurvivingRangeFunnel,
@@ -753,7 +748,7 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
   assert.doesNotMatch(progressSrc, /data-stake-readiness-passport|evaluateClubArenaStakeReadiness/);
 
   const leaderboardSrc = read('pages/hub/training/leaderboard.js');
-  assert.ok(leaderboardSrc.includes('data-club-coach-assignment-card="true"'), 'Leaderboard page must render Club Coach Assignment card');
+  assert.doesNotMatch(leaderboardSrc, /data-club-coach-assignment-card|Head Club Coach/);
 
   const icmFtSrc = read('pages/hub/training/icm-final-table.js');
   assert.match(icmFtSrc, /gameHref="\/hub\/training\/arena\/mtt-004\?level=1/);
@@ -773,7 +768,7 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
   }
 
   const godModeSrc = read('src/components/training/GodModeArena.jsx');
-  assert.ok(godModeSrc.includes('data-export-session-study-dossier="true"'), 'GodModeArena review screen must expose Copy Exportable Session Study Dossier button');
+  assert.doesNotMatch(godModeSrc, /data-export-session-study-dossier/);
 });
 
 test('Phase 20 forensic root-cause hardening: Arena clubCoachAssignment hydration, Training Home autoLaunch overrides, DeliveryFamilyKey format/structure isolation, Tournament Brain PLO8 tightening, and UDT mistake variant tracking', async () => {
@@ -848,14 +843,10 @@ test('Phase 20 forensic root-cause hardening: Arena clubCoachAssignment hydratio
     'UniversalDynamicTable mistake tracking must prioritize activeNormalizedVariant so 4-card PLO8 hands are never misclassified as plo4',
   );
 
-  // 8. Solver provenance displays in aggregate.js and reports.js must include PLO8-Brain.Js
   for (const pagePath of ['pages/hub/training/aggregate.js', 'pages/hub/training/reports.js']) {
-    const pageSrc = read(pagePath);
-    assert.ok(
-      pageSrc.includes('PLO8-Brain.Js'),
-      `${pagePath} solver provenance engine list must include PLO8-Brain.Js`,
-    );
+    assert.doesNotMatch(read(pagePath), /data-solver-provenance-telemetry|PLO8-Brain\.Js/);
   }
+
 });
 
 test('Phase 21 deep forensic root-cause hardening: 9max Launch Contract, Duel Token Variant/Structure/Format Signing, ICM Equal-Stack Conservation, PLO8 Paired-Low-Board Outs, Poker-Engine CardAssets & Variant Routing, DeckEngine Dead Cards, and API Hardening', async () => {

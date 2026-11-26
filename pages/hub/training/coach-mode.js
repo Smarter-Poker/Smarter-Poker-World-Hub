@@ -18,26 +18,11 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { encodeCoopStudyRoom } from '../../../src/lib/training/trainingPresets.mjs';
 
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
 
 const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
 
-const BOARD_CARDS_BY_STREET = {
-  preflop: [],
-  flop: BOARD_CARDS.slice(0, 3),
-  turn: BOARD_CARDS.slice(0, 4),
-  river: BOARD_CARDS.slice(0, 5),
-};
 
 const COACH_VARIANTS = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'];
 const COACH_POSITIONS = ['BTN', 'CO', 'SB', 'BB'];
@@ -397,87 +382,30 @@ export default function CoachModePage() {
   // Coach Mode is an explicitly local reference lesson. Only signed Training
   // Arena attempts may persist mastery, completion, or rewards.
   const [reviewedThisVisit, setReviewedThisVisit] = useState(new Set());
-  const [activeVariant, setActiveVariant] = useState('nlh');
-  const [heroPosition, setHeroPosition] = useState('BTN');
-  const [activeStreet, setActiveStreet] = useState('flop');
-  const [coachError, setCoachError] = useState(null);
-  const [coopCopied, setCoopCopied] = useState(false);
+  const [coopCopyStatus, setCoopCopyStatus] = useState(null);
+  const coopStudyRoomHref = useMemo(() => {
+    const token = encodeCoopStudyRoom({
+      roomId: 'coach-nlh-btn-flop',
+      coachName: 'Club Coach Broadcast',
+      title: 'Holdem Flop Study Room',
+      gameId: 'cash-002',
+      variant: 'nlh',
+      bettingStructure: 'no_limit',
+      format: 'cash',
+      stackDepthBb: 100,
+      heroPosition: 'BTN',
+      targetStreet: 'flop',
+    });
+    return `/hub/training/arena/cash-002?level=1&coopRoom=${encodeURIComponent(token)}&source=coach-mode-coop`;
+  }, []);
 
-  const coopStudyRoomToken = useMemo(
-    () =>
-      encodeCoopStudyRoom({
-        roomId: `coach-${activeVariant}-${heroPosition}-${activeStreet}`.toLowerCase(),
-        coachName: 'Club Coach Broadcast',
-        title: `${activeVariant.toUpperCase()} ${heroPosition} ${activeStreet.toUpperCase()} Live Co-Op Study Room`,
-        gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
-        variant: activeVariant,
-        bettingStructure: activeVariant === 'nlh' ? 'no_limit' : 'pot_limit',
-        format: 'cash',
-        stackDepthBb: 100,
-        heroPosition,
-        targetStreet: activeStreet,
-      }),
-    [activeVariant, heroPosition, activeStreet],
-  );
-
-  const coopStudyRoomHref = useMemo(
-    () =>
-      `/hub/training/arena/${activeVariant === 'nlh' ? 'cash-002' : 'cash-005'}?level=1&coopRoom=${encodeURIComponent(coopStudyRoomToken)}&source=coach-mode-coop`,
-    [activeVariant, coopStudyRoomToken],
-  );
-
-  const handleCopyCoopStudyRoom = () => {
+  const handleCopyCoopStudyRoom = async () => {
     try {
-      if (typeof window !== 'undefined' && navigator?.clipboard?.writeText) {
-        navigator.clipboard.writeText(`${window.location.origin}${coopStudyRoomHref}`).catch(() => {});
-      }
-      setCoopCopied(true);
-      setTimeout(() => setCoopCopied(false), 2500);
-    } catch (_) {
-      setCoopCopied(true);
+      await navigator.clipboard.writeText(`${window.location.origin}${coopStudyRoomHref}`);
+      setCoopCopyStatus('copied');
+    } catch {
+      setCoopCopyStatus('failed');
     }
-  };
-
-  const brainEval = useMemo(() => {
-    try {
-      const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
-      const boardCards = BOARD_CARDS_BY_STREET[activeStreet] || BOARD_CARDS_BY_STREET.flop;
-      return evaluateTrainingSpotWithHorseBrain({
-        variant: activeVariant,
-        street: activeStreet,
-        heroCards,
-        boardCards,
-        heroPosition,
-        villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
-        pot: activeStreet === 'preflop' ? 1.5 : 6.5,
-        toCall: activeStreet === 'preflop' ? 1 : 2.2,
-        effectiveStackBb: 100,
-      });
-    } catch (err) {
-      setCoachError(err?.message || 'Unable To Evaluate Adaptive Coach Spot. Please Retry.');
-      return null;
-    }
-  }, [activeVariant, activeStreet, heroPosition]);
-
-  const arenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        {
-          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
-          variant: activeVariant,
-          street: activeStreet,
-          position: heroPosition,
-        },
-        'coach-mode',
-      ),
-    [activeVariant, activeStreet, heroPosition],
-  );
-
-  const handleRetryCoach = () => {
-    setCoachError(null);
-    setActiveVariant('nlh');
-    setHeroPosition('BTN');
-    setActiveStreet('flop');
   };
 
   const startLesson = (lesson) => {
@@ -757,100 +685,24 @@ export default function CoachModePage() {
             </div>
           </section>
 
-          {coachError && (
-            <ErrorBanner
-              message={coachError}
-              onRetry={handleRetryCoach}
-            />
-          )}
 
-          {brainEval && (
-            <section
-              className="sp-coach-module-section"
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainEval.engineModule}
-              data-recommended-action={brainEval.correctAnswer}
-              data-active-variant={activeVariant}
-              data-hero-position={heroPosition}
-              aria-labelledby="coach-brain-panel-title"
-            >
-              <header className="sp-coach-section-header">
-                <div>
-                  <span>Adaptive Engine Telemetry</span>
-                  <h2 id="coach-brain-panel-title">Horse Brain Adaptive Coach Panel</h2>
-                </div>
-                <p>
-                  Engine: {brainEval.engineModule} <i /> Recommended: {brainEval.correctAnswerText}
-                </p>
-              </header>
-              <div className="sp-coach-hero-actions">
-                {COACH_VARIANTS.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    data-variant-option={v}
-                    aria-pressed={activeVariant === v}
-                    onClick={() => setActiveVariant(v)}
-                    className="sp-coach-back"
-                  >
-                    <span>{v.toUpperCase()}</span>
-                  </button>
-                ))}
-                {COACH_POSITIONS.map((pos) => (
-                  <button
-                    key={pos}
-                    type="button"
-                    data-position-option={pos}
-                    aria-pressed={heroPosition === pos}
-                    onClick={() => setHeroPosition(pos)}
-                    className="sp-coach-back"
-                  >
-                    <span>{pos}</span>
-                  </button>
-                ))}
-                {COACH_STREETS.map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    data-street-option={st}
-                    aria-pressed={activeStreet === st}
-                    onClick={() => setActiveStreet(st)}
-                    className="sp-coach-back"
-                  >
-                    <span>{st.toUpperCase()}</span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  data-launch-club-arena-cta="true"
-                  onClick={() => router.push(arenaHref)}
-                  className="sp-coach-primary"
-                >
-                  <span>Launch Adaptive Spot In Club Arena</span>
-                  <span aria-hidden>›</span>
-                </button>
-                <button
-                  type="button"
-                  data-launch-coop-study-room="true"
-                  data-coop-room-href={coopStudyRoomHref}
-                  onClick={() => router.push(coopStudyRoomHref)}
-                  className="sp-coach-primary"
-                >
-                  <span>Host Live CO-Op Study Room</span>
-                  <span aria-hidden>›</span>
-                </button>
-                <button
-                  type="button"
-                  data-copy-coop-study-room="true"
-                  onClick={handleCopyCoopStudyRoom}
-                  className="sp-coach-back"
-                >
-                  <span>{coopCopied ? 'Co-Op Room Link Copied!' : 'Copy Co-Op Study Room Link'}</span>
-                </button>
-              </div>
-              <p>{brainEval.explanation}</p>
-            </section>
-          )}
+
+          <section className="sp-coach-module-section" aria-labelledby="coach-study-room">
+            <h2 id="coach-study-room">Study With A Partner</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button type="button" data-launch-coop-study-room="true" data-coop-room-href={coopStudyRoomHref}
+                onClick={() => router.push(coopStudyRoomHref)} className="sp-coach-primary">
+                Start A Study Room
+              </button>
+              <button type="button" data-copy-coop-study-room="true" onClick={handleCopyCoopStudyRoom} className="sp-coach-back">
+                Copy Study Room Link
+              </button>
+            </div>
+            {coopCopyStatus === 'copied' && <p role="status">Link Copied.</p>}
+            {coopCopyStatus === 'failed' && (
+              <label>Copy This Link <input readOnly value={`${window.location.origin}${coopStudyRoomHref}`} onFocus={(event) => event.target.select()} /></label>
+            )}
+          </section>
 
           <section className="sp-coach-module-section" aria-labelledby="coach-modules-title">
             <header className="sp-coach-section-header">

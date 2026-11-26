@@ -31,6 +31,10 @@ export async function collectPublic(env = process.env, runtime = {}) {
     if (env.TRAINING_VERIFICATION === 'catalog') {
       const { CATALOG_ORIGIN, verifyLiveTrainingCatalog } = await import('./training-catalog-live.mjs');
       const { storageState } = validateDesignatedAuditAuthState(state, CATALOG_ORIGIN, AUDIT_UUID);
+      storageState.origins[0].localStorage.push({
+        name: `sp_firstrun_notif_v2_${AUDIT_UUID}`,
+        value: String(Date.now()),
+      });
       console.log('TRAINING_CATALOG_TEST_ACCOUNT_CONFIRMED');
       const verifyCatalog = runtime.verifyCatalog || verifyLiveTrainingCatalog;
       return await verifyCatalog({

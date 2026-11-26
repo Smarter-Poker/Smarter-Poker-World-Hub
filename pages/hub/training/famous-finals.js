@@ -9,28 +9,13 @@
  * shell and clamp-based responsive spacing below.
  */
 
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
-
-const BOARD_CARDS_BY_STREET = {
-  flop: ['Kc', '4d', '4s'],
-  turn: ['Kc', '4d', '4s', '2h'],
-  river: ['Kc', '4d', '4s', '2h', '7c'],
-};
 
 const ROUTES = [
   {
@@ -50,39 +35,7 @@ const ROUTES = [
 export default function FamousFinalsArchivePage() {
   const router = useRouter();
   useTrainingBus('famous-finals');
-  const [activeVariant, setActiveVariant] = useState('nlh');
-  const [heroPosition, setHeroPosition] = useState('BTN');
-  const [activeStreet, setActiveStreet] = useState('flop');
 
-  const brainEval = useMemo(() => {
-    const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
-    const boardCards = BOARD_CARDS_BY_STREET[activeStreet] || BOARD_CARDS_BY_STREET.flop;
-    return evaluateTrainingSpotWithHorseBrain({
-      variant: activeVariant,
-      street: activeStreet,
-      heroCards,
-      boardCards,
-      heroPosition,
-      villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
-      pot: 6.5,
-      toCall: 2.2,
-      effectiveStackBb: 100,
-    });
-  }, [activeVariant, activeStreet, heroPosition]);
-
-  const arenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        {
-          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
-          variant: activeVariant,
-          street: activeStreet,
-          position: heroPosition,
-        },
-        'famous-finals',
-      ),
-    [activeVariant, activeStreet, heroPosition],
-  );
 
   return (
     <>
@@ -187,143 +140,6 @@ export default function FamousFinalsArchivePage() {
               Archive Page. Choose A Verified Training Destination Below.
             </div>
 
-            {brainEval && (
-              <div
-                data-specialty-brain-panel="true"
-                data-brain-engine={brainEval.engineModule}
-                data-recommended-action={brainEval.correctAnswer}
-                data-active-variant={activeVariant}
-                data-hero-position={heroPosition}
-                style={{
-                  marginTop: 24,
-                  padding: 20,
-                  border: '1px solid rgba(100, 223, 255, 0.38)',
-                  background: 'rgba(3, 10, 18, 0.82)',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    marginBottom: 14,
-                  }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 900, color: '#79e6ff', textTransform: 'uppercase' }}>
-                    Horse Brain Spot &amp; Mastery Reference Panel
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fcd56a' }}>
-                    Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                      Variant
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          aria-pressed={activeVariant === v}
-                          onClick={() => setActiveVariant(v)}
-                          style={{
-                            padding: '6px 12px',
-                            border: activeVariant === v ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.16)',
-                            background: activeVariant === v ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.04)',
-                            color: activeVariant === v ? '#7dd3fc' : '#cbd5e1',
-                            fontSize: 12,
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {v.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                      Position
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {['BTN', 'CO', 'SB', 'BB'].map((pos) => (
-                        <button
-                          key={pos}
-                          type="button"
-                          aria-pressed={heroPosition === pos}
-                          onClick={() => setHeroPosition(pos)}
-                          style={{
-                            padding: '6px 12px',
-                            border: heroPosition === pos ? '1px solid #34d399' : '1px solid rgba(255,255,255,0.16)',
-                            background: heroPosition === pos ? 'rgba(52, 211, 153, 0.18)' : 'rgba(255,255,255,0.04)',
-                            color: heroPosition === pos ? '#6ee7b7' : '#cbd5e1',
-                            fontSize: 12,
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {pos}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                      Street
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {['flop', 'turn', 'river'].map((st) => (
-                        <button
-                          key={st}
-                          type="button"
-                          aria-pressed={activeStreet === st}
-                          onClick={() => setActiveStreet(st)}
-                          style={{
-                            padding: '6px 12px',
-                            border: activeStreet === st ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.16)',
-                            background: activeStreet === st ? 'rgba(251, 191, 36, 0.18)' : 'rgba(255,255,255,0.04)',
-                            color: activeStreet === st ? '#fde68a' : '#cbd5e1',
-                            fontSize: 12,
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {st.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <p style={{ margin: '0 0 16px', fontSize: 12, color: '#b9ccd5', lineHeight: 1.6 }}>
-                  {brainEval.explanation}
-                </p>
-
-                <button
-                  type="button"
-                  data-launch-club-arena-cta="true"
-                  onClick={() => router.push(arenaHref)}
-                  style={{
-                    padding: '10px 16px',
-                    border: '1px solid #64dfff',
-                    background: 'linear-gradient(180deg, #2b718f 0%, #0a2d40 100%)',
-                    color: '#fff',
-                    fontSize: 13,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Practice Target Spot In Club Arena →
-                </button>
-              </div>
-            )}
 
             <div style={{ display: 'grid', gap: 12, marginTop: 26 }}>
               {ROUTES.map((route) => (

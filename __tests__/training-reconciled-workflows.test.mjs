@@ -519,13 +519,10 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   assert.match(multiTableUi, /tool_id:\s*'multi-table'/);
 
   const finalTableSimUi = read('pages/hub/training/final-table-sim.js');
-  assert.match(finalTableSimUi, /data-icm-brain-panel="true"/);
-  assert.match(finalTableSimUi, /evaluateTrainingSpotWithHorseBrain/);
-  assert.match(finalTableSimUi, /tool_id:\s*'final-table-sim'/);
+  assert.match(finalTableSimUi, /gameHref="\/hub\/training\/arena\/final-table-sim\?level=1/);
 
   const icmSimUi = read('pages/hub/training/icm-simulator.js');
-  assert.match(icmSimUi, /data-icm-brain-panel="true"/);
-  assert.match(icmSimUi, /evaluateTrainingSpotWithHorseBrain/);
+  assert.doesNotMatch(icmSimUi, /data-specialty-brain-panel|data-icm-brain-panel/);
   assert.match(icmSimUi, /tool_id:\s*'icm-simulator'/);
 
   const weaknessScannerUi = read('pages/hub/training/weakness-scanner.js');
@@ -533,11 +530,11 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   assert.match(weaknessScannerUi, /data-fix-top-leak-cta="true"/);
   assert.match(weaknessScannerUi, /data-leak-basis=/);
   assert.match(weaknessScannerUi, /data-leak-sample-count=/);
-  assert.match(weaknessScannerUi, /data-leak-ev-loss-bb=/);
-  assert.match(weaknessScannerUi, /data-exploit-tendency-selector="true"/);
+  assert.match(weaknessScannerUi, /topLeak.sample >= 3/);
+  assert.doesNotMatch(weaknessScannerUi, /DEFAULT_LAST_HAND|data-exploit-tendency-selector/);
 
   const spotTrainerUi = read('pages/hub/training/spot-trainer.js');
-  assert.match(spotTrainerUi, /data-pot-geometry-simulator="true"/);
+  assert.doesNotMatch(spotTrainerUi, /data-pot-geometry-simulator/);
 
   const flashcardsUi = read('pages/hub/training/flashcards.js');
   assert.match(flashcardsUi, /tool_id:\s*'flashcards'/);
@@ -930,7 +927,8 @@ test('Phase 7 Package A-J: Parallel API latency optimization, Runout What-If Exp
   const liveHudSyncSrc = read('pages/hub/training/live-hud-sync.js');
   assert.match(liveHudSyncSrc, /data-hand-leak-priority=/);
   assert.match(liveHudSyncSrc, /data-estimated-ev-loss-bb=/);
-  assert.match(liveHudSyncSrc, /data-train-top-imported-leak="true"/);
+  assert.match(liveHudSyncSrc, /data-train-top-imported-leak=\{hand.leakPriorityRank === 1/);
+  assert.doesNotMatch(liveHudSyncSrc, /PRESET_IMPORTED_HANDS|scoreAndRankHandsClient/);
 
   // 3. Item B, F, G: UniversalDynamicTable Runout What-If Explorer, Omaha 2-Hole+3-Board Best-5 Pill, and Session Mistake Replay CTA
   const universalTableSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
@@ -942,12 +940,9 @@ test('Phase 7 Package A-J: Parallel API latency optimization, Runout What-If Exp
   assert.match(universalTableSrc, /data-omaha-best-three-board=/);
   assert.match(universalTableSrc, /data-drill-session-mistakes-cta="true"/);
 
-  for (const mistakeSurface of ['pages/hub/training/session-dashboard.js', 'pages/hub/training/reports.js']) {
-    const surfaceSrc = read(mistakeSurface);
-    assert.match(surfaceSrc, /data-drill-session-mistakes-cta="true"/, `${mistakeSurface} must expose data-drill-session-mistakes-cta="true"`);
-    assert.match(surfaceSrc, /data-mistake-target-variant=/, `${mistakeSurface} must expose data-mistake-target-variant`);
-    assert.match(surfaceSrc, /data-mistake-target-street=/, `${mistakeSurface} must expose data-mistake-target-street`);
-    assert.match(surfaceSrc, /data-mistake-target-position=/, `${mistakeSurface} must expose data-mistake-target-position`);
+  for (const reportFile of ['pages/hub/training/session-dashboard.js', 'pages/hub/training/reports.js']) {
+    const source = read(reportFile);
+    assert.doesNotMatch(source, /DEFAULT_LAST_HAND|CANONICAL_PLO8_LEAK_BUCKETS|compute(?:Reports|Dashboard)DecisionPacing/);
   }
 
   // 4. Item I: Completed Duel Hand 1-10 Side-by-Side Comparison + Rematch button in pvp-lobby.js
@@ -972,22 +967,10 @@ test('Phase 7 Package A-J: Parallel API latency optimization, Runout What-If Exp
   const equityCalcSrc = read('pages/hub/training/equity-calculator.js');
   assert.match(equityCalcSrc, /data-offline-equity-fallback="true"/);
 
-  const newlyWiredBrainPages = [
-    'pages/hub/training/aggregate.js',
-    'pages/hub/training/gto-reports.js',
-    'pages/hub/training/reports.js',
-    'pages/hub/training/study-group.js',
-    'pages/hub/training/leaderboard.js',
-  ];
-  for (const relPath of newlyWiredBrainPages) {
-    const pageSrc = read(relPath);
-    assert.match(pageSrc, /evaluateTrainingSpotWithHorseBrain/, `${relPath} must wire evaluateTrainingSpotWithHorseBrain`);
-    assert.match(pageSrc, /buildCustomTrainingArenaHref/, `${relPath} must wire buildCustomTrainingArenaHref`);
-    if (relPath !== 'pages/hub/training/gto-reports.js') {
-      assert.match(pageSrc, /data-specialty-brain-panel="true"/, `${relPath} must render data-specialty-brain-panel="true"`);
-      assert.match(pageSrc, /data-launch-club-arena-cta="true"/, `${relPath} must render data-launch-club-arena-cta="true"`);
-    }
-  }
+  const report = read('pages/hub/training/reports.js');
+  assert.match(report, /authedFetch\(`\/api\/training\/gto-reports/);
+  assert.doesNotMatch(report, /data-specialty-brain-panel|data-solver-provenance-telemetry/);
+
 });
 
 test('Phase 8 Master 12-Point Package: Zero route-state coverage gaps, 100% Horse Brain + Club Arena page coverage, 4-entry unit toggle parity, multi-street felt continuation, villain node-locking, ICM/PKO felt pill, Study HUD, warm LRU cache, SM-2 mistake flashcards, 6-max positional seat leak heatmap, last-hand quick drill, solver provenance telemetry, and custom-solve heatmap', () => {
@@ -1036,20 +1019,14 @@ test('Phase 8 Master 12-Point Package: Zero route-state coverage gaps, 100% Hors
   assert.match(multiTableSrc, /data-multitable-focus-queue="true"/);
   assert.match(multiTableSrc, /data-jump-next-pending-table="true"/);
 
-  // 5. Positional 6-Max Seat Leak Heatmap, Last Club Arena Hand Bar, Solver Provenance Telemetry & Study Group Share
-  for (const leakFile of ['pages/hub/training/weakness-scanner.js', 'pages/hub/training/reports.js', 'pages/hub/training/session-dashboard.js']) {
-    const src = read(leakFile);
-    assert.match(src, /data-positional-leak-heatmap="true"/, `${leakFile} must render 6-max positional seat leak heatmap`);
-    assert.match(src, /data-drill-selected-seat-cta="true"/, `${leakFile} must render selected seat drill CTA`);
-    assert.match(src, /data-last-club-arena-hand-bar="true"/, `${leakFile} must render last Club Arena hand quick-drill bar`);
-    assert.match(src, /data-drill-last-club-arena-hand="true"/, `${leakFile} must render last Club Arena hand drill button`);
-  }
+  const scanner = read('pages/hub/training/weakness-scanner.js');
+  assert.match(scanner, /authedFetch\('\/api\/training\/get-sessions/);
+  assert.doesNotMatch(scanner, /data-positional-leak-heatmap|data-last-club-arena-hand-bar/);
 
-  for (const telemetryFile of ['pages/hub/training/aggregate.js', 'pages/hub/training/reports.js']) {
-    const src = read(telemetryFile);
-    assert.match(src, /data-solver-provenance-telemetry="true"/, `${telemetryFile} must render solver provenance coverage telemetry`);
-    assert.match(src, /data-drill-priority-coverage-spot="true"/, `${telemetryFile} must render priority coverage spot drill CTA`);
-  }
+  const aggregate = read('pages/hub/training/aggregate.js');
+  assert.match(aggregate, /Aggregate Reports Are Paused/);
+  assert.match(aggregate, /href="\/hub\/training\/reports"/);
+  assert.doesNotMatch(aggregate, /data-solver-provenance-telemetry|21212|data-specialty-brain-panel/);
 
   const studyGroupSrc = read('pages/hub/training/study-group.js');
   assert.match(studyGroupSrc, /data-study-group-spot-share="true"/);
@@ -1082,11 +1059,9 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
   assert.match(useGtoTrainerSrc, /enqueueFailedAnswerOutbox/, 'useGTOTrainer.js must enqueue network-failed answer submissions');
   assert.match(useGtoTrainerSrc, /flushFailedAnswerOutbox/, 'useGTOTrainer.js must flush queued answer submissions when online');
 
-  for (const file of ['final-table-sim.js', 'icm-simulator.js']) {
-    const src = read(`pages/hub/training/${file}`);
-    assert.match(src, /data-icm-brain-panel="true"/);
-    assert.match(src, /data-launch-club-arena-cta="true"/);
-  }
+  const icm = read('pages/hub/training/icm-simulator.js');
+  assert.match(icm, /tool_id:\s*'icm-simulator'/);
+
 });
 
 test('Phase 10 Live-Play Parity & Complete Game Coverage: 5 variants (NLH, PLO4, PLO5, PLO6, PLO8 Hi-Lo 8-or-Better), 3 betting structures (No-Limit, Pot-Limit, Fixed-Limit), 4 formats (Cash, MTT, Spins 3-Max, Heads-Up), 50/50 Hi-Lo pot split, PokerSoundManager audio parity, and Practice Isolation', async () => {
@@ -1408,20 +1383,10 @@ test('Phase 11 Master 16-Point Package: Showdown Reveal, 100% 5-Variant PLO8 Hub
   assert.match(multiTableSrc, /<GodModeArena\s+presetOnly/);
   assert.match(multiTableSrc, /playSpatial/);
 
-  for (const diagPage of ['pages/hub/training/weakness-scanner.js', 'pages/hub/training/reports.js', 'pages/hub/training/session-dashboard.js']) {
-    const src = read(diagPage);
-    assert.match(src, /data-plo8-leak-diagnostics="true"/, `${diagPage} must render PLO8 & Fixed-Limit leak diagnostics`);
-    assert.match(src, /data-fix-plo8-leak-cta="true"/, `${diagPage} must render Fix PLO8 Leak CTA`);
-    assert.match(src, /data-decision-pacing-telemetry="true"/, `${diagPage} must render Decision Pacing telemetry`);
-    assert.match(src, /data-drill-shot-clock-cta="true"/, `${diagPage} must render Shot-Clock Drill CTA`);
-  }
-
   const weaknessScannerSrc = read('pages/hub/training/weakness-scanner.js');
-  assert.match(
-    weaknessScannerSrc,
-    /const\s+\[activeVariant,\s*setActiveVariant\]\s*=\s*useState\(null\)/,
-    'weakness-scanner.js must initialize activeVariant to null so verified topLeak.variant is never masked by a hardcoded nlh default',
-  );
+  assert.match(weaknessScannerSrc, /variant: topLeak.variant \|\| 'nlh'/);
+  assert.doesNotMatch(weaknessScannerSrc, /data-plo8-leak-diagnostics|data-decision-pacing-telemetry/);
+
 });
 
 test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated category browsing and training tool contracts, end-to-end timeSpentMs & variant/bettingStructure/format persistence pipeline, Arena exit full query preservation & zero display:none, and SSG module-scope createClient guard', () => {
@@ -1439,62 +1404,20 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     return out;
   };
 
-  const focusedPages = new Set([
-    'achievements.js', 'challenges.js', 'community-leaderboard.js', 'focus-timer.js',
-    'gto-news.js', 'gto-preloader.js', 'milestones.js', 'play/[gameId].js',
-    'session-notes.js', 'streaks.js', 'study-group-finder.js', 'tournaments.js',
-    'training-feed.js', 'autopilot.js', 'scenario-demo.js', 'session-warmup.js', 'progress.js',
-    'mental-journal.js', 'training-calendar.js', 'skill-tree.js',
-    'daily-challenge.js', 'daily-goals.js', 'study-plan.js',
-    'hand-lab.js', 'flashcards.js', 'position-mastery.js',
-    'preflop-charts.js', 'quick-warmup.js', 'tournament-prep.js',
-    'tilt-guard.js', 'tournament/[id].js',
-    'table-wizard.js', 'play-mode.js',
-    'nodelocking.js', 'player-profiles.js', 'villain-range.js', 'frequency-locking.js',
-    'gto-vs-exploitative.js', 'blind-defense.js', 'spr-trainer.js', 'ev-trainer.js',
-    'pot-geometry.js', 'three-way-postflop.js', 'multiway-postflop.js', 'bluff-catcher.js',
-    'range-advisor.js', 'preflop-advisor.js', 'mixed-strategy-lab.js',
-    'bounty-trainer.js', 'icm-final-table.js', 'icm-calculator.js', 'glossary.js', 'range-explorer.js',
-    'arena/[gameId].js', 'clinic/[clinicId].js', 'custom-solve.js',
-    'analyzer.js', 'quiz-gauntlet.js', 'ev-heatmap.js', 'gto-scorecard.js', 'performance-heatmap.js', 'bankroll-coach.js',
-    'drill-builder.js', 'equity-calculator.js', 'hand-history-upload.js',
-    'jarvis.js', 'multi-table.js',
-    'pvp-lobby.js', 'quiz-builder.js', 'range-builder.js',
-    'replay-theater.js',
-    'short-deck-trainer.js', 'solutions.js',
-  ].map(file => `pages/hub/training/${file}`));
   const allTrainingPagePaths = walkTrainingPages(path.join(ROOT, 'pages/hub/training')).sort();
-  let nonRedirectCount = 0;
+  let trainingRouteCount = 0;
   for (const absPath of allTrainingPagePaths) {
     const relPath = path.relative(ROOT, absPath);
     const src = fs.readFileSync(absPath, 'utf8');
-    if (src.includes('CanonicalTrainingRedirect')) continue;
-    nonRedirectCount += 1;
-    if (focusedPages.has(relPath)) {
-      assert.doesNotMatch(src, /data-specialty-brain-panel/);
-      continue;
-    }
+    trainingRouteCount += 1;
+    assert.doesNotMatch(src, /data-specialty-brain-panel/, `${relPath} must keep the main action free of calibration panels`);
     if (relPath === 'pages/hub/training/category/[categoryId].js') {
-      assert.doesNotMatch(src, /data-specialty-brain-panel|data-launch-club-arena-cta/);
       assert.match(src, /onClick=\{playGame\}/);
-      continue;
     }
-    assert.ok(
-      src.includes('data-specialty-brain-panel'),
-      `Non-redirect training page ${relPath} is missing data-specialty-brain-panel`,
-    );
-    assert.ok(
-      src.includes('data-launch-club-arena-cta'),
-      `Non-redirect training page ${relPath} is missing data-launch-club-arena-cta`,
-    );
-    assert.ok(
-      src.includes('plo8'),
-      `Non-redirect training page ${relPath} is missing 5-variant plo8 coverage`,
-    );
   }
   assert.ok(
-    nonRedirectCount >= 90,
-    `Expected at least 90 non-redirect training pages, scanned ${nonRedirectCount}`,
+    trainingRouteCount >= 90,
+    `Expected at least 90 training routes, scanned ${trainingRouteCount}`,
   );
 
   // 2. Law #2 (Root Cause #1): End-to-End Decision Pacing (timeSpentMs) & Variant/BettingStructure/Format Metadata Persistence Pipeline

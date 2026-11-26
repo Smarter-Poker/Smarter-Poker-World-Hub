@@ -1,177 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter.js';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
-import { buildThreeHandLeakReceipt } from '../../../src/lib/training/trainingPresets.mjs';
-
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
-
-const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
-
-const PRESET_IMPORTED_HANDS = [
-  {
-    id: '994810241',
-    site: 'Club Arena',
-    gameType: 'Cash',
-    variant: 'nlh',
-    stakes: '1/2',
-    heroPosition: 'BTN',
-    street: 'flop',
-    heroCards: HERO_CARDS_BY_VARIANT.nlh,
-    board: BOARD_CARDS.slice(0, 3),
-    boardCards: BOARD_CARDS.slice(0, 3),
-    pot: 12,
-    potSizeBb: 12,
-    facingBetBb: 4,
-    effectiveStackBb: 100,
-    estimatedEvLossBb: 2.15,
-  },
-  {
-    id: '994810242',
-    site: 'Club Arena',
-    gameType: 'Cash',
-    variant: 'plo4',
-    stakes: '2/5',
-    heroPosition: 'CO',
-    street: 'turn',
-    heroCards: HERO_CARDS_BY_VARIANT.plo4,
-    board: BOARD_CARDS.slice(0, 4),
-    boardCards: BOARD_CARDS.slice(0, 4),
-    pot: 18,
-    potSizeBb: 18,
-    facingBetBb: 6,
-    effectiveStackBb: 100,
-    estimatedEvLossBb: 3.45,
-  },
-  {
-    id: '994810243',
-    site: 'Club Arena',
-    gameType: 'Cash',
-    variant: 'plo5',
-    stakes: '1/2',
-    heroPosition: 'BB',
-    street: 'river',
-    heroCards: HERO_CARDS_BY_VARIANT.plo5,
-    board: BOARD_CARDS.slice(0, 5),
-    boardCards: BOARD_CARDS.slice(0, 5),
-    pot: 24,
-    potSizeBb: 24,
-    facingBetBb: 8,
-    effectiveStackBb: 100,
-    estimatedEvLossBb: 1.4,
-  },
-];
-
-function scoreAndRankHandsClient(rawHands = []) {
-  const sourceList = Array.isArray(rawHands) && rawHands.length > 0 ? rawHands : PRESET_IMPORTED_HANDS;
-  const scored = sourceList.map((hand, idx) => {
-    const rawVar = String(hand?.variant || hand?.gameType || 'nlh').trim().toLowerCase();
-    const rawHero = Array.isArray(hand?.heroCards) ? hand.heroCards : [];
-    const variant = rawVar === 'plo6' || rawHero.length === 6 ? 'plo6'
-      : rawVar === 'plo5' || rawHero.length === 5 ? 'plo5'
-        : rawVar === 'plo8' || /plo8|hilo|hi-lo/i.test(rawVar) ? 'plo8'
-          : rawVar === 'plo4' || /plo|omaha/i.test(rawVar) || rawHero.length === 4 ? 'plo4'
-            : 'nlh';
-    const expectedHoleCount = (HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh).length;
-    const heroCards = rawHero.length === expectedHoleCount
-      ? rawHero
-      : (HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh);
-    const rawBoard = Array.isArray(hand?.boardCards) && hand.boardCards.length > 0
-      ? hand.boardCards
-      : Array.isArray(hand?.board) && hand.board.length > 0
-        ? hand.board
-        : BOARD_CARDS.slice(0, 3);
-    const street = String(
-      hand?.street || (rawBoard.length >= 5 ? 'river' : rawBoard.length === 4 ? 'turn' : 'flop'),
-    ).toLowerCase();
-    const boardCount = street === 'preflop' ? 0 : street === 'turn' ? 4 : street === 'river' ? 5 : 3;
-    const boardCards = boardCount === 0
-      ? []
-      : rawBoard.length >= boardCount
-        ? rawBoard.slice(0, boardCount)
-        : BOARD_CARDS.slice(0, boardCount);
-    const heroPosition = String(hand?.heroPosition || hand?.position || 'BTN').toUpperCase();
-    const potSizeBb = Math.max(1.5, Number(hand?.potSizeBb || hand?.pot || 12) || 12);
-    const facingBetBb = Math.max(0, Number(hand?.facingBetBb ?? 4) || 0);
-    const effectiveStackBb = Math.max(10, Number(hand?.effectiveStackBb || hand?.stackDepth || 100) || 100);
-
-    let brainDecision = null;
-    try {
-      brainDecision = evaluateTrainingSpotWithHorseBrain({
-        variant,
-        street,
-        heroPosition,
-        heroCards,
-        boardCards,
-        potSizeBb,
-        facingBetBb,
-        effectiveStackBb,
-      });
-    } catch (_) {
-      brainDecision = evaluateTrainingSpotWithHorseBrain({
-        variant: 'nlh',
-        street: 'flop',
-        heroPosition: 'BTN',
-        heroCards: HERO_CARDS_BY_VARIANT.nlh,
-        boardCards: BOARD_CARDS.slice(0, 3),
-        potSizeBb,
-        facingBetBb: 4,
-        effectiveStackBb: 100,
-      });
-    }
-
-    const explicitLoss = Number(hand?.estimatedEvLossBb ?? hand?.evLoss);
-    let estimatedEvLossBb;
-    if (Number.isFinite(explicitLoss) && explicitLoss > 0) {
-      estimatedEvLossBb = Number(explicitLoss.toFixed(2));
-    } else {
-      const actionEvValues = Object.values(brainDecision?.actionEVs || {})
-        .map(Number)
-        .filter(Number.isFinite);
-      const maxEv = actionEvValues.length > 0 ? Math.max(...actionEvValues) : 0;
-      const minEv = actionEvValues.length > 0 ? Math.min(...actionEvValues) : 0;
-      const evSpread = Math.max(0.35, maxEv - minEv);
-      const handScoreFactor = Math.max(0.25, (100 - (Number(brainDecision?.handScore) || 55)) / 100);
-      const derived = Math.max(0.25, evSpread * 0.55 + potSizeBb * 0.08 * handScoreFactor);
-      estimatedEvLossBb = Number(derived.toFixed(2));
-    }
-
-    return {
-      ...hand,
-      variant,
-      street,
-      heroPosition,
-      heroCards,
-      board: Array.isArray(hand?.board) && hand.board.length > 0 ? hand.board : boardCards,
-      boardCards,
-      potSizeBb,
-      estimatedEvLossBb,
-      recommendedAction: brainDecision?.recommendedAction || brainDecision?.correctAnswerText || 'Bet 75% Pot',
-      brainSource: brainDecision?.engineModule || 'holdem-brain.js',
-      _originalIndex: idx,
-    };
-  });
-
-  scored.sort((a, b) => {
-    const diff = b.estimatedEvLossBb - a.estimatedEvLossBb;
-    if (Math.abs(diff) > 1e-9) return diff;
-    return a._originalIndex - b._originalIndex;
-  });
-
-  return scored.map(({ _originalIndex, ...item }, index) => ({
-    ...item,
-    leakPriorityRank: index + 1,
-  }));
-}
 
 const SAMPLE_CLUB_ARENA_HAND = `PokerStars Hand #994810241: Hold'em No Limit ($1/$2 USD) - 2026/11/09 15:30:00 ET
 Table 'ClubArena_6Max_1' 6-max Seat #1 is the button
@@ -238,72 +69,32 @@ const clubArenaSyncRoutes = [
  */
 export default function LiveHudSyncPage() {
   const router = useRouter();
-  const [hands, setHands] = useState(() => scoreAndRankHandsClient(PRESET_IMPORTED_HANDS));
+  const [hands, setHands] = useState([]);
+  const [handsError, setHandsError] = useState(null);
   const [loadingHands, setLoadingHands] = useState(false);
   const [handInputText, setHandInputText] = useState('');
   const [importing, setImporting] = useState(false);
   const [importFeedback, setImportFeedback] = useState(null);
   const [lookupHandId, setLookupHandId] = useState('');
   const [lookupStatus, setLookupStatus] = useState(null);
-  const [previewVariant, setPreviewVariant] = useState('nlh');
-
-  const rankedHands = useMemo(() => scoreAndRankHandsClient(hands), [hands]);
-  const topLeakHand = useMemo(
-    () => rankedHands.find((h) => h.leakPriorityRank === 1) || rankedHands[0] || null,
-    [rankedHands],
-  );
-
-  const hudBrainPreview = useMemo(() => {
-    const activeVar = previewVariant || topLeakHand?.variant || 'nlh';
-    try {
-      return evaluateTrainingSpotWithHorseBrain({
-        variant: activeVar,
-        street: 'flop',
-        heroPosition: topLeakHand?.heroPosition || 'BTN',
-        heroCards: HERO_CARDS_BY_VARIANT[activeVar] || HERO_CARDS_BY_VARIANT.nlh,
-        boardCards: BOARD_CARDS.slice(0, 3),
-        potSizeBb: Number(topLeakHand?.potSizeBb || 12) || 12,
-        facingBetBb: 4,
-        effectiveStackBb: 100,
-      });
-    } catch (_) {
-      return null;
-    }
-  }, [previewVariant, topLeakHand]);
-
-  const handleTrainTopImportedLeak = useCallback(() => {
-    const target = topLeakHand || scoreAndRankHandsClient(PRESET_IMPORTED_HANDS)[0];
-    const href = buildCustomTrainingArenaHref(
-      {
-        format: /tournament|mtt/i.test(String(target?.gameType || '')) ? 'mtt' : 'cash',
-        variant: target?.variant || 'nlh',
-        streets: [target?.street || 'flop'],
-        positions: [target?.heroPosition || 'BTN'],
-        stackDepth: Number(target?.effectiveStackBb || target?.stackDepth || 100) || 100,
-      },
-      'live-hand-sync-top-leak',
-    );
-    router.push(href);
-  }, [router, topLeakHand]);
-
   const fetchParticipantHands = useCallback(async () => {
     setLoadingHands(true);
+    setHandsError(null);
     try {
       const token = await getAccessToken();
       if (!token) {
-        setHands(scoreAndRankHandsClient(PRESET_IMPORTED_HANDS));
-        setLoadingHands(false);
+        setHands([]);
         return;
       }
       const res = await authedFetch('/api/training/audit-hand-history');
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data?.success && Array.isArray(data.hands) && data.hands.length > 0) {
-        setHands(scoreAndRankHandsClient(data.hands));
-      } else {
-        setHands((prev) => scoreAndRankHandsClient(prev));
+      if (!res.ok || data?.success !== true || !Array.isArray(data.hands)) {
+        throw new Error('Hand List Unavailable');
       }
-    } catch (err) {
-      console.warn('[LiveHudSync] Failed to load participant hands:', err?.message);
+      setHands(data.hands);
+    } catch (_) {
+      setHands([]);
+      setHandsError('Could Not Load Your Synced Hands.');
     } finally {
       setLoadingHands(false);
     }
@@ -335,23 +126,9 @@ export default function LiveHudSyncPage() {
       const newlySynced = Array.isArray(data.syncedHands) ? data.syncedHands : [];
       setImportFeedback({
         ok: true,
-        message: `Synced ${newlySynced.length || 1} Participant-Verified Hand(s) Ranked By Highest EV Leak First.`,
+        message: newlySynced.length > 0 ? `Synced ${newlySynced.length} Hands.` : 'Import Complete.',
       });
-      if (newlySynced.length > 0) {
-        setHands((prev) => {
-          const merged = [...newlySynced, ...prev];
-          const seen = new Set();
-          const deduped = merged.filter((item) => {
-            const key = String(item.id);
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
-          return scoreAndRankHandsClient(deduped);
-        });
-      } else {
-        await fetchParticipantHands();
-      }
+      await fetchParticipantHands();
     } catch (err) {
       setImportFeedback({
         ok: false,
@@ -396,10 +173,6 @@ export default function LiveHudSyncPage() {
         code: 'PARTICIPANT_VERIFIED',
         hand: data.hand,
         message: `Participant Access Verified For Hand #${data.hand.id}.`,
-      });
-      setHands((prev) => {
-        const filtered = prev.filter((h) => String(h.id) !== String(data.hand.id));
-        return scoreAndRankHandsClient([data.hand, ...filtered]);
       });
     } catch (err) {
       setLookupStatus({
@@ -604,155 +377,27 @@ export default function LiveHudSyncPage() {
                     }}
                   >
                     {lookupStatus.message}
+                    {lookupStatus.hand?.drillHref && (
+                      <p><a href={lookupStatus.hand.drillHref}>Train This Hand</a></p>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* Top-Level 1-Click CTA for #1 Highest EV Leak */}
-              {topLeakHand && (
-                <div
-                  data-specialty-brain-panel="true"
-                  data-brain-engine={hudBrainPreview?.engineModule || topLeakHand.brainSource || 'holdem-brain.js'}
-                  data-recommended-action={hudBrainPreview?.recommendedAction || topLeakHand.recommendedAction || 'Bet 75% Pot'}
-                  data-active-variant={previewVariant}
-                  style={{
-                    marginTop: 14,
-                    padding: '14px 16px',
-                    border: '1px solid rgba(251,191,36,.55)',
-                    background: 'linear-gradient(135deg, rgba(120,53,15,.38), rgba(15,23,42,.88))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: 12,
-                  }}
-                >
-                  <div>
-                    <div style={{ color: '#fde68a', fontSize: 12, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      #1 Highest EV Leak Detected · Hand #{topLeakHand.id} ({String(topLeakHand.variant || 'nlh').toUpperCase()} · {String(topLeakHand.street || 'flop').toUpperCase()} · {topLeakHand.heroPosition || 'BTN'})
-                    </div>
-                    <div style={{ marginTop: 4, color: '#e2e8f0', fontSize: 12 }}>
-                      {`Est. EV Leak: -${topLeakHand.estimatedEvLossBb} BB · Horse Brain Action: ${hudBrainPreview?.recommendedAction || topLeakHand.recommendedAction} (${hudBrainPreview?.engineModule || topLeakHand.brainSource})`}
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                      {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          data-brain-variant-tab={v}
-                          onClick={() => setPreviewVariant(v)}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            border: previewVariant === v ? '1px solid #fbbf24' : '1px solid rgba(251,191,36,.28)',
-                            background: previewVariant === v ? 'rgba(217,119,6,.36)' : 'rgba(15,23,42,.65)',
-                            color: previewVariant === v ? '#fffbeb' : '#cbd5e1',
-                          }}
-                        >
-                          {v.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    data-launch-club-arena-cta="true"
-                    data-drill-similar-spot-cta="true"
-                    data-train-top-imported-leak="true"
-                    onClick={handleTrainTopImportedLeak}
-                    style={{
-                      minHeight: 40,
-                      padding: '0 18px',
-                      border: '1px solid #fbbf24',
-                      background: 'linear-gradient(180deg, #d97706, #78350f)',
-                      color: '#fffbeb',
-                      fontSize: 12,
-                      fontWeight: 900,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Train My #1 Imported Hand Leak
-                  </button>
-                </div>
-              )}
-
-              {/* Phase 18: Post-Session 3-Hand Leak Receipt Push Notification Card */}
-              {(() => {
-                const leakReceipt = buildThreeHandLeakReceipt({
-                  gameId: previewVariant === 'nlh' ? 'cash-002' : 'cash-005',
-                  title: `Club Arena ${previewVariant.toUpperCase()} 3-Hand Leak Receipt`,
-                  variant: previewVariant,
-                  bettingStructure: previewVariant === 'nlh' ? 'no_limit' : 'pot_limit',
-                  format: 'cash',
-                  stackDepthBb: 100,
-                  heroPosition: topLeakHand?.heroPosition || 'BTN',
-                  targetStreet: topLeakHand?.street || 'flop',
-                });
-                return (
-                  <div
-                    data-three-hand-leak-receipt="true"
-                    data-leak-receipt-id={leakReceipt.receiptId}
-                    data-leak-receipt-pack-token={leakReceipt.packToken}
-                    style={{
-                      marginTop: 14,
-                      padding: '14px 16px',
-                      borderRadius: 7,
-                      border: '1px solid #688299',
-                      borderTopColor: '#aec0d0',
-                      background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 12,
-                    }}
-                  >
-                    <div>
-                      <div style={{ color: '#83deff', fontSize: 12, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        {`Post-Session 3-Hand Leak Receipt Ready · +${leakReceipt.totalEvLossBb} BB Recoverable EV`}
-                      </div>
-                      <div style={{ marginTop: 4, color: '#e6f3ff', fontSize: 12 }}>
-                        {leakReceipt.spots.map((s, i) => `${i + 1}. ${s.label} (+${s.evLossBb} BB)`).join(' · ')}
-                      </div>
-                    </div>
-                    <a
-                      href={leakReceipt.href}
-                      data-launch-three-hand-leak-receipt="true"
-                      data-drill-similar-spot-cta="true"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        minHeight: 40,
-                        padding: '0 16px',
-                        borderRadius: 7,
-                        border: '1px solid #56d8ff',
-                        borderTopColor: '#b3eaff',
-                        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                        color: '#f4fbff',
-                        fontSize: 12,
-                        fontWeight: 900,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      Practice 3-Hand Leak Receipt →
-                    </a>
-                  </div>
-                );
-              })()}
-
               {/* Participant-Verified Hands List with "Train This Hand" */}
               <div data-synced-hands-list="true" style={{ marginTop: 16, display: 'grid', gap: 10 }}>
-                {rankedHands.length === 0 ? (
+                {handsError ? (
+                  <div role="alert">
+                    {handsError} <button type="button" onClick={fetchParticipantHands}>Retry</button>
+                  </div>
+                ) : hands.length === 0 ? (
                   <div style={{ padding: 14, border: '1px solid rgba(132,213,242,.14)', color: '#9bb4c4', fontSize: 12 }}>
                     {loadingHands
                       ? 'Loading Participant-Verified Hands...'
-                      : 'No Synced Hands Yet. Click Load Sample Hand And Import & Sync Hand Above To Test Participant-Only Retrieval And Train This Hand.'}
+                      : 'No Synced Hands Yet. Import A Hand History To Practice A Decision.'}
                   </div>
                 ) : (
-                  rankedHands.map((hand) => (
+                  hands.map((hand) => (
                     <div
                       key={hand.id}
                       data-synced-hand-row={hand.id}
@@ -801,7 +446,7 @@ export default function LiveHudSyncPage() {
                               fontWeight: 800,
                             }}
                           >
-                            Est. EV Leak: -{hand.estimatedEvLossBb} BB
+                            {Number.isFinite(hand.estimatedEvLossBb) ? `Estimated EV Loss: ${hand.estimatedEvLossBb} BB` : "EV Loss Unavailable"}
                           </span>
                         </div>
                         <div style={{ color: '#e6f6ff', fontSize: 13, fontWeight: 900 }}>
@@ -810,7 +455,7 @@ export default function LiveHudSyncPage() {
                         <div style={{ marginTop: 4, color: '#9bb4c4', fontSize: 12 }}>
                           Hero ({hand.heroPosition || 'BTN'}):{' '}
                           <strong style={{ color: '#77f2b4' }}>
-                            {Array.isArray(hand.heroCards) && hand.heroCards.length > 0 ? hand.heroCards.join(' ') : 'As Kd'}
+                            {Array.isArray(hand.heroCards) && hand.heroCards.length > 0 ? hand.heroCards.join(' ') : 'Unavailable'}
                           </strong>
                           {' · '}
                           Board:{' '}
@@ -820,12 +465,13 @@ export default function LiveHudSyncPage() {
                           {' · '}
                           Recommended:{' '}
                           <strong style={{ color: '#fde68a' }}>
-                            {hand.recommendedAction || 'Bet 75% Pot'}
+                            {hand.recommendedAction || 'Unavailable'}
                           </strong>
                         </div>
                       </div>
                       <a
                         data-train-this-hand="true"
+                        data-train-top-imported-leak={hand.leakPriorityRank === 1 ? "true" : undefined}
                         data-drill-similar-spot-cta="true"
                         data-hand-id={hand.id}
                         href={hand.drillHref || `/hub/training/arena/cash-002?level=1&syncedHandId=${encodeURIComponent(hand.id)}`}

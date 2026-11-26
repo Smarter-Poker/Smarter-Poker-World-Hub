@@ -1,7 +1,7 @@
 export async function getServerSideProps() {
   return {
     redirect: {
-      destination: '/hub/training/aggregate?source=ev-heatmap',
+      destination: '/hub/training/reports?source=ev-heatmap',
       permanent: false,
     },
   };

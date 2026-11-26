@@ -19,7 +19,7 @@ test('the complete reporting family adopts one intelligence-rail shell', () => {
     assert.match(source, /sp-training-intelligence/, `${route} is missing the intelligence shell`);
   }
   assert.match(read('pages/hub/training/gto-scorecard.js'), /destination: '\/hub\/training\/gto-reports'/);
-  assert.match(read('pages/hub/training/gto-reports.js'), /export \{ default \} from '\.\/reports'/);
+  assert.match(read('pages/hub/training/gto-reports.js'), /import VerifiedTrainingReports from '\.\/reports'[\s\S]*export default VerifiedTrainingReports/);
 });
 
 test('aggregate reports expose an honest solver-integrity boundary', () => {

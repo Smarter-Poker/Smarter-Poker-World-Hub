@@ -13,37 +13,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { useOnlineStatus } from '../../../src/hooks/useOnlineStatus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 // TRAIN-WIRE-EMPTY-3b - adoption: shared empty-state primitive
 
 const TAG_COLORS = ['var(--sp-accent-red)', 'var(--sp-accent-orange)', 'var(--sp-accent-amber)', 'var(--sp-accent-emerald)', '#0ea5e9', 'var(--sp-accent-purple)'];
 
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
-
-const BOARD_CARDS = ['Qs', '7d', '2c'];
-
-const pillButtonStyle = (active) => ({
-  padding: '7px 12px',
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 800,
-  cursor: 'pointer',
-  border: active ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
-  background: active
-    ? 'linear-gradient(180deg, rgba(8,145,178,0.75), rgba(3,50,74,0.92))'
-    : 'rgba(255,255,255,0.05)',
-  color: active ? '#e8fbff' : '#cbd5e1',
-});
 
 async function syncPlaybook(plays) {
   if (!getAccessToken()) return;
@@ -107,6 +84,7 @@ function BackArrowIcon({ size=18 }) {
 
 export default function MyPlaybookPage() {
   const router = useRouter();
+  const online = useOnlineStatus();
   useTrainingBus('my-playbook');
 
   const [plays, setPlays] = useState([]);
@@ -118,34 +96,7 @@ export default function MyPlaybookPage() {
   const [board, setBoard] = useState('');
   const [color, setColor] = useState(TAG_COLORS[0]);
   const [notes, setNotes] = useState('');
-  const [activeVariant, setActiveVariant] = useState('nlh');
-  const [effectiveStackBb, setEffectiveStackBb] = useState(100);
 
-  const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
-  const boardCards = BOARD_CARDS;
-
-  const brainEval = useMemo(
-    () =>
-      evaluateTrainingSpotWithHorseBrain({
-        variant: activeVariant,
-        street: 'flop',
-        heroCards,
-        boardCards,
-        pot: 6.5,
-        toCall: 2.2,
-        effectiveStackBb,
-      }),
-    [activeVariant, heroCards, boardCards, effectiveStackBb]
-  );
-
-  const arenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        { gameId: activeVariant === 'nlh' ? 'psy-001' : 'cash-005', variant: activeVariant },
-        'my-playbook'
-      ),
-    [activeVariant]
-  );
 
   useEffect(() => {
     let active = true;
@@ -278,6 +229,7 @@ export default function MyPlaybookPage() {
             <div>
               {/* TRAIN-PLAYBOOK-A11Y-1: semantic h1 */}
               <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>My Playbook</h1>
+              {!online && <div role="status">Offline. Cloud Sync Is Unavailable.</div>}
               <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} Plays Saved</div>
             </div>
           </div>
@@ -303,105 +255,6 @@ export default function MyPlaybookPage() {
         </div>
 
         <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
-          {brainEval && (
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainEval.engineModule}
-              data-recommended-action={brainEval.correctAnswer}
-              data-active-variant={activeVariant}
-              style={{
-                marginBottom: 20,
-                padding: 18,
-                borderRadius: 12,
-                border: '1px solid rgba(56,189,248,0.40)',
-                background: 'rgba(15,23,42,0.82)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  marginBottom: 14,
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
-                  Horse Brain Session &amp; Mindset Coaching Panel
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
-                  {`Engine: ${brainEval.engineModule} · Recommended: ${brainEval.correctAnswerText}`}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                    Variant
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        data-variant-option={v}
-                        onClick={() => setActiveVariant(v)}
-                        style={pillButtonStyle(activeVariant === v)}
-                      >
-                        {v.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                    Risk / Stack Profile
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {[20, 40, 100, 200].map((stk) => (
-                      <button
-                        key={stk}
-                        type="button"
-                        data-stack-option={stk}
-                        onClick={() => setEffectiveStackBb(stk)}
-                        style={pillButtonStyle(effectiveStackBb === stk)}
-                      >
-                        {stk} BB
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>
-                {brainEval.explanation}
-              </div>
-
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                data-launch-href={arenaHref}
-                onClick={() => router.push(arenaHref)}
-                style={{
-                  display: 'inline-flex',
-                  minHeight: 44,
-                  alignItems: 'center',
-                  padding: '0 18px',
-                  borderRadius: 8,
-                  border: '1px solid #67e8f9',
-                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                  color: '#fff',
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-              >
-                Launch Calibrated Drill In Club Arena →
-              </button>
-            </div>
-          )}
 
           {/* Search (list mode only) */}
           {view === 'list' && plays.length > 0 && (
