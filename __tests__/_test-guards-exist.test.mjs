@@ -904,6 +904,7 @@ import './trivia-fortress-admin-lb-laws.test.mjs';
 import './trivia-fortress-ui-laws.test.mjs';
 import './trivia-mfa-gate-fortress-laws.test.mjs';
 import './trivia-launch-gateboard-laws.test.mjs';
+import './trivia-smarterdesign-competitive-admin-laws.test.mjs';
 import './newsletter-zero-broken-links-and-images.law.test.mjs';
 import './newsletter-end-to-end-wiring-and-ops.law.test.mjs';
 import './weekly-wire-v4-enhancements.law.test.mjs';

@@ -56,7 +56,7 @@ function statusLabel(status) {
 function statusInk(status) {
     if (status === 'registration' || status === 'live') return 'green';
     if (status === 'cancelled') return 'red';
-    return 'gold';
+    return 'blue';
 }
 
 function friendlyClubNightError(code, fallback) {
@@ -86,7 +86,7 @@ function friendlyClubNightError(code, fallback) {
 
 const INPUT_STYLE = {
     width: '100%',
-    minHeight: '40px',
+    minHeight: '44px',
     padding: '8px 12px',
     borderRadius: '8px',
     border: '1px solid rgba(148, 163, 184, 0.35)',
@@ -102,8 +102,7 @@ const LABEL_STYLE = {
     fontSize: '12px',
     fontWeight: 700,
     letterSpacing: '0.04em',
-    textTransform: 'uppercase',
-    color: 'var(--tc-ink-silver, #CBD5E1)',
+    color: 'var(--sd-silver, #bdd0e2)',
 };
 
 const PANEL_BOX_STYLE = {
@@ -549,7 +548,7 @@ export default function ClubTriviaNightsPanel({
         >
             <div className="tt-section-head">
                 <h2 id="tt-club-nights-title" className="tc-label">Club-Hosted Private Trivia Nights</h2>
-                <span className="tc-ink--gold">Club Arena X Trivia</span>
+                <span className="tc-ink--blue">Club Arena X Trivia</span>
             </div>
 
             <p className="trivia-console-copy tc-ink--muted" style={{ margin: 0 }}>
@@ -563,7 +562,7 @@ export default function ClubTriviaNightsPanel({
                             ? `Invite Code ${invitedClubCode} Ready. Sign In To View Your Club Arena Clubs And Join This Private Trivia Night.`
                             : 'Sign In To View Your Club Arena Clubs, Register For Private Trivia Nights, Or Host One For Your Club.'}
                     </p>
-                    <TriviaGlassAction label="Sign In To View Club Nights" ink="gold" onClick={() => onSignIn?.()} />
+                    <TriviaGlassAction label="Sign In To View Club Nights" ink="blue" onClick={() => onSignIn?.()} />
                 </div>
             ) : null}
 
@@ -577,11 +576,11 @@ export default function ClubTriviaNightsPanel({
                         gap: '10px',
                         padding: '14px',
                         borderRadius: '10px',
-                        border: '1px solid rgba(250, 204, 21, 0.45)',
+                        border: '1px solid rgba(134, 218, 255, 0.5)',
                         background: 'rgba(10, 18, 32, 0.72)',
                     }}
                 >
-                    <strong className="tc-ink--gold">Club Night Invite: {invitedClubCode}</strong>
+                    <strong className="tc-ink--blue">Club Night Invite: {invitedClubCode}</strong>
                     <p className="trivia-console-copy tc-ink--silver" style={{ margin: 0 }}>
                         {viewerHasInvitedClub
                             ? `Invite Code ${invitedClubCode} Matches Your Club, But No Active Private Trivia Night Is Currently Listed.`
@@ -591,7 +590,7 @@ export default function ClubTriviaNightsPanel({
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                             <TriviaGlassAction
                                 label="Open Club Arena"
-                                ink="gold"
+                                ink="blue"
                                 onClick={() => router.push('/hub/club-arena')}
                             />
                         </div>
@@ -615,7 +614,7 @@ export default function ClubTriviaNightsPanel({
             {signedIn && activeRun && activeQuestion ? (
                 <div style={PANEL_BOX_STYLE} role="region" aria-label="Club Trivia Night Play Runner">
                     <div className="tt-section-head">
-                        <strong className="tc-ink--gold">{activeRun.title}</strong>
+                        <strong className="tc-ink--blue">{activeRun.title}</strong>
                         <span className="tc-ink--blue">
                             Question {currentQuestionIdx + 1} Of {activeRun.questions.length} | Answered: {answeredCount}/{activeRun.questions.length}
                         </span>
@@ -654,7 +653,7 @@ export default function ClubTriviaNightsPanel({
                             {currentQuestionIdx < activeRun.questions.length - 1 ? (
                                 <TriviaGlassAction
                                     label="Next Question"
-                                    ink="gold"
+                                    ink="blue"
                                     onClick={() => setCurrentQuestionIdx((idx) => Math.min(activeRun.questions.length - 1, idx + 1))}
                                 />
                             ) : null}
@@ -679,7 +678,7 @@ export default function ClubTriviaNightsPanel({
             {signedIn && resultsView ? (
                 <div style={PANEL_BOX_STYLE} role="region" aria-label="Club Trivia Night Standings">
                     <div className="tt-section-head">
-                        <strong className="tc-ink--gold">
+                        <strong className="tc-ink--blue">
                             {resultsView.title} | {resultsView.status === 'settled' ? 'Final Standings' : 'Live Standings'}
                         </strong>
                         <span className="tc-ink--blue">
@@ -692,11 +691,11 @@ export default function ClubTriviaNightsPanel({
                             style={{
                                 padding: '10px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid rgba(250, 204, 21, 0.5)',
-                                background: 'rgba(250, 204, 21, 0.08)',
+                                border: '1px solid rgba(134, 218, 255, 0.5)',
+                                background: 'rgba(12, 85, 192, 0.14)',
                             }}
                         >
-                            <strong className="tc-ink--gold">
+                            <strong className="tc-ink--blue">
                                 Club Champion: {resultsView.champion.displayName} | {resultsView.champion.score} Pts ({resultsView.champion.correctCount}/{resultsView.champion.totalQuestions} In {formatElapsedSeconds(resultsView.champion.elapsedMs)})
                             </strong>
                         </div>
@@ -718,7 +717,7 @@ export default function ClubTriviaNightsPanel({
                                         padding: '8px 10px',
                                         borderRadius: '8px',
                                         border: row.isChampion
-                                            ? '1px solid rgba(250, 204, 21, 0.5)'
+                                            ? '1px solid rgba(134, 218, 255, 0.55)'
                                             : '1px solid rgba(148, 163, 184, 0.2)',
                                         background: row.isViewer ? 'rgba(69, 173, 255, 0.12)' : 'rgba(10, 18, 32, 0.5)',
                                         display: 'flex',
@@ -727,7 +726,7 @@ export default function ClubTriviaNightsPanel({
                                         gap: '8px',
                                     }}
                                 >
-                                    <span className={row.isChampion ? 'tc-ink--gold' : 'tc-ink--silver'} style={{ fontWeight: 700 }}>
+                                    <span className={row.isChampion ? 'tc-ink--blue' : 'tc-ink--silver'} style={{ fontWeight: 700 }}>
                                         #{row.rank} {row.displayName}{row.isViewer ? ' (You)' : ''}{row.isChampion ? ' | Champion' : ''}
                                     </span>
                                     <span className="tc-ink--green" style={{ fontSize: '13px', fontWeight: 700 }}>
@@ -802,7 +801,7 @@ export default function ClubTriviaNightsPanel({
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                         <TriviaGlassAction
                             label="Open Club Arena"
-                            ink="gold"
+                            ink="blue"
                             onClick={() => router.push('/hub/club-arena')}
                         />
                     </div>
@@ -819,7 +818,7 @@ export default function ClubTriviaNightsPanel({
                             {hostableClubs.length > 0 ? (
                                 <TriviaGlassAction
                                     label={showCreateForm ? 'Close Host Form' : 'Host Club Trivia Night'}
-                                    ink={showCreateForm ? 'red' : 'gold'}
+                                    ink={showCreateForm ? 'red' : 'blue'}
                                     onClick={() => setShowCreateForm((prev) => !prev)}
                                 />
                             ) : (
@@ -844,7 +843,7 @@ export default function ClubTriviaNightsPanel({
                                 gap: '12px',
                                 padding: '14px',
                                 borderRadius: '10px',
-                                border: '1px solid rgba(250, 204, 21, 0.35)',
+                                border: '1px solid rgba(134, 218, 255, 0.45)',
                                 background: 'rgba(10, 18, 32, 0.72)',
                             }}
                         >
@@ -933,7 +932,7 @@ export default function ClubTriviaNightsPanel({
                                 <TriviaGlassAction
                                     type="submit"
                                     label={busyKey === 'create' ? 'Scheduling...' : 'Create Private Club Night'}
-                                    ink="gold"
+                                    ink="blue"
                                     disabled={busyKey === 'create'}
                                 />
                             </div>
@@ -969,16 +968,16 @@ export default function ClubTriviaNightsPanel({
                                             padding: '12px',
                                             borderRadius: '10px',
                                             border: isInvitedMatch
-                                                ? '1px solid rgba(250, 204, 21, 0.7)'
+                                                ? '1px solid rgba(134, 218, 255, 0.7)'
                                                 : '1px solid rgba(148, 163, 184, 0.22)',
                                             background: isInvitedMatch
-                                                ? 'rgba(250, 204, 21, 0.08)'
+                                                ? 'rgba(12, 85, 192, 0.14)'
                                                 : 'rgba(10, 18, 32, 0.5)',
                                             gap: '8px',
                                         }}
                                     >
                                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
-                                            <strong className="tc-ink--gold" style={{ fontSize: '16px' }}>
+                                            <strong className="tc-ink--blue" style={{ fontSize: '16px' }}>
                                                 {item.title}{isInvitedMatch ? ' | Invited Night' : ''}
                                             </strong>
                                             <span className={`tc-ink--${statusInk(item.status)}`} style={{ fontSize: '13px', fontWeight: 700 }}>
@@ -1027,7 +1026,7 @@ export default function ClubTriviaNightsPanel({
                                                 {isReg && item.viewerCanManage ? (
                                                     <TriviaGlassAction
                                                         label={startPending ? 'Starting...' : 'Start Club Night'}
-                                                        ink="gold"
+                                                        ink="blue"
                                                         disabled={startPending || entrants < 2}
                                                         onClick={() => handleStartNight(item)}
                                                     />
@@ -1043,7 +1042,7 @@ export default function ClubTriviaNightsPanel({
                                                 {isLive && item.viewerCanManage ? (
                                                     <TriviaGlassAction
                                                         label={completePending ? 'Finalizing...' : 'Finalize Results'}
-                                                        ink="gold"
+                                                        ink="blue"
                                                         disabled={completePending}
                                                         onClick={() => handleCompleteNight(item)}
                                                     />

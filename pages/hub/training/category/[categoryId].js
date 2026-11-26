@@ -144,7 +144,16 @@ export default function CategoryPage() {
         <UniversalHeader pageDepth={2} />
 
         <main className="sp-arena-lobby-shell">
-          <section className="sp-arena-masthead sd-masthead">
+          <section className="sp-arena-masthead sp-category-hero sd-masthead">
+            <div className="sp-category-hero-art" aria-hidden="true">
+              <TrainingGameArt
+                gameId={heroArtId}
+                sizes="(max-width: 700px) 100vw, 1000px"
+                loading="eager"
+              />
+            </div>
+            <div className="sp-category-hero-shade" aria-hidden="true" />
+
             <div className="sp-cat-topbar">
               <button
                 className="sd-button sp-cat-back-btn"
@@ -158,14 +167,6 @@ export default function CategoryPage() {
             </div>
 
             <div className="sp-cat-banner">
-              <div className="sp-cat-banner__thumb" aria-hidden="true">
-                <TrainingGameArt
-                  gameId={heroArtId}
-                  className="sp-cat-banner__img"
-                  sizes="72px"
-                  loading="eager"
-                />
-              </div>
               <div className="sp-cat-banner__copy">
                 <div className="sp-cat-banner__title-row">
                   <Icon size={18} aria-hidden="true" />
@@ -176,7 +177,7 @@ export default function CategoryPage() {
             </div>
 
             {featuredGame && (
-              <div className="sp-arena-quickbar" data-category-preset-summary="true">
+              <div className="sp-arena-quickbar sp-cat-quickbar" data-category-preset-summary="true">
                 <div className="sp-arena-quickbar__copy">
                   <span className="sp-arena-quickbar__tag">Top Drill</span>
                   <span className="sp-arena-quickbar__text">
@@ -294,6 +295,26 @@ export default function CategoryPage() {
           color: #f2f7ff;
           background: #040d18;
         }
+        .sp-category-hero {
+          position: relative;
+          overflow: hidden;
+        }
+        .sp-category-hero-art { position: absolute; inset: 0; overflow: hidden; }
+        .sp-category-hero-art :global(picture),
+        .sp-category-hero-art :global(img) { display: block; width: 100%; height: 100%; }
+        .sp-category-hero-art :global(img) { object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.08) brightness(0.45); }
+        .sp-category-hero-shade {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(4, 13, 24, 0.72) 0%, rgba(4, 13, 24, 0.92) 100%);
+          pointer-events: none;
+        }
+        .sp-cat-topbar,
+        .sp-cat-banner,
+        .sp-cat-quickbar {
+          position: relative;
+          z-index: 2;
+        }
         .sp-cat-topbar {
           display: flex;
           align-items: center;
@@ -314,21 +335,6 @@ export default function CategoryPage() {
           display: flex;
           align-items: center;
           gap: 12px;
-        }
-        .sp-cat-banner__thumb {
-          width: 60px;
-          height: 60px;
-          flex-shrink: 0;
-          border: 1px solid #688299;
-          border-radius: 6px;
-          overflow: hidden;
-          background: #040b14;
-        }
-        .sp-cat-banner__img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
         }
         .sp-cat-banner__copy {
           min-width: 0;
