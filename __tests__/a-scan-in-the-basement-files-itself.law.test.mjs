@@ -62,26 +62,40 @@ test('the scanner opens with no signal', () => {
     assert.match(scanBranch, /setShowScanner\(true\)/, 'and it must still open the scanner');
 });
 
-test('the other online gates are left alone, and the new one is honest', () => {
-    // Twelve guards stood before this change. One went - the scanner, whose
-    // engine is local. One arrived - sending a HELD scan, which uploads and
-    // calls the paid read route and therefore genuinely needs a network. So
-    // the count is unchanged, and that is a coincidence worth spelling out
-    // rather than a number to match: what matters is WHICH twelve.
-    const page = read('pages/hub/bankroll-manager.js');
-    const code = withoutLineComments(page);
-    const gates = (code.match(/if \(!requireOnline\(\)\) return;/g) || []).length;
-    assert.equal(gates, 12, `expected twelve write gates, found ${gates}`);
+test('the nine page-owned actions keep their offline guards before their effects', () => {
+    const code = withoutLineComments(read('pages/hub/bankroll-manager.js'));
+    const actions = [
+        ['const handleLogClick', 'if (!guardAction())'],
+        ['const handleDeleteEntry', 'setEntries('],
+        ['const openAdjustModal', 'setShowAdjustModal(true)'],
+        ['const resumeHeldScan', 'await noteAttempt('],
+        ['if (actionId === RECEIPT_ACTIONS.LOG_SESSION)', 'const activeTrip'],
+        ['if (actionId === RECEIPT_ACTIONS.CLOSE_SESSION)', 'const open ='],
+        ['if (actionId === RECEIPT_ACTIONS.FILE_W2G)', 'setReceiptBusy(true)'],
+        ['const updatePreference', 'setPreferences('],
+        ['key={entry.id}', 'const existing = entry.media_urls'],
+    ];
+    const guard = 'if (!requireOnline()) return;';
+    for (const [action, effect] of actions) {
+        const start = code.indexOf(action);
+        const end = code.indexOf(effect, start);
+        assert.ok(start !== -1 && end > start, `missing ${action} or its effect`);
+        assert.ok(code.slice(start, end).includes(guard), `${action} must check connectivity before ${effect}`);
+    }
+    assert.equal(code.split(guard).length - 1, actions.length);
+});
 
-    // The one that went.
-    const handler = code.slice(code.indexOf('const handleSidebarClick'));
-    const scanBranch = handler.slice(handler.indexOf("=== 'scan-receipt'"), handler.indexOf("=== 'projection'"));
-    assert.ok(!/requireOnline\(\)/.test(scanBranch));
-
-    // The one that arrived.
-    const resume = code.slice(code.indexOf('const resumeHeldScan'), code.indexOf('const releaseResumedScan'));
-    assert.match(resume, /if \(!requireOnline\(\)\) return;/,
-        'sending a held scan uploads and calls the paid route; offline it must refuse');
+test('all three export actions share a click-time guard on both Bankroll screens', () => {
+    const component = withoutLineComments(read('src/components/bankroll/BankrollExportFormats.jsx'));
+    for (const host of ['pages/hub/bankroll-manager.js', 'pages/hub/bankroll-manager/export.js']) {
+        assert.match(withoutLineComments(read(host)), /<BankrollExportFormats\s*\/>/, host);
+    }
+    const formats = component.slice(component.indexOf('const FORMATS = ['), component.indexOf('];'));
+    assert.deepEqual([...formats.matchAll(/id: '([^']+)'/g)].map(match => match[1]), ['csv', 'json', 'pdf']);
+    assert.match(component, /FORMATS\.map\(format =>[\s\S]+?onClick=\{\(\) => download\(format\.id\)\}/);
+    assert.match(component, /import \{ requireOnlineNow \} from '[^']*useOnlineStatus'/);
+    assert.match(component, /async function download\(format\) \{\s*if \(busy\.current \|\| !requireOnlineNow\(toast\)\) return;/,
+        'all formats must stop before credentials, fetch, or starting a download when offline');
 });
 
 test('only an unreachable server is worth holding', () => {

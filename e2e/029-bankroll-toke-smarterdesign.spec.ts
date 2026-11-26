@@ -145,14 +145,8 @@ test('Toke destinations retain readable navigation and an accessible tax sheet',
   await expect(tax).toBeHidden();
 });
 
-test('A named completed trip wraps and opens its matching report from the keyboard', async ({ page }) => {
+async function installBankrollSession(page: Page) {
   const user = { id: '1ad77cca-ddcb-4000-9777-b1fdce8e7381', email: 'layout@example.invalid', role: 'authenticated', user_metadata: {} };
-  const trip = {
-    id: '33e5a310-b179-47f9-b012-626f52ea10fd', user_id: user.id,
-    name: 'International Poker Championship Road Trip With The Team',
-    status: 'completed', trip_type: 'trip', start_date: '2026-10-03', end_date: '2026-10-09',
-    bankroll_locations: { name: 'Northern Championship Convention Center And Resort' },
-  };
   await page.addInitScript(({ user }) => {
     const expires = Math.floor(Date.now() / 1000) + 86400;
     const payload = btoa(JSON.stringify({ sub: user.id, role: user.role, exp: expires })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -163,6 +157,17 @@ test('A named completed trip wraps and opens its matching report from the keyboa
     sessionStorage.setItem('sp_auth_confirmed', '1');
   }, { user });
   await page.route('**/auth/v1/user*', route => route.fulfill({ json: user }));
+  return user;
+}
+
+test('A named completed trip wraps and opens its matching report from the keyboard', async ({ page }) => {
+  const user = await installBankrollSession(page);
+  const trip = {
+    id: '33e5a310-b179-47f9-b012-626f52ea10fd', user_id: user.id,
+    name: 'International Poker Championship Road Trip With The Team',
+    status: 'completed', trip_type: 'trip', start_date: '2026-10-03', end_date: '2026-10-09',
+    bankroll_locations: { name: 'Northern Championship Convention Center And Resort' },
+  };
   await page.route('**/rest/v1/bankroll_trips*', route => {
     const parameters = new URL(route.request().url()).searchParams;
     if (route.request().method() !== 'GET' || parameters.get('user_id') !== 'eq.' + user.id) return route.abort();
@@ -182,3 +187,32 @@ test('A named completed trip wraps and opens its matching report from the keyboa
   await root.getByRole('button', { name: /Back To Trip Tracker/ }).click();
   await expect(opener).toBeVisible();
 });
+
+for (const format of ['CSV', 'JSON', 'PDF']) {
+  test('Standalone ' + format + ' export explains offline access without starting a request', async ({ page, context }) => {
+    await installBankrollSession(page);
+    const requests: string[] = [];
+    const downloads: string[] = [];
+    page.on('request', request => {
+      const path = new URL(request.url()).pathname;
+      if (path === '/api/bankroll/export' || path === '/api/bankroll/export-pdf') requests.push(path);
+    });
+    page.on('download', download => downloads.push(download.suggestedFilename()));
+    await page.goto('/hub/bankroll-manager/export', { waitUntil: 'load' });
+    // The server already renders the buttons. Wait for the client route and
+    // the header's post-mount avatar signal before disconnecting the browser.
+    await page.waitForFunction(() => {
+      const app = window as Window & { next?: { router?: { isReady: boolean; pathname: string } } };
+      return app.next?.router?.isReady && app.next.router.pathname === '/hub/bankroll-manager/export';
+    });
+    await expect(page.locator('link[rel="preload"][as="image"][href="/default-avatar.png"]').first()).toBeAttached();
+    const button = page.getByRole('button', { name: 'Export ' + format, exact: true });
+    await expect(button).toBeVisible();
+    await context.setOffline(true);
+    await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
+    await button.click();
+    await expect.soft(page.getByText('You Are Offline. Try Again When Connected.', { exact: true })).toBeVisible();
+    expect(requests, 'No export request should start while offline').toEqual([]);
+    expect(downloads).toEqual([]);
+  });
+}

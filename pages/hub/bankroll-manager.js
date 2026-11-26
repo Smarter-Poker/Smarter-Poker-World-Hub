@@ -1421,9 +1421,8 @@ export default function BankrollManagerPage() {
       //
       // SAVING still needs the network, and that is what src/lib/bankroll/
       // receiptHold.mjs is for: a scan taken with no signal is written to
-      // the device and filed when the signal returns. The other eleven
-      // requireOnline() gates guard writes with no such fallback and stay
-      // exactly where they are.
+      // the device and filed when the signal returns. Online-only actions
+      // still check connectivity before starting their work.
       setShowScanner(true);
       setScannerStep('scan');
       setScannerEntryId(null);
@@ -2442,7 +2441,7 @@ export default function BankrollManagerPage() {
                     </div>
                   </div>
 
-                  <BankrollExportFormats requireOnline={requireOnline} />
+                  <BankrollExportFormats />
                 </div>
               )}
 

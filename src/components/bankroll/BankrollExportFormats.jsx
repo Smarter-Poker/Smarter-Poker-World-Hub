@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import { fetchBankrollExport } from '../../lib/bankroll/exportDownload.mjs';
@@ -10,12 +11,12 @@ const FORMATS = [
     { id: 'pdf', label: 'PDF', description: 'Printable Bankroll Report' },
 ];
 
-export default function BankrollExportFormats({ requireOnline }) {
+export default function BankrollExportFormats() {
     const busy = useRef(false);
     const [exporting, setExporting] = useState(null);
 
     async function download(format) {
-        if (busy.current || (requireOnline && !requireOnline())) return;
+        if (busy.current || !requireOnlineNow(toast)) return;
         busy.current = true;
         setExporting(format);
         try {
