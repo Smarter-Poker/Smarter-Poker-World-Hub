@@ -33,7 +33,7 @@ const ABOUT_FAQS = [
   {
     question: 'Is Smarter.Poker Real-Money Gambling?',
     answer:
-      'No. There Is No Real-Money Gambling On Smarter.Poker. Club Chips Are Play Credits With No Cash Value, Diamonds Are A Promotional Rewards Currency, And The Platform Is 100% Free To Play With Zero Deposit Required.',
+      'No. There Is No Real-Money Gambling On Smarter.Poker. Club Chips Are Play Credits With No Cash Value, Diamonds Are A Promotional Rewards Currency, And The Platform Is 100% Free To Play With Zero Deposit Required. Funded Diamond Games Are Not Open For Play Yet.',
   },
   {
     question: 'Who Founded And Operates Smarter.Poker?',
