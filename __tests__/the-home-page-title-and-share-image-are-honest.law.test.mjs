@@ -105,8 +105,8 @@ test('the app-level social defaults say what the product is', () => {
 
 test('the training heading never ends in a loading message', () => {
   const src = read('pages/hub/training.js');
-  assert.doesNotMatch(src, /\{greet\} Loading/);
-  assert.match(src, /GTO Poker Training: Build Better Decisions, One Hand At A Time\./);
+  assert.doesNotMatch(src, /<h1[^>]*>[^<]*Loading/i);
+  assert.match(src, /<h1[^>]*>Training Games<\/h1>/);
 });
 
 test('every public page title fits a search result once SEOHead has added the site name', () => {

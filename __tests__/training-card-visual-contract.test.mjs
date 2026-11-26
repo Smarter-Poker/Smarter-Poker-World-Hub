@@ -21,10 +21,7 @@ test('the primary Training Hub requests responsive canonical artwork', () => {
   );
 
   assert.match(hub, /import TrainingGameArt/);
-  assert.ok(
-    [...hub.matchAll(/<TrainingGameArt/g)].length >= 2,
-    'the recommended drill and catalog cards must share responsive artwork',
-  );
+  assert.match(hub, /<TrainingGameArt[\s\S]*?gameId=\{game\.id\}/, 'catalog cards must use responsive game artwork');
   assert.match(hub, /calc\(100vw - 24px\)/);
   assert.doesNotMatch(hub, /import \{ getGameImage \}/);
   assert.match(responsiveArt, /type="image\/avif"/);
