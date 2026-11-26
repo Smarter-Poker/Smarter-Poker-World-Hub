@@ -70,10 +70,6 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
   // Apply content-visibility: auto ONLY below the initial viewport fold
   const deferredClass = index >= 6 ? ' sp-arena-row--deferred' : '';
 
-  const plaqueText = selectedVariant && selectedVariant !== 'ALL' && meta.category !== 'PSYCHOLOGY'
-    ? `${selectedVariant.toUpperCase()} · ${meta.plaqueLabel}`
-    : meta.plaqueLabel;
-
   return (
     <article
       className={`sp-arena-row sp-arena-row--led-${ledTone}${isRecommended || isLeakTarget ? ' is-featured' : ''}${deferredClass}`}
@@ -87,7 +83,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
           type="button"
           className="sp-arena-row__head"
           onClick={() => onStart(game)}
-          aria-label={`Play ${game.name}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${meta.estMinutes} minutes, ${progress}% complete`}
+          aria-label={`Play ${game.name}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${progress}% complete`}
         >
           <span className="sp-arena-row__emblem" aria-hidden="true">
             <TrainingGameArt
@@ -107,7 +103,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
                 </span>
               )}
             </span>
-            <span className="sp-arena-row__focus">{plaqueText}</span>
+            <span className="sp-arena-row__focus">{selectedVariant && selectedVariant !== 'ALL' ? `${selectedVariant.toUpperCase()} · ` : ''}{game.focus}</span>
           </span>
 
           <span className="sp-arena-row__plaque" aria-hidden="true">
@@ -148,9 +144,9 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
             <DifficultyPips level={meta.difficulty} />
           </span>
 
-          <span className="sp-arena-cell sp-arena-cell--length">
-            <span className="sp-arena-cell__label">Length</span>
-            <strong className="sp-arena-cell__value sp-num">{meta.estMinutes} Min</strong>
+          <span className="sp-arena-cell sp-arena-cell--stack">
+            <span className="sp-arena-cell__label">Stack</span>
+            <strong className="sp-arena-cell__value sp-num">{meta.stackBb == null ? 'N/A' : `${meta.stackBb} BB`}</strong>
           </span>
         </button>
 

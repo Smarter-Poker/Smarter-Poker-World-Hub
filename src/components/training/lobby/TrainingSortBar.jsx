@@ -20,7 +20,7 @@ import {
 const SORT_COLUMNS = [
   { key: 'name', label: 'Game', defaultDir: 'asc' },
   { key: 'difficulty', label: 'Level', defaultDir: 'asc' },
-  { key: 'length', label: 'Length', defaultDir: 'asc' },
+  { key: 'stack', label: 'Stack', defaultDir: 'asc' },
   { key: 'progress', label: 'Progress', defaultDir: 'desc' },
 ];
 
@@ -135,7 +135,7 @@ export default function TrainingSortBar({
               key={col.key}
               type="button"
               className={`sp-arena-sortbar__col sp-arena-sortbar__col--${col.key}${isSorted ? ' is-sorted' : ''}`}
-              aria-sort={ariaSort}
+              aria-label={isSorted ? `${col.label}, Sorted ${ariaSort}` : `Sort By ${col.label}`}
               data-sort-col={col.key}
               onClick={() => handleSortClick(col)}
             >

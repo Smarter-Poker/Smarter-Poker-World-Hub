@@ -36,7 +36,8 @@ test('trainingLobbyFilter: enriches all 107 canonical games with coherent Arena-
     assert.ok(meta, `Missing meta for ${game.id}`);
     assert.ok(['DRILLS', 'LABS'].includes(meta.group));
     assert.ok(meta.difficulty >= 1 && meta.difficulty <= 5);
-    assert.ok(meta.estMinutes >= 1);
+    if (game.category === 'PSYCHOLOGY') assert.equal(meta.stackBb, null);
+    else assert.equal(meta.stackBb, meta.preset.stackDepthBb);
     assert.ok(meta.plaqueLabel.length >= 3);
     assert.ok(meta.styleLabel.length >= 3);
   }
@@ -102,6 +103,14 @@ test('trainingLobbyFilter: column sorting, advanced count, and section grouping 
   });
   for (let i = 1; i < byDiffAsc.length; i += 1) {
     assert.ok(byDiffAsc[i - 1].meta.difficulty <= byDiffAsc[i].meta.difficulty);
+  }
+
+  for (const sortDir of ['asc', 'desc']) {
+    const sorted = filterAndSortTrainingGames(TRAINING_LIBRARY, { sortKey: 'stack', sortDir });
+    const stacks = sorted.map(({ meta }) => meta.stackBb);
+    const numeric = stacks.filter((bb) => bb != null);
+    assert.deepEqual(stacks.slice(0, numeric.length), numeric.toSorted((a, b) => sortDir === 'asc' ? a - b : b - a));
+    assert.equal(stacks.at(-1), null);
   }
 
   const byNameDesc = filterAndSortTrainingGames(TRAINING_LIBRARY, {

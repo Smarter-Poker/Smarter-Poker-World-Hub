@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Play, Star, Clock, Layers } from 'lucide-react';
+import { X, Play, Star, Layers } from 'lucide-react';
 import TrainingGameArt from '../TrainingGameArt';
 import { VARIANT_METADATA, SUPPORTED_VARIANTS } from '../../../lib/training/trainingPresets.mjs';
 
@@ -144,8 +144,7 @@ export default function TrainingGamePreviewSheet({
               />
               <div className="sp-arena-preview__shade" aria-hidden="true" />
               <div className="sp-arena-preview__meta-bar">
-                <span><Clock size={13} aria-hidden="true" /> {meta.estMinutes} Min</span>
-                <span><Layers size={13} aria-hidden="true" /> {meta.handsTarget} Hands</span>
+                {meta.stackBb != null && <span><Layers size={13} aria-hidden="true" /> {meta.stackBb} BB</span>}
                 <span className="sp-num">Level {meta.difficulty}/5</span>
                 <span className="sp-num">{item.progress}% Calibrated</span>
               </div>

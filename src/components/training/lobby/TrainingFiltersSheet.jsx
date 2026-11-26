@@ -52,7 +52,7 @@ const SORT_OPTIONS = [
   { key: 'difficulty', dir: 'asc', label: 'Easiest First' },
   { key: 'difficulty', dir: 'desc', label: 'Hardest First' },
   { key: 'progress', dir: 'desc', label: 'Most Progress' },
-  { key: 'length', dir: 'asc', label: 'Shortest First' },
+  { key: 'stack', dir: 'asc', label: 'Shortest Stack First' },
   { key: 'name', dir: 'asc', label: 'Name (A-Z)' },
 ];
 

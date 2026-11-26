@@ -80,8 +80,7 @@ export function buildLobbyGameMeta(game) {
   const category = game.category || 'MTT';
   const catMeta = LOBBY_CATEGORY_META[category] || LOBBY_CATEGORY_META.MTT;
   const difficulty = Math.max(1, Math.min(5, Number(game.difficulty) || 2));
-  const estMinutes = Math.max(1, Number(game.estMinutes) || 10);
-  const handsTarget = Math.max(1, Number(game.handsTarget) || 20);
+  const stackBb = category === 'PSYCHOLOGY' ? null : preset?.stackDepthBb ?? null;
   const tags = Array.isArray(game.tags) ? game.tags : [];
 
   const styleTokens = tags
@@ -136,8 +135,7 @@ export function buildLobbyGameMeta(game) {
     ledTone: game.vipOnly ? 'crimson' : catMeta.ledTone,
     difficulty,
     difficultyTier,
-    estMinutes,
-    handsTarget,
+    stackBb,
     tags,
     styleLabel,
     plaqueLabel,
@@ -261,8 +259,11 @@ export function filterAndSortTrainingGames(library, filters, ctx = {}) {
       const diff = (a.meta.difficulty - b.meta.difficulty) * dir;
       return diff !== 0 ? diff : a.catalogIndex - b.catalogIndex;
     }
-    if (f.sortKey === 'length') {
-      const diff = (a.meta.estMinutes - b.meta.estMinutes) * dir;
+    if (f.sortKey === 'stack') {
+      if (a.meta.stackBb == null || b.meta.stackBb == null) {
+        return Number(a.meta.stackBb == null) - Number(b.meta.stackBb == null);
+      }
+      const diff = (a.meta.stackBb - b.meta.stackBb) * dir;
       return diff !== 0 ? diff : a.catalogIndex - b.catalogIndex;
     }
     if (f.sortKey === 'progress') {
