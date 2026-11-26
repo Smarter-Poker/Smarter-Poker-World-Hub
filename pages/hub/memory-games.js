@@ -20,6 +20,7 @@
      submit spotlight targets. Nothing here auto-launches a tour.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
@@ -2000,14 +2001,7 @@ export default function MemoryGamesPage() {
               <PullToRefresh onRefresh={refreshMenu} disabled={anySheetOpen}>
                 <div className="preflop-menu">
                   {/* Title */}
-                  <div className="preflop-hero">
-                    <div className="preflop-hero-copy">
-                      <span className="preflop-eyebrow">AUTHORED RANGE PRACTICE</span>
-                      <h1>Preflop Charts</h1>
-                      <p>
-                        Practice Authored Range References. No Solver-Exact Or Account-Progress
-                        Claim.
-                      </p>
+                  <BankrollImageHeader art="series" title="Preflop Charts" helpContent={<p>Authored Range Practice. No Solver-Exact Or Account-Progress Claim. Free Local Practice / No Entry Fee.</p>} />
                       {memoryDashboard?.current_grade &&
                         memoryDashboard?.rolling_30d_sessions > 0 && (
                           <div
@@ -2021,23 +2015,6 @@ export default function MemoryGamesPage() {
                             )}
                           </div>
                         )}
-                      <div className="preflop-cost-chip">
-                        <ShieldCheck size={17} aria-hidden />
-                        <span>Free Local Practice / No Entry Fee</span>
-                      </div>
-                    </div>
-                    <div className="preflop-hero-visual" aria-hidden="true">
-                      <div className="preflop-range-matrix">
-                        {Array.from({ length: 36 }, (_, index) => (
-                          <span key={index} />
-                        ))}
-                      </div>
-                      <div className="preflop-diamond-stage">
-                        <img src="/images/diamond-icon.png" alt="" />
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Section links: stats, ranks, awards, guide (tutorial target: subnav) */}
                   <PreflopSubpageNav
                     current="/hub/preflop-charts"
