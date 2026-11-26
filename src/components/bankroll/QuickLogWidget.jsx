@@ -9,10 +9,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Clean SmarterPoker-style categories (no emojis)
 const QUICK_CATEGORIES = [
     { id: 'poker_cash', label: 'Cash Game', icon: '', color: '#31a24c' },
-    { id: 'poker_mtt', label: 'Tournament', icon: '', color: '#2374e1' },
-    { id: 'casino_table', label: 'Table Games', icon: '', color: '#9b59b6' },
-    { id: 'sports', label: 'Sports Bet', icon: '', color: '#2374e1' },
-    { id: 'expense', label: 'Expense', icon: '', color: '#f02849' },
+    { id: 'poker_mtt', label: 'Tournament', icon: '', color: '#92cfff' },
+    { id: 'casino_table', label: 'Table Games', icon: '', color: '#71aac8' },
+    { id: 'sports', label: 'Sports Bet', icon: '', color: '#92cfff' },
+    { id: 'expense', label: 'Expense', icon: '', color: '#ee5651' },
 ];
 
 export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
@@ -61,7 +61,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
 
     if (!userId) {
         return (
-            <div style={styles.container}>
+            <div className="sd-panel" style={styles.container}>
                 <div style={styles.signInPrompt}>
                     <span style={styles.lockText}>Sign In To Log Sessions</span>
                 </div>
@@ -70,7 +70,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
     }
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel" style={styles.container}>
             <div style={styles.header}>
                 <h4 style={styles.title}>Quick Log</h4>
                 <button onClick={onOpenFullModal} style={styles.fullLogBtn}>
@@ -182,9 +182,6 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
 
 const styles = {
     container: {
-        background: 'linear-gradient(135deg, rgba(0,40,60,0.9), rgba(0,60,80,0.8))',
-        borderRadius: 12,
-        border: '2px solid rgba(0,212,255,0.3)',
         padding: 14,
         marginBottom: 16,
         position: 'relative',
@@ -199,13 +196,13 @@ const styles = {
         margin: 0,
         fontSize: 14,
         fontWeight: 600,
-        color: '#2374e1',
+        color: '#92cfff',
     },
     fullLogBtn: {
         padding: '4px 8px',
         background: 'transparent',
         border: 'none',
-        color: '#888',
+        color: '#9fb4c8',
         fontSize: 14,
         cursor: 'pointer',
     },
@@ -242,7 +239,7 @@ const styles = {
         padding: '8px 12px',
         background: 'transparent',
         border: 'none',
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 18,
         fontWeight: 700,
         cursor: 'pointer',
@@ -265,7 +262,7 @@ const styles = {
         padding: '0 12px',
     },
     dollarSign: {
-        color: '#888',
+        color: '#9fb4c8',
         fontSize: 16,
         marginRight: 4,
     },
@@ -297,7 +294,7 @@ const styles = {
         fontSize: 14,
     },
     resultLabel: {
-        color: '#8a8d91',
+        color: '#a1b4c7',
     },
     successBanner: {
         position: 'absolute',
@@ -317,7 +314,7 @@ const styles = {
         justifyContent: 'center',
         gap: 8,
         padding: 20,
-        color: '#8a8d91',
+        color: '#a1b4c7',
     },
     lockIcon: {
         fontSize: 18,

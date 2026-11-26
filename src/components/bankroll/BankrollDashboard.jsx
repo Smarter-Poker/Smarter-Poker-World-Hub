@@ -20,7 +20,7 @@ const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year'
 function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
   const getRiskColor = (risk) => {
     if (risk === 'HIGH') return '#ef4444';
-    if (risk === 'MEDIUM') return '#eab308';
+    if (risk === 'MEDIUM') return '#61d0e8';
     return '#22c55e';
   };
 

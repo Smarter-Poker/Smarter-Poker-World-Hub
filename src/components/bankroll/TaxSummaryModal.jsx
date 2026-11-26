@@ -12,10 +12,10 @@ import ResponsiveTable from '../ui/ResponsiveTable';
 const IRS_MILEAGE_RATES = { 2026: 0.67, 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
 
 const METAL = {
-    base: '#1C1E21', mid: '#242526', elevated: '#3A3B3C', darkest: '#18191A',
-    highlight: 'rgba(255,255,255,0.09)', primary: '#4A90D9', primaryDim: 'rgba(74,144,217,0.15)',
-    success: '#36bb6a', warn: '#f59e0b', danger: '#F02849',
-    textPrimary: '#E4E6EB', textSecondary: '#B0B3B8',
+    base: '#0d1b2b', mid: '#112338', elevated: '#30485f', darkest: '#07111e',
+    highlight: 'rgba(255,255,255,0.09)', primary: '#8acbff', primaryDim: 'rgba(74,144,217,0.15)',
+    success: '#8cdeee', warn: '#85d8fb', danger: '#e7effa',
+    textPrimary: '#eff5fc', textSecondary: '#bfcee0',
 };
 
 const EXPENSE_LABELS = {
@@ -154,7 +154,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                 {/* Header */}
                 <div style={s.header}>
                     <div>
-                        <div id="tax-summary-title" style={s.title}>📄 Annual Tax Summary</div>
+                        <div id="tax-summary-title" style={s.title}>Annual Tax Summary</div>
                         <div style={s.subtitle}>Toke Tracker · Smarter.Poker</div>
                     </div>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -238,7 +238,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                         {/* ── Mileage ── */}
                         {totalMiles > 0 && (
                             <div style={s.mileageBox} className="print-section">
-                                <span style={s.mileageLabel}>🚗 Mileage Deduction ({selectedYear})</span>
+                                <span style={s.mileageLabel}>Mileage Deduction ({selectedYear})</span>
                                 <span style={s.mileageValue}>
                                     {totalMiles.toLocaleString()} Mi × ${irsRate}/Mi = <strong style={{ color: METAL.warn }}>{fmt(mileageDeduction)}</strong>
                                 </span>
@@ -290,7 +290,7 @@ const s = {
         borderRadius: 8, color: METAL.textPrimary, fontSize: 14, cursor: 'pointer',
     },
     printBtn: {
-        padding: '8px 16px', background: METAL.primary, border: 'none',
+        padding: '8px 16px', background: '#124fa2', border: 'none',
         borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     closeBtn: {
@@ -319,8 +319,8 @@ const s = {
 
     mileageBox: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 16px', background: 'rgba(245,158,11,0.08)',
-        border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10,
+        padding: '14px 16px', background: 'rgba(45,137,234,0.08)',
+        border: '1px solid rgba(45,137,234,0.3)', borderRadius: 10,
     },
     mileageLabel: { fontSize: 14, fontWeight: 600, color: METAL.textPrimary },
     mileageValue: { fontSize: 14, color: METAL.textSecondary },
@@ -332,6 +332,6 @@ const s = {
     },
     printFooter: {
         display: 'none',  // .print-footer-row selector reveals via @media print in <style> above
-        fontSize: 12, color: '#666', textAlign: 'center', paddingTop: 20,
+        fontSize: 12, color: '#a1b8cd', textAlign: 'center', paddingTop: 20,
     },
 };

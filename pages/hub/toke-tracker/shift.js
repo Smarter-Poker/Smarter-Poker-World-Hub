@@ -4,19 +4,18 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { TokeWorkspace } from '../../../src/components/bankroll/toke/TokeWorkspace';
 import TokeTracker from '../../../src/components/bankroll/TokeTracker';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { supabase } from '../../../src/lib/supabase';
 
 export default function ShiftTrackerPage() {
-    const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
     const [mounted, setMounted] = useState(false);
@@ -90,8 +89,7 @@ export default function ShiftTrackerPage() {
     return (
         <PageTransition>
             {pageHead}
-            <div style={s.page}>
-                <div style={s.bgGrid} />
+            <div>
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
                 <HamburgerMenu
@@ -105,53 +103,12 @@ export default function ShiftTrackerPage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                <div style={s.content}>
+                <TokeWorkspace section="shift">
                     <HubErrorBoundary name="Shift Tracker">
                         <TokeTracker userId={userId} refreshTrigger={0} standalone tokePrefs={tokePrefs} />
                     </HubErrorBoundary>
-                </div>
+                </TokeWorkspace>
             </div>
     </PageTransition>
     );
 }
-
-const s = {
-    page: {
-        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-        background: '#18191a',
-        position: 'relative',
-    },
-    bgGrid: {
-        position: 'fixed',
-        inset: 0,
-        backgroundImage: `
-            linear-gradient(rgba(0,212,255,0.015) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,212,255,0.015) 1px, transparent 1px)
-        `,
-        backgroundSize: '24px 24px',
-        pointerEvents: 'none',
-        zIndex: 0,
-    },
-    content: {
-        position: 'relative',
-        zIndex: 1,
-        maxWidth: 640,
-        margin: '0 auto',
-        padding: '12px 16px 40px',
-    },
-    backBtn: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '8px 16px',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 8,
-        color: '#b0b3b8',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
-        marginBottom: 16,
-        transition: 'background 0.2s',
-    },
-};

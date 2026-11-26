@@ -15,6 +15,7 @@
  *   onClose     - () => void
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 export default function LocationMapPicker({ initialLat, initialLng, onConfirm, onClose }) {
@@ -185,7 +186,7 @@ export default function LocationMapPicker({ initialLat, initialLng, onConfirm, o
 
     return (
         <div style={styles.overlay} onClick={onClose}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className="sd-panel" style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div style={styles.header}>
                     <h2 style={styles.title}>📍 Set Location</h2>
@@ -262,15 +263,13 @@ const styles = {
         padding: 16,
     },
     modal: {
-        background: '#1a1d2e',
         borderRadius: 16,
         width: '100%',
         maxWidth: 560,
         maxHeight: '90vh',
         display: 'flex',
         flexDirection: 'column',
-        border: '2px solid #9ca3af',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
+
         overflow: 'hidden',
     },
     header: {
@@ -289,7 +288,7 @@ const styles = {
     closeBtn: {
         background: 'none',
         border: 'none',
-        color: '#888',
+        color: '#9fb4c8',
         fontSize: 20,
         cursor: 'pointer',
         padding: 4,
@@ -323,7 +322,7 @@ const styles = {
         width: '100%',
         height: 320,
         position: 'relative',
-        background: '#0a0e1a',
+        background: '#06101e',
     },
     mapLoading: {
         position: 'absolute',
@@ -331,7 +330,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
     },
     addressBar: {
@@ -348,7 +347,7 @@ const styles = {
     },
     addressText: {
         fontSize: 14,
-        color: '#b0b3b8',
+        color: '#b6c9dd',
         lineHeight: 1.4,
         wordBreak: 'break-word',
     },
@@ -357,7 +356,7 @@ const styles = {
     },
     coordsText: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontFamily: 'monospace',
     },
     actions: {
@@ -371,10 +370,10 @@ const styles = {
         padding: '12px 16px',
         fontSize: 14,
         fontWeight: 600,
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.15)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
-        color: '#b0b3b8',
+        color: '#edf6ff',
         cursor: 'pointer',
     },
     confirmBtn: {
@@ -382,10 +381,10 @@ const styles = {
         padding: '12px 16px',
         fontSize: 14,
         fontWeight: 600,
-        background: 'rgba(34,197,94,0.15)',
-        border: '2px solid rgba(34,197,94,0.4)',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
-        color: '#4ade80',
+        color: '#edf6ff',
         cursor: 'pointer',
     },
 };

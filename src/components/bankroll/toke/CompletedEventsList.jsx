@@ -8,6 +8,7 @@
 
 import React, { memo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Pencil, Trash2 } from 'lucide-react';
 
 const formatCurrency = (amount) =>
     `$${(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -47,7 +48,7 @@ function CompletedEventsList({
             {isLoading ? (
                 <div style={styles.loadingPlaceholder}>Loading Events...</div>
             ) : loadError ? (
-                <div style={{ ...styles.emptyState, color: '#ef4444' }}>Error: {loadError}</div>
+                <div style={{ ...styles.emptyState, color: '#d5e5f3' }}>Error: {loadError}</div>
             ) : completedGigs.length === 0 ? (
                 <div style={styles.emptyState}>No Completed Events Yet. Start Your First Event Above!</div>
             ) : (
@@ -87,7 +88,7 @@ function CompletedEventsList({
                                     <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                                         <button onClick={() => handleSave(gig.id)} style={styles.eventSaveBtn}>Save</button>
                                         <button onClick={() => setEditingCompletedGig(null)} style={styles.eventCancelBtn}>Cancel</button>
-                                        <button onClick={(e) => { e.stopPropagation(); onDeleteGig(e, gig.id); }} style={{ ...styles.eventDeleteBtn, padding: '10px 14px', flex: 0 }} title="Delete Event">🗑️</button>
+                                        <button onClick={(e) => { e.stopPropagation(); onDeleteGig(e, gig.id); }} style={{ ...styles.eventDeleteBtn, padding: '10px 14px', flex: 0 }} title="Delete Event"><Trash2 aria-hidden="true" size={15} /></button>
                                     </div>
                                 </div>
                             ) : (
@@ -110,7 +111,7 @@ function CompletedEventsList({
                             )}
                             {editingCompletedGig !== gig.id && (
                                 <div style={styles.eventActionRow}>
-                                    <button onClick={(e) => handleEditClick(e, gig)} style={styles.eventEditBtn} title="Edit Settings">✏️ Edit</button>
+                                    <button onClick={(e) => handleEditClick(e, gig)} style={styles.eventEditBtn} title="Edit Settings"><Pencil aria-hidden="true" size={13} /> Edit</button>
                                 </div>
                             )}
                         </motion.div>

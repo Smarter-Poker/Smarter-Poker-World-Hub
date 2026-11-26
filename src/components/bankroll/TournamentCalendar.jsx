@@ -15,20 +15,20 @@ import { motion } from 'framer-motion';
 
 const SERIES_EVENTS = [
     // WSOP 2026
-    { id: 'wsop-main', series: 'WSOP', name: 'Main Event', buyIn: 10000, date: '2026-06-28', endDate: '2026-07-15', location: 'Las Vegas, NV', color: '#d4a843', prizePool: '90M+' },
-    { id: 'wsop-colossus', series: 'WSOP', name: 'Colossus', buyIn: 400, date: '2026-06-05', endDate: '2026-06-08', location: 'Las Vegas, NV', color: '#d4a843', prizePool: '5M+' },
-    { id: 'wsop-mil', series: 'WSOP', name: 'The Millionaire Maker', buyIn: 1500, date: '2026-06-12', endDate: '2026-06-15', location: 'Las Vegas, NV', color: '#d4a843', prizePool: '12M+' },
-    { id: 'wsop-senior', series: 'WSOP', name: 'Seniors Championship', buyIn: 1000, date: '2026-06-20', endDate: '2026-06-22', location: 'Las Vegas, NV', color: '#d4a843', prizePool: '5M+' },
+    { id: 'wsop-main', series: 'WSOP', name: 'Main Event', buyIn: 10000, date: '2026-06-28', endDate: '2026-07-15', location: 'Las Vegas, NV', color: '#6bd5e7', prizePool: '90M+' },
+    { id: 'wsop-colossus', series: 'WSOP', name: 'Colossus', buyIn: 400, date: '2026-06-05', endDate: '2026-06-08', location: 'Las Vegas, NV', color: '#6bd5e7', prizePool: '5M+' },
+    { id: 'wsop-mil', series: 'WSOP', name: 'The Millionaire Maker', buyIn: 1500, date: '2026-06-12', endDate: '2026-06-15', location: 'Las Vegas, NV', color: '#6bd5e7', prizePool: '12M+' },
+    { id: 'wsop-senior', series: 'WSOP', name: 'Seniors Championship', buyIn: 1000, date: '2026-06-20', endDate: '2026-06-22', location: 'Las Vegas, NV', color: '#6bd5e7', prizePool: '5M+' },
     // WPT 2026
     { id: 'wpt-borg', series: 'WPT', name: 'Borgata Open', buyIn: 3500, date: '2026-03-15', endDate: '2026-03-20', location: 'Atlantic City, NJ', color: '#e5383b', prizePool: '3M+' },
     { id: 'wpt-la', series: 'WPT', name: 'WPT Los Angeles', buyIn: 5000, date: '2026-04-10', endDate: '2026-04-15', location: 'Commerce, CA', color: '#e5383b', prizePool: '5M+' },
     { id: 'wpt-champ', series: 'WPT', name: 'WPT Championship', buyIn: 10400, date: '2026-12-10', endDate: '2026-12-17', location: 'Las Vegas, NV', color: '#e5383b', prizePool: '15M+' },
     // Other Series
     { id: 'gg-wsop-online', series: 'GGPoker', name: 'WSOP Online Series', buyIn: 50, date: '2026-07-01', endDate: '2026-08-15', location: 'Online', color: '#1e88e5', prizePool: '100M+' },
-    { id: 'mspt-vb', series: 'MSPT', name: 'Venetian $1,100', buyIn: 1100, date: '2026-05-20', endDate: '2026-05-24', location: 'Las Vegas, NV', color: '#8e24aa', prizePool: '2M+' },
+    { id: 'mspt-vb', series: 'MSPT', name: 'Venetian $1,100', buyIn: 1100, date: '2026-05-20', endDate: '2026-05-24', location: 'Las Vegas, NV', color: '#7098b3', prizePool: '2M+' },
     { id: 'wynn-mil', series: 'Wynn', name: 'Wynn Millions', buyIn: 10000, date: '2026-04-01', endDate: '2026-04-12', location: 'Las Vegas, NV', color: '#c62828', prizePool: '10M+' },
-    { id: 'shrb', series: 'SHRB', name: 'Super High Roller Bowl', buyIn: 300000, date: '2026-05-05', endDate: '2026-05-10', location: 'Las Vegas, NV', color: '#ffd700', prizePool: '20M+' },
-    { id: 'runup', series: 'PokerStars', name: 'Run It Up Reno', buyIn: 600, date: '2026-09-15', endDate: '2026-09-22', location: 'Reno, NV', color: '#d63384', prizePool: '1M+' },
+    { id: 'shrb', series: 'SHRB', name: 'Super High Roller Bowl', buyIn: 300000, date: '2026-05-05', endDate: '2026-05-10', location: 'Las Vegas, NV', color: '#9fe5fb', prizePool: '20M+' },
+    { id: 'runup', series: 'PokerStars', name: 'Run It Up Reno', buyIn: 600, date: '2026-09-15', endDate: '2026-09-22', location: 'Reno, NV', color: '#83abc5', prizePool: '1M+' },
 ];
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -106,28 +106,28 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
     };
 
     return (
-        <div style={{ padding: '0 0 40px' }}>
+        <div className="sd-panel">
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
                 <div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Tournament Calendar</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>Major Series Schedules & Budget Planning</div>
+                    <div style={{ fontSize: 12, color: '#9aaec3' }}>Major Series Schedules & Budget Planning</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => setViewMode('calendar')} style={{ background: viewMode === 'calendar' ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${viewMode === 'calendar' ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`, color: viewMode === 'calendar' ? '#00d4ff' : '#64748b', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Calendar</button>
-                    <button onClick={() => setViewMode('list')} style={{ background: viewMode === 'list' ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${viewMode === 'list' ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`, color: viewMode === 'list' ? '#00d4ff' : '#64748b', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>List</button>
+                    <button type="button" className="sd-button" aria-pressed={viewMode === 'calendar'} onClick={() => setViewMode('calendar')}>Calendar</button>
+                    <button type="button" className="sd-button" aria-pressed={viewMode === 'list'} onClick={() => setViewMode('list')}>List</button>
                 </div>
             </div>
 
             {/* Budget Planner Bar */}
             {interestedEvents.length > 0 && (
                 <div style={{
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(0,0,0,0.2))',
-                    border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '16px 20px', marginBottom: 20,
+                    background: 'linear-gradient(135deg, rgba(71, 149, 243,0.08), rgba(0,0,0,0.2))',
+                    border: '1px solid rgba(71, 149, 243,0.2)', borderRadius: 16, padding: '16px 20px', marginBottom: 20,
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0' }}>Budget Planner - {interestedEvents.length} Events</div>
-                        <div style={{ fontSize: 14, fontWeight: 900, color: budgetHealth >= 100 ? '#4ade80' : budgetHealth >= 50 ? '#fbbf24' : '#f87171' }}>
+                        <div style={{ fontSize: 14, fontWeight: 900, color: budgetHealth >= 100 ? '#4ade80' : budgetHealth >= 50 ? '#94e7ff' : '#f87171' }}>
                             ${totalBudgetNeeded.toLocaleString()} Needed
                         </div>
                     </div>
@@ -137,12 +137,12 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                             style={{
                                 height: '100%', borderRadius: 3,
                                 background: budgetHealth >= 100 ? 'linear-gradient(90deg, #22c55e, #4ade80)' :
-                                    budgetHealth >= 50 ? 'linear-gradient(90deg, #eab308, #fbbf24)' :
+                                    budgetHealth >= 50 ? 'linear-gradient(90deg, #61d0e8, #94e7ff)' :
                                         'linear-gradient(90deg, #ef4444, #f87171)',
                             }}
                         />
                     </div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
+                    <div style={{ fontSize: 12, color: '#9aaec3', marginTop: 6 }}>
                         Bankroll Covers {budgetHealth.toFixed(0)}% Of Planned Buy-Ins
                     </div>
                 </div>
@@ -156,24 +156,24 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                         background: 'rgba(255,255,255,0.02)', borderRadius: 12, padding: '12px 16px',
                         border: '1px solid rgba(255,255,255,0.05)',
                     }}>
-                        <button onClick={prevMonth} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 16 }}>‹</button>
+                        <button type="button" className="sd-button" aria-label="Previous Month" onClick={prevMonth}>‹</button>
                         <div style={{ fontSize: 16, fontWeight: 900, color: '#e2e8f0' }}>{MONTHS[currentMonth]} {currentYear}</div>
-                        <button onClick={nextMonth} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 16 }}>›</button>
+                        <button type="button" className="sd-button" aria-label="Next Month" onClick={nextMonth}>›</button>
                     </div>
 
                     {/* Calendar Grid */}
                     <div style={{
-                        background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                        background: 'var(--sd-surface)', border: '1px solid var(--sd-line)',
                         borderRadius: 16, overflow: 'hidden', marginBottom: 24,
                     }}>
                         {/* Day Headers */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                <div key={d} style={{ padding: '10px 4px', textAlign: 'center', fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>{d}</div>
+                                <div key={d} style={{ padding: '10px 4px', textAlign: 'center', fontSize: 12, fontWeight: 800, color: '#9aaec3', textTransform: 'uppercase', letterSpacing: 1 }}>{d}</div>
                             ))}
                         </div>
                         {/* Day Cells */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
                             {calendarDays.map((day, i) => {
                                 const dayEvents = getEventsForDay(day);
                                 const isToday = day && new Date().getDate() === day && new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear;
@@ -223,13 +223,13 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                                 }}>{ev.series.substring(0, 3)}</div>
                                 <div>
                                     <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>{ev.name}</div>
-                                    <div style={{ fontSize: 12, color: '#64748b' }}>{ev.series} • {ev.location}</div>
+                                    <div style={{ fontSize: 12, color: '#9aaec3' }}>{ev.series} • {ev.location}</div>
                                 </div>
                             </div>
                             <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <div>
                                     <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>${ev.buyIn.toLocaleString()}</div>
-                                    <div style={{ fontSize: 12, color: '#64748b' }}>{new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                    <div style={{ fontSize: 12, color: '#9aaec3' }}>{new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                                 </div>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); toggleInterest(ev.id); }}
@@ -263,19 +263,19 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                         </div>
                         <div style={{ fontSize: 22, fontWeight: 900, color: selectedEvent.color }}>${selectedEvent.buyIn.toLocaleString()}</div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 112px), 1fr))', gap: 12, marginBottom: 16 }}>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
-                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Start Date</div>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Start Date</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0', marginTop: 4 }}>
                                 {new Date(selectedEvent.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                             </div>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
-                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Prize Pool</div>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Prize Pool</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#4ade80', marginTop: 4 }}>{selectedEvent.prizePool}</div>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
-                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>% Of Bankroll</div>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>% Of Bankroll</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: bankrollTotal > 0 && (selectedEvent.buyIn / bankrollTotal * 100) > 5 ? '#f87171' : '#e2e8f0', marginTop: 4 }}>
                                 {bankrollTotal > 0 ? (selectedEvent.buyIn / bankrollTotal * 100).toFixed(1) : '-'}%
                             </div>
@@ -294,7 +294,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
             )}
 
             {/* Event count summary */}
-            <div style={{ textAlign: 'center', fontSize: 12, color: '#64748b' }}>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#9aaec3' }}>
                 {monthEvents.length} Events In {MONTHS[currentMonth]} • {upcomingEvents.length} Total Upcoming
             </div>
         </div>

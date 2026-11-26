@@ -80,17 +80,17 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
     const profileColor = profileStats.totalNet >= 0 ? '#4ade80' : '#f87171';
 
     return (
-        <div style={{ padding: '0 0 40px' }}>
+        <div className="sd-panel">
             {/* Header */}
             <div style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Staking Profile</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>Share Verified Performance With Potential Backers</div>
+                <div style={{ fontSize: 12, color: '#9aaec3' }}>Share Verified Performance With Potential Backers</div>
             </div>
 
             {/* Profile Preview Card */}
             <div style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.06), rgba(0,0,0,0.3))',
-                border: '1px solid rgba(99,102,241,0.2)', borderRadius: 20,
+                background: 'linear-gradient(135deg, rgba(71, 149, 243,0.06), rgba(0,0,0,0.3))',
+                border: '1px solid rgba(71, 149, 243,0.2)', borderRadius: 20,
                 overflow: 'hidden', marginBottom: 24,
             }}>
                 {/* Card Header */}
@@ -100,7 +100,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                 }}>
                     <div style={{
                         width: 56, height: 56, borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        background: 'linear-gradient(135deg, #4795f3, #8bb9f4)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 24, fontWeight: 900, color: '#fff',
                         border: '3px solid rgba(255,255,255,0.1)',
@@ -118,7 +118,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                                 textTransform: 'uppercase',
                             }}>Verified</span>
                             <span style={{
-                                background: 'rgba(99,102,241,0.1)', color: '#a78bfa',
+                                background: 'rgba(71, 149, 243,0.1)', color: '#a8ccf1',
                                 fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 4,
                                 textTransform: 'uppercase',
                             }}>Smarter.Poker</span>
@@ -127,10 +127,10 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                 </div>
 
                 {/* Stats Grid */}
-                <div style={{ padding: '20px 24px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                <div style={{ padding: '20px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 112px), 1fr))', gap: 16 }}>
                     {privacy.showROI && (
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>ROI</div>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>ROI</div>
                             <div style={{ fontSize: 22, fontWeight: 900, color: parseFloat(profileStats.roi) >= 0 ? '#4ade80' : '#f87171' }}>
                                 {profileStats.roi}%
                             </div>
@@ -138,7 +138,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                     )}
                     {privacy.showWinRate && (
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Win Rate</div>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Win Rate</div>
                             <div style={{ fontSize: 22, fontWeight: 900, color: '#e2e8f0' }}>
                                 {profileStats.winRate}%
                             </div>
@@ -146,7 +146,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                     )}
                     {privacy.showVolume && (
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Sessions</div>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Sessions</div>
                             <div style={{ fontSize: 22, fontWeight: 900, color: '#e2e8f0' }}>
                                 {profileStats.totalSessions}
                             </div>
@@ -154,7 +154,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                     )}
                     {privacy.showAvgSession && (
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Avg Session</div>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Avg Session</div>
                             <div style={{ fontSize: 18, fontWeight: 900, color: profileStats.avgSession >= 0 ? '#4ade80' : '#f87171' }}>
                                 {profileStats.avgSession >= 0 ? '+' : ''}${profileStats.avgSession}
                             </div>
@@ -162,8 +162,8 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                     )}
                     {privacy.showStreak && (
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Streak</div>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: '#fbbf24' }}>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Streak</div>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: '#94e7ff' }}>
                                 {profileStats.currentStreak}W
                             </div>
                         </div>
@@ -176,18 +176,18 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     borderTop: '1px solid rgba(255,255,255,0.04)',
                 }}>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>
+                    <div style={{ fontSize: 12, color: '#9aaec3' }}>
                         Net P/L: <span style={{ color: profileColor, fontWeight: 800 }}>
                             {profileStats.totalNet >= 0 ? '+' : ''}${profileStats.totalNet.toLocaleString()}
                         </span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>Powered By Smarter.Poker</div>
+                    <div style={{ fontSize: 12, color: '#9aaec3' }}>Powered By Smarter.Poker</div>
                 </div>
             </div>
 
             {/* Privacy Controls */}
             <div style={{
-                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                background: 'var(--sd-surface)', border: '1px solid var(--sd-line)',
                 borderRadius: 16, padding: 20, marginBottom: 24,
             }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0', marginBottom: 16, letterSpacing: 0.3 }}>
@@ -221,7 +221,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                     onClick={handleCopyLink}
                     style={{
                         flex: 1, minWidth: 160, padding: '14px', borderRadius: 12,
-                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                        background: 'linear-gradient(135deg, #4795f3, #2563a8)',
                         border: 'none', color: '#fff', fontSize: 14, fontWeight: 800,
                         cursor: 'pointer', letterSpacing: 0.5,
                     }}

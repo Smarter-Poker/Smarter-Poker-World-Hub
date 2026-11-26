@@ -8,10 +8,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const CATEGORY_COLORS = {
   poker_cash: '#22c55e',
-  poker_mtt: '#eab308',
+  poker_mtt: '#61d0e8',
   casino_table: '#dc2626',
-  slots: '#f97316',
-  sports: '#f97316',
+  slots: '#a1bbd5',
+  sports: '#a1bbd5',
   expense: '#6b7280',
   trip_summary: '#3b82f6',
 };

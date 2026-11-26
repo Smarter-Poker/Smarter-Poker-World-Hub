@@ -16,6 +16,7 @@
  *   userId       - for bankroll_locations linkage
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import LocationMapPicker from './LocationMapPicker';
 
@@ -237,7 +238,7 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                                 onClick={() => {
                                     onChange(searchQuery, 'home_game', null, null, null);
                                 }}
-                                style={{ ...styles.locationBtn, color: '#b0b3b8' }}
+                                style={{ ...styles.locationBtn, color: '#b6c9dd' }}
                             >
                                 Skip
                             </button>
@@ -342,10 +343,10 @@ const styles = {
         padding: '8px 4px',
         fontSize: 14,
         fontWeight: 500,
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.1)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#b0b3b8',
+        color: '#edf6ff',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
     },
@@ -367,13 +368,13 @@ const styles = {
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
-        color: '#e4e6eb',
+        color: '#edf6ff',
         outline: 'none',
     },
     spinner: {
         position: 'absolute',
         right: 10,
-        color: '#2374e1',
+        color: '#92cfff',
         fontSize: 16,
         animation: 'spin 1s linear infinite',
     },
@@ -393,7 +394,7 @@ const styles = {
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
-        color: '#e4e6eb',
+        color: '#edf6ff',
         cursor: 'pointer',
         marginRight: 8,
     },
@@ -423,7 +424,7 @@ const styles = {
     },
     confirmedAddress: {
         fontSize: 14,
-        color: '#b0b3b8',
+        color: '#b6c9dd',
         lineHeight: 1.3,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -438,7 +439,7 @@ const styles = {
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 6,
-        color: '#b0b3b8',
+        color: '#b6c9dd',
         cursor: 'pointer',
         flexShrink: 0,
     },
@@ -448,7 +449,7 @@ const styles = {
         left: 0,
         right: 0,
         marginTop: 4,
-        background: '#242526',
+        background: '#101f31',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         overflow: 'hidden',
@@ -466,21 +467,21 @@ const styles = {
         borderBottom: '1px solid rgba(255,255,255,0.15)',
         cursor: 'pointer',
         textAlign: 'left',
-        color: '#e4e6eb',
+        color: '#edf6ff',
         transition: 'background 0.1s',
     },
     suggestionName: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#e4e6eb',
+        color: '#edf6ff',
     },
     suggestionMeta: {
         fontSize: 14,
-        color: '#b0b3b8',
+        color: '#b6c9dd',
         marginTop: 2,
     },
     venueType: {
-        color: '#65676b',
+        color: '#91a7bc',
     },
     dropdownSectionLabel: {
         padding: '6px 14px 4px',

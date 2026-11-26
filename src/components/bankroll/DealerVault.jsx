@@ -6,8 +6,9 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import { memo,  useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import view from './toke/TokeWorkspace.module.css';
+import { memo, useState, useEffect, useCallback, useRef } from 'react';
+import { Camera, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
 import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
@@ -22,10 +23,10 @@ import DocumentCropper from './DocumentCropper';
 // ── Constants ────────────────────────────────────────────────────
 
 const TABS = [
-    { id: 'gaming_license', label: 'Gaming Licenses', icon: '' },
-    { id: 'tax', label: 'Tax Documents', icon: '' },
-    { id: 'employment', label: 'Employment', icon: '' },
-    { id: 'paystub', label: 'Pay Stubs', icon: '' },
+    { id: 'gaming_license', label: 'Gaming Licenses' },
+    { id: 'tax', label: 'Tax Documents' },
+    { id: 'employment', label: 'Employment' },
+    { id: 'paystub', label: 'Pay Stubs' },
 ];
 
 const TAX_SUB_TYPES = [
@@ -50,23 +51,23 @@ const US_STATES_GAMING = [
 const YEARS = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
 const METAL = {
-    base: '#1C1E21',
-    mid: '#242526',
-    elevated: '#3A3B3C',
-    darkest: '#18191A',
+    base: '#0d1b2b',
+    mid: '#112338',
+    elevated: '#30485f',
+    darkest: '#07111e',
     highlight: 'rgba(255,255,255,0.12)',
-    primary: '#4A90D9',
+    primary: '#8acbff',
     primaryDim: 'rgba(74,144,217,0.15)',
-    danger: '#F02849',
-    success: '#36bb6a',
-    warn: '#f59e0b',
-    textPrimary: '#E4E6EB',
-    textSecondary: '#B0B3B8',
+    danger: '#e7effa',
+    success: '#8cdeee',
+    warn: '#85d8fb',
+    textPrimary: '#eff5fc',
+    textSecondary: '#bfcee0',
 };
 
 // ── License expiry badge ─────────────────────────────────────────
 function expiryBadge(expiry_date) {
-    if (!expiry_date) return { label: 'No Expiry', color: METAL.textSecondary, dot: '#888' };
+    if (!expiry_date) return { label: 'No Expiry', color: METAL.textSecondary, dot: '#a6bdd2' };
     const now = new Date();
     const exp = new Date(expiry_date + 'T12:00:00');
     const diffDays = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
@@ -81,6 +82,7 @@ function DealerVault({ userId, completedGigs = [] }) {
     const [activeTab, setActiveTab] = useState('gaming_license');
     const [docs, setDocs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [readError, setReadError] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -116,6 +118,7 @@ function DealerVault({ userId, completedGigs = [] }) {
     const loadDocs = useCallback(async () => {
         if (!userId) return;
         setIsLoading(true);
+        setReadError(false);
         try {
             const { data, error } = await supabase
                 .from('dealer_documents')
@@ -125,6 +128,7 @@ function DealerVault({ userId, completedGigs = [] }) {
             if (error) throw error;
             setDocs(data || []);
         } catch (err) {
+            setReadError(true);
             console.warn('DealerVault load error:', err);
             toast.error('Failed to load documents');
         } finally {
@@ -399,14 +403,14 @@ function DealerVault({ userId, completedGigs = [] }) {
 
     // ── Render ───────────────────────────────────────────────────
     return (
-        <div style={s.card}>
+        <section className={"sd-panel " + view.panel}>
             {/* Header */}
-            <button style={s.header} onClick={() => setExpanded(v => !v)}>
+            <button type="button" className={view.disclosure} aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>
                 <div style={s.headerLeft}>
-                    <span style={s.headerIcon}></span>
+
                     <div>
-                        <div style={s.headerTitle}>Dealer Vault</div>
-                        <div style={s.headerSub}>{docs.length} document{docs.length !== 1 ? 's' : ''} Stored</div>
+                        <div className="sd-section-title">Documents</div>
+                        {userId && !isLoading && !readError && <div style={s.headerSub}>{docs.length} Document{docs.length !== 1 ? 's' : ''} Stored</div>}
                     </div>
                 </div>
                 <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
@@ -426,14 +430,14 @@ function DealerVault({ userId, completedGigs = [] }) {
                     )}
 
                     {/* Tab Bar */}
-                    <div style={s.tabBar}>
+                    <div className={"sd-tabs " + view.chartChoices} aria-label="Document Categories" role="group">
                         {TABS.map(tab => (
                             <button
-                                key={tab.id}
-                                style={{ ...s.tab, ...(activeTab === tab.id ? s.tabActive : {}) }}
+                                key={tab.id} aria-pressed={activeTab === tab.id}
+                                className="sd-button"
                                 onClick={() => setActiveTab(tab.id)}
                             >
-                                {tab.icon} {tab.label}
+                                {tab.label}
                             </button>
                         ))}
                     </div>
@@ -443,7 +447,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                         <div style={s.yearRow}>
                             {YEARS.map(y => (
                                 <button
-                                    key={y}
+                                    key={y} aria-pressed={selectedYear === y}
                                     style={{ ...s.yearBtn, ...(selectedYear === y ? s.yearBtnActive : {}) }}
                                     onClick={() => setSelectedYear(y)}
                                 >{y}</button>
@@ -518,7 +522,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                     </span>
                                 </div>
                             )}
-                            <div style={s.uploadFormTitle}>📄 {pendingFile?.name}</div>
+                            <div style={s.uploadFormTitle}><FileText size={16} aria-hidden="true" /> {pendingFile?.name}</div>
 
                             <input
                                 style={s.input}
@@ -641,7 +645,7 @@ function DealerVault({ userId, completedGigs = [] }) {
 
                             <div style={s.row2}>
                                 <button
-                                    style={{ ...s.btn, background: METAL.primary }}
+                                    className="sd-button sd-primary"
                                     onClick={handleUpload}
                                     disabled={isUploading}
                                 >
@@ -659,10 +663,14 @@ function DealerVault({ userId, completedGigs = [] }) {
                     )}
 
                     {/* Document List */}
-                    {isLoading ? (
-                        <div style={s.emptyState}>Loading Documents...</div>
+                    {!userId ? <p className={view.status}>Sign In To View Your Documents.</p> : isLoading ? (
+                        <p role="status" className={view.status}>Loading Documents…</p>
+                    ) : readError ? (
+                        <div role="alert" className={view.status}>Documents Could Not Be Loaded.
+                            <button type="button" className="sd-button" onClick={loadDocs}>Retry</button>
+                        </div>
                     ) : sortedDocs.length === 0 ? (
-                        <div style={s.emptyState}>No {TABS.find(t => t.id === activeTab)?.label} Uploaded Yet</div>
+                        <div role="status" className={view.status}>No {TABS.find(t => t.id === activeTab)?.label} Uploaded Yet</div>
                     ) : (
                         <div style={s.docList}>
                             {sortedDocs.map(doc => {
@@ -671,15 +679,15 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 return (
                                     <div key={doc.id} style={s.docCard}>
                                         {/* Thumbnail or PDF icon */}
-                                        <div
+                                        <a href={doc.file_url} target="_blank" rel="noreferrer"
+                                            aria-label={'Open ' + (doc.label || doc.file_name)}
                                             style={s.docThumb}
-                                            onClick={() => window.open(doc.file_url, '_blank')}
                                         >
                                             {isImage
                                                 ? <img src={doc.file_url} alt={doc.label} style={s.thumbImg} />
-                                                : <div style={s.pdfIcon}>📄</div>
+                                                : <FileText size={24} aria-hidden="true" />
                                             }
-                                        </div>
+                                        </a>
 
                                         {/* Info */}
                                         <div style={s.docInfo}>
@@ -749,7 +757,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                     onCancel={handleCropSkip}
                 />
             )}
-        </div>
+        </section>
     );
 }
 
@@ -803,8 +811,8 @@ const s = {
     alertBox: {
         margin: '12px 16px 0',
         padding: '12px 16px',
-        background: 'rgba(245,158,11,0.12)',
-        border: '1px solid rgba(245,158,11,0.4)',
+        background: 'rgba(45,137,234,0.12)',
+        border: '1px solid rgba(45,137,234,0.4)',
         borderRadius: 8,
     },
     alertRow: {
@@ -1027,8 +1035,8 @@ const s = {
     },
     deleteBtn: {
         padding: '6px 10px',
-        background: 'rgba(240,40,73,0.1)',
-        border: '1px solid rgba(240,40,73,0.3)',
+        background: 'rgba(110,151,181,0.1)',
+        border: '1px solid rgba(110,151,181,0.3)',
         borderRadius: 6,
         fontSize: 13,
         cursor: 'pointer',

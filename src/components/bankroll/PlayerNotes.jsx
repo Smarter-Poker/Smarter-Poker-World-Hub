@@ -3,6 +3,7 @@
  * Track opponents with photos, bios, and gameplay notes
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -57,7 +58,7 @@ export default function PlayerNotes({ userId }) {
     function getPlayerTypeColor(type) {
         switch (type) {
             case 'fish': return '#22c55e';
-            case 'reg': return '#eab308';
+            case 'reg': return '#61d0e8';
             case 'shark': return '#ef4444';
             case 'unknown': return '#666';
             default: return '#2374e1';
@@ -65,7 +66,7 @@ export default function PlayerNotes({ userId }) {
     }
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel">
             <div style={styles.header}>
                 <h2 style={styles.title}>Player Notes</h2>
                 <button onClick={() => setShowAddModal(true)} style={styles.addBtn}>
@@ -76,6 +77,7 @@ export default function PlayerNotes({ userId }) {
             {/* Search */}
             <input
                 type="text"
+                aria-label="Search Players"
                 placeholder="Search Players..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -88,15 +90,14 @@ export default function PlayerNotes({ userId }) {
             ) : filteredPlayers.length === 0 ? (
                 <div style={styles.empty}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No Players Yet</span>
-                    <p style={{ margin: 0 }}>No Players Yet</p>
-                    <p style={{ margin: '8px 0 0', fontSize: 14, opacity: 0.6 }}>
+                        <p style={{ margin: '8px 0 0', fontSize: 14, opacity: 0.6 }}>
                         Add Notes On Opponents You've Played Against
                     </p>
                 </div>
             ) : (
                 <div style={styles.playerList}>
                     {filteredPlayers.map(player => (
-                        <div
+                        <button type="button"
                             key={player.id}
                             style={styles.playerCard}
                             onClick={() => setSelectedPlayer(player)}
@@ -127,8 +128,8 @@ export default function PlayerNotes({ userId }) {
                                     {player.stakes && <span style={styles.playerStakes}>{player.stakes}</span>}
                                 </div>
                             </div>
-                            <span style={styles.playerArrow}>›</span>
-                        </div>
+                            <span style={styles.playerArrow} aria-hidden="true">›</span>
+                        </button>
                     ))}
                 </div>
             )}
@@ -320,7 +321,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                 initial={{ scale: 0.95, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
-                style={styles.modal}
+                className="sd-panel" style={styles.modal}
                 onClick={e => e.stopPropagation()}
             >
                 <div style={styles.modalHeader}>
@@ -546,9 +547,6 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
 }
 
 const styles = {
-    container: {
-        padding: 20,
-    },
     header: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -563,10 +561,10 @@ const styles = {
     },
     addBtn: {
         padding: '10px 16px',
-        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#fff',
+        color: '#edf6ff',
         fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
@@ -604,12 +602,14 @@ const styles = {
         gap: 10,
     },
     playerCard: {
+        width: '100%',
+        textAlign: 'left',
         display: 'flex',
         alignItems: 'center',
         gap: 14,
         padding: 14,
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '2px solid rgba(255, 255, 255, 0.06)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
@@ -633,7 +633,7 @@ const styles = {
     avatarPlaceholder: {
         fontSize: 20,
         fontWeight: 700,
-        color: '#2374e1',
+        color: '#92cfff',
     },
     playerInfo: {
         flex: 1,
@@ -685,9 +685,8 @@ const styles = {
         padding: 20,
     },
     modal: {
-        background: 'linear-gradient(135deg, #0a1929, #0d2137)',
         borderRadius: 16,
-        border: '2px solid rgba(0, 212, 255, 0.3)',
+
         width: '100%',
         maxWidth: 500,
         maxHeight: '90vh',
@@ -713,7 +712,7 @@ const styles = {
         height: 32,
         background: 'transparent',
         border: 'none',
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 24,
         cursor: 'pointer',
     },
@@ -792,20 +791,20 @@ const styles = {
     cancelBtn: {
         flex: 1,
         padding: '12px 16px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '2px solid rgba(255, 255, 255, 0.1)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#888',
+        color: '#edf6ff',
         fontSize: 14,
         cursor: 'pointer',
     },
     saveBtn: {
         flex: 1,
         padding: '12px 16px',
-        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#fff',
+        color: '#edf6ff',
         fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
@@ -816,7 +815,7 @@ const styles = {
         background: 'rgba(35, 116, 225, 0.12)',
         border: '2px dashed rgba(35, 116, 225, 0.35)',
         borderRadius: 10,
-        color: '#2374e1',
+        color: '#92cfff',
         fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
@@ -836,10 +835,10 @@ const styles = {
     },
     changePhotoBtn: {
         padding: '8px 14px',
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.12)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#94a3b8',
+        color: '#edf6ff',
         fontSize: 14,
         fontWeight: 500,
         cursor: 'pointer',

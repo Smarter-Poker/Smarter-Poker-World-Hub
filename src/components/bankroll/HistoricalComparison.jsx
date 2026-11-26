@@ -3,6 +3,7 @@
  * Compare this period vs last period — driven by entries prop for real-time filter reactivity
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useMemo } from 'react';
 
 // Non-gaming categories that should NOT count as "sessions"
@@ -130,8 +131,8 @@ export default function HistoricalComparison({ entries = [] }) {
 const styles = {
     container: {
         padding: 16,
-        background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
-        border: '2px solid rgba(0,212,255,0.2)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
         height: '100%',
         boxSizing: 'border-box',
@@ -151,7 +152,7 @@ const styles = {
     title: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#2374e1',
+        color: '#92cfff',
         margin: 0,
     },
     periodToggle: {

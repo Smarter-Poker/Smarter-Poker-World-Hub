@@ -1,3 +1,4 @@
+import { GRADIENTS, METAL } from '../../src/components/bankroll/metalStyles';
 import dynamic from 'next/dynamic';
 /**
  * BANKROLL MANAGER PAGE
@@ -7,6 +8,7 @@ import dynamic from 'next/dynamic';
 
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import layout from '../../styles/BankrollManager.module.css';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
@@ -93,12 +95,12 @@ import { capture, FunnelEvents } from '../../src/lib/analytics';
 
 /** Colour of the tag on each Receipt Saved choice, by receiptActions() tone. */
 const RECEIPT_TONE_COLORS = {
-  VAULT: '#fbbf24',
+  VAULT: '#94e7ff',
   TRIP: '#4ade80',
   CLOSE: '#34d399',
   EXPENSE: '#f87171',
   ATTACH: '#60a5fa',
-  LATER: '#a1a1aa',
+  LATER: '#a5b7cc',
 };
 import { formatCurrency } from '../../src/lib/bankroll/currencyUtils';
 
@@ -120,6 +122,7 @@ const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 30
 const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
 
 const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
+const BankrollExportFormats = lazySection(() => import('../../src/components/bankroll/BankrollExportFormats'));
 const LedgerTimeline = lazySection(() => import('../../src/components/bankroll/LedgerTimeline'));
 const LocationAnalytics = lazySection(() => import('../../src/components/bankroll/LocationAnalytics'));
 const BankrollProjection = lazySection(() => import('../../src/components/bankroll/BankrollProjection'));
@@ -170,6 +173,13 @@ const SIDEBAR_SECTIONS = [
   { id: 'reports', label: 'Reports', icon: '' },
 ];
 
+// These sections open from the menu, independently of the always-visible rail.
+const MENU_SECTION_TITLES = {
+  settings: 'Settings',
+  rules: 'Bankroll Rules',
+  goals: 'Bankroll Goals',
+};
+
 // Accounting-only categories: NEVER count as sessions, never affect win rate, projections, or stats
 // 'receipt' was listed here for years; bankroll_ledger_category_check has never allowed it.
 const ACCOUNTING_CATEGORIES = ['expense', 'deposit', 'withdrawal'];
@@ -198,13 +208,14 @@ const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year'
 function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tutorialId }) {
   const getRiskColor = (risk) => {
     if (risk === 'HIGH') return '#ef4444';
-    if (risk === 'MEDIUM') return '#eab308';
+    if (risk === 'MEDIUM') return '#61d0e8';
     return '#22c55e';
   };
 
   return (
     <div
-      style={{ ...styles.statCard, ...(onClick ? { cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 } : {}) }}
+      className={`sd-metric ${layout.metric}`}
+      style={{ ...(onClick ? { cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 } : {}) }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -323,10 +334,16 @@ export default function BankrollManagerPage() {
     chartType: 'line'
   });
 
-  const activeSection = filters.activeSection;
+  const activeSection = filters.activeSection === 'advanced-tax' ? 'tax' : filters.activeSection;
   const categoryFilter = filters.categoryFilter;
   const timeFilter = filters.timeFilter;
   const chartType = filters.chartType;
+  const sectionTitle = activeSection === 'dashboard'
+    ? CATEGORY_LABELS[categoryFilter] || 'Bankroll Manager'
+    : SIDEBAR_SECTIONS.find(section => section.id === activeSection)?.label
+      || MENU_SECTION_TITLES[activeSection]
+      || ({ leaks: 'Leak Analysis', pro: 'Pro Tools' })[activeSection]
+      || 'Bankroll Manager';
 
   const setActiveSection = (val) => setFilter('activeSection', val);
   const setCategoryFilter = (val) => setFilter('categoryFilter', val);
@@ -343,7 +360,9 @@ export default function BankrollManagerPage() {
       const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
       if (requestedView === 'log-session') {
         setActiveSection('dashboard');
-      } else if (SIDEBAR_SECTIONS.some((s) => s.id === requestedView && !s.action)) {
+      } else if (requestedView === 'advanced-tax') {
+        setActiveSection('tax');
+      } else if (SIDEBAR_SECTIONS.some((s) => s.id === requestedView && !s.action) || Object.hasOwn(MENU_SECTION_TITLES, requestedView)) {
         setActiveSection(requestedView);
         sectionPushedRef.current = true;
       } else {
@@ -1547,14 +1566,13 @@ export default function BankrollManagerPage() {
         jsonLd={BANKROLL_SCHEMA}
       />
 
-      <HubPageShell className="bankroll" maxWidth={960} background="#18191a" onMenuClick={() => setMenuOpen(true)}>
+      <HubPageShell className="bankroll" maxWidth={960} background="#06101e" onMenuClick={() => setMenuOpen(true)}>
       {/* Pull down at the top of the page to reload the ledger (mobile
           standard, "Pull-to-refresh": the browser's own gesture is disabled
           app-wide). Off while a sheet is open so a drag inside it cannot
           fire a reload underneath. */}
       <PullToRefresh onRefresh={loadData} disabled={showLogModal || showAdjustModal || showScanner || showProjection}>
-      <div className="bankroll-page" style={styles.container}>
-        <div style={styles.bgGrid} />
+      <div className="bankroll-page smarterdesign" style={styles.container}>
 
         <FeatureGate featureKey="bankroll_pro" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track Sessions, Analyze Leaks, And Manage Your Poker Bankroll For 24 Hours." hideBadge>
           {/* Hamburger Menu */}
@@ -1569,6 +1587,22 @@ export default function BankrollManagerPage() {
             bottomLinks={menuConfig.bottomLinks}
           />
 
+          <header className={`sd-masthead ${layout.mast}`}>
+            <img className={layout.walletMark} src="/images/header-wallet-v2.png" alt="" width="72" height="72" />
+            <div className={layout.titleGroup}>
+              {sectionTitle !== 'Bankroll Manager' && <div className={layout.productName}>Bankroll Manager</div>}
+              <h1>{sectionTitle}</h1>
+            </div>
+            <div className={layout.headerActions}>
+              {!isGloballyVip && hasProAccess && proExpiresAt && <DayPassCountdown expiresAt={proExpiresAt} />}
+              {activeSection === 'dashboard' && categoryFilter === 'all' && (
+                <button type="button" className="bankroll-log-btn sd-button sd-primary" data-tutorial="add-button" onClick={() => { haptic('light'); handleLogClick(); }}>
+                  Add +
+                </button>
+              )}
+            </div>
+          </header>
+
           {/* Main Layout */}
           <div className="bankroll-main-layout" style={styles.mainLayout}>
             {/* Navigation. ONE nav for every width (Always-Displayed Mobile
@@ -1577,7 +1611,7 @@ export default function BankrollManagerPage() {
                 above the content, every one visible, nothing behind a
                 swipe. The old `.bankroll-mobile-nav` horizontal pill rail
                 (hidden scrollbar, items 5-13 off screen) is deleted. */}
-            <nav className="bankroll-sidebar" style={styles.sidebar} aria-label="Bankroll Manager Sections">
+            <nav className={`bankroll-sidebar ${layout.sidebar}`} aria-label="Bankroll Manager Sections">
               <div className="bankroll-sidebar-list" data-tutorial="nav">
                 {SIDEBAR_SECTIONS.map((section) => {
                   const isActive = activeSection === section.id && !section.action;
@@ -1585,13 +1619,9 @@ export default function BankrollManagerPage() {
                     <button
                       key={section.id}
                       type="button"
-                      className={`bankroll-sidebar-item${isActive ? ' active' : ''}`}
+                      className={`sd-button bankroll-sidebar-item${isActive ? ' active' : ''}`}
                       aria-current={isActive ? 'page' : undefined}
                       onClick={() => section.action ? openAdjustModal() : handleSidebarClick(section.id)}
-                      style={{
-                        ...styles.sidebarItem,
-                        ...(isActive ? styles.sidebarItemActive : {}),
-                      }}
                     >
                       {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Dashboard' : section.label}
                       {section.id === 'scan-receipt' && pendingReceipts.length > 0 && (
@@ -1611,38 +1641,7 @@ export default function BankrollManagerPage() {
             </nav>
 
             {/* Main Content - Switches based on activeSection */}
-            <main className="bankroll-main-content" style={styles.mainContent}>
-
-              {/* Header */}
-              <div className="bankroll-content-header" style={styles.contentHeader}>
-                <h1 className="bankroll-page-title" style={styles.pageTitle}>
-                  {activeSection === 'dashboard' && categoryFilter === 'all' && 'Bankroll Manager'}
-                  {activeSection === 'dashboard' && categoryFilter !== 'all' && (CATEGORY_LABELS[categoryFilter] || 'Bankroll Manager')}
-                  {activeSection === 'trips' && 'Trip Tracker'}
-                  {activeSection === 'players' && 'Player Notes'}
-                  {activeSection === 'leaks' && 'Leak Analysis'}
-                  {activeSection === 'reports' && 'Reports'}
-                  {activeSection === 'pro' && 'Pro Tools'}
-                  {activeSection === 'settings' && 'Settings'}
-                  {activeSection === 'rules' && 'Bankroll Rules'}
-                  {activeSection === 'staking' && 'Staking Tracker'}
-                  {activeSection === 'toke-tracker' && 'Toke Tracker'}
-
-                  {activeSection === 'staking-profile' && 'Staking Profile'}
-                  {activeSection === 'tournament-calendar' && 'Tournament Calendar'}
-                </h1>
-                <div style={styles.headerActions}>
-                  {/* Countdown Timer for day passes (only if NOT VIP but has active pass) */}
-                  {!isGloballyVip && hasProAccess && proExpiresAt && (
-                    <DayPassCountdown expiresAt={proExpiresAt} />
-                  )}
-                  {activeSection === 'dashboard' && categoryFilter === 'all' && (
-                    <button type="button" className="bankroll-log-btn" data-tutorial="add-button" style={styles.logButton} onClick={() => { haptic('light'); handleLogClick(); }}>
-                      Add +
-                    </button>
-                  )}
-                </div>
-              </div>
+            <section className={`bankroll-main-content ${layout.content}`} aria-label={sectionTitle}>
 
               {/* Category Overview View (Cash Games, Tournaments, etc.) */}
               {activeSection === 'dashboard' && categoryFilter !== 'all' && (
@@ -1879,7 +1878,7 @@ export default function BankrollManagerPage() {
                     return (
                       <div
                         style={{
-                          background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(168,85,247,0.08) 100%)',
+                          background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(169, 198, 230,0.08) 100%)',
                           border: '2px solid rgba(59,130,246,0.3)',
                           borderRadius: 12,
                           padding: '14px 16px',
@@ -1927,7 +1926,7 @@ export default function BankrollManagerPage() {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); haptic('light'); goToSection('series'); }}
                           style={{
-                            background: '#6366f1',
+                            background: '#4795f3',
                             color: '#fff',
                             border: 'none',
                             borderRadius: 8,
@@ -1965,13 +1964,7 @@ export default function BankrollManagerPage() {
 
                   {/* === Unified Dashboard Frame === */}
                   {!(isLoading && !hasLoadedOnce) && (
-                  <div style={{
-                    background: '#1a1b1e',
-                    border: '2px solid rgba(255,255,255,0.08)',
-                    borderRadius: 14,
-                    padding: '16px',
-                    marginBottom: 16,
-                  }}>
+                  <div className={`sd-panel ${layout.dashboard}`}>
 
                     {/* Stats Cards */}
                     <div className="bankroll-stats-grid" data-tutorial="stats" style={styles.statsGrid}>
@@ -2162,7 +2155,7 @@ export default function BankrollManagerPage() {
                         justifyContent: 'center',
                         gap: 12,
                       }}>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only - Advanced Analytics</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#9fe5fb', textAlign: 'center' }}>VIP Analytics</div>
                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends Require VIP Membership.</div>
                         <button
                           type="button"
@@ -2170,8 +2163,8 @@ export default function BankrollManagerPage() {
                           style={{
                             minHeight: 44,
                             touchAction: 'manipulation',
-                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                            color: '#000',
+                            background: GRADIENTS.cyanAction,
+                            color: '#edf6ff',
                             border: 'none',
                             borderRadius: 8,
                             padding: '10px 24px',
@@ -2209,11 +2202,11 @@ export default function BankrollManagerPage() {
                   )}
 
                   {/* Recent Activity Section */}
-                  <div style={styles.activitySection}>
+                  <div className={`sd-panel ${layout.panel}`}>
                     <div
                       style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}
                     >
-                      <h2 style={styles.sectionTitle}>Recent Activity</h2>
+                      <h2 className="sd-section-title">Recent Activity</h2>
                       {entries.length > 5 && (
                         <button
                           type="button"
@@ -2274,9 +2267,7 @@ export default function BankrollManagerPage() {
                           width: '100%',
                           maxWidth: 600,
                           maxHeight: '80dvh',
-                          background: '#1a1b1e',
                           borderRadius: 16,
-                          border: '2px solid rgba(255,255,255,0.1)',
                           overflow: 'hidden',
                           display: 'flex',
                           flexDirection: 'column',
@@ -2364,8 +2355,8 @@ export default function BankrollManagerPage() {
 
               {/* Leaks View */}
               {activeSection === 'leaks' && (
-                <div style={styles.activitySection}>
-                  <h2 style={styles.sectionTitle}>Leak Analysis</h2>
+                <div className={`sd-panel ${layout.panel}`}>
+                  <h2 className="sd-section-title">Leak Analysis</h2>
                   {!leakAnalysis || leakAnalysis.topLeaks?.length === 0 ? (
                     <div style={{ padding: '40px 20px', textAlign: 'center' }}>
                       <div style={{ marginBottom: 16, opacity: 0.5, fontSize: 18, color: '#22c55e', fontWeight: 600 }}>All Clear</div>
@@ -2374,10 +2365,10 @@ export default function BankrollManagerPage() {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.08)' }}>
-                        <span style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk === 'HIGH' ? 'Alert' : leakAnalysis.leakRisk === 'MEDIUM' ? 'Warning' : 'OK'}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(97, 208, 232, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.08)' }}>
+                        <span style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#61d0e8' : '#22c55e' }}>{leakAnalysis.leakRisk === 'HIGH' ? 'Alert' : leakAnalysis.leakRisk === 'MEDIUM' ? 'Warning' : 'OK'}</span>
                         <div>
-                          <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#61d0e8' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
                           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>Total Leak Amount: ${leakAnalysis.totalLeakAmount?.toLocaleString() || 0}</div>
                         </div>
                       </div>
@@ -2385,7 +2376,7 @@ export default function BankrollManagerPage() {
                         <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.1)', borderRadius: 10, marginBottom: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                             <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{leak.title}</span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#eab308' : '#3b82f6' }}>{leak.value}</span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#61d0e8' : '#3b82f6' }}>{leak.value}</span>
                           </div>
                           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{leak.message}</div>
                         </div>
@@ -2397,8 +2388,8 @@ export default function BankrollManagerPage() {
 
               {/* Goals View (from hamburger menu) */}
               {activeSection === 'goals' && (
-                <div style={styles.activitySection}>
-                  <h2 style={styles.sectionTitle}>Bankroll Goals</h2>
+                <div className={`sd-panel ${layout.panel}`}>
+                  <h2 className="sd-section-title">Bankroll Goals</h2>
                   <BankrollGoals
                     userId={userId}
                     currentBankroll={stats?.totalBankroll || 0}
@@ -2414,8 +2405,8 @@ export default function BankrollManagerPage() {
 
               {/* Reports View */}
               {activeSection === 'reports' && (
-                <div style={styles.activitySection}>
-                  <h2 style={styles.sectionTitle}>Performance Reports</h2>
+                <div className={`sd-panel ${layout.panel}`}>
+                  <h2 className="sd-section-title">Performance Reports</h2>
 
                   {/* Quick Stats Summary */}
                   <div style={{
@@ -2451,142 +2442,14 @@ export default function BankrollManagerPage() {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {/* Export CSV */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!userId) return;
-                        if (!requireOnline()) return;
-                        try {
-                          const res = await fetch('/api/bankroll/export', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId, format: 'csv' })
-                          });
-                          if (!res.ok) throw new Error(`Request failed (${res.status})`);
-                          const data = await res.json();
-                          if (data.success && data.content) {
-                            const blob = new Blob([data.content], { type: 'text/csv' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = data.filename || `bankroll_export_${new Date().toISOString().split('T')[0]}.csv`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                            toast.success(`Exported ${data.summary?.sessions || 0} Sessions To CSV`);
-                          } else {
-                            toast.error(data.message || 'No Entries To Export');
-                          }
-                        } catch (err) {
-                          console.warn('Export failed:', err);
-                          toast.error('CSV Export Failed');
-                        }
-                      }}
-                      style={styles.reportActionBtn}
-                    >
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>CSV</span>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To CSV</div>
-                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-                          Download All Sessions For Spreadsheet Analysis
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                    </button>
-
-                    {/* Export JSON */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!userId) return;
-                        if (!requireOnline()) return;
-                        try {
-                          const res = await fetch('/api/bankroll/export', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId, format: 'json' })
-                          });
-                          if (!res.ok) throw new Error(`Request failed (${res.status})`);
-                          const data = await res.json();
-                          if (data.success && data.data) {
-                            const exportPayload = { entries: data.data, summary: data.summary };
-                            const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = data.filename || `bankroll_export_${new Date().toISOString().split('T')[0]}.json`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                            toast.success(`Exported ${data.summary?.sessions || 0} Sessions To JSON`);
-                          } else {
-                            toast.error(data.message || 'No Entries To Export');
-                          }
-                        } catch (err) {
-                          console.warn('Export failed:', err);
-                          toast.error('JSON Export Failed');
-                        }
-                      }}
-                      style={styles.reportActionBtn}
-                    >
-                      <span style={{ fontSize: 14, color: '#65676b' }}>JSON</span>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To JSON</div>
-                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-                          Full Data Export For Backup Or API Use
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                    </button>
-
-                    {/* PDF Export */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!guardAction()) return;
-                        if (!requireOnline()) return;
-                        try {
-                          const token = getAccessToken();
-                          const res = await fetch('/api/bankroll/export-pdf', {
-                            headers: { Authorization: `Bearer ${token}` }
-                          });
-                          if (res.ok) {
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `bankroll_report_${new Date().toISOString().split('T')[0]}.pdf`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          }
-                        } catch (err) {
-                          console.warn('PDF export failed:', err);
-                        }
-                      }}
-                      style={styles.reportActionBtn}
-                    >
-                      <span style={{ fontSize: 14, color: '#65676b' }}>PDF</span>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To PDF</div>
-                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-                          Formatted Report For Printing Or Sharing
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                    </button>
-                  </div>
+                  <BankrollExportFormats requireOnline={requireOnline} />
                 </div>
               )}
 
               {/* Settings View */}
               {activeSection === 'settings' && (
-                <div style={styles.activitySection}>
-                  <h2 style={styles.sectionTitle}>Bankroll Settings</h2>
+                <div className={`sd-panel ${layout.panel}`}>
+                  <h2 className="sd-section-title">Bankroll Settings</h2>
                   <div style={{ padding: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)', marginBottom: 16 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
@@ -2619,14 +2482,14 @@ export default function BankrollManagerPage() {
 
               {/* Bankroll Rules View */}
               {activeSection === 'rules' && (
-                <div style={styles.activitySection}>
+                <div>
                   <BankrollRulesCard userId={userId} />
                 </div>
               )}
 
               {/* Saved Receipts View */}
               {activeSection === 'receipts' && (
-                <div style={styles.activitySection}>
+                <div>
                   <SavedReceipts userId={userId} />
                 </div>
               )}
@@ -2652,21 +2515,21 @@ export default function BankrollManagerPage() {
                               </div>
                               <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>Add It To The Vault</div>
                             </div>
-                            <span style={{ color: '#fbbf24', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>FILE</span>
+                            <span style={{ color: '#94e7ff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>FILE</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
                   <div style={{ padding: '20px 16px 14px', borderBottom: '2px solid #4e4f50' }}>
-                    <h2 style={{ fontSize: 22, fontWeight: 700, color: '#e4e6eb', margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>
+                    <h2 style={{ fontSize: 22, fontWeight: 700, color: '#edf6ff', margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>
                       Tax Reports
                     </h2>
-                    <p style={{ fontSize: 15, color: '#b0b3b8', margin: '4px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>Generate Tax Documents For Your Poker Income</p>
+                    <p style={{ fontSize: 15, color: '#b6c9dd', margin: '4px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>Generate Tax Documents For Your Poker Income</p>
                   </div>
                   <BankrollProGate userId={userId}>
                     <div style={{ padding: 16 }}>
-                      <HubErrorBoundary name="Advanced Tax Report">
+                      <HubErrorBoundary name="State Tax Report">
                         <AdvancedTaxReport entries={entries} userId={userId} />
                       </HubErrorBoundary>
                       <div style={{ marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
@@ -2681,7 +2544,7 @@ export default function BankrollManagerPage() {
 
               {/* Staking Tracker - dedicated standalone view */}
               {activeSection === 'staking' && (
-                <div style={styles.activitySection}>
+                <div>
                   <BankrollProGate userId={userId}>
                     <HubErrorBoundary name="Staking Tracker">
                       <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
@@ -2692,27 +2555,13 @@ export default function BankrollManagerPage() {
 
               {/* Toke Tracker - Dealer Income & Expense Tracking */}
               {activeSection === 'toke-tracker' && (
-                <div style={styles.activitySection}>
+                <div>
                   <TokeTracker userId={userId} refreshTrigger={refreshTrigger} />
                 </div>
               )}
 
-
-
-              {/* Phase 8: Advanced Tax Report - State-Level */}
-              {activeSection === 'advanced-tax' && (
-                <div style={styles.activitySection}>
-                  <BankrollProGate userId={userId}>
-                    <HubErrorBoundary name="Advanced Tax Report">
-                      <AdvancedTaxReport entries={entries} userId={userId} />
-                    </HubErrorBoundary>
-                  </BankrollProGate>
-                </div>
-              )}
-
-              {/* Phase 8: Staking Profile - Public Performance Card */}
               {activeSection === 'staking-profile' && (
-                <div style={styles.activitySection}>
+                <div>
                   <BankrollProGate userId={userId}>
                     <HubErrorBoundary name="Staking Profile">
                       <SocialStakingProfile entries={entries} stats={stats} user={user} />
@@ -2723,7 +2572,7 @@ export default function BankrollManagerPage() {
 
               {/* Phase 8: Tournament Calendar - Series Event Planner */}
               {activeSection === 'tournament-calendar' && (
-                <div style={styles.activitySection}>
+                <div>
                   <HubErrorBoundary name="Tournament Calendar">
                     <TournamentCalendar bankrollTotal={stats?.totalBankroll || 0} />
                   </HubErrorBoundary>
@@ -2735,10 +2584,10 @@ export default function BankrollManagerPage() {
                 <div style={styles.proToolsContainer}>
                   {/* Pro Tools Header */}
                   <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, color: '#edf6ff', margin: 0 }}>
                       Pro Tools
                     </h2>
-                    <p style={{ fontSize: 14, color: '#b0b3b8', margin: '4px 0 0' }}>Premium Bankroll Features For Serious Players</p>
+                    <p style={{ fontSize: 14, color: '#b6c9dd', margin: '4px 0 0' }}>Premium Bankroll Features For Serious Players</p>
                   </div>
 
                   <BankrollProGate userId={userId}>
@@ -2751,13 +2600,14 @@ export default function BankrollManagerPage() {
                   </BankrollProGate>
                 </div>
               )}
-            </main>
+            </section>
           </div>
         </FeatureGate>
       </div>
       </PullToRefresh>
       </HubPageShell>
 
+      <div className="smarterdesign">
       {/* Receipt Scanner Modal */}
       {
         showScanner && (
@@ -2853,14 +2703,14 @@ export default function BankrollManagerPage() {
                       marginBottom: 16, padding: 12, borderRadius: 10,
                       background: 'rgba(35,116,225,0.08)', border: '1px solid #2374e1',
                     }}>
-                      <div style={{ color: '#e4e6eb', fontSize: 15, fontWeight: 600 }}>{scannerRoute.summary}</div>
-                      <div style={{ color: '#2374e1', fontSize: 14, marginTop: 2 }}>{scannerRoute.label}</div>
+                      <div style={{ color: '#edf6ff', fontSize: 15, fontWeight: 600 }}>{scannerRoute.summary}</div>
+                      <div style={{ color: '#92cfff', fontSize: 14, marginTop: 2 }}>{scannerRoute.label}</div>
                     </div>
                   )}
 
                   {scannerDuplicate && (
                     <div style={styles.receiptDuplicate} role="alert">
-                      <div style={{ color: '#fbbf24', fontSize: 14, fontWeight: 700 }}>You May Have Scanned This Before</div>
+                      <div style={{ color: '#94e7ff', fontSize: 14, fontWeight: 700 }}>You May Have Scanned This Before</div>
                       <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 3 }}>
                         {scannerDuplicate.summary || 'A Receipt'}
                         {scannerDuplicate.created_at ? ` on ${new Date(scannerDuplicate.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
@@ -3043,6 +2893,7 @@ export default function BankrollManagerPage() {
               {...signInScrim}
             >
               <motion.div
+                className="sd-panel"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="bankroll-sign-in-title"
@@ -3051,53 +2902,28 @@ export default function BankrollManagerPage() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 style={{
-                  background: '#1a2a44',
                   borderRadius: 16,
-                  padding: '32px 40px',
+                  padding: 'clamp(16px, 5vw, 28px)',
                   textAlign: 'center',
-                  maxWidth: 400,
-                  border: '2px solid rgba(255, 255, 255, 0.1)',
+                  width: 'min(400px, calc(100% - 24px))',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div style={{ marginBottom: 16, color: '#65676b', fontSize: 32 }}>Sign In</div>
-                <h2 id="bankroll-sign-in-title" style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>Sign In Required</h2>
+                <h2 id="bankroll-sign-in-title" className="sd-section-title">Sign In Required</h2>
                 <p id="bankroll-sign-in-description" style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
                   Please Sign In To Log Your Poker Sessions And Track Your Bankroll.
                 </p>
                 <button
                   type="button"
                   onClick={() => router.push('/login?redirect=/hub/bankroll-manager')}
-                  style={{
-                    minHeight: 44,
-                    touchAction: 'manipulation',
-                    padding: '14px 32px',
-                    background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
-                    border: 'none',
-                    borderRadius: 10,
-                    color: '#fff',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    marginRight: 12,
-                  }}
+                  className="sd-button sd-primary" style={{ marginInlineEnd: 8 }}
                 >
                   Sign In
                 </button>
                 <button
                   type="button"
                   onClick={closeLogModal}
-                  style={{
-                    minHeight: 44,
-                    touchAction: 'manipulation',
-                    padding: '14px 24px',
-                    background: 'transparent',
-                    border: '2px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: 10,
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    fontSize: 16,
-                    cursor: 'pointer',
-                  }}
+                  className="sd-button"
                 >
                   Cancel
                 </button>
@@ -3125,18 +2951,15 @@ export default function BankrollManagerPage() {
             {...violationsScrim}
           >
             <motion.div
+              className="sd-panel"
               initial={{ scale: 0.9, y: 30 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 30 }}
               transition={{ type: 'spring', damping: 20, stiffness: 250 }}
               style={{
-                background: 'linear-gradient(160deg, rgba(15,15,30,0.98), rgba(20,10,35,0.98))',
-                borderRadius: 16,
-                border: '2px solid rgba(239,68,68,0.35)',
                 padding: '24px 28px',
                 maxWidth: 420,
                 width: '100%',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(239,68,68,0.1)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -3144,7 +2967,7 @@ export default function BankrollManagerPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
                 <div style={{
                   width: 42, height: 42, borderRadius: '50%',
-                  background: ruleViolations.some(v => v.severity === 'high') ? 'rgba(239,68,68,0.2)' : ruleViolations.some(v => v.severity === 'info') ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)',
+                  background: ruleViolations.some(v => v.severity === 'high') ? 'rgba(239,68,68,0.2)' : ruleViolations.some(v => v.severity === 'info') ? 'rgba(34,197,94,0.2)' : 'rgba(86, 200, 221,0.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 20,
                 }}>
@@ -3164,17 +2987,17 @@ export default function BankrollManagerPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
                 {ruleViolations.map((v, i) => (
                   <div key={i} style={{
-                    background: v.severity === 'high' ? 'rgba(239,68,68,0.08)' : v.severity === 'info' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                    border: `2px solid ${v.severity === 'high' ? 'rgba(239,68,68,0.25)' : v.severity === 'info' ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+                    background: v.severity === 'high' ? 'rgba(239,68,68,0.08)' : v.severity === 'info' ? 'rgba(34,197,94,0.08)' : 'rgba(86, 200, 221,0.08)',
+                    border: `2px solid ${v.severity === 'high' ? 'rgba(239,68,68,0.25)' : v.severity === 'info' ? 'rgba(34,197,94,0.25)' : 'rgba(86, 200, 221,0.25)'}`,
                     borderRadius: 10,
                     padding: '12px 14px',
                   }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: v.severity === 'high' ? '#f87171' : v.severity === 'info' ? '#4ade80' : '#fbbf24', marginBottom: 4 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: v.severity === 'high' ? '#f87171' : v.severity === 'info' ? '#4ade80' : '#94e7ff', marginBottom: 4 }}>
                       {v.rule}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
                       <span>Limit: {v.limit}</span>
-                      <span style={{ fontWeight: 600, color: v.severity === 'high' ? '#ef4444' : v.severity === 'info' ? '#22c55e' : '#f59e0b' }}>
+                      <span style={{ fontWeight: 600, color: v.severity === 'high' ? '#ef4444' : v.severity === 'info' ? '#22c55e' : '#56c8dd' }}>
                         Actual: {v.actual}
                       </span>
                     </div>
@@ -3250,6 +3073,7 @@ export default function BankrollManagerPage() {
         )}
       </AnimatePresence>
       {UpgradePopup}
+      </div>
       <FaqSection faqs={BANKROLL_MANAGER_FAQS} />
       <HubPageSummary page="bankroll-manager" />
     </PageTransition >
@@ -3261,7 +3085,7 @@ const styles = {
     // The shell (HubPageShell) owns 100dvh, the 100vw clamp, overflow and
     // the header. This is the themed column inside its feed column;
     // bankroll.css scopes every rule under `.bankroll-page`.
-    background: '#18191a',  // SmarterPoker dark background
+    background: '#06101e',
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
     // No paddingBottom here: pages/_app.js renders <BottomNavSpacer/> for
@@ -3269,19 +3093,6 @@ const styles = {
     // page-owned 70 was ~34px short on home-indicator iPhones.
     width: '100%',
     boxSizing: 'border-box',
-  },
-  bgGrid: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundImage: `
-      linear-gradient(rgba(136, 136, 136, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(136, 136, 136, 0.02) 1px, transparent 1px)
-    `,
-    backgroundSize: '60px 60px',
-    pointerEvents: 'none',
   },
   topBar: {
     display: 'flex',
@@ -3307,10 +3118,10 @@ const styles = {
     padding: '8px 16px',
     minHeight: 44,
     touchAction: 'manipulation',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '2px solid rgba(255, 255, 255, 0.1)',
+    background: GRADIENTS.metalButton,
+    border: `1px solid ${METAL.highlight}`,
     borderRadius: 6,
-    color: '#fff',
+    color: '#edf6ff',
     fontSize: 14,
     cursor: 'pointer',
     width: '100%',
@@ -3328,8 +3139,8 @@ const styles = {
     top: '100%',
     left: 0,
     marginTop: 4,
-    background: '#1a2a44',
-    border: '2px solid rgba(255, 255, 255, 0.1)',
+    background: GRADIENTS.darkPanel,
+    border: `1px solid ${METAL.highlight}`,
     borderRadius: 8,
     padding: 4,
     minWidth: 150,
@@ -3367,99 +3178,17 @@ const styles = {
     display: 'flex',
     minHeight: 'calc(100dvh - 140px)',
   },
-  sidebar: {
-    width: 160,
-    padding: '20px 12px',
-    borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-  },
-  sidebarItem: {
-    display: 'block',
-    width: '100%',
-    padding: '10px 14px',
-    minHeight: 44,
-    touchAction: 'manipulation',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 8,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 14,
-    fontWeight: 500,
-    cursor: 'pointer',
-    marginBottom: 2,
-    textAlign: 'left',
-    transition: 'all 0.2s ease',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  sidebarItemActive: {
-    background: 'rgba(35, 116, 225, 0.15)',  // SmarterPoker blue
-    color: '#2374e1',
-  },
-  sidebarIcon: {
-    fontSize: 16,
-    width: 20,
-    textAlign: 'center',
-  },
-  mainContent: {
-    flex: 1,
-    padding: '20px 24px',
-    minWidth: 0,
-    maxWidth: 680,  // Social Media standard content column width
-    margin: '0 auto',
-    overflowY: 'auto',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  contentHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  pageTitle: {
-    fontFamily: 'Inter, sans-serif',
-    fontSize: 24,
-    fontWeight: 700,
-    color: '#fff',
-    margin: 0,
-  },
-  headerActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-  },
-  logButton: {
-    padding: '10px 24px',
-    minHeight: 44,
-    touchAction: 'manipulation',
-    WebkitTapHighlightColor: 'transparent',
-    background: '#2374e1',  // SmarterPoker blue - clean, sleek
-    border: 'none',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
-  },
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: 12,
     marginBottom: 24,
   },
-  statCard: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '2px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    padding: '16px 18px',
-  },
   statTitle: {
     display: 'block',
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 8,
+    color: '#b6c9dd',
+    marginBottom: 6,
   },
   statValue: {
     display: 'flex',
@@ -3493,18 +3222,6 @@ const styles = {
   downArrow: {
     fontSize: 14,
   },
-  activitySection: {
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '2px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 12,
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 16,
-  },
   filterTabs: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -3531,7 +3248,7 @@ const styles = {
   filterTabActive: {
     background: '#2374e1',
     borderColor: '#2374e1',
-    color: '#000',
+    color: '#edf6ff',
     fontWeight: 600,
   },
   expenseToggle: {
@@ -3559,8 +3276,8 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '14px 16px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '2px solid rgba(255, 255, 255, 0.06)',
+    background: GRADIENTS.darkPanel,
+    border: `1px solid ${METAL.highlight}`,
     borderRadius: 10,
     cursor: 'pointer',
     marginBottom: 8,
@@ -3592,6 +3309,7 @@ const styles = {
     position: 'fixed',
     inset: 0,
     background: 'rgba(0, 0, 0, 0.85)',
+
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3599,14 +3317,12 @@ const styles = {
     padding: 16,
   },
   scannerModalContent: {
-    background: '#1a1b1e',
     borderRadius: 16,
     maxWidth: 500,
     width: '100%',
     maxHeight: '90dvh',
     display: 'flex',
     flexDirection: 'column',
-    border: '2px solid rgba(255, 255, 255, 0.1)',
     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     boxSizing: 'border-box',
   },
@@ -3663,14 +3379,14 @@ const styles = {
     margin: '0 0 16px',
     padding: 14,
     borderRadius: 14,
-    background: 'rgba(245,158,11,0.08)',
-    border: '1px solid rgba(245,158,11,0.45)',
+    background: GRADIENTS.darkPanel,
+    border: `1px solid ${METAL.highlight}`,
   },
   receiptsWaitingHead: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    color: '#fbbf24',
+    color: '#94e7ff',
     fontSize: 13,
     fontWeight: 700,
     letterSpacing: '0.04em',
@@ -3681,7 +3397,7 @@ const styles = {
     minWidth: 24,
     padding: '2px 8px',
     borderRadius: 999,
-    background: '#f59e0b',
+    background: '#56c8dd',
     color: '#111',
     textAlign: 'center',
   },
@@ -3703,15 +3419,15 @@ const styles = {
     margin: '0 0 16px',
     padding: 12,
     borderRadius: 10,
-    background: 'rgba(245,158,11,0.08)',
-    border: '1px solid rgba(245,158,11,0.5)',
+    background: 'rgba(86, 200, 221,0.08)',
+    border: '1px solid rgba(86, 200, 221,0.5)',
   },
   sidebarBadge: {
     marginLeft: 8,
     minWidth: 20,
     padding: '1px 7px',
     borderRadius: 999,
-    background: '#f59e0b',
+    background: '#56c8dd',
     color: '#111',
     fontSize: 12,
     fontWeight: 700,
@@ -3832,19 +3548,6 @@ const styles = {
     fontSize: 20,
     fontWeight: 700,
     color: '#fff',
-  },
-  reportActionBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 14,
-    minHeight: 44,
-    touchAction: 'manipulation',
-    padding: '16px 18px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '2px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
   },
   // Pro Tools styles - Futuristic Metal UI
   proToolsContainer: {

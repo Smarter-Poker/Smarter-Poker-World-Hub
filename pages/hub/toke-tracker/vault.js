@@ -11,6 +11,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { TokeWorkspace } from '../../../src/components/bankroll/toke/TokeWorkspace';
 import DealerVault from '../../../src/components/bankroll/DealerVault';
 import TaxSummaryModal from '../../../src/components/bankroll/TaxSummaryModal';
 import { fetchGigs } from '../../../src/lib/bankroll/tokeSelectors';
@@ -151,8 +152,7 @@ export default function DealerVaultPage() {
     return (
         <PageTransition>
             {pageHead}
-            <div style={s.page}>
-                <div style={s.bgGrid} />
+            <div>
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
                 <HamburgerMenu
@@ -166,13 +166,7 @@ export default function DealerVaultPage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                <div style={s.content}>
-                    <button onClick={() => router.push('/hub/toke-tracker')} style={s.backBtn}>
-                        ← Toke Tracker
-                    </button>
-
-                    <h1 style={s.title}>Dealer Vault</h1>
-                    <p style={s.subtitle}>Secure Document Storage</p>
+                <TokeWorkspace section="vault">
 
                     <HubErrorBoundary name="Dealer Vault">
                         <DealerVault userId={userId} completedGigs={completedGigs} />
@@ -180,7 +174,7 @@ export default function DealerVaultPage() {
 
                     {/* Tax Summary Button */}
                     {completedGigs.length > 0 && (
-                        <button style={s.taxBtn} onClick={() => setShowTaxSummary(true)}>
+                        <button className="sd-button" onClick={() => setShowTaxSummary(true)}>
                             📄 Annual Tax Summary & PDF Export
                         </button>
                     )}
@@ -192,79 +186,8 @@ export default function DealerVaultPage() {
                             onClose={closeTaxSummary}
                         />
                     )}
-                </div>
+                </TokeWorkspace>
             </div>
     </PageTransition>
     );
 }
-
-const s = {
-    page: {
-        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-        background: '#18191a',
-        position: 'relative',
-    },
-    bgGrid: {
-        position: 'fixed',
-        inset: 0,
-        backgroundImage: `
-            linear-gradient(rgba(0,212,255,0.015) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,212,255,0.015) 1px, transparent 1px)
-        `,
-        backgroundSize: '24px 24px',
-        pointerEvents: 'none',
-        zIndex: 0,
-    },
-    content: {
-        position: 'relative',
-        zIndex: 1,
-        maxWidth: 640,
-        margin: '0 auto',
-        padding: '12px 16px 40px',
-    },
-    backBtn: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '8px 16px',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 8,
-        color: '#b0b3b8',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
-        marginBottom: 16,
-        transition: 'background 0.2s',
-    },
-    title: {
-        fontFamily: "var(--font-orbitron), 'Inter', sans-serif",
-        fontSize: 24,
-        fontWeight: 700,
-        letterSpacing: '0.08em',
-        color: '#e4e6eb',
-        margin: '0 0 4px',
-    },
-    subtitle: {
-        fontFamily: "'Rajdhani', 'Inter', sans-serif",
-        fontSize: 14,
-        color: '#b0b3b8',
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        margin: '0 0 20px',
-    },
-    taxBtn: {
-        width: '100%',
-        padding: '14px',
-        marginTop: 20,
-        background: 'rgba(54,187,106,0.08)',
-        border: '1px dashed rgba(54,187,106,0.4)',
-        borderRadius: 10,
-        color: '#36bb6a',
-        fontSize: 15,
-        fontWeight: 700,
-        cursor: 'pointer',
-        textAlign: 'center',
-        transition: 'background 0.2s',
-    },
-};

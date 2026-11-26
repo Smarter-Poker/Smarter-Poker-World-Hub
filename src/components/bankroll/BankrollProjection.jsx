@@ -3,6 +3,7 @@
  * Monte Carlo simulation visualization (user-initiated only)
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
@@ -171,7 +172,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 </div>
                                 <div style={styles.rangeLabel}>
                                     <span style={styles.rangeLabelTitle}>Best Case</span>
-                                    <span style={{ color: '#2374e1' }}>
+                                    <span style={{ color: '#92cfff' }}>
                                         ${projection.projection.bestCase.toLocaleString()}
                                     </span>
                                 </div>
@@ -253,9 +254,8 @@ const styles = {
         padding: 20,
     },
     modal: {
-        background: 'linear-gradient(135deg, #0a1929, #0d2137)',
         borderRadius: 20,
-        border: '2px solid rgba(0, 212, 255, 0.3)',
+
         padding: '0 24px 24px',
         maxWidth: 440,
         width: '100%',
@@ -263,7 +263,6 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
     },
     body: {
         overflowY: 'auto',
@@ -307,7 +306,7 @@ const styles = {
     },
     description: {
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
         lineHeight: 1.5,
         marginBottom: 20,
     },
@@ -324,7 +323,7 @@ const styles = {
     },
     label: {
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
         textTransform: 'uppercase',
     },
     input: {
@@ -342,7 +341,7 @@ const styles = {
     inputValue: {
         fontSize: 20,
         fontWeight: 600,
-        color: '#2374e1',
+        color: '#92cfff',
     },
     periodOptions: {
         display: 'flex',
@@ -353,17 +352,17 @@ const styles = {
         padding: '8px 12px',
         minHeight: 44,
         touchAction: 'manipulation',
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.1)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 6,
-        color: '#888',
+        color: '#edf6ff',
         fontSize: 14,
         cursor: 'pointer',
     },
     periodBtnActive: {
         background: 'rgba(0,212,255,0.2)',
         borderColor: '#2374e1',
-        color: '#2374e1',
+        color: '#92cfff',
     },
     error: {
         padding: 12,
@@ -379,10 +378,10 @@ const styles = {
         padding: 16,
         minHeight: 48,
         touchAction: 'manipulation',
-        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
-        color: '#fff',
+        color: '#edf6ff',
         fontSize: 16,
         fontWeight: 600,
         cursor: 'pointer',
@@ -396,18 +395,18 @@ const styles = {
     timeframe: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#2374e1',
+        color: '#92cfff',
     },
     simCount: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
     },
     rangeContainer: {
         marginBottom: 20,
     },
     rangeBar: {
         height: 12,
-        background: 'linear-gradient(90deg, #ef4444, #fbbf24, #22c55e, #2374e1)',
+        background: 'linear-gradient(90deg, #ef4444, #94e7ff, #22c55e, #2374e1)',
         borderRadius: 6,
         marginBottom: 12,
     },
@@ -421,7 +420,7 @@ const styles = {
     rangeLabelTitle: {
         display: 'block',
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         marginBottom: 4,
     },
     gainBox: {
@@ -435,7 +434,7 @@ const styles = {
     gainLabel: {
         display: 'block',
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
         textTransform: 'uppercase',
         marginBottom: 8,
     },
@@ -469,7 +468,7 @@ const styles = {
     },
     probLabel: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
     },
     inputsUsed: {
         display: 'flex',
@@ -480,17 +479,17 @@ const styles = {
     },
     inputItem: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
     },
     rerunBtn: {
         width: '100%',
         padding: 12,
         minHeight: 44,
         touchAction: 'manipulation',
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.1)',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#888',
+        color: '#edf6ff',
         fontSize: 14,
         cursor: 'pointer',
     },
