@@ -461,7 +461,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                 <main className="odds-main">
                     {/* ─── TITLE ROW ─── */}
                     {!isEmbedMode && (
-                        <BankrollImageHeader art="poker_cash" artwork={{ seal: '/images/smarterdesign/headers/poker-odds-seal.webp' }} section="odds" title="Poker Odds Calculator"
+                        <BankrollImageHeader art="poker-odds" section="odds" title="Poker Odds Calculator"
                             helpContent={<>
                                 <p>Tap A Card Slot To Choose From The Arena Deck. Tap A Selected Card To Remove It. Equity Includes Each Player's Share Of Split Pots.</p>
                                 <button className="odds-btn" onClick={() => openPicker(selectedSlot)}>Choose Cards</button>
