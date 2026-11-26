@@ -139,7 +139,8 @@ const TURN_BET_FRACTION = 0.6;   // the turn bet assumed to have gone in
 function potGeometry(matchup, street, stackDepth = 100) {
     const perPlayer = matchup.potType === '3BET' ? THREE_BET_SIZE_BB : OPEN_SIZE_BB;
     const sbIsInHand = matchup.hero === 'SB' || matchup.villain === 'SB';
-    const deadBlind = sbIsInHand ? 0 : 0.5;
+    const bbIsInHand = matchup.hero === 'BB' || matchup.villain === 'BB';
+    const deadBlind = (sbIsInHand ? 0 : 0.5) + (bbIsInHand ? 0 : 1.0);
 
     let pot = perPlayer * 2 + deadBlind;
     let stack = stackDepth - perPlayer;

@@ -6,7 +6,7 @@ const POSITIONS = new Set(['BTN', 'CO', 'HJ', 'MP', 'UTG', 'SB', 'BB']);
 const STREETS = new Set(['preflop', 'flop', 'turn', 'river', 'all']);
 const VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6', 'plo8']);
 const BETTING_STRUCTURES = new Set(['no_limit', 'pot_limit', 'fixed_limit']);
-const FORMATS = new Set(['cash', 'mtt', 'spins', 'hu']);
+const FORMATS = new Set(['cash', 'mtt', 'spins', 'hu', '9max']);
 const STACKS = Object.freeze({
   cash: Object.freeze([20, 40, 60, 100, 200]),
   mtt: Object.freeze([10, 20, 40, 60, 100]),
@@ -51,8 +51,9 @@ export function normalizeLaunchBettingStructure(value, variant = null) {
 export function normalizeLaunchFormat(value) {
   if (value == null || String(value).trim() === '') return null;
   const f = String(value).trim().toLowerCase();
-  if (f === 'hu' || f === 'heads_up' || f === 'headsup' || f === '2max' || f === '2-max') return 'hu';
-  if (f === 'spins' || f === 'spin' || f === 'spin_and_go' || f === '3max' || f === '3-max') return 'spins';
+  if (f === '9max' || f === '9-max' || f === '9_max' || f === 'nine_max' || f === 'full_ring' || f === 'full-ring') return '9max';
+  if (f === 'hu' || f === 'heads_up' || f === 'heads-up' || f === 'headsup' || f === '2max' || f === '2-max') return 'hu';
+  if (f === 'spins' || f === 'spin' || f === 'spin_and_go' || f === '3max' || f === '3-max' || f === '3_max') return 'spins';
   if (f === 'mtt' || f === 'tournament' || f === 'sng' || f === 'icm') return 'mtt';
   if (f === 'cash' || f === '6max' || f === '6-max') return 'cash';
   return FORMATS.has(f) ? f : null;

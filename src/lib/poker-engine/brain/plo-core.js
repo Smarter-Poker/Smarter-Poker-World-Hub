@@ -978,9 +978,10 @@ function evaluatePLO8Low(holeCards, boardCards) {
     // Qualifying low ranks: -1(A),0(2),1(3),2(4),3(5),4(6),5(7),6(8) → ranks ≤ 6 for 8-low
     const hLowQualify = hLow.filter(r => r <= 6); // ≤ 8 in real (-1=A, 6=8)
     const bLowQualify = bLow.filter(r => r <= 6);
+    const boardLowRankSet = new Set(bLowQualify);
 
-    // Need 3 low cards on board to have a chance at qualifying low
-    if (bLowQualify.length < 3 && boardCards.length >= 3) {
+    // Need 3 distinct low ranks on board to have a chance at qualifying low
+    if (boardLowRankSet.size < 3 && boardCards.length >= 3) {
         // Bug #184: Wire hLowQualify into low out calculation
         // Need 2+ qualifying hole cards to even make a low; 3-4 gives more combos = better odds
         if (hLowQualify.length < 2) {
@@ -992,7 +993,6 @@ function evaluatePLO8Low(holeCards, boardCards) {
         if (boardCards.length >= 5) {
             return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0, isCounterfeited: false, counterfeitOuts: 0, counterfeitVulnerability: 0 };
         }
-        const boardLowRankSet = new Set(bLowQualify);
         const neededBoardLows = 3 - boardLowRankSet.size;
         let lowOuts = 0;
         if (neededBoardLows === 1) {
@@ -1030,7 +1030,7 @@ function evaluatePLO8Low(holeCards, boardCards) {
             lowOuts = Math.round(totalLowCardsLeft / 3);
         }
         // More qualifying hole cards = more combos to make low = effective out boost
-        const holeLowBonus = hLowQualify.length >= 3 ? 3 : hLowQualify.length >= 4 ? 5 : 0;
+        const holeLowBonus = hLowQualify.length >= 4 ? 5 : hLowQualify.length >= 3 ? 3 : 0;
         lowOuts = Math.min(lowOuts + holeLowBonus, 20);
         // Bug #213: Compute counterfeit vulnerability even for low DRAWS
         let earlyCFOuts = 0;

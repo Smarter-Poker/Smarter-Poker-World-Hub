@@ -600,6 +600,16 @@ export default async function handler(req, res) {
         ev_loss: persistedEVLoss,
         spot_type: String(canonicalSpotType).slice(0, 40),
       };
+      const rawSubmittedVariant = typeof req.body?.variant === 'string' ? req.body.variant.trim().toLowerCase() : '';
+      const submittedVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(rawSubmittedVariant) ? rawSubmittedVariant : null;
+      const rawSubmittedStructure = typeof req.body?.bettingStructure === 'string' ? req.body.bettingStructure.trim().toLowerCase() : '';
+      const submittedBettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(rawSubmittedStructure) ? rawSubmittedStructure : null;
+      const rawSubmittedFormat = typeof req.body?.format === 'string' ? req.body.format.trim().toLowerCase() : '';
+      const submittedFormat = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(rawSubmittedFormat) ? rawSubmittedFormat : null;
+      const resolvedAnswerVariant = submittedVariant || canonicalScenario.variant || canonicalQuestion?.variant || 'nlh';
+      const resolvedAnswerBettingStructure = submittedBettingStructure || canonicalScenario.bettingStructure || canonicalQuestion?.bettingStructure || null;
+      const resolvedAnswerFormat = submittedFormat || canonicalScenario.format || canonicalQuestion?.format || null;
+
       const evidenceRow = {
         ...baseRow,
         submission_id: String(receiptPayload.jti).slice(0, 180),
@@ -620,9 +630,9 @@ export default async function handler(req, res) {
           sourceClassification: evidencePolicy.source_classification,
           policyVersion: evidencePolicy.policy_version,
           policyChecksum: evidencePolicy.policy_checksum,
-          variant: canonicalScenario.variant || canonicalQuestion?.variant || 'nlh',
-          bettingStructure: canonicalScenario.bettingStructure || canonicalQuestion?.bettingStructure || null,
-          format: canonicalScenario.format || canonicalQuestion?.format || null,
+          variant: canonicalScenario.variant || submittedVariant || canonicalQuestion?.variant || 'nlh',
+          bettingStructure: canonicalScenario.bettingStructure || submittedBettingStructure || canonicalQuestion?.bettingStructure || null,
+          format: canonicalScenario.format || submittedFormat || canonicalQuestion?.format || null,
           timeSpentMs: Number.isFinite(Number(req.body?.timeSpentMs ?? req.body?.decisionTimeMs))
             ? Math.max(0, Math.min(600000, Math.round(Number(req.body.timeSpentMs ?? req.body.decisionTimeMs))))
             : null,
@@ -699,9 +709,9 @@ export default async function handler(req, res) {
             questionId,
             gameId,
             level: parsedLevel,
-            variant: canonicalScenario.variant || canonicalQuestion?.variant || 'nlh',
-            bettingStructure: canonicalScenario.bettingStructure || canonicalQuestion?.bettingStructure || null,
-            format: canonicalScenario.format || canonicalQuestion?.format || 'cash',
+            variant: canonicalScenario.variant || submittedVariant || canonicalQuestion?.variant || 'nlh',
+            bettingStructure: canonicalScenario.bettingStructure || submittedBettingStructure || canonicalQuestion?.bettingStructure || null,
+            format: canonicalScenario.format || submittedFormat || canonicalQuestion?.format || 'cash',
             street: canonicalScenario.street || 'flop',
             position: canonicalScenario.heroPosition || canonicalScenario.position || 'BB',
             prompt: snapshot?.question?.prompt || snapshot?.question?.scenario?.title || 'GTO Training Spot',

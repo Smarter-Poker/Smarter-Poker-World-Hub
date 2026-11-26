@@ -433,8 +433,11 @@ export function validateTrainingPreset(config = {}) {
   const rawVariant = String(config.variant || 'nlh').trim().toLowerCase();
   let variant = SUPPORTED_VARIANTS.includes(rawVariant) ? rawVariant : null;
   if (!variant) {
-    if (rawVariant === 'plo' || rawVariant === 'omaha') variant = 'plo4';
-    else if (rawVariant === 'omaha8' || rawVariant === 'o8' || rawVariant === 'flo8') variant = 'plo8';
+    if (['plo', 'omaha', 'omaha4', 'plo-4', '4-card-plo', 'flo'].includes(rawVariant)) variant = 'plo4';
+    else if (['plo-5', 'omaha5', '5-card-plo'].includes(rawVariant)) variant = 'plo5';
+    else if (['plo-6', 'omaha6', '6-card-plo'].includes(rawVariant)) variant = 'plo6';
+    else if (['omaha8', 'o8', 'flo8', 'plo-8', 'plo_hilo', 'plo-hi-lo', 'plo_hi_lo', 'omaha_hi_lo'].includes(rawVariant)) variant = 'plo8';
+    else if (['holdem', 'nlhe', 'flh'].includes(rawVariant)) variant = 'nlh';
     else {
       warnings.push(`Unsupported variant "${rawVariant}" recovered to Hold'em (nlh).`);
       variant = 'nlh';
@@ -443,8 +446,15 @@ export function validateTrainingPreset(config = {}) {
 
   const variantMeta = VARIANT_METADATA[variant];
   const rawStructure = String(config.bettingStructure || variantMeta.defaultStructure).trim().toLowerCase();
-  let bettingStructure = SUPPORTED_STRUCTURES.includes(rawStructure)
-    ? rawStructure
+  const normalizedStructure = ['fixed_limit', 'fixed-limit', 'fl', 'limit'].includes(rawStructure)
+    ? 'fixed_limit'
+    : ['pot_limit', 'pot-limit', 'pl'].includes(rawStructure)
+      ? 'pot_limit'
+      : ['no_limit', 'no-limit', 'nl'].includes(rawStructure)
+        ? 'no_limit'
+        : rawStructure;
+  let bettingStructure = SUPPORTED_STRUCTURES.includes(normalizedStructure)
+    ? normalizedStructure
     : variantMeta.defaultStructure;
 
   // Omaha variants (PLO4, PLO5, PLO6, PLO8) are played Pot-Limit or Fixed-Limit in live rules
@@ -456,8 +466,19 @@ export function validateTrainingPreset(config = {}) {
   }
 
   const rawFormat = String(config.format || config.gameType || 'cash').trim().toLowerCase();
-  let format = SUPPORTED_FORMATS.includes(rawFormat) ? rawFormat : 'cash';
-  if (!SUPPORTED_FORMATS.includes(rawFormat)) {
+  const normalizedFormat = ['9max', '9-max', '9_max', 'nine_max', 'full_ring', 'full-ring'].includes(rawFormat)
+    ? '9max'
+    : ['hu', 'heads_up', 'heads-up', 'headsup', '2max', '2-max'].includes(rawFormat)
+      ? 'hu'
+      : ['spins', 'spin', 'spin_and_go', '3max', '3-max', '3_max'].includes(rawFormat)
+        ? 'spins'
+        : ['mtt', 'tournament', 'sng', 'icm'].includes(rawFormat)
+          ? 'mtt'
+          : ['cash', '6max', '6-max'].includes(rawFormat)
+            ? 'cash'
+            : rawFormat;
+  let format = SUPPORTED_FORMATS.includes(normalizedFormat) ? normalizedFormat : 'cash';
+  if (!SUPPORTED_FORMATS.includes(normalizedFormat)) {
     warnings.push(`Unsupported format "${rawFormat}" recovered to 6-Max Cash.`);
   }
 
@@ -501,7 +522,9 @@ export function validateTrainingPreset(config = {}) {
     heroPosition: formatMeta.positions.includes(String(config.heroPosition || '').toUpperCase())
       ? String(config.heroPosition).toUpperCase()
       : 'BTN',
-    villainPosition: 'BB',
+    villainPosition: (formatMeta.positions.includes(String(config.heroPosition || '').toUpperCase())
+      ? String(config.heroPosition).toUpperCase()
+      : 'BTN') === 'BB' ? 'BTN' : 'BB',
     difficulty,
     timer,
     scope,
@@ -543,12 +566,12 @@ export function resolvePresetForGame(gameOrId, overrides = {}) {
     basePreset = TRAINING_PRESETS.hu_duel_2max;
   } else if (gameId.startsWith('spins-') || category === 'SPINS') {
     basePreset = TRAINING_PRESETS.spins_hyper_3max;
+  } else if (['cash-005', 'cash-015', 'mtt-018'].includes(gameId)) {
+    basePreset = TRAINING_PRESETS.plo4_pot_limit_cash;
   } else if (['mtt-001', 'mtt-008', 'mtt-009', 'mtt-016'].includes(gameId)) {
     basePreset = TRAINING_PRESETS.mtt_short_push_fold;
   } else if (gameId.startsWith('mtt-') || category === 'MTT' || gameId === 'tournament-prep' || gameId === 'final-table-sim') {
     basePreset = TRAINING_PRESETS.mtt_nlh_icm;
-  } else if (['cash-005', 'cash-015', 'mtt-018'].includes(gameId)) {
-    basePreset = TRAINING_PRESETS.plo4_pot_limit_cash;
   } else if (gameId === 'cash-009') {
     basePreset = { ...TRAINING_PRESETS.cash_nlh_6max, stackDepthBb: 200, title: "Deep Stack Hold'em Cash (200 BB)" };
   } else if (gameId === 'cash-010') {

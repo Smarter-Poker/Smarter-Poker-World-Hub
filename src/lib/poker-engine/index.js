@@ -20,7 +20,7 @@ const { ActionTimer, DEFAULT_TURN_TIME, DEFAULT_TIMEBANK } = require('./ActionTi
 const { RealtimeSync, CHANNEL_EVENTS, createTableClient } = require('./RealtimeSync');
 const { HandHistoryRecorder, HandHistoryQuery, MIGRATION_SQL } = require('./HandHistory');
 const { LobbyManager, createLobbyClient } = require('./LobbyManager');
-const CardAssets = require('./CardAssets');
+const CardAssets = require('../CardAssets');
 
 // Phase 4
 const { GameController, getController, getControllerSync } = require('./GameController');

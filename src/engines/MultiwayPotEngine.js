@@ -126,7 +126,7 @@ export function getMultiwayStrategy(params) {
 
         const handStrength = madeHand.strength || 0.5;
         const drawEquity = draws.equity || 0;
-        const handClass = madeHand.rank || 'air';
+        const handClass = madeHand.category || madeHand.rank || 'air';
         const isStrong = handStrength >= 0.7;
         const isMedium = handStrength >= 0.4 && handStrength < 0.7;
         const isWeak = handStrength < 0.4;

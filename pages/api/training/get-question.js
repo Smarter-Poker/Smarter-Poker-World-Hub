@@ -193,7 +193,7 @@ export function applyHorseBrainEnrichment(questionPayload, gameIdOrOpts = {}, re
       : 'no_limit';
 
   const normFormatRaw = String(rawFormatInput || scenario.format || '').trim().toLowerCase();
-  const resolvedFormat = ['cash', 'mtt', 'spins', 'hu'].includes(normFormatRaw)
+  const resolvedFormat = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(normFormatRaw)
     ? normFormatRaw
     : String(gameId || '').startsWith('mtt-')
       ? 'mtt'
@@ -312,8 +312,8 @@ export function applyHorseBrainEnrichment(questionPayload, gameIdOrOpts = {}, re
       ...(engineModule ? { engineModule } : {}),
       ...(isPlo8 ? { hiLo: true } : {}),
       ...(mergedBrainEvaluation ? { brainEvaluation: mergedBrainEvaluation } : {}),
-      madeHandCategory: scenario.madeHandCategory || brainEval?.madeHandCategory,
-      potLimitSizing: scenario.potLimitSizing || brainEval?.potLimitSizing,
+      madeHandCategory: brainEval?.madeHandCategory || scenario.madeHandCategory,
+      potLimitSizing: brainEval?.potLimitSizing || scenario.potLimitSizing,
     },
     level: level ?? question.level,
   };
@@ -367,9 +367,17 @@ export default async function handler(req, res) {
     } = req.query;
     const gameId = sanitizeParam(rawGameId, 100);
     const normalizedRawVariant = sanitizeParam(rawVariant, 16)?.toLowerCase() || '';
-    const mappedRawVariant = ['plo8', 'omaha8', 'plo_hilo'].includes(normalizedRawVariant)
+    const mappedRawVariant = ['plo8', 'omaha8', 'plo_hilo', 'plo-hi-lo', 'plo_hi_lo', 'omaha_hi_lo', 'flo8', 'o8'].includes(normalizedRawVariant)
       ? 'plo8'
-      : normalizedRawVariant;
+      : ['plo6', 'omaha6', 'plo-6', '6-card-plo'].includes(normalizedRawVariant)
+        ? 'plo6'
+        : ['plo5', 'omaha5', 'plo-5', '5-card-plo'].includes(normalizedRawVariant)
+          ? 'plo5'
+          : ['plo4', 'plo', 'omaha', 'omaha4', 'plo-4', '4-card-plo', 'flo'].includes(normalizedRawVariant)
+            ? 'plo4'
+            : ['nlh', 'holdem', 'nlhe', 'flh'].includes(normalizedRawVariant)
+              ? 'nlh'
+              : normalizedRawVariant;
     const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(mappedRawVariant)
       ? mappedRawVariant
       : null;

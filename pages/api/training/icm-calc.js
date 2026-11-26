@@ -153,17 +153,18 @@ export default async function handler(req, res) {
 
           if (pool > 0) {
               // Prizes are percentages
-              parsedPrizes = prizes.map(p => (parseFloat(p) || 0) / 100 * pool);
+              parsedPrizes = prizes.map(p => Math.max(0, (parseFloat(p) || 0) / 100 * pool));
           } else {
               // Prizes are dollar amounts
-              parsedPrizes = prizes.map(p => parseFloat(p) || 0);
+              parsedPrizes = prizes.map(p => Math.max(0, parseFloat(p) || 0));
           }
 
-          const totalPrize = parsedPrizes.reduce((sum, p) => sum + p, 0);
+          const effectivePrizes = parsedPrizes.slice(0, parsedStacks.length);
+          const totalPrize = effectivePrizes.reduce((sum, p) => sum + p, 0);
 
           // Compute ICM
-          const icmEquities = computeICM(parsedStacks, parsedPrizes);
-          const bubbleFactor = computeBubbleFactor(parsedStacks, parsedPrizes);
+          const icmEquities = computeICM(parsedStacks, effectivePrizes);
+          const bubbleFactor = computeBubbleFactor(parsedStacks, effectivePrizes);
 
           // Build results
           const results = parsedStacks.map((chips, i) => {

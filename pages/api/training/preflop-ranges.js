@@ -180,7 +180,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const supportedPositions = PREFLOP_REFERENCE_CONTRACT.positionsByScenario[scenario];
+    const supportedPositions = Object.hasOwn(PREFLOP_REFERENCE_CONTRACT.positionsByScenario, scenario)
+      ? PREFLOP_REFERENCE_CONTRACT.positionsByScenario[scenario]
+      : null;
     if (!supportedPositions) {
       return res.status(422).json({
         success: false,

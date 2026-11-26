@@ -1246,7 +1246,7 @@ class TableManager {
       // Reset deck for short deck variant
       if (newVariant === 'short_deck') {
         this.game.deck = new (require('./Deck').Deck)({ shortDeck: true });
-      } else if (this.game.deck?.shortDeck) {
+      } else if (this.game.deck?.isShortDeck || this.game.deck?.shortDeck) {
         this.game.deck = new (require('./Deck').Deck)({ shortDeck: false });
       }
 

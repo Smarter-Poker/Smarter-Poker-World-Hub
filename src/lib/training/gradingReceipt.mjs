@@ -515,6 +515,8 @@ export function createSignedTrainingDuelToken({
   gameId,
   level = 1,
   variant = 'nlh',
+  bettingStructure = null,
+  format = null,
   targetHands = 5,
   questionIds = [],
   challengerId = '',
@@ -533,14 +535,23 @@ export function createSignedTrainingDuelToken({
   }
   const nowSeconds = Math.floor(Number(nowMs) / 1000);
   const signingSecret = receiptSecret(secret);
+  const normVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(variant || '').toLowerCase())
+    ? String(variant).toLowerCase()
+    : 'nlh';
+  const normStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(bettingStructure || '').toLowerCase())
+    ? String(bettingStructure).toLowerCase()
+    : (normVariant.startsWith('plo') ? 'pot_limit' : 'no_limit');
+  const normFormat = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(String(format || '').toLowerCase())
+    ? String(format).toLowerCase()
+    : 'cash';
   const payload = {
     v: 'sp-training-duel-v1',
     duelId: String(duelId || randomUUID()).slice(0, 80),
     gameId: String(gameId).slice(0, 80),
     level: Math.min(12, Math.max(1, Number(level) || 1)),
-    variant: ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(variant || '').toLowerCase())
-      ? String(variant).toLowerCase()
-      : 'nlh',
+    variant: normVariant,
+    bettingStructure: normStructure,
+    format: normFormat,
     targetHands: Math.min(30, Math.max(1, Number(targetHands) || normalizedIds.length)),
     questionIds: normalizedIds,
     challengerId: String(challengerId || '').slice(0, 80),

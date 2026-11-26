@@ -857,6 +857,91 @@ test('Phase 20 forensic root-cause hardening: Arena clubCoachAssignment hydratio
   }
 });
 
+test('Phase 21 deep forensic root-cause hardening: 9max Launch Contract, Duel Token Variant/Structure/Format Signing, ICM Equal-Stack Conservation, PLO8 Paired-Low-Board Outs, Poker-Engine CardAssets & Variant Routing, DeckEngine Dead Cards, and API Hardening', async () => {
+  // 1. customTrainingLaunchContract.mjs must preserve 9max and aliases
+  const { normalizeLaunchFormat } = await import('../src/lib/training/customTrainingLaunchContract.mjs');
+  assert.equal(normalizeLaunchFormat('9max'), '9max');
+  assert.equal(normalizeLaunchFormat('9-max'), '9max');
+  assert.equal(normalizeLaunchFormat('full_ring'), '9max');
+
+  // 2. Duel token must sign and verify variant, bettingStructure, and format
+  const { createSignedTrainingDuelToken, verifyTrainingDuelToken } = await import('../src/lib/training/gradingReceipt.mjs');
+  const duelToken = createSignedTrainingDuelToken({
+    duelId: 'duel_phase21_test',
+    gameId: 'cash-005',
+    level: 1,
+    variant: 'plo8',
+    bettingStructure: 'fixed_limit',
+    format: '9max',
+    questionIds: ['q1', 'q2', 'q3'],
+    secret: 'phase21-test-secret-key-32-chars-minimum',
+  });
+  const verifiedDuel = verifyTrainingDuelToken(duelToken, { secret: 'phase21-test-secret-key-32-chars-minimum' });
+  assert.equal(verifiedDuel.variant, 'plo8');
+  assert.equal(verifiedDuel.bettingStructure, 'fixed_limit');
+  assert.equal(verifiedDuel.format, '9max');
+
+  // 3. ICMCalculator must conserve 100% of prize pool across 9 equal stacks without pruning
+  const { calculateICM, calculateICMPressure } = await import('../src/engines/ICMCalculator.js');
+  const nineEqualEquities = calculateICM([100, 100, 100, 100, 100, 100, 100, 100, 100], [30, 20, 15, 12, 9, 6, 4, 3, 1]);
+  const totalEq = nineEqualEquities.reduce((a, b) => a + b, 0);
+  assert.ok(Math.abs(totalEq - 100) < 0.05, `9-way ICM equity sum must equal 100 (got ${totalEq})`);
+  assert.ok(Math.abs(nineEqualEquities[0] - 11.11) < 0.05, `Each equal 9-max stack must receive ~11.11% equity (got ${nineEqualEquities[0]})`);
+  const icmPressure = calculateICMPressure(200, [200, 50, 50], [50, 30, 20], 3);
+  assert.ok(Number.isFinite(icmPressure.bubbleFactor) && icmPressure.bubbleFactor >= 1.0);
+
+  // 4. trainingPresets: mtt-018 resolves to PLO4, BB heroPosition selects BTN villainPosition, and aliases normalize cleanly
+  const { validateTrainingPreset, resolvePresetForGame } = await import('../src/lib/training/trainingPresets.mjs');
+  const mtt018Preset = resolvePresetForGame('mtt-018');
+  assert.equal(mtt018Preset.variant, 'plo4', 'mtt-018 must resolve to PLO4 preset');
+  const bbHeroPreset = validateTrainingPreset({ variant: 'plo-8', bettingStructure: 'fixed-limit', format: '9-max', heroPosition: 'BB' });
+  assert.equal(bbHeroPreset.preset.variant, 'plo8');
+  assert.equal(bbHeroPreset.preset.bettingStructure, 'fixed_limit');
+  assert.equal(bbHeroPreset.preset.format, '9max');
+  assert.equal(bbHeroPreset.preset.villainPosition, 'BTN', 'BB hero must face BTN villain instead of self-matching BB');
+
+  // 5. DeckEngine.addDeadCards must preserve already-dealt cards so they can never be re-dealt
+  const { DeckEngine } = await import('../src/engines/DeckEngine.js');
+  const deck = new DeckEngine(42);
+  const firstDeal = deck.deal(5);
+  deck.addDeadCards(['As']);
+  const restOfDeck = deck.deal(deck.remaining());
+  for (const dealtCard of firstDeal) {
+    assert.ok(!restOfDeck.includes(dealtCard), `Already-dealt card ${dealtCard} must not reappear after addDeadCards`);
+  }
+
+  // 6. PostflopScenarioGenerator deadBlind must include BB (1.0) + SB (0.5) when neither seat is in the blinds
+  const scenarioGenSrc = read('src/engines/PostflopScenarioGenerator.js');
+  assert.ok(
+    scenarioGenSrc.includes("const bbIsInHand = matchup.hero === 'BB' || matchup.villain === 'BB';") &&
+    scenarioGenSrc.includes('const deadBlind = (sbIsInHand ? 0 : 0.5) + (bbIsInHand ? 0 : 1.0);'),
+    'PostflopScenarioGenerator potGeometry must include 1.0 BB dead blind when neither player is BB',
+  );
+
+  // 7. plo8-brain.js and plo-core.js must check boardLowRankSet.size < 3 and award +5 bonus for >=4 qualifying hole lows
+  for (const brainFile of ['src/lib/poker-engine/brain/plo8-brain.js', 'src/lib/poker-engine/brain/plo-core.js']) {
+    const src = read(brainFile);
+    assert.ok(
+      src.includes('if (boardLowRankSet.size < 3 && boardCards.length >= 3)') &&
+      src.includes('const holeLowBonus = hLowQualify.length >= 4 ? 5 : hLowQualify.length >= 3 ? 3 : 0;'),
+      `${brainFile} must use boardLowRankSet.size < 3 for paired low boards and reachable >=4 holeLowBonus`,
+    );
+  }
+
+  // 8. poker-engine barrel index.js, GameController, TableManager, EquityCalculator, and API hardening checks
+  const pokerIndexSrc = read('src/lib/poker-engine/index.js');
+  assert.ok(pokerIndexSrc.includes("require('../CardAssets')"), 'poker-engine/index.js must resolve ../CardAssets cleanly');
+  const tableManagerSrc = read('src/lib/poker-engine/TableManager.js');
+  assert.ok(tableManagerSrc.includes('this.game.deck?.isShortDeck'), 'TableManager must check deck.isShortDeck when rotating out of short_deck');
+  const saveProgressSrc = read('pages/api/training/save-progress.js');
+  assert.ok(saveProgressSrc.includes('body.attemptId.trim().toLowerCase()'), 'save-progress.js must normalize attemptId to lowercase');
+  const bookmarkSrc = read('pages/api/training/bookmark-solution.js');
+  assert.ok(bookmarkSrc.includes("replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g, '')"), 'bookmark-solution.js must preserve spaces and punctuation in user notes');
+  const messagesSrc = read('pages/api/training/study-groups/[groupId]/messages.js');
+  assert.ok(messagesSrc.includes(".order('created_at', { ascending: false })") && messagesSrc.includes('[...rawMessages].reverse()'), 'study-groups messages API must fetch newest 200 and reverse to chronological order');
+});
+
+
 
 
 

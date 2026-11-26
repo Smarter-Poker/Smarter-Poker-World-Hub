@@ -277,9 +277,11 @@ function buildDrillHrefForHand(hand, analysis = null) {
     source: 'live-hand-sync',
     syncedHandId: String(hand?.id || analysis?.handId || 'hand'),
   });
-  if (heroCards.length === 4) params.set('variant', 'plo4');
-  else if (heroCards.length === 5) params.set('variant', 'plo5');
-  else if (heroCards.length === 6) params.set('variant', 'plo6');
+  const resolvedHandVar = resolveHandVariant(hand, 'nlh');
+  if (resolvedHandVar === 'omaha_hi_lo' || resolvedHandVar === 'plo8') params.set('variant', 'plo8');
+  else if (heroCards.length === 4 || resolvedHandVar === 'plo4') params.set('variant', 'plo4');
+  else if (heroCards.length === 5 || resolvedHandVar === 'plo5') params.set('variant', 'plo5');
+  else if (heroCards.length === 6 || resolvedHandVar === 'plo6') params.set('variant', 'plo6');
   return `/hub/training/arena/${targetGameId}?${params.toString()}`;
 }
 
