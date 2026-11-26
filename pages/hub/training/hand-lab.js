@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
@@ -110,6 +110,7 @@ export default function HandLabV2() {
   const [analysisError, setAnalysisError] = useState('');
   const [activeWireSpot, setActiveWireSpot] = useState(null);
   const [wireSpotPick, setWireSpotPick] = useState('');
+  const [spotVotes, setSpotVotes] = useState({ counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } });
   const calcSeqRef = React.useRef(0);
 
   // Hydrate Weekly Wire Spot Of The Week (?spot=<slug>&pick=<A|B|C>) when linked from email or /hub/wire
@@ -128,6 +129,45 @@ export default function HandLabV2() {
     const normalizedPick = typeof rawPick === 'string' ? rawPick.trim().toUpperCase() : '';
     if (['A', 'B', 'C'].includes(normalizedPick)) {
       setWireSpotPick(normalizedPick);
+    }
+
+    const token = typeof getAccessToken === 'function' ? getAccessToken() : '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    if (['A', 'B', 'C'].includes(normalizedPick)) {
+      fetch('/api/news/spot-vote', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ spot: matchedSpot.slug, pick: normalizedPick }),
+      })
+        .then((r) => r.json())
+        .then((body) => {
+          if (body?.success && body?.percentages) {
+            setSpotVotes({
+              counts: body.counts || { A: 0, B: 0, C: 0 },
+              total: body.total || 0,
+              percentages: body.percentages,
+            });
+          }
+        })
+        .catch(() => {});
+    } else {
+      fetch(`/api/news/spot-vote?spot=${encodeURIComponent(matchedSpot.slug)}`, {
+        headers,
+      })
+        .then((r) => r.json())
+        .then((body) => {
+          if (body?.success && body?.percentages) {
+            setSpotVotes({
+              counts: body.counts || { A: 0, B: 0, C: 0 },
+              total: body.total || 0,
+              percentages: body.percentages,
+            });
+          }
+        })
+        .catch(() => {});
     }
     const spotVariant = VARIANTS.some((v) => v.id === matchedSpot.variant) ? matchedSpot.variant : 'nlh';
     const spotHoleCount = (VARIANTS.find((v) => v.id === spotVariant) || VARIANTS[0]).holeCount;
@@ -178,6 +218,34 @@ export default function HandLabV2() {
     setResults(null);
     setAnalysisError('');
   }, [router.isReady, router.query.spot, router.query.pick]);
+
+  const handlePickSpotOption = async (optKey) => {
+    fb.click();
+    setWireSpotPick(optKey);
+    if (!activeWireSpot?.slug) return;
+    try {
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : '';
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const res = await fetch('/api/news/spot-vote', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ spot: activeWireSpot.slug, pick: optKey }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (body?.success && body?.percentages) {
+        setSpotVotes({
+          counts: body.counts || { A: 0, B: 0, C: 0 },
+          total: body.total || 0,
+          percentages: body.percentages,
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  };
 
   const variantSpec = VARIANTS.find((v) => v.id === variant) || VARIANTS[0];
   const benchmarkHands = BENCHMARK_HANDS_BY_VARIANT[variant] || BENCHMARK_HANDS_BY_VARIANT.nlh;
@@ -431,10 +499,7 @@ export default function HandLabV2() {
                     key={opt.key}
                     type="button"
                     aria-pressed={isSelected}
-                    onClick={() => {
-                      fb.click();
-                      setWireSpotPick(opt.key);
-                    }}
+                    onClick={() => handlePickSpotOption(opt.key)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -470,6 +535,30 @@ export default function HandLabV2() {
                 );
               })}
             </div>
+            {spotVotes && (spotVotes.total > 0 || spotVotes.percentages?.A > 0 || spotVotes.percentages?.B > 0 || spotVotes.percentages?.C > 0) && (
+              <div
+                data-spot-community-split="true"
+                style={{
+                  marginTop: 12,
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  background: 'rgba(5, 10, 18, 0.72)',
+                  border: '1px solid rgba(96, 165, 250, 0.28)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                }}
+              >
+                <span style={{ color: '#60a5fa' }}>Community Reader Split</span>
+                <span style={{ color: '#cbd5e1' }}>
+                  {`Option A: ${spotVotes.percentages?.A ?? 0}% | Option B: ${spotVotes.percentages?.B ?? 0}% | Option C: ${spotVotes.percentages?.C ?? 0}%`}
+                </span>
+              </div>
+            )}
             {wireSpotPick && (
               <div
                 role="status"

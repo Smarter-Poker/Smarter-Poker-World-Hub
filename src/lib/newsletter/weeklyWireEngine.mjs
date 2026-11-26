@@ -47,6 +47,7 @@ import {
     PLATFORM_UPDATES_CATALOG,
     SPOT_OF_THE_WEEK_CATALOG,
     TOOL_SPOTLIGHT_CATALOG,
+    TRIVIA_OF_THE_WEEK_CATALOG,
 } from './weeklyWireCatalog.mjs';
 
 const PAGE_SIZE = 1000;
@@ -78,8 +79,64 @@ export function spotMarkerUuid(slug) {
     return deterministicMarkerUuid('spot', slug);
 }
 
+export function triviaMarkerUuid(slug) {
+    return deterministicMarkerUuid('trivia', slug);
+}
+
+export function withWireUtm(url, editionNumber, contentTag) {
+    if (typeof url !== 'string' || !url.trim()) return url;
+    const cleanUrl = url.trim();
+    const isSmarterPoker = /^https?:\/\/(?:www\.)?smarter\.poker/i.test(cleanUrl) || cleanUrl.startsWith('/');
+    if (!isSmarterPoker) return cleanUrl;
+
+    if (
+        cleanUrl.includes('/api/news/subscribe') ||
+        cleanUrl.includes('/api/news/email-image') ||
+        cleanUrl.includes('/api/news/calendar-ics') ||
+        cleanUrl.includes('/api/news/track')
+    ) {
+        return cleanUrl;
+    }
+
+    try {
+        const isRelative = cleanUrl.startsWith('/');
+        const parsed = new URL(isRelative ? `https://smarter.poker${cleanUrl}` : cleanUrl);
+        const ed = Math.max(1, Number(editionNumber) || 1);
+        parsed.searchParams.set('utm_source', 'weekly_wire');
+        parsed.searchParams.set('utm_medium', 'email');
+        parsed.searchParams.set('utm_campaign', `wire_ed_${ed}`);
+        if (contentTag) {
+            parsed.searchParams.set(
+                'utm_content',
+                String(contentTag).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+            );
+        }
+        return isRelative ? `${parsed.pathname}${parsed.search}${parsed.hash}` : parsed.toString();
+    } catch {
+        return cleanUrl;
+    }
+}
+
 /** Kings Club (Club Code 25450) club row id in `public.clubs` / `public.tournaments.club_id`. */
 export const KINGS_CLUB_UUID = 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4';
+
+export async function loadRecentKingsClubWinners(sb, { nowMs = Date.now(), limit = 3 } = {}) {
+    try {
+        const sevenDaysAgoIso = new Date(nowMs - 7 * 86_400_000).toISOString();
+        const { data, error } = await sb
+            .from('tournaments')
+            .select('id, name, club_id, game_type, buy_in_amount, prize_pool, guaranteed_prize, current_players, start_time, status')
+            .eq('club_id', KINGS_CLUB_UUID)
+            .eq('status', 'COMPLETED')
+            .gte('start_time', sevenDaysAgoIso)
+            .order('prize_pool', { ascending: false })
+            .limit(limit);
+        if (error) return [];
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
+}
 
 /**
  * Lifetime single-use marker for a Top Poker Video Of The Week. SHA-256 based UUID
@@ -795,9 +852,16 @@ export async function loadZeroRepeatLedger(sb) {
     if (error) throw error;
 
     const rawArticleUuidList = [];
+    let lastEditionIds = [];
+    let foundLastDigest = false;
+
     for (const c of campaigns || []) {
         if (!isWeeklyWireDigestCampaign(c)) continue;
         const ids = Array.isArray(c?.article_ids) ? c.article_ids : [];
+        if (!foundLastDigest && (c.status === 'sent' || c.status === 'partial')) {
+            lastEditionIds = ids;
+            foundLastDigest = true;
+        }
         for (const id of ids) {
             if (typeof id === 'string' && id.trim()) {
                 const clean = id.trim().toLowerCase();
@@ -807,11 +871,42 @@ export async function loadZeroRepeatLedger(sb) {
         }
     }
 
+    const spotVotesMap = {};
+    try {
+        let voteQuery = sb
+            .from('newsletter_campaigns')
+            .select('subject, error_summary')
+            .eq('status', 'cancelled');
+        if (typeof voteQuery.ilike === 'function') {
+            voteQuery = voteQuery.ilike('subject', '[SPOT-VOTE] %');
+        } else if (typeof voteQuery.like === 'function') {
+            voteQuery = voteQuery.like('subject', '[SPOT-VOTE] %');
+        }
+        const { data: voteRows } = await voteQuery.limit(50);
+        for (const row of voteRows || []) {
+            const subj = String(row?.subject || '');
+            const match = subj.match(/^\[SPOT-VOTE\]\s*(.+)$/i);
+            if (match && row?.error_summary) {
+                const spotSlug = match[1].trim();
+                const errStr = String(row.error_summary);
+                const vMatch = errStr.match(/votes:(\{.*?\})/i) || errStr.match(/(\{.*\})/);
+                if (vMatch) {
+                    try {
+                        spotVotesMap[spotSlug] = JSON.parse(vMatch[1]);
+                    } catch {}
+                }
+            }
+        }
+    } catch {
+        /* non-blocking in mock DBs without .like / .ilike */
+    }
+
     // Fetch titles of up to 150 recently mailed poker_news rows so cross-outlet
     // follow-up articles on the same story are blocked across weeks too.
     const uniqueRecentArticleIds = [...new Set(rawArticleUuidList)].slice(0, 150);
     if (uniqueRecentArticleIds.length > 0) {
         try {
+            // in-list: bounded recent article ids (<= 150)
             const { data: pastArticles } = await sb
                 .from('poker_news')
                 .select('id, title')
@@ -828,6 +923,8 @@ export async function loadZeroRepeatLedger(sb) {
         consumedIds,
         historicalTitles,
         editionNumber: computeNextWeeklyWireEditionNumber(campaigns),
+        lastEditionIds,
+        spotVotesMap,
     };
 }
 
@@ -854,6 +951,7 @@ export async function curateWeeklyWireEdition(
         siteUrl = 'https://smarter.poker',
         fetchTournamentsFn = null,
         fetchVideosFn = null,
+        fetchRecentWinnersFn = null,
     } = {}
 ) {
     const ledger = await loadZeroRepeatLedger(sb);
@@ -1060,6 +1158,65 @@ export async function curateWeeklyWireEdition(
         : null;
     const spotMarkerId = spotResult?.markerId || null;
 
+    // Previous Spot Verdict Recap from single most recent sent/partial edition
+    let previousSpotRecap = null;
+    const lastIds = new Set((ledger.lastEditionIds || []).map((x) => String(x || '').trim().toLowerCase()));
+    for (const s of SPOT_OF_THE_WEEK_CATALOG) {
+        let matched = false;
+        if (lastIds.has(spotMarkerUuid(s.slug).toLowerCase())) {
+            matched = true;
+        } else {
+            for (let c = 1; c <= 5; c++) {
+                if (lastIds.has(deterministicMarkerUuid('spot', `${c}:${s.slug}`).toLowerCase())) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+        if (matched) {
+            const votes = ledger.spotVotesMap?.[s.slug] || {};
+            const totalVotes = Object.values(votes).reduce((sum, v) => sum + (Number(v) || 0), 0);
+            const solverActionKey = s.solverActionKey || s.correctKey || 'A';
+            const optMatch = (s.options || []).find((o) => o.key === solverActionKey);
+            const solverActionLabel = s.solverActionLabel || optMatch?.label || '';
+            const parsedFreq = parseInt(String(s.solverFrequency || '').replace(/[^0-9]/g, ''), 10);
+            const solverFreqPct = s.solverFreqPct != null ? s.solverFreqPct : (Number.isFinite(parsedFreq) ? parsedFreq : 0);
+            const solverTakeaway = s.solverTakeaway || s.evSummary || '';
+            const solverVotes = Number(votes[solverActionKey] || 0);
+            const solverPickPct = totalVotes > 0 ? Math.round((solverVotes / totalVotes) * 100) : 0;
+            previousSpotRecap = {
+                slug: s.slug,
+                title: s.title,
+                solverActionKey,
+                solverActionLabel,
+                solverFreqPct,
+                solverTakeaway,
+                totalVotes,
+                solverPickPct,
+            };
+            break;
+        }
+    }
+
+    // 3b. Select 1 rotating Trivia item from the 16-question catalog
+    const triviaResult = selectRotatingCatalogItem(
+        TRIVIA_OF_THE_WEEK_CATALOG,
+        (q) => q.slug,
+        triviaMarkerUuid,
+        'trivia',
+        ledger.consumedIds,
+        ledger.editionNumber
+    );
+    const triviaOfTheWeek = triviaResult?.item
+        ? {
+              ...triviaResult.item,
+              markerUuid: triviaResult.markerId,
+              triviaMarkerId: triviaResult.markerId,
+              cycle: triviaResult.cycle,
+          }
+        : null;
+    const triviaMarkerId = triviaResult?.markerId || null;
+
     // 4. Select 1 rotating Tool Spotlight from the 35-tool catalog
     const toolResult = selectRotatingCatalogItem(
         TOOL_SPOTLIGHT_CATALOG,
@@ -1110,7 +1267,17 @@ export async function curateWeeklyWireEdition(
     // 5b. Live Kings Club (25450) upcoming tournaments (defensive: mock DBs may not have `tournaments`)
     const kingsClubTournaments = await loadKingsClubTournaments(sb, { nowMs, siteUrl, fetchTournamentsFn });
 
-    // 5c. Top Poker Video Of The Week from the public video library catalog (lifetime single-use)
+    // 5c. Kings Club Winner's Circle (past 7 days)
+    let recentWinners = [];
+    try {
+        recentWinners = typeof fetchRecentWinnersFn === 'function'
+            ? await fetchRecentWinnersFn()
+            : await loadRecentKingsClubWinners(sb, { nowMs });
+    } catch {
+        recentWinners = [];
+    }
+
+    // 5d. Top Poker Video Of The Week from the public video library catalog (lifetime single-use)
     const videoOfTheWeek = await loadVideoOfTheWeek(sb, { consumedIds: ledger.consumedIds, fetchVideosFn });
 
     // 6. Select rotating Active-Player Promo Spotlight
@@ -1126,6 +1293,7 @@ export async function curateWeeklyWireEdition(
         ...enrichedArticles.map((a) => a.storyFingerprintUuid),
         ...platformUpdates.map((u) => u.id),
         ...(spotMarkerId ? [spotMarkerId] : []),
+        ...(triviaMarkerId ? [triviaMarkerId] : []),
         ...(toolMarkerId ? [toolMarkerId] : []),
         ...(videoOfTheWeek ? [videoMarkerUuid(videoOfTheWeek.videoId)] : []),
         activePromo.markerUuid,
@@ -1146,10 +1314,14 @@ export async function curateWeeklyWireEdition(
         articles: enrichedArticles,
         spotOfTheWeek,
         spotMarkerId,
+        previousSpotRecap,
+        triviaOfTheWeek,
+        triviaMarkerId,
         toolSpotlight,
         toolMarkerId,
         upcomingSeries,
         kingsClubTournaments,
+        recentWinners,
         videoOfTheWeek,
         activePromo,
         ledgerUuidsToRecord: [...new Set(ledgerUuidsToRecord)],
@@ -1343,6 +1515,8 @@ export async function resolveWeeklyWireRecipients(
     const clubActivityByUser = new Map();
     const browserSeenByUser = new Map();
     const trainingSeenByUser = new Map();
+    const trainingPulseByUser = new Map();
+    const sevenDaysCutoffMs = nowMs - 7 * 86_400_000;
     try {
         const clubRows = await fetchPaged(
             (from, to) =>
@@ -1384,7 +1558,7 @@ export async function resolveWeeklyWireRecipients(
             (from, to) =>
                 sb
                     .from('training_progress')
-                    .select('user_id, last_played_at')
+                    .select('user_id, game_id, authority_hands_played, last_played_at, authority_last_played_at')
                     .order('user_id', { ascending: true })
                     .range(from, to),
             25000
@@ -1392,7 +1566,17 @@ export async function resolveWeeklyWireRecipients(
         for (const t of trainingRows) {
             if (!t?.user_id) continue;
             const uid = String(t.user_id);
-            trainingSeenByUser.set(uid, Math.max(trainingSeenByUser.get(uid) || 0, maxTs(t.last_played_at)));
+            const lastPlay = maxTs(t.authority_last_played_at, t.last_played_at);
+            trainingSeenByUser.set(uid, Math.max(trainingSeenByUser.get(uid) || 0, lastPlay));
+
+            if (lastPlay >= sevenDaysCutoffMs) {
+                if (!trainingPulseByUser.has(uid)) {
+                    trainingPulseByUser.set(uid, { hands7d: 0, gamesSet: new Set() });
+                }
+                const entry = trainingPulseByUser.get(uid);
+                entry.hands7d += Math.max(1, Number(t.authority_hands_played || 0));
+                entry.gamesSet.add(t.game_id ? String(t.game_id) : 'default');
+            }
         }
     } catch {
         /* optional in mocks */
@@ -1431,6 +1615,10 @@ export async function resolveWeeklyWireRecipients(
         const referralCode = formatValidSignupReferralCode(
             p?.player_number ? String(p.player_number) : ''
         );
+        const tPulse = trainingPulseByUser.get(id);
+        const trainingPulse = tPulse && tPulse.gamesSet.size > 0
+            ? { hands7d: tPulse.hands7d, games7d: tPulse.gamesSet.size }
+            : { hands7d: 0, games7d: 0 };
         accountByEmail.set(cleanEmail, {
             userId: id,
             hardMuted: hardEmailMutedUsers.has(id),
@@ -1443,6 +1631,7 @@ export async function resolveWeeklyWireRecipients(
             referralCode,
             nearbyEvents,
             locationLabel: nearbyEvents.length > 0 ? profileLocation.label : '',
+            trainingPulse,
         });
     }
 
@@ -1505,6 +1694,7 @@ export async function resolveWeeklyWireRecipients(
             referralCode: acct?.referralCode || '',
             nearbyEvents: acct?.nearbyEvents || [],
             locationLabel: acct?.locationLabel || '',
+            trainingPulse: acct?.trainingPulse || { hands7d: 0, games7d: 0 },
             ...(sunset.showRepermissionBanner ? { needsRepermission: true } : {}),
         });
         if (sunset.showRepermissionBanner) repermissionCount += 1;
@@ -1525,6 +1715,7 @@ export async function resolveWeeklyWireRecipients(
                 referralCode: acct.referralCode,
                 nearbyEvents: acct.nearbyEvents || [],
                 locationLabel: acct.locationLabel || '',
+                trainingPulse: acct.trainingPulse || { hands7d: 0, games7d: 0 },
             });
             segmentCounts[acct.segment] += 1;
         }
@@ -1644,9 +1835,11 @@ export function renderWeeklyWireEmail({
     const webArchiveUrl = `${cleanSite}/hub/wire`;
     const prefsHref = preferencesUrl || unsubscribeUrl;
 
+    const tPulse = recipientMeta?.trainingPulse;
+    const hasTrainingPulse = Boolean(tPulse && tPulse.games7d > 0);
     const showPulse = Boolean(
         recipientMeta &&
-            (recipientMeta.username || Number(recipientMeta.diamonds) > 0 || Boolean(recipientMeta.isVip))
+            (recipientMeta.username || Number(recipientMeta.diamonds) > 0 || Boolean(recipientMeta.isVip) || hasTrainingPulse)
     );
     const pulseUsername = recipientMeta?.username
         ? `@${String(recipientMeta.username).replace(/^@+/, '')}`
@@ -1671,9 +1864,18 @@ export function renderWeeklyWireEmail({
 <td width="33%" valign="top" style="padding:6px 16px 14px 12px;">
 <div style="color:#8da2b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Membership</div>
 <div style="color:#ffffff;font-size:14px;font-weight:800;margin-top:3px;">${escapeHtml(pulseMembership)}</div>
-<div style="margin-top:3px;"><a href="${escapeHtml(cleanSite)}/hub/club-arena/" style="color:#4fc1b3;font-size:11.5px;font-weight:700;text-decoration:none;">Club Arena -&gt;</a></div>
+<div style="margin-top:3px;"><a href="${escapeHtml(withWireUtm(`${cleanSite}/hub/club-arena/`, editionNum, 'pulse_club_arena'))}" style="color:#4fc1b3;font-size:11.5px;font-weight:700;text-decoration:none;">Club Arena -&gt;</a></div>
 </td>
 </tr>
+${hasTrainingPulse
+    ? `<tr>
+<td colspan="3" style="padding:8px 16px 12px 16px;border-top:1px solid #1a2a3a;">
+<span style="color:#8da2b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">7-Day GTO Activity:</span>
+<span style="color:#4fc1b3;font-size:13px;font-weight:800;margin-left:6px;">${escapeHtml(String(tPulse.hands7d))} GTO Hands Across ${escapeHtml(String(tPulse.games7d))} Drills</span>
+<span style="margin-left:12px;"><a href="${escapeHtml(withWireUtm(`${cleanSite}/hub/personal-assistant`, editionNum, 'pulse_audit_leaks'))}" style="color:#60a5fa;font-size:11.5px;font-weight:700;text-decoration:none;">Audit Leaks In Personal Assistant -&gt;</a></span>
+</td>
+</tr>`
+    : ''}
 </table>`
         : '';
 
@@ -1685,7 +1887,7 @@ export function renderWeeklyWireEmail({
 <span style="display:inline-block;background:#132d3b;color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;padding:3px 9px;border-radius:999px;">${escapeHtml(u.badge || 'Platform Upgrade')}</span>
 <div style="margin:9px 0 6px 0;font-size:16px;font-weight:800;color:#ffffff;line-height:1.3;">${escapeHtml(u.title)}</div>
 <div style="color:#b7cadc;font-size:13.5px;line-height:1.55;margin-bottom:10px;">${escapeHtml(u.summary)}</div>
-<a href="${escapeHtml(u.ctaUrl)}" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;">${escapeHtml(u.ctaLabel || 'Try It Now')} -&gt;</a>
+<a href="${escapeHtml(withWireUtm(u.ctaUrl, editionNum, `update_${u.slug || 'cta'}`))}" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;">${escapeHtml(u.ctaLabel || 'Try It Now')} -&gt;</a>
 </td></tr>
 </table>
 </td></tr>`
@@ -1722,7 +1924,8 @@ ${a.summary ? `<div style="color:#adc0d4;font-size:13px;line-height:1.5;">${esca
     const spotOptionsHtml = spot
         ? (spot.options || [])
               .map((opt) => {
-                  const pickUrl = `${spotBaseUrl}?spot=${encodeURIComponent(spot.slug)}&pick=${encodeURIComponent(opt.key)}`;
+                  const rawPickUrl = `${spotBaseUrl}?spot=${encodeURIComponent(spot.slug)}&pick=${encodeURIComponent(opt.key)}`;
+                  const pickUrl = withWireUtm(rawPickUrl, editionNum, `spot_${spot.slug}_${opt.key.toLowerCase()}`);
                   return `<a href="${escapeHtml(pickUrl)}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 14px;background:#101a25;border:1px solid #255c56;border-radius:999px;color:#4fc1b3;font-size:12.5px;font-weight:700;text-decoration:none;">${escapeHtml(opt.key)}. ${escapeHtml(opt.label)}</a>`;
               })
               .join('')
@@ -1734,6 +1937,16 @@ ${a.summary ? `<div style="color:#adc0d4;font-size:13px;line-height:1.5;">${esca
             : buildSignedEmailImageUrl('', { siteUrl: cleanSite, mode: 'hero' })
         : '';
 
+    const recap = edition.previousSpotRecap;
+    const recapHtml = recap
+        ? `<div style="margin-top:14px;padding:12px;background:#0b131e;border-left:3px solid #4fc1b3;border-radius:6px;">
+<div style="color:#4fc1b3;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">Last Issue&#39;s Solver Verdict &middot; ${escapeHtml(recap.title)}</div>
+<div style="color:#bdcde0;font-size:12.5px;line-height:1.45;margin-top:4px;">
+<strong style="color:#ffffff;">${escapeHtml(recap.solverActionKey)}: ${escapeHtml(recap.solverActionLabel)}</strong> (${escapeHtml(String(recap.solverFreqPct))}% Solver Freq${recap.totalVotes > 0 ? ` &middot; ${escapeHtml(String(recap.solverPickPct))}% of ${escapeHtml(String(recap.totalVotes))} Community Votes` : ''}) - ${escapeHtml(recap.solverTakeaway)}
+</div>
+</div>`
+        : '';
+
     const spotHtml = spot
         ? `<tr><td style="padding:8px 0 14px 0;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #255c56;border-radius:12px;">
@@ -1743,6 +1956,31 @@ ${a.summary ? `<div style="color:#adc0d4;font-size:13px;line-height:1.5;">${esca
 <img src="${escapeHtml(spotImgUrl)}" alt="${escapeHtml(spot.title)}" width="520" height="208" style="display:block;width:100%;max-width:520px;height:auto;border-radius:10px;border:1px solid #1e3347;margin:0 0 12px;" />
 <div style="color:#bdcde0;font-size:13.5px;line-height:1.55;margin-bottom:14px;">${escapeHtml(spot.situation)}</div>
 <div>${spotOptionsHtml}</div>
+${recapHtml}
+</td></tr>
+</table>
+</td></tr>`
+        : '';
+
+    const trivia = edition.triviaOfTheWeek;
+    const triviaOptionsHtml = trivia
+        ? (trivia.options || [])
+              .map((opt) => {
+                  const rawPickUrl = `${cleanSite}/hub/trivia?wire_q=${encodeURIComponent(trivia.slug)}&pick=${encodeURIComponent(opt.key)}`;
+                  const pickUrl = withWireUtm(rawPickUrl, editionNum, `trivia_${opt.key.toLowerCase()}`);
+                  return `<a href="${escapeHtml(pickUrl)}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 14px;background:#101a24;border:1px solid #255c56;border-radius:999px;color:#4fc1b3;font-size:12.5px;font-weight:700;text-decoration:none;">${escapeHtml(opt.key)}. ${escapeHtml(opt.label)}</a>`;
+              })
+              .join('')
+        : '';
+
+    const triviaHtml = trivia
+        ? `<tr><td style="padding:6px 0 14px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1118;border:1px solid #255c56;border-radius:12px;">
+<tr><td style="padding:18px 20px;">
+<div style="color:#4fc1b3;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Poker Trivia Of The Week &middot; ${escapeHtml(trivia.badge || 'Theory & Odds')}</div>
+<div style="margin:6px 0 10px 0;color:#ffffff;font-size:16.5px;font-weight:800;line-height:1.35;">${escapeHtml(trivia.question)}</div>
+<div>${triviaOptionsHtml}</div>
+<div style="margin-top:10px;"><a href="${escapeHtml(withWireUtm(`${cleanSite}/hub/trivia`, editionNum, 'trivia_hub'))}" style="color:#60a5fa;font-size:12.5px;font-weight:700;text-decoration:none;">Play Full Trivia Arena -&gt;</a></div>
 </td></tr>
 </table>
 </td></tr>`
@@ -1756,7 +1994,7 @@ ${a.summary ? `<div style="color:#adc0d4;font-size:13px;line-height:1.5;">${esca
 <div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Tool Spotlight Of The Week &middot; ${escapeHtml(tool.category)}</div>
 <div style="margin:6px 0 6px 0;color:#ffffff;font-size:17px;font-weight:800;">${escapeHtml(tool.title)}</div>
 <div style="color:#bdcde0;font-size:13.5px;line-height:1.55;margin-bottom:12px;">${escapeHtml(tool.tip)}</div>
-<a href="${escapeHtml(tool.url)}" style="display:inline-block;background:#1c324a;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:9px 16px;border-radius:7px;">Open Free Tool -&gt;</a>
+<a href="${escapeHtml(withWireUtm(tool.url, editionNum, `tool_${tool.slug || 'cta'}`))}" style="display:inline-block;background:#1c324a;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:9px 16px;border-radius:7px;">Open Free Tool -&gt;</a>
 </td></tr>
 </table>
 </td></tr>`
@@ -1863,6 +2101,24 @@ ${it.details ? `<div style="color:#9fb3c8;font-size:12.5px;line-height:1.5;">${e
 </td></tr>`
         : '';
 
+    const recentWinners = Array.isArray(edition.recentWinners) ? edition.recentWinners : [];
+    const kingsWinnersHtml = recentWinners.length
+        ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #1a2a3a;">
+<div style="color:#4fc1b3;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px;">Kings Club Winner&#39;s Circle (Past 7 Days)</div>
+${recentWinners
+    .map((w) => {
+        const pool = Number(w.prize_pool || 0).toLocaleString('en-US');
+        const entries = Number(w.current_players || 0);
+        const meta = [`${pool} Chips`, entries > 0 ? `${entries} Entries` : null].filter(Boolean).join(' &middot; ');
+        return `<div style="padding:6px 0;border-bottom:1px solid #15222f;">
+<div style="color:#ffffff;font-size:13.5px;font-weight:700;line-height:1.4;">${escapeHtml(w.name || 'Kings Club Championship')}</div>
+<div style="color:#9fb3c8;font-size:12.5px;line-height:1.5;">${meta}</div>
+</div>`;
+    })
+    .join('')}
+</div>`
+        : '';
+
     const radarHtml = `<tr><td style="padding:4px 0 14px 0;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#101a25;border:1px solid #1e3246;border-radius:12px;">
 <tr><td style="padding:18px 20px;">
@@ -1870,10 +2126,11 @@ ${it.details ? `<div style="color:#9fb3c8;font-size:12.5px;line-height:1.5;">${e
 <div style="margin:6px 0 6px 0;color:#ffffff;font-size:16.5px;font-weight:800;line-height:1.3;">Nightly Cash, PLO &amp; Spin Action In Kings Club (Code 25450)</div>
 <div style="color:#bdcde0;font-size:13.5px;line-height:1.55;">Take a seat in nightly NLH, PLO4, PLO5, and fast 3-handed Spin tables inside Kings Club (Code 25450) with live Bad Beat Jackpot tracking and tournament action.</div>
 ${kingsListHtml}
+${kingsWinnersHtml}
 ${seriesListHtml}
 <div style="margin-top:12px;">
-<a href="${escapeHtml(cleanSite)}/hub/club-arena/?join=25450" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;margin-right:16px;">Join Kings Club (Code 25450) -&gt;</a>
-<a href="${escapeHtml(cleanSite)}/hub/poker-near-me" style="color:#60a5fa;font-size:13px;font-weight:700;text-decoration:none;">Live Series Radar -&gt;</a>
+<a href="${escapeHtml(withWireUtm(`${cleanSite}/hub/club-arena/?join=25450`, editionNum, 'kings_join'))}" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;margin-right:16px;">Join Kings Club (Code 25450) -&gt;</a>
+<a href="${escapeHtml(withWireUtm(`${cleanSite}/hub/poker-near-me`, editionNum, 'series_radar'))}" style="color:#60a5fa;font-size:13px;font-weight:700;text-decoration:none;">Live Series Radar -&gt;</a>
 </div>
 </td></tr>
 </table>
@@ -1881,8 +2138,8 @@ ${seriesListHtml}
 
     const validRefCode = formatValidSignupReferralCode(recipientMeta?.referralCode);
     const referralUrl = validRefCode
-        ? `${cleanSite}/auth/signup?ref=${encodeURIComponent(validRefCode)}`
-        : `${cleanSite}/auth/signup?utm_source=weekly_wire&utm_medium=email&utm_campaign=crew_share`;
+        ? withWireUtm(`${cleanSite}/auth/signup?ref=${encodeURIComponent(validRefCode)}`, editionNum, 'referral')
+        : withWireUtm(`${cleanSite}/auth/signup?utm_source=weekly_wire&utm_medium=email&utm_campaign=crew_share`, editionNum, 'referral');
     const hasReferralCount =
         recipientMeta &&
         recipientMeta.referralCount !== undefined &&
@@ -1965,7 +2222,7 @@ ${referralProgressHtml}
 <div style="color:#ffffff;font-size:21px;font-weight:800;margin-top:4px;line-height:1.25;">Edition #${editionNum} &middot; Upgrades, Promos &amp; Poker Intelligence</div>
 </td>
 <td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
-<a href="${escapeHtml(webEditionUrl)}" style="color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none;">View Web Edition -&gt;</a>
+<a href="${escapeHtml(withWireUtm(webEditionUrl, editionNum, 'web_edition'))}" style="color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none;">View Web Edition -&gt;</a>
 </td>
 </tr>
 </table>
@@ -1982,7 +2239,7 @@ ${updatesHtml ? `<div style="color:#60a5fa;font-size:12px;font-weight:800;letter
 <div style="color:#4fc1b3;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">${escapeHtml(promo.eyebrow)}</div>
 <div style="color:#ffffff;font-size:19px;font-weight:800;margin:6px 0 8px 0;line-height:1.3;">${escapeHtml(promo.headline)}</div>
 <div style="color:#d1e3e0;font-size:14px;line-height:1.55;margin-bottom:16px;">${escapeHtml(promo.body)}</div>
-<a href="${escapeHtml(promo.ctaUrl)}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:14px;padding:12px 22px;border-radius:8px;">${escapeHtml(promo.ctaLabel)}</a>
+<a href="${escapeHtml(withWireUtm(promo.ctaUrl, editionNum, 'promo_cta'))}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:14px;padding:12px 22px;border-radius:8px;">${escapeHtml(promo.ctaLabel)}</a>
 </td></tr>
 </table>
 
@@ -1991,6 +2248,7 @@ ${articlesHtml ? `<div style="color:#4fc1b3;font-size:12px;font-weight:800;lette
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 ${spotHtml}
+${triviaHtml}
 ${videoHtml}
 ${toolHtml}
 ${nearbyHtml}
@@ -2003,9 +2261,9 @@ ${referralHtml}
 <div style="margin-top:6px;">
 <a href="${escapeHtml(prefsHref)}" style="color:#9fb3c8;text-decoration:underline;">Email Preferences</a> &middot;
 <a href="${escapeHtml(unsubscribeUrl)}" style="color:#9fb3c8;text-decoration:underline;">Unsubscribe</a> &middot;
-<a href="${escapeHtml(webArchiveUrl)}" style="color:#9fb3c8;text-decoration:underline;">Web Archive</a> &middot;
-<a href="${escapeHtml(cleanSite)}/hub/news" style="color:#9fb3c8;text-decoration:underline;">News Hub</a> &middot;
-<a href="${escapeHtml(cleanSite)}/hub/club-arena/" style="color:#9fb3c8;text-decoration:underline;">Club Arena</a>
+<a href="${escapeHtml(withWireUtm(webArchiveUrl, editionNum, 'web_archive'))}" style="color:#9fb3c8;text-decoration:underline;">Web Archive</a> &middot;
+<a href="${escapeHtml(withWireUtm(`${cleanSite}/hub/news`, editionNum, 'news_hub'))}" style="color:#9fb3c8;text-decoration:underline;">News Hub</a> &middot;
+<a href="${escapeHtml(withWireUtm(`${cleanSite}/hub/club-arena/`, editionNum, 'footer_club_arena'))}" style="color:#9fb3c8;text-decoration:underline;">Club Arena</a>
 </div>
 </div>
 
@@ -2018,7 +2276,7 @@ ${referralHtml}
 
     const textLines = [
         `SMARTER.POKER WEEKLY WIRE - EDITION #${editionNum}`,
-        `View Web Edition -> ${webEditionUrl}`,
+        `View Web Edition -> ${withWireUtm(webEditionUrl, editionNum, 'web_edition')}`,
         '',
         ...(showRepermission
             ? ['STILL WANT THE WEEKLY WIRE? Confirm in one tap:', keepUrl, '']
@@ -2026,27 +2284,32 @@ ${referralHtml}
         ...(showPulse
             ? [
                   `YOUR SMARTER.POKER PULSE: ${pulseUsername} | ${pulseDiamonds} Diamonds | ${pulseMembership}`,
+                  ...(hasTrainingPulse
+                      ? [
+                            `7-Day GTO Activity: ${tPulse.hands7d} GTO Hands Across ${tPulse.games7d} Drills | Audit Leaks In Personal Assistant -> ${withWireUtm(`${cleanSite}/hub/personal-assistant`, editionNum, 'pulse_audit_leaks')}`,
+                        ]
+                      : []),
                   '',
               ]
             : []),
         ...(edition.platformUpdates?.length
             ? [
                   '=== NEW ON SMARTER.POKER ===',
-                  ...edition.platformUpdates.map((u) => `* [${u.badge}] ${u.title}\n  ${u.summary}\n  ${u.ctaUrl}`),
+                  ...edition.platformUpdates.map((u) => `* [${u.badge}] ${u.title}\n  ${u.summary}\n  ${withWireUtm(u.ctaUrl, editionNum, `update_${u.slug || 'cta'}`)}`),
                   '',
               ]
             : []),
         `=== ${promo.eyebrow.toUpperCase()} ===`,
         promo.headline,
         promo.body,
-        `${promo.ctaLabel}: ${promo.ctaUrl}`,
+        `${promo.ctaLabel}: ${withWireUtm(promo.ctaUrl, editionNum, 'promo_cta')}`,
         '',
         ...(edition.articles?.length
             ? [
                   '=== THIS WEEK IN POKER ===',
                   ...edition.articles.map(
                       (a) =>
-                          `- ${a.title} (${a.source_name})${a.summary ? `\n  ${a.summary}` : ''}\n  ${cleanSite}/hub/article?id=${encodeURIComponent(a.id)}`
+                          `- ${a.title} (${a.source_name})${a.summary ? `\n  ${a.summary}` : ''}\n  ${withWireUtm(`${cleanSite}/hub/article?id=${encodeURIComponent(a.id)}`, editionNum, 'article_read')}`
                   ),
                   '',
               ]
@@ -2057,8 +2320,26 @@ ${referralHtml}
                   spot.situation,
                   ...(spot.options || []).map(
                       (opt) =>
-                          `  [${opt.key}] ${opt.label}: ${spotBaseUrl}?spot=${encodeURIComponent(spot.slug)}&pick=${encodeURIComponent(opt.key)}`
+                          `  [${opt.key}] ${opt.label}: ${withWireUtm(`${spotBaseUrl}?spot=${encodeURIComponent(spot.slug)}&pick=${encodeURIComponent(opt.key)}`, editionNum, `spot_${spot.slug}_${opt.key.toLowerCase()}`)}`
                   ),
+                  ...(recap
+                      ? [
+                            `  LAST ISSUE'S SOLVER VERDICT: ${recap.title}`,
+                            `  ${recap.solverActionKey}: ${recap.solverActionLabel} (${recap.solverFreqPct}% Solver Freq${recap.totalVotes > 0 ? ` | ${recap.solverPickPct}% of ${recap.totalVotes} Community Votes` : ''}) - ${recap.solverTakeaway}`,
+                        ]
+                      : []),
+                  '',
+              ]
+            : []),
+        ...(trivia
+            ? [
+                  `=== POKER TRIVIA OF THE WEEK [${trivia.badge || 'Theory & Odds'}] ===`,
+                  trivia.question,
+                  ...(trivia.options || []).map(
+                      (o) =>
+                          `  [${o.key}] ${o.label} -> ${withWireUtm(`${cleanSite}/hub/trivia?wire_q=${encodeURIComponent(trivia.slug)}&pick=${encodeURIComponent(o.key)}`, editionNum, `trivia_${o.key.toLowerCase()}`)}`
+                  ),
+                  `  Play Full Trivia Arena: ${withWireUtm(`${cleanSite}/hub/trivia`, editionNum, 'trivia_hub')}`,
                   '',
               ]
             : []),
@@ -2066,7 +2347,7 @@ ${referralHtml}
             ? [
                   `=== VIDEO OF THE WEEK: ${String(video.title || '').toUpperCase()} ===`,
                   [video.sourceName, video.duration].filter(Boolean).join(' | '),
-                  `${cleanSite}${video.watchPath}`,
+                  `${withWireUtm(`${cleanSite}${video.watchPath}`, editionNum, 'video_watch')}`,
                   '',
               ]
             : []),
@@ -2083,17 +2364,28 @@ ${referralHtml}
             ? [
                   `=== TOOL SPOTLIGHT: ${tool.title.toUpperCase()} ===`,
                   tool.tip,
-                  tool.url,
+                  withWireUtm(tool.url, editionNum, `tool_${tool.slug || 'cta'}`),
                   '',
               ]
             : []),
         '=== KINGS CLUB & LIVE SERIES RADAR ===',
-        `Nightly NLH, PLO4/5 & Spin Action in Kings Club (Code 25450): ${cleanSite}/hub/club-arena/?join=25450`,
+        `Nightly NLH, PLO4/5 & Spin Action in Kings Club (Code 25450): ${withWireUtm(`${cleanSite}/hub/club-arena/?join=25450`, editionNum, 'kings_join')}`,
         ...kingsTournaments.flatMap((t) => [
             `- ${t.name} | ${[t.formattedStartUtc, t.gameType, t.buyInLabel, t.gtdLabel].filter(Boolean).join(' | ')}`,
             `  Join Club 25450 -> ${t.lobbyUrl}`,
             `  Add To Calendar (.ics): ${t.icsUrl}`,
         ]),
+        ...(recentWinners.length
+            ? [
+                  '--- KINGS CLUB WINNER\'S CIRCLE (PAST 7 DAYS) ---',
+                  ...recentWinners.map((w) => {
+                      const pool = Number(w.prize_pool || 0).toLocaleString('en-US');
+                      const entries = Number(w.current_players || 0);
+                      return `* ${w.name || 'Kings Club Event'} - ${pool} Chips${entries > 0 ? ` (${entries} Entries)` : ''}`;
+                  }),
+                  '',
+              ]
+            : []),
         ...seriesItems.map((s) => {
             const loc = [s.city, s.state].filter(Boolean).join(', ');
             return `- ${s.series_name}${loc ? ` (${loc})` : ''}`;
@@ -2114,7 +2406,7 @@ ${referralHtml}
         `Smarter.Poker | ${postalAddress || DEFAULT_POSTAL_ADDRESS}`,
         `Email Preferences: ${prefsHref}`,
         `Unsubscribe: ${unsubscribeUrl}`,
-        `Web Archive: ${webArchiveUrl}`,
+        `Web Archive: ${withWireUtm(webArchiveUrl, editionNum, 'web_archive')}`,
     ];
 
     return {

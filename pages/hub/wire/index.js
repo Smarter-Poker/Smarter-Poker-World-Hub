@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
+import { useState, useMemo } from 'react';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { buildSignedEmailImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
@@ -152,6 +153,17 @@ export async function getServerSideProps({ res }) {
 }
 
 export default function WeeklyWireArchivePage({ editions = [], livePreview = null }) {
+    const [searchQuery, setSearchQuery] = useState('');
+    const filteredEditions = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return editions;
+        return editions.filter((ed) => {
+            const numMatch = String(ed.editionNumber || '').includes(q) || `#${ed.editionNumber}`.includes(q);
+            const subjMatch = String(ed.subject || '').toLowerCase().includes(q);
+            return numMatch || subjMatch;
+        });
+    }, [editions, searchQuery]);
+
     const canonicalUrl = 'https://smarter.poker/hub/wire';
     const pageTitle = 'Smarter.Poker Weekly Wire Archive | Poker News, GTO Spots & Upgrades';
     const pageDesc =
@@ -432,6 +444,8 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '12px',
                                 marginBottom: '14px',
                             }}
                         >
@@ -448,11 +462,49 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                 Published Editions
                             </h2>
                             <span style={{ color: '#8fa6bc', fontSize: '13px', fontWeight: 600 }}>
-                                {editions.length} {editions.length === 1 ? 'Issue' : 'Issues'} Archived
+                                {filteredEditions.length} Of {editions.length} {editions.length === 1 ? 'Issue' : 'Issues'}
                             </span>
                         </div>
 
-                        {editions.length === 0 ? (
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                            <input
+                                type="search"
+                                value={searchQuery}
+                                onChange={(ev) => setSearchQuery(ev.target.value)}
+                                placeholder="Search Editions, Headlines Or Topics"
+                                aria-label="Search Editions, Headlines Or Topics"
+                                style={{
+                                    flex: '1 1 260px',
+                                    background: '#0b1118',
+                                    border: '1px solid #1b2c3d',
+                                    borderRadius: '10px',
+                                    padding: '11px 16px',
+                                    color: '#ffffff',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                }}
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery('')}
+                                    style={{
+                                        background: '#101a24',
+                                        border: '1px solid #1b2c3d',
+                                        color: '#60a5fa',
+                                        borderRadius: '10px',
+                                        padding: '11px 16px',
+                                        fontSize: '13.5px',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    Clear Search
+                                </button>
+                            )}
+                        </div>
+
+                        {filteredEditions.length === 0 ? (
                             <div
                                 style={{
                                     background: '#0b1118',
@@ -461,14 +513,33 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                     padding: '28px 24px',
                                     color: '#b7cadc',
                                     fontSize: '14.5px',
-                                    lineHeight: 1.6,
+                                    lineHeight: '1.6',
+                                    textAlign: 'center',
                                 }}
                             >
-                                Past Dispatched Editions Appear Here Automatically As Each Weekly Issue Sends. Open The Current Live Desk Above Or Explore Our Free Poker Tools Below.
+                                <p style={{ margin: '0 0 14px 0', color: '#ffffff', fontWeight: 700 }}>
+                                    No Matching Editions Found For Your Search.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery('')}
+                                    style={{
+                                        background: '#4fc1b3',
+                                        border: 'none',
+                                        color: '#05070a',
+                                        borderRadius: '8px',
+                                        padding: '9px 18px',
+                                        fontSize: '13px',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    Clear Search
+                                </button>
                             </div>
                         ) : (
                             <div style={{ display: 'grid', gap: '14px' }}>
-                                {editions.map((ed) => (
+                                {filteredEditions.map((ed) => (
                                     <Link
                                         key={ed.id}
                                         href={`/hub/wire/${ed.editionNumber}`}

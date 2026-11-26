@@ -52,6 +52,7 @@ const AUTH_ALWAYS_ALLOW = [
   '/api/news/email-image',
   '/api/news/wire-rss',
   '/api/news/calendar-ics',
+  '/api/news/spot-vote',
   '/hub/email-preferences',
   '/hub/wire',
   '/hub/wire/',

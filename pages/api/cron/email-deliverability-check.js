@@ -188,6 +188,156 @@ async function checkDmarcRecord() {
     }
 }
 
+export async function checkBulkMailDns() {
+    try {
+        const spfResp = await fetch(
+            `https://cloudflare-dns.com/dns-query?name=send.mail.${DOMAIN}&type=TXT`,
+            { headers: { accept: 'application/dns-json' }, signal: AbortSignal.timeout(8000) },
+        );
+        let hasSpf = false;
+        let spfTxts = '';
+        if (spfResp.ok) {
+            const body = await spfResp.json();
+            spfTxts = (body?.Answer || []).map((a) => a.data || '').join(' | ');
+            hasSpf = /v=spf1/i.test(spfTxts);
+        }
+
+        const dmarcResp = await fetch(
+            `https://cloudflare-dns.com/dns-query?name=_dmarc.${DOMAIN}&type=TXT`,
+            { headers: { accept: 'application/dns-json' }, signal: AbortSignal.timeout(8000) },
+        );
+        let hasDmarc = false;
+        let dmarcTxts = '';
+        if (dmarcResp.ok) {
+            const body = await dmarcResp.json();
+            dmarcTxts = (body?.Answer || []).map((a) => a.data || '').join(' | ');
+            hasDmarc = /v=DMARC1/i.test(dmarcTxts);
+        }
+
+        if (!hasSpf) {
+            return {
+                check: 'bulk_mail_dns',
+                ok: true,
+                severity: 'warn',
+                detail: `send.mail.${DOMAIN} missing SPF record (${spfTxts.slice(0, 100) || 'none'})`,
+            };
+        }
+
+        if (!hasDmarc) {
+            return {
+                check: 'bulk_mail_dns',
+                ok: true,
+                severity: 'warn',
+                detail: `_dmarc.${DOMAIN} missing DMARC record (${dmarcTxts.slice(0, 100) || 'none'})`,
+            };
+        }
+
+        return {
+            check: 'bulk_mail_dns',
+            ok: true,
+            detail: `Bulk mail DNS aligned: send.mail.${DOMAIN} SPF present, _dmarc.${DOMAIN} DMARC present`,
+        };
+    } catch (e) {
+        return {
+            check: 'bulk_mail_dns',
+            ok: true,
+            severity: 'warn',
+            detail: `Bulk mail DNS lookup failed: ${e?.message}`,
+        };
+    }
+}
+
+export async function checkNewsletterReputation7d(admin) {
+    if (!admin) {
+        return {
+            check: 'newsletter_reputation_7d',
+            ok: true,
+            detail: 'Database admin client unavailable, skipping 7d reputation check',
+        };
+    }
+    try {
+        const sevenDaysAgoIso = new Date(Date.now() - 7 * 86_400_000).toISOString();
+
+        // 1. 7d sent count from newsletter_campaigns
+        let campaignsQuery = admin
+            .from('newsletter_campaigns')
+            .select('sent_count')
+            // in-list: bounded status list
+            .in('status', ['sent', 'partial']);
+        if (typeof campaignsQuery.gte === 'function') {
+            campaignsQuery = campaignsQuery.gte('created_at', sevenDaysAgoIso);
+        }
+        const campaignsRes = await campaignsQuery;
+        const sent7d = (campaignsRes?.data || []).reduce(
+            (sum, c) => sum + (Number(c?.sent_count) || 0),
+            0,
+        );
+
+        // 2. 7d bounces from newsletter_subscribers
+        let bounceQuery = admin
+            .from('newsletter_subscribers')
+            .select('id')
+            .eq('source', 'resend_bounce');
+        if (typeof bounceQuery.gte === 'function') {
+            bounceQuery = bounceQuery.gte('unsubscribed_at', sevenDaysAgoIso);
+        }
+        const bounceRes = await bounceQuery;
+        const bounceCount = Number(
+            bounceRes?.count ?? (Array.isArray(bounceRes?.data) ? bounceRes.data.length : 0),
+        );
+
+        // 3. 7d complaints from newsletter_subscribers
+        let complaintQuery = admin
+            .from('newsletter_subscribers')
+            .select('id')
+            .eq('source', 'resend_complaint');
+        if (typeof complaintQuery.gte === 'function') {
+            complaintQuery = complaintQuery.gte('unsubscribed_at', sevenDaysAgoIso);
+        }
+        const complaintRes = await complaintQuery;
+        const complaintCount = Number(
+            complaintRes?.count ?? (Array.isArray(complaintRes?.data) ? complaintRes.data.length : 0),
+        );
+
+        const bounceRatePct = sent7d > 0 ? Number(((bounceCount / sent7d) * 100).toFixed(2)) : 0;
+        const complaintRatePct = sent7d > 0 ? Number(((complaintCount / sent7d) * 100).toFixed(2)) : 0;
+
+        const isElevated = sent7d >= 50 && (bounceRatePct >= 2.0 || complaintRatePct >= 0.1);
+
+        if (isElevated) {
+            return {
+                check: 'newsletter_reputation_7d',
+                ok: true,
+                severity: 'warn',
+                sent7d,
+                bounceCount,
+                complaintCount,
+                bounceRatePct,
+                complaintRatePct,
+                detail: `Elevated 7d rates: bounceRate=${bounceRatePct}% (limit 2.0%), complaintRate=${complaintRatePct}% (limit 0.1%) over ${sent7d} sent`,
+            };
+        }
+
+        return {
+            check: 'newsletter_reputation_7d',
+            ok: true,
+            sent7d,
+            bounceCount,
+            complaintCount,
+            bounceRatePct,
+            complaintRatePct,
+            detail: `Healthy 7d reputation: ${sent7d} sent, ${bounceCount} bounces (${bounceRatePct}%), ${complaintCount} complaints (${complaintRatePct}%)`,
+        };
+    } catch (e) {
+        return {
+            check: 'newsletter_reputation_7d',
+            ok: true,
+            severity: 'warn',
+            detail: `Reputation check error: ${e?.message}`,
+        };
+    }
+}
+
 export const config = { maxDuration: 30 };
 
 async function handler(req, res) {
@@ -197,18 +347,20 @@ async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
 
     const started = Date.now();
+    const admin = getAdmin();
     const results = await Promise.all([
         checkResendDomain(),
         checkSpfRecord(),
         checkDkimRecord(),
         checkDmarcRecord(),
+        checkBulkMailDns(),
+        checkNewsletterReputation7d(admin),
     ]);
 
     const failures = results.filter((r) => !r.ok);
     const status = failures.length === 0 ? 'ok' : 'failed';
 
     // Heartbeat
-    const admin = getAdmin();
     if (admin) {
         // The heartbeat must never take the probe down with it.
         //

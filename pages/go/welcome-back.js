@@ -7,13 +7,19 @@
  * `/promo/welcome-back?wb=...` where the player accepts the offer.
  */
 import { buildWelcomeBackOfferUrl } from '../../src/lib/promoCampaigns/welcomeBackOffer.mjs';
+import { appendNewsletterUtm } from '../../src/lib/newsletter/utmAttribution.mjs';
 
-export async function getServerSideProps({ res }) {
+export async function getServerSideProps({ res, query }) {
     res.setHeader('Cache-Control', 'private, no-store');
     const destination = buildWelcomeBackOfferUrl('https://smarter.poker/promo/welcome-back', {
         siteUrl: 'https://smarter.poker',
     });
-    const parsed = new URL(destination);
+    const tagged = appendNewsletterUtm(destination, {
+        source: query?.utm_source || 'welcome_back_sms',
+        medium: query?.utm_medium || 'sms',
+        campaign: query?.utm_campaign || 'welcome_back_21d',
+    });
+    const parsed = new URL(tagged);
     return {
         redirect: {
             destination: `${parsed.pathname}${parsed.search}`,

@@ -43,8 +43,10 @@ import { buildMastheadCrestUrl } from '../newsletter/emailImageProxy.mjs';
 import {
     applyCampaignTelemetryEvent,
     mergeFinalCampaignErrorSummary,
+    parseCampaignSectionClicks,
     parseCampaignTelemetrySummary,
 } from '../newsletter/campaignTelemetry.mjs';
+import { appendNewsletterUtm } from '../newsletter/utmAttribution.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -71,6 +73,7 @@ export function extractResendCampaignId(tagsOrEvent) {
 
 export {
     parseCampaignTelemetrySummary,
+    parseCampaignSectionClicks,
     applyCampaignTelemetryEvent,
     mergeFinalCampaignErrorSummary,
 };
@@ -304,6 +307,12 @@ export function renderLifecycleEmail({
     const safeSite = escapeHtml(cleanSite);
     const safePostal = escapeHtml(cleanPostal);
     const safeCrestUrl = escapeHtml(buildMastheadCrestUrl({ siteUrl: cleanSite }));
+    const resolvedCtaUrl = appendNewsletterUtm(ctaUrl, {
+        source: 'lifecycle',
+        medium: 'email',
+        campaign: trigger || 'retention',
+        content: 'primary_cta',
+    });
 
     const htmlParagraphs = paragraphs
         .map(
@@ -332,7 +341,7 @@ export function renderLifecycleEmail({
 <h1 style="margin:14px 0 18px 0;color:#ffffff;font-size:24px;line-height:1.28;font-weight:800;">${escapeHtml(cleanHeadline)}</h1>
 ${htmlParagraphs}
 <div style="padding:8px 0 22px 0;">
-<a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:15px;padding:14px 28px;border-radius:8px;">${escapeHtml(ctaLabel)}</a>
+<a href="${escapeHtml(resolvedCtaUrl)}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:15px;padding:14px 28px;border-radius:8px;">${escapeHtml(ctaLabel)}</a>
 </div>
 <div style="margin:0 0 22px 0;padding:14px 16px;background:#101a25;border:1px solid #1b2c3d;border-radius:10px;color:#9fb3c8;font-size:13px;line-height:1.55;">
 <span style="color:#60a5fa;font-weight:700;">Kings Club (Code 25450):</span> ${escapeHtml(secondaryNote)}

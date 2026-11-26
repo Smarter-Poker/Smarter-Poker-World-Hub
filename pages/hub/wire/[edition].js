@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getAccessToken } from '../../../src/lib/authUtils';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicUuid } from '../../../src/lib/promoCampaigns/welcomeBackOffer.mjs';
 import { buildSignedEmailImageUrl, buildSpotCardImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
@@ -215,6 +216,7 @@ async function getWireIssueProps({ params, res }) {
             usedNumbers.add(num);
             return { ...row, editionNumber: num };
         });
+        const maxPublishedEdition = indexedCampaigns.reduce((m, c) => Math.max(m, c.editionNumber), 0);
 
         let matchedCampaign = null;
         if (isUuidParam) {
@@ -225,6 +227,8 @@ async function getWireIssueProps({ params, res }) {
 
         if (matchedCampaign) {
             const editionNumber = matchedCampaign.editionNumber;
+            const prevEditionNumber = editionNumber > 1 ? editionNumber - 1 : null;
+            const nextEditionNumber = editionNumber < maxPublishedEdition ? editionNumber + 1 : null;
             const rawIds = (Array.isArray(matchedCampaign.article_ids) ? matchedCampaign.article_ids : [])
                 .map((x) => String(x || '').trim().toLowerCase())
                 .filter((x) => UUID_SHAPE_RE.test(x));
@@ -303,6 +307,42 @@ async function getWireIssueProps({ params, res }) {
 
             const matchedVideo = await resolveMatchedHistoricalVideo(sb, idSet);
 
+            const triviaCatalog = wireCatalog.TRIVIA_OF_THE_WEEK_CATALOG || [];
+            const matchedTrivia =
+                (typeof wireEngine.triviaMarkerUuid === 'function' && triviaCatalog.length > 0)
+                    ? triviaCatalog.find((t) => idSet.has(wireEngine.triviaMarkerUuid(t.slug))) || null
+                    : null;
+            const triviaOfTheWeek = matchedTrivia
+                ? {
+                      slug: String(matchedTrivia.slug),
+                      badge: cleanCopy(matchedTrivia.badge || 'Poker Trivia'),
+                      categoryLabel: cleanCopy(matchedTrivia.categoryLabel || 'Theory & Odds'),
+                      question: cleanCopy(matchedTrivia.question),
+                      options: (matchedTrivia.options || []).map((o) => ({
+                          key: String(o.key),
+                          label: cleanCopy(o.label),
+                      })),
+                      answerKey: String(matchedTrivia.answerKey),
+                      explanation: cleanCopy(matchedTrivia.explanation || ''),
+                      ctaUrl: String(matchedTrivia.ctaUrl || 'https://smarter.poker/hub/trivia'),
+                  }
+                : null;
+
+            let recentWinners = [];
+            try {
+                if (typeof wireEngine.loadRecentKingsClubWinners === 'function') {
+                    const rawWinners = await wireEngine.loadRecentKingsClubWinners(sb);
+                    recentWinners = (rawWinners || []).map((w) => ({
+                        name: cleanCopy(w.name || w.player_name || w.username || 'Champion'),
+                        tournamentName: cleanCopy(w.tournamentName || w.tournament_name || 'Kings Club Event'),
+                        prizeChips: Number(w.prizeChips || w.prize_chips || w.chips || 0),
+                        place: Number(w.place || w.rank || 1),
+                    }));
+                }
+            } catch {
+                recentWinners = [];
+            }
+
             const leadRawHero =
                 newsRows.find((r) => r && r.category !== 'platform_update' && r.image_url)?.image_url || '';
 
@@ -310,6 +350,8 @@ async function getWireIssueProps({ params, res }) {
                 props: {
                     issue: {
                         editionNumber,
+                        prevEditionNumber,
+                        nextEditionNumber,
                         subject: cleanCopy(matchedCampaign.subject || `Smarter.Poker Weekly Wire #${editionNumber}`),
                         publishedAt: matchedCampaign.completed_at || matchedCampaign.created_at || null,
                         isLivePreview: false,
@@ -321,6 +363,8 @@ async function getWireIssueProps({ params, res }) {
                         articles: orderedNews,
                         spotOfTheWeek: serializeSpot(matchedSpot),
                         videoOfTheWeek: matchedVideo,
+                        triviaOfTheWeek,
+                        recentWinners,
                         toolSpotlight: matchedTool
                             ? {
                                   slug: String(matchedTool.slug),
@@ -357,10 +401,47 @@ async function getWireIssueProps({ params, res }) {
             curated?.toolSpotlight ||
             (toolsCatalog.length > 0 ? toolsCatalog[(liveEditionNum - 1) % toolsCatalog.length] : null);
 
+        const triviaCatalog = wireCatalog.TRIVIA_OF_THE_WEEK_CATALOG || [];
+        const liveTrivia = curated?.triviaOfTheWeek || (
+            triviaCatalog.length > 0 ? triviaCatalog[(liveEditionNum - 1) % triviaCatalog.length] : null
+        );
+        const triviaOfTheWeek = liveTrivia
+            ? {
+                  slug: String(liveTrivia.slug),
+                  badge: cleanCopy(liveTrivia.badge || 'Poker Trivia'),
+                  categoryLabel: cleanCopy(liveTrivia.categoryLabel || 'Theory & Odds'),
+                  question: cleanCopy(liveTrivia.question),
+                  options: (liveTrivia.options || []).map((o) => ({
+                      key: String(o.key),
+                      label: cleanCopy(o.label),
+                  })),
+                  answerKey: String(liveTrivia.answerKey),
+                  explanation: cleanCopy(liveTrivia.explanation || ''),
+                  ctaUrl: String(liveTrivia.ctaUrl || 'https://smarter.poker/hub/trivia'),
+              }
+            : null;
+
+        let liveWinners = Array.isArray(curated?.recentWinners) ? curated.recentWinners : [];
+        if (liveWinners.length === 0 && typeof wireEngine.loadRecentKingsClubWinners === 'function') {
+            try {
+                liveWinners = await wireEngine.loadRecentKingsClubWinners(sb);
+            } catch {
+                liveWinners = [];
+            }
+        }
+        const recentWinners = (liveWinners || []).map((w) => ({
+            name: cleanCopy(w.name || w.player_name || w.username || 'Champion'),
+            tournamentName: cleanCopy(w.tournamentName || w.tournament_name || 'Kings Club Event'),
+            prizeChips: Number(w.prizeChips || w.prize_chips || w.chips || 0),
+            place: Number(w.place || w.rank || 1),
+        }));
+
         return {
             props: {
                 issue: {
                     editionNumber: liveEditionNum,
+                    prevEditionNumber: liveEditionNum > 1 ? liveEditionNum - 1 : null,
+                    nextEditionNumber: null,
                     subject: cleanCopy(curated?.subject || `Smarter.Poker Weekly Wire #${liveEditionNum}`),
                     publishedAt: null,
                     isLivePreview: true,
@@ -389,6 +470,8 @@ async function getWireIssueProps({ params, res }) {
                     })),
                     spotOfTheWeek: serializeSpot(liveSpot),
                     videoOfTheWeek: serializeVideo(curated?.videoOfTheWeek || null),
+                    triviaOfTheWeek,
+                    recentWinners,
                     toolSpotlight: liveTool
                         ? {
                               slug: String(liveTool.slug),
@@ -409,11 +492,15 @@ async function getWireIssueProps({ params, res }) {
             props: {
                 issue: {
                     editionNumber: fallbackNum,
+                    prevEditionNumber: fallbackNum > 1 ? fallbackNum - 1 : null,
+                    nextEditionNumber: null,
                     subject: `Smarter.Poker Weekly Wire #${fallbackNum}`,
                     publishedAt: null,
                     isLivePreview: true,
                     ogImageUrl: 'https://smarter.poker/api/news/email-image?fallback=1&w=960&h=540',
                     videoOfTheWeek: null,
+                    triviaOfTheWeek: null,
+                    recentWinners: [],
                     tournaments: [],
                     spotOfTheWeek: null,
                     platformUpdates: updatesCatalog.slice(0, 2).map((u) => ({
@@ -480,7 +567,52 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
     const spotImgSrc = spot?.imageUrl || FALLBACK_HERO_SRC;
     const video = issue?.videoOfTheWeek || null;
     const tool = issue?.toolSpotlight || null;
+    const trivia = issue?.triviaOfTheWeek || null;
     const [selectedSpotPick, setSelectedSpotPick] = useState('');
+    const [selectedTriviaKey, setSelectedTriviaKey] = useState('');
+    const [spotVotes, setSpotVotes] = useState({ counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } });
+
+    useEffect(() => {
+        if (!spot?.slug) return;
+        fetch(`/api/news/spot-vote?spot=${encodeURIComponent(spot.slug)}`)
+            .then((r) => r.json())
+            .then((body) => {
+                if (body?.success && body?.percentages) {
+                    setSpotVotes({
+                        counts: body.counts || { A: 0, B: 0, C: 0 },
+                        total: body.total || 0,
+                        percentages: body.percentages,
+                    });
+                }
+            })
+            .catch(() => {});
+    }, [spot?.slug]);
+
+    const handleSpotVote = async (optKey) => {
+        setSelectedSpotPick(optKey);
+        if (!spot?.slug) return;
+        try {
+            const accessToken = getAccessToken();
+            const res = await fetch('/api/news/spot-vote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                },
+                body: JSON.stringify({ spot: spot.slug, pick: optKey }),
+            });
+            const body = await res.json().catch(() => ({}));
+            if (body?.success && body?.percentages) {
+                setSpotVotes({
+                    counts: body.counts || { A: 0, B: 0, C: 0 },
+                    total: body.total || 0,
+                    percentages: body.percentages,
+                });
+            }
+        } catch {
+            /* ignore */
+        }
+    };
 
     return (
         <>
@@ -748,7 +880,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                             key={opt.key}
                                             type="button"
                                             aria-pressed={isChosen}
-                                            onClick={() => setSelectedSpotPick(opt.key)}
+                                            onClick={() => handleSpotVote(opt.key)}
                                             style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -803,6 +935,30 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     );
                                 })}
                             </div>
+                            {spotVotes && (spotVotes.total > 0 || spotVotes.percentages?.A > 0 || spotVotes.percentages?.B > 0 || spotVotes.percentages?.C > 0) && (
+                                <div
+                                    data-spot-community-split="true"
+                                    style={{
+                                        marginTop: '12px',
+                                        padding: '10px 14px',
+                                        borderRadius: '10px',
+                                        background: '#0b1118',
+                                        border: '1px solid rgba(96, 165, 250, 0.3)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        flexWrap: 'wrap',
+                                        gap: '8px',
+                                        fontSize: '12.5px',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <span style={{ color: '#60a5fa' }}>Community Reader Split</span>
+                                    <span style={{ color: '#cbd5e1' }}>
+                                        {`Option A: ${spotVotes.percentages?.A ?? 0}% | Option B: ${spotVotes.percentages?.B ?? 0}% | Option C: ${spotVotes.percentages?.C ?? 0}%`}
+                                    </span>
+                                </div>
+                            )}
                             {selectedSpotPick && spot.evSummary && (
                                 <div
                                     role="status"
@@ -1039,9 +1195,143 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                         </section>
                     )}
 
-                    {kingsSchedule.length > 0 && (
+                    {trivia && (
                         <section
-                            aria-label="Kings Club Upcoming Schedule"
+                            aria-label="Poker Trivia Of The Week"
+                            data-wire-trivia-section="true"
+                            style={{
+                                background: '#0b1118',
+                                border: '1px solid #1b2c3d',
+                                borderLeft: '4px solid #60a5fa',
+                                borderRadius: '16px',
+                                padding: '24px 22px',
+                                marginBottom: '28px',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
+                                    gap: '8px',
+                                    marginBottom: '8px',
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        color: '#60a5fa',
+                                        fontSize: '11.5px',
+                                        fontWeight: 800,
+                                        letterSpacing: '1.8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Poker Trivia Of The Week
+                                </span>
+                                {trivia.categoryLabel && (
+                                    <span
+                                        style={{
+                                            color: '#4fc1b3',
+                                            fontSize: '11.5px',
+                                            fontWeight: 700,
+                                            background: 'rgba(79, 193, 179, 0.12)',
+                                            border: '1px solid rgba(79, 193, 179, 0.3)',
+                                            padding: '2px 8px',
+                                            borderRadius: '999px',
+                                        }}
+                                    >
+                                        {trivia.categoryLabel}
+                                    </span>
+                                )}
+                            </div>
+                            <h2 style={{ margin: '0 0 14px 0', fontSize: '18.5px', fontWeight: 800, color: '#ffffff', lineHeight: 1.35 }}>
+                                {trivia.question}
+                            </h2>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+                                {(trivia.options || []).map((opt) => {
+                                    const isPicked = selectedTriviaKey === opt.key;
+                                    const isAnswer = selectedTriviaKey && opt.key === trivia.answerKey;
+                                    return (
+                                        <button
+                                            key={opt.key}
+                                            type="button"
+                                            onClick={() => setSelectedTriviaKey(opt.key)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '10px',
+                                                padding: '12px 14px',
+                                                borderRadius: '10px',
+                                                textAlign: 'left',
+                                                cursor: 'pointer',
+                                                background: isAnswer
+                                                    ? 'rgba(79, 193, 179, 0.16)'
+                                                    : isPicked
+                                                        ? 'rgba(96, 165, 250, 0.16)'
+                                                        : '#101a24',
+                                                border: isAnswer
+                                                    ? '1px solid #4fc1b3'
+                                                    : isPicked
+                                                        ? '1px solid #60a5fa'
+                                                        : '1px solid #1b2c3d',
+                                                color: '#ffffff',
+                                                fontSize: '13.5px',
+                                                fontWeight: 700,
+                                            }}
+                                        >
+                                            <span>{`${opt.key}. ${opt.label}`}</span>
+                                            {isAnswer && (
+                                                <span style={{ color: '#4fc1b3', fontSize: '11.5px', fontWeight: 800 }}>
+                                                    Correct
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {selectedTriviaKey && (
+                                <div
+                                    role="status"
+                                    style={{
+                                        marginTop: '14px',
+                                        padding: '14px 16px',
+                                        borderRadius: '10px',
+                                        background: '#101a24',
+                                        border: selectedTriviaKey === trivia.answerKey ? '1px solid #4fc1b3' : '1px solid #60a5fa',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                        {selectedTriviaKey === trivia.answerKey ? (
+                                            <span style={{ color: '#4fc1b3', fontSize: '13px', fontWeight: 800 }}>
+                                                Correct Solver Pick
+                                            </span>
+                                        ) : (
+                                            <span style={{ color: '#60a5fa', fontSize: '13px', fontWeight: 800 }}>
+                                                {`Missed - Option ${trivia.answerKey} Is Correct`}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {trivia.explanation && (
+                                        <p style={{ margin: '0 0 10px 0', color: '#cbd5e1', fontSize: '13px', lineHeight: 1.5 }}>
+                                            {trivia.explanation}
+                                        </p>
+                                    )}
+                                    <Link
+                                        href={`/hub/trivia?wire_q=${encodeURIComponent(trivia.slug)}&pick=${encodeURIComponent(selectedTriviaKey)}`}
+                                        style={{ color: '#60a5fa', fontSize: '12.5px', fontWeight: 700, textDecoration: 'none' }}
+                                    >
+                                        Play More Poker Trivia Challenges In Arena &rarr;
+                                    </Link>
+                                </div>
+                            )}
+                        </section>
+                    )}
+
+                    {(kingsSchedule.length > 0 || (issue?.recentWinners || []).length > 0) && (
+                        <section
+                            aria-label="Kings Club Action And Schedule"
                             style={{
                                 background: '#0b1118',
                                 border: '1px solid #1b2c3d',
@@ -1050,70 +1340,121 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                 marginBottom: '28px',
                             }}
                         >
-                            <h2
-                                style={{
-                                    margin: '0 0 12px 0',
-                                    color: '#4fc1b3',
-                                    fontSize: '13px',
-                                    fontWeight: 800,
-                                    letterSpacing: '1.8px',
-                                    textTransform: 'uppercase',
-                                }}
-                            >
-                                Kings Club Upcoming Schedule
-                            </h2>
-                            <div style={{ display: 'grid', gap: '12px' }}>
-                                {kingsSchedule.map((t) => (
+                            {(issue?.recentWinners || []).length > 0 && (
+                                <div
+                                    data-kings-club-winners-circle="true"
+                                    style={{
+                                        marginBottom: '18px',
+                                        padding: '16px 18px',
+                                        borderRadius: '12px',
+                                        background: '#101a24',
+                                        border: '1px solid #1b2c3d',
+                                        borderLeft: '3px solid #4fc1b3',
+                                    }}
+                                >
                                     <div
-                                        key={t.id}
                                         style={{
-                                            background: '#101a24',
-                                            border: '1px solid #1b2c3d',
-                                            borderRadius: '12px',
-                                            padding: '16px 18px',
+                                            color: '#4fc1b3',
+                                            fontSize: '11.5px',
+                                            fontWeight: 800,
+                                            letterSpacing: '1.6px',
+                                            textTransform: 'uppercase',
+                                            marginBottom: '10px',
                                         }}
                                     >
-                                        <div style={{ color: '#ffffff', fontSize: '16.5px', fontWeight: 800, lineHeight: 1.35 }}>{t.name}</div>
-                                        <div style={{ color: '#b7cadc', fontSize: '13.5px', margin: '4px 0 12px 0', lineHeight: 1.5 }}>
-                                            {formatTournamentStart(t.startTime)} &middot; {t.gameType} &middot; {t.buyInLabel}
-                                            {t.guaranteeLabel ? ` - ${t.guaranteeLabel}` : ''}
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                            <Link
-                                                href="/hub/club-arena/?join=25450"
+                                        Kings Club Winner's Circle
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                                        {issue.recentWinners.map((winner, idx) => (
+                                            <div
+                                                key={`${winner.name}-${idx}`}
                                                 style={{
-                                                    display: 'inline-block',
-                                                    background: '#4fc1b3',
-                                                    color: '#05070a',
-                                                    textDecoration: 'none',
-                                                    fontWeight: 800,
-                                                    fontSize: '13px',
-                                                    padding: '9px 16px',
-                                                    borderRadius: '8px',
-                                                }}
-                                            >
-                                                Join Club 25450
-                                            </Link>
-                                            <a
-                                                href={`/api/news/calendar-ics?tid=${encodeURIComponent(t.id)}`}
-                                                style={{
-                                                    display: 'inline-block',
                                                     background: '#0b1118',
                                                     border: '1px solid #1b2c3d',
-                                                    color: '#60a5fa',
-                                                    textDecoration: 'none',
-                                                    fontWeight: 800,
-                                                    fontSize: '13px',
-                                                    padding: '9px 16px',
-                                                    borderRadius: '8px',
+                                                    borderRadius: '10px',
+                                                    padding: '10px 12px',
                                                 }}
                                             >
-                                                {CALENDAR_ICS_LABEL}
-                                            </a>
-                                        </div>
+                                                <div style={{ color: '#ffffff', fontSize: '13.5px', fontWeight: 800 }}>
+                                                    {`${winner.name} · ${winner.place === 1 ? '1st Place' : `Place #${winner.place}`}`}
+                                                </div>
+                                                <div style={{ color: '#60a5fa', fontSize: '12px', fontWeight: 700, marginTop: '2px' }}>
+                                                    {`${winner.tournamentName} · ${formatChips(winner.prizeChips)} Chips`}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            )}
+
+                            {kingsSchedule.length > 0 && (
+                                <>
+                                    <h2
+                                        style={{
+                                            margin: '0 0 12px 0',
+                                            color: '#4fc1b3',
+                                            fontSize: '13px',
+                                            fontWeight: 800,
+                                            letterSpacing: '1.8px',
+                                            textTransform: 'uppercase',
+                                        }}
+                                    >
+                                        Kings Club Upcoming Schedule
+                                    </h2>
+                                    <div style={{ display: 'grid', gap: '12px' }}>
+                                        {kingsSchedule.map((t) => (
+                                            <div
+                                                key={t.id}
+                                                style={{
+                                                    background: '#101a24',
+                                                    border: '1px solid #1b2c3d',
+                                                    borderRadius: '12px',
+                                                    padding: '16px 18px',
+                                                }}
+                                            >
+                                                <div style={{ color: '#ffffff', fontSize: '16.5px', fontWeight: 800, lineHeight: 1.35 }}>{t.name}</div>
+                                                <div style={{ color: '#b7cadc', fontSize: '13.5px', margin: '4px 0 12px 0', lineHeight: 1.5 }}>
+                                                    {formatTournamentStart(t.startTime)} &middot; {t.gameType} &middot; {t.buyInLabel}
+                                                    {t.guaranteeLabel ? ` - ${t.guaranteeLabel}` : ''}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                                    <Link
+                                                        href="/hub/club-arena/?join=25450"
+                                                        style={{
+                                                            display: 'inline-block',
+                                                            background: '#4fc1b3',
+                                                            color: '#05070a',
+                                                            textDecoration: 'none',
+                                                            fontWeight: 800,
+                                                            fontSize: '13px',
+                                                            padding: '9px 16px',
+                                                            borderRadius: '8px',
+                                                        }}
+                                                    >
+                                                        Join Club 25450
+                                                    </Link>
+                                                    <a
+                                                        href={`/api/news/calendar-ics?tid=${encodeURIComponent(t.id)}`}
+                                                        style={{
+                                                            display: 'inline-block',
+                                                            background: '#0b1118',
+                                                            border: '1px solid #1b2c3d',
+                                                            color: '#60a5fa',
+                                                            textDecoration: 'none',
+                                                            fontWeight: 800,
+                                                            fontSize: '13px',
+                                                            padding: '9px 16px',
+                                                            borderRadius: '8px',
+                                                        }}
+                                                    >
+                                                        {CALENDAR_ICS_LABEL}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </section>
                     )}
 
@@ -1176,6 +1517,64 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                             </Link>
                         </div>
                     </section>
+
+                    <nav
+                        aria-label="Edition Navigation"
+                        style={{
+                            marginTop: '28px',
+                            marginBottom: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                            flexWrap: 'wrap',
+                        }}
+                    >
+                        {issue?.prevEditionNumber ? (
+                            <Link
+                                href={`/hub/wire/${issue.prevEditionNumber}`}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: '#0b1118',
+                                    border: '1px solid #1b2c3d',
+                                    color: '#60a5fa',
+                                    textDecoration: 'none',
+                                    fontWeight: 800,
+                                    fontSize: '13.5px',
+                                    padding: '10px 16px',
+                                    borderRadius: '10px',
+                                }}
+                            >
+                                &larr; Previous Edition (#{issue.prevEditionNumber})
+                            </Link>
+                        ) : (
+                            <div />
+                        )}
+                        {issue?.nextEditionNumber ? (
+                            <Link
+                                href={`/hub/wire/${issue.nextEditionNumber}`}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: '#0b1118',
+                                    border: '1px solid #1b2c3d',
+                                    color: '#4fc1b3',
+                                    textDecoration: 'none',
+                                    fontWeight: 800,
+                                    fontSize: '13.5px',
+                                    padding: '10px 16px',
+                                    borderRadius: '10px',
+                                }}
+                            >
+                                Next Edition (#{issue.nextEditionNumber}) &rarr;
+                            </Link>
+                        ) : (
+                            <div />
+                        )}
+                    </nav>
                 </article>
             </main>
         </>

@@ -5,9 +5,11 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
+import * as wireCatalog from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -42,7 +44,136 @@ function mirrorGamePreference(key, value) {
     }
 }
 
+function WeeklyWireTriviaBanner({ router }) {
+    const rawQ = Array.isArray(router?.query?.wire_q) ? router.query.wire_q[0] : router?.query?.wire_q;
+    const rawPick = Array.isArray(router?.query?.pick) ? router.query.pick[0] : router?.query?.pick;
+    const cleanSlug = typeof rawQ === 'string' ? rawQ.trim().toLowerCase() : '';
+
+    const catalog = wireCatalog.TRIVIA_OF_THE_WEEK_CATALOG || [];
+    const matchedTrivia = cleanSlug
+        ? catalog.find((item) => String(item.slug || '').toLowerCase() === cleanSlug)
+        : null;
+
+    const [userPick, setUserPick] = useState('');
+
+    useEffect(() => {
+        if (typeof rawPick === 'string') {
+            const upper = rawPick.trim().toUpperCase();
+            if (['A', 'B', 'C', 'D'].includes(upper)) {
+                setUserPick(upper);
+            }
+        }
+    }, [rawPick]);
+
+    if (!matchedTrivia) return null;
+
+    const isCorrect = userPick && userPick === matchedTrivia.answerKey;
+
+    return (
+        <section
+            data-weekly-wire-trivia-card="true"
+            aria-label="Weekly Wire Trivia Of The Week"
+            style={{
+                marginBottom: 24,
+                padding: '20px 24px',
+                borderRadius: 16,
+                background: 'linear-gradient(135deg, #0b1118 0%, #101a24 100%)',
+                border: '1px solid #1b2c3d',
+                borderLeft: '3px solid #4fc1b3',
+                color: '#ffffff',
+            }}
+        >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                <span style={{ color: '#4fc1b3', fontSize: 12, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase' }}>
+                    Weekly Wire Trivia Of The Week
+                </span>
+                {matchedTrivia.categoryLabel && (
+                    <span style={{ color: '#60a5fa', fontSize: 12, fontWeight: 700, background: 'rgba(96, 165, 250, 0.12)', border: '1px solid rgba(96, 165, 250, 0.3)', padding: '2px 8px', borderRadius: 999 }}>
+                        {matchedTrivia.categoryLabel}
+                    </span>
+                )}
+            </div>
+            <h2 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 800, color: '#ffffff', lineHeight: 1.35 }}>
+                {matchedTrivia.question}
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 12 }}>
+                {(matchedTrivia.options || []).map((opt) => {
+                    const isSelected = userPick === opt.key;
+                    const isTheAnswer = userPick && opt.key === matchedTrivia.answerKey;
+                    return (
+                        <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => setUserPick(opt.key)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 10,
+                                padding: '12px 14px',
+                                borderRadius: 10,
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                background: isTheAnswer
+                                    ? 'rgba(79, 193, 179, 0.16)'
+                                    : isSelected
+                                        ? 'rgba(96, 165, 250, 0.16)'
+                                        : '#05070a',
+                                border: isTheAnswer
+                                    ? '1px solid #4fc1b3'
+                                    : isSelected
+                                        ? '1px solid #60a5fa'
+                                        : '1px solid #1b2c3d',
+                                color: '#ffffff',
+                                fontSize: 13.5,
+                                fontWeight: 700,
+                            }}
+                        >
+                            <span>{`${opt.key}. ${opt.label}`}</span>
+                            {isTheAnswer && (
+                                <span style={{ color: '#4fc1b3', fontSize: 11.5, fontWeight: 800 }}>
+                                    Correct
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+            {userPick && (
+                <div
+                    role="status"
+                    style={{
+                        marginTop: 14,
+                        padding: '12px 16px',
+                        borderRadius: 10,
+                        background: '#05070a',
+                        border: isCorrect ? '1px solid #4fc1b3' : '1px solid #60a5fa',
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        {isCorrect ? (
+                            <span style={{ color: '#4fc1b3', fontSize: 13, fontWeight: 800 }}>
+                                Correct Solver Pick
+                            </span>
+                        ) : (
+                            <span style={{ color: '#60a5fa', fontSize: 13, fontWeight: 800 }}>
+                                {`Missed - Option ${matchedTrivia.answerKey} Is Correct`}
+                            </span>
+                        )}
+                    </div>
+                    {matchedTrivia.explanation && (
+                        <p style={{ margin: 0, color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>
+                            {matchedTrivia.explanation}
+                        </p>
+                    )}
+                </div>
+            )}
+        </section>
+    );
+}
+
 export default function TriviaHubPage({ modeAvailability }) {
+    const router = useRouter();
     useTrainingBus('trivia-hub');
     const { user, loading: authLoading } = useAvatar();
     const userId = user?.id;
@@ -296,6 +427,7 @@ export default function TriviaHubPage({ modeAvailability }) {
 
                 <main className={styles.content}>
                     <h1 className="sr-only">Smarter Poker Trivia</h1>
+                    <WeeklyWireTriviaBanner router={router} />
                     <TriviaLobby
                         userDiamonds={userDiamonds}
                         isVip={isVip}
