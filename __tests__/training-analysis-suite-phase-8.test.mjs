@@ -70,6 +70,5 @@ test('the unchanged global header remains outside the training page stage', () =
 });
 
 test('Training keyboard actions keep their focus ring while fields use the shared inset indicator', () => {
-  const css = read('src/styles/worlds/training.css');
-  assert.match(css, /\.sp-training-page-stage :where\(button, a, summary, \[role='button'\], \[role='tab'\]\):focus-visible[^{}]*\{\s*outline: 2px solid var\(--sd-ice\) !important;/);
+  assert.match(trainingCss, /\.sp-training-page-stage :where\(button, a, summary, \[role='button'\], \[role='tab'\]\):focus-visible[^{}]*\{\s*outline: 2px solid var\(--sd-ice\) !important;/);
 });
