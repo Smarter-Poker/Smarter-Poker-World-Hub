@@ -500,7 +500,7 @@ export default function TrainingPage() {
               <TrainingLobbyControls
                 filters={filters}
                 onUpdateFilters={updateFilters}
-                onResetFilters={resetBrowseFilters}
+                onResetFilters={browseTrainingLibrary}
                 onOpenFiltersSheet={() => setFiltersSheetOpen(true)}
                 counts={lobbyCounts}
                 favoriteCount={favoriteCount}
@@ -571,7 +571,7 @@ export default function TrainingPage() {
                   <button
                     type="button"
                     className="sp-cta sp-cta-secondary sp-empty-reset sd-button"
-                    onClick={resetBrowseFilters}
+                    onClick={browseTrainingLibrary}
                   >
                     Reset All Filters
                   </button>
