@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { runLocalTrainingEquity } from '../../../src/lib/poker/runLocalTrainingEquity';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import { SPOT_OF_THE_WEEK_CATALOG } from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
@@ -123,6 +124,11 @@ export default function HandLabV2() {
   const fb = useTrainingFeedback();
 
   // UI States
+  const deckDialog = React.useRef(null);
+  const openDeck = slot => {
+    setSelectedSlot(slot);
+    deckDialog.current.showModal();
+  };
   const [selectedSlot, setSelectedSlot] = useState(null); // 'hero1', 'hero2', 'board1', etc
   const [variant, setVariant] = useState('nlh');
 
@@ -372,7 +378,7 @@ export default function HandLabV2() {
       // Auto advance slot
       if (idx + 1 < heroCards.length) setSelectedSlot(`hero${idx + 2}`);
       else if (!boardCards[0]) setSelectedSlot('board1');
-      else setSelectedSlot(null);
+      else { setSelectedSlot(null); deckDialog.current?.close(); }
     } else if (selectedSlot?.startsWith('board')) {
       calcSeqRef.current += 1; setAnalyzing(false);
       const idx = parseInt(selectedSlot.slice(5), 10) - 1;
@@ -384,7 +390,7 @@ export default function HandLabV2() {
       setAnalysisError('');
       // Auto advance
       if (idx < 4) setSelectedSlot(`board${idx + 2}`);
-      else setSelectedSlot(null);
+      else { setSelectedSlot(null); deckDialog.current?.close(); }
     }
   };
 
@@ -399,21 +405,22 @@ export default function HandLabV2() {
     setAnalyzing(true);
     setAnalysisError('');
     try {
-      const response = await authedFetch('/api/training/equity', {
-        method: 'POST',
-        body: JSON.stringify({
-          hands: [heroCards.map(cardToAscii).join(''), villainHand],
-          board: boardCards.filter(Boolean).map(cardToAscii),
-          variant,
-          iterations: 10000,
-        }),
-      });
-      if (reqSeq !== calcSeqRef.current) return;
-      const payload = await response.json().catch(() => ({}));
-      if (reqSeq !== calcSeqRef.current) return;
-      if (!response.ok || !payload.success || payload.results?.length < 2) {
-        throw new Error(payload.error || `Equity Request Failed (${response.status})`);
+      const input = {
+        hands: [heroCards.map(cardToAscii), villainHand.match(/../g) || []],
+        board: boardCards.filter(Boolean).map(cardToAscii), variant, iterations: 10000,
+      };
+      const canSave = Boolean(getAccessToken()) && navigator.onLine !== false;
+      let payload;
+      if (canSave) {
+        const response = await authedFetch('/api/training/equity', {
+          method: 'POST', body: JSON.stringify(input),
+        });
+        payload = await response.json();
+        if (!response.ok || !payload.success) throw new Error(payload.error || 'Equity Request Failed');
+      } else {
+        payload = await runLocalTrainingEquity(input);
       }
+      if (reqSeq !== calcSeqRef.current) return;
 
       const computedEquity = Number(payload.results[0].equity).toFixed(1);
       const computedResults = {
@@ -425,6 +432,7 @@ export default function HandLabV2() {
       setEquity(computedEquity);
       setResults(computedResults);
 
+      if (!canSave) return;
       authedFetch('/api/training/tool-records', {
         method: 'POST',
         body: JSON.stringify({
@@ -666,16 +674,16 @@ export default function HandLabV2() {
                             ? '2px solid #00d4ff'
                             : '2px dashed rgba(255,255,255,0.2)',
                       }}
-                      onClick={() => setSelectedSlot(slotKey)}
+                      onClick={() => openDeck(slotKey)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault();
-                          setSelectedSlot(slotKey);
+                          openDeck(slotKey);
                         }
                       }}
                     >
                       {cardValue ? (
-                        <PlayingCard arena card={cardValue} size="md" priority />
+                        <PlayingCard arena card={cardValue} width={42} priority />
                       ) : (
                         <span style={styles.placeholder}>Card {idx + 1}</span>
                       )}
@@ -695,17 +703,17 @@ export default function HandLabV2() {
                     aria-label={`Select board card ${idx + 1}`}
                     style={{
                       ...styles.cardSlot,
-                      height: 100,
+                      height: 64,
                       border:
                         selectedSlot === `board${idx + 1}`
                           ? '2px solid #4ade80'
                           : '2px dashed rgba(255,255,255,0.2)',
                     }}
-                    onClick={() => setSelectedSlot(`board${idx + 1}`)}
-                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedSlot(`board${idx + 1}`); } }}
+                    onClick={() => openDeck(`board${idx + 1}`)}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDeck(`board${idx + 1}`); } }}
                   >
                     {boardCards[idx] ? (
-                      <PlayingCard arena card={boardCards[idx]} size="md" priority />
+                      <PlayingCard arena card={boardCards[idx]} width={42} priority />
                     ) : (
                       <span style={{ ...styles.placeholder, fontSize: 12 }}>
                         {idx < 3 ? 'Flop' : idx === 3 ? 'Turn' : 'River'}
@@ -827,20 +835,11 @@ export default function HandLabV2() {
             </div>
           </div>
 
-          {/* Right: Card Picker Deck */}
-          <div style={styles.pickerCol}>
-            <div style={styles.deckBox}>
-              <h3
-                style={{
-                  margin: '0 0 16px 0',
-                  borderBottom: '1px solid rgba(255,255,255,0.1)',
-                  paddingBottom: 16,
-                  color: 'var(--sp-accent-cyan)',
-                }}
-              >
-                Deck Picker {selectedSlot ? `(Selecting for ${selectedSlot})` : ''}
-              </h3>
-
+          <dialog ref={deckDialog} aria-label="Hand Lab Card Picker" style={{ ...styles.deckBox, width: 'min(94vw, 580px)', maxHeight: '82dvh', overflowY: 'auto', margin: 'auto', color: '#f1f8ff' }}>
+            <div style={{ display: 'flex', position: 'sticky', top: 0, background: '#091727', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8 }}>
+              <strong>{selectedSlot?.startsWith('hero') ? 'Pick A Hole Card' : 'Pick A Board Card'}</strong>
+              <button type="button" className="sd-button" style={{ minHeight: 44 }} onClick={() => deckDialog.current.close()}>Done</button>
+            </div>
               <div style={styles.deckGrid}>
                 {SUITS.map((suit) => (
                   <div key={suit} style={styles.suitRow}>
@@ -871,8 +870,7 @@ export default function HandLabV2() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
+          </dialog>
         </div>
       </div>
       <ConnectionToast />
@@ -934,7 +932,7 @@ const styles = {
   },
   layout: {
     display: 'flex',
-    gap: 32,
+    gap: 12, maxWidth: 850, margin: '0 auto',
     alignItems: 'flex-start',
   },
   canvasCol: {
@@ -943,7 +941,7 @@ const styles = {
     border: '1px solid #688299',
     borderTopColor: '#aec0d0',
     borderRadius: 7,
-    padding: 32,
+    padding: 'clamp(12px, 3vw, 24px)', minWidth: 0,
   },
   pickerCol: {
     flex: 1,
@@ -963,12 +961,12 @@ const styles = {
   },
   boardRow: {
     display: 'flex',
-    gap: 12,
-    marginBottom: 40,
+    gap: 4, flexWrap: 'wrap',
+    marginBottom: 20,
   },
   cardSlot: {
-    width: 80,
-    height: 120,
+    width: 48,
+    height: 68,
     borderRadius: 12,
     display: 'flex',
     alignItems: 'center',
@@ -1045,7 +1043,7 @@ const styles = {
     gap: 6,
   },
   deckCard: {
-    width: 36,
+    width: 44,
     height: 48,
     background: 'rgba(0,0,0,0.5)',
     borderRadius: 6,

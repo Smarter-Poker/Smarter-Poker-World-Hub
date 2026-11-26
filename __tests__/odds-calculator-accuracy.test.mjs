@@ -69,3 +69,10 @@ test('training PLO8 awards high and qualifying low halves to separate hands', ()
   assert.deepEqual(result.lowEquities, [100,0]);
   assert.equal(result.totalRuns, 1);
 });
+
+import { localTrainingEquity } from '../src/lib/poker/localTrainingEquity.js';
+test('guest Hand Lab validates benchmark collisions and returns exact river results', () => {
+  const input = { hands: [['As','Ad'], ['Kh','Kc']], variant: 'nlh', iterations: 5000, board: ['2c','3h','7s','9d','2h'] };
+  assert.deepEqual(localTrainingEquity(input).results.map(r => r.equity), [100,0]);
+  assert.throws(() => localTrainingEquity({...input, hands: [['Kh','Ad'], ['Kh','Kc']]}), /More Than One/);
+});

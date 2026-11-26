@@ -1,5 +1,5 @@
 import PlayingCard from '../../../src/components/poker/PlayingCard';
-import { calcEquity, parseCardStr } from '../../../src/lib/poker/trainingEquity';
+import { runLocalTrainingEquity } from '../../../src/lib/poker/runLocalTrainingEquity';
 /**
  * Equity Calculator — Monte Carlo Hand vs Hand Equity Tool
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -853,26 +853,19 @@ export default function EquityCalculatorPage() {
     setLoading(true);
     setError(null);
 
-    function localEvaluation() {
-      const players = hands.slice(0, numPlayers).map((hand, id) => ({ id, holeCards: hand.map(parseCardStr) }));
-      const evaluated = calcEquity(players, boardCards.map(parseCardStr), variant, 5000);
-      return {
-        ...buildLocalOfflineEvaluation(),
-        localResults: evaluated.players.map((seat, i) => ({ ...seat, hand: hands[i].join('') })),
-      };
-    }
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setIsOffline(true);
+    async function showLocalResults() {
+      const data = await runLocalTrainingEquity({ hands: hands.slice(0, numPlayers), board: boardCards, variant, iterations: 5000 });
+      if (reqSeq !== calcSeqRef.current) return;
       setOfflineFallbackUsed(true);
-      const { localResults, localBrainAnalysis } = localEvaluation();
-      setResults(localResults);
-      setHorseBrainAnalysis(localBrainAnalysis);
+      setResults(data.results);
+      setHorseBrainAnalysis(buildLocalOfflineEvaluation().localBrainAnalysis);
       setEquitySeq(reqSeq);
-      setLoading(false);
-      return;
     }
-
     try {
+      if (navigator.onLine === false) {
+        await showLocalResults();
+        return;
+      }
       const handStrings = hands.slice(0, numPlayers).map((h) => h.join(''));
       const res = await authedFetch('/api/training/equity', {
         method: 'POST',
@@ -899,12 +892,12 @@ export default function EquityCalculatorPage() {
       }
     } catch (err) {
       if (reqSeq === calcSeqRef.current) {
-        setOfflineFallbackUsed(true);
-        const { localResults, localBrainAnalysis } = localEvaluation();
-        setResults(localResults);
-        setHorseBrainAnalysis(localBrainAnalysis);
-        setEquitySeq(reqSeq);
-        setError(err.message);
+        try {
+          if (navigator.onLine === false) throw err;
+          await showLocalResults();
+        } catch (localError) {
+          if (reqSeq === calcSeqRef.current) setError(localError.message);
+        }
       }
     } finally {
       if (reqSeq === calcSeqRef.current) {
@@ -1391,7 +1384,7 @@ export default function EquityCalculatorPage() {
                     marginBottom: 12,
                   }}
                 >
-                  EQUITY RESULTS (5,000 SIMULATIONS)
+                  {boardCards.length === 5 ? 'Exact Showdown Equity' : 'Estimated Equity · 5,000 Runouts'}
                 </div>
                 <EquityBar results={results} />
                 {horseBrainAnalysis && (
