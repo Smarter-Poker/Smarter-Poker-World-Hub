@@ -61176,7 +61176,7 @@
         },
         {
           "name": "parseGGPoker",
-          "line": 341,
+          "line": 346,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61184,7 +61184,7 @@
         },
         {
           "name": "_parseGGHand",
-          "line": 356,
+          "line": 361,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -61192,7 +61192,7 @@
         },
         {
           "name": "_normalizeColonlessBlock",
-          "line": 377,
+          "line": 382,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -61200,7 +61200,7 @@
         },
         {
           "name": "_parseWpnStyleHeader",
-          "line": 403,
+          "line": 416,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -61208,7 +61208,7 @@
         },
         {
           "name": "_parseWpnStyleHands",
-          "line": 411,
+          "line": 424,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61216,7 +61216,7 @@
         },
         {
           "name": "parseACR",
-          "line": 430,
+          "line": 443,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -61224,7 +61224,7 @@
         },
         {
           "name": "parseClubGG",
-          "line": 438,
+          "line": 451,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -61232,7 +61232,7 @@
         },
         {
           "name": "parse888Poker",
-          "line": 449,
+          "line": 462,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61240,7 +61240,7 @@
         },
         {
           "name": "_parse888Hand",
-          "line": 464,
+          "line": 477,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -61248,7 +61248,7 @@
         },
         {
           "name": "_normalizeCard",
-          "line": 554,
+          "line": 567,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -61256,7 +61256,7 @@
         },
         {
           "name": "_normalizeAction",
-          "line": 568,
+          "line": 581,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61264,7 +61264,7 @@
         },
         {
           "name": "_assignPositions",
-          "line": 582,
+          "line": 595,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61272,7 +61272,7 @@
         },
         {
           "name": "getBoardAtStreet",
-          "line": 618,
+          "line": 631,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -61280,7 +61280,7 @@
         },
         {
           "name": "getHeroDecisionPoints",
-          "line": 631,
+          "line": 644,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -61288,7 +61288,7 @@
         },
         {
           "name": "playerKey",
-          "line": 654,
+          "line": 667,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -61296,7 +61296,7 @@
         },
         {
           "name": "isAggro",
-          "line": 692,
+          "line": 705,
           "references": 4,
           "exported": false,
           "defaultExport": false,

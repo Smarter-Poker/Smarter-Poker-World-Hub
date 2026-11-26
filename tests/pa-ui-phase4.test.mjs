@@ -420,7 +420,7 @@ test('no block-level tags sit inside any <button> in the Phase 4 surfaces', () =
 test('PA Home: recap is gated by recapEligible and an inactive live table; due nudges and the live spot card are wired', () => {
   const src = read('pages/hub/personal-assistant/index.js');
   const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
-  assert.match(src, /sessionDebrief\?\.recapEligible === true && !coachingSnapshot\?\.liveTableActive/);
+  assert.match(src, /sessionDebrief\?\.recapEligible === true[\s\S]{0,160}!sessionDebrief\?\.liveTableActive[\s\S]{0,80}!sessionDebrief\?\.cooldownActive[\s\S]{0,80}!coachingSnapshot\?\.liveTableActive/);
   assert.match(src, /Last Session Recap/);
   assert.match(src, /Drill Session Spots/);
   assert.match(src, /topLeakedHands/);

@@ -382,7 +382,10 @@ export default function PersonalAssistantPage() {
   const dueCount = reviewDueCount > 0 ? Math.floor(reviewDueCount) : 0;
   const dueSuffix = dueCount > 0 ? ` (${dueCount})` : '';
   const sessionDebrief = coachingSnapshot?.sessionDebrief || null;
-  const showSessionRecap = sessionDebrief?.recapEligible === true && !coachingSnapshot?.liveTableActive;
+  const showSessionRecap = sessionDebrief?.recapEligible === true
+    && !sessionDebrief?.liveTableActive
+    && !sessionDebrief?.cooldownActive
+    && !coachingSnapshot?.liveTableActive;
   const recapHands = showSessionRecap && Array.isArray(sessionDebrief?.topLeakedHands)
     ? sessionDebrief.topLeakedHands.filter(Boolean).slice(0, 2)
     : [];
@@ -750,7 +753,7 @@ export default function PersonalAssistantPage() {
                     className={styles.secondaryButton}
                     onClick={() => openGuardedRoute(
                       recapDrillHandId
-                        ? `/hub/personal-assistant/leaks?hand=${encodeURIComponent(recapDrillHandId)}`
+                        ? `/hub/personal-assistant/leaks?hand=${encodeURIComponent(recapDrillHandId)}&drill=1`
                         : '/hub/personal-assistant/leaks?tab=coaching&view=coach',
                     )}
                   >

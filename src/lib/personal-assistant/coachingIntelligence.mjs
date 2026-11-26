@@ -39,7 +39,7 @@ function title(value, fallback = 'Poker Decision') {
 }
 
 function leakId(leak) {
-  return String(leak?.id ?? leak?.leak_id ?? '').trim();
+  return String(leak?.id ?? leak?.leak_id ?? leak?.leakId ?? '').trim();
 }
 
 function leakSamples(leak) {
@@ -356,12 +356,15 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
   const firstReviewAt = Array.isArray(review?.history) && review.history.length > 0
     ? review.history.map(item => iso(item?.at)).filter(Boolean).sort()[0]
     : null;
+  // Never fall back to first_detected_at as a post-drill baseline: pre-drill
+  // hands played before remediation would otherwise classify as post-baseline
+  // and falsely trigger relapsed_at_tables immediately upon drill mastery.
   const baselineAt = iso(
     review?.remediation_baseline_at
     ?? review?.remediationBaselineAt
-    ?? firstReviewAt
-    ?? rawLeak?.firstDetected
-    ?? rawLeak?.first_detected_at,
+    ?? rawLeak?.remediation_completed_at
+    ?? rawLeak?.remediationCompletedAt
+    ?? firstReviewAt,
   );
   const baselineMs = baselineAt ? new Date(baselineAt).getTime() : null;
   const playedMs = row => {
@@ -850,11 +853,14 @@ export function buildCoachingSnapshot({
   };
 
   // Recap eligibility. Without a verified table state the snapshot assumes the
-  // player MAY be seated: fail closed so a recap can never show at a live table.
+  // player MAY be seated: fail closed so a recap can never show at a live table
+  // OR during the mandatory 5-minute post-session cooldown.
   const liveStateKnown = Boolean(liveTable) && typeof liveTable === 'object';
   const liveTableActive = liveStateKnown ? liveTable.active === true : true;
-  const recap = liveTableActive
-    ? { hands: [], sessionSource: null, unavailableReason: 'live_table_active' }
+  const cooldownActive = liveStateKnown && liveTable.cooldown === true;
+  const recapBlockedByLivePolicy = liveTableActive || cooldownActive;
+  const recap = recapBlockedByLivePolicy
+    ? { hands: [], sessionSource: null, unavailableReason: liveTableActive ? 'live_table_active' : 'cooldown_active' }
     : selectTopLeakedHands(decisions, sessionWindow);
   const topLeakedHands = recap.hands;
 
@@ -893,8 +899,8 @@ export function buildCoachingSnapshot({
       topLeakedHands,
       liveTableActive,
       liveTableStateKnown: liveStateKnown,
-      cooldownActive: liveStateKnown && liveTable.cooldown === true,
-      recapEligible: !liveTableActive && topLeakedHands.length > 0,
+      cooldownActive,
+      recapEligible: !recapBlockedByLivePolicy && topLeakedHands.length > 0,
       recapUnavailableReason: recap.unavailableReason,
       recapSessionSource: recap.sessionSource,
     },
