@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 89,
     "realtimeFiles": 6,
-    "tests": 189,
+    "tests": 190,
     "markerCandidates": 386,
     "possibleUnwiredFunctions": 443,
     "routeStateCells": 752,
@@ -5398,6 +5398,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -5464,6 +5465,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -5522,6 +5524,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -5555,6 +5558,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -5591,6 +5595,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -5634,6 +5639,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -5660,6 +5666,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -5690,6 +5697,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -5709,6 +5717,7 @@
       },
       "existingTests": [
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -16798,6 +16807,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -16834,6 +16844,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -16879,6 +16890,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -16911,6 +16923,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -16950,6 +16963,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -16993,6 +17007,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -17016,6 +17031,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -17045,6 +17061,7 @@
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -17063,6 +17080,7 @@
       },
       "existingTests": [
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -24734,6 +24752,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -24765,6 +24784,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -24803,6 +24823,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -24828,6 +24849,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -24860,6 +24882,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -24897,6 +24920,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -24914,6 +24938,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -24938,6 +24963,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -24950,6 +24976,7 @@
       "existingTests": [
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-dynamic-og-cards.test.mjs",
+        "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -46007,6 +46034,14 @@
           "references": 4,
           "exported": true,
           "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "safeMarkdownFallback",
+          "line": 217,
+          "references": 12,
+          "exported": false,
+          "defaultExport": false,
           "namedFunctionExpression": false
         }
       ],
@@ -81388,6 +81423,7 @@
     "__tests__/every-lesson-answers-first.law.test.mjs",
     "__tests__/freeroll-prizes-are-chips.test.mjs",
     "__tests__/global-header-approved.test.mjs",
+    "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
     "__tests__/gsc-series2-phase2.test.mjs",
     "__tests__/gsc-series3-phase2.test.mjs",
     "__tests__/gsc-series3-phase3.test.mjs",
@@ -93648,6 +93684,7 @@
       "realtime": [],
       "tests": [
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -99585,6 +99622,7 @@
       ],
       "tests": [
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -103824,6 +103862,7 @@
       "tests": [
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-dynamic-og-cards.test.mjs",
+        "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
@@ -104672,6 +104711,7 @@
         "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/llms-full-txt-standards.test.mjs",
         "__tests__/llms-txt-states-the-entity.law.test.mjs",
@@ -111915,6 +111955,7 @@
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/freeroll-prizes-are-chips.test.mjs",
+        "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/gsc-series5-phase7.test.mjs",
         "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
