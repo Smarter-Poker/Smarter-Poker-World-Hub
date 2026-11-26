@@ -457,6 +457,15 @@ export default function TriviaPoolDashboard({
                 return;
             }
             const payload = await resp.json().catch(() => null);
+            if (resp.status === 403 && payload?.requiresMfa === true) {
+                setActionFeedback({
+                    kind: 'mfa',
+                    text: payload?.error || 'MFA Verification Required Before Submitting Pool Curation Writes.',
+                    stepUpUrl: '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-pool',
+                });
+                setActionBusy(false);
+                return;
+            }
             if (!resp.ok || !payload?.success) {
                 setActionFeedback({
                     kind: 'error',
@@ -597,19 +606,49 @@ export default function TriviaPoolDashboard({
 
                 {actionFeedback && (
                     <div
-                        role={actionFeedback.kind === 'error' ? 'alert' : 'status'}
+                        role={actionFeedback.kind === 'error' || actionFeedback.kind === 'mfa' ? 'alert' : 'status'}
+                        data-mfa-stepup-required={actionFeedback.kind === 'mfa' ? 'true' : undefined}
                         style={{
                             padding: '12px 14px',
                             marginBottom: 18,
                             borderRadius: 8,
                             fontSize: 13,
                             fontWeight: 600,
-                            background: actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.16)',
-                            border: `1px solid ${actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(34,197,94,0.45)'}`,
-                            color: actionFeedback.kind === 'error' ? '#fecaca' : '#bbf7d0',
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 12,
+                            background: actionFeedback.kind === 'mfa'
+                                ? 'rgba(217,119,6,0.18)'
+                                : (actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.16)'),
+                            border: `1px solid ${actionFeedback.kind === 'mfa'
+                                ? 'rgba(245,158,11,0.55)'
+                                : (actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(34,197,94,0.45)')}`,
+                            color: actionFeedback.kind === 'mfa'
+                                ? '#fef3c7'
+                                : (actionFeedback.kind === 'error' ? '#fecaca' : '#bbf7d0'),
                         }}
                     >
-                        {actionFeedback.text}
+                        <span>{actionFeedback.text}</span>
+                        {actionFeedback.kind === 'mfa' && (
+                            <a
+                                href={actionFeedback.stepUpUrl || '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-pool'}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '8px 14px',
+                                    borderRadius: 6,
+                                    border: '1px solid #f59e0b',
+                                    background: '#78350f',
+                                    color: '#fffbeb',
+                                    fontWeight: 700,
+                                    textDecoration: 'none',
+                                }}
+                            >
+                                Verify MFA Session
+                            </a>
+                        )}
                     </div>
                 )}
 

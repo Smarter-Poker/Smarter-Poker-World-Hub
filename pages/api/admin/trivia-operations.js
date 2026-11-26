@@ -10,6 +10,7 @@
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { verifyMfaCookie } from '../../../src/lib/mfaGate';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import {
@@ -157,6 +158,8 @@ async function getSnapshot(req, res, client, operator) {
         client.rpc('trivia_integrity_review_queue_v1', { p_limit: 25 }),
         client.rpc('trivia_player_funnel_metrics_v1', { p_hours: 24 }),
         client.rpc('trivia_nightly_burnin_scorecard_v1', { p_start_date: '2026-11-24', p_days: 7 }),
+        client.rpc('trivia_legacy_observation_status_v1', { p_record_baseline: false }),
+        client.rpc('trivia_launch_readiness_v1'),
     ];
     if (lookup) {
         reads.push(lookup.kind === 'settlement'
@@ -178,8 +181,19 @@ async function getSnapshot(req, res, client, operator) {
         schedulerLeaseResult, schedulerRunsResult, alertsResult, quarantineResult,
         questionQuarantineResult, pvpConfigResult, soloJournalSwitchResult,
         ledgerHealthResult, ledgerAccountsResult, ledgerConfigResult,
-        integrityReviewResult, playerFunnelResult, burnInScorecardResult, supportLookupResult,
+        integrityReviewResult, playerFunnelResult, burnInScorecardResult,
+        legacyObservationResult, launchReadinessResult, supportLookupResult,
     ] = await Promise.all(reads);
+
+    const mfaCheck = verifyMfaCookie(req, operator.user.id);
+    const operatorMfa = {
+        verified: mfaCheck?.ok === true,
+        expiresAt: mfaCheck?.ok === true && Number.isFinite(mfaCheck.issuedAt)
+            ? new Date(mfaCheck.issuedAt + (12 * 60 * 60 * 1000)).toISOString()
+            : null,
+        reason: mfaCheck?.ok === true ? null : (mfaCheck?.reason || 'MFA challenge required'),
+        stepUpUrl: '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations',
+    };
 
     const namedResults = {
         question_health: questionHealthResult,
@@ -206,6 +220,8 @@ async function getSnapshot(req, res, client, operator) {
         integrity_review: integrityReviewResult,
         player_funnel: playerFunnelResult,
         burnin_scorecard: burnInScorecardResult,
+        legacy_observation: legacyObservationResult,
+        launch_readiness: launchReadinessResult,
     };
     if (lookup) namedResults.support_lookup = supportLookupResult;
     const sourceErrors = {};
@@ -244,6 +260,9 @@ async function getSnapshot(req, res, client, operator) {
         integrityReview: integrityReviewResult.data || null,
         playerFunnel: playerFunnelResult.data || null,
         burnInScorecard: burnInScorecardResult.data || null,
+        legacyObservation: legacyObservationResult.data || null,
+        launchReadiness: launchReadinessResult.data || null,
+        operatorMfa,
         sourceErrors,
     });
     return res.status(snapshot.healthy ? 200 : 503).json(snapshot);
@@ -281,6 +300,21 @@ export default async function handler(req, res) {
             if (error) {
                 console.warn('[trivia-operations] action RPC failed:', error.code || 'rpc_failed');
                 return res.status(503).json({ success: false, error: 'action_authority_unavailable' });
+            }
+            if (data?.success === true && data?.receipt_id) {
+                try {
+                    const mfaCheck = verifyMfaCookie(req, operator.user.id);
+                    if (mfaCheck?.ok === true && Number.isFinite(mfaCheck.issuedAt)) {
+                        await client.rpc('trivia_record_mfa_write_proof_v1', {
+                            p_operator_id: operator.user.id,
+                            p_action: action.action,
+                            p_receipt_id: data.receipt_id,
+                            p_mfa_verified_at: new Date(mfaCheck.issuedAt).toISOString(),
+                        });
+                    }
+                } catch (_mfaProofError) {
+                    // Fail-safe: never disrupt the authoritative action receipt return.
+                }
             }
             const item = actionDto(data);
             return res.status(statusForAction({ ...data, result: item.result })).json({
