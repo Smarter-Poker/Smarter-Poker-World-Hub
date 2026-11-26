@@ -6,6 +6,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 
+import { isAuthoredActionDrill, trainingActionPrompt } from './decisionCoaching.mjs';
 import { applyDifficultyToQuestion, normalizeTrainingDifficultyMode } from './difficultyQuestionContract.mjs';
 import { normalizeRngMode } from './rngDecisionContract.mjs';
 import { normalizeTrainingAttemptReceiptFields } from './sessionAttemptContract.mjs';
@@ -257,7 +258,13 @@ function stripPrivateGradingData(value) {
  * after the signed answer has been durably recorded.
  */
 export function toPublicTrainingQuestion(servedQuestion) {
-  return stripPrivateGradingData(servedQuestion);
+  const blind = stripPrivateGradingData(servedQuestion);
+  // Historical cached action drills used a concept-question stem. Correct
+  // its public wording while leaving the immutable signed snapshot intact.
+  if (isAuthoredActionDrill(servedQuestion) && !servedQuestion.scenario.isSyncedHandDrill) {
+    blind.question = trainingActionPrompt(servedQuestion.scenario);
+  }
+  return blind;
 }
 
 export function createTrainingSessionId() {

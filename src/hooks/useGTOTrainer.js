@@ -2403,7 +2403,7 @@ export default function useGTOTrainer(
             console.warn('[App] Handled exception:', _e?.message || _e);
           }
         }
-        setStructuredExplanation(structured);
+        setStructuredExplanation(solverVerified ? structured : serverStructured);
       } catch (e) {
         setStructuredExplanation(null);
       }
@@ -2528,7 +2528,7 @@ export default function useGTOTrainer(
           // already-persisted server verdict. They remain explicit and gated
           // by manual Next even if every optional projection above fails.
           setFeedbackResult(isCorrect ? 'correct' : 'wrong');
-          setExplanation(renderedExplanation);
+          setExplanation(feedback.explanation || renderedExplanation);
           setShowFeedback(true);
           setLastSelectedAction(selectedOptionId);
         }

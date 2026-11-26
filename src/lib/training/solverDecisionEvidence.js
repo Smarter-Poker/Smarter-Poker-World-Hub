@@ -32,7 +32,7 @@ const GOOD_CLASSIFICATIONS = new Set(['best', 'correct']);
 export function normalizeAuditedChartQuestion(question) {
   if (!question || String(question.type || '').toUpperCase() !== 'CHART') return question;
   const options = Array.isArray(question.options) ? question.options : [];
-  const entries = options.map((option) => [String(option?.id || ''), Number(option?.frequency)]);
+  const entries = options.map((option) => [String(option?.id || ''), finiteNumber(option?.frequency)]);
   const valid = entries.length === 2
     && entries.every(([id, frequency]) => id && Number.isFinite(frequency) && frequency >= 0 && frequency <= 100);
   const sum = entries.reduce((total, [, frequency]) => total + frequency, 0);
@@ -66,6 +66,7 @@ export function verifiedSolverSource(question) {
 }
 
 function finiteNumber(value) {
+  if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }

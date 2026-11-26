@@ -1,3 +1,4 @@
+import * as decisionCoaching from '../src/lib/training/decisionCoaching.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -93,6 +94,7 @@ function loadRecordQuestionHandler({
   let authorizationCalls = 0;
   let idempotencyReads = 0;
   const dependencies = {
+    '../../../src/lib/training/decisionCoaching.mjs': decisionCoaching,
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => ({
         user: { id: receiptPayload.sub },
@@ -269,7 +271,7 @@ test('record-question reveals coaching data only after canonical grading persist
   );
   assert.match(api, /gradeTrainingAnswer\(\{/);
   assert.match(api, /correctAnswer: servedQuestion\.correctAnswer/);
-  assert.match(api, /explanation: servedQuestion\.explanation/);
+  assert.match(api, /coachingForServedAnswer\(servedQuestion, verified, measuredMix\)/);
   assert.match(api, /continuation: revealedContinuationAction/);
   assert.match(api, /continuation: revealedContinuationAction/);
   assert.ok(responseAt > insertAt, 'new-answer feedback must be sent only after durable persistence');
@@ -818,4 +820,76 @@ test('the felt never invents a pre-answer mix or fallback answer key', () => {
   assert.match(table, /\? \{ rngRoll, rngMode: rngHighLow \}/);
   assert.match(table, /question\?\._gradingContext\?\.difficultyMode \|\| question\?\._difficultyApplied/);
   assert.match(table, /gradingPending: true/);
+});
+
+test('retained PLO5 hand grades each ungrouped raise by its exact id in every difficulty', async () => {
+  const { generateCuratedPokerConceptBatch } = await import('../src/lib/training/curatedPokerConcepts.js');
+  const { sealCanonicalTrainingQuestion } = await import('../tests/helpers/canonicalTrainingPolicyFixture.mjs');
+  const { gradeTrainingAnswer } = await import('../src/lib/training/answerGradingContract.mjs');
+  const { toPublicTrainingQuestion } = await import('../src/lib/training/gradingReceipt.mjs');
+  const { applyDifficultyToQuestion } = await import('../src/lib/training/difficultyQuestionContract.mjs');
+  for (const variant of ['nlh', 'plo4', 'plo5', 'plo6', 'plo8']) {
+    const batch = generateCuratedPokerConceptBatch({
+      gameId: 'cash-007', level: 1, count: 8, gameConfig: { variant, pioGameType: 'cash' },
+      spotTypes: ['bb_defense'], positions: ['BTN'], stackDepths: [100],
+    });
+    assert.equal(batch.length, 8);
+    for (const drill of batch) {
+      assert.match(drill.question, /which action/i);
+      assert.doesNotMatch(drill.explanation, /% frequency|highest-EV|BB EV/);
+      const canonical = sealCanonicalTrainingQuestion(drill, { policyKind: 'curated' });
+      const shuffled = { ...canonical, options: [...canonical.options].reverse() };
+      for (const mode of ['beginner', 'standard', 'expert']) {
+        const served = applyDifficultyToQuestion(shuffled, mode);
+        const owners = served.options.filter(option =>
+          (served._difficultyMembers?.[option.id] || [option.id]).includes(canonical.correctAnswer));
+        assert.equal(owners.length, 1, 'Each original action belongs to exactly one displayed option');
+        const expected = owners[0].id;
+        if (served.options.some(option => option.id === canonical.correctAnswer)) assert.equal(expected, canonical.correctAnswer);
+        const verdict = gradeTrainingAnswer({ canonicalQuestion: shuffled, selectedAnswer: expected, difficultyMode: mode });
+        assert.equal(verdict.grade.isCorrect, true);
+        assert.equal(verdict.grade.solverVerified, false);
+        assert.equal(verdict.servedQuestion.correctAnswer, expected, `${variant} ${mode}: exact raised size must be preserved`);
+        const old = { ...verdict.servedQuestion,
+          explanation: 'Optimal play: wrong sizing (58% frequency, +2.38 BB EV)',
+          question: 'Which context is indispensable for a sound decision?' };
+        const blind = toPublicTrainingQuestion(old);
+        assert.match(blind.question, /which action/i);
+        assert.equal(blind.correctAnswer, undefined);
+        const mix = decisionCoaching.measuredActionFrequencies(old, verdict.grade.solverVerified);
+        assert.equal(mix, null);
+        const feedback = decisionCoaching.coachingForServedAnswer(old, false, mix);
+        assert.ok(feedback.explanation.includes(verdict.servedQuestion.correctAnswerText));
+        assert.doesNotMatch(feedback.explanation, /58%|frequency|BB EV|wrong sizing/);
+      }
+    }
+  }
+});
+
+test('audited chart percentages bind to answer ids including a measured zero, and missing values stay unknown', async () => {
+  const { normalizeAuditedChartQuestion, isVerifiedSolverQuestion } = await import('../src/lib/training/solverDecisionEvidence.js');
+  const { sealCanonicalTrainingQuestion } = await import('../tests/helpers/canonicalTrainingPolicyFixture.mjs');
+  const raw = { id: 'match-chart', type: 'CHART', source: 'CHART', correctAnswer: 'push',
+    scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'BB', heroStack: 10, pot: 1.5 },
+    heroCards: ['As','Ah'], boardCards: [], options: [{ id: 'push', text: 'Push', frequency: 75.5 }, { id: 'fold', text: 'Fold', frequency: 24.5 }] };
+  for (const [push, fold] of [[75.5,24.5],[100,0]]) {
+    const q = structuredClone(raw);
+    q.options[0].frequency = push;
+    q.options[1].frequency = fold;
+    const chart = sealCanonicalTrainingQuestion(normalizeAuditedChartQuestion(q), { policyKind: 'chart' });
+    assert.ok(isVerifiedSolverQuestion(chart));
+    chart.options.reverse();
+    const mix = decisionCoaching.measuredActionFrequencies(chart, true);
+    assert.equal(mix[chart.correctAnswer], push);
+    assert.equal(mix.fold, fold);
+    assert.match(decisionCoaching.coachingForServedAnswer(chart, true, mix).explanation, /audited chart/);
+    assert.ok(decisionCoaching.coachingForServedAnswer(chart, true, mix).explanation.includes(`${push}%`));
+  }
+  for (const absent of [undefined, null, '', false]) {
+    const q = structuredClone(raw);
+    q.options[0].frequency = 100;
+    q.options[1].frequency = absent;
+    assert.equal(normalizeAuditedChartQuestion(q).gtoFrequencies, undefined);
+    assert.equal(decisionCoaching.measuredActionFrequencies({ ...q, frequencies: { push: 1, fold: absent } }, true), null);
+  }
 });

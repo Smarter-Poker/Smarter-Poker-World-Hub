@@ -41,6 +41,7 @@ import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../../lib/tableAvatars'
 import TrainingQuestionReport from '../TrainingQuestionReport';
 import { isVerifiedSolverQuestion } from '../../../lib/training/solverDecisionEvidence';
 import { buildRngRanges, resolveRngTarget } from '../../../lib/training/rngDecisionContract.mjs';
+import { measuredActionFrequencies } from '../../../lib/training/decisionCoaching.mjs';
 import { trainingSourcePresentation } from '../../../lib/training/cacheTruthContract.mjs';
 import {
     CLUB_ARENA_GEOMETRY_SOURCE,
@@ -4454,8 +4455,9 @@ function UniversalDynamicTable({
     // preloaded next hand). Same rule as `fq` further down.
     const infoPanelQuestion = showFeedback ? getFeedbackQuestion() : question;
     const solverFrequencyVerified = showFeedback
-        ? isVerifiedSolverQuestion(infoPanelQuestion)
+        ? (infoPanelQuestion?.solverVerified === true || isVerifiedSolverQuestion(infoPanelQuestion))
         : question?._gradingContext?.solverEvidenceAvailable === true;
+    const strategyMix = measuredActionFrequencies(infoPanelQuestion, showFeedback && solverFrequencyVerified);
     const rngAvailable = solverFrequencyVerified && hasIssuedRngRolls;
 
     useEffect(() => {
@@ -9015,7 +9017,7 @@ function UniversalDynamicTable({
                 {displayOptions.slice(0, 9).map((option, index) => {
                     const optionId = option.id || String.fromCharCode(97 + index);
                     const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
-                    const freq = displayFrequencies[optionId] || computedFrequencies[optionId] || computedFrequencies[optionId?.toLowerCase()] || 0;
+                    const freq = strategyMix?.[optionId] ?? null;
                     const actionType = detectActionType(text);
                     const shortcutKey = index + 1;
                     // Responsive sizing: shrink buttons when > 4 options
@@ -9114,7 +9116,7 @@ function UniversalDynamicTable({
                                         {formatTableAmount(betSizeNum)}
                                     </div>
                                 ) : null}
-                                {showFeedback ? (
+                                {showFeedback && freq !== null ? (
                                     <motion.span
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
@@ -9132,7 +9134,7 @@ function UniversalDynamicTable({
                             <FrequencyBar
                                 frequency={freq}
                                 color={ACTION_COLORS[actionType]?.border || 'var(--sp-fg-dim)'}
-                                show={showFeedback}
+                                show={showFeedback && freq !== null}
                             />
                         </div>
                     );
@@ -9290,7 +9292,7 @@ function UniversalDynamicTable({
                         >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
-                                    GTO Strategy Distribution
+                                    {strategyMix ? 'GTO Strategy Distribution' : 'Strategy'}
                                 </div>
                                 {/* GTOW parity #31 — same provenance badge as the
                                     Action mix strip. The Strategy tab is the surface
@@ -9310,11 +9312,11 @@ function UniversalDynamicTable({
                                     {frequencySource.label}
                                 </span>
                             </div>
-                            {panelStrategy.options.slice(0, 9).map(opt => {
+                            {strategyMix ? panelStrategy.options.slice(0, 9).map(opt => {
                                 if (!opt) return null;
                                 const optId = opt?.id || opt;
                                 const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
-                                const freq = typeof panelStrategy.frequencies[optId] === 'number' ? panelStrategy.frequencies[optId] : 0;
+                                const freq = strategyMix[optId];
                                 const actionType = detectActionType(text);
                                 const barColor = ACTION_COLORS[actionType]?.border || 'var(--sp-fg-dim)';
                                 return (
@@ -9331,7 +9333,7 @@ function UniversalDynamicTable({
                                         <div style={{ width: 36, fontSize: 12, fontWeight: 800, color: 'var(--sp-fg)', textAlign: 'right', fontFamily: "'Inter', monospace" }}>{freq}%</div>
                                     </div>
                                 );
-                            })}
+                            }) : <p>Solver Frequencies Unavailable For This Drill.</p>}
 
                             {/* ═══ HAND-CLASS STRATEGY (GTOW parity #36) ═══
                                 The bars above answer "what do I do with THIS
@@ -9471,6 +9473,8 @@ function UniversalDynamicTable({
                 <motion.div
                     className="sp-training-feedback"
                     data-training-feedback="verdict"
+                    data-correct-action={effectiveCorrectAnswer}
+                    data-selected-action={selectedAnswer}
                     initial={reduceMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={reduceMotion ? { duration: 0 } : { type: 'spring', damping: 22, stiffness: 300 }}
@@ -9533,7 +9537,7 @@ function UniversalDynamicTable({
                                 {(() => {
                                     const brainMeta = fq?.brainEvaluation || fq?.scenario?.brainEvaluation || question?.scenario?.brainEvaluation || null;
                                     const rawCoachingText = fq?.explanation || explanation || '';
-                                    const fallbackExplanationText = `${correctText} is the solver's highest-EV action in this ${activeNormalizedVariant.toUpperCase()} ${String(continuedStreet || activeNormalizedStreet || 'postflop').toUpperCase()} spot (${heroPosition || 'BTN'} vs ${villainPosition || 'BB'}, Pot ${pot} BB).`;
+                                    const fallbackExplanationText = `The answer for this drill is ${correctText}.`;
                                     const coachingText = rawCoachingText || fallbackExplanationText;
                                     return (
                                         <div
@@ -10041,7 +10045,8 @@ function UniversalDynamicTable({
 
                     {/* Collapsible feedback body - uses display:none for clean collapse */}
                     <div style={{ display: feedbackCollapsed ? 'none' : 'contents', width: '100%', maxWidth: 600 }}>
-                    <div style={{ width: '100%', marginBottom: 6 }}>
+                    <div data-training-feedback="strategy" data-frequency-state={strategyMix ? 'verified' : 'unavailable'} style={{ width: '100%', marginBottom: 6 }}>
+                        {strategyMix ? <>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
                                 GTO Strategy
@@ -10070,13 +10075,13 @@ function UniversalDynamicTable({
                             if (!opt) return null;
                             const optId = opt?.id || opt;
                             const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
-                            const freq = typeof computedFrequencies?.[optId] === 'number' ? computedFrequencies[optId] : 0;
+                            const freq = strategyMix[optId];
                             const isCorrect = optId === effectiveCorrectAnswer;
                             const isSelected = optId === selectedAnswer;
                             const actionType = detectActionType(text);
                             const barColor = isCorrect ? 'var(--sp-accent-green)' : isSelected ? (classConfig?.color || 'var(--sp-accent-red)') : ACTION_COLORS[actionType]?.border || 'var(--sp-fg-faint)';
                             return (
-                                <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                                <div key={optId} data-frequency-action={optId} data-frequency-percent={freq} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                                     <div style={{
                                         width: 72, fontSize: 12, fontWeight: 700, textAlign: 'right',
                                         color: isCorrect ? 'var(--sp-accent-green)' : isSelected ? (classConfig?.color || 'var(--sp-accent-red)') : 'var(--sp-fg-muted)',
@@ -10098,6 +10103,7 @@ function UniversalDynamicTable({
                                 </div>
                             );
                         })}
+                        </> : <p>Solver Frequencies Unavailable For This Drill.</p>}
                     </div>
                     {/* Classification + EV Row */}
                     <div style={styles.feedbackTopRow}>
@@ -10279,7 +10285,7 @@ function UniversalDynamicTable({
                         data still yields {call:0, fold:0}, which drew an empty
                         titled box under the feedback -- visible as a blank "GTO
                         STRATEGY" panel on screen. */}
-                    {computedFrequencies && Object.values(computedFrequencies).some(v => Number(v) > 0) && (
+                    {strategyMix && (
                         <motion.div
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -10315,14 +10321,14 @@ function UniversalDynamicTable({
                             {/* Stacked bar */}
                             <div style={{ display: 'flex', height: 14, borderRadius: 4, overflow: 'hidden', gap: 1, background: 'rgba(0,0,0,0.3)' }}>
                                 {options.filter(o => {
-                                    const f = computedFrequencies[o.id] || computedFrequencies[o.id?.toLowerCase()] || 0;
+                                    const f = strategyMix[o.id];
                                     return f > 0;
                                 }).sort((a, b) => {
-                                    const fa = computedFrequencies[a.id] || computedFrequencies[a.id?.toLowerCase()] || 0;
-                                    const fb = computedFrequencies[b.id] || computedFrequencies[b.id?.toLowerCase()] || 0;
+                                    const fa = strategyMix[a.id];
+                                    const fb = strategyMix[b.id];
                                     return fb - fa;
                                 }).map(opt => {
-                                    const freq = computedFrequencies[opt.id] || computedFrequencies[opt.id?.toLowerCase()] || 0;
+                                    const freq = strategyMix[opt.id];
                                     if (freq <= 0) return null;
                                     const actionType = detectActionType(typeof opt === 'object' ? (opt.text || '') : String(opt));
                                     const colors = ACTION_COLORS[actionType] || ACTION_COLORS.neutral;
@@ -10355,10 +10361,10 @@ function UniversalDynamicTable({
                             {/* Legend for small segments */}
                             <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
                                 {options.filter(o => {
-                                    const f = computedFrequencies[o.id] || computedFrequencies[o.id?.toLowerCase()] || 0;
+                                    const f = strategyMix[o.id];
                                     return f > 0;
                                 }).map(opt => {
-                                    const freq = computedFrequencies[opt.id] || computedFrequencies[opt.id?.toLowerCase()] || 0;
+                                    const freq = strategyMix[opt.id];
                                     const actionType = detectActionType(typeof opt === 'object' ? (opt.text || '') : String(opt));
                                     const colors = ACTION_COLORS[actionType] || ACTION_COLORS.neutral;
                                     const isOptimal = opt.id === effectiveCorrectAnswer;
@@ -10559,7 +10565,7 @@ function UniversalDynamicTable({
                         // TRAIN-FEEDBACK-SNAPSHOT-1: route through the snapshot so the guard
                         // validates against the question that was actually answered.
                         const explanationOk = explanationMatchesScenario(explanation, fScenario);
-                        const displayExplanation = (explanation && explanationOk) ? explanation : (() => {
+                        const displayExplanation = !strategyMix ? (fq?.explanation || `The answer for this drill is ${correctOpt}.`) : (explanation && explanationOk) ? explanation : (() => {
                             if (!moveClassification) return null;
                             if (moveClassification === 'best') {
                                 if (correctFreq >= 95) return `Perfect - ${correctOpt} is a pure play here. The solver always takes this action in this spot.`;

@@ -408,6 +408,7 @@ export async function resolveSyncedHandForTrainingDrill({
     scenario: {
       isConceptQuestion: true,
       isSyncedHandDrill: true,
+      isActionDrill: true,
       syncedHandId: String(hand.handId),
       street: hand.street,
       variant: hand.variant,

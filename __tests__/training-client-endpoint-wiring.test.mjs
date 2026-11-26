@@ -221,7 +221,8 @@ test('optional browser projections cannot suppress a persisted server verdict', 
   assert.match(finalize, /server has already graded and persisted/);
   assert.match(finalize, /catch \(projectionError\)/);
   assert.match(finalize, /finally \{[\s\S]*setFeedbackResult\(isCorrect \? 'correct' : 'wrong'\)/);
-  assert.match(finalize, /setExplanation\(renderedExplanation\)/);
+  assert.match(finalize, /const feedback = recorded\?\.feedback \|\| null/);
+  assert.match(finalize, /finally \{[\s\S]*setExplanation\(feedback\.explanation \|\| renderedExplanation\)/);
   assert.match(finalize, /setShowFeedback\(true\)/);
   assert.match(finalize, /setLastSelectedAction\(selectedOptionId\)/);
 });

@@ -380,8 +380,8 @@ function normalizeCampaignQuestionWithoutFabrication(question, rejections = null
     if ((!question.gtoFrequencies || Object.keys(question.gtoFrequencies).length === 0)
         && question.frequencies && typeof question.frequencies === 'object') {
         const measured = Object.fromEntries(Object.entries(question.frequencies)
-            .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1)
-            .map(([action, value]) => [action, Math.round(Number(value) * 100)]));
+            .filter(([, value]) => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1)
+            .map(([action, value]) => [action, Number((value * 100).toFixed(6))]));
         if (Object.keys(measured).length > 0) question.gtoFrequencies = measured;
     }
 
