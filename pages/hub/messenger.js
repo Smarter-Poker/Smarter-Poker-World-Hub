@@ -4170,8 +4170,8 @@ function MessengerPage() {
                                                     aria-label="Close Conversation Info"
                                                     onClick={() => setShowUserInfo(false)}
                                                     style={{
-                                                        width: 32, height: 32, borderRadius: '50%', border: 'none',
-                                                        background: C.bg, color: C.text, cursor: 'pointer', fontSize: 18,
+                                                        width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none',
+                                                        background: C.bg, color: C.text, cursor: 'pointer', fontSize: 20,
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     }}
                                                 >×</button>
