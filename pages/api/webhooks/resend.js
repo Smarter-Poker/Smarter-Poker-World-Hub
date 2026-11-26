@@ -15,6 +15,7 @@ import {
     parseCampaignTelemetrySummary,
     parseCampaignSectionClicks,
 } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
+import { classifyClickedEmailSection } from '../../../src/lib/newsletter/utmAttribution.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -44,6 +45,8 @@ export {
     parseCampaignTelemetrySummary,
     parseCampaignSectionClicks,
     applyCampaignTelemetryEvent,
+    classifyClickedEmailSection,
+    classifyClickedEmailSection as classifyClickedSection,
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -151,11 +154,15 @@ export default async function handler(req, res) {
         }
         try {
             const sb = createClient();
-            const { data: campaign, error: readErr } = await sb
+            const { data: campaigns, error: readErr } = await sb
                 .from('newsletter_campaigns')
                 .select('id, status, error_summary')
                 .eq('id', campaignId)
-                .maybeSingle();
+                .not('subject', 'ilike', '[SPOT-VOTE]%')
+                .not('subject', 'ilike', '[PROMO DRAFT]%')
+                .limit(1);
+
+            const campaign = Array.isArray(campaigns) && campaigns.length > 0 ? campaigns[0] : null;
 
             if (readErr || !campaign || !TRACKABLE_CAMPAIGN_STATUSES.has(String(campaign.status || ''))) {
                 return res.status(200).json({
@@ -168,7 +175,13 @@ export default async function handler(req, res) {
             }
 
             const clickedUrl = String(
-                event?.data?.click?.link || event?.data?.link || event?.click?.link || ''
+                event?.data?.click?.link ||
+                event?.data?.link ||
+                event?.click?.link ||
+                event?.data?.click?.url ||
+                event?.data?.url ||
+                event?.url ||
+                ''
             ).trim();
             const updated = applyCampaignTelemetryEvent(campaign.error_summary, type, { clickedUrl });
             await sb

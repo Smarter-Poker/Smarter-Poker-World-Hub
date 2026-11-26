@@ -56,6 +56,9 @@ const AUTH_ALWAYS_ALLOW = [
   '/hub/email-preferences',
   '/hub/wire',
   '/hub/wire/',
+  '/go/promo',
+  '/go/welcome-back',
+  '/promo/welcome-back',
 ];
 
 function isAuthAlwaysAllow(pathname: string): boolean {

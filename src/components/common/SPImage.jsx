@@ -15,7 +15,9 @@ export { shouldOptimizeSpImageSrc };
  * Usage is identical to <img>, except you MUST provide layout="fill" OR width/height.
  */
 export function SPImage({ src, alt = "", width, height, layout = "fill", objectFit = "cover", className = "", style = {}, unoptimized, ...props }) {
-    const finalSrc = src || '/default-avatar.png';
+    // Strings are trimmed so a stray space can neither break the URL nor desync the optimizer decision.
+    const cleanSrc = typeof src === 'string' ? src.trim() : src;
+    const finalSrc = cleanSrc || '/default-avatar.png';
     const isAllowedDomain = useMemo(() => shouldOptimizeSpImageSrc(finalSrc), [finalSrc]);
 
     if (width && height) {

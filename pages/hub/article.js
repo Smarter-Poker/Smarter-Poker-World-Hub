@@ -6,7 +6,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, Eye, Calendar, Share2, Bookmark, User, BookOpen, ExternalLink } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
@@ -188,6 +188,14 @@ async function removeLegacyBookmark(userId, articleId) {
     }
 }
 
+const ARTICLE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Next.js gives an array for a repeated query key (?id=a&id=b); the article lookup needs one string.
+function firstQueryValue(value) {
+    const raw = Array.isArray(value) ? value[0] : value;
+    return typeof raw === 'string' ? raw.trim() : '';
+}
+
 function formatDate(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -201,7 +209,8 @@ function formatDate(dateStr) {
 
 export default function ArticlePage() {
     const router = useRouter();
-    const { id, slug } = router.query;
+    const id = firstQueryValue(router.query.id);
+    const slug = firstQueryValue(router.query.slug);
     const [menuOpen, setMenuOpen] = useState(false);
     const [article, setArticle] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -211,6 +220,9 @@ export default function ArticlePage() {
     const [isReadLater, setIsReadLater] = useState(false);
     const [userId, setUserId] = useState(null);
     const [readerOpen, setReaderOpen] = useState(false);
+    // Every article load takes a ticket; only the newest load may touch state, so a slow response
+    // for the previous story can never replace the one the reader just opened.
+    const fetchSeqRef = useRef(0);
 
     const menuConfig = getMenuConfig('article', null, {}, {});
 
@@ -223,7 +235,7 @@ export default function ArticlePage() {
         }
     }, []);
 
-    const fetchRelated = useCallback(async (category, excludeId) => {
+    const fetchRelated = useCallback(async (category, excludeId, seq) => {
         try {
             const { data } = await supabase
                 .from('poker_news')
@@ -233,21 +245,33 @@ export default function ArticlePage() {
                 .neq('id', excludeId)
                 .order('published_at', { ascending: false })
                 .limit(3);
-            if (data) setRelated(data);
+            if (data && seq === fetchSeqRef.current) setRelated(data);
         } catch (e) {
             console.warn('[article.js]', e);
         }
     }, []);
 
     const fetchArticle = useCallback(async () => {
+        const seq = ++fetchSeqRef.current;
         setLoading(true);
         setError(null);
+        // Per-story state belongs to the previous story until the new one loads; clear it so a
+        // bookmark or read-later toggle can never act on another article's saved state.
+        setRelated([]);
+        setIsBookmarked(false);
+        setIsReadLater(false);
+        setReaderOpen(false);
         try {
+            if ((id && !ARTICLE_UUID_RE.test(id)) || (!id && !slug)) {
+                // A malformed id can never match a row; Postgres would reject it as a uuid syntax error.
+                setArticle(null);
+                return;
+            }
             let query = supabase.from('poker_news').select('*').eq('is_published', true);
 
             if (id) {
                 query = query.eq('id', id);
-            } else if (slug) {
+            } else {
                 query = query.eq('slug', slug);
             }
 
@@ -255,6 +279,7 @@ export default function ArticlePage() {
                 .order('published_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
+            if (seq !== fetchSeqRef.current) return;
 
             if (fetchError) {
                 console.warn('Failed to fetch article:', fetchError.message);
@@ -263,7 +288,7 @@ export default function ArticlePage() {
             } else if (data) {
                 setArticle(data);
                 // Fetch related articles
-                fetchRelated(data.category, data.id);
+                fetchRelated(data.category, data.id, seq);
                 // Record the view (fire-and-forget) so direct visits and
                 // related-article clicks count, matching news.js behavior.
                 const accessToken = getAccessToken();
@@ -279,11 +304,12 @@ export default function ArticlePage() {
                 setArticle(null);
             }
         } catch (e) {
+            if (seq !== fetchSeqRef.current) return;
             console.warn('Failed to fetch article:', e);
             setError(e?.message || 'Failed to load article');
             setArticle(null);
         } finally {
-            setLoading(false);
+            if (seq === fetchSeqRef.current) setLoading(false);
         }
     }, [id, slug, fetchRelated]);
 
@@ -293,7 +319,9 @@ export default function ArticlePage() {
             fetchArticle();
         } else {
             // No identifying params — show the not-found state instead of an
-            // infinite skeleton.
+            // infinite skeleton, and retire any lookup still in flight for a previous story.
+            fetchSeqRef.current += 1;
+            setArticle(null);
             setLoading(false);
         }
     }, [router.isReady, id, slug, fetchArticle]);

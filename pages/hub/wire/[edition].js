@@ -1,10 +1,12 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicUuid } from '../../../src/lib/promoCampaigns/welcomeBackOffer.mjs';
 import { buildSignedEmailImageUrl, buildSpotCardImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
+import { SPOT_VOTE_SUBJECT_PREFIX, parseSpotVotesSummary } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
 import * as wireCatalog from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import { VIDEO_ROW_FIELDS, normaliseVideoRow, watchPath } from '../../../src/lib/videoLibraryWatch.mjs';
@@ -94,6 +96,59 @@ async function resolveMatchedHistoricalVideo(sb, idSet) {
     }
 }
 
+async function loadInitialSpotVotes(sb, slug) {
+    if (!slug) return { counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } };
+    try {
+        const { data: rows } = await sb
+            .from('newsletter_campaigns')
+            .select('error_summary')
+            .eq('status', 'cancelled')
+            .eq('subject', `${SPOT_VOTE_SUBJECT_PREFIX}${slug}`)
+            .limit(10);
+        const counts = { A: 0, B: 0, C: 0 };
+        for (const row of Array.isArray(rows) ? rows : []) {
+            const parsed = parseSpotVotesSummary(row?.error_summary);
+            counts.A += parsed.A;
+            counts.B += parsed.B;
+            counts.C += parsed.C;
+        }
+        const total = counts.A + counts.B + counts.C;
+        const percentages = total > 0
+            ? {
+                  A: Math.round((counts.A / total) * 100),
+                  B: Math.round((counts.B / total) * 100),
+                  C: Math.round((counts.C / total) * 100),
+              }
+            : { A: 0, B: 0, C: 0 };
+        return {
+            counts,
+            total,
+            percentages,
+        };
+    } catch {
+        return { counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } };
+    }
+}
+
+function normalizeKingsWinnerRow(w) {
+    const explicitTournament = w?.tournamentName || w?.tournament_name || '';
+    const playerLabel = w?.player_name || w?.username || (explicitTournament ? w?.name : '') || '';
+    const tournamentName = cleanCopy(explicitTournament || w?.name || 'Kings Club Event');
+    const prizeChips = Math.max(
+        0,
+        Math.round(Number(w?.prize_pool ?? w?.prizeChips ?? w?.prize_chips ?? w?.chips ?? 0) || 0)
+    );
+    const entries = Math.max(0, Math.round(Number(w?.current_players ?? w?.entries ?? 0) || 0));
+    const place = Math.max(1, Math.round(Number(w?.place || w?.rank || 1) || 1));
+    return {
+        name: cleanCopy(playerLabel),
+        tournamentName,
+        prizeChips,
+        entries,
+        place,
+    };
+}
+
 function parseSubjectEditionNumber(subject) {
     const match = String(subject || '').match(/wire\s*#(\d+)/i);
     if (!match) return null;
@@ -141,7 +196,7 @@ async function loadKingsClubSchedule(sb) {
             .from('tournaments')
             .select('id, name, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, start_time, status')
             .eq('club_id', KINGS_CLUB_ID)
-            .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
+            .in('status', ['ANNOUNCED', 'REGISTERING', 'LATE_REG', 'RUNNING'])
             .gte('start_time', nowIso)
             .order('start_time', { ascending: true })
             .limit(3);
@@ -332,16 +387,42 @@ async function getWireIssueProps({ params, res }) {
             try {
                 if (typeof wireEngine.loadRecentKingsClubWinners === 'function') {
                     const rawWinners = await wireEngine.loadRecentKingsClubWinners(sb);
-                    recentWinners = (rawWinners || []).map((w) => ({
-                        name: cleanCopy(w.name || w.player_name || w.username || 'Champion'),
-                        tournamentName: cleanCopy(w.tournamentName || w.tournament_name || 'Kings Club Event'),
-                        prizeChips: Number(w.prizeChips || w.prize_chips || w.chips || 0),
-                        place: Number(w.place || w.rank || 1),
-                    }));
+                    recentWinners = (rawWinners || []).map(normalizeKingsWinnerRow).filter((w) => w.prizeChips > 0);
                 }
             } catch {
                 recentWinners = [];
             }
+
+            let previousSpotRecap = null;
+            if (editionNumber > 1) {
+                const prevCampaign = indexedCampaigns.find((c) => c.editionNumber === editionNumber - 1);
+                const prevIds = prevCampaign ? new Set((prevCampaign.article_ids || []).map((x) => String(x || '').trim().toLowerCase())) : null;
+                const prevSpot = prevIds
+                    ? spotsCatalog.find((s) => prevIds.has(computeSpotUuid(s.slug)) || prevIds.has(deterministicUuid(`spot:${s.slug}`)))
+                    : (spotsCatalog.length > 0 ? spotsCatalog[(editionNumber - 2) % spotsCatalog.length] : null);
+                if (prevSpot) {
+                    const prevVotes = await loadInitialSpotVotes(sb, prevSpot.slug);
+                    const solverActionKey = String(prevSpot.correctKey || 'A');
+                    const optMatch = (prevSpot.options || []).find((o) => o.key === solverActionKey);
+                    const solverActionLabel = cleanCopy(optMatch?.label || '');
+                    const parsedFreq = parseInt(String(prevSpot.solverFrequency || '').replace(/[^0-9]/g, ''), 10);
+                    const solverFreqPct = Number.isFinite(parsedFreq) ? parsedFreq : 0;
+                    const solverTakeaway = cleanCopy(prevSpot.evSummary || '');
+                    const solverPickPct = prevVotes.total > 0 ? Number(prevVotes.percentages?.[solverActionKey] || 0) : 0;
+                    previousSpotRecap = {
+                        slug: String(prevSpot.slug),
+                        title: cleanCopy(prevSpot.title),
+                        solverActionKey,
+                        solverActionLabel,
+                        solverFreqPct,
+                        solverTakeaway,
+                        totalVotes: prevVotes.total,
+                        solverPickPct,
+                    };
+                }
+            }
+
+            const initialSpotVotes = matchedSpot?.slug ? await loadInitialSpotVotes(sb, matchedSpot.slug) : { counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } };
 
             const leadRawHero =
                 newsRows.find((r) => r && r.category !== 'platform_update' && r.image_url)?.image_url || '';
@@ -363,8 +444,16 @@ async function getWireIssueProps({ params, res }) {
                         articles: orderedNews,
                         spotOfTheWeek: serializeSpot(matchedSpot),
                         videoOfTheWeek: matchedVideo,
+                        topVideo: matchedVideo,
                         triviaOfTheWeek,
+                        triviaSlug: matchedTrivia ? String(matchedTrivia.slug) : '',
                         recentWinners,
+                        kingsClubWinners: recentWinners,
+                        kingsClubWinnersSample: recentWinners,
+                        previousSpotRecap,
+                        trainingPulse: null,
+                        spotVoteTallies: initialSpotVotes,
+                        initialSpotVotes,
                         toolSpotlight: matchedTool
                             ? {
                                   slug: String(matchedTool.slug),
@@ -429,12 +518,35 @@ async function getWireIssueProps({ params, res }) {
                 liveWinners = [];
             }
         }
-        const recentWinners = (liveWinners || []).map((w) => ({
-            name: cleanCopy(w.name || w.player_name || w.username || 'Champion'),
-            tournamentName: cleanCopy(w.tournamentName || w.tournament_name || 'Kings Club Event'),
-            prizeChips: Number(w.prizeChips || w.prize_chips || w.chips || 0),
-            place: Number(w.place || w.rank || 1),
-        }));
+        const recentWinners = (liveWinners || []).map(normalizeKingsWinnerRow).filter((w) => w.prizeChips > 0);
+
+        const livePrevRecap = curated?.previousSpotRecap || null;
+        const previousSpotRecap = livePrevRecap
+            ? {
+                  slug: String(livePrevRecap.slug || ''),
+                  title: cleanCopy(livePrevRecap.title || ''),
+                  solverActionKey: String(livePrevRecap.solverActionKey || 'A'),
+                  solverActionLabel: cleanCopy(livePrevRecap.solverActionLabel || ''),
+                  solverFreqPct: Number(livePrevRecap.solverFreqPct || 0),
+                  solverTakeaway: cleanCopy(livePrevRecap.solverTakeaway || ''),
+                  totalVotes: Number(livePrevRecap.totalVotes || 0),
+                  solverPickPct: Number(livePrevRecap.solverPickPct || 0),
+              }
+            : (spotsCatalog.length > 0 && liveEditionNum > 1
+                  ? {
+                        slug: String(spotsCatalog[(liveEditionNum - 2) % spotsCatalog.length].slug),
+                        title: cleanCopy(spotsCatalog[(liveEditionNum - 2) % spotsCatalog.length].title),
+                        solverActionKey: String(spotsCatalog[(liveEditionNum - 2) % spotsCatalog.length].correctKey || 'A'),
+                        solverActionLabel: cleanCopy(spotsCatalog[(liveEditionNum - 2) % spotsCatalog.length].options?.[0]?.label || ''),
+                        solverFreqPct: 0,
+                        solverTakeaway: cleanCopy(spotsCatalog[(liveEditionNum - 2) % spotsCatalog.length].evSummary || ''),
+                        totalVotes: 0,
+                        solverPickPct: 0,
+                    }
+                  : null);
+
+        const initialSpotVotes = liveSpot?.slug ? await loadInitialSpotVotes(sb, liveSpot.slug) : { counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } };
+        const serializedVideo = serializeVideo(curated?.videoOfTheWeek || null);
 
         return {
             props: {
@@ -469,9 +581,17 @@ async function getWireIssueProps({ params, res }) {
                         category: cleanCopy(String(a.category || 'POKER NEWS')),
                     })),
                     spotOfTheWeek: serializeSpot(liveSpot),
-                    videoOfTheWeek: serializeVideo(curated?.videoOfTheWeek || null),
+                    videoOfTheWeek: serializedVideo,
+                    topVideo: serializedVideo,
                     triviaOfTheWeek,
+                    triviaSlug: liveTrivia ? String(liveTrivia.slug) : '',
                     recentWinners,
+                    kingsClubWinners: recentWinners,
+                    kingsClubWinnersSample: recentWinners,
+                    previousSpotRecap,
+                    trainingPulse: null,
+                    spotVoteTallies: initialSpotVotes,
+                    initialSpotVotes,
                     toolSpotlight: liveTool
                         ? {
                               slug: String(liveTool.slug),
@@ -499,8 +619,16 @@ async function getWireIssueProps({ params, res }) {
                     isLivePreview: true,
                     ogImageUrl: 'https://smarter.poker/api/news/email-image?fallback=1&w=960&h=540',
                     videoOfTheWeek: null,
+                    topVideo: null,
                     triviaOfTheWeek: null,
+                    triviaSlug: '',
                     recentWinners: [],
+                    kingsClubWinners: [],
+                    kingsClubWinnersSample: [],
+                    previousSpotRecap: null,
+                    trainingPulse: null,
+                    spotVoteTallies: { counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } },
+                    initialSpotVotes: { counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } },
                     tournaments: [],
                     spotOfTheWeek: null,
                     platformUpdates: updatesCatalog.slice(0, 2).map((u) => ({
@@ -528,6 +656,35 @@ async function getWireIssueProps({ params, res }) {
     }
 }
 
+const SPOT_VOTE_KEYS = ['A', 'B', 'C'];
+const EMPTY_SPOT_VOTES = {
+    counts: { A: 0, B: 0, C: 0 },
+    total: 0,
+    percentages: { A: 0, B: 0, C: 0 },
+};
+const SPOT_VOTE_FAILED_COPY = 'Your Pick Is Shown Below, But The Community Vote Could Not Be Recorded. Try Again In A Moment.';
+
+// Normalizes a /api/news/spot-vote 200 body. Returns null for anything else so a failed or
+// malformed response can never overwrite the tallies with NaN or partial data.
+function normaliseSpotVotes(body) {
+    if (!body || body.success !== true || !body.percentages || typeof body.percentages !== 'object') return null;
+    const counts = {};
+    const percentages = {};
+    let countTotal = 0;
+    for (const key of SPOT_VOTE_KEYS) {
+        counts[key] = Math.max(0, Math.floor(Number(body.counts?.[key]) || 0));
+        const pct = Math.round(Number(body.percentages[key]));
+        percentages[key] = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
+        countTotal += counts[key];
+    }
+    const declaredTotal = Math.floor(Number(body.total));
+    return {
+        counts,
+        percentages,
+        total: Number.isFinite(declaredTotal) && declaredTotal >= 0 ? declaredTotal : countTotal,
+    };
+}
+
 function toInternalHref(url, fallback = '/hub') {
     const raw = String(url || '').trim();
     if (!raw) return fallback;
@@ -539,6 +696,7 @@ function toInternalHref(url, fallback = '/hub') {
 }
 
 export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
+    const router = useRouter();
     const editionNum = Number(issue?.editionNumber || 1);
     const canonicalUrl = `https://smarter.poker/hub/wire/${editionNum}`;
     const metaTitle = `${issue?.subject || `Smarter.Poker Weekly Wire #${editionNum}`} | Smarter.Poker`;
@@ -568,29 +726,55 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
     const video = issue?.videoOfTheWeek || null;
     const tool = issue?.toolSpotlight || null;
     const trivia = issue?.triviaOfTheWeek || null;
-    const [selectedSpotPick, setSelectedSpotPick] = useState('');
-    const [selectedTriviaKey, setSelectedTriviaKey] = useState('');
-    const [spotVotes, setSpotVotes] = useState({ counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } });
+    const spotSlug = spot?.slug || '';
+    const triviaSlug = trivia?.slug || '';
+    const initialVotes = issue?.initialSpotVotes || issue?.spotVoteTallies || EMPTY_SPOT_VOTES;
+    // Picks and tallies are stored with the slug they belong to. Next.js reuses this component
+    // when a reader moves between editions, so state keyed to another edition's slug is ignored.
+    const [spotPick, setSpotPick] = useState({ slug: '', key: '' });
+    const [triviaPick, setTriviaPick] = useState({ slug: '', key: '' });
+    const [spotVoteState, setSpotVoteState] = useState({
+        slug: spotSlug,
+        votes: initialVotes?.total > 0 ? initialVotes : EMPTY_SPOT_VOTES,
+    });
+    const [spotVoteErrorSlug, setSpotVoteErrorSlug] = useState('');
+    const activeSpotSlugRef = useRef(spotSlug);
+    const spotVoteSeqRef = useRef(0);
+    const spotVoteInFlightRef = useRef('');
+    activeSpotSlugRef.current = spotSlug;
+
+    const selectedSpotPick = spotPick.slug === spotSlug ? spotPick.key : '';
+    const selectedTriviaKey = triviaPick.slug === triviaSlug ? triviaPick.key : '';
+    const spotVotes = spotVoteState.slug === spotSlug ? spotVoteState.votes : EMPTY_SPOT_VOTES;
+    const spotVoteFailed = spotVoteErrorSlug === spotSlug && Boolean(spotSlug);
 
     useEffect(() => {
-        if (!spot?.slug) return;
-        fetch(`/api/news/spot-vote?spot=${encodeURIComponent(spot.slug)}`)
-            .then((r) => r.json())
+        if (!spotSlug) return undefined;
+        const requestSeq = ++spotVoteSeqRef.current;
+        let cancelled = false;
+        fetch(`/api/news/spot-vote?spot=${encodeURIComponent(spotSlug)}`)
+            .then((r) => (r.ok ? r.json() : null))
             .then((body) => {
-                if (body?.success && body?.percentages) {
-                    setSpotVotes({
-                        counts: body.counts || { A: 0, B: 0, C: 0 },
-                        total: body.total || 0,
-                        percentages: body.percentages,
-                    });
-                }
+                if (cancelled || requestSeq !== spotVoteSeqRef.current) return;
+                const votes = normaliseSpotVotes(body);
+                if (votes) setSpotVoteState({ slug: spotSlug, votes });
             })
             .catch(() => {});
-    }, [spot?.slug]);
+        return () => {
+            cancelled = true;
+        };
+    }, [spotSlug]);
 
-    const handleSpotVote = async (optKey) => {
-        setSelectedSpotPick(optKey);
-        if (!spot?.slug) return;
+    const handleSpotVote = useCallback(async (optKey) => {
+        if (!spotSlug) return;
+        setSpotPick({ slug: spotSlug, key: optKey });
+        // The vote API only accepts A, B or C; any other option key is a local solver check only.
+        if (!SPOT_VOTE_KEYS.includes(optKey)) return;
+        // Double-submit guard: one vote request per spot at a time.
+        if (spotVoteInFlightRef.current === spotSlug) return;
+        spotVoteInFlightRef.current = spotSlug;
+        setSpotVoteErrorSlug('');
+        const requestSeq = ++spotVoteSeqRef.current;
         try {
             const accessToken = getAccessToken();
             const res = await fetch('/api/news/spot-vote', {
@@ -599,20 +783,29 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                     'Content-Type': 'application/json',
                     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
                 },
-                body: JSON.stringify({ spot: spot.slug, pick: optKey }),
+                body: JSON.stringify({ spot: spotSlug, pick: optKey }),
             });
-            const body = await res.json().catch(() => ({}));
-            if (body?.success && body?.percentages) {
-                setSpotVotes({
-                    counts: body.counts || { A: 0, B: 0, C: 0 },
-                    total: body.total || 0,
-                    percentages: body.percentages,
-                });
+            const body = await res.json().catch(() => null);
+            const votes = res.ok ? normaliseSpotVotes(body) : null;
+            if (!votes) throw new Error('spot_vote_rejected');
+            if (requestSeq === spotVoteSeqRef.current && activeSpotSlugRef.current === spotSlug) {
+                setSpotVoteState({ slug: spotSlug, votes });
             }
         } catch {
-            /* ignore */
+            if (activeSpotSlugRef.current === spotSlug) setSpotVoteErrorSlug(spotSlug);
+        } finally {
+            if (spotVoteInFlightRef.current === spotSlug) spotVoteInFlightRef.current = '';
         }
-    };
+    }, [spotSlug]);
+
+    useEffect(() => {
+        if (!router?.isReady || !spotSlug) return;
+        const rawPick = Array.isArray(router.query?.pick) ? router.query.pick[0] : router.query?.pick;
+        const upperPick = typeof rawPick === 'string' ? rawPick.trim().toUpperCase() : '';
+        if (SPOT_VOTE_KEYS.includes(upperPick)) {
+            handleSpotVote(upperPick);
+        }
+    }, [router?.isReady, spotSlug, router?.query?.pick, handleSpotVote]);
 
     return (
         <>
@@ -935,7 +1128,25 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     );
                                 })}
                             </div>
-                            {spotVotes && (spotVotes.total > 0 || spotVotes.percentages?.A > 0 || spotVotes.percentages?.B > 0 || spotVotes.percentages?.C > 0) && (
+                            {spotVoteFailed && (
+                                <div
+                                    role="alert"
+                                    data-spot-vote-error="true"
+                                    style={{
+                                        marginTop: '12px',
+                                        padding: '10px 14px',
+                                        borderRadius: '10px',
+                                        background: '#0b1118',
+                                        border: '1px solid #60a5fa',
+                                        color: '#cbd5e1',
+                                        fontSize: '12.5px',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    {SPOT_VOTE_FAILED_COPY}
+                                </div>
+                            )}
+                            {spotVotes.total > 0 && (
                                 <div
                                     data-spot-community-split="true"
                                     style={{
@@ -955,7 +1166,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                 >
                                     <span style={{ color: '#60a5fa' }}>Community Reader Split</span>
                                     <span style={{ color: '#cbd5e1' }}>
-                                        {`Option A: ${spotVotes.percentages?.A ?? 0}% | Option B: ${spotVotes.percentages?.B ?? 0}% | Option C: ${spotVotes.percentages?.C ?? 0}%`}
+                                        {SPOT_VOTE_KEYS.map((key) => `Option ${key}: ${spotVotes.percentages[key]}%`).join(' | ')}
                                     </span>
                                 </div>
                             )}
@@ -977,6 +1188,29 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     </div>
                                     <p style={{ margin: '0 0 10px 0', color: '#c8d8e8', fontSize: '13.5px', lineHeight: 1.55 }}>
                                         {spot.evSummary}
+                                    </p>
+                                </div>
+                            )}
+                            {issue?.previousSpotRecap && (
+                                <div
+                                    data-previous-spot-recap="true"
+                                    style={{
+                                        marginTop: '16px',
+                                        padding: '14px 16px',
+                                        borderRadius: '12px',
+                                        background: '#0b1118',
+                                        border: '1px solid #1b2c3d',
+                                        borderLeft: '3px solid #4fc1b3',
+                                    }}
+                                >
+                                    <div style={{ color: '#4fc1b3', fontSize: '11.5px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                        {`Last Issue's Solver Verdict · ${issue.previousSpotRecap.title}`}
+                                    </div>
+                                    <p style={{ margin: 0, color: '#c8d8e8', fontSize: '13px', lineHeight: 1.55 }}>
+                                        <strong style={{ color: '#ffffff' }}>
+                                            {`Option ${issue.previousSpotRecap.solverActionKey}: ${issue.previousSpotRecap.solverActionLabel}`}
+                                        </strong>{' '}
+                                        ({`${issue.previousSpotRecap.solverFreqPct}% Solver Frequency`}{issue.previousSpotRecap.totalVotes > 0 ? ` · ${issue.previousSpotRecap.solverPickPct}% of ${issue.previousSpotRecap.totalVotes} Community Votes` : ''}) - {issue.previousSpotRecap.solverTakeaway}
                                     </p>
                                 </div>
                             )}
@@ -1256,7 +1490,8 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                         <button
                                             key={opt.key}
                                             type="button"
-                                            onClick={() => setSelectedTriviaKey(opt.key)}
+                                            aria-pressed={isPicked}
+                                            onClick={() => setTriviaPick({ slug: triviaSlug, key: opt.key })}
                                             style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -1367,7 +1602,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                                         {issue.recentWinners.map((winner, idx) => (
                                             <div
-                                                key={`${winner.name}-${idx}`}
+                                                key={`${winner.tournamentName}-${idx}`}
                                                 style={{
                                                     background: '#0b1118',
                                                     border: '1px solid #1b2c3d',
@@ -1376,10 +1611,14 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                 }}
                                             >
                                                 <div style={{ color: '#ffffff', fontSize: '13.5px', fontWeight: 800 }}>
-                                                    {`${winner.name} · ${winner.place === 1 ? '1st Place' : `Place #${winner.place}`}`}
+                                                    {winner.name
+                                                        ? `${winner.name} · ${winner.place === 1 ? '1st Place' : `Place #${winner.place}`}`
+                                                        : winner.tournamentName}
                                                 </div>
                                                 <div style={{ color: '#60a5fa', fontSize: '12px', fontWeight: 700, marginTop: '2px' }}>
-                                                    {`${winner.tournamentName} · ${formatChips(winner.prizeChips)} Chips`}
+                                                    {winner.name
+                                                        ? `${winner.tournamentName} · ${formatChips(winner.prizeChips)} Chips`
+                                                        : `${formatChips(winner.prizeChips)} Chips${winner.entries > 0 ? ` · ${winner.entries} Entries` : ''}`}
                                                 </div>
                                             </div>
                                         ))}

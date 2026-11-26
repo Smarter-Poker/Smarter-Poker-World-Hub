@@ -904,6 +904,7 @@ import './newsletter-end-to-end-wiring-and-ops.law.test.mjs';
 import './weekly-wire-v4-enhancements.law.test.mjs';
 import './newsletter-forensic-pass-hardening.law.test.mjs';
 import './weekly-wire-v5-ecosystem-suite.law.test.mjs';
+import './newsletter-v6-forensic-hardening.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

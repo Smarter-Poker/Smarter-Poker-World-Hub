@@ -607,6 +607,7 @@ export default async function handler(req, res) {
 
             try {
                 const memberUserIds = [...new Set(recipientsList.map((r) => r.userId).filter(Boolean))].slice(0, 2000);
+                const wireRoute = `/hub/wire/${edition.editionNumber}`;
                 for (let i = 0; i < memberUserIds.length; i += 200) {
                     const chunk = memberUserIds.slice(i, i + 200);
                     await sb.from('notifications').insert(
@@ -617,12 +618,18 @@ export default async function handler(req, res) {
                             message: edition.articles?.[0]?.title
                                 ? `Top Story: ${edition.articles[0].title}`
                                 : 'New Solver Spot, Poker News & Kings Club Schedule Ready.',
+                            action_url: wireRoute,
+                            link: wireRoute,
                             data: {
                                 kind: 'weekly_wire',
                                 edition: edition.editionNumber,
-                                url: `/hub/wire/${edition.editionNumber}`,
+                                url: wireRoute,
+                                link: wireRoute,
+                                action_url: wireRoute,
+                                _push: 'none',
                             },
                             read: false,
+                            is_read: false,
                         }))
                     );
                 }

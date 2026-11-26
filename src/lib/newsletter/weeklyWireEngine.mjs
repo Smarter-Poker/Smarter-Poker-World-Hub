@@ -27,6 +27,7 @@ import {
 } from '../promoCampaigns/welcomeBackOffer.mjs';
 import { isReferralInput } from '../pendingSignupCodes.mjs';
 import { isCompetitorSponsoredPost, normalizeEditorialTitle } from './editorialCleaners.mjs';
+import { appendNewsletterUtm } from './utmAttribution.mjs';
 import * as emailImageProxy from './emailImageProxy.mjs';
 import {
     buildMastheadCrestUrl,
@@ -83,39 +84,32 @@ export function triviaMarkerUuid(slug) {
     return deterministicMarkerUuid('trivia', slug);
 }
 
+/**
+ * Single source of truth for Weekly Wire link attribution. Delegates to
+ * `appendNewsletterUtm` so every tag obeys `src/lib/acquisition/firstTouch.mjs`
+ * (`[a-z0-9][a-z0-9._-]{0,63}`), only exact `smarter.poker` / `www.smarter.poker`
+ * hosts are tagged (never `smarter.poker.evil.test`), and signed endpoints
+ * (`/api/news/subscribe`, `/api/news/email-image`, `/api/news/calendar-ics`,
+ * `/api/news/track`) plus hash fragments and existing params stay byte-identical.
+ */
 export function withWireUtm(url, editionNumber, contentTag) {
     if (typeof url !== 'string' || !url.trim()) return url;
-    const cleanUrl = url.trim();
-    const isSmarterPoker = /^https?:\/\/(?:www\.)?smarter\.poker/i.test(cleanUrl) || cleanUrl.startsWith('/');
-    if (!isSmarterPoker) return cleanUrl;
-
-    if (
-        cleanUrl.includes('/api/news/subscribe') ||
-        cleanUrl.includes('/api/news/email-image') ||
-        cleanUrl.includes('/api/news/calendar-ics') ||
-        cleanUrl.includes('/api/news/track')
-    ) {
-        return cleanUrl;
-    }
-
-    try {
-        const isRelative = cleanUrl.startsWith('/');
-        const parsed = new URL(isRelative ? `https://smarter.poker${cleanUrl}` : cleanUrl);
-        const ed = Math.max(1, Number(editionNumber) || 1);
-        parsed.searchParams.set('utm_source', 'weekly_wire');
-        parsed.searchParams.set('utm_medium', 'email');
-        parsed.searchParams.set('utm_campaign', `wire_ed_${ed}`);
-        if (contentTag) {
-            parsed.searchParams.set(
-                'utm_content',
-                String(contentTag).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_')
-            );
-        }
-        return isRelative ? `${parsed.pathname}${parsed.search}${parsed.hash}` : parsed.toString();
-    } catch {
-        return cleanUrl;
-    }
+    const ed = Math.max(1, Math.floor(Number(editionNumber)) || 1);
+    return appendNewsletterUtm(url.trim(), {
+        source: 'weekly_wire',
+        medium: 'email',
+        campaign: `wire_ed_${ed}`,
+        content: contentTag ? String(contentTag) : '',
+    });
 }
+
+/**
+ * Live-or-upcoming values from `public.tournaments.tournaments_status_check`
+ * (ANNOUNCED, REGISTERING, LATE_REG, RUNNING, COMPLETING, COMPLETED, CANCELLED). The previous list
+ * named a `SCHEDULED` status that the CHECK constraint never allows and omitted `REGISTERING` and
+ * `LATE_REG`, so every tournament that had opened registration vanished from the email.
+ */
+export const KINGS_CLUB_UPCOMING_STATUSES = Object.freeze(['ANNOUNCED', 'REGISTERING', 'LATE_REG', 'RUNNING']);
 
 /** Kings Club (Club Code 25450) club row id in `public.clubs` / `public.tournaments.club_id`. */
 export const KINGS_CLUB_UUID = 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4';
@@ -123,16 +117,20 @@ export const KINGS_CLUB_UUID = 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4';
 export async function loadRecentKingsClubWinners(sb, { nowMs = Date.now(), limit = 3 } = {}) {
     try {
         const sevenDaysAgoIso = new Date(nowMs - 7 * 86_400_000).toISOString();
-        const { data, error } = await sb
+        let query = sb
             .from('tournaments')
             .select('id, name, club_id, game_type, buy_in_amount, prize_pool, guaranteed_prize, current_players, start_time, status')
             .eq('club_id', KINGS_CLUB_UUID)
             .eq('status', 'COMPLETED')
-            .gte('start_time', sevenDaysAgoIso)
+            .gte('start_time', sevenDaysAgoIso);
+        if (typeof query.gt === 'function') {
+            query = query.gt('prize_pool', 0);
+        }
+        const { data, error } = await query
             .order('prize_pool', { ascending: false })
             .limit(limit);
         if (error) return [];
-        return Array.isArray(data) ? data : [];
+        return (Array.isArray(data) ? data : []).filter((w) => Number(w?.prize_pool || 0) > 0);
     } catch {
         return [];
     }
@@ -159,8 +157,8 @@ export function storylineMarkerUuid(fingerprint) {
 
 function stripEmDashes(value) {
     return String(value == null ? '' : value)
-        .replace(/\s*\u2014\s*/g, ' - ')
-        .replace(/&mdash;|&#8212;|&#x2014;/gi, ' - ');
+        .replace(/\s*[\u2013\u2014]\s*/g, ' - ')
+        .replace(/\s*(?:&mdash;|&ndash;|&#8212;|&#8211;|&#x2014;|&#x2013;)\s*/gi, ' - ');
 }
 
 export function escapeHtml(value) {
@@ -521,14 +519,12 @@ export function evaluateColdSubscriberSunset(subRow, { hasAccount = false, nowMs
     const startMs = Date.parse(String(subRow?.subscribed_at || subRow?.created_at || ''));
     const ageDays = Number.isFinite(startMs) ? Math.max(0, Math.floor((nowMs - startMs) / DAY_MS)) : 0;
     const active = { status: 'active', ageDays, suppressSend: false, showRepermissionBanner: false };
+    // Engagement is recorded by the Resend webhook / keep link as `source = 'engaged:YYYY-MM-DD'`
+    // (see `isEngagementStampableSource`), which is no longer a cold import source. There are no
+    // open_count / click_count / last_opened_at / last_clicked_at columns on
+    // `public.newsletter_subscribers`, so the source marker is the single authoritative signal.
     if (hasAccount || !COLD_IMPORT_SOURCES.has(source)) return active;
     if (ageDays >= 120) {
-        const engaged =
-            Number(subRow?.open_count || 0) > 0 ||
-            Number(subRow?.click_count || 0) > 0 ||
-            Boolean(subRow?.last_opened_at) ||
-            Boolean(subRow?.last_clicked_at);
-        if (engaged) return active;
         return { status: 'sunset_suppressed', ageDays, suppressSend: true, showRepermissionBanner: false };
     }
     if (ageDays >= 90) {
@@ -677,7 +673,8 @@ async function loadKingsClubTournaments(sb, { nowMs, siteUrl, fetchTournamentsFn
                 .from('tournaments')
                 .select('id, name, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, prize_pool, start_time, status, max_players, current_players')
                 .eq('club_id', KINGS_CLUB_UUID)
-                .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
+                // in-list: bounded by 4 KINGS_CLUB_UPCOMING_STATUSES constants
+                .in('status', KINGS_CLUB_UPCOMING_STATUSES)
                 .gte('start_time', new Date(nowMs - 30 * 60 * 1000).toISOString())
                 .order('start_time', { ascending: true })
                 .limit(3);
@@ -852,16 +849,18 @@ export async function loadZeroRepeatLedger(sb) {
     if (error) throw error;
 
     const rawArticleUuidList = [];
-    let lastEditionIds = [];
-    let foundLastDigest = false;
+    // The previous edition is the newest FINISHED Weekly Wire digest. Promo, lifecycle, test and
+    // spot-vote rows never qualify (`isWeeklyWireDigestCampaign`), and ties are broken by the
+    // completion timestamp then id so the choice never depends on row order from the database.
+    const finishedAtMs = (c) => Date.parse(String(c?.completed_at || c?.created_at || '')) || 0;
+    const lastDigest = (campaigns || [])
+        .filter((c) => isWeeklyWireDigestCampaign(c) && (c.status === 'sent' || c.status === 'partial'))
+        .sort((a, b) => finishedAtMs(b) - finishedAtMs(a) || String(b?.id || '').localeCompare(String(a?.id || '')))[0];
+    const lastEditionIds = Array.isArray(lastDigest?.article_ids) ? lastDigest.article_ids : [];
 
     for (const c of campaigns || []) {
         if (!isWeeklyWireDigestCampaign(c)) continue;
         const ids = Array.isArray(c?.article_ids) ? c.article_ids : [];
-        if (!foundLastDigest && (c.status === 'sent' || c.status === 'partial')) {
-            lastEditionIds = ids;
-            foundLastDigest = true;
-        }
         for (const id of ids) {
             if (typeof id === 'string' && id.trim()) {
                 const clean = id.trim().toLowerCase();
@@ -992,7 +991,7 @@ export async function curateWeeklyWireEdition(
     const platformUpdates = [...customQueueUpdates, ...catalogUpdates].slice(0, Math.max(1, Math.min(updateLimit, 4)));
 
     // 2. Curate fresh, storyline-deduplicated World Poker News
-    const sinceIso = new Date(Date.now() - Math.max(1, Math.min(days, 30)) * 86_400_000).toISOString();
+    const sinceIso = new Date(nowMs - Math.max(1, Math.min(days, 30)) * 86_400_000).toISOString();
     const { data: candidateRows, error: newsErr } = await sb
         .from('poker_news')
         .select('id, title, summary, excerpt, content, source_name, source_url, image_url, category, is_featured, view_count, published_at')
@@ -1166,7 +1165,9 @@ export async function curateWeeklyWireEdition(
         if (lastIds.has(spotMarkerUuid(s.slug).toLowerCase())) {
             matched = true;
         } else {
-            for (let c = 1; c <= 5; c++) {
+            // Same cycle range `selectRotatingCatalogItem` can emit (1..50), so the recap
+            // never silently disappears once the 16-spot catalog has rotated more than 5 times.
+            for (let c = 1; c <= 50; c++) {
                 if (lastIds.has(deterministicMarkerUuid('spot', `${c}:${s.slug}`).toLowerCase())) {
                     matched = true;
                     break;
@@ -1239,7 +1240,7 @@ export async function curateWeeklyWireEdition(
     // 5. Query upcoming live poker_series safely (graceful fallback if unavailable in mock DB)
     let upcomingSeries = [];
     try {
-        const todayIsoDate = new Date().toISOString().slice(0, 10);
+        const todayIsoDate = new Date(nowMs).toISOString().slice(0, 10);
         const { data: seriesRows, error: seriesErr } = await sb
             .from('poker_series')
             .select('id, series_name, venue_name, city, state, start_date, end_date, is_suppressed')
@@ -1898,7 +1899,8 @@ ${hasTrainingPulse
 
     const articlesHtml = (edition.articles || [])
         .map((a) => {
-            const href = `${cleanSite}/hub/article?id=${encodeURIComponent(a.id)}`;
+            const rawHref = `${cleanSite}/hub/article?id=${encodeURIComponent(a.id)}`;
+            const href = withWireUtm(rawHref, editionNum, 'article_read');
             const thumbSrc = buildSignedEmailImageUrl(a.email_image_url || a.image_url || '', {
                 siteUrl: cleanSite,
                 mode: 'thumb',
@@ -2023,7 +2025,7 @@ ${kingsTournaments
         return `<div style="padding:7px 0;border-bottom:1px solid #15222f;">
 <div style="color:#ffffff;font-size:13.5px;font-weight:700;line-height:1.4;">${escapeHtml(t.name)}</div>
 <div style="color:#9fb3c8;font-size:12.5px;line-height:1.5;">${escapeHtml(t.formattedStartUtc)}${meta ? ` &middot; ${meta}` : ''}</div>
-<div style="margin-top:3px;"><a href="${escapeHtml(t.lobbyUrl)}" style="color:#4fc1b3;font-size:12.5px;font-weight:700;text-decoration:none;margin-right:14px;">Join Club 25450 -&gt;</a><a href="${escapeHtml(t.icsUrl)}" style="color:#60a5fa;font-size:12.5px;font-weight:700;text-decoration:none;">Add To Calendar (.ics)</a></div>
+<div style="margin-top:3px;"><a href="${escapeHtml(withWireUtm(t.lobbyUrl, editionNum, 'kings_lobby'))}" style="color:#4fc1b3;font-size:12.5px;font-weight:700;text-decoration:none;margin-right:14px;">Join Club 25450 -&gt;</a><a href="${escapeHtml(t.icsUrl)}" style="color:#60a5fa;font-size:12.5px;font-weight:700;text-decoration:none;">Add To Calendar (.ics)</a></div>
 </div>`;
     })
     .join('')}
@@ -2033,7 +2035,8 @@ ${kingsTournaments
     const video = edition.videoOfTheWeek;
     const videoHtml = video?.videoId
         ? (() => {
-              const watchHref = `${cleanSite}${video.watchPath}`;
+              const rawWatchHref = `${cleanSite}${video.watchPath}`;
+              const watchHref = withWireUtm(rawWatchHref, editionNum, 'video_watch');
               const videoThumb = buildSignedEmailImageUrl(video.thumbnailUrl || '', { siteUrl: cleanSite, mode: 'thumb' });
               const viewsRaw = String(video.views || '').trim();
               const viewsLabel = viewsRaw ? (/view/i.test(viewsRaw) ? viewsRaw : `${viewsRaw} views`) : '';
@@ -2072,9 +2075,10 @@ ${kingsTournaments
         return `Buy-In: ${label}`;
     };
     const nearbyItems = nearbyEvents.slice(0, 3).map((ev) => {
-        const href = ev.venue_id
+        const rawHref = ev.venue_id
             ? `${cleanSite}/hub/venues/${encodeURIComponent(ev.venue_id)}`
             : `${cleanSite}/hub/poker-near-me`;
+        const href = withWireUtm(rawHref, editionNum, 'nearby_event');
         const venue = stripEmDashes(ev.venue_name || '').trim();
         const evName = stripEmDashes(ev.event_name || '').trim();
         const place = [ev.city, normalizeUsStateCode(ev.state) || ev.state].filter(Boolean).join(', ');
@@ -2095,7 +2099,7 @@ ${it.details ? `<div style="color:#9fb3c8;font-size:12.5px;line-height:1.5;">${e
 </div>`
     )
     .join('')}
-<div style="margin-top:8px;"><a href="${escapeHtml(cleanSite)}/hub/poker-near-me" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;">See All Poker Near Me -&gt;</a></div>
+<div style="margin-top:8px;"><a href="${escapeHtml(withWireUtm(`${cleanSite}/hub/poker-near-me`, editionNum, 'nearby_see_all'))}" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;">See All Poker Near Me -&gt;</a></div>
 </td></tr>
 </table>
 </td></tr>`
@@ -2215,7 +2219,7 @@ ${referralProgressHtml}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #1a2a3a;padding-bottom:18px;margin-bottom:22px;">
 <tr>
 <td width="46" valign="middle" style="padding-right:12px;">
-<a href="${escapeHtml(cleanSite)}" style="text-decoration:none;"><img src="${escapeHtml(mastheadCrestSrc)}" alt="Smarter.Poker" width="36" height="36" border="0" style="display:block;width:36px;height:36px;border-radius:9px;" /></a>
+<a href="${escapeHtml(withWireUtm(`${cleanSite}/`, editionNum, 'masthead'))}" style="text-decoration:none;"><img src="${escapeHtml(mastheadCrestSrc)}" alt="Smarter.Poker" width="36" height="36" border="0" style="display:block;width:36px;height:36px;border-radius:9px;" /></a>
 </td>
 <td valign="middle">
 <div style="color:#4fc1b3;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase;">SMARTER.POKER WEEKLY WIRE</div>

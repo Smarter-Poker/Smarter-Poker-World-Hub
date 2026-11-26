@@ -1,10 +1,46 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { getAccessToken } from '../../lib/authUtils';
+import { getAccessToken, getAuthUserId } from '../../lib/authUtils';
 import styles from './NewsletterCaptureBar.module.css';
 
 export const WIRE_SUBSCRIBED_KEY = 'sp_wire_subscribed_v1';
 export const WIRE_DISMISSED_KEY = 'sp_wire_dismissed_v1';
+export const WIRE_SESSION_CHECKED_KEY = 'sp_wire_session_checked_v1';
+export const WIRE_SUBSCRIPTION_CHANGED_EVENT = 'sp-wire-subscription-changed';
+
+const SUBSCRIBED_PREFERENCE_MODES = new Set(['all', 'wire_only', 'snooze_30d']);
+const UNSUBSCRIBED_PREFERENCE_MODES = new Set(['unsubscribe', 'unsubscribed']);
+
+// Single owner of the cross-surface "this browser is a Weekly Wire subscriber" state. Every
+// preference screen calls this after the server confirms a change, so every mounted capture bar
+// hides (or returns for an opt-out) immediately and the next session check re-reads the server.
+export function applyWireSubscriptionMode(mode) {
+    if (typeof window === 'undefined') return;
+    const cleanMode = String(mode || '').trim();
+    try {
+        if (SUBSCRIBED_PREFERENCE_MODES.has(cleanMode)) {
+            window.localStorage.setItem(WIRE_SUBSCRIBED_KEY, '1');
+        } else if (UNSUBSCRIBED_PREFERENCE_MODES.has(cleanMode)) {
+            window.localStorage.removeItem(WIRE_SUBSCRIBED_KEY);
+        }
+    } catch {
+        /* ignore storage restrictions */
+    }
+    try {
+        window.sessionStorage.removeItem(WIRE_SESSION_CHECKED_KEY);
+    } catch {
+        /* ignore storage restrictions */
+    }
+    try {
+        window.dispatchEvent(new Event(WIRE_SUBSCRIPTION_CHANGED_EVENT));
+    } catch {
+        /* ignore environments without Event */
+    }
+}
+
+// Which signed-in member the session check last read; keyed per member so switching accounts in
+// one tab re-checks, and de-duplicates the check while its request is still in flight.
+let sessionCheckInFlightFor = '';
 
 const EMAIL_SHAPE_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -105,34 +141,48 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
     const [errorMsg, setErrorMsg] = useState('');
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        let alreadySubscribed = false;
-        let dismissedSession = false;
-        try {
-            alreadySubscribed = window.localStorage.getItem(WIRE_SUBSCRIBED_KEY) === '1';
-        } catch {
-            alreadySubscribed = false;
-        }
-        try {
-            dismissedSession = window.sessionStorage.getItem(WIRE_DISMISSED_KEY) === '1';
-        } catch {
-            dismissedSession = false;
-        }
-        setHidden(alreadySubscribed || dismissedSession);
+        if (typeof window === 'undefined') return undefined;
+        let active = true;
+        const readHidden = () => {
+            let alreadySubscribed = false;
+            let dismissedSession = false;
+            try {
+                alreadySubscribed = window.localStorage.getItem(WIRE_SUBSCRIBED_KEY) === '1';
+            } catch {
+                alreadySubscribed = false;
+            }
+            try {
+                dismissedSession = window.sessionStorage.getItem(WIRE_DISMISSED_KEY) === '1';
+            } catch {
+                dismissedSession = false;
+            }
+            return { alreadySubscribed, hiddenNow: alreadySubscribed || dismissedSession };
+        };
+
+        const { alreadySubscribed, hiddenNow } = readHidden();
+        setHidden(hiddenNow);
         setReady(true);
 
         if (!alwaysVisible && !alreadySubscribed) {
             try {
                 const token = getAccessToken();
-                const sessionChecked = window.sessionStorage.getItem('sp_wire_session_checked_v1') === '1';
-                if (token && !sessionChecked) {
-                    window.sessionStorage.setItem('sp_wire_session_checked_v1', '1');
+                const memberKey = token ? String(getAuthUserId() || '') : '';
+                const checkedFor = window.sessionStorage.getItem(WIRE_SESSION_CHECKED_KEY) || '';
+                if (token && memberKey && checkedFor !== memberKey && sessionCheckInFlightFor !== memberKey) {
+                    sessionCheckInFlightFor = memberKey;
                     fetch('/api/news/subscribe?preferences=session', {
                         headers: { Authorization: `Bearer ${token}` },
                     })
-                        .then((res) => res.json())
-                        .then((body) => {
-                            if (body?.success && body?.currentMode && body.currentMode !== 'unsubscribed') {
+                        .then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) }))
+                        .then(({ ok, body }) => {
+                            // Only a valid answer for this member is cached; 401/500 or a malformed body retries next route.
+                            if (!ok || !body?.success || !body?.currentMode) return;
+                            try {
+                                window.sessionStorage.setItem(WIRE_SESSION_CHECKED_KEY, memberKey);
+                            } catch {
+                                /* ignore storage restrictions */
+                            }
+                            if (body.currentMode !== 'unsubscribed' && active) {
                                 try {
                                     window.localStorage.setItem(WIRE_SUBSCRIBED_KEY, '1');
                                 } catch {
@@ -141,12 +191,26 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
                                 setHidden(true);
                             }
                         })
-                        .catch(() => {});
+                        .catch(() => {})
+                        .finally(() => {
+                            if (sessionCheckInFlightFor === memberKey) sessionCheckInFlightFor = '';
+                        });
                 }
             } catch {
                 /* ignore storage or network restrictions */
             }
         }
+
+        const syncFromStorage = () => {
+            if (active) setHidden(readHidden().hiddenNow);
+        };
+        window.addEventListener(WIRE_SUBSCRIPTION_CHANGED_EVENT, syncFromStorage);
+        window.addEventListener('storage', syncFromStorage);
+        return () => {
+            active = false;
+            window.removeEventListener(WIRE_SUBSCRIPTION_CHANGED_EVENT, syncFromStorage);
+            window.removeEventListener('storage', syncFromStorage);
+        };
     }, [activePath, alwaysVisible]);
 
     const cleanPath = String(activePath || '').split(/[?#]/, 1)[0].trim();
@@ -202,14 +266,8 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
                 setErrorMsg('Unable To Subscribe Right Now - Please Try Again');
                 return;
             }
-            if (typeof window !== 'undefined') {
-                try {
-                    window.localStorage.setItem(WIRE_SUBSCRIBED_KEY, '1');
-                } catch {
-                    /* ignore storage restrictions */
-                }
-            }
             setSubscribed(true);
+            applyWireSubscriptionMode('all');
             setEmail('');
         } catch {
             setErrorMsg('Unable To Subscribe Right Now - Please Try Again');

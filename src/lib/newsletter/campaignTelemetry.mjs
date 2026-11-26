@@ -5,7 +5,28 @@
  * `pages/api/news/operations.js`, and `pages/api/webhooks/resend.js` without
  * circular module imports.
  */
+import crypto from 'node:crypto';
 import { classifyClickedEmailSection } from './utmAttribution.mjs';
+
+export { classifyClickedEmailSection, classifyClickedEmailSection as classifyClickedSection } from './utmAttribution.mjs';
+
+export function computeSpotVoterUuid(spotSlug, voterIdentity, pick = '', secret = '') {
+    const cleanPick = String(pick || '').trim().toUpperCase();
+    const raw = `${String(spotSlug || '').trim()}:${String(voterIdentity || '').trim()}${cleanPick ? `:${cleanPick}` : ''}`;
+    const key = String(secret || '').trim();
+    const hex = key
+        ? crypto.createHmac('sha256', key).update(raw).digest('hex')
+        : crypto.createHash('sha256').update(raw).digest('hex');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+export function computeSpotVoteRowId(spotSlug) {
+    const hex = crypto
+        .createHash('sha256')
+        .update(`spot-vote-row:${String(spotSlug || '').trim()}`)
+        .digest('hex');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TELEMETRY_TOKEN_RE = /(?:^|\s*\|\s*)telemetry:(\{.*\})\s*$/;
@@ -67,9 +88,10 @@ export function parseCampaignSectionClicks(errorSummary) {
     if (!match) return {};
     try {
         const parsed = JSON.parse(match[1]);
-        if (parsed?.sections && typeof parsed.sections === 'object' && !Array.isArray(parsed.sections)) {
+        const secSource = parsed?.sections || parsed?.section_clicks || parsed?.sectionClicks;
+        if (secSource && typeof secSource === 'object' && !Array.isArray(secSource)) {
             const result = {};
-            for (const [k, v] of Object.entries(parsed.sections)) {
+            for (const [k, v] of Object.entries(secSource)) {
                 const count = Math.max(0, Math.floor(Number(v || 0)));
                 if (count > 0) result[k] = count;
             }
@@ -95,7 +117,7 @@ export function applyCampaignTelemetryEvent(errorSummary, eventType, { clickedUr
     const payload = {
         opens: nextOpens,
         clicks: nextClicks,
-        ...(Object.keys(sections).length > 0 ? { sections } : {}),
+        ...(Object.keys(sections).length > 0 ? { sections, section_clicks: sections } : {}),
     };
     const serialized = `telemetry:${JSON.stringify(payload)}`;
     return {
@@ -125,7 +147,7 @@ export function mergeFinalCampaignErrorSummary(existingErrorSummary, sendErrors 
     const payload = {
         opens: current.opens,
         clicks: current.clicks,
-        ...(Object.keys(sections).length > 0 ? { sections } : {}),
+        ...(Object.keys(sections).length > 0 ? { sections, section_clicks: sections } : {}),
     };
     const serialized = `telemetry:${JSON.stringify(payload)}`;
     return prefix ? `${prefix} | ${serialized}` : serialized;

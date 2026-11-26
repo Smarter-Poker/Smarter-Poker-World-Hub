@@ -166,7 +166,7 @@ export function verifyEmailImageSignature(encodedUrl, signature, mode = 'thumb',
 /**
  * Build a guaranteed-200 first-party Smarter.Poker image URL for emails and web views.
  * Always returns an `https://smarter.poker/api/news/email-image?...` (or relative path
- * when `relative: true`) URL — falling back to `?fallback=1` when `rawUrl` is absent
+ * when `relative: true`) URL - falling back to `?fallback=1` when `rawUrl` is absent
  * or un-signable.
  */
 export function buildSignedEmailImageUrl(

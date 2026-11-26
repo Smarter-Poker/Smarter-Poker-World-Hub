@@ -6,34 +6,45 @@
  * and must render for a signed-out user without crashing.
  */
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import PushNotificationToggle from '../../../src/components/notifications/PushNotificationToggle';
+import { applyWireSubscriptionMode } from '../../../src/components/news/NewsletterCaptureBar';
 
+// Mounted with key={userId}, so signing in as a different member always starts from a clean card.
 function WeeklyWireCadenceCard() {
     const [mode, setMode] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [feedback, setFeedback] = useState('');
+    const saveInFlightRef = useRef(false);
+    const saveSeqRef = useRef(0);
 
     useEffect(() => {
         let mounted = true;
         const token = getAccessToken();
         if (!token) {
+            setFeedback('Sign In Again To Manage Email');
             setLoading(false);
-            return;
+            return undefined;
         }
         fetch('/api/news/subscribe?preferences=session', {
             headers: { Authorization: `Bearer ${token}` },
         })
-            .then((res) => res.json())
-            .then((body) => {
-                if (mounted && body?.success && body?.currentMode) {
-                    setMode(body.currentMode);
+            .then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) }))
+            .then(({ ok, body }) => {
+                if (!mounted) return;
+                // A save that finished while this read was in flight is newer than this read.
+                if (ok && body?.success && body?.currentMode) {
+                    if (saveSeqRef.current === 0) setMode(body.currentMode);
+                } else {
+                    setFeedback('Unable To Load Preferences');
                 }
             })
-            .catch(() => {})
+            .catch(() => {
+                if (mounted) setFeedback('Unable To Load Preferences');
+            })
             .finally(() => {
                 if (mounted) setLoading(false);
             });
@@ -43,8 +54,13 @@ function WeeklyWireCadenceCard() {
     }, []);
 
     const handleSelectMode = async (targetMode) => {
+        if (saveInFlightRef.current) return;
         const token = getAccessToken();
-        if (!token || saving) return;
+        if (!token) {
+            setFeedback('Sign In Again To Save');
+            return;
+        }
+        saveInFlightRef.current = true;
         setSaving(true);
         setFeedback('');
         try {
@@ -57,15 +73,19 @@ function WeeklyWireCadenceCard() {
                 body: JSON.stringify({ action: 'preferences', mode: targetMode }),
             });
             const data = await res.json().catch(() => ({}));
-            if (data?.success) {
-                setMode(targetMode);
+            if (res.ok && data?.success) {
+                saveSeqRef.current += 1;
+                setMode(data.currentMode || (targetMode === 'unsubscribe' ? 'unsubscribed' : targetMode));
                 setFeedback('Saved');
+                // Same cross-surface sync as /hub/email-preferences: every Weekly Wire capture bar follows.
+                applyWireSubscriptionMode(targetMode);
             } else {
                 setFeedback('Unable To Save');
             }
         } catch {
             setFeedback('Unable To Save');
         } finally {
+            saveInFlightRef.current = false;
             setSaving(false);
         }
     };
@@ -186,7 +206,7 @@ export default function NotificationSettingsPage() {
                         ) : (
                             <>
                                 <PushNotificationToggle />
-                                <WeeklyWireCadenceCard />
+                                <WeeklyWireCadenceCard key={userId} />
                             </>
                         )}
                     </div>

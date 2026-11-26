@@ -54,16 +54,21 @@ function WeeklyWireTriviaBanner({ router }) {
         ? catalog.find((item) => String(item.slug || '').toLowerCase() === cleanSlug)
         : null;
 
-    const [userPick, setUserPick] = useState('');
+    // The pick is stored with the slug it answers, so moving to another ?wire_q= question can never
+    // show the previous question's pick against the new options.
+    const [pickState, setPickState] = useState({ slug: '', key: '' });
+    const userPick = pickState.slug === cleanSlug ? pickState.key : '';
+    const optionKeys = (matchedTrivia?.options || []).map((opt) => String(opt.key));
 
     useEffect(() => {
-        if (typeof rawPick === 'string') {
-            const upper = rawPick.trim().toUpperCase();
-            if (['A', 'B', 'C', 'D'].includes(upper)) {
-                setUserPick(upper);
-            }
+        if (!cleanSlug || typeof rawPick !== 'string') return;
+        const upper = rawPick.trim().toUpperCase();
+        if (['A', 'B', 'C', 'D'].includes(upper) && optionKeys.includes(upper)) {
+            setPickState({ slug: cleanSlug, key: upper });
         }
-    }, [rawPick]);
+        // optionKeys derives from cleanSlug, so the slug and pick are the complete dependency set.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cleanSlug, rawPick]);
 
     if (!matchedTrivia) return null;
 
@@ -104,7 +109,8 @@ function WeeklyWireTriviaBanner({ router }) {
                         <button
                             key={opt.key}
                             type="button"
-                            onClick={() => setUserPick(opt.key)}
+                            aria-pressed={isSelected}
+                            onClick={() => setPickState({ slug: cleanSlug, key: opt.key })}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',

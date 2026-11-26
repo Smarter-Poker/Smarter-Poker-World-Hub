@@ -26,7 +26,7 @@ export async function getServerSideProps({ req, res }) {
     const { data } = await supabase
       .from('newsletter_campaigns')
       .select('id, subject, status, completed_at, created_at, article_ids')
-      .eq('status', 'sent')
+      .in('status', ['sent', 'partial'])
       .order('created_at', { ascending: true })
       .limit(200);
     if (Array.isArray(data)) {

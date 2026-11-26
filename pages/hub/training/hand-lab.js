@@ -75,6 +75,34 @@ const SUIT_TO_ASCII = {
 };
 const FULL_DECK = RANKS.flatMap((r) => SUITS.map((s) => `${r}${s}`));
 
+const SPOT_VOTE_KEYS = ['A', 'B', 'C'];
+const EMPTY_SPOT_VOTES = {
+  counts: { A: 0, B: 0, C: 0 },
+  total: 0,
+  percentages: { A: 0, B: 0, C: 0 },
+};
+
+// A /api/news/spot-vote 200 body becomes bounded integers; anything else returns null so a failed
+// or malformed response can never overwrite tallies with NaN or partial data.
+function normaliseSpotVotes(body) {
+  if (!body || body.success !== true || !body.percentages || typeof body.percentages !== 'object') return null;
+  const counts = {};
+  const percentages = {};
+  let countTotal = 0;
+  for (const key of SPOT_VOTE_KEYS) {
+    counts[key] = Math.max(0, Math.floor(Number(body.counts?.[key]) || 0));
+    const pct = Math.round(Number(body.percentages[key]));
+    percentages[key] = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
+    countTotal += counts[key];
+  }
+  const declaredTotal = Math.floor(Number(body.total));
+  return {
+    counts,
+    percentages,
+    total: Number.isFinite(declaredTotal) && declaredTotal >= 0 ? declaredTotal : countTotal,
+  };
+}
+
 function cardToAscii(card) {
   const clean = String(card || '').trim();
   if (!clean || clean.length < 2) return '';
@@ -110,8 +138,18 @@ export default function HandLabV2() {
   const [analysisError, setAnalysisError] = useState('');
   const [activeWireSpot, setActiveWireSpot] = useState(null);
   const [wireSpotPick, setWireSpotPick] = useState('');
-  const [spotVotes, setSpotVotes] = useState({ counts: { A: 0, B: 0, C: 0 }, total: 0, percentages: { A: 0, B: 0, C: 0 } });
+  const [spotVoteState, setSpotVoteState] = useState({ slug: '', votes: EMPTY_SPOT_VOTES });
+  const [spotVoteFailedSlug, setSpotVoteFailedSlug] = useState('');
   const calcSeqRef = React.useRef(0);
+  // Spot vote requests: the newest request owns the result, and a response for a spot the reader
+  // has already left is dropped, so a slow Spot 1 answer can never overwrite Spot 2.
+  const voteSeqRef = React.useRef(0);
+  const activeSpotSlugRef = React.useRef('');
+  const voteInFlightRef = React.useRef('');
+  const activeSpotSlug = activeWireSpot?.slug || '';
+  const spotVotes = spotVoteState.slug === activeSpotSlug ? spotVoteState.votes : EMPTY_SPOT_VOTES;
+  const spotVoteFailed = Boolean(activeSpotSlug) && spotVoteFailedSlug === activeSpotSlug;
+  activeSpotSlugRef.current = activeSpotSlug;
 
   // Hydrate Weekly Wire Spot Of The Week (?spot=<slug>&pick=<A|B|C>) when linked from email or /hub/wire
   useEffect(() => {
@@ -123,52 +161,51 @@ export default function HandLabV2() {
     const matchedSpot = SPOT_OF_THE_WEEK_CATALOG.find(
       (item) => String(item.slug || '').toLowerCase() === cleanSlug
     );
-    if (!matchedSpot) return;
-    calcSeqRef.current += 1;
-    setActiveWireSpot(matchedSpot);
-    const normalizedPick = typeof rawPick === 'string' ? rawPick.trim().toUpperCase() : '';
-    if (['A', 'B', 'C'].includes(normalizedPick)) {
-      setWireSpotPick(normalizedPick);
+    if (!matchedSpot) {
+      // An unknown ?spot= slug must not leave the previous spot's card, pick or tallies on screen.
+      voteSeqRef.current += 1;
+      setActiveWireSpot(null);
+      setWireSpotPick('');
+      return;
     }
+    calcSeqRef.current += 1;
+    const requestSeq = ++voteSeqRef.current;
+    let cancelled = false;
+    setActiveWireSpot(matchedSpot);
+    setSpotVoteFailedSlug('');
+    const normalizedPick = typeof rawPick === 'string' ? rawPick.trim().toUpperCase() : '';
+    const hasValidPick = SPOT_VOTE_KEYS.includes(normalizedPick);
+    // A link without a valid pick must clear any pick left over from the previous spot.
+    setWireSpotPick(hasValidPick ? normalizedPick : '');
 
     const token = typeof getAccessToken === 'function' ? getAccessToken() : '';
     const headers = { 'Content-Type': 'application/json' };
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    if (['A', 'B', 'C'].includes(normalizedPick)) {
-      fetch('/api/news/spot-vote', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ spot: matchedSpot.slug, pick: normalizedPick }),
-      })
-        .then((r) => r.json())
-        .then((body) => {
-          if (body?.success && body?.percentages) {
-            setSpotVotes({
-              counts: body.counts || { A: 0, B: 0, C: 0 },
-              total: body.total || 0,
-              percentages: body.percentages,
-            });
-          }
+    const request = hasValidPick
+      ? fetch('/api/news/spot-vote', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ spot: matchedSpot.slug, pick: normalizedPick }),
         })
-        .catch(() => {});
-    } else {
-      fetch(`/api/news/spot-vote?spot=${encodeURIComponent(matchedSpot.slug)}`, {
-        headers,
+      : fetch(`/api/news/spot-vote?spot=${encodeURIComponent(matchedSpot.slug)}`, { headers });
+    request
+      .then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) }))
+      .then(({ ok, body }) => {
+        if (cancelled || requestSeq !== voteSeqRef.current) return;
+        const votes = ok ? normaliseSpotVotes(body) : null;
+        if (votes) {
+          setSpotVoteState({ slug: matchedSpot.slug, votes });
+        } else if (hasValidPick) {
+          setSpotVoteFailedSlug(matchedSpot.slug);
+        }
       })
-        .then((r) => r.json())
-        .then((body) => {
-          if (body?.success && body?.percentages) {
-            setSpotVotes({
-              counts: body.counts || { A: 0, B: 0, C: 0 },
-              total: body.total || 0,
-              percentages: body.percentages,
-            });
-          }
-        })
-        .catch(() => {});
-    }
+      .catch(() => {
+        if (!cancelled && requestSeq === voteSeqRef.current && hasValidPick) {
+          setSpotVoteFailedSlug(matchedSpot.slug);
+        }
+      });
     const spotVariant = VARIANTS.some((v) => v.id === matchedSpot.variant) ? matchedSpot.variant : 'nlh';
     const spotHoleCount = (VARIANTS.find((v) => v.id === spotVariant) || VARIANTS[0]).holeCount;
     const nextHero =
@@ -217,12 +254,23 @@ export default function HandLabV2() {
     setEquity(null);
     setResults(null);
     setAnalysisError('');
+    return () => {
+      cancelled = true;
+    };
   }, [router.isReady, router.query.spot, router.query.pick]);
 
   const handlePickSpotOption = async (optKey) => {
     fb.click();
+    const spotSlug = activeWireSpot?.slug || '';
+    if (!spotSlug) return;
     setWireSpotPick(optKey);
-    if (!activeWireSpot?.slug) return;
+    // The vote API only accepts A, B or C; any other option key is a local solver check only.
+    if (!SPOT_VOTE_KEYS.includes(optKey)) return;
+    // Double-submit guard: one vote request per spot at a time.
+    if (voteInFlightRef.current === spotSlug) return;
+    voteInFlightRef.current = spotSlug;
+    setSpotVoteFailedSlug('');
+    const requestSeq = ++voteSeqRef.current;
     try {
       const token = typeof getAccessToken === 'function' ? getAccessToken() : '';
       const headers = { 'Content-Type': 'application/json' };
@@ -232,18 +280,18 @@ export default function HandLabV2() {
       const res = await fetch('/api/news/spot-vote', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ spot: activeWireSpot.slug, pick: optKey }),
+        body: JSON.stringify({ spot: spotSlug, pick: optKey }),
       });
-      const body = await res.json().catch(() => ({}));
-      if (body?.success && body?.percentages) {
-        setSpotVotes({
-          counts: body.counts || { A: 0, B: 0, C: 0 },
-          total: body.total || 0,
-          percentages: body.percentages,
-        });
+      const body = await res.json().catch(() => null);
+      const votes = res.ok ? normaliseSpotVotes(body) : null;
+      if (!votes) throw new Error('spot_vote_rejected');
+      if (requestSeq === voteSeqRef.current && activeSpotSlugRef.current === spotSlug) {
+        setSpotVoteState({ slug: spotSlug, votes });
       }
     } catch {
-      /* ignore */
+      if (activeSpotSlugRef.current === spotSlug) setSpotVoteFailedSlug(spotSlug);
+    } finally {
+      if (voteInFlightRef.current === spotSlug) voteInFlightRef.current = '';
     }
   };
 
@@ -535,7 +583,25 @@ export default function HandLabV2() {
                 );
               })}
             </div>
-            {spotVotes && (spotVotes.total > 0 || spotVotes.percentages?.A > 0 || spotVotes.percentages?.B > 0 || spotVotes.percentages?.C > 0) && (
+            {spotVoteFailed && (
+              <div
+                role="alert"
+                data-spot-vote-error="true"
+                style={{
+                  marginTop: 12,
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  background: 'rgba(5, 10, 18, 0.72)',
+                  border: '1px solid rgba(96, 165, 250, 0.5)',
+                  color: '#cbd5e1',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                }}
+              >
+                Your Pick Is Shown Below, But The Community Vote Could Not Be Recorded. Try Again In A Moment.
+              </div>
+            )}
+            {spotVotes.total > 0 && (
               <div
                 data-spot-community-split="true"
                 style={{
@@ -555,7 +621,7 @@ export default function HandLabV2() {
               >
                 <span style={{ color: '#60a5fa' }}>Community Reader Split</span>
                 <span style={{ color: '#cbd5e1' }}>
-                  {`Option A: ${spotVotes.percentages?.A ?? 0}% | Option B: ${spotVotes.percentages?.B ?? 0}% | Option C: ${spotVotes.percentages?.C ?? 0}%`}
+                  {SPOT_VOTE_KEYS.map((key) => `Option ${key}: ${spotVotes.percentages[key]}%`).join(' | ')}
                 </span>
               </div>
             )}

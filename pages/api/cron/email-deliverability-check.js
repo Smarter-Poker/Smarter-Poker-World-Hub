@@ -1,6 +1,6 @@
 /**
- * /api/cron/email-deliverability-check — Nightly Email Health Audit
- * ═══════════════════════════════════════════════════════════════════════════
+ * /api/cron/email-deliverability-check - Nightly Email Health Audit
+ * ===========================================================================
  * Confirmation emails breaking is a SILENT signup killer: users sign up,
  * never get the email, never confirm, never become real users. The
  * signup-probe alone wouldn't catch this because it uses
@@ -21,16 +21,16 @@
  *
  * What this CANNOT detect:
  *   - Specific recipient inbox provider (Gmail, Outlook) flagging us as
- *     spam — that requires a separate inbox-placement test (use Mailgenius
+ *     spam: that requires a separate inbox-placement test (use Mailgenius
  *     or similar)
- *   - One-off bounces — only systemic issues
+ *   - One-off bounces: only systemic issues
  *
  * Cadence: once a day at 6am UTC (cheap, RESTful, no probe burn).
- * ═══════════════════════════════════════════════════════════════════════════
+ * ===========================================================================
  */
 
 import { validateCronAuth } from '../../../src/utils/cron-auth';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { resendApiKey, resendFrom, resendSendingDomain } from '../../../src/lib/email/resendAccount.mjs';
 
@@ -41,8 +41,12 @@ function getAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) return null;
-    _admin = createClient(url, key, { auth: { persistSession: false } });
-    return _admin;
+    try {
+        _admin = createClient();
+        return _admin;
+    } catch {
+        return null;
+    }
 }
 
 const DOMAIN = 'smarter.poker';
@@ -299,34 +303,38 @@ export async function checkNewsletterReputation7d(admin) {
             complaintRes?.count ?? (Array.isArray(complaintRes?.data) ? complaintRes.data.length : 0),
         );
 
-        const bounceRatePct = sent7d > 0 ? Number(((bounceCount / sent7d) * 100).toFixed(2)) : 0;
-        const complaintRatePct = sent7d > 0 ? Number(((complaintCount / sent7d) * 100).toFixed(2)) : 0;
+        const safeSent = Number.isFinite(sent7d) && sent7d > 0 ? sent7d : 0;
+        const safeBounce = Number.isFinite(bounceCount) && bounceCount > 0 ? bounceCount : 0;
+        const safeComplaint = Number.isFinite(complaintCount) && complaintCount > 0 ? complaintCount : 0;
 
-        const isElevated = sent7d >= 50 && (bounceRatePct >= 2.0 || complaintRatePct >= 0.1);
+        const bounceRatePct = safeSent > 0 ? Number(((safeBounce / safeSent) * 100).toFixed(2)) : 0;
+        const complaintRatePct = safeSent > 0 ? Number(((safeComplaint / safeSent) * 100).toFixed(2)) : 0;
+
+        const isElevated = safeSent >= 50 && (bounceRatePct >= 2.0 || complaintRatePct >= 0.1);
 
         if (isElevated) {
             return {
                 check: 'newsletter_reputation_7d',
                 ok: true,
                 severity: 'warn',
-                sent7d,
-                bounceCount,
-                complaintCount,
+                sent7d: safeSent,
+                bounceCount: safeBounce,
+                complaintCount: safeComplaint,
                 bounceRatePct,
                 complaintRatePct,
-                detail: `Elevated 7d rates: bounceRate=${bounceRatePct}% (limit 2.0%), complaintRate=${complaintRatePct}% (limit 0.1%) over ${sent7d} sent`,
+                detail: `Elevated 7d rates: bounceRate=${bounceRatePct}% (limit 2.0%), complaintRate=${complaintRatePct}% (limit 0.1%) over ${safeSent} sent`,
             };
         }
 
         return {
             check: 'newsletter_reputation_7d',
             ok: true,
-            sent7d,
-            bounceCount,
-            complaintCount,
+            sent7d: safeSent,
+            bounceCount: safeBounce,
+            complaintCount: safeComplaint,
             bounceRatePct,
             complaintRatePct,
-            detail: `Healthy 7d reputation: ${sent7d} sent, ${bounceCount} bounces (${bounceRatePct}%), ${complaintCount} complaints (${complaintRatePct}%)`,
+            detail: `Healthy 7d reputation: ${safeSent} sent, ${safeBounce} bounces (${bounceRatePct}%), ${safeComplaint} complaints (${complaintRatePct}%)`,
         };
     } catch (e) {
         return {
