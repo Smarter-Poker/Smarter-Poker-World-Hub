@@ -21,10 +21,15 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 import * as leakReviewModule from '../../../../src/lib/sandbox/leakReview';
 import { openDrillBatch } from '../../../../src/lib/personal-assistant/drillTelemetry';
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+    _supabase = client;
+}
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -522,6 +527,16 @@ async function handlePost(req, res, userId) {
     }
 
     const supabase = getSupabase();
+    const contextAccess = await checkSandboxAccess(supabase, userId);
+    if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+        return res.status(403).json({
+            success: false,
+            blocked: true,
+            contextState: contextAccess?.contextState || 'session_active_unknown',
+            accessLevel: contextAccess?.accessLevel || 'hard_block',
+            error: contextAccess?.message || 'Leak review grading is unavailable during live play or post-session cooldown.',
+        });
+    }
     let verifiedDrill = null;
     if (body.answers !== undefined) {
         return res.status(400).json({ success: false, error: 'Final answer arrays are not accepted' });

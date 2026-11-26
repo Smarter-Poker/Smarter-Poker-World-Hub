@@ -118,6 +118,81 @@ export function normalizeUserLeakRow(row = {}) {
  * canonical, while the four required legacy fields are populated with honest
  * equivalents so a deterministic audit can be saved atomically.
  */
+export const DETECTOR_RULE_VERSION = 'pa-leak-detector-v3';
+
+export const EVIDENCE_BASIS = Object.freeze({
+  EXACT_SOLVER_MATCH: 'exact_solver_match',
+  CHART: 'chart',
+  DETERMINISTIC_RULE: 'deterministic_rule',
+  GENERAL_COACHING: 'general_coaching',
+});
+
+export function classifyEvidenceBasis(record = {}) {
+  if (!record || typeof record !== 'object') return EVIDENCE_BASIS.GENERAL_COACHING;
+  const explicit = String(record.evidenceBasis ?? record.evidence_basis ?? '').trim().toLowerCase();
+  if (Object.values(EVIDENCE_BASIS).includes(explicit)) return explicit;
+
+  const solverSource = String(record.solverSource ?? record.solver_source ?? '').trim().toLowerCase();
+  const sourceClass = String(record.sourceClassification ?? record.source_classification ?? record.dataQuality ?? '').trim().toUpperCase();
+  const truthLevel = String(record.truthLevel ?? record.truth_level ?? '').trim().toLowerCase();
+  const sourceSystem = String(record.sourceSystem ?? record.source_system ?? '').trim().toLowerCase();
+  const leakType = String(record.leakType ?? record.leak_type ?? '').trim().toLowerCase();
+
+  if (
+    sourceClass === 'CHART_AUDITED'
+    || truthLevel === 'deterministic_icm_model'
+    || /\b(memory_charts_gold|chart|push_fold_chart)\b/i.test(solverSource)
+  ) {
+    return EVIDENCE_BASIS.CHART;
+  }
+
+  if (
+    record.solverVerified === true
+    || record.solver_verified === true
+    || ['SOLVER_EXACT', 'SOLVER_AGGREGATED', 'SOLVER_DERIVED_RESPONSE'].includes(sourceClass)
+    || ['solver_engine', 'training_solver'].includes(sourceSystem)
+    || /^solver_(?:club_arena|training|external_upload|self_reported_live)_/.test(leakType)
+  ) {
+    return EVIDENCE_BASIS.EXACT_SOLVER_MATCH;
+  }
+
+  if (
+    ['ca_hand_facts', 'live_play'].includes(sourceSystem)
+    || truthLevel === 'deterministic_heuristic_reference'
+    || Object.prototype.hasOwnProperty.call(LEAK_PATTERNS, leakType)
+    || /^(?:cash|mtt|tournament)_/.test(leakType)
+  ) {
+    return EVIDENCE_BASIS.DETERMINISTIC_RULE;
+  }
+
+  return EVIDENCE_BASIS.GENERAL_COACHING;
+}
+
+const NON_SCHEMA_ENRICHMENT_KEYS = new Set([
+  '_sample_count',
+  '_mistake_count',
+  '_ev_measured_count',
+  '_mistaken_hand_external_ids',
+  'rule_version',
+  'ruleVersion',
+  'evidence_basis',
+  'evidenceBasis',
+  'takeaway',
+  'representative_hand_id',
+  'representativeHandId',
+  'representative_decision',
+  'representativeDecision',
+  'sample_hand_ids',
+  'spot_type',
+  'hero_position',
+  'street',
+  'format_scope',
+  'stack_bucket',
+  'optimal_range',
+  'practice_target',
+  'sample_counts',
+]);
+
 export function toUserLeakPersistenceRow(leak = {}, options = {}) {
   const userId = options.userId || leak.user_id;
   const leakType = leakTypeSlug(leak.leak_type || leak.leak_name || leak.situation_class);
@@ -134,7 +209,11 @@ export function toUserLeakPersistenceRow(leak = {}, options = {}) {
     0,
     1,
   );
-  const { _sample_count, _mistake_count, _ev_measured_count, ...publicFields } = leak;
+  const publicFields = {};
+  for (const [key, value] of Object.entries(leak || {})) {
+    if (key.startsWith('_') || NON_SCHEMA_ENRICHMENT_KEYS.has(key)) continue;
+    publicFields[key] = value;
+  }
 
   return {
     ...publicFields,
@@ -152,10 +231,38 @@ export function toUserLeakPersistenceRow(leak = {}, options = {}) {
   };
 }
 
-export function generateLeakFix(leak) {
-  const drill = leak.recommended_drill ? ` Open the ${leak.recommended_drill} drill` : ' Open the matching focused drill';
-  if (['training_solver', 'solver_engine'].includes(leak.source_system)) {
-    return `Review the exact ${String(leak.leak_category || 'solver').toLowerCase()} node, then repeat it until your solver-graded error rate is below ${leak.optimal_frequency}%.${drill} and compare every mixed action to its range frequency before answering.`;
+const PATTERN_NEXT_TIME_ACTION = Object.freeze({
+  overfolding_preflop: 'Widen your unopened raise-first-in ranges in late position (CO, BTN, SB) with suited connectors, suited aces, and broadways.',
+  overlimping: 'Eliminate open-limping; enter unopened pots with a standard raise or fold marginal holdings.',
+  cold_call_too_wide: 'Convert flat-calls in non-blind seats into 3-bets or folds so you are not playing capped ranges out of position.',
+  three_bet_too_tight: 'Add polarized 3-bet bluffs (suited wheel aces and suited broadway blockers) alongside your value 3-bets.',
+  three_bet_too_loose: 'Tighten light 3-bets against early-position opens and preserve suited playability when defending.',
+  overfolding_to_cbets: 'Defend more flops with backdoor equity, middle/bottom pairs, and high-card floats or check-raises instead of folding to small c-bets.',
+  cbet_too_often: 'Protect your checking range on wet or low-connected boards by checking back medium-strength hands and low-equity air.',
+  cbet_too_rarely: 'Continuation-bet higher frequencies with small sizing on dry high-card and paired boards where your range holds the nut advantage.',
+  check_raise_too_rare: 'Build a balanced flop check-raise range combining strong value hands with high-equity combo draws and backdoor blockers.',
+  turn_barrel_too_rare: 'Continue barreling turn cards that improve your range equity or add flush/straight outs instead of checking back and surrendering initiative.',
+  turn_overfold: 'Defend turn barrels with top/middle pairs, combo draws, and key blockers so opponents cannot profitably double-barrel any two cards.',
+  lack_of_river_bluffs: 'Select missed draws with strong nut blockers to fire river bluffs at a balanced ratio alongside your river value bets.',
+  river_overfold: 'Call down river bets with bluff-catchers that block villain value combos and unblock missed draws to meet minimum defense frequency.',
+  missing_thin_value: 'Bet medium-strength made hands for thin value on safe rivers when villain range is capped after checking.',
+  passive_postflop: 'Shift from passive calling to proactive betting and raising when you hold range or nut advantage across postflop streets.',
+  over_aggressive_postflop: 'Exercise pot control with medium-strength hands by checking back or calling instead of bloating pots against uncapped ranges.',
+});
+
+export function generateLeakFix(leak = {}) {
+  const rawType = String(leak.leak_type ?? leak.leakType ?? '').trim().toLowerCase();
+  const normalizedType = rawType
+    .replace(/^(?:cash|mtt|tournament)_(?:(?:short|mid|deep|unknown)_)?/, '')
+    .replace(/_facts$/, '');
+  const recommended = leak.recommended_drill ?? leak.recommendedDrill ?? LEAK_PATTERNS[normalizedType]?.recommendedDrill ?? null;
+  const drill = recommended ? ` Open the ${recommended} drill` : ' Open the matching focused drill';
+  if (['training_solver', 'solver_engine'].includes(leak.source_system ?? leak.sourceSystem)) {
+    return `Review the exact ${String(leak.leak_category ?? leak.leakCategory ?? 'solver').toLowerCase()} node, then repeat it until your solver-graded error rate is below ${leak.optimal_frequency ?? leak.optimalFrequency ?? 15}%.${drill} and compare every mixed action to its range frequency before answering.`;
+  }
+  const specificAction = PATTERN_NEXT_TIME_ACTION[rawType] || PATTERN_NEXT_TIME_ACTION[normalizedType];
+  if (specificAction) {
+    return `${specificAction}${drill}, then rerun detection after a fresh sample to confirm the adjustment.`;
   }
   return `Review the opportunities behind this frequency before changing your strategy.${drill}, then rerun detection after a fresh sample to confirm the adjustment.`;
 }
@@ -163,112 +270,224 @@ export function generateLeakFix(leak) {
 export const LEAK_PATTERNS = {
   overfolding_preflop: {
     category: 'preflop',
+    street: 'preflop',
+    spotType: 'rfi',
     name: 'Overfolding Preflop',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'handsPlayed',
+    minSamples: 501,
+    recommendedDrill: 'cash-001',
     check: (stats) => stats.vpip < 18 && stats.handsPlayed > 500,
     optimalRange: [22, 28],
     evImpact: 0.08,
   },
   overlimping: {
     category: 'preflop',
+    street: 'preflop',
+    spotType: 'rfi',
     name: 'Too Much Limping',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'handsPlayed',
+    minSamples: 201,
+    recommendedDrill: 'cash-001',
     check: (stats) => stats.limpFreq > 8 && stats.handsPlayed > 200,
     optimalRange: [0, 3],
     evImpact: 0.12,
   },
   cold_call_too_wide: {
     category: 'preflop',
+    street: 'preflop',
+    spotType: 'cold_call',
     name: 'Cold Calling Too Wide',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'handsPlayed',
+    minSamples: 301,
+    recommendedDrill: 'cash-003',
     check: (stats) => stats.coldCallFreq > 12 && stats.handsPlayed > 300,
     optimalRange: [6, 10],
     evImpact: 0.06,
   },
   three_bet_too_tight: {
     category: 'preflop',
+    street: 'preflop',
+    spotType: 'vs3bet',
     name: '3-Betting Too Tight',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'handsPlayed',
+    minSamples: 501,
+    recommendedDrill: 'cash-001',
     check: (stats) => stats.threeBetFreq < 5 && stats.handsPlayed > 500,
     optimalRange: [7, 10],
     evImpact: 0.05,
   },
   three_bet_too_loose: {
     category: 'preflop',
+    street: 'preflop',
+    spotType: 'vs3bet',
     name: '3-Betting Too Loose',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'handsPlayed',
+    minSamples: 501,
+    recommendedDrill: 'cash-001',
     check: (stats) => stats.threeBetFreq > 14 && stats.handsPlayed > 500,
     optimalRange: [7, 10],
     evImpact: 0.07,
   },
   overfolding_to_cbets: {
     category: 'flop',
+    street: 'flop',
+    spotType: 'cbet_defense',
     name: 'Overfolding to C-Bets',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'cbetsFaced',
+    minSamples: 51,
+    recommendedDrill: 'cash-003',
     check: (stats) => stats.foldToCbet > 55 && stats.cbetsFaced > 50,
     optimalRange: [40, 50],
     evImpact: 0.14,
   },
   cbet_too_often: {
     category: 'flop',
+    street: 'flop',
+    spotType: 'cbet',
     name: 'C-Betting Too Often',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'cbetOpps',
+    minSamples: 51,
+    recommendedDrill: 'cash-002',
     check: (stats) => stats.cbetFreq > 75 && stats.cbetOpps > 50,
     optimalRange: [55, 65],
     evImpact: 0.09,
   },
   cbet_too_rarely: {
     category: 'flop',
+    street: 'flop',
+    spotType: 'cbet',
     name: 'C-Betting Too Rarely',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'cbetOpps',
+    minSamples: 51,
+    recommendedDrill: 'cash-002',
     check: (stats) => stats.cbetFreq < 40 && stats.cbetOpps > 50,
     optimalRange: [55, 65],
     evImpact: 0.11,
   },
   check_raise_too_rare: {
     category: 'flop',
+    street: 'flop',
+    spotType: 'check_raise',
     name: 'Check-Raise Frequency Too Low',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'checkRaiseOpps',
+    minSamples: 31,
+    recommendedDrill: 'cash-014',
     check: (stats) => stats.checkRaiseFreq < 5 && stats.checkRaiseOpps > 30,
     optimalRange: [8, 12],
     evImpact: 0.06,
   },
   turn_barrel_too_rare: {
     category: 'turn',
+    street: 'turn',
+    spotType: 'turn_barrel',
     name: 'Not Barreling Turn Enough',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'turnBarrelOpps',
+    minSamples: 31,
+    recommendedDrill: 'cash-004',
     check: (stats) => stats.turnBarrelFreq < 45 && stats.turnBarrelOpps > 30,
     optimalRange: [55, 65],
     evImpact: 0.10,
   },
   turn_overfold: {
     category: 'turn',
+    street: 'turn',
+    spotType: 'turn_defense',
     name: 'Overfolding on Turn',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'turnFaced',
+    minSamples: 41,
+    recommendedDrill: 'cash-003',
     check: (stats) => stats.turnFoldFreq > 50 && stats.turnFaced > 40,
     optimalRange: [35, 45],
     evImpact: 0.08,
   },
   lack_of_river_bluffs: {
     category: 'river',
+    street: 'river',
+    spotType: 'river_bluff',
     name: 'Not Enough River Bluffs',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'riverBluffOpps',
+    minSamples: 21,
+    recommendedDrill: 'cash-012',
     check: (stats) => stats.riverBluffFreq < 8 && stats.riverBluffOpps > 20,
     optimalRange: [12, 18],
     evImpact: 0.08,
   },
   river_overfold: {
     category: 'river',
+    street: 'river',
+    spotType: 'river_bluff_catcher',
     name: 'Overfolding on River',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'riverFaced',
+    minSamples: 31,
+    recommendedDrill: 'cash-005',
     check: (stats) => stats.riverFoldFreq > 55 && stats.riverFaced > 30,
     optimalRange: [40, 50],
     evImpact: 0.12,
   },
   missing_thin_value: {
     category: 'river',
+    street: 'river',
+    spotType: 'river_value',
     name: 'Missing Thin Value Bets',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'riverBetOpps',
+    minSamples: 26,
+    recommendedDrill: 'cash-004',
     check: (stats) => stats.riverValueBetFreq < 40 && stats.riverBetOpps > 25,
     optimalRange: [50, 60],
     evImpact: 0.07,
   },
   passive_postflop: {
     category: 'postflop',
+    street: 'flop',
+    spotType: 'postflop_aggression',
     name: 'Too Passive Postflop',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'postflopActions',
+    minSamples: 40,
+    recommendedDrill: 'cash-004',
     check: (stats) => stats.aggFactor < 1.5 && stats.postflopActions >= 40,
     optimalRange: [2.0, 3.5],
     evImpact: 0.09,
   },
   over_aggressive_postflop: {
     category: 'postflop',
+    street: 'flop',
+    spotType: 'pot_control',
     name: 'Over-Aggressive Postflop',
+    ruleVersion: DETECTOR_RULE_VERSION,
+    evidenceBasis: EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    opportunityKey: 'postflopActions',
+    minSamples: 40,
+    recommendedDrill: 'cash-024',
     check: (stats) => stats.aggFactor > 5.0 && stats.postflopActions >= 40,
     optimalRange: [2.0, 3.5],
     evImpact: 0.08,
@@ -395,7 +614,7 @@ const SUPPORTED_NLH_VARIANTS = new Set([
  */
 export function classifyHandAuditEligibility(row, { requireExplicitVariant = false } = {}) {
   const summary = parseHandSummary(row?.summary) || {};
-  const rawVariant = String(row?.game_variant ?? summary?.variant ?? row?.gameType ?? '').trim();
+  const rawVariant = String(row?.game_variant ?? row?.gameVariant ?? summary?.variant ?? row?.gameType ?? '').trim();
   const compactVariant = rawVariant.toLowerCase().replace(/[^a-z0-9+]/g, '');
   const alphaVariant = rawVariant.toLowerCase().replace(/[^a-z]/g, '');
   const isTournament = Boolean(
@@ -732,14 +951,20 @@ export function classifyLeakStatus(existingLeak, currentValue, optimalRange, opt
 export function generateExplanation(leakType, currentValue, optimalRange) {
   const [optMin, optMax] = optimalRange;
   const explanations = {
+    overfolding_preflop: `Your VPIP of ${currentValue}% is below the optimal ${optMin}-${optMax}%. You're folding too many playable hands preflop.`,
+    overlimping: `Your open-limp frequency is ${currentValue}%, above the optimal ${optMin}-${optMax}%. Enter unopened pots with a raise or fold.`,
+    cold_call_too_wide: `You're cold-calling ${currentValue}% of preflop raises, above the optimal ${optMin}-${optMax}%. Flatting too wide out of the blinds leaves your range capped.`,
+    three_bet_too_tight: `Your 3-bet frequency of ${currentValue}% is too passive. The optimal range is ${optMin}-${optMax}%.`,
+    three_bet_too_loose: `Your 3-bet frequency of ${currentValue}% exceeds the optimal ${optMin}-${optMax}% range, exposing you to 4-bets and trap calls with dominated hands.`,
     overfolding_to_cbets: `You're folding to c-bets ${currentValue}% of the time, but GTO recommends ${optMin}-${optMax}%. This makes you exploitable and costs EV.`,
-    lack_of_river_bluffs: `Your river bluff frequency is ${currentValue}%, well below the optimal ${optMin}-${optMax}%. Opponents can fold all bluff-catchers against you.`,
     cbet_too_often: `You're c-betting ${currentValue}% of the time, above the optimal ${optMin}-${optMax}%. This makes your checking range too weak.`,
     cbet_too_rarely: `You're only c-betting ${currentValue}% of flops, below the optimal ${optMin}-${optMax}%. You're missing value with strong hands.`,
-    three_bet_too_tight: `Your 3-bet frequency of ${currentValue}% is too passive. The optimal range is ${optMin}-${optMax}%.`,
+    check_raise_too_rare: `Your flop check-raise frequency is ${currentValue}%, below the optimal ${optMin}-${optMax}%. Opponents can c-bet wide against you without fear of being raised.`,
     turn_barrel_too_rare: `You're only barreling the turn ${currentValue}% when you should be at ${optMin}-${optMax}%.`,
+    turn_overfold: `You're folding ${currentValue}% when facing a turn bet, above the optimal ${optMin}-${optMax}%. Opponents can profitably double-barrel bluff against you.`,
+    lack_of_river_bluffs: `Your river bluff frequency is ${currentValue}%, well below the optimal ${optMin}-${optMax}%. Opponents can fold all bluff-catchers against you.`,
     river_overfold: `You're folding ${currentValue}% on the river, much higher than the optimal ${optMin}-${optMax}%.`,
-    overfolding_preflop: `Your VPIP of ${currentValue}% is below the optimal ${optMin}-${optMax}%. You're folding too many playable hands preflop.`,
+    missing_thin_value: `Your river value-bet frequency is ${currentValue}%, below the optimal ${optMin}-${optMax}%. Checking back medium-strength made hands leaves thin value uncollected.`,
     passive_postflop: `Your postflop aggression factor of ${currentValue} is below the optimal ${optMin}-${optMax} range. Calling too often instead of betting or raising concedes initiative and value.`,
     over_aggressive_postflop: `Your postflop aggression factor of ${currentValue} exceeds the optimal ${optMin}-${optMax} range. Over-betting and raising thin ranges exposes you to trap calls and check-raises.`,
   };
@@ -898,21 +1123,66 @@ export function checkHandForLeak(hand, leakType) {
 
 export function getWhyLeakingEV(leakType) {
   const reasons = {
+    overfolding_preflop: "Folding too many playable hands preflop forfeits positive-EV opens in late position and lets opponents steal your blinds uncontested.",
+    overlimping: "Limping is almost always inferior to raising or folding. You build dead money for opponents and play weaker postflop without initiative.",
+    cold_call_too_wide: "Cold-calling too wide preflop puts you in multiway or out-of-position pots with a capped range that struggles to realize equity against squeezes and barrels.",
+    three_bet_too_tight: "A low 3-bet frequency makes you predictable. Opponents know your 3-bets are only premium hands and can exploit by folding or 4-betting more accurately.",
+    three_bet_too_loose: "3-betting too wide bloats pots with marginal holdings that perform poorly against 4-bets and in-position callers.",
     overfolding_to_cbets: "When you fold too often to c-bets, aggressive opponents can profitably bluff you with any two cards. You're giving up equity with hands that should be calling.",
-    lack_of_river_bluffs: "Without enough bluffs in your river betting/raising range, observant opponents can fold all their bluff-catchers against you, knowing you're only betting for value.",
     cbet_too_often: "When you c-bet too frequently, opponents can profitably check-raise or float you with a wide range. Your checking range becomes weak and exploitable.",
     cbet_too_rarely: "By not c-betting enough, you miss value with strong hands and allow opponents to realize equity cheaply with draws and weak pairs.",
-    three_bet_too_tight: "A low 3-bet frequency makes you predictable. Opponents know your 3-bets are only premium hands and can exploit by folding or 4-betting more accurately.",
+    check_raise_too_rare: "Without a sufficient check-raise threat, in-position aggressors can continuation-bet small with their entire range and realize equity for free.",
     turn_barrel_too_rare: "Not barreling the turn enough lets opponents see cheap rivers and realize equity with draws. Aggressive turn play denies equity and builds pots with value hands.",
+    turn_overfold: "Folding too often to turn barrels makes every opponent double-barrel bluff automatically profitable and surrenders pots where you hold reasonable equity.",
+    lack_of_river_bluffs: "Without enough bluffs in your river betting/raising range, observant opponents can fold all their bluff-catchers against you, knowing you're only betting for value.",
     river_overfold: "Folding too much on the river means you're being bluffed profitably. Opponents can bet any two cards knowing you'll fold the majority of your range.",
-    overlimping: "Limping is almost always inferior to raising or folding. You build dead money for opponents and play weaker postflop without initiative.",
+    missing_thin_value: "Checking back medium-strength made hands on the river against capped ranges leaves direct value uncollected in pots you have already won.",
     passive_postflop: "Calling too often postflop without raising lets opponents realize equity cheaply and miss thin value with strong holdings.",
     over_aggressive_postflop: "Excessive postflop betting and raising unbalances your value-to-bluff ratio and lets observant opponents trap you with strong hands.",
   };
   return reasons[leakType] || "This pattern deviates significantly from GTO play and allows opponents to exploit your tendencies.";
 }
 
+export function buildLeakTakeaway(leak = {}) {
+  const rawType = String(leak.leak_type ?? leak.leakType ?? '').trim().toLowerCase();
+  const normalizedType = rawType
+    .replace(/^(?:cash|mtt|tournament)_(?:(?:short|mid|deep|unknown)_)?/, '')
+    .replace(/_facts$/, '');
+  const pattern = LEAK_PATTERNS[rawType] || LEAK_PATTERNS[normalizedType] || null;
+  const street = String(leak.street ?? leak.leak_category ?? leak.leakCategory ?? pattern?.street ?? pattern?.category ?? 'postflop').trim();
+  const position = String(leak.hero_position ?? leak.heroPosition ?? 'Any').trim();
+  const format = String(leak.format_scope ?? leak.formatScope ?? 'NLH').trim();
+  const currentFreq = finiteNumber(leak.current_frequency ?? leak.currentFrequency);
+  const optimalFreq = finiteNumber(leak.optimal_frequency ?? leak.optimalFrequency);
+  const whatYouAreDoing = String(
+    leak.explanation
+    || (currentFreq !== null && optimalFreq !== null
+      ? `Observed frequency ${currentFreq}% vs ${optimalFreq}% target in ${leak.situation_class || leak.title || rawType || 'this spot'}.`
+      : (leak.situation_class || leak.title || 'Recurring strategic deviation detected.')),
+  );
+  const where = [format, street, position !== 'Any' ? position : null, leak.spot_type ?? leak.spotType ?? pattern?.spotType ?? null]
+    .filter(Boolean)
+    .join(' · ');
+  const whatToDoNextTime = String(
+    PATTERN_NEXT_TIME_ACTION[rawType]
+    || PATTERN_NEXT_TIME_ACTION[normalizedType]
+    || leak.suggested_fix
+    || leak.suggestedFix
+    || generateLeakFix(leak),
+  );
+  return {
+    whatYouAreDoing,
+    where,
+    whatToDoNextTime,
+    summary: `What you are doing: ${whatYouAreDoing} Where: ${where}. Next time: ${whatToDoNextTime}`,
+  };
+}
+
 export default {
+  DETECTOR_RULE_VERSION,
+  EVIDENCE_BASIS,
+  classifyEvidenceBasis,
+  buildLeakTakeaway,
   confidenceScore,
   confidenceTier,
   leakTypeSlug,

@@ -145,7 +145,8 @@ test('coaching API authenticates server-side and supports only bounded explicit 
 test('Leak Finder wires the complete coaching and exact-hand continuity workspace', () => {
   const page = read('pages/hub/personal-assistant/leaks.js');
   const workspace = read('src/components/personal-assistant/CoachingWorkspace.jsx');
-  assert.match(page, /value: 'coaching', label: 'Coaching'/);
+  assert.match(page, /value: 'plan', label: 'Today \/ Plan'/);
+  assert.match(page, /value: 'progress', label: 'Progress'/);
   assert.match(page, /<CoachingWorkspace/);
   assert.match(page, /onOpenHandReview=\{handleOpenHandReview\}/);
   assert.match(page, /onReviewExample=\{handleReviewExample\}/);
