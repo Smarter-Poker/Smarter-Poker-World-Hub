@@ -39,7 +39,7 @@ export default function BankrollHelp({ title, section, faqs = [], children, onTu
   const trigger = useRef(null);
   const id = useId();
   const close = () => dialog.current?.close();
-  const steps = guides[section] || [`Review your ${title.toLowerCase()} here. Use the top actions to add supported records or return to the dashboard.`];
+  const steps = guides[section] || (children ? [] : [`Review your ${title.toLowerCase()} here. Use the top actions to add supported records or return to the dashboard.`]);
   return (
     <>
       <button ref={trigger} type="button" className={styles.help} aria-label={`Help For ${title}`} aria-haspopup="dialog" aria-controls={id}

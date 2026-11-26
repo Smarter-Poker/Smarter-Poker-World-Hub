@@ -1,26 +1,5 @@
-/**
- * Poker Odds Calculator — /hub/poker-tools
- * ══════════════════════════════════════════
- * Hero + up to 6 Villains (3 in PLO5/PLO6), board, dead cards, presets and a
- * full 52-card picker. Equity comes from src/lib/poker/pokerOddsEngine (Monte
- * Carlo, 10,000 runs); this page only collects cards and shows the answer.
- *
- * 2026-10-11 (Dan): "Odds calculator needs to be optimized for mobile and
- * updated UI." Rebuilt as one stacked, always-displayed console:
- *   - 393px / 360px first: 16px side gutters (wider when a notch needs it),
- *     no sideways scroll, every control 44px or larger, the full deck shown
- *     at once in a 7-column grid on a phone and 13 columns from 769px up.
- *   - Each seat is a panel with its equity, a bar and its win / tie split on
- *     the panel itself, so the answer is beside the cards that produced it.
- *   - Smarter.Poker palette only: black, blue, teal, silver and white from
- *     the Odds Calculator world tokens (src/config/worldMenuNavigation.js),
- *     one hairline frame per surface. The four suit colours are the deck's
- *     own four-colour art. No gold rails, no orange/purple/pink seat badges.
- *   - No page bottom padding: pages/_app.js owns the footer spacer, and the
- *     approved global header comes from the app root for this route.
- * The state, slot advance and calculation code are unchanged.
- */
-import { useState, useCallback, useMemo, useEffect } from 'react';
+/** Mobile odds console for Hold’em, Omaha, Stud and Razz. */
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -30,13 +9,13 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import {
-    calculateEquity, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
+    makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
 import { getWorldMenuById, getWorldMenuStyleVariables } from '../../src/config/worldMenuNavigation';
-import useModalHistory from '../../src/hooks/useModalHistory';
+import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
 import {
-    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2, Layers, Code, Check, Share2,
+    X, UserPlus, Crown, RotateCcw, Layers, Code, Check, Share2,
 } from 'lucide-react';
 import {
     parseCardListFromParam,
@@ -55,7 +34,7 @@ const ODDS_CALCULATOR_FAQS = [
     {
         question: 'How Does The Smarter.Poker Odds Calculator Compute Equity?',
         answer:
-            'The Calculator Runs High-Precision Monte Carlo Simulations Across 10,000 Iterations To Evaluate Exact Win, Tie, And Split-Pot Equity For Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud, And Razz Against Up To 6 Opponents Simultaneously.',
+            'With fixed hands, the calculator counts every possible board from the flop or turn. For larger runout sets it estimates equity from 10,000 random deals. Each tied player receives an equal share of the pot.',
     },
     {
         question: 'Can I Factor Dead Cards Or Known Discards Into The Calculation?',
@@ -81,7 +60,7 @@ const ODDS_CALCULATOR_FAQS = [
 
 const ODDS_CALCULATOR_HOW_TO = {
     name: 'How To Calculate Poker Odds And Hand Equity',
-    description: "Step-by-step instructions for calculating real-time win, tie, and split-pot equity for Texas Hold'em and Omaha on Smarter.Poker.",
+    description: "Step-by-step instructions for calculating win, tie, and split-pot equity for Texas Hold'em and Omaha on Smarter.Poker.",
     steps: [
         {
             name: 'Select Your Poker Game Variant',
@@ -138,7 +117,7 @@ const THEME_VARS = getWorldMenuStyleVariables(getWorldMenuById('odds-calculator'
 /* Custom deck face images: /cards/{suit}_{rank}.png */
 function getCardImage(rank, suit) {
     const r = rank === '10' ? '10' : rank.toLowerCase();
-    return `/cards/${suit}_${r}.png`;
+    return `/hub/club-arena/cards/4color/${suit}_${r}.webp`;
 }
 
 const cardName = (card) => `${card.rank} Of ${SUIT_NAMES[card.suit] || card.suit}`;
@@ -176,7 +155,13 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
     const [results, setResults] = useState(null);
     const [calculating, setCalculating] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState({ type: 'hand', playerIdx: 0 });
-    const [showMenu, setShowMenu] = useState(false);
+    const picker = useRef(null);
+    const [suitFilter, setSuitFilter] = useState('spades');
+    const [error, setError] = useState('');
+    const openPicker = slot => {
+        setSelectedSlot(slot);
+        if (!picker.current.open) picker.current.showModal();
+    };
     const [showPresets, setShowPresets] = useState(false);
     const [showEmbedModal, setShowEmbedModal] = useState(false);
     const [hasCopiedEmbed, setHasCopiedEmbed] = useState(false);
@@ -189,7 +174,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
     useEffect(() => {
         if (!router.isReady) return;
         const q = router.query || {};
-        const qGame = typeof q.game === 'string' && GAME_CONFIGS[q.game] ? q.game : null;
+        const qGame = typeof q.game === 'string' && Object.hasOwn(GAME_CONFIGS, q.game) ? q.game : null;
         const handKeys = Object.keys(q)
             .filter(k => /^h\d+$/.test(k))
             .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
@@ -197,10 +182,10 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
             .filter(k => /^hand\d+$/.test(k))
             .sort((a, b) => Number(a.slice(4)) - Number(b.slice(4)));
         const effectiveHandKeys = handKeys.length > 0 ? handKeys : aliasHandKeys;
-        if (!qGame && effectiveHandKeys.length === 0 && !q.board) return;
+        if (!qGame && effectiveHandKeys.length === 0 && !q.board && !q.dead) return;
 
-        const targetGame = qGame || game;
-        if (qGame && qGame !== game) setGame(qGame);
+        const targetGame = qGame || 'nlhe';
+        setGame(targetGame);
         const holeLimit = GAME_CONFIGS[targetGame]?.holeCards || 2;
         const seen = new Set();
         const dedup = (cards, maxLen) => {
@@ -214,57 +199,37 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
             return list;
         };
 
-        if (effectiveHandKeys.length > 0) {
-            const parsedHands = effectiveHandKeys.map(k => dedup(parseCardListFromParam(String(q[k] || '')), holeLimit));
+        {
+            const parsedHands = effectiveHandKeys.slice(0, holeLimit === 5 || holeLimit === 6 ? 4 : 7).map(k => dedup(parseCardListFromParam(String(q[k] || '')), holeLimit));
             while (parsedHands.length < 2) parsedHands.push([]);
             setHands(parsedHands);
         }
-        if (typeof q.board === 'string') {
-            setBoard(dedup(parseCardListFromParam(q.board), 5));
-        }
-        if (typeof q.dead === 'string') {
-            setDeadCards(dedup(parseCardListFromParam(q.dead), 12));
-        }
-    }, [router.isReady]);
+        setBoard(GAME_CONFIGS[targetGame].hasBoard ? dedup(parseCardListFromParam(q.board), 5) : []);
+        setDeadCards(dedup(parseCardListFromParam(q.dead), 52));
+        setSelectedSlot({ type: 'hand', playerIdx: 0 });
+    }, [router.isReady, router.asPath]);
 
-    const shareHandPermalink = useCallback(() => {
-        const params = new URLSearchParams();
-        params.set('game', game);
-        hands.forEach((h, idx) => {
-            const serialized = buildCardListParam(h);
-            if (serialized) params.set(`h${idx}`, serialized);
-        });
-        const boardParam = buildCardListParam(board);
-        if (boardParam) params.set('board', boardParam);
-        const deadParam = buildCardListParam(deadCards);
-        if (deadParam) params.set('dead', deadParam);
-        const shareUrl = `${effectiveCanonical}?${params.toString()}`;
-        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(shareUrl);
-            setHasCopiedShareUrl(true);
-            setTimeout(() => setHasCopiedShareUrl(false), 2500);
-        }
-        return shareUrl;
+    const shareUrl = useMemo(() => {
+        const params = new URLSearchParams({ game });
+        hands.forEach((hand, index) => params.set(`h${index}`, buildCardListParam(hand)));
+        if (board.length) params.set('board', buildCardListParam(board));
+        if (deadCards.length) params.set('dead', buildCardListParam(deadCards));
+        return `${effectiveCanonical}?${params}`;
     }, [game, hands, board, deadCards, effectiveCanonical]);
 
-    const copySpotSummary = useCallback(() => {
-        const params = new URLSearchParams();
-        params.set('game', game);
-        hands.forEach((h, idx) => {
-            const serialized = buildCardListParam(h);
-            if (serialized) params.set(`h${idx}`, serialized);
-        });
-        const boardParam = buildCardListParam(board);
-        if (boardParam) params.set('board', boardParam);
-        const shareUrl = `${effectiveCanonical}?${params.toString()}`;
-        const summary = buildOddsSpotSummary({ game, hands, board, results, url: shareUrl });
-        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(summary);
-            setHasCopiedSpotSummary(true);
-            setTimeout(() => setHasCopiedSpotSummary(false), 2500);
+    async function copyText(text, setCopied) {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+        } catch {
+            setError('Clipboard unavailable. Allow clipboard access and try again.');
         }
-        return summary;
-    }, [game, hands, board, results, effectiveCanonical]);
+    }
+    const shareHandPermalink = () => copyText(shareUrl, setHasCopiedShareUrl);
+    const copySpotSummary = () => copyText(buildOddsSpotSummary({
+        game, hands, board, dead: deadCards, results, url: shareUrl,
+    }), setHasCopiedSpotSummary);
 
     const usedCardIds = useMemo(() => {
         const ids = new Set();
@@ -284,11 +249,12 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
 
     const changeGame = useCallback((g) => {
         setGame(g);
+        setShowPresets(false);
         resetAll();
     }, [resetAll]);
 
     /* Max players: PLO5/PLO6 = 4, everything else = 7 */
-    const maxPlayers = config.holeCards >= 5 ? 4 : 7;
+    const maxPlayers = game === 'plo5' || game === 'plo6' ? 4 : 7;
 
     const addVillain = useCallback(() => {
         if (hands.length < maxPlayers) setHands(h => [...h, []]);
@@ -319,7 +285,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
         if (currentSlot.type === 'hand') {
             const pi = currentSlot.playerIdx;
             if ((hands[pi]?.length || 0) + 1 < config.holeCards) return currentSlot;
-            for (let i = 1; i <= hands.length; i++) {
+            for (let i = 1; i < hands.length; i++) {
                 const nextPi = (pi + i) % hands.length;
                 if ((hands[nextPi]?.length || 0) < config.holeCards) {
                     return { type: 'hand', playerIdx: nextPi };
@@ -357,8 +323,11 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
             setDeadCards(prev => [...prev, card]);
         }
         setResults(null);
-        setSelectedSlot(advanceSlot(selectedSlot));
-    }, [selectedSlot, usedCardIds, config.holeCards, advanceSlot]);
+        const next = advanceSlot(selectedSlot);
+        setSelectedSlot(next);
+        if ((selectedSlot.type === 'board' && board.length === 4) ||
+            (next === selectedSlot && selectedSlot.type === 'hand' && hands[selectedSlot.playerIdx].length + 1 === config.holeCards)) picker.current?.close();
+    }, [selectedSlot, usedCardIds, config.holeCards, advanceSlot, board.length, hands]);
 
     const removeCard = useCallback((type, playerIdx, cardIdx) => {
         if (type === 'hand') {
@@ -379,16 +348,26 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
         setResults(null);
     }, []);
 
-    const runCalculation = useCallback(() => {
-        const validHands = hands.filter(h => h.length === config.holeCards);
-        if (validHands.length < 2) return;
-        setCalculating(true);
-        setTimeout(() => {
-            const res = calculateEquity({ game, hands: validHands, board, dead: deadCards, iterations: 10000 });
-            setResults(res);
+    const required = config.hasBoard ? config.holeCards : 3;
+    const ready = hands.length >= 2 && hands.every(h => h.length >= required);
+    useEffect(() => {
+        setResults(null);
+        setError('');
+        setCalculating(ready);
+        if (!ready) return;
+        const worker = new Worker(new URL('../../src/lib/poker/odds.worker.js', import.meta.url));
+        worker.onmessage = ({ data }) => {
+            setResults(data.results || null);
+            setError(data.error || '');
             setCalculating(false);
-        }, 50);
-    }, [game, hands, board, deadCards, config.holeCards]);
+        };
+        worker.onerror = () => {
+            setError('Calculation failed. Change the spot to retry.');
+            setCalculating(false);
+        };
+        worker.postMessage({ game, hands, board, dead: deadCards, iterations: 10000 });
+        return () => worker.terminate();
+    }, [ready, game, hands, board, deadCards]);
 
     const loadPreset = useCallback((preset) => {
         const parsed = parsePresetHands(preset.hands);
@@ -396,27 +375,17 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
         setBoard([]);
         setDeadCards([]);
         setResults(null);
+        setSelectedSlot({ type: 'board' });
         setShowPresets(false);
     }, []);
-
-    useEffect(() => {
-        const validHands = hands.filter(h => h.length === config.holeCards);
-        if (validHands.length >= 2) runCalculation();
-    }, [hands, board]);
-
-    const validCount = hands.filter(h => h.length === config.holeCards).length;
-
-    /* Settings sheet: the phone back gesture closes it instead of leaving. */
-    useModalHistory(showMenu, () => setShowMenu(false));
 
     const leaderEquity = results ? Math.max(...results.map(r => r.equity)) : null;
     const pickerTarget = !selectedSlot ? null
         : selectedSlot.type === 'hand' ? seatName(selectedSlot.playerIdx)
             : selectedSlot.type === 'board' ? 'The Board' : 'Dead Cards';
-    const statusText = calculating ? 'Calculating Equity'
-        : results ? `${(results[0]?.total || 0).toLocaleString('en-US')} Simulated Runouts`
-            : validCount >= 2 ? 'Ready To Calculate'
-                : `Fill At Least Two Hands (${config.holeCards} Cards Each) To See Equity`;
+    const statusText = error || (calculating ? 'Calculating Equity…'
+        : results ? `${results[0].exact ? 'Exact' : 'Estimated'} Equity · ${results[0].total.toLocaleString('en-US')} Runouts`
+        : `Select ${required}${config.hasBoard ? '' : '–7'} Cards Per Hand`);
 
     const schema = useMemo(() => {
         const canonicalPath = router.pathname === '/tools/poker-odds-calculator' ? '/tools/poker-odds-calculator' : '/hub/poker-tools';
@@ -450,240 +419,11 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                 <main className="odds-main">
                     {/* ─── TITLE ROW ─── */}
                     {!isEmbedMode && (
-                        <div className="odds-titlebar">
-                            <Link href="/hub" aria-label="Back To World Hub" className="odds-back">
-                                <ArrowLeft size={18} aria-hidden />
-                                <span>Hub</span>
-                            </Link>
-                            <div className="odds-titlebar__text">
-                                <h1 className="odds-title">Poker Odds Calculator</h1>
-                                <p className="odds-subtitle">Instant Equity For Six Poker Games</p>
-                            </div>
-                            <button type="button" onClick={() => setShowEmbedModal(true)}
-                                aria-label="Embed Poker Odds Calculator On Your Website"
-                                title="Embed Widget"
-                                className="odds-icon-btn">
-                                <Code size={19} aria-hidden />
-                            </button>
-                            <button type="button" onClick={() => setShowMenu(!showMenu)}
-                                aria-label="Open Settings Menu" aria-expanded={showMenu}
-                                className="odds-icon-btn">
-                                <SlidersHorizontal size={20} aria-hidden />
-                            </button>
-                        </div>
-                    )}
-
-                    {/* ─── GAME SELECTOR ─── */}
-                    <div className="odds-games" role="group" aria-label="Game">
-                        {Object.entries(GAME_CONFIGS || {}).map(([key, cfg]) => (
-                            <button key={key} type="button" onClick={() => changeGame(key)}
-                                className={`odds-game${game === key ? ' is-on' : ''}`}
-                                aria-pressed={game === key}>
-                                {cfg.name}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* ─── BOARD ─── */}
-                    {config.hasBoard && (
-                        <section className={`odds-panel odds-board${selectedSlot?.type === 'board' ? ' is-selected' : ''}`}
-                            onClick={() => setSelectedSlot({ type: 'board' })} aria-label="Board">
-                            <div className="odds-panel__head">
-                                <button type="button" className="odds-seat-name" onClick={e => { e.stopPropagation(); setSelectedSlot({ type: 'board' }); }}>
-                                    <Layers size={15} aria-hidden /> Board
-                                </button>
-                                <span className="odds-panel__meta">{board.length} Of 5</span>
-                            </div>
-                            <div className="odds-slots odds-slots--board">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <CardSlot key={i} card={board[i]} label="The Board"
-                                        active={selectedSlot?.type === 'board' && i === board.length}
-                                        onPick={() => setSelectedSlot({ type: 'board' })}
-                                        onRemove={() => removeCard('board', 0, i)} />
-                                ))}
-                            </div>
-                        </section>
-                    )}
-
-                    {/* ─── SEATS + EQUITY ─── */}
-                    <section id="results" className="odds-seats" aria-label="Hands And Equity"
-                        style={{ '--odds-seat-min': config.holeCards <= 2 ? '160px' : config.holeCards <= 4 ? '240px' : '100%' }}>
-                        {hands.map((hand, pi) => {
-                            const isHero = pi === 0;
-                            const isSelected = selectedSlot?.type === 'hand' && selectedSlot.playerIdx === pi;
-                            const equity = results?.[pi];
-                            const isLeader = equity && leaderEquity !== null && equity.equity === leaderEquity;
-                            const total = equity?.total || 0;
-                            return (
-                                <div key={pi}
-                                    className={`odds-panel odds-seat${isSelected ? ' is-selected' : ''}${isHero ? ' is-hero' : ''}`}
-                                    onClick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}>
-                                    <div className="odds-panel__head">
-                                        <button type="button" className="odds-seat-name"
-                                            onClick={e => { e.stopPropagation(); setSelectedSlot({ type: 'hand', playerIdx: pi }); }}
-                                            aria-label={`Pick Cards For ${seatName(pi)}`}>
-                                            {isHero && <Crown size={14} aria-hidden />}
-                                            {seatName(pi)}
-                                        </button>
-                                        {!isHero && hands.length > 2 && (
-                                            <button type="button" onClick={e => { e.stopPropagation(); removePlayer(pi); }}
-                                                aria-label={`Remove Villain ${pi}`} className="odds-icon-btn odds-icon-btn--quiet">
-                                                <X size={16} aria-hidden />
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="odds-equity-row">
-                                        <span className={`odds-equity${isLeader ? ' is-leader' : ''}`}>
-                                            {equity ? pct(equity.equity) : '--'}
-                                        </span>
-                                        <span className="odds-split">
-                                            {equity && total > 0
-                                                ? `Win ${pct((equity.wins / total) * 100)} · Tie ${pct((equity.ties / total) * 100)}`
-                                                : `${hand.length} Of ${config.holeCards} Cards`}
-                                        </span>
-                                    </div>
-                                    <div className="odds-bar" aria-hidden>
-                                        <span style={{ width: equity ? `${Math.max(0, Math.min(100, equity.equity))}%` : '0%' }} />
-                                    </div>
-                                    <div className="odds-slots" style={{ '--odds-slot-count': config.holeCards }}>
-                                        {Array.from({ length: config.holeCards }).map((_, ci) => (
-                                            <CardSlot key={ci} card={hand[ci]} label={seatName(pi)}
-                                                active={isSelected && ci === hand.length}
-                                                onPick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}
-                                                onRemove={() => removeCard('hand', pi, ci)} />
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        {hands.length < maxPlayers && (
-                            <button type="button" className="odds-add" onClick={addVillain} aria-label="Add Villain">
-                                <UserPlus size={18} aria-hidden /> Add Villain
-                            </button>
-                        )}
-                    </section>
-
-                    {/* ─── STATUS + ACTIONS ─── */}
-                    <p className="odds-status" role="status" aria-live="polite">{statusText}</p>
-                    <div className="odds-actions">
-                        <button type="button" onClick={resetAll} aria-label="Reset To New Hand" className="odds-btn">
-                            <RotateCcw size={15} aria-hidden /> New Hand
-                        </button>
-                        <button type="button" onClick={() => setSelectedSlot({ type: 'dead' })}
-                            className={`odds-btn${selectedSlot?.type === 'dead' ? ' is-on' : ''}`} aria-pressed={selectedSlot?.type === 'dead'}>
-                            Dead Cards{deadCards.length > 0 ? ` (${deadCards.length})` : ''}
-                        </button>
-                        {PRESETS[game] && (
-                            <button type="button" onClick={() => setShowPresets(!showPresets)}
-                                className={`odds-btn${showPresets ? ' is-on' : ''}`} aria-expanded={showPresets}>
-                                Presets
-                            </button>
-                        )}
-                        <button type="button" onClick={shareHandPermalink}
-                            aria-label="Copy Shareable Hand Permalink"
-                            className="odds-btn">
-                            {hasCopiedShareUrl ? <Check size={15} aria-hidden /> : <Share2 size={15} aria-hidden />}
-                            {hasCopiedShareUrl ? 'Link Copied' : 'Share Hand'}
-                        </button>
-                        <button type="button" onClick={copySpotSummary}
-                            aria-label="Copy Spot Summary For Discord Or X"
-                            className="odds-btn">
-                            {hasCopiedSpotSummary ? <Check size={15} aria-hidden /> : <Share2 size={15} aria-hidden />}
-                            {hasCopiedSpotSummary ? 'Spot Copied' : 'Copy Spot Summary'}
-                        </button>
-                        {validCount >= 2 && !results && (
-                            <button type="button" onClick={runCalculation} disabled={calculating}
-                                aria-label={calculating ? 'Calculating Equity' : 'Run Equity Calculation'}
-                                aria-busy={calculating}
-                                className="odds-btn odds-btn--primary">
-                                {calculating ? (
-                                    <>
-                                        <Loader2 size={15} aria-hidden style={{ animation: 'spcalc-spin 0.9s linear infinite' }} />
-                                        Calculating
-                                    </>
-                                ) : (
-                                    <>
-                                        <Play size={15} aria-hidden />
-                                        Calculate
-                                    </>
-                                )}
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Presets */}
-                    {showPresets && PRESETS[game] && (
-                        <div className="odds-presets">
-                            {PRESETS[game].map((p, i) => (
-                                <button key={i} type="button" onClick={() => loadPreset(p)} className="odds-btn odds-btn--chip">
-                                    {p.name}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Dead Cards */}
-                    {deadCards.length > 0 && (
-                        <section className={`odds-panel odds-dead${selectedSlot?.type === 'dead' ? ' is-selected' : ''}`} aria-label="Dead Cards">
-                            <div className="odds-panel__head">
-                                <span className="odds-seat-name odds-seat-name--static">Dead Cards</span>
-                                <span className="odds-panel__meta">Tap A Card To Return It</span>
-                            </div>
-                            <div className="odds-slots odds-slots--dead">
-                                {deadCards.map((c, i) => (
-                                    <CardSlot key={c.id || i} card={c} label="Dead Cards"
-                                        onPick={() => setSelectedSlot({ type: 'dead' })}
-                                        onRemove={() => removeCard('dead', 0, i)} />
-                                ))}
-                            </div>
-                        </section>
-                    )}
-
-                    {/* ═══════════════════════════════════════════
-                        CARD PICKER — the whole deck, always displayed
-                    ═══════════════════════════════════════════ */}
-                    <section className={`odds-panel odds-picker${selectedSlot ? ' is-selected' : ''}`} aria-label="Card Picker">
-                        <div className="odds-panel__head">
-                            <span className="odds-seat-name odds-seat-name--static">
-                                {pickerTarget ? `Pick For ${pickerTarget}` : 'Tap A Hand Above, Then Pick Cards'}
-                            </span>
-                        </div>
-                        {/* The answer stays beside the deck: a compact copy of
-                            every seat's equity, so picking cards never means
-                            scrolling back up to read the result. */}
-                        {results && (
-                            <div className="odds-mini" aria-hidden>
-                                {results.map((r, pi) => (
-                                    <span key={pi} className={`odds-mini__item${r.equity === leaderEquity ? ' is-leader' : ''}`}>
-                                        {seatName(pi)} <strong>{pct(r.equity)}</strong>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        {SUITS.map(suit => (
-                            <div key={suit} className="odds-deck" role="group" aria-label={SUIT_NAMES[suit]}>
-                                {RANKS.map(rank => {
-                                    const card = makeCard(rank, suit);
-                                    const isUsed = card && usedCardIds.has(card.id);
-                                    const isDisabled = !selectedSlot || isUsed;
-                                    return (
-                                        <button key={`${rank}-${suit}`} type="button"
-                                            onClick={() => !isDisabled && selectCard(rank, suit)}
-                                            disabled={isDisabled}
-                                            className={`odds-pick${isUsed ? ' is-used' : ''}`}
-                                            style={{ '--odds-suit': SUIT_COLORS[suit] }}
-                                            aria-label={`${rank} Of ${SUIT_NAMES[suit]}${isUsed ? ', In Use' : ''}`}>
-                                            <span className="odds-pick__rank">{rank}</span>
-                                            <span className="odds-pick__suit" aria-hidden>{SUIT_SYMBOLS[suit]}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ))}
-                    </section>
-
-                    {!isEmbedMode ? (
-                        <>
+                        <BankrollImageHeader art="poker_cash" section="odds" title="Poker Odds Calculator"
+                            helpContent={<>
+                                <p>Tap A Card Slot To Choose From The Arena Deck. Tap A Selected Card To Remove It. Equity Includes Each Player's Share Of Split Pots.</p>
+                                <button className="odds-btn" onClick={() => openPicker(selectedSlot)}>Choose Cards</button>
+                                <button className="odds-btn" onClick={e => { e.currentTarget.closest('dialog').close(); setShowEmbedModal(true); }}>Embed Calculator</button>
                             <section className="odds-panel" aria-label="Next Steps In Smarter.Poker" style={{ padding: '14px 16px' }}>
                                 <div className="odds-panel__head" style={{ marginBottom: 8 }}>
                                     <span className="odds-seat-name odds-seat-name--static">Train And Track Your Game</span>
@@ -719,7 +459,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     Common Preflop Hand Matchups &amp; Equity Odds
                                 </h2>
                                 <p style={{ fontSize: 13, color: 'var(--world-muted, #94AFCC)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                                    Benchmark Preflop Texas Hold&apos;Em Equities Calculated Across 10,000 Monte Carlo Iterations. Use These Standard Probabilities For Fast On-Table Hand Decisions.
+                                    Illustrative Preflop Win And Tie Frequencies. Use The Calculator For Your Exact Suits And Dead Cards.
                                 </p>
                                 <div style={{ overflowX: 'auto', marginBottom: 24 }}>
                                     <table style={{
@@ -727,15 +467,15 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                         borderCollapse: 'collapse',
                                         fontSize: 13,
                                         textAlign: 'left',
-                                        minWidth: 540,
+
                                     }}>
                                         <thead>
                                             <tr style={{ borderBottom: '1px solid var(--world-border, #3D679A)', color: 'var(--world-muted, #94AFCC)' }}>
                                                 <th style={{ padding: '8px 10px', fontWeight: 700 }}>Matchup Type</th>
                                                 <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 1</th>
                                                 <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 2</th>
-                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 1 Equity</th>
-                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 2 Equity</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 1 Win</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 2 Win</th>
                                                 <th style={{ padding: '8px 10px', fontWeight: 700 }}>Tie %</th>
                                             </tr>
                                         </thead>
@@ -746,19 +486,19 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                                 { type: 'Two Overcards Vs Pocket Pair (Coinflip)', h1: 'A♠ K♠', h2: 'Q♦ Q♣', e1: '46.1%', e2: '53.5%', tie: '0.4%' },
                                                 { type: 'Two Overcards Vs Pocket Pair (Offsuit)', h1: 'A♠ K♥', h2: '9♦ 9♣', e1: '45.3%', e2: '54.3%', tie: '0.4%' },
                                                 { type: 'Dominated Kicker (Higher Ace Vs Lower Ace)', h1: 'A♠ K♥', h2: 'A♦ Q♣', e1: '73.5%', e2: '21.6%', tie: '4.9%' },
-                                                { type: 'Pocket Pair Vs One Overcard', h1: 'J♠ J♥', h2: 'A♦ Q♦', e1: '56.8%', e2: '42.8%', tie: '0.4%' },
+                                                { type: 'Pocket Pair Vs Two Overcards', h1: 'J♠ J♥', h2: 'A♦ Q♦', e1: '56.8%', e2: '42.8%', tie: '0.4%' },
                                                 { type: 'Suited Connectors Vs Lower Suited Connectors', h1: '10♠ 9♠', h2: '7♦ 6♦', e1: '62.2%', e2: '37.3%', tie: '0.5%' },
                                             ].map((row, idx) => (
                                                 <tr key={idx} style={{
                                                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                                                     background: idx % 2 === 0 ? 'rgba(255, 255, 255, 0.015)' : 'transparent',
                                                 }}>
-                                                    <td style={{ padding: '10px', color: 'var(--world-text, #F0F7FF)', fontWeight: 600 }}>{row.type}</td>
-                                                    <td style={{ padding: '10px', color: 'var(--world-accent, #4E9CFF)', fontWeight: 700, fontFamily: 'monospace' }}>{row.h1}</td>
-                                                    <td style={{ padding: '10px', color: '#F59E0B', fontWeight: 700, fontFamily: 'monospace' }}>{row.h2}</td>
-                                                    <td style={{ padding: '10px', color: '#10B981', fontWeight: 700 }}>{row.e1}</td>
-                                                    <td style={{ padding: '10px', color: '#EF4444', fontWeight: 700 }}>{row.e2}</td>
-                                                    <td style={{ padding: '10px', color: 'var(--world-muted, #94AFCC)' }}>{row.tie}</td>
+                                                    <td data-label="Matchup" style={{ padding: '10px', color: 'var(--world-text, #F0F7FF)', fontWeight: 600 }}>{row.type}</td>
+                                                    <td data-label="Hand 1" style={{ padding: '10px', color: 'var(--world-accent, #4E9CFF)', fontWeight: 700, fontFamily: 'monospace' }}>{row.h1}</td>
+                                                    <td data-label="Hand 2" style={{ padding: '10px', color: '#c5e5ff', fontWeight: 700, fontFamily: 'monospace' }}>{row.h2}</td>
+                                                    <td data-label="Hand 1 Win" style={{ padding: '10px', color: '#10B981', fontWeight: 700 }}>{row.e1}</td>
+                                                    <td data-label="Hand 2 Win" style={{ padding: '10px', color: '#EF4444', fontWeight: 700 }}>{row.e2}</td>
+                                                    <td data-label="Tie" style={{ padding: '10px', color: 'var(--world-muted, #94AFCC)' }}>{row.tie}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -769,7 +509,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     The Rule Of 2 And 4 For Postflop Equity Estimation
                                 </h2>
                                 <p style={{ fontSize: 13, color: 'var(--world-muted, #94AFCC)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                                    Quick Mental Poker Math Shortcut: On The Flop, Multiply Your Unseen Outs By 4 To Estimate Flop-To-River Win Equity. On The Turn, Multiply Remaining Outs By 2.
+                                    Quick Mental Poker Math Shortcut: On The Flop, Multiply Your Unseen Outs By 4 To Estimate The Chance Of Hitting A Draw. On The Turn, Multiply Remaining Outs By 2.
                                 </p>
                                 <div style={{ overflowX: 'auto' }}>
                                     <table style={{
@@ -777,7 +517,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                         borderCollapse: 'collapse',
                                         fontSize: 13,
                                         textAlign: 'left',
-                                        minWidth: 520,
+
                                     }}>
                                         <thead>
                                             <tr style={{ borderBottom: '1px solid var(--world-border, #3D679A)', color: 'var(--world-muted, #94AFCC)' }}>
@@ -800,10 +540,10 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                                                     background: idx % 2 === 0 ? 'rgba(255, 255, 255, 0.015)' : 'transparent',
                                                 }}>
-                                                    <td style={{ padding: '10px', color: 'var(--world-text, #F0F7FF)', fontWeight: 600 }}>{row.draw}</td>
-                                                    <td style={{ padding: '10px', color: 'var(--world-accent, #4E9CFF)', fontWeight: 700 }}>{row.outs}</td>
-                                                    <td style={{ padding: '10px', color: '#10B981', fontWeight: 700 }}>{row.turn}</td>
-                                                    <td style={{ padding: '10px', color: '#3B82F6', fontWeight: 700 }}>{row.river}</td>
+                                                    <td data-label="Draw" style={{ padding: '10px', color: 'var(--world-text, #F0F7FF)', fontWeight: 600 }}>{row.draw}</td>
+                                                    <td data-label="Outs" style={{ padding: '10px', color: 'var(--world-accent, #4E9CFF)', fontWeight: 700 }}>{row.outs}</td>
+                                                    <td data-label="One Card" style={{ padding: '10px', color: '#10B981', fontWeight: 700 }}>{row.turn}</td>
+                                                    <td data-label="Two Cards" style={{ padding: '10px', color: '#3B82F6', fontWeight: 700 }}>{row.river}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -861,8 +601,187 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                 canonicalUrl="https://smarter.poker/tools/poker-odds-calculator"
                                 markdownUrl="https://smarter.poker/tools/poker-odds-calculator.md"
                             />
-                        </>
-                    ) : (
+                            </>} />
+                    )}
+
+                    {/* ─── GAME SELECTOR ─── */}
+                    <label className="odds-variant">Game
+                        <select value={game} onChange={event => changeGame(event.target.value)}>
+                            {Object.entries(GAME_CONFIGS).map(([key, cfg]) => <option key={key} value={key}>{cfg.name}</option>)}
+                        </select>
+                    </label>
+
+                    {/* ─── BOARD ─── */}
+                    {config.hasBoard && (
+                        <section className={`odds-panel odds-board${selectedSlot?.type === 'board' ? ' is-selected' : ''}`}
+                            onClick={() => openPicker({ type: 'board' })} aria-label="Board">
+                            <div className="odds-panel__head">
+                                <button type="button" className="odds-seat-name" onClick={e => { e.stopPropagation(); openPicker({ type: 'board' }); }}>
+                                    <Layers size={15} aria-hidden /> Board
+                                </button>
+                                <span className="odds-panel__meta">{board.length} Of 5</span>
+                            </div>
+                            <div className="odds-slots odds-slots--board">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <CardSlot key={i} card={board[i]} label="The Board"
+                                        active={selectedSlot?.type === 'board' && i === board.length}
+                                        onPick={() => openPicker({ type: 'board' })}
+                                        onRemove={() => removeCard('board', 0, i)} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* ─── SEATS + EQUITY ─── */}
+                    <section id="results" className="odds-seats" aria-label="Hands And Equity"
+                        style={{ '--odds-seat-min': config.holeCards <= 2 ? '160px' : config.holeCards <= 4 ? '240px' : '100%' }}>
+                        {hands.map((hand, pi) => {
+                            const isHero = pi === 0;
+                            const isSelected = selectedSlot?.type === 'hand' && selectedSlot.playerIdx === pi;
+                            const equity = results?.[pi];
+                            const isLeader = equity && leaderEquity !== null && equity.equity === leaderEquity;
+                            const total = equity?.total || 0;
+                            return (
+                                <div key={pi}
+                                    className={`odds-panel odds-seat${isSelected ? ' is-selected' : ''}${isHero ? ' is-hero' : ''}`}
+                                    onClick={() => openPicker({ type: 'hand', playerIdx: pi })}>
+                                    <div className="odds-panel__head">
+                                        <button type="button" className="odds-seat-name"
+                                            onClick={e => { e.stopPropagation(); openPicker({ type: 'hand', playerIdx: pi }); }}
+                                            aria-label={`Pick Cards For ${seatName(pi)}`}>
+                                            {isHero && <Crown size={14} aria-hidden />}
+                                            {seatName(pi)}
+                                        </button>
+                                        {!isHero && hands.length > 2 && (
+                                            <button type="button" onClick={e => { e.stopPropagation(); removePlayer(pi); }}
+                                                aria-label={`Remove Villain ${pi}`} className="odds-icon-btn odds-icon-btn--quiet">
+                                                <X size={16} aria-hidden />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="odds-equity-row">
+                                        <span className={`odds-equity${isLeader ? ' is-leader' : ''}`}>
+                                            {equity ? pct(equity.equity) : '--'}
+                                        </span>
+                                        <span className="odds-split">
+                                            {equity && total > 0
+                                                ? `Win ${pct((equity.wins / total) * 100)} · Tie ${pct((equity.ties / total) * 100)}`
+                                                : `${hand.length} Of ${config.holeCards} Cards`}
+                                        </span>
+                                    </div>
+                                    <div className="odds-bar" aria-hidden>
+                                        <span style={{ width: equity ? `${Math.max(0, Math.min(100, equity.equity))}%` : '0%' }} />
+                                    </div>
+                                    <div className="odds-slots" style={{ '--odds-slot-count': config.holeCards }}>
+                                        {Array.from({ length: config.holeCards }).map((_, ci) => (
+                                            <CardSlot key={ci} card={hand[ci]} label={seatName(pi)}
+                                                active={isSelected && ci === hand.length}
+                                                onPick={() => openPicker({ type: 'hand', playerIdx: pi })}
+                                                onRemove={() => removeCard('hand', pi, ci)} />
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {hands.length < maxPlayers && (
+                            <button type="button" className="odds-add" onClick={addVillain} aria-label="Add Villain">
+                                <UserPlus size={18} aria-hidden /> Add Villain
+                            </button>
+                        )}
+                    </section>
+
+                    {/* Presets */}
+                    {showPresets && PRESETS[game] && (
+                        <div className="odds-presets">
+                            {PRESETS[game].map((p, i) => (
+                                <button key={i} type="button" onClick={() => loadPreset(p)} className="odds-btn odds-btn--chip">
+                                    {p.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Dead Cards */}
+                    {deadCards.length > 0 && (
+                        <section className={`odds-panel odds-dead${selectedSlot?.type === 'dead' ? ' is-selected' : ''}`} aria-label="Dead Cards">
+                            <div className="odds-panel__head">
+                                <span className="odds-seat-name odds-seat-name--static">Dead Cards</span>
+                                <span className="odds-panel__meta">Tap To Remove</span>
+                            </div>
+                            <div className="odds-slots odds-slots--dead">
+                                {deadCards.map((c, i) => (
+                                    <CardSlot key={c.id} card={c} label="Dead Cards"
+                                        onPick={() => openPicker({ type: 'dead' })}
+                                        onRemove={() => removeCard('dead', 0, i)} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* ─── STATUS + ACTIONS ─── */}
+                    <p className="odds-status" role="status" aria-live="polite">{statusText}</p>
+                    <div className="odds-actions">
+                        <button type="button" onClick={resetAll} aria-label="Reset To New Hand" className="odds-btn">
+                            <RotateCcw size={15} aria-hidden /> New Hand
+                        </button>
+                        <button type="button" onClick={() => openPicker({ type: 'dead' })}
+                            className={`odds-btn${selectedSlot?.type === 'dead' ? ' is-on' : ''}`} aria-pressed={selectedSlot?.type === 'dead'}>
+                            Dead Cards{deadCards.length > 0 ? ` (${deadCards.length})` : ''}
+                        </button>
+                        {PRESETS[game] && (
+                            <button type="button" onClick={() => setShowPresets(!showPresets)}
+                                className={`odds-btn${showPresets ? ' is-on' : ''}`} aria-expanded={showPresets}>
+                                Presets
+                            </button>
+                        )}
+                        <button type="button" onClick={shareHandPermalink}
+                            aria-label="Copy Shareable Hand Permalink"
+                            className="odds-btn">
+                            {hasCopiedShareUrl ? <Check size={15} aria-hidden /> : <Share2 size={15} aria-hidden />}
+                            {hasCopiedShareUrl ? 'Link Copied' : 'Share Hand'}
+                        </button>
+                        <button type="button" onClick={copySpotSummary}
+                            aria-label="Copy Spot Summary For Discord Or X"
+                            className="odds-btn">
+                            {hasCopiedSpotSummary ? <Check size={15} aria-hidden /> : <Share2 size={15} aria-hidden />}
+                            {hasCopiedSpotSummary ? 'Spot Copied' : 'Copy Spot'}
+                        </button>
+                    </div>
+
+                    {/* ═══════════════════════════════════════════
+                        CARD PICKER — the whole deck, always displayed
+                    ═══════════════════════════════════════════ */}
+                    <dialog ref={picker} className="odds-card-dialog" aria-label="Card Picker">
+                        <div className="odds-sheet__head"><strong>Pick For {pickerTarget}</strong>
+                            <button type="button" className="odds-btn" onClick={() => picker.current.close()}>Done</button>
+                        </div>
+                        <div className="odds-suits" role="group" aria-label="Suit">
+                            {SUITS.map(suit => <button key={suit} type="button" aria-label={SUIT_NAMES[suit]}
+                                aria-pressed={suitFilter === suit} onClick={() => setSuitFilter(suit)}>{SUIT_SYMBOLS[suit]}</button>)}
+                        </div>
+                        {[suitFilter].map(suit => (
+                            <div key={suit} className="odds-deck" role="group" aria-label={SUIT_NAMES[suit]}>
+                                {RANKS.map(rank => {
+                                    const card = makeCard(rank, suit);
+                                    const isUsed = card && usedCardIds.has(card.id);
+                                    const filled = selectedSlot?.type === 'board' ? board.length >= 5 :
+                                        selectedSlot?.type === 'hand' && hands[selectedSlot.playerIdx]?.length >= config.holeCards;
+                                    const isDisabled = !selectedSlot || isUsed || filled;
+                                    return (
+                                        <button key={`${rank}-${suit}`} type="button"
+                                            onClick={() => !isDisabled && selectCard(rank, suit)}
+                                            disabled={isDisabled}
+                                            className={`odds-pick${isUsed ? ' is-used' : ''}`}
+                                            style={{ '--odds-suit': SUIT_COLORS[suit] }}
+                                            aria-label={`${rank} Of ${SUIT_NAMES[suit]}${isUsed ? ', In Use' : ''}`}>
+                                            <img src={getCardImage(rank, suit)} alt="" />
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </dialog>
+                    {isEmbedMode && (
                         <div className="odds-embed-credit">
                             <p className="odds-embed-credit__text">
                                 Powered By{' '}
@@ -920,11 +839,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     type="button"
                                     onClick={() => {
                                         const code = `<iframe src="https://smarter.poker/hub/poker-tools?embed=true" width="100%" height="780" frameborder="0" style="border:0;border-radius:12px;overflow:hidden;" title="Smarter.Poker Odds Calculator"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="https://smarter.poker/hub/poker-tools" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">Smarter.Poker Free Poker Odds Calculator</a></p>`;
-                                        if (navigator?.clipboard?.writeText) {
-                                            navigator.clipboard.writeText(code);
-                                            setHasCopiedEmbed(true);
-                                            setTimeout(() => setHasCopiedEmbed(false), 2500);
-                                        }
+                                        copyText(code, setHasCopiedEmbed);
                                     }}
                                     className="odds-btn odds-btn--primary"
                                     style={{ width: '100%', marginTop: 10 }}
@@ -940,32 +855,6 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     )}
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* ─── CALCULATOR SETTINGS SHEET ─── */}
-                {showMenu && (
-                    <div className="odds-sheet" onClick={() => setShowMenu(false)}>
-                        <div className="odds-sheet__panel" role="dialog" aria-modal="true" aria-label="Settings"
-                            style={{
-                                // Below the status bar so the X is reachable (mobile phase 0b).
-                                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-                                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
-                                paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
-                            }}
-                            onClick={e => e.stopPropagation()}>
-                            <div className="odds-sheet__head">
-                                <span className="odds-sheet__title">Settings</span>
-                                <button type="button" onClick={() => setShowMenu(false)} aria-label="Close"
-                                    className="odds-icon-btn"
-                                    style={{ minWidth: 44, minHeight: 44 }}>
-                                    <X size={18} aria-hidden />
-                                </button>
-                            </div>
-                            <p className="odds-sheet__label">Links</p>
-                            <Link href="/hub" className="odds-sheet__link"><ArrowLeft size={14} aria-hidden /> Back To World Hub</Link>
-                            <Link href="/hub/profile-edit" className="odds-sheet__link">Edit Profile</Link>
                         </div>
                     </div>
                 )}
@@ -1208,5 +1097,30 @@ const ODDS_CSS = `
 @media (prefers-reduced-motion: reduce) {
     .odds-page [aria-busy="true"] svg { animation: none !important; }
     .odds-page .odds-bar span { transition: none; }
+}
+
+.odds-page .odds-variant { display:flex; align-items:center; justify-content:space-between; gap:12px; font-weight:700; }
+.odds-variant select { min-height:44px; background:#0e2845; border:1px solid #60778a; color:white; border-radius:8px; padding:0 12px; }
+.odds-page .odds-main { max-width:800px; gap:8px; }
+.odds-page .odds-panel { background:linear-gradient(150deg,#102639,#071421); border-color:#4b6071; }
+.odds-page .odds-slot__face--empty { display:grid; place-items:center; border:1px dashed #7793ab; }
+.odds-slot__face--empty::after { content:'+'; color:#a9c2d6; font-size:18px; }
+.odds-page .odds-slots .odds-slot { width:clamp(44px,10vw,56px); }
+.odds-page .odds-card-dialog { color:#eff7ff; width:min(94vw,510px); max-height:85dvh; overflow:auto; border:1px solid #96aebd; border-radius:14px; background:#0a192a; margin:auto; padding:16px; }
+.odds-card-dialog::backdrop { background:rgb(0 7 14 / 80%); }
+.odds-suits { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:12px; }
+.odds-suits button { border:1px solid #526980; border-radius:8px; background:#102337; color:white; min-height:44px; font-size:22px; }
+.odds-suits button[aria-pressed=true] { background:#125ca9; }
+.odds-page .odds-card-dialog .odds-deck { display:grid; grid-template-columns:repeat(auto-fit,minmax(44px,1fr)); gap:5px; }
+.odds-page .odds-deck .odds-pick { display:block; padding:0; background:none; border:0; }
+.odds-pick img { display:block; width:100%; aspect-ratio:5/7; object-fit:contain; }
+.odds-page .odds-deck .odds-pick:disabled { opacity:.27; }
+
+@media (max-width:600px) {
+    .odds-reference-section table, .odds-reference-section tbody, .odds-reference-section tr { display:block; }
+    .odds-reference-section thead { position:absolute; clip-path:inset(50%); width:1px; height:1px; overflow:hidden; }
+    .odds-reference-section td { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+    .odds-reference-section td::before { content:attr(data-label); color:#afc4d9; font:500 12px system-ui; }
+    .odds-reference-section td:first-child { padding-top:16px!important; font-weight:bold; }
 }
 `;

@@ -94,6 +94,7 @@ test('icm-calc never touches the database, so an anonymous caller cannot write t
 test('an anonymous POST to icm-calc returns the equity; the rate limit runs first', async () => {
   let rateLimited = 0;
   const route = compile('pages/api/training/icm-calc.js', {
+    '../../../src/lib/poker/tournamentEquity.js': await import('../src/lib/poker/tournamentEquity.js'),
     '../../../src/lib/apiRateLimit': {
       applyRateLimit: () => { rateLimited += 1; return true; },
       LIMITS: { write: {} },

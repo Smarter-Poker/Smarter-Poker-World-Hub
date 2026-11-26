@@ -147,9 +147,10 @@ function buildAltText(parts, faceDown) {
   return `${rankLabel} of ${suitLabel}`;
 }
 
-function buildSrc(parts, { faceDown, cardBack, optimized }) {
+function buildSrc(parts, { faceDown, cardBack, optimized, arena }) {
   if (faceDown) return `/cards/back.webp`;
   if (!parts) return `/cards/back.webp`;
+  if (arena) return `/hub/club-arena/cards/4color/${parts.suit}_${parts.rank}.webp`;
   const base = optimized ? '/cards/optimized' : '/cards';
   return `${base}/${parts.suit}_${parts.rank}.png`;
 }
@@ -174,6 +175,7 @@ const PlayingCard = React.memo(function PlayingCard({
   width,
   faceDown = false,
   cardBack = 'blue',
+  arena = false,
   highlighted = false,
   dimmed = false,
   optimized = false,
@@ -205,7 +207,7 @@ const PlayingCard = React.memo(function PlayingCard({
     ...(style || {}),
   };
 
-  const src = buildSrc(parts, { faceDown: isFaceDown, cardBack, optimized });
+  const src = buildSrc(parts, { faceDown: isFaceDown, cardBack, optimized, arena });
 
   const onKey = (e) => {
     if (typeof onClick !== 'function') return;

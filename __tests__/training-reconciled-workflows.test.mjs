@@ -482,7 +482,8 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   assert.equal(plo5Href, '/hub/training/arena/cash-005?level=1&source=weakness-scanner&variant=plo5&street=flop&position=BB');
 
   const equityApi = read('pages/api/training/equity.js');
-  assert.match(equityApi, /function bestOmaha5/);
+  assert.match(read('src/lib/poker/trainingEquity.js'), /function bestOmaha5/);
+  assert.match(equityApi, /calcEquity\(validPlayers/);
   assert.match(equityApi, /horseBrainAnalysis/);
 
   const equityCalcUi = read('pages/hub/training/equity-calculator.js');

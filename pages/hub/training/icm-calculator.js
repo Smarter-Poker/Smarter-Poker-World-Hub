@@ -11,10 +11,12 @@
 // TRAIN-CSS-TOKENS-BATCH4-2 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH5-23 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { tournamentEquity } from '../../../src/lib/poker/tournamentEquity.js';
 import { useOnlineStatus } from '../../../src/hooks/useOnlineStatus';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
@@ -23,7 +25,6 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
-import { authedFetch } from '../../../src/lib/authUtils';
 import VerifiedToolGateway from '../../../src/components/training/VerifiedToolGateway';
 
 // FAQ reference: What is ICM in tournament poker?
@@ -103,17 +104,7 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // CONSTANTS
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-const PLAYER_COLORS = [
-  'var(--sp-accent-orange)',
-  'var(--sp-accent-blue)',
-  'var(--sp-accent-green)',
-  'var(--sp-accent-purple)',
-  'var(--sp-accent-red)',
-  'var(--sp-accent-cyan)',
-  'var(--sp-accent-amber)',
-  '#ec4899',
-  '#14b8a6',
-];
+const PLAYER_COLORS = ['#c4ecff', '#65aaff', '#b4c9db', '#63d3e2', '#9dbcf7', '#73bace', '#e4f1ff', '#87a9c7', '#aaced7'];
 
 const PRESETS = [
   {
@@ -236,6 +227,8 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
     }
   }, [router.isReady]);
 
+  useEffect(() => { setResults(null); setError(null); }, [stacks, prizes, prizePool]);
+
   // Update a single stack
   const updateStack = useCallback((idx, val) => {
     setStacks((prev) => {
@@ -289,12 +282,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
     setLoading(true);
     setError(null);
     try {
-      const res = await authedFetch('/api/training/icm-calc', {
-        method: 'POST',
-        body: JSON.stringify({ stacks, prizes, prizePool }),
-      });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      const data = tournamentEquity({ stacks, prizes, prizePool });
       if (data.success) {
         setResults(data);
         // Calculator use is analytics, not a graded training completion.
@@ -355,45 +343,249 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
         }}
       >
         {/* Header */}
-        <div
-          className="sp-training-analysis-header"
-          style={{
-            padding: '20px 24px 12px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <BankrollImageHeader art="poker_mtt" title="ICM Calculator" helpContent={<><p>Enter Each Remaining Stack, The Prize Pool And The Payout Percentages. Calculate To See Each Seat’s Tournament Equity.</p>
+          {/* Related Tournament Action: Freerolls */}
+          <div
+            style={{
+              marginTop: 20,
+              padding: '16px 18px',
+              background: 'rgba(255, 215, 0, 0.04)',
+              border: '1px solid rgba(255, 215, 0, 0.2)',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#bce5ff' }}>
+                Test Your ICM Skills In Daily Freerolls
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
+                Put Tournament Equity Strategy Into Action With Zero Entry Fee And Real Guaranteed Prizes.
+              </div>
+            </div>
             <button
-              onClick={() => router.push('/hub/training')}
+              onClick={() => router.push('/freerolls')}
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
+                background: 'linear-gradient(135deg, #bce5ff, #186ac3)',
+                color: '#000000',
+                fontWeight: 700,
                 fontSize: 12,
-                fontWeight: 600,
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 16px',
+                cursor: 'pointer',
               }}
             >
-              &larr; Training
+              View Freeroll Schedule
             </button>
-            <h1
+          </div>
+
+          {/* About */}
+          <div
+            style={{
+              marginTop: 20,
+              padding: '14px 18px',
+              background: 'rgba(255,255,255,0.02)',
+              borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <div
               style={{
-                fontSize: 20,
-                fontWeight: 800,
-                margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--sp-fg-dim)',
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                marginBottom: 6,
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              ICM Calculator
-            </h1>
+              About ICM
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
+              The Independent Chip Model (ICM) Converts Tournament Chip Stacks Into Real Dollar
+              Equity Based On The Prize Structure. Unlike Chip EV (Where Each Chip Is Worth The
+              Same), ICM Accounts For The Diminishing Value Of Chips - The Chip Leader's Stack Is
+              Worth Less Per Chip Than A Short Stack's. The Bubble Factor Measures This Effect:
+              Values Above 1.0 Mean Survival Is More Important Than Accumulation.
+            </p>
           </div>
-        </div>
 
+          {/* Frequently Asked Questions */}
+          <section
+            aria-label="Frequently Asked Questions"
+            style={{
+              marginTop: 20,
+              padding: '16px 18px',
+              background: 'rgba(255,255,255,0.02)',
+              borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: 'var(--sp-fg)',
+                letterSpacing: 0.5,
+                margin: '0 0 12px 0',
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+              }}
+            >
+              Frequently Asked Questions
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {ICM_CALCULATOR_FAQS.map((faq, idx) => (
+                <details
+                  key={idx}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 8,
+                    padding: '10px 14px',
+                    color: 'var(--sp-fg)',
+                  }}
+                >
+                  <summary
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      color: '#86daff',
+                      outline: 'none',
+                    }}
+                  >
+                    {faq.question}
+                  </summary>
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: 12,
+                      lineHeight: 1.6,
+                      color: 'var(--sp-fg-muted)',
+                    }}
+                  >
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          {/* Related Poker Tools & Comparisons */}
+          <section
+            aria-label="Related Poker Tools And Software Comparisons"
+            style={{
+              marginTop: 24,
+              padding: '16px 20px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 8,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: 'var(--sp-fg)',
+                margin: '0 0 10px 0',
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+              }}
+            >
+              Related Poker Tools And Software Comparisons
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <Link
+                href="/compare"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(78, 156, 255, 0.1)',
+                  border: '1px solid rgba(78, 156, 255, 0.3)',
+                  borderRadius: 6,
+                  color: '#4E9CFF',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Compare ICM Calculator Vs. ICMIZER
+              </Link>
+              <Link
+                href="/freerolls"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(0, 230, 118, 0.1)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  borderRadius: 6,
+                  color: '#00E676',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Play Daily Freerolls
+              </Link>
+              <Link
+                href="/tools/poker-odds-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 6,
+                  color: 'var(--sp-fg)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Poker Odds Calculator
+              </Link>
+              <Link
+                href="/tools/preflop-ranges"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 6,
+                  color: 'var(--sp-fg)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                13x13 GTO Preflop Ranges
+              </Link>
+            </div>
+          </section>
+
+          <CitationBacklinkBox
+            title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
+            canonicalUrl="https://smarter.poker/tools/icm-calculator"
+            badgeType="gto"
+            badgeLabel="GTO Math Verified"
+            badgeValue="Smarter.Poker ICM Solver"
+            summary="Free Tournament Independent Chip Model (ICM) Calculator Converting Chip Stacks To Real Dollar Equity And Bubble Factors."
+            slug="icm-calculator"
+          />
+          <AiPromptLauncher
+            title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
+            canonicalUrl="https://smarter.poker/tools/icm-calculator"
+            markdownUrl="https://smarter.poker/tools/icm-calculator.md"
+          />
+          </>} />
         <div className="sp-training-analysis-main" style={{ padding: '16px 24px', maxWidth: 700, margin: '0 auto' }}>
           {!online && <p role="status">The Calculator Works Offline While This Page Is Open.</p>}
           {/* Quick Presets */}
@@ -713,7 +905,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                 border: 'none',
                 background: loading
                   ? 'rgba(168,85,247,0.3)'
-                  : 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
+                  : 'linear-gradient(135deg, #17447a, #1469bb)',
                 color: '#fff',
                 fontSize: 13,
                 fontWeight: 800,
@@ -770,8 +962,8 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                       color: 'var(--sp-fg-muted)',
                     },
                     {
-                      label: 'Bubble Factor',
-                      value: (Number.isFinite(Number(results.bubbleFactor)) ? Number(results.bubbleFactor) : 0).toFixed(2),
+                      label: 'Bubble Factor · Seat 1 Vs 2',
+                      value: results.bubbleFactor == null ? 'N/A' : results.bubbleFactor.toFixed(2),
                       color: results.bubbleFactor > 1.1 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
                     },
                   ].map((item) => (
@@ -1044,7 +1236,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                     transition: 'all 0.15s',
                     background:
                       icmView === tab.key
-                        ? 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)'
+                        ? 'linear-gradient(135deg, #17447a, #1469bb)'
                         : 'rgba(255,255,255,0.06)',
                     color: icmView === tab.key ? '#fff' : 'var(--sp-fg-muted)',
                   }}
@@ -1076,247 +1268,6 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
             </AnimatePresence>
           </div>
 
-          {/* Related Tournament Action: Freerolls */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: '16px 18px',
-              background: 'rgba(255, 215, 0, 0.04)',
-              border: '1px solid rgba(255, 215, 0, 0.2)',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#FFD700' }}>
-                Test Your ICM Skills In Daily Freerolls
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                Put Tournament Equity Strategy Into Action With Zero Entry Fee And Real Guaranteed Prizes.
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/freerolls')}
-              style={{
-                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                color: '#000000',
-                fontWeight: 700,
-                fontSize: 12,
-                border: 'none',
-                borderRadius: 8,
-                padding: '8px 16px',
-                cursor: 'pointer',
-              }}
-            >
-              View Freeroll Schedule
-            </button>
-          </div>
-
-          {/* About */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: '14px 18px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 6,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              About ICM
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-              The Independent Chip Model (ICM) Converts Tournament Chip Stacks Into Real Dollar
-              Equity Based On The Prize Structure. Unlike Chip EV (Where Each Chip Is Worth The
-              Same), ICM Accounts For The Diminishing Value Of Chips - The Chip Leader's Stack Is
-              Worth Less Per Chip Than A Short Stack's. The Bubble Factor Measures This Effect:
-              Values Above 1.0 Mean Survival Is More Important Than Accumulation.
-            </p>
-          </div>
-
-          {/* Frequently Asked Questions */}
-          <section
-            aria-label="Frequently Asked Questions"
-            style={{
-              marginTop: 20,
-              padding: '16px 18px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <h2
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: 'var(--sp-fg)',
-                letterSpacing: 0.5,
-                margin: '0 0 12px 0',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Frequently Asked Questions
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {ICM_CALCULATOR_FAQS.map((faq, idx) => (
-                <details
-                  key={idx}
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 8,
-                    padding: '10px 14px',
-                    color: 'var(--sp-fg)',
-                  }}
-                >
-                  <summary
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      color: '#86daff',
-                      outline: 'none',
-                    }}
-                  >
-                    {faq.question}
-                  </summary>
-                  <p
-                    style={{
-                      margin: '8px 0 0',
-                      fontSize: 12,
-                      lineHeight: 1.6,
-                      color: 'var(--sp-fg-muted)',
-                    }}
-                  >
-                    {faq.answer}
-                  </p>
-                </details>
-              ))}
-            </div>
-          </section>
-
-          {/* Related Poker Tools & Comparisons */}
-          <section
-            aria-label="Related Poker Tools And Software Comparisons"
-            style={{
-              marginTop: 24,
-              padding: '16px 20px',
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 8,
-            }}
-          >
-            <h3
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: 'var(--sp-fg)',
-                margin: '0 0 10px 0',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Related Poker Tools And Software Comparisons
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <Link
-                href="/compare"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(78, 156, 255, 0.1)',
-                  border: '1px solid rgba(78, 156, 255, 0.3)',
-                  borderRadius: 6,
-                  color: '#4E9CFF',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                }}
-              >
-                Compare ICM Calculator Vs. ICMIZER
-              </Link>
-              <Link
-                href="/freerolls"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(0, 230, 118, 0.1)',
-                  border: '1px solid rgba(0, 230, 118, 0.3)',
-                  borderRadius: 6,
-                  color: '#00E676',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                }}
-              >
-                Play Daily Freerolls
-              </Link>
-              <Link
-                href="/tools/poker-odds-calculator"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 6,
-                  color: 'var(--sp-fg)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                Poker Odds Calculator
-              </Link>
-              <Link
-                href="/tools/preflop-ranges"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 6,
-                  color: 'var(--sp-fg)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                13x13 GTO Preflop Ranges
-              </Link>
-            </div>
-          </section>
-
-          <CitationBacklinkBox
-            title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
-            canonicalUrl="https://smarter.poker/tools/icm-calculator"
-            badgeType="gto"
-            badgeLabel="GTO Math Verified"
-            badgeValue="Smarter.Poker ICM Solver"
-            summary="Free Tournament Independent Chip Model (ICM) Calculator Converting Chip Stacks To Real Dollar Equity And Bubble Factors."
-            slug="icm-calculator"
-          />
-          <AiPromptLauncher
-            title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
-            canonicalUrl="https://smarter.poker/tools/icm-calculator"
-            markdownUrl="https://smarter.poker/tools/icm-calculator.md"
-          />
         </div>
       </div>
     </>

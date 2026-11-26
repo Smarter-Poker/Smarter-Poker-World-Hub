@@ -2,6 +2,7 @@
 // TRAIN-CSS-MOBILE-ADOPT-9 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-19 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 // TRAIN-CSS-TOKENS-BATCH6-8 — hex sweep batch 6: extended palette literals routed
+import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
 import React, { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -167,7 +168,7 @@ export default function HandLabV2() {
       setWireSpotPick('');
       return;
     }
-    calcSeqRef.current += 1;
+    calcSeqRef.current += 1; setAnalyzing(false);
     const requestSeq = ++voteSeqRef.current;
     let cancelled = false;
     setActiveWireSpot(matchedSpot);
@@ -338,7 +339,7 @@ export default function HandLabV2() {
 
   const handleVariantChange = (nextVariant) => {
     const spec = VARIANTS.find((v) => v.id === nextVariant) || VARIANTS[0];
-    calcSeqRef.current += 1;
+    calcSeqRef.current += 1; setAnalyzing(false);
     setVariant(spec.id);
     setHeroCards(Array(spec.holeCount).fill(''));
     const nextBenchmarks = BENCHMARK_HANDS_BY_VARIANT[spec.id] || BENCHMARK_HANDS_BY_VARIANT.nlh;
@@ -360,7 +361,7 @@ export default function HandLabV2() {
     }
 
     if (selectedSlot?.startsWith('hero')) {
-      calcSeqRef.current += 1;
+      calcSeqRef.current += 1; setAnalyzing(false);
       const idx = parseInt(selectedSlot.slice(4), 10) - 1;
       const newHero = [...heroCards];
       newHero[idx] = card;
@@ -373,7 +374,7 @@ export default function HandLabV2() {
       else if (!boardCards[0]) setSelectedSlot('board1');
       else setSelectedSlot(null);
     } else if (selectedSlot?.startsWith('board')) {
-      calcSeqRef.current += 1;
+      calcSeqRef.current += 1; setAnalyzing(false);
       const idx = parseInt(selectedSlot.slice(5), 10) - 1;
       const newBoard = [...boardCards];
       newBoard[idx] = card;
@@ -454,7 +455,7 @@ export default function HandLabV2() {
   };
 
   const clearAll = () => {
-    calcSeqRef.current += 1;
+    calcSeqRef.current += 1; setAnalyzing(false);
     setHeroCards(Array(variantSpec.holeCount).fill(''));
     setBoardCards(['', '', '', '', '']);
     setEquity(null);
@@ -474,14 +475,8 @@ export default function HandLabV2() {
       <UniversalHeader pageDepth={2} />
 
       <div style={styles.container}>
+        <BankrollImageHeader art="casino_table" title="Hand Lab" helpContent={<p>Choose A Game, Fill Your Hand And Set A Board. Analyze Compares Your Hand Against The Displayed Opponent.</p>} />
         <div style={styles.header}>
-          <button onClick={() => router.push('/hub/training')} style={styles.backButton}>
-            ← Hub
-          </button>
-          <div>
-            <h1 style={styles.title}>HAND CONSTRUCTION LAB V2</h1>
-            <p style={styles.subtitle}>Interactive Equity & Range Analyzer</p>
-          </div>
           <button onClick={clearAll} style={styles.clearBtn}>
             Clear Board
           </button>
@@ -680,7 +675,7 @@ export default function HandLabV2() {
                       }}
                     >
                       {cardValue ? (
-                        <PlayingCard card={cardValue} size="md" priority />
+                        <PlayingCard arena card={cardValue} size="md" priority />
                       ) : (
                         <span style={styles.placeholder}>Card {idx + 1}</span>
                       )}
@@ -710,7 +705,7 @@ export default function HandLabV2() {
                     onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedSlot(`board${idx + 1}`); } }}
                   >
                     {boardCards[idx] ? (
-                      <PlayingCard card={boardCards[idx]} size="md" priority />
+                      <PlayingCard arena card={boardCards[idx]} size="md" priority />
                     ) : (
                       <span style={{ ...styles.placeholder, fontSize: 12 }}>
                         {idx < 3 ? 'Flop' : idx === 3 ? 'Turn' : 'River'}
@@ -725,7 +720,7 @@ export default function HandLabV2() {
                 aria-label="Villain Benchmark Hand"
                 style={styles.rangeSelect}
                 value={villainHand}
-                onChange={(e) => { calcSeqRef.current += 1; setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}
+                onChange={(e) => { calcSeqRef.current += 1; setAnalyzing(false); setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}
               >
                 {benchmarkHands.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
               </select>
@@ -868,7 +863,7 @@ export default function HandLabV2() {
                                 : '1px solid rgba(255,255,255,0.2)',
                             }}
                           >
-                            {rank}
+                            <PlayingCard arena card={card} width={32} />
                           </button>
                         );
                       })}
