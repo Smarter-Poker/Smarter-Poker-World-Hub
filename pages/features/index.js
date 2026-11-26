@@ -2,6 +2,25 @@ import React from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
+
+const FEATURES_FAQS = [
+  {
+    question: 'Are Smarter.Poker Calculators And Training Tools Free To Use?',
+    answer:
+      'Yes. All 52 Browser-Native Poker Calculators, Preflop Range Charts, Bankroll And Form W-2G Tax Tracking, Live Poker Room Discovery, And Core GTO Training Modes Run Directly In The Browser With Zero Subscription Fees.',
+  },
+  {
+    question: 'How Does Smarter.Poker Replace Paid Poker Apps?',
+    answer:
+      'Smarter.Poker Consolidates 15 Verticals Into One World Hub: Bankroll Tax Tracking, Dealer Toke Tracking, Jarvis AI Hand Coaching, Virtual Poker Sandbox, Club Commander Cardroom Management, Private Poker Clubs, And Live Venue Waitlists.',
+  },
+  {
+    question: 'Can Poker Room Managers And Home Game Hosts Use Smarter.Poker?',
+    answer:
+      'Yes. Club Commander Provides Live Digital Waitlists, TV Displays, SMS Seat Alerts, And Tournament Clocks For Cardrooms, While The Home Games Directory Lets Hosts Manage Public Or Private Games With Free Blind Clocks.',
+  },
+];
 
 export const ALL_FEATURES = [
   {
@@ -224,6 +243,10 @@ export default function FeaturesIndexPage() {
       '@type': 'Thing',
       name: 'Poker Software and Tools',
     },
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'header p'],
+    },
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: ALL_FEATURES.map((feat, index) => ({
@@ -255,6 +278,16 @@ export default function FeaturesIndexPage() {
     ],
   };
 
+  const faqSchemaNode = {
+    '@type': 'FAQPage',
+    '@id': 'https://smarter.poker/features#faq',
+    mainEntity: FEATURES_FAQS.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+    })),
+  };
+
   return (
     <>
       <SEOHead
@@ -262,7 +295,7 @@ export default function FeaturesIndexPage() {
         description="Comprehensive Guide to Smarter.Poker Free Tools: Bankroll Tax Tracker, Dealer Tokes, Jarvis AI Coach, Club Commander, Video Calls, GTO Solvers, And Trivia."
         canonical="/features"
         markdownUrl="https://smarter.poker/features.md"
-        jsonLd={[schemas.organization, collectionSchema, breadcrumbsSchema]}
+        jsonLd={[schemas.organization, collectionSchema, faqSchemaNode, breadcrumbsSchema]}
       />
 
       <div style={styles.container}>
@@ -350,6 +383,10 @@ export default function FeaturesIndexPage() {
             ))}
           </div>
         </section>
+
+        <div style={{ maxWidth: 1180, margin: '0 auto 40px' }}>
+          <FaqSection heading="Smarter.Poker Platform Features FAQ" items={FEATURES_FAQS} />
+        </div>
 
         <CitationBacklinkBox
           title="Smarter.Poker Platform Features & Free Poker Tools Directory"

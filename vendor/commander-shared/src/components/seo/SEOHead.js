@@ -55,7 +55,7 @@ export function normalizeCanonicalUrl(canonicalTarget) {
     }
     const baseCanonical = withoutHashOrQuery.replace(/\/+$/, '');
     if (
-        (baseCanonical === `${SITE_URL}/hub/reels` || baseCanonical === `${SITE_URL}/hub/lives`) &&
+        (baseCanonical === `${SITE_URL}/hub/reels` || baseCanonical === `${SITE_URL}/hub/lives` || baseCanonical === `${SITE_URL}/hub/article`) &&
         withoutHash.includes('?')
     ) {
         const queryString = withoutHash.slice(withoutHash.indexOf('?') + 1);
