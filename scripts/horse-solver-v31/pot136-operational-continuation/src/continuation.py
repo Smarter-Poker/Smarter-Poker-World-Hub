@@ -116,7 +116,7 @@ def semantic_chain(common,c,g):
  return files
 
 def prepare(refusal_path,refusal_sha):
-    common,ops,_,chain=load_e();common.frozen();c,_=common.config();train_tags=train_gate(common,c)
+    common,ops,_,chain=load_e();common.frozen();c,g=common.config();train_tags=train_gate(common,c)
     if (F/'OPERATIONAL-FREEZE.json').exists():raise ValueError('already frozen; reconcile existing operation')
     events=ops.events();b=ops.budget(events)
     if eval_launches(events) or b['phase_runs']!=16 or b['open_operations']:raise ValueError('zero original evaluation launches and closed TRAIN required')
@@ -125,7 +125,7 @@ def prepare(refusal_path,refusal_sha):
     refusal=json.loads(refusal_path.read_bytes())
     required=dict(verdict='OPERATIONAL_ADMISSION_BLOCKED',freeze_sha256=E_FREEZE,candidate_sha256=common.sha('CANDIDATE-SEAL.json'),stage='EVALUATION',native_launched=False)
     if any(refusal.get(k)!=v for k,v in required.items()) or refusal.get('reason')!='phase_reserve_exceeds_original_2h':raise ValueError('original route must actually refuse, not be predicted to refuse')
-    original_chain=chain.candidate_chain()
+    original_chain=semantic_chain(common,c,g)
     original,files=original_jobs(common,c);groups=split_jobs(original);order=[];cohorts={}
     for i,group in enumerate(groups):
         tag='E-S%02d'%i;p='jobs-'+tag+'.json';write(p,group);out='F5P136-'+tag

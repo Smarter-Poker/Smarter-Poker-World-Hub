@@ -31,8 +31,9 @@ class ContinuationContracts(unittest.TestCase):
         funcs={n.name:ast.unparse(n) for n in tree.body if isinstance(n,ast.FunctionDef)}
         self.assertEqual(funcs['verify'].count('common.config()'),1)
         self.assertNotIn('common.frozen()',funcs['verify'])
-        for name in ['verify','release_check','stage']:self.assertNotIn('chain.candidate_chain()',funcs[name])
-        self.assertEqual(funcs['prepare'].count('chain.candidate_chain()'),1)
+        for name in ['prepare','verify','release_check','stage']:self.assertNotIn('chain.candidate_chain()',funcs[name])
+        self.assertEqual(funcs['prepare'].count('common.config()'),1)
+        self.assertEqual(funcs['prepare'].count('semantic_chain(common, c, g)'),1)
     def test_semantic_body_preserves_original_pinned_algorithm(self):
         src=Path(__file__).resolve().parent/'src/continuation.py'
         actual=next(n for n in ast.parse(src.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='semantic_chain').body[4:]
