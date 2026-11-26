@@ -23,6 +23,7 @@ import {
     syncMessengerPrefs,
     mergeServerPrefs,
 } from '../../lib/messengerPrefsSync';
+import { resolveVoiceUploadMeta, selectVoiceRecordingMime } from '../../lib/messenger/messageMedia.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💾 PERSISTENCE HOOK (Local + Supabase Background Sync)
@@ -1478,7 +1479,14 @@ export const ChatWindow = ({
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
+            const preferredMime = selectVoiceRecordingMime(
+                typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function'
+                    ? (t) => MediaRecorder.isTypeSupported(t)
+                    : null,
+            );
+            const mediaRecorder = preferredMime
+                ? new MediaRecorder(stream, { mimeType: preferredMime })
+                : new MediaRecorder(stream);
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
 
@@ -1487,7 +1495,8 @@ export const ChatWindow = ({
             };
 
             mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const voiceMeta = resolveVoiceUploadMeta(mediaRecorder.mimeType || preferredMime);
+                const audioBlob = new Blob(audioChunksRef.current, { type: voiceMeta.mimeType });
                 stream.getTracks().forEach(track => track.stop());
                 clearInterval(recordingTimerRef.current);
                 setIsRecording(false);
@@ -1505,16 +1514,16 @@ export const ChatWindow = ({
                         }
                     } catch (_) {}
 
-                    const fileName = `voice-${Date.now()}.webm`;
+                    const fileName = `voice-${Date.now()}.${voiceMeta.ext}`;
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', ...(_voiceToken ? { Authorization: `Bearer ${_voiceToken}` } : {}) },
-                        body: JSON.stringify({ fileName, fileSize: audioBlob.size, mimeType: 'audio/webm', folder: 'messenger', prefix: conversationId, bucket: 'social-media' }),
+                        body: JSON.stringify({ fileName, fileSize: audioBlob.size, mimeType: voiceMeta.mimeType, folder: 'messenger', prefix: conversationId, bucket: 'social-media' }),
                     });
                     if (!metaRes.ok) throw new Error(`Upload auth failed (${metaRes.status})`);
                     const metaJson = await metaRes.json();
                     if (!metaJson.success) throw new Error(metaJson.error || 'Upload URL error');
-                    const putRes = await fetch(metaJson.signedUrl, { method: 'PUT', headers: { 'Content-Type': 'audio/webm' }, body: audioBlob });
+                    const putRes = await fetch(metaJson.signedUrl, { method: 'PUT', headers: { 'Content-Type': voiceMeta.mimeType }, body: audioBlob });
                     if (!putRes.ok) throw new Error('Voice upload failed');
                     onSend?.(`🎤 Voice message`, { audioUrl: metaJson.publicUrl });
                     busEmit.voiceMessageSent(conversationId, recordingTime.toString());

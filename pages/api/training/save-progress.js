@@ -99,7 +99,7 @@ export default async function handler(req, res) {
             });
         }
 
-        const attemptId = typeof body.attemptId === 'string' ? body.attemptId.trim() : '';
+        const attemptId = typeof body.attemptId === 'string' ? body.attemptId.trim().toLowerCase() : '';
         if (!UUID_RE.test(attemptId)) {
             return res.status(400).json({ success: false, error: 'A valid attemptId is required' });
         }

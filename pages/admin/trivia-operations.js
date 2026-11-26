@@ -232,6 +232,7 @@ export default function TriviaOperationsPage() {
     const [settlementForm, setSettlementForm] = useState({ targetId: '', reason: '' });
     const [replenishForm, setReplenishForm] = useState({ amount: '', reason: '' });
     const [incidentForm, setIncidentForm] = useState({ incidentKey: '', severity: 'warning', status: 'open', note: '', reason: '' });
+    const [signoffForm, setSignoffForm] = useState({ gateKey: 'physical_ios_review', device: '', evidenceRef: '', reason: '' });
     const [lookupForm, setLookupForm] = useState({ kind: 'user', targetId: '' });
     const [lookupState, setLookupState] = useState({ busy: false, result: null, error: null });
     const [clockNowMs, setClockNowMs] = useState(() => Date.now());
@@ -311,13 +312,19 @@ export default function TriviaOperationsPage() {
             }
             const body = typeof response?.json === 'function' ? await response.json().catch(() => ({})) : {};
             if (response.status === 403 && body?.requiresMfa === true) {
+                const needsEnrollment = body?.requiresEnrollment === true;
                 setActionState({
                     busy: false,
                     item: null,
-                    error: body?.error || 'MFA Verification Required Before Executing Operator Writes.',
+                    error: needsEnrollment
+                        ? 'MFA Enrollment Required: Enroll An Authenticator Before Executing Operator Writes.'
+                        : (body?.error || 'MFA Verification Required Before Executing Operator Writes.'),
                     pending: null,
                     mfaRequired: true,
-                    mfaStepUpUrl: '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations',
+                    mfaEnrollRequired: needsEnrollment,
+                    mfaStepUpUrl: needsEnrollment
+                        ? '/auth/mfa?enroll=1&next=%2Fadmin%2Ftrivia-operations'
+                        : '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations',
                 });
                 return;
             }
@@ -454,7 +461,7 @@ export default function TriviaOperationsPage() {
                 >
                     <h2 style={S.h2}>
                         {actionState.mfaRequired
-                            ? 'MFA Step-Up Verification Required'
+                            ? (actionState.mfaEnrollRequired ? 'MFA Enrollment Required' : 'MFA Step-Up Verification Required')
                             : (actionState.item?.outcome === 'succeeded' ? 'Action Recorded' : 'Action Result')}
                     </h2>
                     {actionState.item?.receiptId ? <p style={S.note}>Receipt: <code>{actionState.item.receiptId}</code>{actionState.item.replayed ? ' (replayed)' : ''}</p> : null}
@@ -465,7 +472,7 @@ export default function TriviaOperationsPage() {
                                 href={actionState.mfaStepUpUrl || '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations'}
                                 style={S.mfaLink}
                             >
-                                Verify MFA Session
+                                {actionState.mfaEnrollRequired ? 'Enroll MFA' : 'Verify MFA Session'}
                             </a>
                         </div>
                     ) : null}
@@ -904,6 +911,45 @@ export default function TriviaOperationsPage() {
                     <p style={S.note}>Payout Hold Unavailable. This Operator Session Does Not Carry The Named Settlement-Control Capability.</p>
                 </Panel>
             )}
+
+            {can('incident_note') && isSupervisor ? (
+                <Panel title="Physical Device Human Sign-Off">
+                    <p style={S.note}>Supervisor-Only. Records An Immutable Human Sign-Off For A Physical Launch Gate. The MFA HTTP Write Gate Cannot Be Signed By Hand.</p>
+                    <div style={S.formGrid}>
+                        <label style={S.label}>Gate
+                            <select style={S.input} value={signoffForm.gateKey} onChange={(event) => setSignoffForm({ ...signoffForm, gateKey: event.target.value })}>
+                                <option value="physical_ios_review">IOS Review</option>
+                                <option value="physical_android_review">Android Review</option>
+                                <option value="physical_push_receipt">Push Receipt</option>
+                            </select>
+                        </label>
+                        <label style={S.label}>Device And OS
+                            <input style={S.input} value={signoffForm.device} onChange={(event) => setSignoffForm({ ...signoffForm, device: event.target.value })} maxLength={120} placeholder="Device Model And OS Version" />
+                        </label>
+                        <label style={S.label}>Evidence Reference
+                            <input style={S.input} value={signoffForm.evidenceRef} onChange={(event) => setSignoffForm({ ...signoffForm, evidenceRef: event.target.value })} maxLength={240} placeholder="Recording, Ticket Or Screenshot Reference" />
+                        </label>
+                        <label style={S.label}>Notes And Reason
+                            <input style={S.input} value={signoffForm.reason} onChange={(event) => setSignoffForm({ ...signoffForm, reason: event.target.value })} placeholder="At Least 12 Characters" />
+                        </label>
+                    </div>
+                    <ActionButton
+                        disabled={actionState.busy}
+                        onClick={() => executeAction({
+                            action: 'launch_gate_signoff',
+                            reason: signoffForm.reason,
+                            targetId: null,
+                            payload: {
+                                gateKey: signoffForm.gateKey,
+                                device: signoffForm.device.trim(),
+                                evidenceRef: signoffForm.evidenceRef.trim(),
+                            },
+                        })}
+                    >
+                        Record Physical Sign-Off
+                    </ActionButton>
+                </Panel>
+            ) : null}
 
             {can('incident_note') ? (
                 <Panel title="Immutable incident note">

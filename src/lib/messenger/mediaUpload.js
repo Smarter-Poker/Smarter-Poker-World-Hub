@@ -359,7 +359,18 @@ export async function uploadFileWithProgress(file, uploadMeta, {
             signal,
             timeoutMs: timeoutMs || 10 * 60 * 1000,
         });
-        if (tusPromise) return tusPromise;
+        if (tusPromise) {
+            try {
+                return await tusPromise;
+            } catch (tusError) {
+                if (tusError?.name === 'AbortError' || signal?.aborted || !uploadMeta?.signedUrl) {
+                    throw tusError;
+                }
+                // TUS failed for a non-abort reason (e.g. corporate proxy blocking
+                // .storage.supabase.co). Fall back transparently to the signed XHR PUT.
+                onProgress?.(0);
+            }
+        }
     }
     if (!uploadMeta?.signedUrl) throw new Error('Upload Could Not Be Started');
     return uploadViaXhr(file, uploadMeta.signedUrl, mimeType, {

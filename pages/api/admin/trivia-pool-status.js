@@ -20,15 +20,16 @@ import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import { NO_REPEAT_WINDOW_DAYS, DEFAULT_QUALITY_FLOOR } from '../../../src/lib/triviaQuestionLoader';
 
 let _supabase = null;
+/**
+ * Service-role client. Fails CLOSED: with no SUPABASE_SERVICE_ROLE_KEY it
+ * returns null (callers answer 503 server_misconfigured). It never falls back
+ * to the public anon key, which would silently return RLS-filtered counts.
+ */
 function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.warn('[Trivia Pool Status] SUPABASE_SERVICE_ROLE_KEY missing - counts may be RLS-filtered');
-        }
-        _supabase = createClient(url, key);
-    }
+    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim();
+    const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+    if (!url || !key) return null;
+    if (!_supabase) _supabase = createClient(url, key);
     return _supabase;
 }
 
@@ -100,31 +101,30 @@ function countQuery(supabase, { category, difficulty, minQuality, unusedSince })
  * Pure predicate — it never writes to `res`, so the caller can fall through to
  * requireAdminSecret(), which owns the 401/500 response.
  */
-async function hasAdminRole(req) {
+async function resolveAdminAccess(req, supabase) {
     const token = req.headers?.authorization?.startsWith('Bearer ')
         ? req.headers.authorization.slice(7).trim()
         : null;
-    if (!token) return false;
+    if (!token) return 'unauthenticated';
     try {
-        const supabase = getSupabase();
         const { data: authData, error: authErr } = await supabase.auth.getUser(token);
         const authUser = authData?.user;
-        if (authErr || !authUser) return false;
+        if (authErr || !authUser) return 'unauthenticated';
         const { data: prof } = await supabase
             .from('profiles')
             .select('is_admin, role')
             .eq('id', authUser.id)
             .maybeSingle();
         if (prof && (prof.is_admin === true || ['admin', 'superadmin', 'god'].includes(prof.role))) {
-            return true;
+            return 'allowed';
         }
         const { data: opCtx, error: opErr } = await supabase.rpc('trivia_operator_context_v1', {
             p_operator_id: authUser.id,
         });
-        return !opErr && opCtx?.allowed === true;
+        return !opErr && opCtx?.allowed === true ? 'allowed' : 'forbidden';
     } catch (err) {
         console.warn('[Trivia Pool Status] role lookup failed:', err?.message || err);
-        return false;
+        return 'unauthenticated';
     }
 }
 
@@ -137,9 +137,15 @@ export default async function handler(req, res) {
     // accepted: an admin/superadmin/god session token, or the machine secret.
     // Both paths are fail-closed — requireAdminSecret sends the 401/500 when
     // neither matches.
-    if (!(await hasAdminRole(req)) && !requireAdminSecret(req, res, { label: 'trivia-pool-status' })) return;
-
     const supabase = getSupabase();
+    if (!supabase) return res.status(503).json({ success: false, error: 'server_misconfigured' });
+    const access = await resolveAdminAccess(req, supabase);
+    if (access === 'forbidden') {
+        // Valid session, but not an admin / Trivia operator: 403, never 401.
+        return res.status(403).json({ success: false, error: 'trivia_operator_required' });
+    }
+    if (access !== 'allowed' && !requireAdminSecret(req, res, { label: 'trivia-pool-status' })) return;
+
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - NO_REPEAT_WINDOW_DAYS);
     const sixtyDaysAgoIso = sixtyDaysAgo.toISOString();

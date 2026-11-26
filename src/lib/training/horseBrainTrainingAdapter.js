@@ -608,7 +608,7 @@ export function evaluateTrainingSpotWithHorseBrain({
     myPosition: heroPosition,
     isIP,
     numActivePlayers: normFormat === 'hu' ? 2 : normFormat === 'spins' ? 3 : 2,
-    numPlayers: normFormat === 'hu' ? 2 : normFormat === 'spins' ? 3 : 6,
+    numPlayers: normFormat === 'hu' ? 2 : normFormat === 'spins' ? 3 : normFormat === '9max' ? 9 : 6,
     players: [
       { id: 'hero-brain', position: heroPosition, stack: cleanStack, invested: cleanPot / 2, folded: false },
       { id: 'villain-brain', position: villainPosition, stack: cleanStack, invested: cleanPot / 2 + cleanToCall, folded: false },

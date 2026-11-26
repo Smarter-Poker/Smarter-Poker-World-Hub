@@ -81,7 +81,24 @@ export const TRIVIA_OPERATOR_ACTIONS = Object.freeze({
         targetRequired: false,
         payloadKeys: ['replenishAmount'],
     }),
+    launch_gate_signoff: Object.freeze({
+        capability: 'incident_note',
+        roleRequired: 'supervisor',
+        targetRequired: false,
+        payloadKeys: ['gateKey', 'device', 'evidenceRef'],
+    }),
 });
+
+/**
+ * Gates a human may sign off by hand. operator_mfa_http_write (Gate 2) is
+ * deliberately absent: it is only written by trivia_record_mfa_write_proof_v1
+ * after a real HMAC-verified MFA write and can never be spoofed manually.
+ */
+export const TRIVIA_PHYSICAL_SIGNOFF_GATE_KEYS = Object.freeze([
+    'physical_ios_review',
+    'physical_android_review',
+    'physical_push_receipt',
+]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const REQUEST_KEY_RE = /^[A-Za-z0-9_.:@-]{8,128}$/;
@@ -160,6 +177,16 @@ export function parseOperationsActionRequest(body) {
         if (payload.status !== undefined && !['open', 'monitoring', 'resolved'].includes(payload.status)) {
             return invalid('invalid_incident_status');
         }
+    }
+    if (action === 'launch_gate_signoff') {
+        const gateKey = String(payload.gateKey || '').trim();
+        const device = String(payload.device || '').trim();
+        const evidenceRef = String(payload.evidenceRef || '').trim();
+        if (!TRIVIA_PHYSICAL_SIGNOFF_GATE_KEYS.includes(gateKey)) return invalid('invalid_gate_key');
+        if (device.length < 3 || device.length > 120) return invalid('invalid_device');
+        if (evidenceRef.length < 3 || evidenceRef.length > 240) return invalid('invalid_evidence_ref');
+        if (reason.length < 12) return invalid('invalid_reason');
+        return { ok: true, value: { requestKey, action, reason, targetId, payload: { gateKey, device, evidenceRef } } };
     }
     if (action === 'treasury_replenish_from_rake') {
         const replenishAmount = Number(payload.replenishAmount);

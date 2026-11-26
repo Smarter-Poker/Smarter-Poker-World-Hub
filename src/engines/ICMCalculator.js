@@ -78,7 +78,7 @@ export function calculateICM(stacks, payouts) {
  * Recursive Malmuth-Harville place probability calculation.
  */
 function calculatePlaceProbabilities(stacks, remaining, payouts, equities, targetPlace, eliminated, prob) {
-    if (prob < 0.0001) return; // Prune tiny probabilities
+    if (prob <= 0) return;
     if (eliminated.length === targetPlace) {
         // Calculate probability of each remaining player winning this place
         const totalRemaining = remaining.reduce((a, i) => a + stacks[i], 0);
@@ -138,19 +138,27 @@ export function calculateICMPressure(heroStack, allStacks, payouts, playersLeft)
     const currentEquity = calculateICM(allStacks, payouts);
     const heroCurrentEq = heroIdx >= 0 ? currentEquity[heroIdx] : 0;
 
-    // If hero doubles up
+    // If hero doubles up against the covering / largest stack
     const doubledStacks = [...allStacks];
     const loserIdx = allStacks.findIndex((s, i) => i !== heroIdx && s > 0);
     if (heroIdx >= 0 && loserIdx >= 0) {
-        doubledStacks[heroIdx] = heroStack * 2;
-        doubledStacks[loserIdx] = Math.max(0, allStacks[loserIdx] - heroStack);
+        const transfer = Math.min(heroStack, allStacks[loserIdx]);
+        doubledStacks[heroIdx] = heroStack + transfer;
+        doubledStacks[loserIdx] = allStacks[loserIdx] - transfer;
     }
     const doubledEquity = calculateICM(doubledStacks, payouts);
     const heroDoubledEq = heroIdx >= 0 ? doubledEquity[heroIdx] : 0;
 
-    // If hero busts
+    // If hero busts (or loses the all-in)
+    const bustStacks = [...allStacks];
+    if (heroIdx >= 0 && loserIdx >= 0) {
+        const transfer = Math.min(heroStack, allStacks[loserIdx]);
+        bustStacks[heroIdx] = Math.max(0, heroStack - transfer);
+        bustStacks[loserIdx] = allStacks[loserIdx] + transfer;
+    }
+    const bustEquity = heroIdx >= 0 && bustStacks[heroIdx] > 0 ? calculateICM(bustStacks, payouts)[heroIdx] : 0;
     const gain = heroDoubledEq - heroCurrentEq;
-    const loss = heroCurrentEq; // We lose our entire equity
+    const loss = Math.max(0, heroCurrentEq - bustEquity);
 
     // Bubble factor: ratio of what we lose vs what we gain in an all-in
     const bubbleFactor = loss > 0 && gain > 0 ? loss / gain : 1.0;

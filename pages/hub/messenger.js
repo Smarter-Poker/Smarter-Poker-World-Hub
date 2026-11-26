@@ -71,7 +71,7 @@ import InvoicePaymentsPanel from '../../src/components/messenger/InvoicePayments
 import StatementsPanel from '../../src/components/messenger/StatementsPanel';
 import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
-import { encodeMessageMedia, extractSharedThreadMedia, formatReplyQuote, isStructuredMessageContent, mediaThumbnailUrl, resolveUploadMedia, stripForwardPrefix, videoPreviewUrl } from '../../src/lib/messenger/messageMedia.mjs';
+import { encodeMessageMedia, extractSharedThreadMedia, formatReplyQuote, isStructuredMessageContent, mediaThumbnailUrl, resolveUploadMedia, resolveVoiceUploadMeta, stripForwardPrefix, videoPreviewUrl } from '../../src/lib/messenger/messageMedia.mjs';
 import { prepareMessengerUploadFile, uploadFileWithProgress } from '../../src/lib/messenger/mediaUpload';
 import MediaViewer from '../../src/components/messenger/MediaViewer';
 import { messengerPreviewText } from '../../src/lib/messengerPreview.mjs';
@@ -413,7 +413,7 @@ function MessengerPage() {
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [stagedMediaFile, setStagedMediaFile] = useState(null);
     const [isDragOverChat, setIsDragOverChat] = useState(false);
-    const [galleryViewerUrl, setGalleryViewerUrl] = useState(null);
+    const [galleryViewerItem, setGalleryViewerItem] = useState(null);
     const dragDepthRef = useRef(0);
     // Editing State
     const [editingMessage, setEditingMessage] = useState(null); // message being edited
@@ -669,7 +669,7 @@ function MessengerPage() {
         setShowUserInfo(false);
         setStagedMediaFile(null);
         setIsDragOverChat(false);
-        setGalleryViewerUrl(null);
+        setGalleryViewerItem(null);
         dragDepthRef.current = 0;
     }, [activeConversation?.id]);
 
@@ -677,7 +677,7 @@ function MessengerPage() {
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
-                if (galleryViewerUrl) { setGalleryViewerUrl(null); return; }
+                if (galleryViewerItem) { setGalleryViewerItem(null); return; }
                 if (showUserInfo) { setShowUserInfo(false); return; }
                 if (showMessageSearch) { setShowMessageSearch(false); return; }
                 if (forwardingMessage) { setForwardingMessage(null); return; }
@@ -690,7 +690,7 @@ function MessengerPage() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [galleryViewerUrl, showUserInfo, showMessageSearch, forwardingMessage, editingMessage, replyToMessage, menuOpen, isMobile, activeConversation]);
+    }, [galleryViewerItem, showUserInfo, showMessageSearch, forwardingMessage, editingMessage, replyToMessage, menuOpen, isMobile, activeConversation]);
 
     // NOTE: Identity-switch reload effect is placed AFTER loadConversationsRef declaration below
 
@@ -2472,7 +2472,7 @@ function MessengerPage() {
         if (!previewContent) {
             URL.revokeObjectURL(blobUrl);
             setToast({ type: 'error', message: 'That File Could Not Be Attached' });
-            return;
+            return { ok: false, aborted: false };
         }
         const tempId = `temp-${requestId}`;
         setMessages(previous => [...previous, { id: tempId, request_id: requestId, conversation_id: conversationId,
@@ -2488,7 +2488,7 @@ function MessengerPage() {
             });
             const upload = await response.json();
             if (!response.ok || !upload.success || !upload.signedUrl || !upload.publicUrl) throw new Error('Upload Could Not Be Started');
-            if (!sameAccount()) return;
+            if (!sameAccount()) return { ok: false, aborted: true };
             await uploadFileWithProgress(file, upload, {
                 kind,
                 mimeType,
@@ -2497,7 +2497,7 @@ function MessengerPage() {
                 signal,
                 timeoutMs,
             });
-            if (!sameAccount()) return;
+            if (!sameAccount()) return { ok: false, aborted: true };
             const sendContent = contentForUrl(upload.publicUrl);
             if (!sendContent) throw new Error('Upload Produced An Unusable Address');
             let recorded = false;
@@ -2508,15 +2508,18 @@ function MessengerPage() {
             if (!recorded && current()) {
                 setMessages(previous => current() ? previous.filter(message => message.id !== tempId) : previous);
             }
+            return { ok: recorded, aborted: false };
         } catch (error) {
+            const aborted = error?.name === 'AbortError';
             if (current()) {
                 setMessages(previous => current() ? previous.filter(message => message.id !== tempId) : previous);
-                if (error?.name === 'AbortError') {
+                if (aborted) {
                     setToast({ type: 'info', message: 'Upload Cancelled' });
                 } else {
-                    setToast({ type: 'error', message: 'Upload Failed. Select The File Again To Retry.' });
+                    setToast({ type: 'error', message: 'Upload Failed. Press Send To Retry.' });
                 }
             }
+            return { ok: false, aborted };
         } finally {
             URL.revokeObjectURL(blobUrl);
         }
@@ -2524,17 +2527,17 @@ function MessengerPage() {
 
     // Handle media (photo/video) upload with HEIC conversion, dimension capture, and TUS video resume.
     const handleMediaUpload = async (file, { caption = '', onProgress, signal } = {}) => {
-        if (!user || !activeConversation || !file) return;
+        if (!user || !activeConversation || !file) return { ok: false, aborted: false };
         const prepared = await prepareMessengerUploadFile(file);
         if (!prepared) {
             setToast({ type: 'error', message: 'Only Images And Videos Are Supported' });
-            return;
+            return { ok: false, aborted: false };
         }
         const isVideo = prepared.kind === 'video';
         const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
         if (prepared.file.size > maxSize) {
             setToast({ type: 'error', message: `File Too Large. Max ${isVideo ? '50MB' : '10MB'}` });
-            return;
+            return { ok: false, aborted: false };
         }
         if (prepared.heicUnsupportedInBrowser) {
             setToast({ type: 'info', message: 'Uploading Original HEIC File. Use JPG Or PNG For All Browsers.' });
@@ -2555,10 +2558,11 @@ function MessengerPage() {
     };
 
     const handleVoiceSend = async (audioBlob, durationSeconds) => {
-        if (!user || !activeConversation || !audioBlob) return;
+        if (!user || !activeConversation || !audioBlob) return { ok: false, aborted: false };
+        const voiceMeta = resolveVoiceUploadMeta(audioBlob.type);
         return uploadMessengerAttachment(audioBlob, {
             kind: 'audio',
-            fileName: `voice_${Date.now()}.webm`, mimeType: 'audio/webm',
+            fileName: `voice_${Date.now()}.${voiceMeta.ext}`, mimeType: voiceMeta.mimeType,
             contentForUrl: url => encodeMessageMedia({ kind: 'audio', url, duration: durationSeconds }), timeoutMs: 60000,
         });
     };
@@ -4226,19 +4230,20 @@ function MessengerPage() {
                                                     }}>
                                                         {sharedMedia.map((item) => (
                                                             item.kind === 'video' ? (
-                                                                <a
+                                                                <button
                                                                     key={item.id}
-                                                                    href={item.url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    aria-label="Open Shared Video"
+                                                                    type="button"
+                                                                    aria-label="Play Shared Video"
+                                                                    onClick={() => setGalleryViewerItem({ url: item.url, kind: 'video', label: 'Shared Video' })}
                                                                     style={{
                                                                         position: 'relative',
                                                                         aspectRatio: '1 / 1',
+                                                                        padding: 0,
                                                                         borderRadius: 8,
                                                                         overflow: 'hidden',
                                                                         border: `1px solid ${C.border}`,
                                                                         background: '#000',
+                                                                        cursor: 'pointer',
                                                                         display: 'block',
                                                                     }}
                                                                 >
@@ -4247,7 +4252,7 @@ function MessengerPage() {
                                                                         muted
                                                                         playsInline
                                                                         preload="metadata"
-                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
                                                                     />
                                                                     <span aria-hidden="true" style={{
                                                                         position: 'absolute',
@@ -4260,13 +4265,13 @@ function MessengerPage() {
                                                                         fontSize: 10,
                                                                         fontWeight: 700,
                                                                     }}>▶</span>
-                                                                </a>
+                                                                </button>
                                                             ) : (
                                                                 <button
                                                                     key={item.id}
                                                                     type="button"
                                                                     aria-label={item.kind === 'gif' ? 'View Shared GIF' : 'View Shared Photo'}
-                                                                    onClick={() => setGalleryViewerUrl(item.url)}
+                                                                    onClick={() => setGalleryViewerItem({ url: item.url, kind: item.kind, label: item.kind === 'gif' ? 'Shared GIF' : 'Shared Photo' })}
                                                                     style={{
                                                                         aspectRatio: '1 / 1',
                                                                         padding: 0,
@@ -4294,8 +4299,13 @@ function MessengerPage() {
                                         </aside>
                                     );
                                 })()}
-                                {galleryViewerUrl && (
-                                    <MediaViewer url={galleryViewerUrl} label="Shared Photo" onClose={() => setGalleryViewerUrl(null)} />
+                                {galleryViewerItem && (
+                                    <MediaViewer
+                                        url={galleryViewerItem.url}
+                                        kind={galleryViewerItem.kind}
+                                        label={galleryViewerItem.label}
+                                        onClose={() => setGalleryViewerItem(null)}
+                                    />
                                 )}
                             </>
                         ) : (

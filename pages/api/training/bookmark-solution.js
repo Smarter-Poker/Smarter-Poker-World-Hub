@@ -88,7 +88,9 @@ export default async function handler(req, res) {
             const action = sanitizeParam(req.body?.action, 16);
             const scenarioHash = sanitizeParam(req.body?.scenarioHash, 256);
             const spotId = req.body?.spotId == null ? null : sanitizeParam(req.body.spotId, 180);
-            const notes = req.body?.notes == null ? req.body?.notes : sanitizeParam(req.body.notes, 2000);
+            const notes = req.body?.notes == null
+                ? null
+                : String(req.body.notes).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, 2000);
 
             if (!action || !scenarioHash) {
                 return res.status(400).json({ success: false, error: 'action and scenarioHash are required' });

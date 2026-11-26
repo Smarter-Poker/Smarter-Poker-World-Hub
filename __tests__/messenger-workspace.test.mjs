@@ -538,4 +538,9 @@ test('a message-less conversation with a saved draft appears in its matching wor
     assert.equal(social.conversations.some(c=>c.id===hiddenWithMsgs),false,'thread with messages must not be resurrected by draft');
     const club=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club});
     assert.equal(club.conversations.some(c=>c.id===draftThread),false,'personal draft must never leak into a club inbox');
+    // Deep-linking or reloading directly onto a message-less draft thread must resolve cleanly.
+    const resolved=await getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:draftThread});
+    assert.equal(resolved.conversation?.id,draftThread,'resolving a message-less draft thread should succeed');
+    assert.equal(resolved.conversation?.draftPreview,'See you at the 2/5 table');
+    assert.ok(resolved.conversations.some(c=>c.id===draftThread),'resolved draft thread must appear in returned conversation list');
 });

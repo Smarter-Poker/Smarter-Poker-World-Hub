@@ -1240,10 +1240,19 @@ class GameController {
       if (!actionsInfo || !actionsInfo.actions || actionsInfo.actions.length === 0) return;
 
       // Build table config for the brain
+      const resolvedVariant = entry.config?.variant || game.config?.variant || 'holdem';
+      const resolvedBettingStructure = entry.config?.bettingStructure || game.config?.bettingStructure || 'no_limit';
       const tableConfig = {
         bigBlind: entry.config?.bigBlind || game.config?.bigBlind || 2,
         smallBlind: entry.config?.smallBlind || game.config?.smallBlind || 1,
+        variant: resolvedVariant,
+        bettingStructure: resolvedBettingStructure,
+        tableId: entry.tableId || entry.id || game.config?.tableId || 'table',
       };
+      if (engineState && typeof engineState === 'object') {
+        if (!engineState.variant) engineState.variant = resolvedVariant;
+        if (!engineState.bettingStructure) engineState.bettingStructure = resolvedBettingStructure;
+      }
 
       // Get the AI decision
       const { action, delayMs } = await HorsePokerBrain.getDecision(

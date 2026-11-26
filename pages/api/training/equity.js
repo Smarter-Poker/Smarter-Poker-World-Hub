@@ -348,7 +348,7 @@ export default async function handler(req, res) {
               board: boardInput = [],
               variant = 'holdem',
               iterations: rawIterations = 5000,
-          } = req.body;
+          } = (req.body && typeof req.body === 'object') ? req.body : {};
 
           const normalizeHandEntry = (entry) => {
               if (Array.isArray(entry)) return entry.map((c) => String(c || '').trim()).join('');
@@ -388,6 +388,10 @@ export default async function handler(req, res) {
                       errors.push(`Hand ${idx + 1}: invalid card "${cardStr}"`);
                       return null;
                   }
+                  if (variantSpec.isShortDeck && getRank(cardInt) < 4) {
+                      errors.push(`Hand ${idx + 1}: Short Deck (6+) only allows cards 6 through Ace ("${cardStr}")`);
+                      return null;
+                  }
                   if (allCardInts.has(cardInt)) {
                       errors.push(`Duplicate card: ${cardStr}`);
                       return null;
@@ -412,6 +416,9 @@ export default async function handler(req, res) {
                   const cardInt = parseCardStr(cardStr);
                   if (cardInt === -1) {
                       return res.status(400).json({ success: false, error: 'Invalid board card' });
+                  }
+                  if (variantSpec.isShortDeck && getRank(cardInt) < 4) {
+                      return res.status(400).json({ success: false, error: `Short Deck (6+) board cannot contain cards below 6 ("${cardStr}")` });
                   }
                   if (allCardInts.has(cardInt)) {
                       return res.status(400).json({ success: false, error: 'Duplicate card on board' });

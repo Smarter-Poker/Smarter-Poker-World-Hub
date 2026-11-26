@@ -245,7 +245,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // we route to a dedicated heuristic engine that understands 4-6 card hand strength
     // instead of blindly trying to use 2-card Holdem rankings on a 4-card hand.
     const variant = engineState.variant || tableConfig.variant || 'holdem';
-    const isPLO = ['omaha4', 'omaha5', 'omaha6', 'omaha_hilo', 'plo', 'plo4', 'plo5', 'plo6', 'plo8'].includes(variant.toLowerCase());
+    const isPLO = ['omaha4', 'omaha5', 'omaha6', 'omaha_hilo', 'omaha8', 'omaha_hi_lo', 'pot_limit_omaha', 'plo', 'plo4', 'plo5', 'plo6', 'plo8', 'plo_hilo', 'flo8'].includes(variant.toLowerCase());
     // Bug #194: 'plo8' is the standard abbreviation for PLO8-or-better (Hi-Lo).
     // Old check only matched hilo/hi_lo/hi-lo substrings — plo8 was silently treated as
     // non-Hi-Lo, skipping ALL lo8 evaluation (nut low overrides, scoop bonuses, low outs).

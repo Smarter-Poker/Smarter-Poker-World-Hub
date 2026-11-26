@@ -28,13 +28,14 @@ export default async function handler(req, res) {
   if (memberError || !membership) return res.status(403).json({ success: false, error: 'Join this study group to view its discussion' });
 
   if (req.method === 'GET') {
-    const { data: messages, error } = await db()
+    const { data: rawMessages, error } = await db()
       .from('training_study_group_messages')
       .select('id, user_id, body, created_at')
       .eq('group_id', groupId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(200);
     if (error) return res.status(500).json({ success: false, error: 'Messages could not be loaded' });
+    const messages = Array.isArray(rawMessages) ? [...rawMessages].reverse() : [];
     const ids = [...new Set((messages || []).map((message) => message.user_id))];
     const { data: profiles } = ids.length
       ? await db().from('profiles').select('id, username, display_name, avatar_url').in('id', ids).limit(100)

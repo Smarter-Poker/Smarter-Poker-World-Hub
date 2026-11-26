@@ -25,6 +25,8 @@ import {
     mediaThumbnailUrl,
     isThumbnailUrl,
     resolveUploadMedia,
+    resolveVoiceUploadMeta,
+    selectVoiceRecordingMime,
     stripForwardPrefix,
     videoPreviewUrl,
 } from '../src/lib/messenger/messageMedia.mjs';
@@ -510,4 +512,58 @@ test('composer preview tray, paste, drag-and-drop, TUS resumable video, HEIC con
     assert.match(dock, /dock-upload-progress/);
     assert.match(dock, /onPaste=\{handlePaste\}/);
     assert.match(dock, /extractMediaDimensions/);
+});
+
+test('hardening: Safari voice recording MIME selection, TUS->XHR video fallback, failed-upload retry retention, in-app video viewer, and hover/drag guards', () => {
+    // 1. Voice recording MIME negotiation across Chrome, Safari/iOS, Firefox, and fallback.
+    assert.equal(selectVoiceRecordingMime(t => t === 'audio/mp4'), 'audio/mp4');
+    assert.equal(selectVoiceRecordingMime(t => t === 'audio/webm;codecs=opus'), 'audio/webm;codecs=opus');
+    assert.equal(selectVoiceRecordingMime(t => t === 'audio/ogg;codecs=opus'), 'audio/ogg;codecs=opus');
+    assert.equal(selectVoiceRecordingMime(() => false), '');
+    assert.deepEqual(resolveVoiceUploadMeta('audio/mp4;codecs=mp4a.40.2'), { mimeType: 'audio/mp4', ext: 'm4a' });
+    assert.deepEqual(resolveVoiceUploadMeta('audio/webm;codecs=opus'), { mimeType: 'audio/webm', ext: 'webm' });
+    assert.deepEqual(resolveVoiceUploadMeta('audio/ogg'), { mimeType: 'audio/ogg', ext: 'ogg' });
+    assert.deepEqual(resolveVoiceUploadMeta(''), { mimeType: 'audio/webm', ext: 'webm' });
+
+    const input = readFileSync('src/components/messenger/MessageInput.js', 'utf8');
+    const page = readFileSync('pages/hub/messenger.js', 'utf8');
+    const uploader = readFileSync('src/lib/messenger/mediaUpload.js', 'utf8');
+    const viewer = readFileSync('src/components/messenger/MediaViewer.jsx', 'utf8');
+    const bubble = readFileSync('src/components/messenger/MessageBubble.js', 'utf8');
+    const dock = readFileSync('src/components/messenger/dock/MessengerChat.jsx', 'utf8');
+    const clubMessenger = readFileSync('src/components/club-arena/ClubArenaMessenger.jsx', 'utf8');
+
+    // 2. Staged media & caption are cleared ONLY AFTER upload succeeds (never before await).
+    const inputSend = input.slice(input.indexOf('const sendPendingMedia'), input.indexOf('const handleSubmit'));
+    assert.ok(inputSend.indexOf('await onMediaUpload(') < inputSend.indexOf('clearPendingMedia()'),
+        'MessageInput must retain staged media until upload succeeds');
+    const dockSend = dock.slice(dock.indexOf('const sendPendingMedia'), dock.indexOf('const upload ='));
+    assert.ok(dockSend.indexOf('await uploadFileWithProgress(') < dockSend.indexOf('clearPendingMedia()'),
+        'MessengerChat dock must retain staged media until upload succeeds');
+    assert.match(page, /return \{ ok: recorded, aborted: false \}/);
+    assert.match(page, /return \{ ok: false, aborted \}/);
+
+    // 3. TUS video upload transparently falls back to signed XHR PUT on non-abort failure.
+    assert.match(uploader, /catch \(tusError\)[\s\S]*tusError\?\.name === 'AbortError'[\s\S]*uploadViaXhr\(/);
+
+    // 4. Shared Media drawer plays videos inside MediaViewer (never booting users to a raw tab).
+    assert.match(viewer, /const isVideo = kind === 'video'/);
+    assert.match(viewer, /Unable To Load Video/);
+    const drawerSection = page.slice(page.indexOf('data-testid="conversation-info-drawer"'), page.indexOf('/* No conversation selected */'));
+    assert.match(drawerSection, /aria-label="Play Shared Video"/);
+    assert.equal(/target="_blank"/.test(drawerSection), false, 'Shared Media drawer must not open videos in a new browser tab');
+
+    // 5. Voice scrubber keyboard focus ring, touch-safe desktop hover, and single-context-menu dismiss.
+    assert.match(bubble, /scrubberFocused/);
+    assert.match(bubble, /onPointerEnter=\{\(e\) => \{ if \(e\.pointerType !== 'touch'\) setRowHovered\(true\); \}\}/);
+    assert.match(bubble, /document\.addEventListener\('contextmenu', dismiss\)/);
+
+    // 6. Safari-safe voice recording wired in both MessageInput and ClubArenaMessenger.
+    assert.match(input, /selectVoiceRecordingMime/);
+    assert.match(page, /resolveVoiceUploadMeta\(audioBlob\.type\)/);
+    assert.match(clubMessenger, /selectVoiceRecordingMime/);
+    assert.match(clubMessenger, /resolveVoiceUploadMeta\(/);
+
+    // 7. Dock drag-leave ignores child element transitions so overlay never sticks open.
+    assert.match(dock, /!event\.currentTarget\.contains\(event\.relatedTarget\)/);
 });

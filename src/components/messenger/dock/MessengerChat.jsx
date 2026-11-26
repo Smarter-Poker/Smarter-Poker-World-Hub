@@ -310,7 +310,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
         const caption = draft.text.trim();
         const controller = typeof AbortController === 'function' ? new AbortController() : null;
         uploadAbort.current = controller;
-        clearPendingMedia();
+        setError('');
         setUploading(true);
         setUploadProgress(0);
         try {
@@ -332,7 +332,10 @@ export default function MessengerChat({ actorId, identity, conversation, service
             const encoded = encodeMessageMedia({ kind: prepared.kind, url: result.publicUrl, caption });
             if (!encoded) throw new Error('Upload Produced An Unusable Address');
             const meta = prepared.width && prepared.height ? { media_width: prepared.width, media_height: prepared.height } : null;
-            if (current()) send(encoded, Boolean(caption), meta);
+            if (current()) {
+                clearPendingMedia();
+                send(encoded, Boolean(caption), meta);
+            }
         } catch (failure) {
             if (current() && failure?.name !== 'AbortError') setError(dockFailureText(failure));
         } finally {
@@ -366,7 +369,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
     // app-wide CallProvider, so they keep working when this window closes.
     const canCall = !!conversation.otherUser?.id && !conversation.is_group && !conversation.isRequest && !conversation.isAccounting;
     const call = type => void requestCall({ conversationId: id, otherUser: conversation.otherUser, callType: type, isGroup: !!conversation.is_group, isRequest: !!conversation.isRequest });
-    return <div className={`dock-chat ${dragOver ? 'dock-chat-dragover' : ''}`} data-dock-conversation={id} onFocusCapture={() => setEngaged(true)} onPointerDown={() => setEngaged(true)} onDragOver={event => { if (Array.from(event.dataTransfer?.types || []).includes('Files')) { event.preventDefault(); setDragOver(true); } }} onDragLeave={event => { if (event.currentTarget === event.target) setDragOver(false); }} onDrop={event => { event.preventDefault(); setDragOver(false); const dropped = Array.from(event.dataTransfer?.files || []).find(f => resolveUploadMedia(f)); if (dropped) stageMedia(dropped); }} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onMinimize(); } }}>
+    return <div className={`dock-chat ${dragOver ? 'dock-chat-dragover' : ''}`} data-dock-conversation={id} onFocusCapture={() => setEngaged(true)} onPointerDown={() => setEngaged(true)} onDragOver={event => { if (Array.from(event.dataTransfer?.types || []).includes('Files')) { event.preventDefault(); setDragOver(true); } }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget)) setDragOver(false); }} onDrop={event => { event.preventDefault(); setDragOver(false); const dropped = Array.from(event.dataTransfer?.files || []).find(f => resolveUploadMedia(f)); if (dropped) stageMedia(dropped); }} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onMinimize(); } }}>
         <header className="dock-chat-header">
             {conversation.otherUser?.avatar_url ? <img className="dock-chat-avatar" src={conversation.otherUser.avatar_url} alt="" /> : <span className="dock-chat-avatar dock-initial">{name.slice(0, 1)}</span>}
             <button type="button" className="dock-chat-person" onClick={openFull}><strong>{name}</strong><small>{typing ? 'Typing...' : 'Messenger'}</small></button>

@@ -16,6 +16,7 @@ import {
     MIN_SCALE, clampScale, clampOffset, nextIndex, offsetForScaleAbout,
     pinchScale, pointerDistance, pointerMidpoint, swipeIntent, toggleScale,
 } from '../../lib/messenger/viewerGestures.mjs';
+import { videoPreviewUrl } from '../../lib/messenger/messageMedia.mjs';
 
 export const ATTACHMENT_ATTRIBUTE = 'data-message-attachment';
 
@@ -28,11 +29,13 @@ export function galleryFromDocument(scope) {
         .filter(Boolean);
 }
 
-export default function MediaViewer({ url, label = 'Photo', onClose }) {
+export default function MediaViewer({ url, kind = 'image', label = 'Photo', onClose }) {
+    const isVideo = kind === 'video';
     const gallery = useMemo(() => {
+        if (isVideo) return [url];
         const found = galleryFromDocument();
         return found.includes(url) ? found : [url];
-    }, [url]);
+    }, [url, isVideo]);
     const [index, setIndex] = useState(() => Math.max(0, gallery.indexOf(url)));
     const [scale, setScale] = useState(MIN_SCALE);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -146,19 +149,19 @@ export default function MediaViewer({ url, label = 'Photo', onClose }) {
             <div
                 ref={frame}
                 onClick={event => event.stopPropagation()}
-                onDoubleClick={event => {
+                onDoubleClick={isVideo ? undefined : (event => {
                     event.stopPropagation();
                     const target = toggleScale(scale);
                     settle(target, target === MIN_SCALE ? { x: 0, y: 0 } : offset);
-                }}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerUp}
-                onWheel={onWheel}
+                })}
+                onPointerDown={isVideo ? undefined : onPointerDown}
+                onPointerMove={isVideo ? undefined : onPointerMove}
+                onPointerUp={isVideo ? undefined : onPointerUp}
+                onPointerCancel={isVideo ? undefined : onPointerUp}
+                onWheel={isVideo ? undefined : onWheel}
                 style={{
                     width: '100%', height: '100%', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', overflow: 'hidden', touchAction: 'none',
+                    justifyContent: 'center', overflow: 'hidden', touchAction: isVideo ? 'auto' : 'none',
                 }}
             >
                 {failed ? (
@@ -173,8 +176,23 @@ export default function MediaViewer({ url, label = 'Photo', onClose }) {
                             background: 'rgba(255,255,255,0.1)', fontSize: 14, fontWeight: 600,
                         }}
                     >
-                        Unable To Load Photo · Tap To Open Original
+                        {isVideo ? 'Unable To Load Video · Tap To Open Original' : 'Unable To Load Photo · Tap To Open Original'}
                     </a>
+                ) : isVideo ? (
+                    <video
+                        key={current}
+                        src={videoPreviewUrl(current) || current}
+                        controls
+                        autoPlay
+                        playsInline
+                        preload="metadata"
+                        onError={() => setFailed(true)}
+                        onClick={event => event.stopPropagation()}
+                        style={{
+                            maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8,
+                            background: '#000',
+                        }}
+                    />
                 ) : (
                     <img
                         key={current}
@@ -206,16 +224,29 @@ export default function MediaViewer({ url, label = 'Photo', onClose }) {
                     }}>{index + 1} / {gallery.length}</div>
                 </>
             )}
-            <button
-                type="button"
-                aria-label="Close Photo"
-                onClick={event => { event.stopPropagation(); onClose?.(); }}
-                style={{
-                    position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12,
-                    width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                    background: 'rgba(255,255,255,0.14)', color: 'white', fontSize: 22, lineHeight: 1,
-                }}
-            >×</button>
+            {isVideo ? (
+                <button
+                    type="button"
+                    aria-label="Close Video"
+                    onClick={event => { event.stopPropagation(); onClose?.(); }}
+                    style={{
+                        position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12,
+                        width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                        background: 'rgba(255,255,255,0.14)', color: 'white', fontSize: 22, lineHeight: 1,
+                    }}
+                >×</button>
+            ) : (
+                <button
+                    type="button"
+                    aria-label="Close Photo"
+                    onClick={event => { event.stopPropagation(); onClose?.(); }}
+                    style={{
+                        position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12,
+                        width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                        background: 'rgba(255,255,255,0.14)', color: 'white', fontSize: 22, lineHeight: 1,
+                    }}
+                >×</button>
+            )}
         </div>,
         document.body,
     );
