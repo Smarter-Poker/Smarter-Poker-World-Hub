@@ -1,0 +1,59 @@
+name: Personal Assistant Browser Smoke and Unit Gates
+
+# Path-filtered PR verification check for Personal Assistant, Sandbox, and Share surfaces.
+# Read-only verification check; no workflow/cron/watcher may initiate, advance, retry, or certify a release.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'pages/hub/personal-assistant/**'
+      - 'pages/share/hand.js'
+      - 'pages/api/assistant/**'
+      - 'pages/api/sandbox/**'
+      - 'pages/api/og/hand-card.js'
+      - 'src/components/personal-assistant/**'
+      - 'src/components/sandbox/**'
+      - 'src/lib/personal-assistant/**'
+      - 'scripts/ci/pa-browser-smoke.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pa-browser-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-and-unit:
+    name: Personal Assistant Contract and Unit Gates
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Run Personal Assistant Contract Smoke
+        run: node scripts/ci/pa-browser-smoke.mjs --check-only
+
+      - name: Run Personal Assistant Phase 4 and 5 Unit Gates
+        run: node --test tests/pa-*.test.mjs tests/personal-assistant-simplification.test.mjs

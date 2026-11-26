@@ -489,10 +489,16 @@ export default async function handler(req, res) {
       return res.status(422).json({ success: false, error: 'No supported hand histories were parsed' });
     }
 
-    const result = await auditParsedHands(getSupabase(), user.id, hands, { maxDecisions: 250, persist: true });
+    const rawScope = req.body?.evidenceScope;
+    const evidenceScope = (rawScope === 'self_reported_live' || rawScope === 'external_upload')
+      ? rawScope
+      : 'external_upload';
+
+    const result = await auditParsedHands(getSupabase(), user.id, hands, { maxDecisions: 250, persist: true, evidenceScope: evidenceScope });
     if (result.persisted === false || result.evidenceReconciled === false) {
       return res.status(503).json({
         ...result,
+        evidenceScope,
         success: false,
         persisted: false,
         decisionEvidencePersisted: result.persisted !== false,
@@ -594,6 +600,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       ...result,
+      evidenceScope: evidenceScope,
       participantVerified: true,
       syncedHands: rankedSyncedHands,
       hands: rankedSyncedHands,

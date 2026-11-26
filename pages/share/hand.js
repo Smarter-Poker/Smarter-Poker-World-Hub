@@ -12,7 +12,7 @@
  */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const SUITS = { c: '♣', d: '♦', h: '♥', s: '♠' };
 const SUIT_COLORS = { c: '#2ECC71', d: '#3498DB', h: '#E74C3C', s: '#ECF0F1' };
@@ -122,20 +122,21 @@ export default function ShareHandPage({ initialQuery = {} }) {
         <>
             <Head>
                 <title>{title}</title>
-                <meta name="description" content={description} />
-                <meta property="og:title" content={title} />
-                <meta property="og:description" content={description} />
-                <meta property="og:image" content={ogImageUrl} />
-                <meta property="og:image:width" content="800" />
-                <meta property="og:image:height" content="420" />
-                <meta property="og:type" content="website" />
-                <meta property="og:url" content={`https://smarter.poker/share/hand`} />
-                <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={title} />
-                <meta name="twitter:description" content={description} />
-                <meta name="twitter:image" content={ogImageUrl} />
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-                {isReview && <meta name="robots" content="noindex,nofollow" />}
+                <meta key="description" name="description" content={description} />
+                <meta key="og-title" property="og:title" content={title} />
+                <meta key="og-description" property="og:description" content={description} />
+                <meta key="og-image" property="og:image" content={ogImageUrl} />
+                <meta key="og-image-width" property="og:image:width" content="800" />
+                <meta key="og-image-height" property="og:image:height" content="420" />
+                <meta key="og-image-type" property="og:image:type" content="image/png" />
+                <meta key="og-type" property="og:type" content="website" />
+                <meta key="og-url" property="og:url" content={`https://smarter.poker/share/hand`} />
+                <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
+                <meta key="twitter-title" name="twitter:title" content={title} />
+                <meta key="twitter-description" name="twitter:description" content={description} />
+                <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
+                <meta key="viewport" name="viewport" content="width=device-width, initial-scale=1" />
+                {isReview && <meta key="robots" name="robots" content="noindex,nofollow" />}
             </Head>
             <div style={{
                 minHeight: '100vh',

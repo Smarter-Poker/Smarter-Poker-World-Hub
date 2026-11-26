@@ -47,6 +47,7 @@ import { useOnlineStatus, OFFLINE_TOAST } from '../../../src/hooks/useOnlineStat
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
+import InlineHandReplay from '../../../src/components/personal-assistant/InlineHandReplay';
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY';
 import {
   dueQueueAll, reviewStats, leakToDrill, leakToTrainingGame, migrateRecord, resolutionProgress,
@@ -2546,6 +2547,9 @@ export default function LeakFinderPage() {
     }
   }, [reviewRecords, reviewableLeaks, reviewNowMs]);
 
+  const reviewTriggerRef = useRef(null);
+  const [reviewAnnouncement, setReviewAnnouncement] = useState('');
+
   const handleStartReview = useCallback((entry) => {
     if (!guardAction()) return;
     const target = entry || reviewQueue[0];
@@ -2562,6 +2566,8 @@ export default function LeakFinderPage() {
       handleOpenHandReview(targetLeak);
       return;
     }
+    reviewTriggerRef.current = typeof document !== 'undefined' ? document.activeElement : null;
+    setReviewAnnouncement('Corrective Review Session Opened');
     setReviewReceipt(null);
     const resolvedLeakId = target.practiceOnly
       ? null
@@ -2582,9 +2588,13 @@ export default function LeakFinderPage() {
 
   const closeReviewSession = useCallback(() => {
     setReviewSession(null);
+    setReviewAnnouncement('Corrective Review Session Closed');
     refreshLocalReviews();
     setReviewNowMs(Date.now());
     fetchReviewSchedule();
+    try {
+      reviewTriggerRef.current?.focus?.();
+    } catch (_) {}
   }, [refreshLocalReviews, fetchReviewSchedule]);
   useModalHistory(Boolean(reviewSession), closeReviewSession);
 
@@ -3223,6 +3233,10 @@ export default function LeakFinderPage() {
                     <div style={{ fontSize: F.bodySm, color: T.textMuted }}>
                       {linkedHandAudit.limitation}
                     </div>
+                  )}
+
+                  {!linkedHandLoading && (linkedHandAudit?.hand || (Array.isArray(linkedHandAudit?.streetTimeline) && linkedHandAudit.streetTimeline.length > 0)) && (
+                    <InlineHandReplay audit={linkedHandAudit} />
                   )}
 
                   {!linkedHandLoading && Array.isArray(linkedHandAudit?.streetTimeline) && linkedHandAudit.streetTimeline.length > 0 && (
@@ -3868,6 +3882,11 @@ export default function LeakFinderPage() {
             />
           </LeakErrorBoundary>
         )}
+
+        {/* ── Live announcement region for review session ── */}
+        <span className="pa-vh" role="status" aria-live="polite">
+          {reviewAnnouncement}
+        </span>
 
         {/* ── Review drill (the existing sandbox drill loop, not a second one) ── */}
         {reviewSession && (

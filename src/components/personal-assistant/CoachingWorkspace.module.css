@@ -29,9 +29,9 @@
 .receipt strong { color: var(--coach-gold); margin-top: 4px; font: 700 12px/1.3 "IBM Plex Mono", monospace; overflow-wrap: anywhere; }
 
 .searchBar { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
-.searchBar svg { color: #9aabba; flex: none; }
+.searchBar svg { color: #9eb4c8; flex: none; }
 .searchBar input { min-height: 44px; border: 0; outline: 0; background: transparent; color: #f1f5fc; width: 100%; font: inherit; font-size: 16px; min-width: 0; }
-.searchBar input::placeholder { color: #9aabba; }
+.searchBar input::placeholder { color: #9eb4c8; }
 
 .viewNav { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
 .viewNav button { position: relative; min-height: 44px; border: 0; border-right: 1px solid #253e57; border-bottom: 1px solid #253e57; background: linear-gradient(180deg, #152639 0%, #06111e 65%); color: #dce5ef; display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding: 6px 8px; font: 700 12px/1.15 "Arial Narrow", Arial, sans-serif; text-align: center; cursor: pointer; }
@@ -83,7 +83,7 @@
 .gapRank { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #688299; border-radius: 6px; color: #dce5ef; font: 800 12px/1 Arial, sans-serif; }
 .gapCopy { display: grid; gap: 2px; min-width: 0; }
 .gapCopy strong { color: #f1f5fc; font-size: 13px; overflow-wrap: anywhere; }
-.gapCopy small { color: #9aabba; font-size: 12px; overflow-wrap: anywhere; }
+.gapCopy small { color: #9eb4c8; font-size: 12px; overflow-wrap: anywhere; }
 .gapCount { color: #ffc66d; font: 800 12px/1.2 Arial, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .metricGrid { display: grid; grid-template-columns: repeat(2, 1fr); overflow: clip; }
@@ -110,7 +110,7 @@
 .leakPicker { display: grid; gap: 6px; max-height: 300px; overflow: auto; margin-top: 10px; }
 .leakPicker button { min-height: 44px; padding: 8px 10px; border: 1px solid #35566a; border-radius: 6px; background: #060e18; color: #dce5ef; text-align: left; cursor: pointer; }
 .leakPicker span, .leakPicker small { display: block; }
-.leakPicker small { margin-top: 2px; color: #9aabba; font-size: 12px; text-transform: capitalize; }
+.leakPicker small { margin-top: 2px; color: #9eb4c8; font-size: 12px; text-transform: capitalize; }
 .leakPicker .selectedLeak { border-color: #56d8ff; background: linear-gradient(180deg, rgba(8, 124, 250, .26), rgba(0, 68, 172, .16)); color: #ffffff; }
 .progressWrap { margin: 10px 0; }
 .progressMeta { display: flex; justify-content: space-between; gap: 10px; color: #b6c8d6; font-size: 12px; }
@@ -127,7 +127,7 @@
 .evidenceChain > div[data-state="unavailable"] { border-color: rgba(255, 107, 122, .45); }
 .provenanceGrid { display: grid; gap: 6px; margin: 10px 0 0; }
 .provenanceGrid div { min-width: 0; padding: 8px 10px; border: 1px solid #253e57; border-radius: 6px; background: #060e18; }
-.provenanceGrid dt { color: #9aabba; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.provenanceGrid dt { color: #9eb4c8; font-size: 12px; font-weight: 700; text-transform: uppercase; }
 .provenanceGrid dd { margin: 4px 0 0; color: #f1f5fc; font: 700 12px/1.3 "IBM Plex Mono", monospace; overflow-wrap: anywhere; }
 .coverageList { display: grid; gap: 6px; margin: 10px 0 0; }
 .coverageList div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #253e57; padding-bottom: 6px; }
@@ -143,10 +143,10 @@
 .timelineList li::before { content: ""; position: absolute; left: -19px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: #56d8ff; }
 .timelineList time { color: var(--coach-gold); font: 700 12px/1.3 monospace; }
 .timelineList strong, .timelineList small { display: block; }
-.timelineList small { color: #9aabba; font-size: 12px; margin-top: 2px; }
+.timelineList small { color: #9eb4c8; font-size: 12px; margin-top: 2px; }
 .goalList li { padding: 10px; border: 1px solid #35566a; border-radius: 6px; display: grid; gap: 8px; background: #060e18; }
 .goalList strong, .goalList small { display: block; }
-.goalList small { color: #9aabba; font-size: 12px; margin-top: 3px; }
+.goalList small { color: #9eb4c8; font-size: 12px; margin-top: 3px; }
 .goalActions { display: flex; flex-wrap: wrap; gap: 7px; }
 .goalList button { min-height: 44px; padding: 8px 11px; border: 1px solid rgba(77, 224, 165, .5); border-radius: 6px; background: rgba(77, 224, 165, .1); color: #4de0a5; cursor: pointer; }
 .goalList .removeGoal { border-color: rgba(255, 107, 122, .5); background: rgba(255, 107, 122, .1); color: #ff8290; }
@@ -154,7 +154,7 @@
 .removeDataButton { min-height: 44px; margin-top: 10px; padding: 10px 14px; border: 1px solid rgba(255, 107, 122, .72); border-radius: 6px; background: rgba(255, 107, 122, .14); color: #ff9aa5; font: 700 13px/1.2 "Arial Narrow", Arial, sans-serif; cursor: pointer; }
 .removeDataButton:disabled { opacity: .5; cursor: not-allowed; }
 .confirmDeletion { margin-top: 10px; padding: 10px; border: 1px solid rgba(255, 107, 122, .45); border-radius: 6px; background: rgba(0, 0, 0, .25); }
-.mutedCopy { display: block; margin-top: 8px; color: #9aabba; font-size: 12px; }
+.mutedCopy { display: block; margin-top: 8px; color: #9eb4c8; font-size: 12px; }
 .titleValue { text-transform: capitalize; }
 .reportMetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
 .reportMetrics > div { padding: 10px; border: 1px solid #35566a; border-radius: 6px; text-align: center; background: #060e18; }
@@ -167,6 +167,55 @@
 .reportFooter svg { flex: none; color: #83deff; }
 .statePanel { min-height: 200px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; }
 .statePanel > svg { color: #83deff; }
+
+.claimButton {
+  min-height: 44px;
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  font: 700 13px/1.15 "Arial Narrow", Arial, sans-serif;
+  cursor: pointer;
+  border: 1px solid rgba(86, 216, 255, 0.6);
+  border-top-color: #b3eaff;
+  background: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%);
+  color: #ffffff;
+}
+.claimButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.claimedBadge {
+  min-height: 36px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font: 700 12px/1.2 monospace;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(77, 224, 165, 0.15);
+  border: 1px solid rgba(77, 224, 165, 0.5);
+  color: #4de0a5;
+}
+.stakePoolNote {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border: 1px solid #253e57;
+  border-radius: 4px;
+  background: rgba(37, 62, 87, 0.25);
+  color: #9eb4c8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.exportTray {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
 @media (prefers-reduced-motion: no-preference) {
   .spin { animation: coach-spin 1s linear infinite; }
 }
