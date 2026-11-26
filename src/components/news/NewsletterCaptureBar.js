@@ -222,7 +222,8 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
     const suppressedForInlineArticle =
         !isInline && (cleanPath === '/hub/article' || cleanPath.startsWith('/hub/article/'));
 
-    if (!ready || !routeEligible || suppressedForInlineArticle) {
+    const isCalculatorLander = ['/tools/poker-odds-calculator', '/tools/icm-calculator'].includes(normalizeCapturePath(cleanPath));
+    if (!ready || !routeEligible || suppressedForInlineArticle || (!isInline && isCalculatorLander)) {
         return null;
     }
 

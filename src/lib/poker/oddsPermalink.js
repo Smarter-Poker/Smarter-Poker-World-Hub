@@ -47,6 +47,7 @@ export function buildOddsSpotSummary({
   game = 'nlhe',
   hands = [],
   board = [],
+  dead = [],
   results = null,
   url = 'https://smarter.poker/hub/poker-tools',
 } = {}) {
@@ -65,7 +66,8 @@ export function buildOddsSpotSummary({
       : 'Board: Preflop';
   return [
     `Smarter.Poker ${cfgName} Equity Spot`,
-    boardStr,
+    ...(GAME_CONFIGS[game]?.hasBoard ? [boardStr] : []),
+    ...(dead.length ? [`Dead: ${dead.map(c => c.rank + SUIT_SYMBOLS[c.suit]).join(' ')}`] : []),
     ...seatLines,
     `Run This Spot Free: ${url}`,
   ].join('\n');

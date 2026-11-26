@@ -42,6 +42,7 @@ test('robots.txt declares sitemap_index.xml first and lists all specialized sub-
     'https://smarter.poker/sitemap-compare.xml',
     'https://smarter.poker/sitemap-learn.xml',
     'https://smarter.poker/sitemap-videos.xml',
+    'https://smarter.poker/sitemap-news.xml',
     'https://smarter.poker/hub/club-arena/sitemap.xml',
   ];
   assert.deepEqual(parsed.sitemaps, expected);

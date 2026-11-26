@@ -9,7 +9,7 @@
  * - /poker-rooms/security-and-disputes-guide (Floor Security, FinCEN CTR & Angle-Shoots)
  * - /poker-rooms/seasonal-calendar (12-Month Seasonal Migration Calendar)
  * - /poker-rooms/guides (12 US Regional City Market Guides)
- * - /poker-rooms/states (15 US State Legality & Tax Guides)
+ * - /poker-rooms/states (All 50 US States & DC Legality & Tax Guides)
  * - /poker-rooms/international (10 Global Live Poker Destination Guides)
  * - /poker-rooms/first-time-guide & /poker-rooms/comps-and-tipping-guide
  *
@@ -74,11 +74,11 @@ const GEO_DIRECTORY_HUBS = [
   },
   {
     href: '/poker-rooms/states',
-    badge: '15 US STATE REGULATORY GUIDES',
+    badge: '51 US STATE & DC REGULATORY GUIDES',
     title: 'US State Poker Legality, Income Tax & W-2G Directory',
     summary:
       'Compare Legal Gambling Ages (18+ Vs 21+), State Individual Income Tax Rates (0% In NV, TX, FL, WA, NH), W-2G Tournament Withholding Thresholds, And Regulated Online Poker Status.',
-    cta: 'Browse 15 US State Guides',
+    cta: 'Browse All 50 States & DC Guides',
   },
   {
     href: '/poker-rooms/international',
@@ -106,7 +106,7 @@ export function renderPokerRoomsMasterHubMarkdown() {
     `> Source: [Live Poker Room Guides & Travel Corridors Hub on Smarter.Poker](${url})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    'Central Geographic And Economic Intelligence Directory Covering 715+ Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 15 US State Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.',
+    'Central Geographic And Economic Intelligence Directory Covering 715+ Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.',
     '',
     '## Core Geographic & Cardroom Authority Hubs',
     ...GEO_DIRECTORY_HUBS.map(
@@ -223,7 +223,7 @@ export default function PokerRoomsMasterHubPage() {
           </h1>
 
           <p style={styles.lead}>
-            <strong>Direct Answer:</strong> Smarter.Poker Provides The Most Comprehensive Quantitative Live Poker Intelligence Network On The Web: Compare <strong>10 Border-State &amp; Airport Travel Corridors</strong>, <strong>6 National Game-Format Venue Directories (PLO, Bomb Pots, Dailies, Bad Beat Jackpots, Time-Rake Clubs, And High-Stakes Cash)</strong>, <strong>12 US Regional Metro Guides</strong>, <strong>15 US State Tax &amp; Legality Profiles</strong>, <strong>10 International Poker Capitals</strong>, A <strong>12-Month Seasonal Migration Calendar</strong>, And <strong>Live Casino Floor Security &amp; Dispute Protocols</strong>.
+            <strong>Direct Answer:</strong> Smarter.Poker Provides The Most Comprehensive Quantitative Live Poker Intelligence Network On The Web: Compare <strong>10 Border-State &amp; Airport Travel Corridors</strong>, <strong>6 National Game-Format Venue Directories (PLO, Bomb Pots, Dailies, Bad Beat Jackpots, Time-Rake Clubs, And High-Stakes Cash)</strong>, <strong>12 US Regional Metro Guides</strong>, <strong>51 US State &amp; DC Tax &amp; Legality Profiles</strong>, <strong>10 International Poker Capitals</strong>, A <strong>12-Month Seasonal Migration Calendar</strong>, And <strong>Live Casino Floor Security &amp; Dispute Protocols</strong>.
           </p>
 
           <div style={styles.quickCrossLinks}>
@@ -239,7 +239,7 @@ export default function PokerRoomsMasterHubPage() {
             <Link href="/poker-rooms/security-and-disputes-guide" style={styles.crossBtnOutline}>
               Floor Security &amp; Disputes Guide
             </Link>
-            <Link href="/hub/poker-near-me" style={styles.crossBtnOutline}>
+            <Link href="/hub/poker-near-me/lobby" style={styles.crossBtnOutline}>
               Interactive Live Venue Map
             </Link>
           </div>

@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+tmp/
+evidence/
+delivery/
+m1/
+jobs-*.json
+LAYOUT.json
+OPERATIONAL-FREEZE.json
+NATIVE-RELEASE.json
+*-RESULT.json
+*-CLAIM.json
+CONTEXT-CERTIFICATE.json
+TERMINAL-*.json

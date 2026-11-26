@@ -11,6 +11,7 @@
  * link visible, nothing scrolls) that sticks under the real header height
  * via `--sp-header-height`.
  */
+import BankrollImageHeader from '../bankroll/BankrollImageHeader';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ArrowLeft } from 'lucide-react';
@@ -44,24 +45,16 @@ export default function PreflopSubpageShell({ eyebrow, title, description, metri
             <div className="preflop-subpage-utility">
               <Link href="/hub/preflop-charts" className="preflop-subpage-back">
                 <ArrowLeft size={15} aria-hidden />
-                Back To Command Deck
+                Back To Preflop Charts
               </Link>
-              <span>GTO RANGE SYSTEM // ONLINE</span>
+
             </div>
 
             <PreflopSubpageNav current={current} />
 
-            <header className="preflop-subpage-hero">
-              <div>
-                <span className="preflop-subpage-eyebrow">{eyebrow}</span>
-                <h1>{title}</h1>
-                <p>{description}</p>
-              </div>
-              <div className="preflop-subpage-signal" aria-hidden="true">
-                {Array.from({ length: 25 }, (_, index) => <i key={index} style={{ '--signal-index': index }} />)}
-                {metric && <strong>{metric}</strong>}
-              </div>
-            </header>
+            <BankrollImageHeader art={({stats:'reports', leaderboard:'players', achievements:'goals', tutorial:'rules'})[current.split('/').pop()] || 'series'} title={title}
+              helpContent={<p>{description}</p>} />
+            {metric && <strong>{metric}</strong>}
 
             {children}
           </div>

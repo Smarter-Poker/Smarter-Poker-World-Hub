@@ -3942,7 +3942,8 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
             text: JSON.stringify(
               {
                 game,
-                simulated_iterations: iterations,
+                simulated_iterations: results[0]?.exact ? 0 : iterations,
+                evaluated_runouts: results[0]?.total || 0,
                 board_cards_evaluated: board.length,
                 seats,
                 interactive_calculator_url: `${base}/tools/poker-odds-calculator`,

@@ -294,7 +294,7 @@ export default function FirstTimeCasinoPokerGuidePage() {
             <Link href="/learn/matchups" style={styles.crossBtnOutline}>
               25 All-In Hand Matchups
             </Link>
-            <Link href="/hub/poker-near-me" style={styles.crossBtnOutline}>
+            <Link href="/hub/poker-near-me/lobby" style={styles.crossBtnOutline}>
               Find Live Rooms Near Me
             </Link>
           </div>

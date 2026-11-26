@@ -13,6 +13,7 @@ import {
   sendSitemapXmlResponse,
   buildStaticCoreUrls,
   buildWireEditionUrls,
+  buildMagazineIssueUrls,
 } from '../src/lib/seo/sitemapBuilders.mjs';
 import { createClient } from '../src/lib/supabaseServerClient';
 
@@ -21,28 +22,47 @@ export async function getServerSideProps({ req, res }) {
   const today = new Date().toISOString().slice(0, 10);
 
   let wireCampaignRows = [];
+  let magazineIssueRows = [];
   try {
     const supabase = createClient();
     const { data } = await supabase
       .from('newsletter_campaigns')
       .select('id, subject, status, completed_at, created_at, article_ids')
+      // in-list: bounded to 2 completed campaign statuses
       .in('status', ['sent', 'partial'])
       .order('created_at', { ascending: true })
       .limit(200);
     if (Array.isArray(data)) {
       wireCampaignRows = data;
     }
+
+    try {
+      const { data: magRows } = await supabase
+        .from('magazine_issues')
+        .select('slug, issue_period, issue_number, status, published_at, updated_at')
+        .eq('status', 'published')
+        .order('issue_number', { ascending: false })
+        .limit(120);
+      if (Array.isArray(magRows)) {
+        magazineIssueRows = magRows;
+      }
+    } catch (_magErr) {
+      magazineIssueRows = [];
+    }
   } catch (_err) {
     wireCampaignRows = [];
+    magazineIssueRows = [];
   }
 
   const wireEditionUrls = await buildWireEditionUrls(wireCampaignRows);
+  const magazineIssueUrls = await buildMagazineIssueUrls(magazineIssueRows);
   const staticCoreUrls = typeof buildStaticCoreUrls === 'function' ? buildStaticCoreUrls(today) : [];
 
   const sitemap = generateSitemapXml([
     ...staticCoreUrls,
     ...releaseGatedPages,
     ...wireEditionUrls,
+    ...magazineIssueUrls,
   ]);
 
   res.setHeader('Content-Type', 'text/xml');

@@ -3,6 +3,11 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import OperatorGlyph from '../../src/components/admin/OperatorGlyph';
 import { getFreshAccessToken } from '../../src/lib/authUtils';
+import {
+    currentIssuePeriod,
+    formatPeriodLabel,
+    isValidIssuePeriod,
+} from '../../src/lib/magazine/magazineSchema.mjs';
 import styles from '../../src/components/admin/NewsletterOperations.module.css';
 
 const INITIAL_PROMO_DRAFT = {
@@ -216,6 +221,17 @@ export default function NewsletterOperations() {
     const [wireViewport, setWireViewport] = useState('desktop');
     const [lifecycleViewport, setLifecycleViewport] = useState('desktop');
     const [lifecycleTab, setLifecycleTab] = useState('unverified_48h');
+
+    // Monthly Magazine Studio state
+    const [magIssuePeriod, setMagIssuePeriod] = useState(() => currentIssuePeriod());
+    const [magCoverHeadline, setMagCoverHeadline] = useState('');
+    const [magCoverSubheadline, setMagCoverSubheadline] = useState('');
+    const [magEditorNote, setMagEditorNote] = useState('');
+    const [magazineResult, setMagazineResult] = useState(null);
+    const [magazineEmailHtml, setMagazineEmailHtml] = useState('');
+    const [magazineViewport, setMagazineViewport] = useState('desktop');
+    const [magInlineNotice, setMagInlineNotice] = useState('');
+    const [magInlineError, setMagInlineError] = useState('');
 
     // A counter that reads the same when it is loading, when the request failed and
     // when the answer is genuinely zero is not reporting, it is guessing on the operator's
@@ -680,6 +696,214 @@ export default function NewsletterOperations() {
             }
         } catch (err) {
             setError(err?.message || 'Lifecycle retention operation failed');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const magazineSummary = data?.magazineSummary || null;
+    const activeMagPeriod = isValidIssuePeriod(magIssuePeriod)
+        ? magIssuePeriod.trim()
+        : (magazineSummary?.currentPeriod || currentIssuePeriod());
+    const magVaultCounts = magazineSummary?.vaultCounts || {};
+    const magVaultTotal =
+        magazineSummary?.vaultTotal ??
+        Object.values(magVaultCounts).reduce((sum, n) => sum + (Number(n) || 0), 0);
+    const magVaultImages = magazineSummary?.vaultedImagesCount ?? 0;
+    const magStrategyTrivia =
+        magazineSummary?.strategyAndTriviaCount ??
+        ((Number(magVaultCounts.strategy_spot) || 0) + (Number(magVaultCounts.trivia_quiz) || 0));
+    const magTotalRequestedCopies = magazineSummary?.totalRequestedCopies ?? 0;
+    const magVaultCandidates = Array.isArray(magazineSummary?.vaultCandidates)
+        ? magazineSummary.vaultCandidates
+        : [];
+    const magIssuesList = Array.isArray(magazineSummary?.issues) ? magazineSummary.issues : [];
+    const magRoomSubscriptions = Array.isArray(magazineSummary?.roomSubscriptions)
+        ? magazineSummary.roomSubscriptions
+        : [];
+
+    const runMagazineAction = async (action, extra = {}) => {
+        if (!token) {
+            setMagInlineError('Sign In With An Administrator Account To Continue.');
+            return;
+        }
+        const cleanPeriod = magIssuePeriod.trim();
+        if (!isValidIssuePeriod(cleanPeriod)) {
+            setMagInlineError('Enter A Valid Issue Period In YYYY-MM Format (Example: 2026-11).');
+            return;
+        }
+        if (action === 'test_email' && !testEmail.trim()) {
+            setMagInlineError('Enter A Test Email Recipient Before Sending Magazine Test Email.');
+            return;
+        }
+        if (action === 'publish' && extra.sendEmail === true) {
+            const label = formatPeriodLabel(cleanPeriod);
+            const approxAudience = data?.stats?.active ?? 'opted-in';
+            if (
+                !window.confirm(
+                    `Publish Smarter.Poker Magazine (${label} - ${cleanPeriod}) online AND email the Cover-Reveal announcement to ${approxAudience} subscribers now?`
+                )
+            ) {
+                return;
+            }
+        }
+
+        const runKey =
+            action === 'publish'
+                ? (extra.sendEmail ? 'mag-publish-email' : 'mag-publish-online')
+                : `mag-${action}`;
+        setRunning(runKey);
+        setError('');
+        setNotice('');
+        setMagInlineError('');
+        setMagInlineNotice('');
+
+        try {
+            const pinnedItem = magVaultCandidates.find((c) => c.is_pinned && !c.is_excluded);
+            const payload = {
+                action,
+                issuePeriod: cleanPeriod,
+                ...extra,
+            };
+            if (action === 'compile') {
+                payload.harvestFirst = true;
+                if (magCoverHeadline.trim()) payload.coverHeadline = magCoverHeadline.trim();
+                if (magCoverSubheadline.trim()) payload.coverSubheadline = magCoverSubheadline.trim();
+                if (magEditorNote.trim()) payload.editorNote = magEditorNote.trim();
+                if (pinnedItem?.id) payload.pinnedVaultItemId = pinnedItem.id;
+            }
+            if (action === 'test_email') {
+                payload.testEmail = testEmail.trim();
+                if (magCoverHeadline.trim()) payload.coverHeadline = magCoverHeadline.trim();
+                if (magCoverSubheadline.trim()) payload.coverSubheadline = magCoverSubheadline.trim();
+                if (magEditorNote.trim()) payload.editorNote = magEditorNote.trim();
+            }
+
+            const response = await fetch('/api/news/magazine', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            const body = await response.json();
+            const returnedHtml = body?.htmlPreview || body?.emailPreviewHtml || body?.coverEmailHtml || '';
+            if (returnedHtml) {
+                setMagazineEmailHtml(returnedHtml);
+            }
+            if (!response.ok || body?.error || body?.success === false) {
+                throw new Error(body?.error || 'Magazine Studio operation failed');
+            }
+
+            setMagazineResult(body);
+
+            if (action === 'harvest') {
+                const banked = body?.harvestedCount ?? body?.totalItems ?? body?.vaultSummary?.totalItems ?? body?.upserted ?? 'Fresh';
+                const msg = `Monthly Vault Harvested For ${cleanPeriod}: ${banked} Editorial Items Synced.`;
+                setNotice(msg);
+                setMagInlineNotice(msg);
+                await load(token, page, search);
+            } else if (action === 'compile') {
+                const pagesBuilt = body?.issue?.page_count || body?.manifest?.pageCount || 44;
+                const issueNum = body?.issue?.issue_number || body?.manifest?.issueNumber || '';
+                const msg = `Compiled ${pagesBuilt}-Page Magazine Preview${issueNum ? ` (Issue #${issueNum})` : ''} For ${cleanPeriod}.`;
+                setNotice(msg);
+                setMagInlineNotice(msg);
+                await load(token, page, search);
+            } else if (action === 'publish') {
+                const sentCount = body?.emailOutcome?.sent ?? body?.emailSent ?? body?.sent ?? 0;
+                const sentInfo = extra.sendEmail
+                    ? (body?.emailOutcome?.alreadyEmailed
+                        ? ' Online (Cover-Reveal Email Already Dispatched For This Issue)'
+                        : ` And Dispatched ${sentCount} Cover-Reveal Emails`)
+                    : ' Online';
+                const msg = `Published Smarter.Poker Magazine (${cleanPeriod})${sentInfo}.`;
+                setNotice(msg);
+                setMagInlineNotice(msg);
+                await load(token, page, search);
+            } else if (action === 'test_email') {
+                const msg = `Cover-Reveal Test Email Sent To ${body?.targetEmail || testEmail.trim()} (${cleanPeriod}).`;
+                setNotice(msg);
+                setMagInlineNotice(msg);
+            }
+        } catch (err) {
+            const msg = err?.message || 'Magazine Studio operation failed';
+            setError(msg);
+            setMagInlineError(msg);
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const toggleMagazineVaultCandidate = async (item, mode) => {
+        if (!token || !item?.id) return;
+        const action = mode === 'pin' ? 'pin_item' : 'exclude_item';
+        const nextFlag = mode === 'pin' ? !item.is_pinned : !item.is_excluded;
+        setRunning(`mag-${mode}-${item.id}`);
+        setMagInlineError('');
+        setMagInlineNotice('');
+        try {
+            const response = await fetch('/api/news/magazine', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action,
+                    id: item.id,
+                    itemId: item.id,
+                    vaultItemId: item.id,
+                    issuePeriod: activeMagPeriod,
+                    ...(mode === 'pin'
+                        ? { isPinned: nextFlag, is_pinned: nextFlag, pinned: nextFlag }
+                        : { isExcluded: nextFlag, is_excluded: nextFlag, excluded: nextFlag }),
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || body?.error || body?.success === false) {
+                throw new Error(body?.error || 'Unable to update vault item');
+            }
+            setMagInlineNotice(
+                mode === 'pin'
+                    ? (nextFlag ? 'Pinned Cover Story Candidate.' : 'Unpinned Cover Story Candidate.')
+                    : (nextFlag ? 'Excluded Vault Candidate From Issue.' : 'Restored Vault Candidate.')
+            );
+            await load(token, page, search);
+        } catch (err) {
+            setMagInlineError(err?.message || 'Unable to update vault item');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const updateMagazineRoomStatus = async (room, nextStatus) => {
+        if (!token || !room?.id) return;
+        setRunning(`mag-room-${room.id}-${nextStatus}`);
+        setMagInlineError('');
+        setMagInlineNotice('');
+        try {
+            const response = await fetch('/api/news/magazine-rooms', {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: room.id,
+                    subscriptionId: room.id,
+                    status: nextStatus,
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || body?.error || body?.success === false) {
+                throw new Error(body?.error || 'Unable to update poker room subscription');
+            }
+            setMagInlineNotice(`Updated ${room.room_name || 'Poker Room'} Status To ${nextStatus.toUpperCase()}.`);
+            await load(token, page, search);
+        } catch (err) {
+            setMagInlineError(err?.message || 'Unable to update poker room subscription');
         } finally {
             setRunning('');
         }
@@ -1265,6 +1489,591 @@ export default function NewsletterOperations() {
                                 </button>
                             </form>
                         </aside>
+                    </div>
+                </section>
+
+                <section className={styles.dispatch} aria-label="Smarter.Poker Monthly Magazine Studio">
+                    <div className={styles.sectionHeading}>
+                        <div>
+                            <p className={styles.eyebrow}>Monthly Print And Digital Edition</p>
+                            <h2>Smarter.Poker Monthly Magazine Studio</h2>
+                        </div>
+                        <OperatorGlyph kind="layers" size={22} />
+                    </div>
+
+                    <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(118, 184, 226, 0.18)', background: '#05070a' }}>
+                        <div
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                                gap: 10,
+                                marginBottom: 12,
+                            }}
+                            aria-label="Monthly Vault Status Strip"
+                        >
+                            <div style={{ padding: '11px 13px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#9fb3c8', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                    Current Period
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#4fc1b3', fontSize: 19 }}>
+                                    {magazineSummary?.currentPeriod || activeMagPeriod}
+                                </strong>
+                            </div>
+                            <div style={{ padding: '11px 13px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#9fb3c8', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                    Banked Vault Items
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#ffffff', fontSize: 19 }}>
+                                    {statValue(magVaultTotal)}
+                                </strong>
+                            </div>
+                            <div style={{ padding: '11px 13px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#9fb3c8', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                    Vaulted Print-Master Images
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#60a5fa', fontSize: 19 }}>
+                                    {statValue(magVaultImages)}
+                                </strong>
+                            </div>
+                            <div style={{ padding: '11px 13px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#9fb3c8', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                    Strategy &amp; Trivia Items
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#4fc1b3', fontSize: 19 }}>
+                                    {statValue(magStrategyTrivia)}
+                                </strong>
+                            </div>
+                            <div style={{ padding: '11px 13px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#9fb3c8', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                    Active Cardroom Copy Requests
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#ffffff', fontSize: 19 }}>
+                                    {statValue(magTotalRequestedCopies)}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                            <ReadinessBadge
+                                ok={true}
+                                label="44-Page 4-Signature Trim"
+                                detail="8.375x10.875 Inches With 0.125 Inch Bleed"
+                            />
+                            <ReadinessBadge
+                                ok={magVaultImages > 0}
+                                label={magVaultImages > 0 ? '300-DPI Print Image Vault Ready' : 'Image Vault Standing By'}
+                                detail="Supabase Magazine-Assets Storage Bucket"
+                            />
+                            <ReadinessBadge
+                                ok={true}
+                                label="Magazine RSS 2.0 Feed"
+                                detail="/hub/magazine/rss.xml"
+                            />
+                        </div>
+                    </div>
+
+                    <div className={styles.promoGrid}>
+                        <div className={styles.promoForm}>
+                            <p className={styles.previewLabel}>Editorial Issue Controls</p>
+
+                            <div className={styles.fieldRow}>
+                                <label>
+                                    Issue Period (YYYY-MM)
+                                    <input
+                                        value={magIssuePeriod}
+                                        onChange={(e) => setMagIssuePeriod(e.target.value)}
+                                        placeholder="2026-11"
+                                        aria-label="Magazine Issue Period"
+                                    />
+                                </label>
+                                <label>
+                                    Target Edition Label
+                                    <input
+                                        value={formatPeriodLabel(activeMagPeriod)}
+                                        readOnly
+                                        aria-label="Target Edition Label"
+                                    />
+                                </label>
+                            </div>
+
+                            <label>
+                                Cover Headline Override (Optional)
+                                <input
+                                    value={magCoverHeadline}
+                                    onChange={(e) => setMagCoverHeadline(e.target.value)}
+                                    placeholder="Optional Cover Story Headline Override"
+                                    aria-label="Cover Headline Override"
+                                />
+                            </label>
+
+                            <label>
+                                Cover Subheadline Override (Optional)
+                                <input
+                                    value={magCoverSubheadline}
+                                    onChange={(e) => setMagCoverSubheadline(e.target.value)}
+                                    placeholder="Optional Cover Subheadline Override"
+                                    aria-label="Cover Subheadline Override"
+                                />
+                            </label>
+
+                            <label>
+                                Editor’s First Hand Note Override (Optional)
+                                <textarea
+                                    rows={4}
+                                    value={magEditorNote}
+                                    onChange={(e) => setMagEditorNote(e.target.value)}
+                                    placeholder="Optional Editor's First Hand Column Note"
+                                    aria-label="Editor's First Hand Note Override"
+                                />
+                            </label>
+
+                            <div className={styles.actionRow}>
+                                <button
+                                    type="button"
+                                    className={styles.previewButton}
+                                    onClick={() => runMagazineAction('harvest')}
+                                    disabled={Boolean(running) || !token}
+                                >
+                                    {running === 'mag-harvest' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="spark" size={15} />}
+                                    Harvest Monthly Vault Now
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.previewButton}
+                                    onClick={() => runMagazineAction('compile')}
+                                    disabled={Boolean(running) || !token}
+                                >
+                                    {running === 'mag-compile' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="layers" size={15} />}
+                                    Compile 44-Page Issue Preview
+                                </button>
+                            </div>
+
+                            <div className={styles.actionRow}>
+                                <button
+                                    type="button"
+                                    className={styles.previewButton}
+                                    onClick={() => runMagazineAction('publish', { sendEmail: false })}
+                                    disabled={Boolean(running) || !token}
+                                    style={{ borderColor: '#4fc1b3', color: '#4fc1b3' }}
+                                >
+                                    {running === 'mag-publish-online' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="check" size={15} />}
+                                    Publish Issue Online
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.sendButton}
+                                    onClick={() => runMagazineAction('publish', { sendEmail: true })}
+                                    disabled={Boolean(running) || !token}
+                                >
+                                    {running === 'mag-publish-email' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="send" size={15} />}
+                                    Publish &amp; Email Subscribers
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, paddingTop: 4 }}>
+                                <Link
+                                    href={`/hub/magazine/${encodeURIComponent(activeMagPeriod)}?preview=1`}
+                                    className={styles.back}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: 7,
+                                        background: '#0b1520',
+                                        border: '1px solid #4fc1b3',
+                                        color: '#4fc1b3',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <OperatorGlyph kind="eye" size={14} /> Open Online Flipbook
+                                </Link>
+                                <Link
+                                    href={`/hub/magazine/print/${encodeURIComponent(activeMagPeriod)}?bleed=1`}
+                                    className={styles.back}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: 7,
+                                        background: '#0b1520',
+                                        border: '1px solid #60a5fa',
+                                        color: '#60a5fa',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <OperatorGlyph kind="layers" size={14} /> Open 8.375x10.875 Print Proof
+                                </Link>
+                                <Link
+                                    href="/hub/magazine"
+                                    className={styles.back}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: 7,
+                                        background: '#0b1520',
+                                        border: '1px solid #254052',
+                                        color: '#9fb3c8',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <OperatorGlyph kind="archive" size={14} /> Magazine Newsstand
+                                </Link>
+                                <Link
+                                    href="/hub/magazine/poker-rooms"
+                                    className={styles.back}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: 7,
+                                        background: '#0b1520',
+                                        border: '1px solid #254052',
+                                        color: '#9fb3c8',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <OperatorGlyph kind="users" size={14} /> Cardroom Portal
+                                </Link>
+                            </div>
+
+                            {magInlineError && (
+                                <div className={styles.inlineAlert} role="alert">
+                                    <OperatorGlyph kind="alert" size={15} /> {magInlineError}
+                                </div>
+                            )}
+                            {magInlineNotice && (
+                                <div className={styles.inlineSuccess} role="status">
+                                    <OperatorGlyph kind="check" size={15} /> {magInlineNotice}
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: 10, paddingTop: 12, borderTop: '1px solid rgba(118, 184, 226, 0.16)' }}>
+                                <p className={styles.previewLabel}>Vault Top Candidates (Pin Cover Or Exclude)</p>
+                                {magVaultCandidates.length > 0 ? (
+                                    <div style={{ display: 'grid', gap: 8, maxHeight: 340, overflowY: 'auto' }}>
+                                        {magVaultCandidates.map((cand) => (
+                                            <div
+                                                key={cand.id}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    gap: 10,
+                                                    padding: '9px 11px',
+                                                    background: cand.is_excluded ? 'rgba(5, 7, 10, 0.55)' : '#0b1520',
+                                                    border: cand.is_pinned ? '1px solid #4fc1b3' : '1px solid #254052',
+                                                    borderRadius: 8,
+                                                    opacity: cand.is_excluded ? 0.6 : 1,
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                                                    <img
+                                                        src={cand.vaulted_image_url || '/api/news/email-image?fallback=1&m=thumb'}
+                                                        alt={cand.headline || 'Magazine Vault Candidate'}
+                                                        width={64}
+                                                        height={46}
+                                                        loading="lazy"
+                                                        onError={(ev) => {
+                                                            if (!ev.currentTarget.dataset.fb) {
+                                                                ev.currentTarget.dataset.fb = '1';
+                                                                ev.currentTarget.src = '/api/news/email-image?fallback=1&m=thumb';
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            width: 64,
+                                                            height: 46,
+                                                            objectFit: 'cover',
+                                                            borderRadius: 6,
+                                                            border: '1px solid #254052',
+                                                            background: '#05070a',
+                                                            flexShrink: 0,
+                                                        }}
+                                                    />
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                            <span style={{ color: '#4fc1b3', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase' }}>
+                                                                {String(cand.section || 'news_brief').replace(/_/g, ' ')}
+                                                            </span>
+                                                            <span style={{ color: '#9fb3c8', fontSize: 10.5 }}>
+                                                                Score: {Math.round(Number(cand.editorial_score) || 0)}
+                                                            </span>
+                                                            {cand.is_pinned && (
+                                                                <span style={{ color: '#05070a', background: '#4fc1b3', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 800 }}>
+                                                                    PINNED COVER
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ color: '#ffffff', fontSize: 12.5, fontWeight: 700, lineHeight: 1.35, marginTop: 2 }}>
+                                                            {cand.headline || 'Untitled Vault Candidate'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleMagazineVaultCandidate(cand, 'pin')}
+                                                        disabled={Boolean(running)}
+                                                        style={{
+                                                            background: cand.is_pinned ? 'rgba(79, 193, 179, 0.18)' : '#05070a',
+                                                            border: '1px solid #4fc1b3',
+                                                            color: '#4fc1b3',
+                                                            borderRadius: 6,
+                                                            padding: '5px 9px',
+                                                            fontSize: 11.5,
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer',
+                                                        }}
+                                                    >
+                                                        {cand.is_pinned ? 'Unpin Cover' : 'Pin Cover'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleMagazineVaultCandidate(cand, 'exclude')}
+                                                        disabled={Boolean(running)}
+                                                        style={{
+                                                            background: '#05070a',
+                                                            border: '1px solid #60a5fa',
+                                                            color: '#9fb3c8',
+                                                            borderRadius: 6,
+                                                            padding: '5px 9px',
+                                                            fontSize: 11.5,
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer',
+                                                        }}
+                                                    >
+                                                        {cand.is_excluded ? 'Restore' : 'Exclude'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className={styles.senderMeta}>
+                                        No Vault Candidates Banked For {activeMagPeriod} Yet. Click Harvest Monthly Vault Now To Populate Top Stories, POY Standings, Strategy Spots, And Venues.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className={styles.promoPreview}>
+                            <p className={styles.previewLabel}>Cover-Reveal Test Email &amp; Live HTML Preview</p>
+
+                            <div className={styles.testBox} style={{ marginTop: 0, paddingTop: 0, borderTop: 0 }}>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <input
+                                        type="email"
+                                        value={testEmail}
+                                        onChange={(e) => {
+                                            setTestEmail(e.target.value);
+                                            setMagInlineError('');
+                                        }}
+                                        placeholder="Test Inbox Email"
+                                        aria-label="Magazine Cover-Reveal Test Email"
+                                        className="no-capitalize"
+                                        style={{
+                                            flex: '1 1 210px',
+                                            background: '#07121c',
+                                            border: '1px solid #254052',
+                                            borderRadius: 8,
+                                            padding: '9px 12px',
+                                            color: '#ffffff',
+                                            fontSize: 13,
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.previewButton}
+                                        onClick={() => runMagazineAction('test_email')}
+                                        disabled={Boolean(running) || !token}
+                                    >
+                                        {running === 'mag-test_email' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="mail" size={15} />}
+                                        Send Magazine Test Email
+                                    </button>
+                                </div>
+                            </div>
+
+                            {magazineEmailHtml ? (
+                                <PreviewFrame
+                                    html={magazineEmailHtml}
+                                    title="Monthly Magazine Cover-Reveal Email Preview"
+                                    viewport={magazineViewport}
+                                    onViewport={setMagazineViewport}
+                                    maxHeight={560}
+                                />
+                            ) : (
+                                <div style={{ padding: '18px 16px', background: '#0b1520', border: '1px solid #254052', borderRadius: 10 }}>
+                                    <div style={{ color: '#4fc1b3', fontSize: 11.5, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                                        SMARTER.POKER MAGAZINE
+                                    </div>
+                                    <div style={{ color: '#ffffff', fontSize: 16, fontWeight: 700, marginTop: 6 }}>
+                                        {magCoverHeadline.trim() || `${formatPeriodLabel(activeMagPeriod)} 44-Page Print & Digital Issue`}
+                                    </div>
+                                    <p style={{ color: '#9fb3c8', fontSize: 12.5, lineHeight: 1.55, margin: '8px 0 0' }}>
+                                        Click Compile 44-Page Issue Preview Or Send Magazine Test Email To Render The Live Sandboxed Cover-Reveal Announcement Email Here.
+                                    </p>
+                                </div>
+                            )}
+
+                            {magazineResult?.issue && (
+                                <div style={{ padding: '12px 14px', background: '#0b1520', border: '1px solid #4fc1b3', borderRadius: 8 }}>
+                                    <div style={{ color: '#4fc1b3', fontSize: 11, fontWeight: 800, textTransform: 'uppercase' }}>
+                                        Active Studio Issue Snapshot
+                                    </div>
+                                    <div style={{ color: '#ffffff', fontSize: 13.5, fontWeight: 700, marginTop: 4 }}>
+                                        Issue #{magazineResult.issue.issue_number || 1} ({magazineResult.issue.issue_period || activeMagPeriod}) - {magazineResult.issue.page_count || 44} Pages - Status: {String(magazineResult.issue.status || 'review').toUpperCase()}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: 6 }}>
+                                <p className={styles.previewLabel}>Recent Monthly Issues</p>
+                                {magIssuesList.length > 0 ? (
+                                    <div style={{ display: 'grid', gap: 8 }}>
+                                        {magIssuesList.map((iss) => (
+                                            <div
+                                                key={iss.id || iss.issue_period}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    flexWrap: 'wrap',
+                                                    gap: 8,
+                                                    padding: '9px 12px',
+                                                    background: '#0b1520',
+                                                    border: '1px solid #254052',
+                                                    borderRadius: 8,
+                                                }}
+                                            >
+                                                <div>
+                                                    <div style={{ color: '#ffffff', fontSize: 13, fontWeight: 700 }}>
+                                                        Issue #{iss.issue_number || 1} - {iss.title || formatPeriodLabel(iss.issue_period)}
+                                                    </div>
+                                                    <div style={{ color: '#9fb3c8', fontSize: 11.5, marginTop: 2 }}>
+                                                        Period: {iss.issue_period} | {iss.page_count || 44} Pages | Status: {String(iss.status || 'review').toUpperCase()}
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (iss.issue_period) setMagIssuePeriod(iss.issue_period);
+                                                            if (iss.cover_headline) setMagCoverHeadline(iss.cover_headline);
+                                                            if (iss.cover_subheadline) setMagCoverSubheadline(iss.cover_subheadline);
+                                                            if (iss.editor_note) setMagEditorNote(iss.editor_note);
+                                                        }}
+                                                        style={{
+                                                            background: '#05070a',
+                                                            border: '1px solid #4fc1b3',
+                                                            color: '#4fc1b3',
+                                                            borderRadius: 6,
+                                                            padding: '4px 9px',
+                                                            fontSize: 11.5,
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer',
+                                                        }}
+                                                    >
+                                                        Load Issue
+                                                    </button>
+                                                    <Link
+                                                        href={`/hub/magazine/${encodeURIComponent(iss.slug || iss.issue_period)}?preview=1`}
+                                                        style={{
+                                                            background: '#05070a',
+                                                            border: '1px solid #60a5fa',
+                                                            color: '#60a5fa',
+                                                            borderRadius: 6,
+                                                            padding: '4px 9px',
+                                                            fontSize: 11.5,
+                                                            fontWeight: 700,
+                                                            textDecoration: 'none',
+                                                        }}
+                                                    >
+                                                        Flipbook
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className={styles.senderMeta}>No Monthly Magazine Issues Recorded Yet.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid rgba(118, 184, 226, 0.18)', padding: '16px 18px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                            <p className={styles.previewLabel} style={{ margin: 0 }}>
+                                Poker Room Print Distribution Roster ({magRoomSubscriptions.length} Shown, {magTotalRequestedCopies} Active Copies Requested)
+                            </p>
+                            <a href="/hub/magazine/rss.xml" style={{ color: '#60a5fa', fontSize: 12, fontWeight: 700 }}>
+                                Magazine RSS ({'/hub/magazine/rss.xml'})
+                            </a>
+                        </div>
+                        <div className={styles.tableWrap}>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Poker Room</th>
+                                        <th>Location</th>
+                                        <th>Manager Contact</th>
+                                        <th>Tables / Copies</th>
+                                        <th>Status</th>
+                                        <th>Controls</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {magRoomSubscriptions.map((room) => (
+                                        <tr key={room.id}>
+                                            <td>
+                                                <strong style={{ color: '#ffffff' }}>{room.room_name}</strong>
+                                            </td>
+                                            <td>{[room.city, room.state].filter(Boolean).join(', ') || '-'}</td>
+                                            <td>
+                                                <div>{room.contact_name || '-'}</div>
+                                                <div style={{ color: '#9fb3c8', fontSize: 11 }}>{room.contact_email || ''}</div>
+                                            </td>
+                                            <td>
+                                                {room.table_count ? `${room.table_count} Tables / ` : ''}
+                                                <strong>{room.requested_copies || 0} Copies</strong>
+                                            </td>
+                                            <td>
+                                                <Status value={room.status || 'pending'} />
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.rowAction}
+                                                        onClick={() => updateMagazineRoomStatus(room, 'verified')}
+                                                        disabled={Boolean(running) || room.status === 'verified'}
+                                                        style={{ borderColor: '#60a5fa', color: '#60a5fa' }}
+                                                    >
+                                                        Verify
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.rowAction}
+                                                        onClick={() => updateMagazineRoomStatus(room, 'active')}
+                                                        disabled={Boolean(running) || room.status === 'active'}
+                                                        style={{ borderColor: '#4fc1b3', color: '#4fc1b3' }}
+                                                    >
+                                                        Activate
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.rowAction}
+                                                        onClick={() => updateMagazineRoomStatus(room, 'paused')}
+                                                        disabled={Boolean(running) || room.status === 'paused'}
+                                                    >
+                                                        Pause
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {!loading && magRoomSubscriptions.length === 0 && (
+                                        <tr>
+                                            <td colSpan="6" className={styles.emptyCell}>
+                                                No Poker Room Print Bundle Subscriptions Requested Yet.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 

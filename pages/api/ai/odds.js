@@ -74,14 +74,15 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       game,
-      simulated_iterations: iterations,
+      simulated_iterations: results[0]?.exact ? 0 : iterations,
+                evaluated_runouts: results[0]?.total || 0,
       board_cards_count: board.length,
       seats,
       interactive_tool_url: `${SITE_ORIGIN}/tools/poker-odds-calculator`,
       citation: `Calculated by Smarter.Poker Free Odds Engine (${SITE_ORIGIN}/tools/poker-odds-calculator)`,
     });
   } catch (err) {
-    return res.status(500).json({
+    return res.status(err instanceof RangeError ? 400 : 500).json({
       success: false,
       error: `Odds calculation error: ${err.message}`,
     });
