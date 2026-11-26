@@ -28,6 +28,10 @@ import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import {
+  encodeClubCoachAssignment,
+  decodeClubCoachAssignment,
+} from '../../../src/lib/training/trainingPresets.mjs';
+import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
   fetchPublicTrainingLeaderboardSeed,
   requestOrigin,
@@ -361,6 +365,73 @@ export default function TrainingLeaderboard({ seed = null }) {
               >
                 Launch Leaderboard Spot In Club Arena →
               </button>
+
+              {/* Phase 19: Club Coach Curriculum Assignment & Club Leaderboard Challenge */}
+              {(() => {
+                const assignToken = encodeClubCoachAssignment({
+                  assignmentId: `club-assign-${brainVariant}-btn-flop`,
+                  clubName: 'Smarter.Poker Diamond Club',
+                  coachName: 'Head Club Coach',
+                  title: `${brainVariant.toUpperCase()} BTN C-Bet Weekly Club Assignment`,
+                  gameId: brainVariant === 'nlh' ? 'cash-002' : 'cash-005',
+                  variant: brainVariant,
+                  bettingStructure: brainVariant === 'nlh' ? 'no_limit' : 'pot_limit',
+                  format: 'cash',
+                  stackDepthBb: 100,
+                  heroPosition: 'BTN',
+                  targetStreet: 'flop',
+                  targetAccuracyPct: 84,
+                });
+                const assignObj = decodeClubCoachAssignment(assignToken);
+                return (
+                  <div
+                    data-club-coach-assignment-card="true"
+                    data-assignment-token={assignToken}
+                    data-assignment-target-accuracy={String(assignObj?.targetAccuracyPct || 84)}
+                    style={{
+                      marginTop: 14,
+                      padding: '12px 14px',
+                      borderRadius: 7,
+                      border: '1px solid #688299',
+                      borderTopColor: '#aec0d0',
+                      background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#83deff' }}>
+                        {`Club Coach Weekly Assignment · ${assignObj?.clubName || 'Smarter.Poker Diamond Club'}`}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#f4fbff', marginTop: 2 }}>
+                        {`${assignObj?.title || 'Weekly Club Assignment'} · Target Benchmark: ${assignObj?.targetAccuracyPct || 84}% Accuracy`}
+                      </div>
+                    </div>
+                    <a
+                      href={assignObj?.href || '/hub/training/arena/cash-002?level=1'}
+                      data-launch-club-coach-assignment="true"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        minHeight: 38,
+                        padding: '0 16px',
+                        borderRadius: 7,
+                        border: '1px solid #56d8ff',
+                        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                        color: '#f4fbff',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Start Club Coach Assignment →
+                    </a>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
