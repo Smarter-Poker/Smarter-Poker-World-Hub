@@ -275,9 +275,9 @@ test('Phase 6 of 6: 12-Item Master Expansion — 30 Official Rules, 15 Game Vari
   assert.ok(renderPokerHandRankingsMarkdown().includes('Royal Flush'));
   assert.ok(renderHubToolMarkdown('/learn/poker-hand-rankings').includes('2,598,960'));
 
-  // 5. Top 12 US Regional Poker Market Strategy Guides (/poker-rooms/guides and /poker-rooms/guides/[city]) + First-Time Guide + 15 State Guides + Comps Guide + Corridors + By-Game
+  // 5. Top 12 US Regional Poker Market Strategy Guides (/poker-rooms/guides and /poker-rooms/guides/[city]) + First-Time Guide + 51 State & DC Guides + Comps Guide + Corridors + By-Game
   assert.equal(POKER_MARKET_GUIDES.length, 12);
-  assert.equal(MARKET_GUIDE_PAGES.length, 51);
+  assert.equal(MARKET_GUIDE_PAGES.length, 87);
   assert.ok(renderMarketGuidesIndexMarkdown().includes('US Regional Live Poker Market Strategy Guides'));
   assert.ok(renderMarketGuideCityMarkdown('las-vegas-nevada').includes('Las Vegas'));
   assert.ok(renderHubToolMarkdown('/poker-rooms/guides/houston-texas').includes('Houston'));
