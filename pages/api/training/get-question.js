@@ -378,7 +378,7 @@ export default async function handler(req, res) {
       ? normalizedRawBettingStructure
       : null;
     const normalizedRawFormat = sanitizeParam(rawFormat, 24)?.toLowerCase() || '';
-    const requestedFormat = ['cash', 'mtt', 'spins', 'hu'].includes(normalizedRawFormat)
+    const requestedFormat = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(normalizedRawFormat)
       ? normalizedRawFormat
       : null;
     const level = Math.min(12, Math.max(1, parseInt(rawLevel, 10) || 1));

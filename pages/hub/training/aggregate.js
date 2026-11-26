@@ -396,7 +396,7 @@ export default function AggregateReports() {
               <div style={{ padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(2, 6, 23, 0.65)' }}>
                 <div style={{ color: '#94a3b8', fontWeight: 700 }}>Live Horse Brain / PLO Brain Coverage</div>
                 <div style={{ color: '#4ade80', fontSize: 16, fontWeight: 900, marginTop: 3 }}>100% Real-Time Coverage</div>
-                <div style={{ color: '#cbd5e1', fontSize: 12, marginTop: 2 }}>Holdem-Brain.Js · PLO-Core.Js · PLO5-Brain.Js · PLO6-Brain.Js</div>
+                <div style={{ color: '#cbd5e1', fontSize: 12, marginTop: 2 }}>Holdem-Brain.Js · PLO-Core.Js · PLO5-Brain.Js · PLO6-Brain.Js · PLO8-Brain.Js</div>
               </div>
               <div style={{ padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(2, 6, 23, 0.65)' }}>
                 <div style={{ color: '#94a3b8', fontWeight: 700 }}>Share Of Decisions Served By Engine</div>

@@ -418,7 +418,27 @@ export default function TrainingPage() {
       setActiveCat(game.category || 'ALL');
       setQuery('');
       setDebouncedQuery('');
-      startDrill(game);
+      const qVariant = typeof router.query.variant === 'string' ? router.query.variant.trim().toLowerCase() : '';
+      const qStruct = typeof router.query.bettingStructure === 'string' ? router.query.bettingStructure.trim().toLowerCase() : '';
+      const qFormat = typeof router.query.format === 'string' ? router.query.format.trim().toLowerCase() : '';
+      const qStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
+        ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
+        : '';
+      const qPos = typeof (router.query.position || router.query.heroPosition) === 'string'
+        ? String(router.query.position || router.query.heroPosition).trim().toUpperCase()
+        : '';
+      const queryOverrides = {
+        ...(['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(qVariant) ? { variant: qVariant } : {}),
+        ...(['no_limit', 'pot_limit', 'fixed_limit'].includes(qStruct) ? { bettingStructure: qStruct } : {}),
+        ...(['cash', 'mtt', 'spins', 'hu', '9max'].includes(qFormat) ? { format: qFormat } : {}),
+        ...(['preflop', 'flop', 'turn', 'river'].includes(qStreet) ? { targetStreet: qStreet, scope: 'street' } : {}),
+        ...(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(qPos) ? { heroPosition: qPos, targetPositions: qPos } : {}),
+      };
+      if (Object.keys(queryOverrides).length > 0) {
+        quickStartDrill(game, queryOverrides);
+      } else {
+        startDrill(game);
+      }
       return;
     }
     if (game) {

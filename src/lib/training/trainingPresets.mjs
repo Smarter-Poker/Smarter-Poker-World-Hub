@@ -1098,7 +1098,7 @@ export function evaluateHandBlockerImpact(input = {}) {
   let valueBlockedPct = hasAce ? 18 : hasKing ? 13 : 9;
   if (hasNutSuitBlocker) valueBlockedPct += 11;
   if (variant === 'plo8' && (hasDeuce || hasThree)) valueBlockedPct += 14;
-  if (['plo4', 'plo5', 'plo6'].includes(variant) && suits.filter((s) => s === dominantBoardSuit).length >= 2) {
+  if (['plo4', 'plo5', 'plo6', 'plo8'].includes(variant) && suits.filter((s) => s === dominantBoardSuit).length >= 2) {
     valueBlockedPct -= 4; // Self-blocking own flush outs slightly
   }
   valueBlockedPct = Math.max(5, Math.min(48, valueBlockedPct));

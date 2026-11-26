@@ -172,25 +172,25 @@ export default function TrainingArenaPage() {
             const baseConfig = syncedHandId ? null : customTrainingConfigFromQuery(router.query);
             const rawVariant = typeof router.query.variant === 'string'
                 ? router.query.variant.trim().toLowerCase()
-                : (sharedDrillPack?.variant || coopStudyRoom?.variant || '');
+                : (sharedDrillPack?.variant || coopStudyRoom?.variant || clubCoachAssignment?.variant || '');
             const variant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(rawVariant) ? rawVariant : null;
             const rawBettingStructure = typeof router.query.bettingStructure === 'string'
                 ? router.query.bettingStructure.trim().toLowerCase()
-                : (sharedDrillPack?.bettingStructure || coopStudyRoom?.bettingStructure || '');
+                : (sharedDrillPack?.bettingStructure || coopStudyRoom?.bettingStructure || clubCoachAssignment?.bettingStructure || '');
             const bettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(rawBettingStructure)
                 ? rawBettingStructure
                 : null;
             const rawFormat = typeof router.query.format === 'string'
                 ? router.query.format.trim().toLowerCase()
-                : (sharedDrillPack?.format || coopStudyRoom?.format || '');
-            const format = ['cash', 'mtt', 'spins', 'hu'].includes(rawFormat) ? rawFormat : null;
+                : (sharedDrillPack?.format || coopStudyRoom?.format || clubCoachAssignment?.format || '');
+            const format = ['cash', 'mtt', 'spins', 'hu', '9max'].includes(rawFormat) ? rawFormat : null;
             const rawStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
                 ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
-                : (sharedDrillPack?.targetStreet || coopStudyRoom?.targetStreet || '');
+                : (sharedDrillPack?.targetStreet || coopStudyRoom?.targetStreet || clubCoachAssignment?.targetStreet || '');
             const targetStreet = ['preflop', 'flop', 'turn', 'river'].includes(rawStreet) ? rawStreet : null;
             const rawPosition = typeof (router.query.position || router.query.targetPositions) === 'string'
                 ? String(router.query.position || router.query.targetPositions).trim().toUpperCase()
-                : (sharedDrillPack?.heroPosition || coopStudyRoom?.heroPosition || '');
+                : (sharedDrillPack?.heroPosition || coopStudyRoom?.heroPosition || clubCoachAssignment?.heroPosition || '');
             const targetPosition = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(rawPosition)
                 ? rawPosition
                 : null;
@@ -202,7 +202,7 @@ export default function TrainingArenaPage() {
                 : router.query.duelRole === 'challenger'
                     ? 'challenger'
                     : null;
-            if (!baseConfig && !variant && !bettingStructure && !format && !targetStreet && !targetPosition && !duelToken && !duelRole && !syncedHandId && !sharedDrillPack && !coopStudyRoom) {
+            if (!baseConfig && !variant && !bettingStructure && !format && !targetStreet && !targetPosition && !duelToken && !duelRole && !syncedHandId && !sharedDrillPack && !coopStudyRoom && !clubCoachAssignment) {
                 return { config: null, error: null };
             }
             return {
@@ -218,6 +218,12 @@ export default function TrainingArenaPage() {
                         coopRoomId: coopStudyRoom.roomId,
                         coopCoachName: coopStudyRoom.coachName,
                         coopRoomTitle: coopStudyRoom.title,
+                    } : {}),
+                    ...(clubCoachAssignment ? {
+                        stackDepthBb: clubCoachAssignment.stackDepthBb,
+                        clubAssignmentId: clubCoachAssignment.assignmentId,
+                        clubAssignmentTitle: clubCoachAssignment.title,
+                        clubTargetAccuracyPct: clubCoachAssignment.targetAccuracyPct,
                     } : {}),
                     ...(variant ? { variant } : {}),
                     ...(bettingStructure ? { bettingStructure } : {}),
@@ -236,7 +242,7 @@ export default function TrainingArenaPage() {
                 error: error?.message || 'This Focused Training Configuration Is Invalid.',
             };
         }
-    }, [router.isReady, router.asPath, sharedDrillPack, coopStudyRoom]);
+    }, [router.isReady, router.asPath, sharedDrillPack, coopStudyRoom, clubCoachAssignment]);
 
     useEffect(() => {
         if (!router.isReady || !gameId) return;
@@ -288,12 +294,18 @@ export default function TrainingArenaPage() {
         customLaunch.config || (startsWithPreset ? resolvePresetForGame(game) : null)
     ), [customLaunch.config, game, startsWithPreset]);
     const level = parseInt(queryLevel, 10) || 1;
-
     useEffect(() => {
         if (!startsWithPreset || !userId || !resolvedSessionId || customLaunch.error) return;
         saveResumableTrainingSession({ ...initialConfig, gameId, gameName, level }, userId);
     }, [startsWithPreset, userId, resolvedSessionId, customLaunch.error, initialConfig, gameId, gameName, level]);
-    const activeArenaVariant = initialConfig?.variant || 'nlh';
+    const resolvedQueryVariant = (
+        typeof router.query.variant === 'string' && router.query.variant.trim()
+            ? router.query.variant.trim().toLowerCase()
+            : (initialConfig?.variant || sharedDrillPack?.variant || coopStudyRoom?.variant || clubCoachAssignment?.variant || 'nlh')
+    );
+    const activeArenaVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(resolvedQueryVariant)
+        ? resolvedQueryVariant
+        : 'nlh';
 
     const arenaBrainPreview = useMemo(() => {
         const heroCards = activeArenaVariant === 'plo6'
