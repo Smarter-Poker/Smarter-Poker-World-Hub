@@ -166,12 +166,19 @@ async function checkRoute(browser, baseUrl, viewport, route, storageState) {
       }
       const saved = await page.evaluate((key) => window.localStorage.getItem(key), PREFS_STORAGE_KEY);
       if (saved && JSON.parse(saved).format === 'cash') {
-        // Seeded "cash" may remain in storage; the visible filter must not have been flipped to it.
+        // Seeded "cash" may remain in storage; the visible format filter must not have been flipped to it.
         const cashActive = await page.evaluate(() => {
-          const active = document.querySelector('[aria-pressed="true"],[aria-selected="true"],[aria-checked="true"]');
-          const pressed = [...document.querySelectorAll('[aria-pressed="true"],[aria-selected="true"],[aria-checked="true"]')]
-            .map((el) => (el.textContent || '').trim().toLowerCase());
-          return Boolean(active) && pressed.includes('cash') && !pressed.includes('tournament');
+          const formatButtons = [...document.querySelectorAll('button[aria-pressed], [role="tab"][aria-selected], [role="radio"][aria-checked]')]
+            .map((el) => ({
+              label: (el.textContent || '').trim().toLowerCase(),
+              selected: el.getAttribute('aria-pressed') === 'true'
+                || el.getAttribute('aria-selected') === 'true'
+                || el.getAttribute('aria-checked') === 'true',
+            }))
+            .filter((item) => item.label === 'cash' || item.label === 'tournament' || item.label === 'all formats');
+          const cashSelected = formatButtons.some((item) => item.label === 'cash' && item.selected);
+          const tournamentSelected = formatButtons.some((item) => item.label === 'tournament' && item.selected);
+          return cashSelected && !tournamentSelected;
         });
         if (cashActive) failures.push('format-query-preserved: Cash filter is active although ?format=tournament was requested');
       }

@@ -220,7 +220,7 @@ function _parsePSHand(block, heroName, opts = {}) {
         site: opts.site || 'pokerstars',
         variant: preliminary.variant,
         gameType: _BETTING_TO_GAME_TYPE[preliminary.bettingStructure] || 'FL',
-        format: /tournament/i.test(block) ? 'tournament' : 'cash',
+        format: /(?:tournament|tourney|freeroll|sit\s*&\s*go|mtt|level\s+[ivx0-9]+)/i.test(headerText) ? 'tournament' : 'cash',
         stakes: '',
         tableSize: 0,
         buttonSeat: null,
@@ -244,15 +244,18 @@ function _parsePSHand(block, heroName, opts = {}) {
             continue;
         }
         if (/^\*\*\*\s*SUMMARY\s*\*\*\*/i.test(line)) inSummary = true;
-        // Seat line: "Seat 1: PlayerName ($100.50 in chips)". SUMMARY seat lines
-        // ("Seat 1: Hero (button) showed [..] and won ($15)") are results, never
-        // new seats.
-        const seatMatch = inSummary ? null : line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\$?([\d.]+)/);
+        // Seat line: "Seat 1: Player (2) (€1,000.50 in chips)". Anchor to the
+        // trailing "(<currency><stack> ...)" group so parentheses inside a
+        // player's name never truncate the name or corrupt the stack.
+        const seatMatch = inSummary
+            ? null
+            : line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\s*[$€£]?([\d,]+(?:\.\d+)?)(?:\s+in chips)?[^()]*\)\s*$/i)
+              || line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\s*[$€£]?([\d,]+(?:\.\d+)?)/);
         if (seatMatch) {
             hand.players.push({
-                seat: parseInt(seatMatch[1]),
-                name: seatMatch[2],
-                stack: parseFloat(seatMatch[3]),
+                seat: parseInt(seatMatch[1], 10),
+                name: seatMatch[2].trim(),
+                stack: parseFloat(seatMatch[3].replace(/,/g, '')),
                 position: '', // Assigned later
             });
             continue;
@@ -302,28 +305,30 @@ function _parsePSHand(block, heroName, opts = {}) {
             continue;
         }
 
-        // Action lines: "PlayerName: raises $5 to $7"
-        const actionMatch = line.match(/^(.+?):\s+(folds|checks|calls|bets|raises)(?:\s+\$?([\d.]+))?(?:\s+to\s+\$?([\d.]+))?/i);
+        // Action lines: "PlayerName: raises €5 to €1,000.50"
+        const actionMatch = line.match(/^(.+?):\s+(folds|checks|calls|bets|raises)(?:\s+[$€£]?([\d,]+(?:\.\d+)?))?(?:\s+to\s+[$€£]?([\d,]+(?:\.\d+)?))?/i);
         if (actionMatch && hand.streets[currentStreet]) {
+            const rawAmt = actionMatch[4] || actionMatch[3];
             hand.streets[currentStreet].actions.push({
                 player: actionMatch[1],
                 action: _normalizeAction(actionMatch[2]),
-                amount: parseFloat(actionMatch[4] || actionMatch[3]) || 0,
+                amount: rawAmt ? parseFloat(rawAmt.replace(/,/g, '')) || 0 : 0,
                 isHero: actionMatch[1] === heroName,
             });
             continue;
         }
 
-        // Result: "PlayerName collected $15.50 from pot"
-        const winMatch = line.match(/^(.+?)\s+collected\s+\$?([\d.]+)/);
+        // Result: "PlayerName collected €1,015.50 from pot"
+        const winMatch = line.match(/^(.+?)\s+collected\s+[$€£]?([\d,]+(?:\.\d+)?)/);
         if (winMatch) {
-            hand.result.winners.push({ name: winMatch[1], amount: parseFloat(winMatch[2]) });
-            hand.result.pot = Math.max(hand.result.pot, parseFloat(winMatch[2]));
+            const winAmt = parseFloat(winMatch[2].replace(/,/g, '')) || 0;
+            hand.result.winners.push({ name: winMatch[1], amount: winAmt });
+            hand.result.pot = Math.max(hand.result.pot, winAmt);
         }
 
         // Total pot
-        const potMatch = line.match(/^Total pot\s+\$?([\d.]+)/);
-        if (potMatch) hand.result.pot = parseFloat(potMatch[1]);
+        const potMatch = line.match(/^Total pot\s+[$€£]?([\d,]+(?:\.\d+)?)/);
+        if (potMatch) hand.result.pot = parseFloat(potMatch[1].replace(/,/g, '')) || 0;
     }
 
     hand.tableSize = hand.players.length;
@@ -379,8 +384,9 @@ function _normalizeColonlessBlock(block) {
     const rawLines = text.split('\n');
     const names = [];
     for (const line of rawLines) {
-        const m = line.trim().match(/^Seat\s+\d+:\s+(.+?)\s+\(\s*[$€£]?[\d.]+/);
-        if (m && !names.includes(m[1])) names.push(m[1]);
+        const m = line.trim().match(/^Seat\s+\d+:\s+(.+?)\s+\(\s*[$€£]?[\d.]+(?:\s+in chips)?[^()]*\)\s*$/i)
+            || line.trim().match(/^Seat\s+\d+:\s+(.+?)\s+\(\s*[$€£]?[\d.]+/);
+        if (m && !names.includes(m[1].trim())) names.push(m[1].trim());
     }
     names.sort((a, b) => b.length - a.length);
 
@@ -388,7 +394,14 @@ function _normalizeColonlessBlock(block) {
     const out = rawLines.map(line => {
         const t = line.trim();
         if (/^\*\*\*\s*SUMMARY/i.test(t)) inSummary = true;
-        if (!t || inSummary || t.startsWith('***') || /^(?:Seat|Table|Dealt to|Total pot|Board|Uncalled)/i.test(t)) return line;
+        // Anchor structural lines strictly so player names like "Boardman",
+        // "TableTennis", or "Seaton" are never dropped as system lines.
+        if (
+            !t
+            || inSummary
+            || t.startsWith('***')
+            || /^(?:Seat\s+\d+:|Table\s+'|Dealt to\s+|Total pot\s+|Board\s+\[|Uncalled bet\s+\()/i.test(t)
+        ) return line;
         const name = names.find(n => t.startsWith(`${n} `));
         if (!name) return line; // already "Name: action", a header, or an unknown line
         const rest = t.slice(name.length).trim();

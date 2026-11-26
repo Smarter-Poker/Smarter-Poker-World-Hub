@@ -20,6 +20,7 @@ import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import { encodeCoopStudyRoom } from '../../../src/lib/training/trainingPresets.mjs';
 
 const HERO_CARDS_BY_VARIANT = {
   nlh: ['As', 'Kd'],
@@ -400,6 +401,42 @@ export default function CoachModePage() {
   const [heroPosition, setHeroPosition] = useState('BTN');
   const [activeStreet, setActiveStreet] = useState('flop');
   const [coachError, setCoachError] = useState(null);
+  const [coopCopied, setCoopCopied] = useState(false);
+
+  const coopStudyRoomToken = useMemo(
+    () =>
+      encodeCoopStudyRoom({
+        roomId: `coach-${activeVariant}-${heroPosition}-${activeStreet}`.toLowerCase(),
+        coachName: 'Club Coach Broadcast',
+        title: `${activeVariant.toUpperCase()} ${heroPosition} ${activeStreet.toUpperCase()} Live Co-Op Study Room`,
+        gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+        variant: activeVariant,
+        bettingStructure: activeVariant === 'nlh' ? 'no_limit' : 'pot_limit',
+        format: 'cash',
+        stackDepthBb: 100,
+        heroPosition,
+        targetStreet: activeStreet,
+      }),
+    [activeVariant, heroPosition, activeStreet],
+  );
+
+  const coopStudyRoomHref = useMemo(
+    () =>
+      `/hub/training/arena/${activeVariant === 'nlh' ? 'cash-002' : 'cash-005'}?level=1&coopRoom=${encodeURIComponent(coopStudyRoomToken)}&source=coach-mode-coop`,
+    [activeVariant, coopStudyRoomToken],
+  );
+
+  const handleCopyCoopStudyRoom = () => {
+    try {
+      if (typeof window !== 'undefined' && navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(`${window.location.origin}${coopStudyRoomHref}`).catch(() => {});
+      }
+      setCoopCopied(true);
+      setTimeout(() => setCoopCopied(false), 2500);
+    } catch (_) {
+      setCoopCopied(true);
+    }
+  };
 
   const brainEval = useMemo(() => {
     try {
@@ -791,6 +828,24 @@ export default function CoachModePage() {
                 >
                   <span>Launch Adaptive Spot In Club Arena</span>
                   <span aria-hidden>›</span>
+                </button>
+                <button
+                  type="button"
+                  data-launch-coop-study-room="true"
+                  data-coop-room-href={coopStudyRoomHref}
+                  onClick={() => router.push(coopStudyRoomHref)}
+                  className="sp-coach-primary"
+                >
+                  <span>Host Live CO-Op Study Room</span>
+                  <span aria-hidden>›</span>
+                </button>
+                <button
+                  type="button"
+                  data-copy-coop-study-room="true"
+                  onClick={handleCopyCoopStudyRoom}
+                  className="sp-coach-back"
+                >
+                  <span>{coopCopied ? 'Co-Op Room Link Copied!' : 'Copy Co-Op Study Room Link'}</span>
                 </button>
               </div>
               <p>{brainEval.explanation}</p>

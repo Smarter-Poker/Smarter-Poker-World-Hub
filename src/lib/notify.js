@@ -120,6 +120,7 @@ export async function notify(supabase, args = {}) {
 
     // -- Branch A: in-app bell ------------------------------------------------
     let inserted = false;
+    let duplicateConflict = false;
     try {
         const { data, error } = await supabase
             .from('notifications')
@@ -152,6 +153,9 @@ export async function notify(supabase, args = {}) {
             // whichever client is installed.
             .select('id');
         if (error) {
+            if (String(error.code || '') === '23505') {
+                duplicateConflict = true;
+            }
             console.warn('[notify] notifications insert failed:', error.message);
         } else {
             // The row the database returned; a routed original under
@@ -219,7 +223,9 @@ export async function notify(supabase, args = {}) {
     }
 
     // -- Branch B: web push ---------------------------------------------------
-    if (wantsPush) {
+    if (wantsPush && duplicateConflict) {
+        out.push = { sent: false, skipped: true, reason: 'duplicate_notification' };
+    } else if (wantsPush) {
         try {
             out.push = await enqueuePush(supabase, {
                 userId: args.userId,

@@ -37,13 +37,15 @@ export default function MediaViewer({ url, label = 'Photo', onClose }) {
     const [scale, setScale] = useState(MIN_SCALE);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [natural, setNatural] = useState(null);
+    const [failed, setFailed] = useState(false);
     const frame = useRef(null);
     const pointers = useRef(new Map());
     const pinch = useRef(null);
     const drag = useRef(null);
     const current = gallery[index] || url;
 
-    const reset = useCallback(() => { setScale(MIN_SCALE); setOffset({ x: 0, y: 0 }); setNatural(null); }, []);
+    const reset = useCallback(() => { setScale(MIN_SCALE); setOffset({ x: 0, y: 0 }); setNatural(null); setFailed(false); }, []);
+    useEffect(() => { setFailed(false); }, [current]);
     const go = useCallback(step => {
         setIndex(previous => {
             const next = nextIndex(previous, step, gallery.length);
@@ -159,19 +161,36 @@ export default function MediaViewer({ url, label = 'Photo', onClose }) {
                     justifyContent: 'center', overflow: 'hidden', touchAction: 'none',
                 }}
             >
-                <img
-                    key={current}
-                    src={current}
-                    alt={label}
-                    draggable={false}
-                    onLoad={event => setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
-                    style={{
-                        maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8,
-                        transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-                        transition: pinch.current || drag.current ? 'none' : 'transform 160ms ease-out',
-                        cursor: scale > MIN_SCALE ? 'grab' : 'zoom-in', userSelect: 'none',
-                    }}
-                />
+                {failed ? (
+                    <a
+                        href={current}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={event => event.stopPropagation()}
+                        style={{
+                            color: 'white', textDecoration: 'none', padding: '14px 20px',
+                            borderRadius: 12, border: '1px solid rgba(255,255,255,0.28)',
+                            background: 'rgba(255,255,255,0.1)', fontSize: 14, fontWeight: 600,
+                        }}
+                    >
+                        Unable To Load Photo · Tap To Open Original
+                    </a>
+                ) : (
+                    <img
+                        key={current}
+                        src={current}
+                        alt={label}
+                        draggable={false}
+                        onLoad={event => setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
+                        onError={() => setFailed(true)}
+                        style={{
+                            maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8,
+                            transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                            transition: pinch.current || drag.current ? 'none' : 'transform 160ms ease-out',
+                            cursor: scale > MIN_SCALE ? 'grab' : 'zoom-in', userSelect: 'none',
+                        }}
+                    />
+                )}
             </div>
             {gallery.length > 1 && (
                 <>

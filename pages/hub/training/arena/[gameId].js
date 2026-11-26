@@ -26,7 +26,10 @@ import {
     evaluateTrainingSpotWithHorseBrain,
     buildCustomTrainingArenaHref,
 } from '../../../../src/lib/training/horseBrainTrainingAdapter';
-import { decodeSharedDrillPack } from '../../../../src/lib/training/trainingPresets.mjs';
+import {
+    decodeSharedDrillPack,
+    decodeCoopStudyRoom,
+} from '../../../../src/lib/training/trainingPresets.mjs';
 
 const GodModeArena = dynamic(() => import('../../../../src/components/training/GodModeArena'), {
     ssr: false,
@@ -145,6 +148,12 @@ export default function TrainingArenaPage() {
         return rawPack ? decodeSharedDrillPack(rawPack) : null;
     }, [router.isReady, router.query.pack]);
 
+    const coopStudyRoom = useMemo(() => {
+        if (!router.isReady) return null;
+        const rawCoop = typeof router.query.coopRoom === 'string' ? router.query.coopRoom.trim() : '';
+        return rawCoop ? decodeCoopStudyRoom(rawCoop) : null;
+    }, [router.isReady, router.query.coopRoom]);
+
     const customLaunch = useMemo(() => {
         if (!router.isReady) return { config: null, error: null };
         try {
@@ -154,25 +163,25 @@ export default function TrainingArenaPage() {
             const baseConfig = syncedHandId ? null : customTrainingConfigFromQuery(router.query);
             const rawVariant = typeof router.query.variant === 'string'
                 ? router.query.variant.trim().toLowerCase()
-                : (sharedDrillPack?.variant || '');
+                : (sharedDrillPack?.variant || coopStudyRoom?.variant || '');
             const variant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(rawVariant) ? rawVariant : null;
             const rawBettingStructure = typeof router.query.bettingStructure === 'string'
                 ? router.query.bettingStructure.trim().toLowerCase()
-                : (sharedDrillPack?.bettingStructure || '');
+                : (sharedDrillPack?.bettingStructure || coopStudyRoom?.bettingStructure || '');
             const bettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(rawBettingStructure)
                 ? rawBettingStructure
                 : null;
             const rawFormat = typeof router.query.format === 'string'
                 ? router.query.format.trim().toLowerCase()
-                : (sharedDrillPack?.format || '');
+                : (sharedDrillPack?.format || coopStudyRoom?.format || '');
             const format = ['cash', 'mtt', 'spins', 'hu'].includes(rawFormat) ? rawFormat : null;
             const rawStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
                 ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
-                : (sharedDrillPack?.targetStreet || '');
+                : (sharedDrillPack?.targetStreet || coopStudyRoom?.targetStreet || '');
             const targetStreet = ['preflop', 'flop', 'turn', 'river'].includes(rawStreet) ? rawStreet : null;
             const rawPosition = typeof (router.query.position || router.query.targetPositions) === 'string'
                 ? String(router.query.position || router.query.targetPositions).trim().toUpperCase()
-                : (sharedDrillPack?.heroPosition || '');
+                : (sharedDrillPack?.heroPosition || coopStudyRoom?.heroPosition || '');
             const targetPosition = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(rawPosition)
                 ? rawPosition
                 : null;
@@ -184,7 +193,7 @@ export default function TrainingArenaPage() {
                 : router.query.duelRole === 'challenger'
                     ? 'challenger'
                     : null;
-            if (!baseConfig && !variant && !bettingStructure && !format && !targetStreet && !targetPosition && !duelToken && !duelRole && !syncedHandId && !sharedDrillPack) {
+            if (!baseConfig && !variant && !bettingStructure && !format && !targetStreet && !targetPosition && !duelToken && !duelRole && !syncedHandId && !sharedDrillPack && !coopStudyRoom) {
                 return { config: null, error: null };
             }
             return {
@@ -194,6 +203,12 @@ export default function TrainingArenaPage() {
                         stackDepth: sharedDrillPack.stackDepthBb,
                         questionsCount: sharedDrillPack.questionsCount,
                         sharedPackTitle: sharedDrillPack.title,
+                    } : {}),
+                    ...(coopStudyRoom ? {
+                        stackDepth: coopStudyRoom.stackDepthBb,
+                        coopRoomId: coopStudyRoom.roomId,
+                        coopCoachName: coopStudyRoom.coachName,
+                        coopRoomTitle: coopStudyRoom.title,
                     } : {}),
                     ...(variant ? { variant } : {}),
                     ...(bettingStructure ? { bettingStructure } : {}),
@@ -212,7 +227,7 @@ export default function TrainingArenaPage() {
                 error: error?.message || 'This Focused Training Configuration Is Invalid.',
             };
         }
-    }, [router.isReady, router.asPath, sharedDrillPack]);
+    }, [router.isReady, router.asPath, sharedDrillPack, coopStudyRoom]);
 
     useEffect(() => {
         if (!router.isReady || !gameId) return;
@@ -472,6 +487,43 @@ export default function TrainingArenaPage() {
                         }}
                     >
                         Customize Pack In Drill Builder →
+                    </a>
+                </div>
+            )}
+            {coopStudyRoom && (
+                <div
+                    data-coop-study-room-banner="true"
+                    data-coop-room-id={coopStudyRoom.roomId}
+                    data-coop-coach-name={coopStudyRoom.coachName}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        padding: '8px 16px',
+                        background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                        borderBottom: '1px solid #56d8ff',
+                        color: '#f4fbff',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        zIndex: 50,
+                    }}
+                >
+                    <span>
+                        ★ Real-Time CO-Op Study Room Active · Host: {coopStudyRoom.coachName} · {coopStudyRoom.title} ({coopStudyRoom.summary})
+                    </span>
+                    <a
+                        href="/hub/training/coach-mode"
+                        style={{
+                            color: '#83deff',
+                            textDecoration: 'none',
+                            fontWeight: 800,
+                            fontSize: 12,
+                        }}
+                    >
+                        Return To Coach Broadcast →
                     </a>
                 </div>
             )}
