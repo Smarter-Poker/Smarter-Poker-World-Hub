@@ -74407,7 +74407,7 @@
         },
         {
           "name": "resolvePresetForGame",
-          "line": 557,
+          "line": 559,
           "references": 7,
           "exported": true,
           "defaultExport": false,
@@ -74415,14 +74415,6 @@
         },
         {
           "name": "loadTrainingPreferences",
-          "line": 591,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "saveTrainingPreferences",
           "line": 606,
           "references": 1,
           "exported": true,
@@ -74430,8 +74422,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "saveTrainingPreferences",
+          "line": 621,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "resetTrainingPreferences",
-          "line": 633,
+          "line": 648,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74439,7 +74439,7 @@
         },
         {
           "name": "saveResumableTrainingSession",
-          "line": 647,
+          "line": 662,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74447,7 +74447,7 @@
         },
         {
           "name": "loadResumableTrainingSession",
-          "line": 674,
+          "line": 689,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74455,7 +74455,7 @@
         },
         {
           "name": "computeSharedPackChecksum",
-          "line": 697,
+          "line": 712,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -74463,7 +74463,7 @@
         },
         {
           "name": "encodeSharedDrillPack",
-          "line": 710,
+          "line": 725,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -74471,7 +74471,7 @@
         },
         {
           "name": "decodeSharedDrillPack",
-          "line": 737,
+          "line": 752,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74479,7 +74479,7 @@
         },
         {
           "name": "encodeCoopStudyRoom",
-          "line": 780,
+          "line": 795,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74487,7 +74487,7 @@
         },
         {
           "name": "decodeCoopStudyRoom",
-          "line": 807,
+          "line": 822,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74495,7 +74495,7 @@
         },
         {
           "name": "buildThreeHandLeakReceipt",
-          "line": 851,
+          "line": 866,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74503,7 +74503,7 @@
         },
         {
           "name": "scoreRangePainterEstimate",
-          "line": 923,
+          "line": 938,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74511,7 +74511,7 @@
         },
         {
           "name": "encodeClubCoachAssignment",
-          "line": 968,
+          "line": 983,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74519,7 +74519,7 @@
         },
         {
           "name": "decodeClubCoachAssignment",
-          "line": 994,
+          "line": 1009,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74527,7 +74527,7 @@
         },
         {
           "name": "computeIcmChopAndPayJump",
-          "line": 1052,
+          "line": 1067,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74535,7 +74535,7 @@
         },
         {
           "name": "evaluateHandBlockerImpact",
-          "line": 1097,
+          "line": 1112,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74543,7 +74543,7 @@
         },
         {
           "name": "buildSessionStudyDossierMarkdown",
-          "line": 1158,
+          "line": 1173,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74551,7 +74551,7 @@
         },
         {
           "name": "evaluateMultiStreetLineConsistency",
-          "line": 1188,
+          "line": 1203,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74559,7 +74559,7 @@
         },
         {
           "name": "evaluateAdaptiveVillainCounterStrategy",
-          "line": 1214,
+          "line": 1229,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74567,7 +74567,7 @@
         },
         {
           "name": "computeSurvivingRangeFunnel",
-          "line": 1246,
+          "line": 1261,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74575,7 +74575,7 @@
         },
         {
           "name": "evaluateTiltAndDecisionPacingGuard",
-          "line": 1272,
+          "line": 1287,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -122214,21 +122214,6 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "loadTrainingPreferences",
-        "line": 591,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/training/SessionSetupModal.jsx"
-        ]
-      },
-      {
-        "file": "src/lib/training/trainingPresets.mjs",
-        "name": "saveTrainingPreferences",
         "line": 606,
         "references": 1,
         "exported": true,
@@ -122243,8 +122228,23 @@
       },
       {
         "file": "src/lib/training/trainingPresets.mjs",
+        "name": "saveTrainingPreferences",
+        "line": 621,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/training/SessionSetupModal.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingPresets.mjs",
         "name": "resetTrainingPreferences",
-        "line": 633,
+        "line": 648,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122259,7 +122259,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "saveResumableTrainingSession",
-        "line": 647,
+        "line": 662,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122274,7 +122274,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "loadResumableTrainingSession",
-        "line": 674,
+        "line": 689,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122289,7 +122289,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeSharedDrillPack",
-        "line": 737,
+        "line": 752,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122304,7 +122304,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "encodeCoopStudyRoom",
-        "line": 780,
+        "line": 795,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122320,7 +122320,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeCoopStudyRoom",
-        "line": 807,
+        "line": 822,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122335,7 +122335,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "buildThreeHandLeakReceipt",
-        "line": 851,
+        "line": 866,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122350,7 +122350,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "scoreRangePainterEstimate",
-        "line": 923,
+        "line": 938,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122365,7 +122365,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "encodeClubCoachAssignment",
-        "line": 968,
+        "line": 983,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122380,7 +122380,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeClubCoachAssignment",
-        "line": 994,
+        "line": 1009,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122395,7 +122395,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "computeIcmChopAndPayJump",
-        "line": 1052,
+        "line": 1067,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122410,7 +122410,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateHandBlockerImpact",
-        "line": 1097,
+        "line": 1112,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122425,7 +122425,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "buildSessionStudyDossierMarkdown",
-        "line": 1158,
+        "line": 1173,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122440,7 +122440,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateMultiStreetLineConsistency",
-        "line": 1188,
+        "line": 1203,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122455,7 +122455,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateAdaptiveVillainCounterStrategy",
-        "line": 1214,
+        "line": 1229,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122470,7 +122470,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "computeSurvivingRangeFunnel",
-        "line": 1246,
+        "line": 1261,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122485,7 +122485,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateTiltAndDecisionPacingGuard",
-        "line": 1272,
+        "line": 1287,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132922,21 +132922,6 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "loadTrainingPreferences",
-        "line": 591,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/training/SessionSetupModal.jsx"
-        ]
-      },
-      {
-        "file": "src/lib/training/trainingPresets.mjs",
-        "name": "saveTrainingPreferences",
         "line": 606,
         "references": 1,
         "exported": true,
@@ -132951,8 +132936,23 @@
       },
       {
         "file": "src/lib/training/trainingPresets.mjs",
+        "name": "saveTrainingPreferences",
+        "line": 621,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/training/SessionSetupModal.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingPresets.mjs",
         "name": "resetTrainingPreferences",
-        "line": 633,
+        "line": 648,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132967,7 +132967,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "saveResumableTrainingSession",
-        "line": 647,
+        "line": 662,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132982,7 +132982,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "loadResumableTrainingSession",
-        "line": 674,
+        "line": 689,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132997,7 +132997,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeSharedDrillPack",
-        "line": 737,
+        "line": 752,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133012,7 +133012,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "encodeCoopStudyRoom",
-        "line": 780,
+        "line": 795,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133028,7 +133028,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeCoopStudyRoom",
-        "line": 807,
+        "line": 822,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133043,7 +133043,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "buildThreeHandLeakReceipt",
-        "line": 851,
+        "line": 866,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133058,7 +133058,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "scoreRangePainterEstimate",
-        "line": 923,
+        "line": 938,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133073,7 +133073,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "encodeClubCoachAssignment",
-        "line": 968,
+        "line": 983,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133088,7 +133088,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeClubCoachAssignment",
-        "line": 994,
+        "line": 1009,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133103,7 +133103,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "computeIcmChopAndPayJump",
-        "line": 1052,
+        "line": 1067,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133118,7 +133118,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateHandBlockerImpact",
-        "line": 1097,
+        "line": 1112,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133133,7 +133133,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "buildSessionStudyDossierMarkdown",
-        "line": 1158,
+        "line": 1173,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133148,7 +133148,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateMultiStreetLineConsistency",
-        "line": 1188,
+        "line": 1203,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133163,7 +133163,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateAdaptiveVillainCounterStrategy",
-        "line": 1214,
+        "line": 1229,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133178,7 +133178,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "computeSurvivingRangeFunnel",
-        "line": 1246,
+        "line": 1261,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133193,7 +133193,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateTiltAndDecisionPacingGuard",
-        "line": 1272,
+        "line": 1287,
         "references": 1,
         "exported": true,
         "defaultExport": false,

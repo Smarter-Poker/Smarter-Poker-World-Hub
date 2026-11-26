@@ -52,8 +52,8 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
                     <img src={artwork} alt="" loading="lazy" decoding="async" />
                 )}
                 <span className="sp-casino-game-vignette" aria-hidden="true" />
-                <span className="sp-casino-game-topline">
-                    <span>{meta.label}</span>
+                <span className="sp-casino-game-topline" data-game-preset-summary="true">
+                    <span>{meta.label} · {choiceSummary}</span>
                     <span>{game.id.toUpperCase()}</span>
                 </span>
                 {game.vipOnly && <span className="sp-casino-game-lock"><Lock size={12} /> VIP Access</span>}
@@ -62,18 +62,6 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
 
             <span className="sp-casino-game-body">
                 <span className="sp-casino-game-title">{game.name}</span>
-                <span
-                    data-game-preset-summary="true"
-                    style={{
-                        display: 'block',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: '#86daff',
-                        marginTop: 4,
-                    }}
-                >
-                    {choiceSummary}
-                </span>
                 <span className="sp-casino-game-focus">{game.focus}</span>
 
                 <span className="sp-casino-game-readout">

@@ -76,11 +76,11 @@ const CATEGORY_META = {
 };
 
 const VARIANT_FILTERS = Object.freeze([
-  { id: 'all',  label: 'All Variants' },
+  { id: 'all',  label: 'All' },
   { id: 'nlh',  label: "Hold'em" },
   { id: 'plo4', label: 'PLO4' },
-  { id: 'plo5', label: 'PLO5 (5-Card Omaha)' },
-  { id: 'plo6', label: 'PLO6 (6-Card Omaha)' },
+  { id: 'plo5', label: 'PLO5 (5-Card)' },
+  { id: 'plo6', label: 'PLO6 (6-Card)' },
   { id: 'plo8', label: 'PLO8 (Hi-Lo)' },
 ]);
 
@@ -191,8 +191,7 @@ export default function TrainingPage() {
     const ql = debouncedQuery.trim().toLowerCase();
     return TRAINING_LIBRARY.filter(g => {
       if (activeCat !== 'ALL' && g.category !== activeCat) return false;
-      const preset = resolvePresetForGame(g);
-      const isOmahaGame = ['cash-005', 'cash-015', 'mtt-018'].includes(g.id) || preset.variant !== 'nlh';
+      const isOmahaGame = ['cash-005', 'cash-015', 'mtt-018'].includes(g.id);
       if (activeVariantFilter !== 'all') {
         if (activeVariantFilter === 'nlh' && isOmahaGame) return false;
         if (['plo4', 'plo5', 'plo6', 'plo8'].includes(activeVariantFilter) && !isOmahaGame && g.category !== 'CASH') return false;
@@ -201,7 +200,6 @@ export default function TrainingPage() {
       const omahaQueryMatch = isOmahaGame && (ql.includes('omaha') || ql.includes('plo') || ql.includes('5-card') || ql.includes('five-card') || ql.includes('6-card') || ql.includes('hi-lo'));
       return (g.name || '').toLowerCase().includes(ql)
           || (g.focus || '').toLowerCase().includes(ql)
-          || (preset.summary || '').toLowerCase().includes(ql)
           || (CATEGORY_META[g.category]?.label || '').toLowerCase().includes(ql)
           || omahaQueryMatch;
     });
@@ -567,6 +565,7 @@ export default function TrainingPage() {
                       <GameCardNew
                         key={g.id}
                         game={g}
+                        isFirstCard={g.id === visibleGames[0]?.id}
                         variantOverride={activeVariantFilter !== 'all' ? activeVariantFilter : null}
                         progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
                         isRecommended={g.id === jarvisPick?.id}
@@ -892,7 +891,8 @@ function Sparkline({ data }) {
   );
 }
 
-function GameCardNew({ game, variantOverride = null, progress, isRecommended, onStart }) {
+function GameCardNew({ game, isFirstCard = false, variantOverride = null, progress, isRecommended, onStart }) {
+  void isFirstCard;
   const meta = CATEGORY_META[game.category] || CATEGORY_META.MTT;
   const Icon = meta.Icon;
   const preset = resolvePresetForGame(
@@ -948,20 +948,8 @@ function GameCardNew({ game, variantOverride = null, progress, isRecommended, on
         </div>
       </div>
       <div className="sp-card-body">
-        <div className="sp-card-cat"><span className="sp-swatch" /> {meta.label} · Single-Decision Drill</div>
+        <div className="sp-card-cat" data-game-preset-summary="true"><span className="sp-swatch" /> {meta.label} · {choiceSummary} · Single-Decision Drill</div>
         <h3 className="sp-card-title">{game.name}</h3>
-        <div
-          data-game-preset-summary="true"
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: '#86daff',
-            marginBottom: 6,
-            letterSpacing: '0.02em',
-          }}
-        >
-          {choiceSummary}
-        </div>
         <p className="sp-card-focus">{game.focus}</p>
         <div className="sp-card-meta">
           <span><Clock size={12} aria-hidden /> {game.estMinutes || 10} Min</span>

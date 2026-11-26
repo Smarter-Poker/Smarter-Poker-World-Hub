@@ -5812,7 +5812,7 @@ function UniversalDynamicTable({
                         >
                             <span
                                 data-training-mode-badge="true"
-                                data-training-mode={fullHandPlaythroughMode ? 'full-hand-practice' : 'single-decision-drill'}
+                                data-training-mode={isMultiStreetActive ? 'full-hand-practice' : 'single-decision-drill'}
                                 style={{
                                     padding: '2px 7px',
                                     borderRadius: 5,
@@ -5823,7 +5823,7 @@ function UniversalDynamicTable({
                                     color: '#86daff',
                                 }}
                             >
-                                {fullHandPlaythroughMode ? 'Full-Hand Practice' : 'Single-Decision Drill'}
+                                {isMultiStreetActive ? 'Full-Hand Practice' : 'Single-Decision Drill'}
                             </span>
                             {presetOnly && (
                                 <button
