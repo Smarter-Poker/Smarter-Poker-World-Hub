@@ -180,7 +180,6 @@ function AuditResult({ result, onDismiss }) {
   return (
     <section
       aria-label="Live Spot Audit Result"
-      aria-live="polite"
       style={{ padding: 12, border: `1px solid ${T.border}`, borderTopColor: T.borderHi, borderRadius: R.sm, background: T.surface, display: 'grid', gap: 10 }}
     >
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
@@ -253,41 +252,75 @@ export default function LiveSpotQuickEntry({
   const bulkAbortRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Focus preservation: remember previously focused element when opened
+  const deferredPaste = useDeferredValue(pasted);
+  const detected = useMemo(() => detectExternalHandFormat(deferredPaste), [deferredPaste]);
+  const built = useMemo(() => buildLiveSpotHandHistory(spot), [spot]);
+
+  // Focus preservation: remember previously focused element when opened, and abort in-flight bulk upload when closed or unmounted
   useEffect(() => {
     if (open && typeof document !== 'undefined') {
       triggerRef.current = document.activeElement;
+    } else if (!open) {
+      bulkCancelRef.current = true;
+      try {
+        bulkAbortRef.current?.abort();
+      } catch (_) {}
     }
   }, [open]);
 
+  useEffect(() => () => {
+    bulkCancelRef.current = true;
+    try {
+      bulkAbortRef.current?.abort();
+    } catch (_) {}
+  }, []);
+
   const handleClose = useCallback(() => {
+    bulkCancelRef.current = true;
+    try {
+      bulkAbortRef.current?.abort();
+    } catch (_) {}
     onClose?.();
     try {
       triggerRef.current?.focus?.();
     } catch (_) {}
   }, [onClose]);
 
-  const deferredPaste = useDeferredValue(pasted);
-  const detected = useMemo(() => detectExternalHandFormat(deferredPaste), [deferredPaste]);
-  const built = useMemo(() => buildLiveSpotHandHistory(spot), [spot]);
-
   const update = useCallback((patch) => {
     setSpot((current) => ({ ...current, ...patch }));
     setResult(null);
   }, []);
 
-  const runAudit = useCallback(async (text, { evidenceScope = 'external_upload', externalSignal = null } = {}) => {
+  const runAudit = useCallback(async (text, { evidenceScope = 'external_upload', externalSignal = null, suppressEvents = false } = {}) => {
     const requestId = ++requestIdRef.current;
     setRunning(true);
-    setResult(null);
+    if (!suppressEvents) setResult(null);
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
-    const signal = externalSignal || controller?.signal;
+    let timedOut = false;
+    const timer = controller
+      ? setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, REQUEST_TIMEOUT_MS)
+      : null;
+    const onExternalAbort = () => {
+      try {
+        controller?.abort();
+      } catch (_) {}
+    };
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        onExternalAbort();
+      } else {
+        externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+      }
+    }
+    const signal = controller ? controller.signal : externalSignal;
     try {
       const token = await getFreshAccessToken();
       if (!token) {
-        if (requestId === requestIdRef.current) setResult({ kind: 'signin' });
-        return null;
+        if (!suppressEvents && requestId === requestIdRef.current) setResult({ kind: 'signin' });
+        return { ok: false, signin: true, error: 'Sign In To Analyze.' };
       }
       const response = await fetch(AUDIT_ENDPOINT, {
         method: 'POST',
@@ -296,7 +329,7 @@ export default function LiveSpotQuickEntry({
         ...(signal ? { signal } : {}),
       });
       const payload = await response.json().catch(() => null);
-      if (requestId !== requestIdRef.current) return null;
+      if (!suppressEvents && requestId !== requestIdRef.current) return null;
       if (!response.ok || payload?.success === false) {
         const message = response.status === 422
           ? 'No Supported No-Limit Hold\u2019em Hands Could Be Read From This Text. Nothing Was Saved.'
@@ -305,32 +338,60 @@ export default function LiveSpotQuickEntry({
             : response.status === 413
               ? 'This Hand History Is Too Large. Paste Fewer Hands.'
               : (typeof payload?.error === 'string' && payload.error) || `The Audit Could Not Finish (HTTP ${response.status}).`;
-        setResult({ kind: 'error', title: response.status === 422 ? 'Not Supported Yet' : 'Could Not Analyze', message });
-        setStatusAnnouncement('Could Not Analyze Hand History.');
-        return null;
+        const title = response.status === 422 ? 'Not Supported Yet' : 'Could Not Analyze';
+        if (!suppressEvents) {
+          setResult({ kind: 'error', title, message });
+          setStatusAnnouncement('Could Not Analyze Hand History.');
+        }
+        return { ok: false, status: response.status, title, error: message };
       }
       const summary = summarizeLiveSpotAudit(payload);
-      setResult({ kind: 'ok', summary });
-      setStatusAnnouncement(`Audit Complete. ${summary.handsParsed} Hand${summary.handsParsed === 1 ? '' : 's'} Read.`);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('pa-data-updated'));
-        window.dispatchEvent(new Event('pa-sandbox-updated'));
+      if (!suppressEvents) {
+        setResult({ kind: 'ok', summary });
+        setStatusAnnouncement(`Audit Complete. ${summary.handsParsed} Hand${summary.handsParsed === 1 ? '' : 's'} Read.`);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('pa-data-updated'));
+          window.dispatchEvent(new Event('pa-sandbox-updated'));
+        }
+        onAnalyzed?.(payload, summary);
       }
-      onAnalyzed?.(payload, summary);
-      return { payload, summary };
+      return { ok: true, payload, summary };
     } catch (error) {
-      if (requestId !== requestIdRef.current) return null;
-      setResult({
-        kind: 'error',
-        title: 'Could Not Analyze',
-        message: error?.name === 'AbortError'
+      if (!suppressEvents && requestId !== requestIdRef.current) return null;
+      const isCancelled = error?.name === 'AbortError' && !timedOut && Boolean(externalSignal?.aborted || bulkCancelRef.current);
+      const isTimeout = error?.name === 'AbortError' && (timedOut || !isCancelled);
+      const title = isCancelled
+        ? 'Audit Cancelled'
+        : isTimeout
+          ? 'Audit Took Too Long'
+          : 'Could Not Analyze';
+      const message = isCancelled
+        ? 'The Audit Was Cancelled By Player.'
+        : isTimeout
           ? 'The Audit Took Too Long. Your Connection May Be Slow, So Try Again.'
-          : 'The Audit Request Failed. Check Your Connection And Try Again.',
-      });
-      setStatusAnnouncement('The Audit Request Failed.');
-      return null;
+          : 'The Audit Request Failed. Check Your Connection And Try Again.';
+      if (!suppressEvents) {
+        setResult({
+          kind: 'error',
+          title,
+          message,
+        });
+        setStatusAnnouncement(
+          isCancelled
+            ? 'Audit Cancelled By Player.'
+            : isTimeout
+              ? 'The Audit Took Too Long.'
+              : 'The Audit Request Failed.',
+        );
+      }
+      return { ok: false, cancelled: isCancelled, timedOut: isTimeout, title, error: message };
     } finally {
       if (timer) clearTimeout(timer);
+      if (externalSignal) {
+        try {
+          externalSignal.removeEventListener('abort', onExternalAbort);
+        } catch (_) {}
+      }
       if (requestId === requestIdRef.current) setRunning(false);
     }
   }, [onAnalyzed]);
@@ -338,14 +399,14 @@ export default function LiveSpotQuickEntry({
   const submitSpot = (event) => {
     event?.preventDefault?.();
     setShowErrors(true);
-    if (!built.ok || running) return;
+    if (!built.ok || running || bulkProgress?.active) return;
     setStatusAnnouncement('Analyzing Live Spot. Logged As Self-Reported Live Study.');
     runAudit(built.text, { evidenceScope: 'self_reported_live' });
   };
 
   const submitPaste = (event) => {
     event?.preventDefault?.();
-    if (running || !pasted.trim() || detected.supported === false) return;
+    if (running || bulkProgress?.active || !pasted.trim() || detected.supported === false) return;
     if (pasted.length > MAX_PASTE_CHARS) {
       setResult({ kind: 'error', title: 'Too Large', message: 'This Hand History Is Too Large. Paste Fewer Hands.' });
       return;
@@ -356,7 +417,7 @@ export default function LiveSpotQuickEntry({
 
   // Bulk .txt file upload handler
   const processBulkFile = useCallback(async (file) => {
-    if (!file) return;
+    if (!file || running || bulkProgress?.active) return;
     if (file.size > MAX_FILE_BYTES) {
       setResult({
         kind: 'error',
@@ -391,9 +452,11 @@ export default function LiveSpotQuickEntry({
       // Sequential batch execution
       bulkCancelRef.current = false;
       const totalBatches = chunks.length;
+      setResult(null);
       setBulkProgress({
         active: true,
         currentBatch: 1,
+        completedBatches: 0,
         totalBatches,
       });
 
@@ -401,19 +464,22 @@ export default function LiveSpotQuickEntry({
         verifiedCount: 0,
         unpricedCount: 0,
         handsParsed: 0,
+        decisionsAnalyzed: 0,
         unsupportedCount: 0,
         hasVerifiedAdvice: false,
         decisions: [],
+        complete: true,
+        truncated: false,
+        drillHref: null,
       };
+      let completedBatches = 0;
+      let failedBatches = 0;
+      let firstError = null;
+      let needsSignIn = false;
+      let lastPayload = null;
 
       for (let i = 0; i < chunks.length; i++) {
         if (bulkCancelRef.current) {
-          setStatusAnnouncement('Audit Cancelled By Player.');
-          setResult({
-            kind: 'error',
-            title: 'Audit Cancelled',
-            message: `Bulk Audit Cancelled After ${i} Of ${totalBatches} Batches.`,
-          });
           break;
         }
 
@@ -421,6 +487,7 @@ export default function LiveSpotQuickEntry({
         setBulkProgress({
           active: true,
           currentBatch: batchNum,
+          completedBatches,
           totalBatches,
         });
         setStatusAnnouncement(`Auditing Batch ${batchNum} Of ${totalBatches}`);
@@ -431,24 +498,104 @@ export default function LiveSpotQuickEntry({
         const outcome = await runAudit(chunks[i], {
           evidenceScope: 'external_upload',
           externalSignal: ctrl?.signal,
+          suppressEvents: true,
         });
 
-        if (outcome?.summary) {
+        if (bulkCancelRef.current || outcome?.cancelled) {
+          bulkCancelRef.current = true;
+          break;
+        }
+
+        if (outcome?.signin) {
+          needsSignIn = true;
+          break;
+        }
+
+        if (outcome?.ok && outcome?.summary) {
+          completedBatches += 1;
+          lastPayload = outcome.payload || lastPayload;
           combinedSummary.verifiedCount += outcome.summary.verifiedCount || 0;
           combinedSummary.unpricedCount += outcome.summary.unpricedCount || 0;
           combinedSummary.handsParsed += outcome.summary.handsParsed || 0;
+          combinedSummary.decisionsAnalyzed += outcome.summary.decisionsAnalyzed || 0;
+          combinedSummary.unsupportedCount += outcome.summary.unsupportedCount || outcome.payload?.unsupportedCount || 0;
           if (outcome.summary.hasVerifiedAdvice) combinedSummary.hasVerifiedAdvice = true;
-          if (Array.isArray(outcome.summary.decisions)) {
-            combinedSummary.decisions.push(...outcome.summary.decisions.slice(0, 4));
+          if (outcome.summary.complete === false || outcome.payload?.complete === false) {
+            combinedSummary.complete = false;
+          }
+          if (outcome.summary.truncated === true || outcome.payload?.truncated === true) {
+            combinedSummary.truncated = true;
+            combinedSummary.complete = false;
+          }
+          if (!combinedSummary.drillHref && outcome.summary.drillHref) {
+            combinedSummary.drillHref = outcome.summary.drillHref;
+          }
+          if (Array.isArray(outcome.summary.decisions) && combinedSummary.decisions.length < 12) {
+            combinedSummary.decisions.push(
+              ...outcome.summary.decisions.slice(0, Math.max(0, 12 - combinedSummary.decisions.length)),
+            );
+          }
+          setBulkProgress({
+            active: true,
+            currentBatch: batchNum,
+            completedBatches,
+            totalBatches,
+          });
+        } else {
+          failedBatches += 1;
+          combinedSummary.complete = false;
+          if (!firstError) {
+            firstError = outcome?.error || 'One Or More Batches Could Not Be Audited.';
+          }
+          if (outcome?.status === 429 || outcome?.timedOut) {
+            break;
           }
         }
       }
 
+      bulkAbortRef.current = null;
       setBulkProgress(null);
-      if (!bulkCancelRef.current) {
-        setResult({ kind: 'ok', summary: combinedSummary });
-        setStatusAnnouncement(`Finished Auditing ${combinedSummary.handsParsed} Hands Across ${totalBatches} Batches.`);
+
+      if (completedBatches > 0) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('pa-data-updated'));
+          window.dispatchEvent(new Event('pa-sandbox-updated'));
+        }
+        onAnalyzed?.(lastPayload, combinedSummary);
       }
+
+      if (needsSignIn) {
+        setResult({ kind: 'signin' });
+        setStatusAnnouncement('Sign In To Analyze.');
+        return;
+      }
+
+      if (bulkCancelRef.current) {
+        setStatusAnnouncement('Audit Cancelled By Player.');
+        setResult({
+          kind: 'error',
+          title: 'Audit Cancelled',
+          message: `Bulk Audit Cancelled After ${completedBatches} Of ${totalBatches} Batches.`,
+        });
+        return;
+      }
+
+      if (failedBatches > 0) {
+        const partialTitle = completedBatches > 0 ? 'Partial Bulk Audit' : 'Could Not Analyze';
+        const partialMessage = completedBatches > 0
+          ? `Audited ${combinedSummary.handsParsed} Hand${combinedSummary.handsParsed === 1 ? '' : 's'} Across ${completedBatches} Of ${totalBatches} Batches Before An Error Occurred. ${firstError}`
+          : (firstError || 'Could Not Analyze Hand History Batches.');
+        setResult({
+          kind: 'error',
+          title: partialTitle,
+          message: partialMessage,
+        });
+        setStatusAnnouncement(partialMessage);
+        return;
+      }
+
+      setResult({ kind: 'ok', summary: combinedSummary });
+      setStatusAnnouncement(`Finished Auditing ${combinedSummary.handsParsed} Hands Across ${totalBatches} Batches.`);
     } catch (err) {
       setBulkProgress(null);
       setResult({
@@ -458,7 +605,7 @@ export default function LiveSpotQuickEntry({
       });
       setStatusAnnouncement('Could Not Read File.');
     }
-  }, [runAudit]);
+  }, [bulkProgress?.active, onAnalyzed, runAudit, running]);
 
   const handleCancelBulk = useCallback(() => {
     bulkCancelRef.current = true;
@@ -469,6 +616,10 @@ export default function LiveSpotQuickEntry({
   }, []);
 
   const handleFileChange = (e) => {
+    if (running || bulkProgress?.active) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     const file = e.target.files?.[0];
     if (file) {
       processBulkFile(file);
@@ -479,6 +630,7 @@ export default function LiveSpotQuickEntry({
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragOver(false);
+    if (running || bulkProgress?.active) return;
     const file = e.dataTransfer.files?.[0];
     if (file) {
       processBulkFile(file);
@@ -538,6 +690,7 @@ export default function LiveSpotQuickEntry({
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
+                data-pa-verbatim="true"
                 value={spot.heroCards}
                 onChange={(event) => update({ heroCards: event.target.value })}
                 placeholder="As Kd"
@@ -599,6 +752,7 @@ export default function LiveSpotQuickEntry({
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
+                    data-pa-verbatim="true"
                     value={spot.board}
                     onChange={(event) => update({ board: event.target.value })}
                     placeholder="Ts 9h 2c"
@@ -673,8 +827,8 @@ export default function LiveSpotQuickEntry({
             {/* Live Progress Region During Multi-Batch Audit */}
             {bulkProgress?.active && (
               <div
-                role="status"
-                aria-live="polite"
+                role="group"
+                aria-label="Bulk Audit Status"
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -700,14 +854,15 @@ export default function LiveSpotQuickEntry({
                 </div>
                 <div
                   role="progressbar"
-                  aria-valuenow={Math.round((bulkProgress.currentBatch / bulkProgress.totalBatches) * 100)}
+                  aria-label="Bulk Hand Audit Progress"
+                  aria-valuenow={Math.round(((bulkProgress.completedBatches ?? 0) / bulkProgress.totalBatches) * 100)}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   style={{ width: '100%', height: 6, background: '#06111e', borderRadius: 3, overflow: 'hidden' }}
                 >
                   <div
                     style={{
-                      width: `${Math.round((bulkProgress.currentBatch / bulkProgress.totalBatches) * 100)}%`,
+                      width: `${Math.round(((bulkProgress.completedBatches ?? 0) / bulkProgress.totalBatches) * 100)}%`,
                       height: '100%',
                       background: 'linear-gradient(90deg, #087cfa, #56d8ff)',
                       transition: 'width 0.2s ease',
@@ -726,12 +881,13 @@ export default function LiveSpotQuickEntry({
                 spellCheck={false}
                 autoCapitalize="none"
                 autoCorrect="off"
+                data-pa-verbatim="true"
                 style={{ ...controlStyle, minHeight: 168, resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
               />
             </Field>
 
             {pasted.trim() && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }} role="status" aria-live="polite" data-detected-site={detected.site}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }} data-detected-site={detected.site}>
                 <span style={pill(detected.site === 'unknown' ? 'neutral' : 'accent')}>{detected.label}</span>
                 <span style={pill(detected.supported === false ? 'warn' : detected.supported ? 'success' : 'neutral')}>
                   {detected.variantLabel}

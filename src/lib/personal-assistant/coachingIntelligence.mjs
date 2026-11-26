@@ -338,13 +338,38 @@ function mistakeRatePercent(rows) {
   return Math.round((errors / rows.length) * 1000) / 10;
 }
 
+const CLUB_ARENA_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isClubArenaLiveDecision(row) {
+  if (!row || typeof row !== 'object') return false;
+  const scope = row.evidence_scope ?? row.evidenceScope ?? null;
+  if (scope !== null && scope !== undefined && scope !== '') {
+    if (String(scope) !== 'club_arena') return false;
+  }
+  const extId = String(row.hand_external_id ?? row.handExternalId ?? '').trim();
+  if (extId) {
+    if (!extId.startsWith('club-arena:') && !CLUB_ARENA_UUID_RE.test(extId)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function toClaimedSet(claimedReferenceIds) {
+  if (!claimedReferenceIds) return new Set();
+  if (claimedReferenceIds instanceof Set) return new Set([...claimedReferenceIds].filter(Boolean).map(String));
+  if (Array.isArray(claimedReferenceIds)) return new Set(claimedReferenceIds.filter(Boolean).map(String));
+  return new Set();
+}
+
 /**
  * Before/after live-play proof for one leak.
  *
- * Only solver-verified (graded) decisions count: an unpriced decision has no
- * grade, so it can neither prove nor disprove a fix. Hands are split on
- * `remediation_baseline_at` using the hand's played time when known, falling
- * back to `audited_at` (reported through `timeBasis`).
+ * Only solver-verified (graded) Club Arena decisions count: an unpriced
+ * decision or non-Club-Arena upload has no live table grade, so it can neither
+ * prove nor disprove a live fix. Hands are split on `remediation_baseline_at`
+ * using the hand's played time when known, falling back to `audited_at`
+ * (reported through `timeBasis`).
  *
  * `status`:
  *   not_mastered              drills are not finished yet
@@ -352,7 +377,7 @@ function mistakeRatePercent(rows) {
  *   confirmed_fixed_at_tables enough live hands and the post mistake rate is at/below LIVE_FIX_MAX_MISTAKE_RATE
  *   relapsed_at_tables        enough live hands but the leak is still leaking
  */
-function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) {
+function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered, claimedSet = null) {
   const firstReviewAt = Array.isArray(review?.history) && review.history.length > 0
     ? review.history.map(item => iso(item?.at)).filter(Boolean).sort()[0]
     : null;
@@ -372,13 +397,18 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
     const parsed = raw ? new Date(raw).getTime() : NaN;
     return Number.isFinite(parsed) ? parsed : null;
   };
+  const hasExplicitNullPlayedAt = row => (
+    (Object.prototype.hasOwnProperty.call(row || {}, 'hand_played_at') && row.hand_played_at === null)
+    || (Object.prototype.hasOwnProperty.call(row || {}, 'handPlayedAt') && row.handPlayedAt === null)
+  );
   const decisionTimeMs = row => {
     const played = playedMs(row);
     if (played !== null) return played;
+    if (hasExplicitNullPlayedAt(row)) return NaN;
     return new Date(row?.audited_at ?? 0).getTime();
   };
   const selfReportedExcludedCount = (relatedDecisions || []).filter(row => row?.evidence_scope === 'self_reported_live').length;
-  const eligibleDecisions = (relatedDecisions || []).filter(row => row?.evidence_scope !== 'self_reported_live');
+  const eligibleDecisions = (relatedDecisions || []).filter(isClubArenaLiveDecision);
   const verified = eligibleDecisions.filter(row => row?.solver_verified === true);
   const postBaseline = baselineMs !== null
     ? verified.filter(row => {
@@ -439,6 +469,13 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
       }
     : null;
 
+  const rewardClaimed = Boolean(
+    verifiedLiveMilestone?.idempotencyKey
+    && claimedSet
+    && typeof claimedSet.has === 'function'
+    && claimedSet.has(verifiedLiveMilestone.idempotencyKey),
+  );
+
   return {
     status,
     label,
@@ -453,6 +490,7 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
     handsRemaining,
     deltaPct,
     verifiedLiveMilestone,
+    rewardClaimed,
     selfReportedExcludedCount,
     // Back-compat aliases consumed by earlier UI/tests.
     preBaselineSamples: preBaseline.length,
@@ -656,7 +694,7 @@ export function selectTopLeakedHands(decisions = [], sessionWindow = null, limit
   const from = startMs - SESSION_WINDOW_LEAD_MS;
   const to = endMs + SESSION_WINDOW_TAIL_MS;
   const rows = (Array.isArray(decisions) ? decisions : []).filter(row => {
-    if (row?.evidence_scope === 'self_reported_live') return false;
+    if (!isClubArenaLiveDecision(row)) return false;
     if (row?.solver_verified !== true) return false;
     if (['best', 'correct', 'unpriced', ''].includes(String(row?.classification || '').toLowerCase())) return false;
     const played = playedAtMs(row);
@@ -700,106 +738,208 @@ function masteryProgress(review, id) {
   } : null);
 }
 
+function isPostflopFacingBetSpot(row, targetStreet = null) {
+  const street = String(row?.street || '').toLowerCase();
+  if (targetStreet ? street !== targetStreet : !['flop', 'turn', 'river'].includes(street)) return false;
+  const action = String(row?.player_action || '').toLowerCase();
+  const solverAction = String(row?.solver_action || '').toLowerCase();
+  const spot = String(row?.spot_type || '').toLowerCase();
+  if (action === 'fold' || action === 'call' || action === 'raise') return true;
+  if (spot.includes('facing') || spot.includes('faces_bet') || spot.includes('defense') || spot.includes('bluff_catch') || spot.includes('cbet') || spot.includes('check_raise') || spot.includes('xr')) {
+    return ['fold', 'call', 'raise', 'allin'].includes(action);
+  }
+  if (action === 'allin' && (solverAction === 'call' || solverAction === 'fold')) {
+    return true;
+  }
+  return false;
+}
+
+function isPostflopInitiativeOrBarrelSpot(row, targetStreet) {
+  const street = String(row?.street || '').toLowerCase();
+  if (street !== targetStreet) return false;
+  const action = String(row?.player_action || '').toLowerCase();
+  const spot = String(row?.spot_type || '').toLowerCase();
+  if (spot.includes('cbet') || spot.includes('barrel') || spot.includes('srp') || spot.includes('single_raised') || spot.includes('bets_or_checks') || spot.includes('value') || spot.includes('bluff')) {
+    return ['check', 'bet', 'raise', 'allin'].includes(action);
+  }
+  return ['check', 'bet', 'raise', 'allin'].includes(action) && (!spot || spot === 'general' || spot === 'hand_history');
+}
+
+function isPreflopFacing3BetOrRaiseSpot(row) {
+  const street = String(row?.street || '').toLowerCase();
+  if (street !== 'preflop') return false;
+  const action = String(row?.player_action || '').toLowerCase();
+  const spot = String(row?.spot_type || '').toLowerCase();
+  if (spot.includes('3bet') || spot.includes('three_bet') || spot.includes('4bet') || spot.includes('facing_raise') || spot.includes('facing_3bet')) {
+    return ['fold', 'call', 'raise', 'allin'].includes(action);
+  }
+  return ['fold', 'call', 'raise', 'allin'].includes(action) && (!spot || spot === 'general' || spot === 'hand_history');
+}
+
+export function normalizeRuleLeakKey(rawKey) {
+  return String(rawKey || '')
+    .toLowerCase()
+    .trim()
+    .replace(/^(?:cash|mtt|tournament)_(?:(?:short|mid|deep|unknown)_)?/, '')
+    .replace(/_facts$/, '');
+}
+
 export const RULE_LEAK_DECISION_MATCHERS = Object.freeze({
-  river_overfold: (row) => {
-    const street = String(row?.street || '').toLowerCase();
-    const action = String(row?.player_action || '').toLowerCase();
-    return street === 'river' && action === 'fold';
-  },
-  flop_cbet_too_low: (row) => {
-    const street = String(row?.street || '').toLowerCase();
-    const action = String(row?.player_action || '').toLowerCase();
-    const spot = String(row?.spot_type || '').toLowerCase();
-    return street === 'flop' && action === 'check' && (spot.includes('cbet') || spot.includes('srp') || spot.includes('single_raised') || spot === 'general' || spot === 'hand_history');
-  },
-  cbet_too_rarely: (row) => {
-    const street = String(row?.street || '').toLowerCase();
-    const action = String(row?.player_action || '').toLowerCase();
-    return street === 'flop' && action === 'check';
-  },
-  flop_cbet_too_high: (row) => {
+  river_overfold: (row) => isPostflopFacingBetSpot(row, 'river'),
+  flop_cbet_too_low: (row) => isPostflopInitiativeOrBarrelSpot(row, 'flop'),
+  cbet_too_rarely: (row) => isPostflopInitiativeOrBarrelSpot(row, 'flop'),
+  flop_cbet_too_high: (row) => isPostflopInitiativeOrBarrelSpot(row, 'flop'),
+  cbet_too_often: (row) => isPostflopInitiativeOrBarrelSpot(row, 'flop'),
+  overfolding_to_cbets: (row) => isPostflopFacingBetSpot(row, 'flop'),
+  check_raise_too_rare: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const action = String(row?.player_action || '').toLowerCase();
     const spot = String(row?.spot_type || '').toLowerCase();
-    return street === 'flop' && (action === 'bet' || action === 'raise') && (spot.includes('cbet') || spot.includes('srp') || spot === 'general' || spot === 'hand_history');
+    if (!['flop', 'turn', 'river'].includes(street)) return false;
+    if (spot.includes('check_raise') || spot.includes('xr') || spot.includes('facing') || spot.includes('faces_bet') || spot.includes('cbet') || spot.includes('defense')) {
+      return ['check', 'call', 'raise', 'fold', 'allin'].includes(action);
+    }
+    return ['check', 'call', 'raise', 'fold'].includes(action);
   },
-  cbet_too_often: (row) => {
-    const street = String(row?.street || '').toLowerCase();
-    const action = String(row?.player_action || '').toLowerCase();
-    return street === 'flop' && (action === 'bet' || action === 'raise');
-  },
-  fold_to_3bet_high: (row) => {
+  check_raise_too_rare_facts: (row) => RULE_LEAK_DECISION_MATCHERS.check_raise_too_rare(row),
+  fold_to_3bet_high: (row) => isPreflopFacing3BetOrRaiseSpot(row),
+  fold_to_3bet_too_high: (row) => isPreflopFacing3BetOrRaiseSpot(row),
+  overfolding_to_3bet: (row) => isPreflopFacing3BetOrRaiseSpot(row),
+  three_bet_too_tight: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const action = String(row?.player_action || '').toLowerCase();
     const spot = String(row?.spot_type || '').toLowerCase();
-    return street === 'preflop' && action === 'fold' && (spot.includes('3bet') || spot.includes('three_bet') || spot.includes('facing_raise') || spot === 'general' || spot === 'hand_history');
+    return street === 'preflop' && (
+      spot.includes('3bet') || spot.includes('three_bet') || spot.includes('facing_raise') || spot.includes('facing_open') || spot.includes('squeeze')
+      || ['fold', 'call', 'raise', 'allin'].includes(action)
+    );
   },
-  overfolding_to_3bet: (row) => {
+  three_bet_too_loose: (row) => RULE_LEAK_DECISION_MATCHERS.three_bet_too_tight(row),
+  cold_call_too_wide: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const action = String(row?.player_action || '').toLowerCase();
-    return street === 'preflop' && action === 'fold';
+    const spot = String(row?.spot_type || '').toLowerCase();
+    return street === 'preflop' && (
+      spot.includes('cold_call') || spot.includes('facing_raise') || spot.includes('facing_open') || spot.includes('3bet')
+      || ['call', 'fold', 'raise', 'allin'].includes(action)
+    );
+  },
+  overfolding_preflop: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'preflop' && ['fold', 'call', 'raise', 'bet', 'allin'].includes(action);
+  },
+  overlimping: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    const spot = String(row?.spot_type || '').toLowerCase();
+    return street === 'preflop' && (
+      spot.includes('limp') || spot.includes('open') || spot.includes('rfi')
+      || ['call', 'check', 'raise', 'fold'].includes(action)
+    );
   },
   vpip_too_high: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const action = String(row?.player_action || '').toLowerCase();
-    return street === 'preflop' && (action === 'call' || action === 'raise' || action === 'bet');
+    return street === 'preflop' && ['fold', 'call', 'raise', 'bet', 'allin'].includes(action);
   },
   pfr_too_low: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const action = String(row?.player_action || '').toLowerCase();
-    return street === 'preflop' && (action === 'call' || action === 'check');
+    return street === 'preflop' && ['call', 'check', 'raise', 'fold'].includes(action);
   },
   bb_overfold: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const pos = String(row?.hero_position || '').toUpperCase();
     const action = String(row?.player_action || '').toLowerCase();
-    return street === 'preflop' && pos === 'BB' && action === 'fold';
+    return street === 'preflop' && pos === 'BB' && ['fold', 'call', 'raise', 'allin'].includes(action);
+  },
+  blind_defense_too_tight: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const pos = String(row?.hero_position || '').toUpperCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    const spot = String(row?.spot_type || '').toLowerCase();
+    return street === 'preflop'
+      && (pos === 'BB' || pos === 'SB' || spot.includes('blind') || spot.includes('defense') || spot.includes('facing_steal'))
+      && ['fold', 'call', 'raise', 'allin'].includes(action);
+  },
+  steal_too_rare: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const pos = String(row?.hero_position || '').toUpperCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    const spot = String(row?.spot_type || '').toLowerCase();
+    return street === 'preflop'
+      && (['CO', 'BTN', 'BU', 'SB'].includes(pos) || spot.includes('steal') || spot.includes('open') || spot.includes('rfi'))
+      && ['fold', 'raise', 'call', 'allin'].includes(action);
+  },
+  squeeze_too_rare: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    const spot = String(row?.spot_type || '').toLowerCase();
+    return street === 'preflop'
+      && (spot.includes('squeeze') || spot.includes('facing_raise') || spot.includes('3bet') || ['fold', 'call', 'raise', 'allin'].includes(action));
+  },
+  btn_too_tight: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const pos = String(row?.hero_position || '').toUpperCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'preflop' && (pos === 'BTN' || pos === 'BU' || !pos) && ['fold', 'call', 'raise', 'allin'].includes(action);
+  },
+  utg_too_loose: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const pos = String(row?.hero_position || '').toUpperCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'preflop' && (pos.startsWith('UTG') || pos === 'EP' || !pos) && ['fold', 'call', 'raise', 'allin'].includes(action);
   },
   turn_barrel_leak: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const action = String(row?.player_action || '').toLowerCase();
-    return street === 'turn' && (action === 'check' || action === 'fold');
+    return street === 'turn' && ['check', 'bet', 'raise', 'fold', 'allin'].includes(action);
   },
-  turn_barrel_too_rare: (row) => {
-    const street = String(row?.street || '').toLowerCase();
-    const action = String(row?.player_action || '').toLowerCase();
-    return street === 'turn' && action === 'check';
-  },
+  turn_barrel_too_rare: (row) => isPostflopInitiativeOrBarrelSpot(row, 'turn'),
+  turn_barrel_too_rare_facts: (row) => isPostflopInitiativeOrBarrelSpot(row, 'turn'),
+  turn_overfold: (row) => isPostflopFacingBetSpot(row, 'turn'),
+  river_barrel_too_rare: (row) => isPostflopInitiativeOrBarrelSpot(row, 'river'),
+  river_barrel_too_rare_facts: (row) => isPostflopInitiativeOrBarrelSpot(row, 'river'),
+  lack_of_river_bluffs: (row) => isPostflopInitiativeOrBarrelSpot(row, 'river'),
+  missing_thin_value: (row) => isPostflopInitiativeOrBarrelSpot(row, 'river'),
+  missed_value: (row) => isPostflopInitiativeOrBarrelSpot(row, 'river') || isPostflopInitiativeOrBarrelSpot(row, 'turn'),
   aggression_low: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const action = String(row?.player_action || '').toLowerCase();
-    return ['flop', 'turn', 'river'].includes(street) && (action === 'call' || action === 'check');
+    return ['flop', 'turn', 'river'].includes(street) && ['call', 'check', 'bet', 'raise', 'allin'].includes(action);
   },
   passive_postflop: (row) => {
     const street = String(row?.street || '').toLowerCase();
     const action = String(row?.player_action || '').toLowerCase();
-    return ['flop', 'turn', 'river'].includes(street) && action === 'call';
+    return ['flop', 'turn', 'river'].includes(street) && ['call', 'check', 'bet', 'raise', 'allin'].includes(action);
+  },
+  passive_postflop_facts: (row) => RULE_LEAK_DECISION_MATCHERS.passive_postflop(row),
+  passive_turn_river: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return ['turn', 'river'].includes(street) && ['call', 'check', 'bet', 'raise', 'allin'].includes(action);
+  },
+  over_aggressive_postflop: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return ['flop', 'turn', 'river'].includes(street) && ['bet', 'raise', 'allin', 'check', 'call'].includes(action);
   },
   over_calling: (row) => {
     const action = String(row?.player_action || '').toLowerCase();
-    return action === 'call';
-  },
-  missed_value: (row) => {
-    const street = String(row?.street || '').toLowerCase();
-    const action = String(row?.player_action || '').toLowerCase();
-    return (street === 'river' || street === 'turn') && action === 'check';
-  },
-  missing_thin_value: (row) => {
-    const street = String(row?.street || '').toLowerCase();
-    const action = String(row?.player_action || '').toLowerCase();
-    return street === 'river' && action === 'check';
-  },
-  overfolding_to_cbets: (row) => {
-    const street = String(row?.street || '').toLowerCase();
-    const action = String(row?.player_action || '').toLowerCase();
-    return street === 'flop' && action === 'fold';
+    return ['call', 'fold', 'raise'].includes(action) || isPostflopFacingBetSpot(row);
   },
 });
 
 export function findRuleBasedDecisions(rawLeak, id, decisionIndex) {
-  const leakKey = String(rawLeak?.leak_type || rawLeak?.leakType || rawLeak?.situation_class || rawLeak?.situationClass || id || '').toLowerCase().trim();
-  const matcher = RULE_LEAK_DECISION_MATCHERS[leakKey]
-    || Object.entries(RULE_LEAK_DECISION_MATCHERS).find(([k]) => leakKey === k || leakKey.includes(k) || k.includes(leakKey))?.[1];
+  const rawKey = String(rawLeak?.leak_type || rawLeak?.leakType || rawLeak?.situation_class || rawLeak?.situationClass || id || '').toLowerCase().trim();
+  const leakKey = normalizeRuleLeakKey(rawKey);
+  if (!leakKey || leakKey.length < 3) return [];
+  const matcher = RULE_LEAK_DECISION_MATCHERS[rawKey]
+    || RULE_LEAK_DECISION_MATCHERS[leakKey]
+    || Object.entries(RULE_LEAK_DECISION_MATCHERS).find(([k]) => (
+      k.length >= 3 && (leakKey === k || leakKey.includes(k) || k.includes(leakKey))
+    ))?.[1];
   if (!matcher || typeof matcher !== 'function') return [];
   const list = decisionIndex?.list || [];
   return list.filter(row => {
@@ -859,7 +999,7 @@ export function buildStakePoolContext({ leak, poolBenchmarks, liveTableActive, c
 }
 
 /** Table verification for a leak against the full indexed decision window. */
-function leakTableVerification(rawLeak, id, review, decisionIndex) {
+function leakTableVerification(rawLeak, id, review, decisionIndex, claimedSet = null) {
   let related = relatedDecisionsFor(
     decisionIndex, id, String(rawLeak?.leakType || rawLeak?.leak_type || ''),
   );
@@ -867,7 +1007,7 @@ function leakTableVerification(rawLeak, id, review, decisionIndex) {
     related = findRuleBasedDecisions(rawLeak, id, decisionIndex);
   }
   const mastered = masteryProgress(review, id)?.retired === true;
-  return evaluateTableVerification(rawLeak, review, related, mastered);
+  return evaluateTableVerification(rawLeak, review, related, mastered, claimedSet);
 }
 
 /**
@@ -888,7 +1028,9 @@ export function buildTrainingPlan({
   poolBenchmarks = null,
   liveTableActive = false,
   cooldownActive = false,
+  claimedReferenceIds = null,
 } = {}) {
+  const claimedSet = toClaimedSet(claimedReferenceIds);
   const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
   const leakById = new Map((Array.isArray(leaks) ? leaks : []).map(item => [leakId(item), item]));
   const reviewByLeak = new Map((Array.isArray(reviews) ? reviews : []).map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
@@ -915,7 +1057,7 @@ export function buildTrainingPlan({
     const trainingGameId = leakToTrainingGame(rawLeak, availableGameIds) || drillParams?.game || null;
     const formatScope = inferFormatScope(rawLeak, relatedDecisions);
     const mastered = progress?.retired === true;
-    const tableVerification = evaluateTableVerification(rawLeak, review, relatedDecisions, mastered);
+    const tableVerification = evaluateTableVerification(rawLeak, review, relatedDecisions, mastered, claimedSet);
     const stakePoolContext = buildStakePoolContext({
       leak: rawLeak,
       poolBenchmarks,
@@ -995,7 +1137,9 @@ export function buildCoachingSnapshot({
   liveTable = null,
   sessionWindow = null,
   poolBenchmarks = null,
+  claimedReferenceIds = null,
 } = {}) {
+  const claimedSet = toClaimedSet(claimedReferenceIds);
   const coverage = decisionCoverage(decisions, rejected);
   const solverCoverageGaps = summarizeSolverCoverageGaps(decisions);
   const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
@@ -1016,6 +1160,7 @@ export function buildCoachingSnapshot({
     poolBenchmarks,
     liveTableActive,
     cooldownActive,
+    claimedReferenceIds: claimedSet,
   });
   const active = priorities.length;
   const resolved = (Array.isArray(leaks) ? leaks : []).filter(leak => leakStatus(leak) === 'resolved').length;
@@ -1037,7 +1182,7 @@ export function buildCoachingSnapshot({
   for (const leak of leakList) {
     const id = leakId(leak);
     if (!id || tableVerificationByLeak.has(id)) continue;
-    tableVerificationByLeak.set(id, leakTableVerification(leak, id, reviewByLeak.get(id) || null, decisionIndex));
+    tableVerificationByLeak.set(id, leakTableVerification(leak, id, reviewByLeak.get(id) || null, decisionIndex, claimedSet));
   }
   const priorityRows = priorities.map(priority => ({
     ...priority,

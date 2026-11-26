@@ -12,9 +12,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
-const read = (file) => fs.readFileSync(path.resolve(file), 'utf8');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 // Extract pure splitHandHistoryHands and splitHandHistoryChunks from LiveSpotQuickEntry source
 const liveSpotSource = read('src/components/personal-assistant/LiveSpotQuickEntry.jsx');
@@ -166,7 +168,7 @@ test('LiveSpotQuickEntry passes evidenceScope: self_reported_live and maintains 
 
   // 5. Focus restoration
   assert.match(src, /triggerRef\.current\s*=\s*document\.activeElement/);
-  assert.match(src, /triggerRef\.current\?\.focus\?\.()/);
+  assert.match(src, /triggerRef\.current\?\.focus\?\.\(\)/);
 
   // 6. aria-live region
   assert.match(src, /role="status"/);
@@ -219,7 +221,7 @@ test('pages/hub/personal-assistant/leaks.js mounts InlineHandReplay and restores
 
   // Focus restoration on review modal close
   assert.match(src, /reviewTriggerRef\.current\s*=\s*typeof document !== 'undefined'/);
-  assert.match(src, /reviewTriggerRef\.current\?\.focus\?\.()/);
+  assert.match(src, /reviewTriggerRef\.current\?\.focus\?\.\(\)/);
 
   // Accessible review status announcement
   assert.match(src, /setReviewAnnouncement\('Corrective Review Session Opened'\)/);
@@ -290,9 +292,10 @@ test('Zero block elements sit inside any <button> across all Phase 5 surfaces', 
   ];
 
   const BLOCK = new Set([
-    'div', 'p', 'ul', 'ol', 'li', 'section', 'article',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'form', 'table',
-    'details', 'summary',
+    'div', 'p', 'section', 'article', 'aside', 'header', 'footer', 'nav', 'main',
+    'ul', 'ol', 'li', 'dl', 'dt', 'dd', 'table', 'form', 'fieldset',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'hr',
+    'details', 'summary', 'a', 'button', 'input', 'select', 'textarea',
   ]);
 
   const tagName = (node) => {

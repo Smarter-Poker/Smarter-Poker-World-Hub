@@ -224,6 +224,10 @@ export default function PersonalAssistantPage() {
   const [coachingSnapshot, setCoachingSnapshot] = useState(null);
 
   useEffect(() => {
+    setCoachingSnapshot(null);
+  }, [user?.id]);
+
+  useEffect(() => {
     if (authInitializing || !user?.id) {
       setCoachingSnapshot(null);
       return undefined;
@@ -233,18 +237,28 @@ export default function PersonalAssistantPage() {
     const loadPlan = async () => {
       try {
         const token = await getFreshAccessToken();
-        if (!token || cancelled) return;
+        if (!token) {
+          if (!cancelled) setCoachingSnapshot(null);
+          return;
+        }
+        if (cancelled) return;
         const response = await fetch('/api/assistant/coaching', {
           cache: 'no-store',
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal,
         });
         const payload = await response.json().catch(() => null);
-        if (!cancelled && response.ok && payload?.success && payload?.snapshot) {
-          setCoachingSnapshot(payload.snapshot);
+        if (!cancelled) {
+          if (response.ok && payload?.success && payload?.snapshot) {
+            setCoachingSnapshot(payload.snapshot);
+          } else {
+            setCoachingSnapshot(null);
+          }
         }
-      } catch (_) {
-        // Optional enrichment on hub overview; Leak Finder holds full retry UI.
+      } catch (err) {
+        if (!cancelled && err?.name !== 'AbortError') {
+          setCoachingSnapshot(null);
+        }
       }
     };
     loadPlan();

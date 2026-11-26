@@ -89,11 +89,11 @@ async function request(url, options = {}) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const started = performance.now();
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal, redirect: 'follow' });
+    const response = await fetch(url, { redirect: 'manual', ...options, signal: controller.signal });
     const text = await response.text();
     let body = null;
     try { body = text ? JSON.parse(text) : null; } catch { body = null; }
-    return { status: response.status, ok: response.ok, durationMs: Math.round(performance.now() - started), body };
+    return { status: response.status, ok: response.ok, headers: Object.fromEntries(response.headers.entries()), durationMs: Math.round(performance.now() - started), body, text };
   } finally {
     clearTimeout(timer);
   }
@@ -132,13 +132,36 @@ export async function runProductionHardeningProbe() {
     '/hub/personal-assistant',
     '/hub/personal-assistant/sandbox',
     '/hub/personal-assistant/leaks',
+    '/hub/personal-assistant/leaks?format=tournament',
     '/sandbox/phase-six-watchdog',
+    '/share/hand?view=review&street=flop&position=BTN',
   ];
   const publicChecks = [];
   for (const route of publicRoutes) {
     const result = await request(`${baseUrl}${route}`);
-    if (!result.ok) throw new Error(`${route} returned ${result.status}.`);
+    if (result.status !== 200) throw new Error(`${route} returned ${result.status} (expected 200 without redirect).`);
     publicChecks.push({ route, status: result.status, durationMs: result.durationMs });
+  }
+
+  // Verify retired sandbox endpoints stay 410 Gone and unauth Phase 5 mutations fail closed (401)
+  const boundaryChecks = [];
+  for (const retiredRoute of ['/api/sandbox/equity-snapshot', '/api/sandbox/save-hand']) {
+    const result = await request(`${baseUrl}${retiredRoute}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    if (result.status !== 410) throw new Error(`${retiredRoute} returned ${result.status}, expected 410.`);
+    boundaryChecks.push({ route: retiredRoute, status: result.status });
+  }
+  for (const unauthMutation of ['/api/assistant/leaks/claim-live-fix', '/api/assistant/maintenance-jobs']) {
+    const result = await request(`${baseUrl}${unauthMutation}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    if (result.status !== 401) throw new Error(`${unauthMutation} returned ${result.status}, expected 401.`);
+    boundaryChecks.push({ route: unauthMutation, status: result.status });
   }
 
   const loadTargets = Array.from({ length: requestCount }, (_, index) => publicRoutes[index % publicRoutes.length]);
@@ -183,6 +206,7 @@ export async function runProductionHardeningProbe() {
     success: true,
     baseUrl,
     publicChecks,
+    boundaryChecks,
     load: { requests: requestCount, concurrency, observedPeak: load.peak, p95Ms, maxMs: Math.max(...durations) },
     releaseGate,
     authenticated: Boolean(session),

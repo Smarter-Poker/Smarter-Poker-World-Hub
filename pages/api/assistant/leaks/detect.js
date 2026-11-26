@@ -507,9 +507,11 @@ async function getSolverTrainingEvidence(db, userId) {
     }
   }
 
-  const auditResult = await fetchPagedRows((from, to) => db
+  const auditModernColumns = 'hand_external_id, game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured, evidence_scope';
+  const auditLegacyColumns = 'hand_external_id, game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured';
+  const readHandAudits = columns => fetchPagedRows((from, to) => db
       .from('hand_audit_decisions')
-      .select('hand_external_id, game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured')
+      .select(columns)
       .eq('user_id', userId)
       .eq('solver_verified', true)
       // Matcher v3 additionally proves normalized pot, sizing, villain and
@@ -521,6 +523,10 @@ async function getSolverTrainingEvidence(db, userId) {
       .order('audited_at', { ascending: false })
       .order('id', { ascending: false })
       .range(from, to));
+  let auditResult = await readHandAudits(auditModernColumns);
+  if (auditResult.error?.code === '42703' || /column .* does not exist/i.test(auditResult.error?.message || '')) {
+    auditResult = await readHandAudits(auditLegacyColumns);
+  }
   const auditAvailable = !auditResult.error;
   const auditComplete = auditAvailable && auditResult.complete === true;
   if (auditResult.error && auditResult.error.code !== '42P01') {
@@ -528,6 +534,7 @@ async function getSolverTrainingEvidence(db, userId) {
   }
   let handAuditDecisionCount = 0;
   for (const row of auditResult.data || []) {
+    if (row.evidence_scope && row.evidence_scope !== 'club_arena') continue;
     decisions.push({ ...row, evidence_scope: 'club_arena', answered_at: row.audited_at });
     handAuditDecisionCount += 1;
   }

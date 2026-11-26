@@ -10,7 +10,7 @@
  *   - Street actions list + crisp highlight badge on solver divergence
  *   - Zero block elements inside <button>
  */
-import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 const STREETS = ['preflop', 'flop', 'turn', 'river'];
 
@@ -79,25 +79,31 @@ export default function InlineHandReplay({
   const baseId = useId();
   const resolvedHand = hand || audit?.hand || null;
   const resolvedTimeline = useMemo(() => {
-    if (Array.isArray(streetTimeline)) return streetTimeline;
-    if (Array.isArray(audit?.streetTimeline)) return audit.streetTimeline;
-    return [];
+    const raw = Array.isArray(streetTimeline)
+      ? streetTimeline
+      : Array.isArray(audit?.streetTimeline)
+        ? audit.streetTimeline
+        : [];
+    return raw.filter((st) => st && typeof st === 'object');
   }, [streetTimeline, audit?.streetTimeline]);
 
   const resolvedDecisions = useMemo(() => {
-    if (Array.isArray(decisions)) return decisions;
-    if (Array.isArray(audit?.decisions)) return audit.decisions;
-    return [];
+    const raw = Array.isArray(decisions)
+      ? decisions
+      : Array.isArray(audit?.decisions)
+        ? audit.decisions
+        : [];
+    return raw.filter((dec) => dec && typeof dec === 'object');
   }, [decisions, audit?.decisions]);
 
   // Determine available streets from timeline or decisions
   const availableStreets = useMemo(() => {
     const present = new Set();
     resolvedTimeline.forEach((st) => {
-      if (st?.street) present.add(st.street.toLowerCase());
+      if (typeof st?.street === 'string' && st.street) present.add(st.street.toLowerCase());
     });
     resolvedDecisions.forEach((dec) => {
-      if (dec?.street) present.add(dec.street.toLowerCase());
+      if (typeof dec?.street === 'string' && dec.street) present.add(dec.street.toLowerCase());
     });
     const list = STREETS.filter((s) => present.has(s));
     return list.length > 0 ? list : STREETS;
@@ -105,21 +111,29 @@ export default function InlineHandReplay({
 
   // Initial street selection: first divergence street or first available street
   const defaultStreet = useMemo(() => {
-    if (initialStreet && availableStreets.includes(initialStreet.toLowerCase())) {
+    if (typeof initialStreet === 'string' && availableStreets.includes(initialStreet.toLowerCase())) {
       return initialStreet.toLowerCase();
     }
     const divergenceDec = resolvedDecisions.find((dec) => {
-      const p = String(dec.playerAction || '').toLowerCase();
-      const s = String(dec.solverAction || '').toLowerCase();
-      return p && s && p !== s;
+      const p = String(dec?.playerAction || '').toLowerCase();
+      const s = String(dec?.solverAction || dec?.optimalAction || '').toLowerCase();
+      return (
+        (p && s && p !== s) ||
+        dec?.classification === 'blunder' ||
+        dec?.classification === 'mistake' ||
+        dec?.classification === 'inaccuracy'
+      );
     });
-    if (divergenceDec?.street && availableStreets.includes(divergenceDec.street.toLowerCase())) {
+    if (typeof divergenceDec?.street === 'string' && availableStreets.includes(divergenceDec.street.toLowerCase())) {
       return divergenceDec.street.toLowerCase();
     }
     return availableStreets[0] || 'preflop';
   }, [initialStreet, availableStreets, resolvedDecisions]);
 
   const [activeStreet, setActiveStreet] = useState(defaultStreet);
+  useEffect(() => {
+    setActiveStreet(defaultStreet);
+  }, [defaultStreet]);
   const tabRefs = useRef({});
 
   // Keyboard navigation for street pill tabs
@@ -151,13 +165,13 @@ export default function InlineHandReplay({
 
   // Derive board cards for active street
   const activeTimeline = resolvedTimeline.find(
-    (st) => String(st.street).toLowerCase() === activeStreet
+    (st) => String(st?.street || '').toLowerCase() === activeStreet
   );
 
   const fullBoard = useMemo(() => {
     if (Array.isArray(resolvedHand?.board)) return resolvedHand.board.filter(Boolean);
-    const lastWithBoard = [...resolvedTimeline].reverse().find((st) => Array.isArray(st.board) && st.board.length > 0);
-    return lastWithBoard?.board || [];
+    const lastWithBoard = [...resolvedTimeline].reverse().find((st) => Array.isArray(st?.board) && st.board.length > 0);
+    return Array.isArray(lastWithBoard?.board) ? lastWithBoard.board.filter(Boolean) : [];
   }, [resolvedHand?.board, resolvedTimeline]);
 
   const streetBoard = useMemo(() => {
@@ -176,40 +190,73 @@ export default function InlineHandReplay({
     return [];
   }, [resolvedHand?.heroCards]);
 
-  const heroPosition = resolvedHand?.heroPosition || resolvedHand?.position || null;
-
-  // Find divergence for the active street
-  const activeDecision = resolvedDecisions.find(
-    (dec) => String(dec.street || '').toLowerCase() === activeStreet
+  // All hero decisions for the active street (not just [0])
+  const activeDecisions = useMemo(
+    () => resolvedDecisions.filter((dec) => String(dec?.street || '').toLowerCase() === activeStreet),
+    [resolvedDecisions, activeStreet],
   );
 
-  const isDivergence = useMemo(() => {
-    if (!activeDecision) return false;
-    const pAction = String(activeDecision.playerAction || '').toLowerCase();
-    const sAction = String(activeDecision.solverAction || '').toLowerCase();
+  const heroPosition =
+    resolvedHand?.heroPosition
+    ?? resolvedHand?.position
+    ?? activeDecisions[0]?.heroPosition
+    ?? activeDecisions[0]?.position
+    ?? resolvedDecisions[0]?.heroPosition
+    ?? resolvedDecisions[0]?.position
+    ?? null;
+
+  const isDecisionDivergence = useCallback((dec) => {
+    if (!dec) return false;
+    const pAction = String(dec.playerAction || '').toLowerCase();
+    const sAction = String(dec.solverAction || dec.optimalAction || '').toLowerCase();
     return Boolean(
       (pAction && sAction && pAction !== sAction) ||
-      activeDecision.classification === 'blunder' ||
-      activeDecision.classification === 'mistake' ||
-      activeDecision.classification === 'inaccuracy'
+      dec.classification === 'blunder' ||
+      dec.classification === 'mistake' ||
+      dec.classification === 'inaccuracy'
     );
-  }, [activeDecision]);
+  }, []);
 
-  const potDisplay = activeTimeline?.pot != null
-    ? `$${activeTimeline.pot}`
-    : resolvedHand?.pot != null
-      ? `$${resolvedHand.pot}`
-      : resolvedHand?.potBb != null
-        ? `${resolvedHand.potBb} BB`
-        : null;
+  const rawPot =
+    activeTimeline?.pot
+    ?? activeTimeline?.potSize
+    ?? activeTimeline?.potBb
+    ?? resolvedHand?.pot
+    ?? resolvedHand?.potSize
+    ?? resolvedHand?.potBb
+    ?? null;
+  const potIsBb =
+    activeTimeline?.pot == null
+    && activeTimeline?.potSize == null
+    && (activeTimeline?.potBb != null || (resolvedHand?.pot == null && resolvedHand?.potSize == null && resolvedHand?.potBb != null));
+  const potDisplay = rawPot != null
+    ? (typeof rawPot === 'string' && (rawPot.includes('$') || /bb/i.test(rawPot))
+        ? rawPot
+        : potIsBb
+          ? `${rawPot} BB`
+          : `$${rawPot}`)
+    : null;
 
-  const stackDisplay = resolvedHand?.effectiveStackBb != null
-    ? `${resolvedHand.effectiveStackBb} BB`
-    : resolvedHand?.effectiveStack != null
-      ? `$${resolvedHand.effectiveStack}`
-      : null;
+  const rawStack =
+    activeTimeline?.effectiveStack
+    ?? activeTimeline?.effectiveStackBb
+    ?? resolvedHand?.effectiveStack
+    ?? resolvedHand?.effectiveStackBb
+    ?? null;
+  const stackIsBb =
+    (activeTimeline?.effectiveStack == null && activeTimeline?.effectiveStackBb != null)
+    || (activeTimeline?.effectiveStack == null && activeTimeline?.effectiveStackBb == null && resolvedHand?.effectiveStack == null && resolvedHand?.effectiveStackBb != null);
+  const stackDisplay = rawStack != null
+    ? (typeof rawStack === 'string' && (rawStack.includes('$') || /bb/i.test(rawStack))
+        ? rawStack
+        : stackIsBb
+          ? `${rawStack} BB`
+          : `$${rawStack}`)
+    : null;
 
-  const actions = Array.isArray(activeTimeline?.actions) ? activeTimeline.actions : [];
+  const actions = Array.isArray(activeTimeline?.actions)
+    ? activeTimeline.actions.filter((act) => act && typeof act === 'object')
+    : [];
 
   return (
     <div
@@ -280,7 +327,7 @@ export default function InlineHandReplay({
               role="tab"
               id={`${baseId}-tab-${street}`}
               aria-selected={isSelected}
-              aria-controls={`${baseId}-panel-${street}`}
+              aria-controls={isSelected ? `${baseId}-panel-${street}` : undefined}
               tabIndex={isSelected ? 0 : -1}
               onClick={() => setActiveStreet(street)}
               onKeyDown={(e) => handleKeyDown(e, idx)}
@@ -344,7 +391,9 @@ export default function InlineHandReplay({
                 ))}
               </div>
             ) : (
-              <span style={{ fontSize: 13, color: '#688299' }}>None (Preflop)</span>
+              <span style={{ fontSize: 13, color: '#688299' }}>
+                {activeStreet === 'preflop' ? 'None (Preflop)' : 'Board Not Recorded'}
+              </span>
             )}
           </div>
 
@@ -363,52 +412,70 @@ export default function InlineHandReplay({
           )}
         </div>
 
-        {/* Solver-vs-Hero Divergence Badge */}
-        {isDivergence && activeDecision && (
-          <div
-            role="status"
-            aria-live="polite"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 12px',
-              borderRadius: 6,
-              background: 'rgba(255, 198, 109, 0.12)',
-              border: '1px solid rgba(255, 198, 109, 0.45)',
-              color: '#f1f5fc',
-              fontSize: 13,
-              lineHeight: 1.4,
-            }}
-            data-testid="replay-divergence-badge"
-          >
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '2px 8px',
-                borderRadius: 4,
-                background: '#ffc66d',
-                color: '#040d18',
-                fontWeight: 800,
-                fontSize: 12,
-                textTransform: 'uppercase',
-              }}
-            >
-              Divergence
-            </span>
-            <span>
-              You: <strong style={{ color: '#ffffff' }}>{titleCase(activeDecision.playerAction)}</strong> · Solver: <strong style={{ color: '#56d8ff' }}>{titleCase(activeDecision.solverAction || activeDecision.optimalAction)}</strong>
-              {activeDecision.evLossMeasured && activeDecision.evLossBB != null ? (
-                <span style={{ color: '#ff8290', marginLeft: 6 }}>
-                  · {Math.abs(Number(activeDecision.evLossBB)).toFixed(2)} BB Lost
-                </span>
-              ) : activeDecision.evLoss != null ? (
-                <span style={{ color: '#ff8290', marginLeft: 6 }}>
-                  · {Math.abs(Number(activeDecision.evLoss)).toFixed(2)} BB Lost
-                </span>
-              ) : null}
-            </span>
+        {/* All Hero Decisions & Solver-vs-Hero Divergence Badges for Active Street */}
+        {activeDecisions.length > 0 && (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {activeDecisions.map((activeDecision, decIndex) => {
+              const divergent = isDecisionDivergence(activeDecision);
+              const measuredLossRaw = activeDecision.evLossMeasured === true
+                ? (activeDecision.evLossBB ?? activeDecision.evLoss)
+                : null;
+              const measuredLoss =
+                measuredLossRaw != null && Number.isFinite(Number(measuredLossRaw))
+                  ? Math.abs(Number(measuredLossRaw))
+                  : null;
+              const solverAct = activeDecision.solverAction || activeDecision.optimalAction;
+              return (
+                <div
+                  key={activeDecision.decisionKey || `${activeStreet}-dec-${decIndex}`}
+                  role={divergent ? 'status' : undefined}
+                  aria-live={divergent ? 'polite' : undefined}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    background: divergent ? 'rgba(255, 198, 109, 0.12)' : '#07111c',
+                    border: divergent ? '1px solid rgba(255, 198, 109, 0.45)' : '1px solid #253e57',
+                    color: '#f1f5fc',
+                    fontSize: 13,
+                    lineHeight: 1.4,
+                  }}
+                  data-testid="replay-divergence-badge"
+                  data-divergence={divergent ? 'true' : 'false'}
+                >
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      background: divergent ? '#ffc66d' : '#16324f',
+                      color: divergent ? '#040d18' : '#83deff',
+                      fontWeight: 800,
+                      fontSize: 12,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {divergent ? 'Divergence' : (activeDecision.solverVerified === false ? 'Unpriced' : 'Aligned')}
+                  </span>
+                  <span>
+                    You: <strong style={{ color: '#ffffff' }}>{titleCase(activeDecision.playerAction || 'Recorded')}</strong>
+                    {solverAct ? (
+                      <>
+                        {' · '}Solver: <strong style={{ color: '#56d8ff' }}>{titleCase(solverAct)}</strong>
+                      </>
+                    ) : null}
+                    {measuredLoss !== null ? (
+                      <span style={{ color: '#ff8290', marginLeft: 6 }}>
+                        · {measuredLoss.toFixed(2)} BB Lost
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 

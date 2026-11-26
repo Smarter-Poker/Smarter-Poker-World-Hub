@@ -599,6 +599,10 @@ ALL_CRONS = [
     # Personal Assistant lifecycle retention. The normal assistant route is
     # outside pages/api/cron because that directory has a strict CI file cap.
     ('/api/assistant/retention-maintenance', dict(hour=3, minute=17)),
+    # Personal Assistant consolidated maintenance (stalled audit recovery,
+    # due spaced-repetition nudges with 72h throttle, and weekly coaching digest
+    # with 7-day throttle).
+    ('/api/assistant/maintenance-jobs',      dict(minute='*/15')),
     ('/api/cron/venue-review-prompts',      dict(hour='*/6', minute=0)),
     # RETIRED 2026-10-15: /api/cron/tour-schedule-scraper (workers /cron/tour-schedule-scraper).
     # Its configuration tables tour_schedule_sources and tour_schedule_registry

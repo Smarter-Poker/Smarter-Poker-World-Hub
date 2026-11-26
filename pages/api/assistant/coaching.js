@@ -6,6 +6,10 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+  _supabase = client;
+}
+
 function getSupabase() {
   if (!_supabase) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -94,19 +98,38 @@ async function readReviewsWithBaseline(supabase, userId) {
   return ownerRead(supabase, 'leak_review_state', legacySelect, userId, query => query.order('due_at', { ascending: true }).limit(500));
 }
 
-async function readHandAuditDecisions(supabase, userId) {
+export async function readHandAuditDecisions(supabase, userId) {
   const modernSelect = 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at, stack_depth_bb, evidence_scope';
   const legacySelect = 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at';
   const res = await supabase
     .from('hand_audit_decisions')
     .select(modernSelect)
     .eq('user_id', userId)
-    .like('solver_source', '%|hand-audit-v3')
+    .like('solver_source', '%hand-audit-v3%')
     .order('audited_at', { ascending: false })
     .limit(DECISION_WINDOW_LIMIT);
   if (!res.error) return res.data || [];
   if (!isMissingSchema(res.error)) throw res.error;
-  return ownerRead(supabase, 'hand_audit_decisions', legacySelect, userId, query => query.like('solver_source', '%|hand-audit-v3').order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT));
+  return ownerRead(supabase, 'hand_audit_decisions', legacySelect, userId, query => query.like('solver_source', '%hand-audit-v3%').order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT));
+}
+
+export async function readClaimedLiveFixReferenceIds(supabase, userId) {
+  try {
+    const { data, error } = await supabase
+      .from('diamond_transactions')
+      .select('reference_id, transaction_type')
+      .eq('user_id', userId)
+      .eq('transaction_type', 'pa_leak_verified_fixed')
+      .limit(500);
+    if (error || !Array.isArray(data)) return new Set();
+    return new Set(
+      data
+        .map(row => (typeof row?.reference_id === 'string' ? row.reference_id.trim() : ''))
+        .filter(Boolean),
+    );
+  } catch (_) {
+    return new Set();
+  }
 }
 
 async function readPreferences(supabase, userId) {
@@ -252,9 +275,10 @@ async function readWorkspace(supabase, userId) {
         : 'Your hand audit is queued on the server. You can safely leave and return later.')
     : null;
   const baseDecisions = decisions.map(row => ({ ...row, evidence_scope: row.evidence_scope || 'club_arena' }));
-  const [liveTable, sessionWindow] = await Promise.all([
+  const [liveTable, sessionWindow, claimedReferenceIds] = await Promise.all([
     readLiveTableState(supabase, userId),
     readLatestSessionWindow(supabase, userId),
+    readClaimedLiveFixReferenceIds(supabase, userId),
   ]);
   const ownedDecisions = await attachHandPlayTimes(supabase, baseDecisions, { reviews, sessionWindow });
   // Rejected hand counts live at top-level `audit.progress`, NOT `audit.progress.coverage`.
@@ -278,6 +302,7 @@ async function readWorkspace(supabase, userId) {
     audit: audit?.progress || null,
     liveTable,
     sessionWindow,
+    claimedReferenceIds,
   });
   snapshot.coverage.windowLimited = ownedDecisions.length >= DECISION_WINDOW_LIMIT;
   snapshot.coverage.windowLimit = DECISION_WINDOW_LIMIT;
@@ -370,17 +395,49 @@ async function writeFeedback(supabase, userId, body) {
   return data;
 }
 
-async function writePreferences(supabase, userId, body) {
-  const savedView = String(body.savedView || 'coach').toLowerCase();
-  const analysisDepth = String(body.analysisDepth || 'guided').toLowerCase();
-  if (!SAVED_VIEWS.has(savedView) || !DEPTHS.has(analysisDepth)) throw new TypeError('Preference is invalid');
-  const panelLayout = body.panelLayout && typeof body.panelLayout === 'object' && !Array.isArray(body.panelLayout)
-    ? body.panelLayout : {};
+export async function writePreferences(supabase, userId, body) {
+  let existing = null;
+  try {
+    const existingRes = await readPreferences(supabase, userId);
+    if (existingRes && !existingRes.error && existingRes.data) {
+      existing = existingRes.data;
+    }
+  } catch (_) {
+    existing = null;
+  }
+
+  const hasSavedView = body.savedView !== undefined || body.saved_view !== undefined;
+  const savedView = hasSavedView
+    ? String(body.savedView ?? body.saved_view).toLowerCase()
+    : (SAVED_VIEWS.has(String(existing?.saved_view || '').toLowerCase())
+        ? String(existing.saved_view).toLowerCase()
+        : 'coach');
+
+  const hasAnalysisDepth = body.analysisDepth !== undefined || body.analysis_depth !== undefined;
+  const analysisDepth = hasAnalysisDepth
+    ? String(body.analysisDepth ?? body.analysis_depth).toLowerCase()
+    : (DEPTHS.has(String(existing?.analysis_depth || '').toLowerCase())
+        ? String(existing.analysis_depth).toLowerCase()
+        : 'guided');
+
+  if (!SAVED_VIEWS.has(savedView) || !DEPTHS.has(analysisDepth)) {
+    throw new TypeError('Preference is invalid');
+  }
+
+  const rawPanelLayout = body.panelLayout !== undefined ? body.panelLayout : body.panel_layout;
+  const panelLayout = rawPanelLayout !== undefined
+    ? (rawPanelLayout && typeof rawPanelLayout === 'object' && !Array.isArray(rawPanelLayout) ? rawPanelLayout : {})
+    : (existing?.panel_layout && typeof existing.panel_layout === 'object' && !Array.isArray(existing.panel_layout)
+        ? existing.panel_layout
+        : {});
   if (JSON.stringify(panelLayout).length > 4000) throw new RangeError('Panel layout is too large');
 
+  const weeklyDigestExplicit = body.weeklyDigestOptIn !== undefined || body.weekly_digest_opt_in !== undefined;
   const weeklyDigestOptIn = body.weeklyDigestOptIn !== undefined
     ? Boolean(body.weeklyDigestOptIn)
-    : (body.weekly_digest_opt_in !== undefined ? Boolean(body.weekly_digest_opt_in) : undefined);
+    : (body.weekly_digest_opt_in !== undefined
+        ? Boolean(body.weekly_digest_opt_in)
+        : (existing?.weekly_digest_opt_in !== undefined ? Boolean(existing.weekly_digest_opt_in) : undefined));
 
   const payload = {
     user_id: userId,
@@ -396,6 +453,9 @@ async function writePreferences(supabase, userId, body) {
   let query = supabase.from('pa_coaching_preferences').upsert(payload, { onConflict: 'user_id' });
   let res = await query.select('saved_view, analysis_depth, panel_layout, weekly_digest_opt_in, updated_at').maybeSingle();
   if (res.error && isMissingSchema(res.error)) {
+    if (weeklyDigestExplicit) {
+      throw new Error('Weekly digest preference column is not available');
+    }
     delete payload.weekly_digest_opt_in;
     res = await supabase.from('pa_coaching_preferences').upsert(payload, { onConflict: 'user_id' })
       .select('saved_view, analysis_depth, panel_layout, updated_at').maybeSingle();

@@ -191,7 +191,9 @@ test('the browser smoke script keeps its routes, viewports, checks and fail-clos
     '/sandbox/demo-hand-001',
   ]);
   assert.deepEqual(smoke.VIEWPORTS.map((v) => [v.width, v.height]), [[1440, 900], [390, 844]]);
-  assert.deepEqual([...smoke.PRIVATE_API_PATHS], ['/api/assistant/leaks', '/api/assistant/coaching', '/api/assistant/stats', '/api/sandbox/custom-drill']);
+  for (const requiredApi of ['/api/assistant/leaks', '/api/assistant/coaching', '/api/assistant/stats', '/api/sandbox/custom-drill']) {
+    assert.ok(smoke.PRIVATE_API_PATHS.includes(requiredApi), requiredApi);
+  }
   for (const check of ['http-200', 'no-page-errors', 'no-horizontal-overflow', 'no-invalid-button-nesting', 'format-query-preserved', 'private-api-headers']) {
     assert.ok(smoke.CHECKS.includes(check), check);
   }

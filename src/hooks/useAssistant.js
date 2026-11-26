@@ -1167,6 +1167,7 @@ export function useLeakHandExamples(leakId) {
     try {
       setIsLoading(true);
       setError(null);
+      setExamples([]);
 
       const token = await getAuthToken();
       if (requestId !== requestIdRef.current) return;
@@ -1187,6 +1188,7 @@ export function useLeakHandExamples(leakId) {
       if (err?.name === 'AbortError') return;
       if (requestId !== requestIdRef.current) return;
       console.warn('Fetch examples error:', err);
+      setExamples([]);
       setError(err.message);
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
@@ -1194,14 +1196,14 @@ export function useLeakHandExamples(leakId) {
   }, [leakId]);
 
   useEffect(() => {
+    setExamples([]);
+    setError(null);
     if (leakId) {
       fetchExamples();
     } else {
       requestIdRef.current += 1;
       activeAbortRef.current?.abort();
       activeAbortRef.current = null;
-      setExamples([]);
-      setError(null);
       setIsLoading(false);
     }
     return () => {

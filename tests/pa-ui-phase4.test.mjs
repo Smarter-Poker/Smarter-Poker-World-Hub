@@ -506,7 +506,7 @@ test('Sandbox boundary links the live spot logger and the retired sandbox/[id] r
 test('share/hand and OG hand-card have an honest view=review mode and keep legacy links intact', () => {
   const page = read('pages/share/hand.js');
   const og = read('pages/api/og/hand-card.js');
-  assert.match(page, /isReview = firstQuery\(view\) === 'review'/);
+  assert.match(page, /isReview = (?:firstQuery\(view\)|scalarParam\(view\)|view) === 'review'/);
   assert.match(page, /noindex,nofollow/);
   assert.match(page, /Analyze Your Own Hands/);
   assert.match(page, /href="\/hub\/personal-assistant"/);

@@ -286,8 +286,10 @@ function buildDrillHrefForHand(hand, analysis = null) {
 export const config = { api: { bodyParser: { sizeLimit: '1mb' } } };
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
-    if (!applyRateLimit(req, res, LIMITS.ai)) return;
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
     if (req.method !== 'POST' && req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -484,7 +486,53 @@ export default async function handler(req, res) {
     if (!text.trim()) return res.status(400).json({ success: false, error: 'handHistoryText required' });
     if (text.length > 800_000) return res.status(413).json({ success: false, error: 'Hand history file is too large' });
 
-    const hands = parseHandHistory(text).slice(0, 100);
+    const hands = parseHandHistory(text).slice(0, 100).map((hand) => {
+      const hasStakes = typeof hand?.stakes === 'string' && hand.stakes.trim().length > 0;
+      const parsedBlinds = hasStakes ? parseStakesToBlinds(hand.stakes) : null;
+      const bigBlind = Number(hand?.bigBlind) > 0
+        ? Number(hand.bigBlind)
+        : (Number(parsedBlinds?.bigBlind) > 0 ? Number(parsedBlinds.bigBlind) : null);
+      const smallBlind = Number(hand?.smallBlind) > 0
+        ? Number(hand.smallBlind)
+        : (Number(parsedBlinds?.smallBlind) > 0 ? Number(parsedBlinds.smallBlind) : null);
+
+      const players = Array.isArray(hand?.players) ? hand.players : [];
+      const heroName = String(hand?.hero?.name || '').trim();
+      const heroSeat = hand?.hero?.seat;
+      const heroPlayer = players.find((p) =>
+        p?.isHero
+        || (heroName && String(p?.name || '').trim() === heroName)
+        || (heroSeat !== undefined && heroSeat !== null && Number(p?.seat) === Number(heroSeat))
+      ) || null;
+      const rawHeroChips = Number(
+        hand?.hero?.stack ?? hand?.hero?.startingStack ?? heroPlayer?.stack ?? heroPlayer?.startingStack ?? 0,
+      );
+      const villainStacks = players
+        .filter((p) => p && p !== heroPlayer && (!heroName || String(p?.name || '').trim() !== heroName))
+        .map((p) => Number(p?.stack ?? p?.startingStack ?? 0))
+        .filter((s) => Number.isFinite(s) && s > 0);
+      const maxVillainChips = villainStacks.length > 0 ? Math.max(...villainStacks) : null;
+      const effectiveChips = rawHeroChips > 0
+        ? (maxVillainChips !== null ? Math.min(rawHeroChips, maxVillainChips) : rawHeroChips)
+        : null;
+
+      const explicitEffBb = Number(hand?.effectiveStackBb ?? hand?.effective_stack_bb_at_deal);
+      const derivedEffBb = Number.isFinite(explicitEffBb) && explicitEffBb > 0
+        ? Number(explicitEffBb.toFixed(1))
+        : (bigBlind && bigBlind > 0 && effectiveChips && effectiveChips > 0
+            ? Number((effectiveChips / bigBlind).toFixed(1))
+            : null);
+
+      return {
+        ...hand,
+        ...(bigBlind !== null ? { bigBlind } : {}),
+        ...(smallBlind !== null ? { smallBlind } : {}),
+        ...(derivedEffBb !== null ? { effectiveStackBb: derivedEffBb } : {}),
+        ...(hand?.hero && rawHeroChips > 0 && !(Number(hand.hero.stack) > 0)
+            ? { hero: { ...hand.hero, stack: rawHeroChips } }
+            : {}),
+      };
+    });
     if (hands.length === 0) {
       return res.status(422).json({ success: false, error: 'No supported hand histories were parsed' });
     }
@@ -515,7 +563,7 @@ export default async function handler(req, res) {
       const analysis = analysisById.get(String(hand.id)) || null;
       const board = extractBoardFromParsedHand(hand);
       const heroCards = Array.isArray(hand?.hero?.holeCards) ? hand.hero.holeCards : [];
-      const heroPosition = hand?.hero?.position || analysis?.decisions?.[0]?.position || 'BTN';
+      const heroPosition = hand?.hero?.position || analysis?.decisions?.[0]?.heroPosition || analysis?.decisions?.[0]?.position || 'BTN';
       const street = board.length >= 5
         ? 'river'
         : board.length === 4

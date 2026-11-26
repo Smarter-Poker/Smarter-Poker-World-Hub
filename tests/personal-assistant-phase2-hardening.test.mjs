@@ -705,7 +705,7 @@ test('Static security & UI wiring guards: audit-jobs fail-closed + RTA GET guard
 
   const coaching = fs.readFileSync(path.resolve('pages/api/assistant/coaching.js'), 'utf8');
   assert.match(coaching, /interval_days/);
-  assert.match(coaching, /\.like\('solver_source', '%\|hand-audit-v3'\)/);
+  assert.match(coaching, /\.like\('solver_source', '%hand-audit-v3%'\)/);
   assert.match(coaching, /const rejected = audit\?\.progress \|\| \{\};/);
 
   const css = fs.readFileSync(path.resolve('src/components/personal-assistant/CoachingWorkspace.module.css'), 'utf8');

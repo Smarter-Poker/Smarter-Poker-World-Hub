@@ -113,7 +113,9 @@ export default async function handler(req, res) {
         .from('hand_audit_decisions')
         .select('hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, stack_depth_bb, evidence_scope, audited_at')
         .eq('user_id', userId)
-        .limit(2000),
+        .like('solver_source', '%hand-audit-v3%')
+        .order('audited_at', { ascending: false })
+        .limit(5000),
     ]);
 
     if (leaksRes.error) {
@@ -194,14 +196,35 @@ export default async function handler(req, res) {
 
     const r = awardResult.data || {};
     const isDuplicate = r.reason === 'duplicate' || (r.awarded === 0 && r.reason === 'duplicate');
-    const awarded = r.success === true && Number(r.awarded || 0) > 0;
-    const alreadyAwarded = isDuplicate;
+    if (isDuplicate) {
+      return res.status(200).json({
+        success: true,
+        awarded: false,
+        alreadyAwarded: true,
+        diamonds: 0,
+        milestone,
+      });
+    }
+
     const diamonds = Number(r.awarded || 0);
+    const awarded = r.success === true && diamonds > 0;
+    if (!awarded) {
+      return res.status(200).json({
+        success: false,
+        awarded: false,
+        alreadyAwarded: false,
+        diamonds: 0,
+        code: 'REWARD_LIMIT_REACHED',
+        reason: r.reason || 'limit_reached',
+        error: 'Daily or monthly Diamond reward limit reached.',
+        milestone,
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      awarded,
-      alreadyAwarded,
+      awarded: true,
+      alreadyAwarded: false,
       diamonds,
       milestone,
     });

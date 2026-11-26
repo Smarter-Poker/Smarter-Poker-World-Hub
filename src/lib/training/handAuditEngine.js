@@ -428,6 +428,21 @@ export function normalizeClubArenaHand(row, userId) {
     ? 'tournament'
     : (['cash', 'ring'].includes(rawFormat) || isCashClubRow ? 'cash' : null);
 
+  const explicitHeroEffBb = Number(row?.hero_effective_stack_bb ?? row?.effective_stack_bb_at_deal);
+  let computedEffectiveStackBb = Number.isFinite(explicitHeroEffBb) && explicitHeroEffBb > 0
+    ? explicitHeroEffBb
+    : null;
+  if (computedEffectiveStackBb === null && Number.isFinite(Number(heroPlayer?.stack)) && Number(heroPlayer.stack) > 0) {
+    const heroStackBb = Number(heroPlayer.stack);
+    const villainStacksBb = players
+      .filter(player => String(player?.id) !== String(userId))
+      .map(player => Number(player?.stack))
+      .filter(stack => Number.isFinite(stack) && stack > 0);
+    computedEffectiveStackBb = villainStacksBb.length > 0
+      ? Math.min(heroStackBb, Math.max(...villainStacksBb))
+      : heroStackBb;
+  }
+
   return {
     id: `club-arena:${row.id || summary.id || summary.handId || row.hand_number}`,
     site: 'smarter-poker-club-arena',
@@ -435,6 +450,7 @@ export function normalizeClubArenaHand(row, userId) {
     gameType: ['nlh', 'nlhe'].includes(gameType) ? 'nlhe' : 'no-limit-holdem',
     tableSize: players.length,
     bigBlind: Number.isFinite(bigBlind) && bigBlind > 0 ? bigBlind : null,
+    stackUnit: 'bb',
     buttonSeat: summary.buttonSeat ?? summary.button_seat ?? row?.button_seat ?? null,
     players,
     hero: {
@@ -442,16 +458,13 @@ export function normalizeClubArenaHand(row, userId) {
       name: heroPlayer?.name || heroRaw.displayName || heroRaw.username || 'Hero',
       position: heroPlayer?.position || heroRaw.position || '',
       holeCards: heroCards,
-      stack: (Number.isFinite(Number(row?.hero_effective_stack_bb)) && Number(row?.hero_effective_stack_bb) > 0)
-        ? Number(row.hero_effective_stack_bb)
+      stackUnit: 'bb',
+      stack: (Number.isFinite(explicitHeroEffBb) && explicitHeroEffBb > 0)
+        ? explicitHeroEffBb
         : (heroPlayer?.stack || null),
-      effectiveStackBb: (Number.isFinite(Number(row?.hero_effective_stack_bb)) && Number(row?.hero_effective_stack_bb) > 0)
-        ? Number(row.hero_effective_stack_bb)
-        : null,
+      effectiveStackBb: computedEffectiveStackBb,
     },
-    effectiveStackBb: (Number.isFinite(Number(row?.hero_effective_stack_bb)) && Number(row?.hero_effective_stack_bb) > 0)
-      ? Number(row.hero_effective_stack_bb)
-      : null,
+    effectiveStackBb: computedEffectiveStackBb,
     streets: {
       preflop: { actions: preflopActions },
       flop: finalFlop.length >= 3 ? { board: finalFlop, actions: flopActions } : null,
@@ -734,6 +747,37 @@ async function findQuestion(db, hand, point) {
   return new Set(best.map(canonicalFingerprint)).size === 1 ? best[0] : null;
 }
 
+function clampStackDepthBb(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  const clamped = Math.min(9999.9, Math.max(0.5, num));
+  return Math.round(clamped * 10) / 10;
+}
+
+function parseBigBlindFromStakes(stakes) {
+  if (!stakes || typeof stakes !== 'string') return null;
+  const slashMatch = /[$€£]?\s*([\d,]+(?:\.\d+)?)\s*\/\s*[$€£]?\s*([\d,]+(?:\.\d+)?)/.exec(stakes);
+  if (slashMatch) {
+    const bb = Number(slashMatch[2].replace(/,/g, ''));
+    return Number.isFinite(bb) && bb > 0 ? bb : null;
+  }
+  return null;
+}
+
+function isHeroPlayerEntry(player, hand) {
+  if (!player || typeof player !== 'object') return false;
+  if (player.isHero === true) return true;
+  const heroId = hand?.hero?.id ?? null;
+  if (heroId !== null && heroId !== undefined && String(heroId) !== '') {
+    const pId = player.id ?? player.userId ?? player.playerId ?? null;
+    if (pId !== null && pId !== undefined && String(pId) === String(heroId)) return true;
+  }
+  const heroName = hand?.hero?.name ? String(hand.hero.name).trim() : '';
+  if (heroName && player.name && String(player.name).trim() === heroName) return true;
+  return false;
+}
+
 export function resolveStackDepthBb(hand, point) {
   const candidates = [
     point?.effectiveStackBb,
@@ -750,29 +794,46 @@ export function resolveStackDepthBb(hand, point) {
   ];
 
   for (const c of candidates) {
-    if (c !== null && c !== undefined && c !== '') {
-      const num = Number(c);
-      if (Number.isFinite(num) && num > 0) {
-        return Math.round(num * 10) / 10;
-      }
-    }
+    const clamped = clampStackDepthBb(c);
+    if (clamped !== null) return clamped;
   }
 
-  // Hero starting stack divided by big blind
-  const heroStack = Number(
+  const playersList = Array.isArray(hand?.players) ? hand.players : [];
+  const heroFromPlayers = playersList.find(p => isHeroPlayerEntry(p, hand)) || null;
+  const rawHeroStack = Number(
     hand?.hero?.stack
     ?? hand?.hero?.startingStack
-    ?? (Array.isArray(hand?.players)
-        ? hand.players.find(p => p?.name && hand?.hero?.name && p.name === hand.hero.name)?.stack
-        : null)
+    ?? heroFromPlayers?.stack
+    ?? heroFromPlayers?.startingStack
+    ?? heroFromPlayers?.chips
   );
-  const bigBlind = Number(hand?.bigBlind);
+  const heroStack = Number.isFinite(rawHeroStack) && rawHeroStack > 0 ? rawHeroStack : null;
+  if (heroStack === null) return null;
 
-  if (Number.isFinite(heroStack) && heroStack > 0 && Number.isFinite(bigBlind) && bigBlind > 0) {
-    const depth = heroStack / bigBlind;
-    if (Number.isFinite(depth) && depth > 0) {
-      return Math.round(depth * 10) / 10;
-    }
+  const villainStacks = playersList
+    .filter(p => p && p !== heroFromPlayers && !isHeroPlayerEntry(p, hand))
+    .map(p => Number(p?.stack ?? p?.startingStack ?? p?.chips))
+    .filter(s => Number.isFinite(s) && s > 0);
+  const effectiveRawStack = villainStacks.length > 0
+    ? Math.min(heroStack, Math.max(...villainStacks))
+    : heroStack;
+
+  // Normalized Club Arena hands already express player/hero stacks in BB units;
+  // never divide them by bigBlind a second time.
+  const isBbUnit = hand?.stackUnit === 'bb'
+    || hand?.hero?.stackUnit === 'bb'
+    || hand?.site === 'smarter-poker-club-arena';
+  if (isBbUnit) {
+    return clampStackDepthBb(effectiveRawStack);
+  }
+
+  const explicitBb = Number(hand?.bigBlind ?? hand?.big_blind);
+  const bigBlind = Number.isFinite(explicitBb) && explicitBb > 0
+    ? explicitBb
+    : parseBigBlindFromStakes(hand?.stakes);
+
+  if (Number.isFinite(bigBlind) && bigBlind > 0) {
+    return clampStackDepthBb(effectiveRawStack / bigBlind);
   }
 
   return null;

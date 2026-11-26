@@ -30,13 +30,25 @@ test('pa-browser-smoke.yml follows all repository CI and workflow laws', () => {
   const expectedPaths = [
     'pages/hub/personal-assistant/**',
     'pages/share/hand.js',
+    'pages/_app.js',
     'pages/api/assistant/**',
     'pages/api/sandbox/**',
+    'pages/api/training/audit-hand-history.js',
     'pages/api/og/hand-card.js',
     'src/components/personal-assistant/**',
     'src/components/sandbox/**',
     'src/lib/personal-assistant/**',
+    'src/lib/training/handAuditEngine.js',
+    'src/lib/push/push-prefs.js',
+    'src/config/diamondRewards.js',
+    'src/hooks/useAssistant.js',
     'scripts/ci/pa-browser-smoke.mjs',
+    'scripts/verify-pa-production-hardening.mjs',
+    'scripts/openclaw-cron-dispatcher.py',
+    'supabase/migrations/**',
+    'next.config.js',
+    'tests/pa-*.test.mjs',
+    '.github/workflows/pa-browser-smoke.yml',
   ];
   for (const expectedPath of expectedPaths) {
     assert.ok(yml.includes(`'${expectedPath}'`), `missing path filter: ${expectedPath}`);
@@ -90,6 +102,13 @@ test('scripts/ci/pa-browser-smoke.mjs preserves core contract and adds a11y & SS
     '/api/assistant/coaching',
     '/api/assistant/stats',
     '/api/sandbox/custom-drill',
+    '/api/assistant/leaks/claim-live-fix',
+    '/api/assistant/maintenance-jobs',
+    '/api/training/audit-hand-history',
+  ]);
+  assert.deepEqual([...smoke.RETIRED_API_PATHS], [
+    '/api/sandbox/equity-snapshot',
+    '/api/sandbox/save-hand',
   ]);
 
   // Checks include both existing and new a11y/SSR checks
@@ -132,7 +151,7 @@ test('pa-browser-smoke --check-only executes cleanly via child process', () => {
     cwd: ROOT,
     encoding: 'utf8',
   });
-  assert.match(stdout, /pa-browser-smoke contract ok: 6 routes x 2 viewports, 4 private APIs, 11 checks/);
+  assert.match(stdout, /pa-browser-smoke contract ok: 6 routes x 2 viewports, 7 private APIs, 11 checks/);
 });
 
 test('computeAccessibleName correctly derives accessible names and catches empty controls', async () => {
@@ -141,8 +160,10 @@ test('computeAccessibleName correctly derives accessible names and catches empty
   // aria-label takes priority
   assert.equal(computeAccessibleName({ ariaLabel: 'Close Dialog', textContent: 'X' }), 'Close Dialog');
 
-  // aria-labelledby
-  assert.equal(computeAccessibleName({ ariaLabelledby: 'hdr-1' }), 'hdr-1');
+  // aria-labelledby resolves target text (never returns raw element ID string)
+  assert.equal(computeAccessibleName({ ariaLabelledby: 'hdr-1', labelLookup: { 'hdr-1': 'Hand Replay' } }), 'Hand Replay');
+  assert.equal(computeAccessibleName({ labelledByText: 'Coaching Header' }), 'Coaching Header');
+  assert.equal(computeAccessibleName({ ariaLabelledby: 'dangling-id' }), '');
 
   // title attribute
   assert.equal(computeAccessibleName({ title: 'Help Information' }), 'Help Information');
