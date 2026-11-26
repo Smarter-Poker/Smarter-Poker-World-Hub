@@ -1337,3 +1337,41 @@ body.world-training .sp-arena-pagination button {
 body.world-training .sp-arena-pagination button:disabled {
   opacity: 0.55;
 }
+
+body.world-training .sp-arena-variants {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 3px;
+}
+
+body.world-training .sp-arena-variants button {
+  min-height: 44px;
+  padding: 0 2px;
+  border: 1px solid #526981;
+  border-radius: 4px;
+  background: linear-gradient(#192d40, #060d15);
+  color: #e6f0fa;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+body.world-training .sp-arena-variants button[aria-pressed='true'],
+body.world-training .sp-arena-variants__play {
+  border-color: #83d4ff;
+  background: linear-gradient(#0b65bd, #08346c);
+}
+
+body.world-training .sp-arena-variants__play {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+body.world-training .sp-arena-variants button:focus-visible {
+  outline: 2px solid #9be3ff;
+  outline-offset: -3px;
+}

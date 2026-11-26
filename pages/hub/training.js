@@ -93,6 +93,15 @@ const CATEGORY_META = {
   ADVANCED:   { label: 'Poker Strategy',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
 
+const VARIANT_FILTERS = [
+  { id: 'ALL', label: 'All' },
+  { id: 'nlh', label: 'NLH' },
+  { id: 'plo4', label: 'PLO4' },
+  { id: 'plo5', label: 'PLO5' },
+  { id: 'plo6', label: 'PLO6' },
+  { id: 'plo8', label: 'PLO8' },
+];
+
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
 
 const WEEKLY_STATS_NUMERIC_FIELDS = Object.freeze([
@@ -503,6 +512,31 @@ export default function TrainingPage() {
                 controlsRef={controlsRef}
                 headingRef={libraryHeadingRef}
               />
+
+              <div className="sp-arena-variants" role="group" aria-label="Poker Variant" data-variant-filter-bar="true">
+                {VARIANT_FILTERS.map(({ id, label }) => (
+                  <button
+                    type="button"
+                    key={id}
+                    data-variant-filter={id.toLowerCase()}
+                    aria-pressed={filters.variant === id}
+                    aria-label={id === 'ALL' ? 'All Poker Variants' : VARIANT_METADATA[id].label}
+                    onClick={() => updateFilters({ variant: id })}
+                  >{label}</button>
+                ))}
+                {filters.variant.startsWith('plo') && (
+                  <button
+                    type="button"
+                    className="sp-arena-variants__play"
+                    data-quick-launch-omaha={filters.variant}
+                    onClick={() => playGame(TRAINING_LIBRARY.find((game) => game.id === 'cash-005'), {
+                      variant: filters.variant, bettingStructure: 'pot_limit', format: 'cash',
+                    })}
+                  >
+                    <Play size={14} aria-hidden="true" /> Play {filters.variant.toUpperCase()} Cash Now
+                  </button>
+                )}
+              </div>
 
               <TrainingSortBar
                 filters={filters}
