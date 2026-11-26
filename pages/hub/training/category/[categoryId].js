@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { ArrowLeft, Atom, DollarSign, Rocket, Trophy, Brain } from 'lucide-react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
@@ -10,41 +9,35 @@ import { getGameImage } from '../../../../src/data/GAME_IMAGES';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import TrainingGameArt from '../../../../src/components/training/TrainingGameArt';
-import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../../src/lib/training/horseBrainTrainingAdapter';
 import { resolvePresetForGame } from '../../../../src/lib/training/trainingPresets.mjs';
 
 const CATEGORY_META = {
     MTT: {
-        title: 'Tournament Command',
-        sector: 'MTT Mastery',
+        title: 'Tournaments',
         Icon: Trophy,
         accent: '#f3b151',
         description: 'Tournament pressure, stack survival, ICM and final-table execution.'
     },
     CASH: {
-        title: 'Cash Game Command',
-        sector: 'Cash Game Grind',
+        title: 'Cash Games',
         Icon: DollarSign,
         accent: '#62e9a6',
         description: 'Street-by-street range discipline for deep, repeatable cash-game decisions.'
     },
     SPINS: {
-        title: 'Spin Command',
-        sector: 'Spins And SNGs',
+        title: 'Spins & SNGs',
         Icon: Rocket,
         accent: '#ffe16a',
         description: 'Fast stack transitions, heads-up pressure and hyper-turbo execution.'
     },
     PSYCHOLOGY: {
-        title: 'Mental Game Command',
-        sector: 'Psychology',
+        title: 'Mental Game',
         Icon: Brain,
         accent: '#c99cff',
         description: 'Decision discipline, emotional control and resilient performance under pressure.'
     },
     ADVANCED: {
-        title: 'Solver Command',
-        sector: 'Advanced Theory',
+        title: 'Poker Strategy',
         Icon: Atom,
         accent: '#68d8ff',
         description: 'Range construction, equilibrium mechanics and high-resolution strategic theory.'
@@ -58,21 +51,6 @@ export default function CategoryPage() {
         : '';
     const { getGameProgress } = useTrainingProgress();
     useTrainingBus('training-category', { categoryId });
-
-    const [brainVariant, setBrainVariant] = useState('nlh');
-    const brainPreview = useMemo(() => {
-        return evaluateTrainingSpotWithHorseBrain({
-            variant: brainVariant,
-            street: 'flop',
-            heroPosition: 'BTN',
-            villainPosition: 'BB',
-            heroCards: brainVariant === 'plo6' ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'] : brainVariant === 'plo5' ? ['As', 'Ks', 'Qh', 'Jh', 'Td'] : (brainVariant === 'plo4' || brainVariant === 'plo8') ? ['As', 'Ks', 'Qh', 'Jh'] : ['As', 'Kd'],
-            boardCards: ['Qs', '7d', '2c'],
-            potSizeBb: 12,
-            facingBetBb: 4,
-            effectiveStackBb: 100,
-        });
-    }, [brainVariant]);
 
     // AEO phase 3 (2026-09-18): the head used to sit below this guard.
     // The guard is true on the server, so the branch a crawler always
@@ -110,6 +88,10 @@ export default function CategoryPage() {
     }
 
     const Icon = category.Icon;
+    const playGame = (game) => router.push({
+        pathname: '/hub/training/arena/[gameId]',
+        query: { gameId: game.id, start: '1', source: 'training-category' },
+    });
 
     return (
         <PageTransition>
@@ -131,17 +113,11 @@ export default function CategoryPage() {
                             <ArrowLeft size={15} aria-hidden="true" /> Training Hub
                         </button>
                         <div className="sp-category-copy">
-                            <div className="sp-category-kicker"><i aria-hidden="true" /> Training Sector / {category.sector}</div>
                             <div className="sp-category-title-row">
                                 <span className="sp-category-icon"><Icon size={24} aria-hidden="true" /></span>
                                 <h1>{category.title}</h1>
                             </div>
                             <p>{category.description}</p>
-                            <div className="sp-category-readouts">
-                                <span><b>{games.length}</b> Training Games</span>
-                                <span><b>{games.length * 12}</b> Campaign Levels</span>
-                                <span><b>Club Arena</b> Gameplay</span>
-                            </div>
                             {featuredGame && (
                                 <div
                                     data-category-preset-summary="true"
@@ -160,7 +136,7 @@ export default function CategoryPage() {
                                 >
                                     <div>
                                         <div style={{ color: '#8fd0ff', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                            1-Tap Sector Preset · {featuredGame.name}
+                                            {featuredGame.name}
                                         </div>
                                         <div style={{ marginTop: 3, color: '#dbe8f2', fontSize: 13 }}>
                                             {featuredPreset?.summary || '6-Max Cash · NLHE · 100 BB · 20 Hands'}
@@ -170,7 +146,7 @@ export default function CategoryPage() {
                                         type="button"
                                         data-category-quick-start="true"
                                         className="sp-mtt-primary-cta"
-                                        onClick={() => router.push(`/hub/training/arena/${featuredGame.id}?level=1`)}
+                                        onClick={() => playGame(featuredGame)}
                                         style={{
                                             minHeight: 44,
                                             padding: '0 18px',
@@ -183,86 +159,19 @@ export default function CategoryPage() {
                                             cursor: 'pointer',
                                         }}
                                     >
-                                        Start Sector Training →
+                                        Play Now
                                     </button>
                                 </div>
                             )}
-                        </div>
-                        <div className="sp-category-plate">
-                            <span>Casino Training System</span>
-                            <strong>Sector Online</strong>
-                        </div>
-                    </section>
-
-                    <section
-                        data-specialty-brain-panel="true"
-                        data-brain-engine={brainPreview?.engineModule || 'holdem-brain.js'}
-                        data-recommended-action={brainPreview?.recommendedAction || 'Call'}
-                        style={{
-                            marginTop: 28,
-                            padding: 20,
-                            border: '1px solid #3c4d55',
-                            borderTopColor: '#8fa3ac',
-                            background: 'linear-gradient(180deg, #172127, #05080a 72%)',
-                            boxShadow: 'inset 0 1px rgba(255,255,255,.08), 0 14px 31px rgba(0,0,0,.48)',
-                        }}
-                    >
-                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-                            <div>
-                                <div style={{ color: '#758c96', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                                    Horse Brain Sector Calibration
-                                </div>
-                                <div style={{ marginTop: 4, color: '#edf4f6', fontSize: 16, fontWeight: 700 }}>
-                                    Recommended Action: {brainPreview?.recommendedAction || 'Call'} · Score: {brainPreview?.handScore ?? 50} / 100
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-                                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                                    <button
-                                        key={v}
-                                        type="button"
-                                        data-brain-variant-tab={v}
-                                        onClick={() => setBrainVariant(v)}
-                                        style={{
-                                            padding: '6px 12px',
-                                            border: brainVariant === v ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.18)',
-                                            background: brainVariant === v ? 'rgba(8,145,178,0.45)' : 'rgba(255,255,255,0.05)',
-                                            color: '#f0f5f7',
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        {v.toUpperCase()}
-                                    </button>
-                                ))}
-                                <button
-                                    type="button"
-                                    data-launch-club-arena-cta="true"
-                                    onClick={() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'category'))}
-                                    style={{
-                                        padding: '8px 14px',
-                                        border: '1px solid #67e8f9',
-                                        background: 'linear-gradient(180deg, #1b4d60, #071923)',
-                                        color: '#f0f5f7',
-                                        fontSize: 12,
-                                        fontWeight: 800,
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    Launch 1:1 Club Arena Drill
-                                </button>
-                            </div>
                         </div>
                     </section>
 
                     <section className="sp-category-library" aria-labelledby="category-library-title">
                         <header className="sp-category-library-head">
                             <div>
-                                <span>Campaign Inventory</span>
-                                <h2 id="category-library-title">Choose Your Training Game</h2>
+                                <h2 id="category-library-title">Choose A Game</h2>
                             </div>
-                            <p><i aria-hidden="true" /> {games.length} Systems Ready</p>
+                            <p><i aria-hidden="true" /> {games.length} Games</p>
                         </header>
 
                         <div className="sp-category-grid">
@@ -271,7 +180,8 @@ export default function CategoryPage() {
                                     key={game.id}
                                     game={game}
                                     progress={getGameProgress(game.id)}
-                                    onClick={(selected) => router.push(`/hub/training/play/${selected.id}`)}
+                                    onClick={playGame}
+                                    playLabel="Play"
                                     index={index}
                                     image={getGameImage(game.id)}
                                 />

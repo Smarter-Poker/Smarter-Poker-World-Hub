@@ -23,3 +23,21 @@ test('the rest of the library mounts as the reader approaches it, and filters re
   // Without IntersectionObserver every card renders rather than none.
   assert.match(hub, /typeof IntersectionObserver !== 'function'\) \{\s*setVisibleCardCount\(filtered\.length\);/);
 });
+
+test('training home and category games open a dedicated preset arena', () => {
+  const category = readFileSync(new URL('../pages/hub/training/category/[categoryId].js', import.meta.url), 'utf8');
+  const arena = readFileSync(new URL('../pages/hub/training/arena/[gameId].js', import.meta.url), 'utf8');
+
+  assert.match(hub, /<Link key=\{category\}[^\n]+href=\{`\/hub\/training\/category\//);
+  assert.match(hub, /onStart=\{\(\) => playGame\(g\)\}/);
+  assert.ok(hub.indexOf('id="training-library"') < hub.indexOf('aria-labelledby="stats-h"'));
+  assert.doesNotMatch(category, /data-specialty-brain-panel|data-brain-variant-tab/);
+  assert.match(category, /onClick=\{playGame\}/);
+  for (const source of [hub, category]) {
+    assert.match(source, /pathname: '\/hub\/training\/arena\/\[gameId\]'/);
+    assert.match(source, /query: \{ gameId: game\.id, start: '1', source: 'training-(?:home|category)' \}/);
+  }
+  assert.match(arena, /startsWithPreset = router\.query\.start === '1' && Boolean\(game\)/);
+  assert.match(arena, /customLaunch\.config \|\| \(startsWithPreset \? resolvePresetForGame\(game\) : null\)/);
+  assert.match(arena, /initialConfig=\{initialConfig\}/);
+});

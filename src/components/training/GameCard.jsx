@@ -15,7 +15,7 @@ const CATEGORY_META = {
     ADVANCED: { label: 'Solver Sector', accent: '#68d8ff' },
 };
 
-export default function GameCard({ game, onClick, index = 0, image, progress }) {
+export default function GameCard({ game, onClick, index = 0, image, progress, playLabel }) {
     if (!game) return null;
 
     const meta = CATEGORY_META[game.category] || CATEGORY_META.MTT;
@@ -26,7 +26,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
     const hasPlayed = currentLevel > 0 || bestScore > 0;
     const levelDef = getLevel(Math.max(1, currentLevel || 1));
     const artwork = image || game.image || getGameImage(game.id);
-    const action = isMastered ? 'Review Mastery' : hasPlayed ? 'Resume Campaign' : 'Enter Campaign';
+    const action = playLabel || (isMastered ? 'Review Mastery' : hasPlayed ? 'Resume Campaign' : 'Enter Campaign');
 
     return (
         <motion.button

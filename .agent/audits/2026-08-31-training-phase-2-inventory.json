@@ -14,7 +14,7 @@
     "dependencyFiles": 384,
     "componentFiles": 55,
     "hookFiles": 14,
-    "ctas": 841,
+    "ctas": 839,
     "dialogs": 12,
     "persistenceFiles": 91,
     "realtimeFiles": 6,
@@ -1266,7 +1266,7 @@
         "success": false,
         "authExpiry": false
       },
-      "ctaCount": 5,
+      "ctaCount": 3,
       "dialogCount": 0,
       "apiReferences": [],
       "persistenceWrites": {
@@ -5544,6 +5544,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -5606,6 +5607,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -5660,6 +5662,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -5689,6 +5692,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -5721,6 +5725,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -5759,6 +5764,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -5781,6 +5787,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -5807,6 +5814,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -5822,6 +5830,7 @@
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
+        "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
@@ -7087,23 +7096,6 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
-        "src/lib/poker-engine/ChipBridge.js",
-        "src/lib/poker-engine/Deck.js",
-        "src/lib/poker-engine/HandEvaluator.js",
-        "src/lib/poker-engine/SupabaseResilience.js",
-        "src/lib/poker-engine/brain/HorsePokerAdvanced.js",
-        "src/lib/poker-engine/brain/HorsePokerGTO.js",
-        "src/lib/poker-engine/brain/HorsePokerPersonality.js",
-        "src/lib/poker-engine/brain/anti-exploit.js",
-        "src/lib/poker-engine/brain/core.js",
-        "src/lib/poker-engine/brain/holdem-brain.js",
-        "src/lib/poker-engine/brain/live-observer.js",
-        "src/lib/poker-engine/brain/plo-core.js",
-        "src/lib/poker-engine/brain/plo5-brain.js",
-        "src/lib/poker-engine/brain/plo6-brain.js",
-        "src/lib/poker-engine/brain/plo8-brain.js",
-        "src/lib/poker-engine/brain/session-analytics.js",
-        "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/pushMenuState.mjs",
@@ -7117,18 +7109,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/clubArenaTableParity.js",
-        "src/lib/training/customSolverSpotContract.mjs",
-        "src/lib/training/customTrainerConfigContract.mjs",
-        "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/horseBrainTrainingAdapter.js",
-        "src/lib/training/solverMatrixTrust.js",
-        "src/lib/training/solverPolicyContract.js",
-        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingPresets.mjs",
         "src/lib/world-menu/navigationState.mjs",
-        "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
         "src/stores/toastStore.js",
@@ -7138,8 +7120,6 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
-        "src/utils/trainingApiUtils.js",
-        "src/utils/v2Matrix.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -7156,12 +7136,11 @@
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useTrainingProgress.js",
-            "src/lib/authUtils.js",
-            "src/lib/poker-engine/brain/core.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/authUtils.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -7182,31 +7161,15 @@
             "src/hooks/useTrainingProgress.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
-            "src/lib/poker-engine/ChipBridge.js",
-            "src/lib/poker-engine/HandEvaluator.js",
-            "src/lib/poker-engine/brain/HorsePokerGTO.js",
-            "src/lib/poker-engine/brain/HorsePokerPersonality.js",
-            "src/lib/poker-engine/brain/holdem-brain.js",
-            "src/lib/poker-engine/brain/plo-core.js",
-            "src/lib/poker-engine/brain/plo5-brain.js",
-            "src/lib/poker-engine/brain/plo6-brain.js",
-            "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/cacheTruthContract.mjs",
-            "src/lib/training/clubArenaTableParity.js",
-            "src/lib/training/horseBrainTrainingAdapter.js",
-            "src/lib/training/solverPolicyContract.js",
-            "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
-            "src/services/SolverPolicyService.js",
-            "src/stores/pageOverlayStore.js",
-            "src/utils/trainingApiUtils.js",
-            "src/utils/v2Matrix.js"
+            "src/stores/pageOverlayStore.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -7228,11 +7191,6 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
-            "src/lib/poker-engine/ChipBridge.js",
-            "src/lib/poker-engine/SupabaseResilience.js",
-            "src/lib/poker-engine/brain/core.js",
-            "src/lib/poker-engine/brain/holdem-brain.js",
-            "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
@@ -7240,16 +7198,12 @@
             "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
-            "src/lib/training/horseBrainTrainingAdapter.js",
-            "src/lib/training/solverPolicyContract.js",
-            "src/lib/training/solverRowIdentity.mjs",
-            "src/services/SolverPolicyService.js",
             "src/services/avatar-service.js",
-            "src/stores/toastStore.js",
-            "src/utils/trainingApiUtils.js"
+            "src/stores/toastStore.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -7262,17 +7216,15 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
-            "src/lib/poker-engine/ChipBridge.js",
-            "src/lib/poker-engine/SupabaseResilience.js",
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
-            "src/lib/training/horseBrainTrainingAdapter.js",
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -7295,17 +7247,13 @@
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
-            "src/lib/poker-engine/ChipBridge.js",
-            "src/lib/poker-engine/SupabaseResilience.js",
-            "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/push/enrollment-nudge.mjs",
-            "src/lib/training/horseBrainTrainingAdapter.js",
-            "src/lib/training/solverMatrixTrust.js",
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -7327,24 +7275,19 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
-            "src/lib/poker-engine/brain/holdem-brain.js",
-            "src/lib/poker-engine/brain/live-observer.js",
-            "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/cacheTruthContract.mjs",
-            "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js",
-            "src/utils/v2Matrix.js"
+            "src/tutorials/personal-assistant.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -7353,11 +7296,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -7372,11 +7315,11 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js",
             "src/services/avatar-service.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -7384,6 +7327,7 @@
       },
       "existingTests": [
         "__tests__/training-casino-realism-catalog.test.mjs",
+        "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
       ],
@@ -17276,6 +17220,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17324,6 +17269,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17374,6 +17320,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17404,6 +17351,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17443,6 +17391,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17487,6 +17436,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17506,6 +17456,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17531,6 +17482,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17544,6 +17496,7 @@
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
+        "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
@@ -33700,6 +33653,7 @@
       ],
       "links": [
         "/hub/training",
+        "/hub/training/category/",
         "/hub/training/coach-mode",
         "/hub/training/drill-builder",
         "/hub/training/live-hud-sync",
@@ -33712,7 +33666,7 @@
         {
           "element": "button",
           "name": "Reload Arena",
-          "line": 104,
+          "line": 106,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -33722,7 +33676,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 360,
+          "line": 377,
           "handler": "() => router.replace('/hub/training')",
           "destination": null,
           "type": "button",
@@ -33732,7 +33686,7 @@
         {
           "element": "a",
           "name": "← Return To Live Hand Sync",
-          "line": 444,
+          "line": 461,
           "handler": null,
           "destination": "/hub/training/live-hud-sync",
           "type": null,
@@ -33742,7 +33696,7 @@
         {
           "element": "a",
           "name": "Customize Pack In Drill Builder →",
-          "line": 480,
+          "line": 497,
           "handler": null,
           "destination": "/hub/training/drill-builder",
           "type": null,
@@ -33752,7 +33706,7 @@
         {
           "element": "a",
           "name": "Return To Coach Broadcast →",
-          "line": 517,
+          "line": 534,
           "handler": null,
           "destination": "/hub/training/coach-mode",
           "type": null,
@@ -33762,7 +33716,7 @@
         {
           "element": "a",
           "name": "View Verified Two-Player Scoreboard →",
-          "line": 552,
+          "line": 569,
           "handler": null,
           "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
           "type": null,
@@ -33802,7 +33756,7 @@
       "functions": [
         {
           "name": "TrainingArenaPage",
-          "line": 122,
+          "line": 124,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -33810,7 +33764,7 @@
         },
         {
           "name": "onSyncedHand",
-          "line": 136,
+          "line": 138,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -34482,13 +34436,11 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
         "src/hooks/useTrainingProgress.js",
-        "src/lib/training/horseBrainTrainingAdapter.js",
         "src/lib/training/trainingPresets.mjs"
       ],
       "links": [
         "/hub/training",
-        "/hub/training/arena/",
-        "/hub/training/play/"
+        "/hub/training/arena/[gameId]"
       ],
       "apiReferences": [],
       "apiReferencePrefixes": [],
@@ -34496,7 +34448,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 106,
+          "line": 84,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -34506,7 +34458,7 @@
         {
           "element": "button",
           "name": "Training Hub",
-          "line": 130,
+          "line": 112,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -34515,29 +34467,9 @@
         },
         {
           "element": "button",
-          "name": "Start Sector Training →",
-          "line": 169,
-          "handler": "() => router.push(`/hub/training/arena/${featuredGame.id}?level=1`)",
-          "destination": null,
-          "type": "button",
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "<dynamic>",
-          "line": 221,
-          "handler": "() => setBrainVariant(v)",
-          "destination": null,
-          "type": "button",
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "Launch 1:1 Club Arena Drill",
-          "line": 239,
-          "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'category'))",
+          "name": "Play Now",
+          "line": 145,
+          "handler": "() => playGame(featuredGame)",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -34576,10 +34508,18 @@
       "functions": [
         {
           "name": "CategoryPage",
-          "line": 54,
+          "line": 47,
           "references": 1,
           "exported": true,
           "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "playGame",
+          "line": 91,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
           "namedFunctionExpression": false
         }
       ],
@@ -83586,10 +83526,6 @@
     },
     {
       "from": "pages/hub/training/category/[categoryId].js",
-      "to": "src/lib/training/horseBrainTrainingAdapter.js"
-    },
-    {
-      "from": "pages/hub/training/category/[categoryId].js",
       "to": "src/lib/training/trainingPresets.mjs"
     },
     {
@@ -88985,11 +88921,11 @@
       "effectRef": "pages/hub/training/analyzer.js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:104:1",
+      "id": "pages/hub/training/arena/[gameId].js:106:1",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Reload Arena",
-      "line": 104,
+      "line": 106,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -88998,11 +88934,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:360:2",
+      "id": "pages/hub/training/arena/[gameId].js:377:2",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 360,
+      "line": 377,
       "handler": "() => router.replace('/hub/training')",
       "destination": null,
       "type": "button",
@@ -89011,11 +88947,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:444:3",
+      "id": "pages/hub/training/arena/[gameId].js:461:3",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "← Return To Live Hand Sync",
-      "line": 444,
+      "line": 461,
       "handler": null,
       "destination": "/hub/training/live-hud-sync",
       "type": null,
@@ -89024,11 +88960,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:480:4",
+      "id": "pages/hub/training/arena/[gameId].js:497:4",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Customize Pack In Drill Builder →",
-      "line": 480,
+      "line": 497,
       "handler": null,
       "destination": "/hub/training/drill-builder",
       "type": null,
@@ -89037,11 +88973,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:517:5",
+      "id": "pages/hub/training/arena/[gameId].js:534:5",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Return To Coach Broadcast →",
-      "line": 517,
+      "line": 534,
       "handler": null,
       "destination": "/hub/training/coach-mode",
       "type": null,
@@ -89050,11 +88986,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:552:6",
+      "id": "pages/hub/training/arena/[gameId].js:569:6",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Verified Two-Player Scoreboard →",
-      "line": 552,
+      "line": 569,
       "handler": null,
       "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
       "type": null,
@@ -89323,11 +89259,11 @@
       "effectRef": "pages/hub/training/bounty-trainer.js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:106:1",
+      "id": "pages/hub/training/category/[categoryId].js:84:1",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 106,
+      "line": 84,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -89336,11 +89272,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:130:2",
+      "id": "pages/hub/training/category/[categoryId].js:112:2",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Training Hub",
-      "line": 130,
+      "line": 112,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -89349,38 +89285,12 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:169:3",
+      "id": "pages/hub/training/category/[categoryId].js:145:3",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
-      "name": "Start Sector Training →",
-      "line": 169,
-      "handler": "() => router.push(`/hub/training/arena/${featuredGame.id}?level=1`)",
-      "destination": null,
-      "type": "button",
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/category/[categoryId].js"
-    },
-    {
-      "id": "pages/hub/training/category/[categoryId].js:221:4",
-      "file": "pages/hub/training/category/[categoryId].js",
-      "element": "button",
-      "name": "<dynamic>",
-      "line": 221,
-      "handler": "() => setBrainVariant(v)",
-      "destination": null,
-      "type": "button",
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "pages/hub/training/category/[categoryId].js"
-    },
-    {
-      "id": "pages/hub/training/category/[categoryId].js:239:5",
-      "file": "pages/hub/training/category/[categoryId].js",
-      "element": "button",
-      "name": "Launch 1:1 Club Arena Drill",
-      "line": 239,
-      "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'category'))",
+      "name": "Play Now",
+      "line": 145,
+      "handler": "() => playGame(featuredGame)",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -104521,6 +104431,7 @@
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
+        "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
@@ -105865,23 +105776,6 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
-        "src/lib/poker-engine/ChipBridge.js",
-        "src/lib/poker-engine/Deck.js",
-        "src/lib/poker-engine/HandEvaluator.js",
-        "src/lib/poker-engine/SupabaseResilience.js",
-        "src/lib/poker-engine/brain/HorsePokerAdvanced.js",
-        "src/lib/poker-engine/brain/HorsePokerGTO.js",
-        "src/lib/poker-engine/brain/HorsePokerPersonality.js",
-        "src/lib/poker-engine/brain/anti-exploit.js",
-        "src/lib/poker-engine/brain/core.js",
-        "src/lib/poker-engine/brain/holdem-brain.js",
-        "src/lib/poker-engine/brain/live-observer.js",
-        "src/lib/poker-engine/brain/plo-core.js",
-        "src/lib/poker-engine/brain/plo5-brain.js",
-        "src/lib/poker-engine/brain/plo6-brain.js",
-        "src/lib/poker-engine/brain/plo8-brain.js",
-        "src/lib/poker-engine/brain/session-analytics.js",
-        "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/pushMenuState.mjs",
@@ -105895,18 +105789,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/clubArenaTableParity.js",
-        "src/lib/training/customSolverSpotContract.mjs",
-        "src/lib/training/customTrainerConfigContract.mjs",
-        "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/horseBrainTrainingAdapter.js",
-        "src/lib/training/solverMatrixTrust.js",
-        "src/lib/training/solverPolicyContract.js",
-        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingPresets.mjs",
         "src/lib/world-menu/navigationState.mjs",
-        "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
         "src/stores/toastStore.js",
@@ -105916,8 +105800,6 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
-        "src/utils/trainingApiUtils.js",
-        "src/utils/v2Matrix.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -106085,83 +105967,6 @@
           }
         },
         {
-          "file": "src/lib/poker-engine/ChipBridge.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 2,
-            "updates": 5,
-            "deletes": 3,
-            "rpc": 2
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/SupabaseResilience.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 1,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 1,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/anti-exploit.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 1,
-            "updates": 0,
-            "deletes": 3,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/live-observer.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 9,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/plo-core.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 1,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/session-analytics.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 5,
-            "updates": 1,
-            "deletes": 9,
-            "rpc": 0
-          }
-        },
-        {
           "file": "src/lib/push-client.js",
           "writes": {
             "localStorage": 2,
@@ -106203,17 +106008,6 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 0
-          }
-        },
-        {
-          "file": "src/services/SolverPolicyService.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 1
           }
         },
         {
@@ -106299,6 +106093,7 @@
       ],
       "tests": [
         "__tests__/training-casino-realism-catalog.test.mjs",
+        "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
       ]
@@ -116433,6 +116228,7 @@
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
+        "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
@@ -138930,7 +138726,7 @@
       {
         "file": "pages/hub/training/arena/[gameId].js",
         "name": "TrainingArenaPage",
-        "line": 122,
+        "line": 124,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -139008,7 +138804,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "name": "CategoryPage",
-        "line": 54,
+        "line": 47,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -144508,7 +144304,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/hub/training.js"
+          "pages/hub/training.js",
+          "pages/hub/training/arena/[gameId].js"
         ]
       },
       {
@@ -149424,7 +149221,7 @@
       {
         "file": "pages/hub/training/arena/[gameId].js",
         "name": "TrainingArenaPage",
-        "line": 122,
+        "line": 124,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -149502,7 +149299,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "name": "CategoryPage",
-        "line": 54,
+        "line": 47,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -155002,7 +154799,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/hub/training.js"
+          "pages/hub/training.js",
+          "pages/hub/training/arena/[gameId].js"
         ]
       },
       {
