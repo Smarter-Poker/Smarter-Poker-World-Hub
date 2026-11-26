@@ -40,6 +40,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import nextFileTracer from 'next/dist/compiled/@vercel/nft/index.js';
 
 import {
     MAGAZINE_MASTHEAD,
@@ -65,6 +66,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 const exists = (rel) => fs.existsSync(path.join(REPO, rel));
+
+test('the publication API treats magazine links as URLs during Next file tracing', async () => {
+    const apiRoute = 'pages/api/news/magazine.js';
+    const { fileList } = await nextFileTracer.nodeFileTrace([apiRoute], {
+        base: REPO,
+        processCwd: REPO,
+        // Isolate this entry's file references from module dependencies bundled by webpack.
+        resolve: async () => [],
+    });
+
+    assert.ok(fileList.has(apiRoute));
+    const readerPages = [...fileList].filter((file) => file.startsWith('pages/hub/magazine/'));
+    assert.deepEqual(readerPages, []);
+});
 
 const FORBIDDEN_PALETTE_HEX_RE =
     /#(?:fbbf24|eab308|f59e0b|ffd700|fde047|fef08a|d97706|ca8a04|d4a853|c084fc|a855f7|8b5cf6|d8b4fe|9333ea|7c3aed)\b/i;
