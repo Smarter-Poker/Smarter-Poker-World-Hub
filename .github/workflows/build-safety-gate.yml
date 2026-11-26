@@ -430,6 +430,9 @@ jobs:
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
 
+      - name: Training Favorite Ownership And Constraints
+        run: node --test __tests__/training-game-favorites-postgres.test.mjs
+
       - name: Notification Delivery Policy And Database Guards
         env:
           NOTIFICATION_POLICY_POSTGRES_ROOT: ${{ runner.temp }}

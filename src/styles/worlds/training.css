@@ -5287,7 +5287,7 @@ body.world-training .sp-level-back {
     box-shadow: none !important;
 }
 
-body.world-training .sp-cat-chip[aria-pressed='true'],
+body.world-training .sp-cat-chip[aria-pressed='true']:not(.sp-arena-subtab),
 body.world-training .sp-arena-lobby__option[data-selected='true'],
 body.world-training [role='radio'][aria-checked='true'],
 body.world-training [data-brain-variant-tab][data-active='true'] {

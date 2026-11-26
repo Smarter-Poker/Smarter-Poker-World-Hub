@@ -20,7 +20,7 @@ import {
 const SORT_COLUMNS = [
   { key: 'name', label: 'Game', defaultDir: 'asc' },
   { key: 'difficulty', label: 'Level', defaultDir: 'asc' },
-  { key: 'length', label: 'Length', defaultDir: 'asc' },
+  { key: 'stack', label: 'Stack', defaultDir: 'asc' },
   { key: 'progress', label: 'Progress', defaultDir: 'desc' },
 ];
 
@@ -80,7 +80,7 @@ export default function TrainingSortBar({
         <nav className="sp-arena-sticky-rail" aria-label="Quick Training Filters">
           <button
             type="button"
-            className="sp-arena-sticky-rail__btn sd-button"
+            className="sp-arena-sticky-rail__btn"
             onClick={() => onJumpToControls(false)}
             aria-label="Scroll To Game Categories"
           >
@@ -89,7 +89,7 @@ export default function TrainingSortBar({
 
           <button
             type="button"
-            className="sp-arena-sticky-rail__btn sd-button"
+            className="sp-arena-sticky-rail__btn"
             aria-pressed={filters.favoritesOnly}
             onClick={onToggleFavorites}
           >
@@ -103,7 +103,7 @@ export default function TrainingSortBar({
 
           <button
             type="button"
-            className="sp-arena-sticky-rail__btn sd-button"
+            className="sp-arena-sticky-rail__btn"
             onClick={() => onJumpToControls(true)}
             aria-label="Focus Search Games"
           >
@@ -113,7 +113,7 @@ export default function TrainingSortBar({
 
           <button
             type="button"
-            className={`sp-arena-sticky-rail__btn sd-button${advancedCount > 0 ? ' active' : ''}`}
+            className={`sp-arena-sticky-rail__btn${advancedCount > 0 ? ' active' : ''}`}
             onClick={onOpenFilters}
             aria-label="Open Training Filters"
           >
@@ -135,7 +135,7 @@ export default function TrainingSortBar({
               key={col.key}
               type="button"
               className={`sp-arena-sortbar__col sp-arena-sortbar__col--${col.key}${isSorted ? ' is-sorted' : ''}`}
-              aria-sort={ariaSort}
+              aria-label={isSorted ? `${col.label}, Sorted ${ariaSort}` : `Sort By ${col.label}`}
               data-sort-col={col.key}
               onClick={() => handleSortClick(col)}
             >

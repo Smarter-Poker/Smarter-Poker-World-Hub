@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Play, Star, Clock, Layers } from 'lucide-react';
+import { X, Play, Star, Layers } from 'lucide-react';
 import TrainingGameArt from '../TrainingGameArt';
 import { VARIANT_METADATA, SUPPORTED_VARIANTS } from '../../../lib/training/trainingPresets.mjs';
 
@@ -31,9 +31,11 @@ function isOutsideDialog(event, dialog) {
 
 export default function TrainingGamePreviewSheet({
   item,
+  isFavorite,
   onClose,
   onLaunch,
   onToggleFavorite,
+  favoritesUnavailable,
   defaultVariant,
 }) {
   const dialogRef = useRef(null);
@@ -143,8 +145,7 @@ export default function TrainingGamePreviewSheet({
               />
               <div className="sp-arena-preview__shade" aria-hidden="true" />
               <div className="sp-arena-preview__meta-bar">
-                <span><Clock size={13} aria-hidden="true" /> {meta.estMinutes} Min</span>
-                <span><Layers size={13} aria-hidden="true" /> {meta.handsTarget} Hands</span>
+                {meta.stackBb != null && <span><Layers size={13} aria-hidden="true" /> {meta.stackBb} BB</span>}
                 <span className="sp-num">Level {meta.difficulty}/5</span>
                 <span className="sp-num">{item.progress}% Calibrated</span>
               </div>
@@ -197,12 +198,13 @@ export default function TrainingGamePreviewSheet({
           <footer className="sp-arena-sheet__foot">
             <button
               type="button"
-              className={`sp-arena-sheet__reset sd-button${item.isFavorite ? ' active' : ''}`}
-              aria-pressed={item.isFavorite}
+              className={`sp-arena-sheet__reset sd-button${isFavorite ? ' active' : ''}`}
+              aria-pressed={isFavorite}
+              disabled={favoritesUnavailable}
               onClick={() => onToggleFavorite(game.id)}
             >
-              <Star size={15} aria-hidden="true" fill={item.isFavorite ? 'currentColor' : 'none'} />
-              <span>{item.isFavorite ? 'Favorited' : 'Favorite'}</span>
+              <Star size={15} aria-hidden="true" fill={isFavorite ? 'currentColor' : 'none'} />
+              <span>{isFavorite ? 'Favorited' : 'Favorite'}</span>
             </button>
             <button
               type="button"

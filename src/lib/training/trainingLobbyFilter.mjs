@@ -15,11 +15,11 @@ export const LOBBY_GROUPS = Object.freeze({
 });
 
 export const LOBBY_CATEGORY_META = Object.freeze({
-  MTT: Object.freeze({ id: 'MTT', label: 'Tournaments', shortLabel: "MTT's", group: 'DRILLS', ledTone: 'cobalt' }),
+  MTT: Object.freeze({ id: 'MTT', label: 'Tournaments', shortLabel: 'Tournaments', group: 'DRILLS', ledTone: 'cobalt' }),
   CASH: Object.freeze({ id: 'CASH', label: 'Cash Games', shortLabel: 'Cash', group: 'DRILLS', ledTone: 'emerald' }),
   SPINS: Object.freeze({ id: 'SPINS', label: 'Spins & SNGs', shortLabel: 'Spins', group: 'DRILLS', ledTone: 'ice' }),
   ADVANCED: Object.freeze({ id: 'ADVANCED', label: 'Poker Strategy', shortLabel: 'Strategy', group: 'LABS', ledTone: 'ice' }),
-  PSYCHOLOGY: Object.freeze({ id: 'PSYCHOLOGY', label: 'Mental Game', shortLabel: 'Mental', group: 'LABS', ledTone: 'steel' }),
+  PSYCHOLOGY: Object.freeze({ id: 'PSYCHOLOGY', label: 'Mental Game', shortLabel: 'Mental Game', group: 'LABS', ledTone: 'steel' }),
 });
 
 export const LOBBY_CATEGORY_ORDER = Object.freeze(['MTT', 'CASH', 'SPINS', 'ADVANCED', 'PSYCHOLOGY']);
@@ -29,7 +29,7 @@ export const QUICK_FILTER_PILLS = Object.freeze([
   { id: 'FOR_YOU', label: 'For You' },
   { id: 'IN_PROGRESS', label: 'In Progress' },
   { id: 'BEGINNER', label: 'Beginner' },
-  { id: 'PRO', label: 'Pro / GTO' },
+  { id: 'PRO', label: 'Advanced' },
 ]);
 
 export const DEFAULT_LOBBY_FILTERS = Object.freeze({
@@ -61,7 +61,14 @@ const STYLE_LABELS = Object.freeze({
   exploitative: 'Exploit',
 });
 
-const OMAHA_GAME_IDS = new Set(['cash-005', 'cash-015', 'mtt-018']);
+// Players type poker terms with or without spaces, apostrophes and hyphens.
+function searchWords(value) {
+  return String(value).toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/\b([3-5])[\s-]*bets?\b/g, '$1bet')
+    .replace(/\bsit[\s-]+(?:and[\s-]+|n[\s-]+|&[\s-]+)?go(?:s|es)?\b/g, 'sng')
+    .match(/[a-z0-9]+/g) || [];
+}
 
 /**
  * Enrich a canonical TRAINING_LIBRARY game entry with deterministic Arena-row
@@ -73,8 +80,7 @@ export function buildLobbyGameMeta(game) {
   const category = game.category || 'MTT';
   const catMeta = LOBBY_CATEGORY_META[category] || LOBBY_CATEGORY_META.MTT;
   const difficulty = Math.max(1, Math.min(5, Number(game.difficulty) || 2));
-  const estMinutes = Math.max(1, Number(game.estMinutes) || 10);
-  const handsTarget = Math.max(1, Number(game.handsTarget) || 20);
+  const stackBb = category === 'PSYCHOLOGY' ? null : preset?.stackDepthBb ?? null;
   const tags = Array.isArray(game.tags) ? game.tags : [];
 
   const styleTokens = tags
@@ -102,9 +108,7 @@ export function buildLobbyGameMeta(game) {
 
   const variantShort = VARIANT_METADATA[preset?.variant]?.shortLabel || 'NLH';
 
-  const isOmahaGame = OMAHA_GAME_IDS.has(game.id);
-
-  const searchHaystack = [
+  const words = searchWords([
     game.id,
     game.name,
     game.focus,
@@ -112,16 +116,16 @@ export function buildLobbyGameMeta(game) {
     catMeta.shortLabel,
     plaqueLabel,
     styleLabel,
+    VARIANT_METADATA[preset?.variant]?.label,
     variantShort,
-    isOmahaGame ? 'omaha plo 5-card five-card 6-card hi-lo plo4 plo5 plo6 plo8' : '',
+    preset?.variant.startsWith('plo') ? 'omaha plo4 plo5 plo6 plo8 5-card five-card 6-card six-card hi-lo' : '',
     ...tags,
     game.vipOnly ? 'vip boss level 10' : 'free',
     `level ${difficulty}`,
     `lvl ${difficulty}`,
   ]
     .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+    .join(' '));
 
   return {
     id: game.id,
@@ -132,16 +136,14 @@ export function buildLobbyGameMeta(game) {
     ledTone: game.vipOnly ? 'crimson' : catMeta.ledTone,
     difficulty,
     difficultyTier,
-    estMinutes,
-    handsTarget,
+    stackBb,
     tags,
     styleLabel,
     plaqueLabel,
     variantShort,
-    isOmahaGame,
     preset,
     vipOnly: Boolean(game.vipOnly),
-    searchHaystack,
+    searchWords: words,
   };
 }
 
@@ -151,6 +153,7 @@ export function buildLobbyGameMeta(game) {
  */
 export function countAdvancedFilters(filters) {
   let count = 0;
+  if (filters.quickFilter && filters.quickFilter !== 'ALL') count += 1;
   if (filters.difficultyTier && filters.difficultyTier !== 'ALL') count += 1;
   if (filters.styleTag && filters.styleTag !== 'ALL') count += 1;
   if (filters.statusFilter && filters.statusFilter !== 'ALL') count += 1;
@@ -182,7 +185,7 @@ export function isRecommendedForPlayer(game, meta, ctx = {}) {
 export function filterAndSortTrainingGames(library, filters, ctx = {}) {
   const f = { ...DEFAULT_LOBBY_FILTERS, ...(filters || {}) };
   const query = String(f.query || '').trim().toLowerCase();
-  const queryTerms = query ? query.split(/\s+/).filter(Boolean) : [];
+  const queryTerms = searchWords(query);
   const favoriteSet = ctx.favoriteIds instanceof Set ? ctx.favoriteIds : new Set(ctx.favoriteIds || []);
   const getProgress = typeof ctx.getProgress === 'function' ? ctx.getProgress : () => 0;
 
@@ -226,17 +229,13 @@ export function filterAndSortTrainingGames(library, filters, ctx = {}) {
     if (f.accessFilter === 'FREE' && meta.vipOnly) continue;
     if (f.accessFilter === 'VIP' && !meta.vipOnly) continue;
 
-    // Variant filter matches games compatible with the selected variant (preserving
-    // 1-tap PLO4/PLO5/PLO6/PLO8 discovery for Omaha + Cash games and Hold'em isolation).
     if (f.variant !== 'ALL') {
-      if (meta.category === 'PSYCHOLOGY') continue;
-      if (f.variant === 'nlh' && meta.isOmahaGame) continue;
-      if (['plo4', 'plo5', 'plo6', 'plo8'].includes(f.variant) && !meta.isOmahaGame && meta.category !== 'CASH') {
-        continue;
-      }
+      const omahaPreset = meta.preset?.variant.startsWith('plo');
+      if (f.variant === 'nlh' && omahaPreset) continue;
+      if (f.variant !== 'nlh' && !omahaPreset && meta.category !== 'CASH') continue;
     }
 
-    if (queryTerms.length > 0 && !queryTerms.every((term) => meta.searchHaystack.includes(term))) {
+    if (queryTerms.length > 0 && !queryTerms.every((term) => meta.searchWords.some((word) => word.startsWith(term)))) {
       continue;
     }
 
@@ -261,8 +260,11 @@ export function filterAndSortTrainingGames(library, filters, ctx = {}) {
       const diff = (a.meta.difficulty - b.meta.difficulty) * dir;
       return diff !== 0 ? diff : a.catalogIndex - b.catalogIndex;
     }
-    if (f.sortKey === 'length') {
-      const diff = (a.meta.estMinutes - b.meta.estMinutes) * dir;
+    if (f.sortKey === 'stack') {
+      if (a.meta.stackBb == null || b.meta.stackBb == null) {
+        return Number(a.meta.stackBb == null) - Number(b.meta.stackBb == null);
+      }
+      const diff = (a.meta.stackBb - b.meta.stackBb) * dir;
       return diff !== 0 ? diff : a.catalogIndex - b.catalogIndex;
     }
     if (f.sortKey === 'progress') {
@@ -332,4 +334,28 @@ export function buildLobbySections(items, filters) {
   }
 
   return sections;
+}
+
+// Page the grouped, filtered order so a featured game is never repeated across pages.
+export function getLobbyResultsPage(sections, requestedPage) {
+  const pageSize = 8;
+  const total = sections.reduce((count, section) => count + section.items.length, 0);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(pageCount, Math.max(1, requestedPage));
+  const start = (page - 1) * pageSize;
+  const end = Math.min(start + pageSize, total);
+  let offset = 0;
+  const groups = [];
+  for (const section of sections) {
+    const groupStart = offset;
+    offset += section.items.length;
+    if (offset <= start || groupStart >= end) continue;
+    groups.push({
+      ...section,
+      items: section.items.slice(Math.max(start - groupStart, 0), end - groupStart),
+      total: section.items.length,
+      rowOffset: Math.max(groupStart - start, 0),
+    });
+  }
+  return { groups, total, page, pageCount, first: total ? start + 1 : 0, last: end };
 }
