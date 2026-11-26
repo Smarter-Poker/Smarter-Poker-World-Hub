@@ -318,9 +318,13 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     if (workspace === 'dock' || workspace === 'feed') {
         // Global reconnect/inbox reads must cover each currently authorized
         // workspace, including club discussions missed while offline.
-        const feed = workspace === 'feed' ? { window: feedWindow(request.window), pinned: feedPinnedIds(request.pinnedIds),
-            attention: await feedAttentionIds(db, userId, clubs) } : null;
-        const options = { clubs, countsOnly: true, bothFolders: true,
+        const [attention, draftStates] = await Promise.all([
+            workspace === 'feed' ? feedAttentionIds(db, userId, clubs) : Promise.resolve(null),
+            rows(db.from('messenger_conversation_state').select('conversation_id,draft_text,updated_at')
+                .eq('user_id', userId).neq('draft_text', '').limit(50), 'draft conversations'),
+        ]);
+        const feed = workspace === 'feed' ? { window: feedWindow(request.window), pinned: feedPinnedIds(request.pinnedIds), attention } : null;
+        const options = { clubs, countsOnly: true, bothFolders: true, draftStates,
             ...(feed ? { feed } : { recentLimit: DOCK_RECENT_LIMIT }) };
         const workspaces = [await getMessengerWorkspace(db, userId, { workspace: 'social' }, options)];
         for (let start = 0; start < clubs.length; start += DOCK_CLUBS_AT_ONCE) {
@@ -401,7 +405,70 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     const emptyGroups = managed.filter(g => participation.some(p => p.conversation_id === g.conversation_id)
         && (!authorizeOne || g.conversation_id === resolvedId))
         .map(g => ({ conversation_id: g.conversation_id, is_group: true, unread_count: 0 }));
-    const everyThread = [...new Map([...emptyGroups, ...listed].map(c => [c.conversation_id || c.id, c])).values()];
+
+    // Empty (0-message) threads with an active server-saved draft are omitted
+    // by fn_get_user_conversations. Surface strictly message-less, authorized,
+    // non-accounting draft threads in their matching workspace so users never
+    // lose an unsent new-conversation draft after reloading.
+    const existingIds = new Set([...emptyGroups, ...listed].map(c => c.conversation_id || c.id));
+    const draftThreads = [];
+    const draftPreviewMap = new Map();
+    if (folder === 'messages' && !authorizeOne && !internal.unreadOnly && !resolvedId) {
+        const draftStates = Array.isArray(internal.draftStates)
+            ? internal.draftStates
+            : await rows(db.from('messenger_conversation_state').select('conversation_id,draft_text,updated_at')
+                .eq('user_id', userId).neq('draft_text', '').limit(50), 'draft conversations');
+        const candidateDrafts = draftStates.filter(d => d && typeof d.draft_text === 'string' && d.draft_text.trim() && !existingIds.has(d.conversation_id));
+        if (candidateDrafts.length) {
+            const candidateIds = candidateDrafts.map(d => d.conversation_id);
+            const [draftParts, draftAccounting, draftMessages] = await Promise.all([
+                rows(db.from('social_conversation_participants').select('conversation_id,context_entity_id')
+                    .eq('user_id', userId).in('conversation_id', candidateIds), 'draft participation'),
+                rows(db.from('accounting_conversations').select('conversation_id')
+                    .in('conversation_id', candidateIds), 'draft accounting'),
+                rows(db.from('social_messages').select('conversation_id')
+                    .in('conversation_id', candidateIds).limit(200), 'draft messages'),
+            ]);
+            const accountingIds = new Set(draftAccounting.map(a => a.conversation_id));
+            const nonEmptyIds = new Set(draftMessages.map(m => m.conversation_id));
+            const validIds = draftParts
+                .filter(p => (p.context_entity_id ?? null) === (contextId ?? null)
+                    && !accountingIds.has(p.conversation_id)
+                    && !nonEmptyIds.has(p.conversation_id))
+                .map(p => p.conversation_id);
+            if (validIds.length) {
+                const otherParts = await rows(db.from('social_conversation_participants').select('conversation_id,user_id')
+                    .in('conversation_id', validIds).neq('user_id', userId), 'draft counterparts');
+                const otherUserIds = [...new Set(otherParts.map(p => p.user_id).filter(Boolean))];
+                const otherProfiles = otherUserIds.length
+                    ? await byIds(db, 'profiles', 'id,username,display_name,avatar_url', 'id', otherUserIds)
+                    : [];
+                const profileById = new Map(otherProfiles.map(p => [p.id, p]));
+                const otherByConv = new Map();
+                for (const part of otherParts) {
+                    if (!otherByConv.has(part.conversation_id)) otherByConv.set(part.conversation_id, profileById.get(part.user_id) || null);
+                }
+                const draftByConv = new Map(candidateDrafts.map(d => [d.conversation_id, d]));
+                for (const convId of validIds) {
+                    const draftRow = draftByConv.get(convId);
+                    const other = otherByConv.get(convId);
+                    draftPreviewMap.set(convId, draftRow.draft_text.trim());
+                    draftThreads.push({
+                        conversation_id: convId,
+                        is_group: false,
+                        unread_count: 0,
+                        last_message_at: draftRow.updated_at || null,
+                        other_user_id: other?.id || null,
+                        other_user_username: other?.display_name || other?.username || null,
+                        other_user_avatar: other?.avatar_url || null,
+                    });
+                }
+            }
+        }
+    }
+
+    const pinnedEmptyCount = emptyGroups.length + draftThreads.length;
+    const everyThread = [...new Map([...emptyGroups, ...draftThreads, ...listed].map(c => [c.conversation_id || c.id, c])).values()];
     let unique = everyThread;
     let hasOlder = false;
     if (internal.unreadOnly && !authorizeOne) {
@@ -410,7 +477,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         const sliced = feedInboxSlice(everyThread, club ? {
             window: internal.feed.window, pinned: internal.feed.pinned, attention: internal.feed.attention,
             shown: await feedInvoiceThreadIds(db, userId, club), unreadShown: !!club.pageId,
-        } : { window: internal.feed.window, pinned: internal.feed.pinned, alwaysKeep: emptyGroups.length });
+        } : { window: internal.feed.window, pinned: internal.feed.pinned, alwaysKeep: pinnedEmptyCount });
         unique = sliced.conversations;
         hasOlder = sliced.hasOlder;
     } else if (internal.recentLimit && !authorizeOne) {
@@ -421,7 +488,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
                 dockCandidates = everyThread.filter(c => !hiddenInvoices.has(c.conversation_id || c.id));
             }
         }
-        unique = dockInboxSlice(dockCandidates, internal.recentLimit, emptyGroups.length);
+        unique = dockInboxSlice(dockCandidates, internal.recentLimit, pinnedEmptyCount);
     }
     const ids = unique.map(c => c.conversation_id || c.id);
     const [meta, accounting] = await Promise.all([
@@ -457,6 +524,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
             id, title: c.title || m.group_name, is_group: !!c.is_group,
             last_message_at: accounting.get(id)?.last_message_at ?? c.last_message_at,
             last_message_preview: accounting.has(id) ? accounting.get(id).last_message_preview : m.last_message_preview,
+            ...(draftPreviewMap.has(id) ? { draftPreview: draftPreviewMap.get(id) } : {}),
             unreadCount: Number(c.unread_count || 0), last_read_at: c.last_read_at || null,
             isRequest: !!m.is_request, requestSenderId: m.request_sender_id,
             otherUser: c.other_user_id ? {

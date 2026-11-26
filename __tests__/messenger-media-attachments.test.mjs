@@ -12,7 +12,9 @@ import test from 'node:test';
 import * as messageMedia from '../src/lib/messenger/messageMedia.mjs';
 import {
     encodeMessageMedia,
+    extractMediaDimensions,
     extractReplyPrefix,
+    extractSharedThreadMedia,
     formatReplyQuote,
     parseMessageMedia,
     isMediaMessage,
@@ -139,13 +141,11 @@ test('a photo opens over the conversation, never in another tab or browser', () 
     assert.match(bubble, /<MediaViewer /);
 });
 
-// A THREAD PHOTO IS DRAWN SMALL, SO IT SHOULD ARRIVE SMALL (2026-11-09).
-// Measured on a real message: 1,209,873 bytes of 1080x2340 JPEG, displayed
-// 129 pixels wide. The same image fitted to width 560 is 96,180 bytes of WebP.
-test('a thread photo is requested at the size it is drawn, from our own storage only', () => {
+// A THREAD PHOTO IS DRAWN UP TO 400PX WIDE ON DESKTOP, SO WIDTH 800 IS 2X RETINA SHARP (2026-11-25).
+test('a thread photo is requested at 2x retina width from our own storage only', () => {
     const stored = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/messages/a/b.jpg';
     const fitted = mediaThumbnailUrl(stored);
-    assert.match(fitted, /\/storage\/v1\/render\/image\/public\/social-media\/messages\/a\/b\.jpg\?width=560&quality=72$/);
+    assert.match(fitted, /\/storage\/v1\/render\/image\/public\/social-media\/messages\/a\/b\.jpg\?width=800&quality=72$/);
     assert.equal(isThumbnailUrl(fitted), true);
     assert.equal(isThumbnailUrl(stored), false);
 });
@@ -374,4 +374,140 @@ test('reply quotes, double-forwarded media, structured edit guards, and search/s
     assert.match(page, /messengerPreviewText\(result\.content/);
     assert.match(bubble, /const canEditMessage = isOwn[\s\S]*!isMediaAttachment/);
     assert.match(bubble, /margin:\s*'0 auto'/);
+});
+
+// THIRD-PASS FULL ENHANCEMENT SUITE (2026-11-25):
+// Desktop actions (hover/focus pill + right-click + Escape), caption encoding,
+// media dimension aspect-ratio CLS reservation, voice unmount cleanup & range
+// scrubbing, TUS resumable video upload + progress/cancel, HEIC conversion,
+// composer preview tray / paste / drag-and-drop, and Shared Thread Media gallery.
+test('caption encoding, aspect-ratio extraction, and shared thread media extraction work cleanly', () => {
+    const videoUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/messages/a/clip.mp4';
+    const captioned = encodeMessageMedia({ kind: 'image', url: PHOTO, caption: '  River bluff!  ' });
+    assert.equal(captioned, `[Image](${PHOTO}) River bluff!`);
+    assert.equal(parseMessageMedia(captioned).caption, 'River bluff!');
+    assert.equal(encodeMessageMedia({ kind: 'image', url: PHOTO, caption: '   ' }), `[Image](${PHOTO})`);
+
+    assert.deepEqual(extractMediaDimensions({ media_width: 1080, media_height: 1920 }), {
+        width: 1080, height: 1920, aspectRatio: '1080 / 1920',
+    });
+    assert.equal(extractMediaDimensions({ media_width: 10, media_height: 10 }), null, 'too small');
+    assert.equal(extractMediaDimensions({ media_width: 5000, media_height: 100 }), null, 'extreme ratio refused');
+    assert.equal(extractMediaDimensions(null), null);
+
+    const gallery = extractSharedThreadMedia([
+        { id: '1', content: 'plain text', created_at: '2026-11-25T10:00:00Z' },
+        { id: '2', content: `[Image](${PHOTO}) First`, created_at: '2026-11-25T10:01:00Z', media_metadata: { media_width: 800, media_height: 600 } },
+        { id: '3', content: `[Image](${PHOTO}) Deleted`, is_deleted: true, created_at: '2026-11-25T10:02:00Z' },
+        { id: '4', content: `[Audio](${PHOTO})|dur:5`, created_at: '2026-11-25T10:03:00Z' },
+        { id: '5', content: `[Video](${videoUrl}) Clip`, created_at: '2026-11-25T10:04:00Z' },
+    ]);
+    assert.equal(gallery.length, 2);
+    assert.equal(gallery[0].id, '5', 'newest media appears first');
+    assert.equal(gallery[0].kind, 'video');
+    assert.equal(gallery[1].id, '2');
+    assert.deepEqual(gallery[1].dimensions, { width: 800, height: 600, aspectRatio: '800 / 600' });
+});
+
+test('MessageBubble renders desktop actions, aspect-ratio reservation, and accessible voice scrubber', () => {
+    const require = createRequire(import.meta.url);
+    const ts = require('typescript');
+    const React = require('react');
+    const { renderToStaticMarkup } = require('react-dom/server');
+    const theme = {
+        bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
+        blue: '#0084FF', red: '#E41E3F', border: '#E4E6EB', hoverBg: '#E4E6EB',
+        ownBubble: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)', otherBubble: '#E4E6EB',
+    };
+    const bubbleSource = readFileSync('src/components/messenger/MessageBubble.js', 'utf8');
+    const code = ts.transpileModule(bubbleSource, {
+        fileName: 'MessageBubble.jsx',
+        compilerOptions: { jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
+    }).outputText;
+    const mod = { exports: {} };
+    const Nothing = () => null;
+    new Function('require', 'module', 'exports', code)(name => ({
+        './MediaViewer': { __esModule: true, default: Nothing, ATTACHMENT_ATTRIBUTE: 'data-message-attachment' },
+        './MessengerTheme': { defaultTheme: theme },
+        './Avatar': { Avatar: Nothing },
+        './AccountingInvoiceCard': { __esModule: true, default: Nothing },
+        './InvoicePaymentStatus': { __esModule: true, default: Nothing },
+        './CashoutRequestActions': { __esModule: true, default: Nothing, formatChips: String },
+        './ReliabilityIncidentControls': { __esModule: true, default: Nothing, ReliabilityMessageHeader: Nothing, ReliabilityMessageDelete: Nothing },
+        '../../lib/authUtils': { getAccessToken: () => null, authedFetch: async () => ({}) },
+        '../../lib/accountingMessage.mjs': accountingMessage,
+        '../../lib/unionEco.mjs': unionEco,
+        '../../lib/messenger/messageMedia.mjs': messageMedia,
+        '../../lib/messenger/liveInvite.mjs': liveInvite,
+        '../../lib/messenger/callReceipt.mjs': callReceipt,
+        '../../lib/messenger/reliabilityIncident.mjs': reliabilityIncident,
+    })[name] || require(name), mod, mod.exports);
+    const { MessageBubble } = mod.exports;
+
+    const sizedPhotoHtml = renderToStaticMarkup(React.createElement(MessageBubble, {
+        message: {
+            id: 'm2',
+            content: `[Image](${PHOTO})`,
+            media_metadata: { media_width: 900, media_height: 1600 },
+            created_at: '2026-11-25T17:00:00Z',
+        },
+        isOwn: true, showAvatar: false, showTime: true, isLastInGroup: true,
+        onReply: () => {}, onReact: () => {}, onDelete: () => {},
+        currentUserId: 'u1', theme,
+    }));
+    assert.match(sizedPhotoHtml, /width="900"/);
+    assert.match(sizedPhotoHtml, /height="1600"/);
+    assert.match(sizedPhotoHtml, /aspect-ratio:900 \/ 1600/);
+    assert.match(sizedPhotoHtml, /data-message-actions/);
+    assert.match(sizedPhotoHtml, /aria-label="React To Message"/);
+    assert.match(sizedPhotoHtml, /aria-label="Reply To Message"/);
+    assert.match(sizedPhotoHtml, /aria-label="More Message Actions"/);
+
+    const voiceHtml = renderToStaticMarkup(React.createElement(MessageBubble, {
+        message: { id: 'm3', content: `[Audio](${PHOTO})|dur:14`, created_at: '2026-11-25T17:01:00Z' },
+        isOwn: false, showAvatar: false, showTime: true, isLastInGroup: true,
+        currentUserId: 'u1', theme,
+    }));
+    assert.match(voiceHtml, /type="range"/);
+    assert.match(voiceHtml, /aria-label="Voice Message Progress"/);
+    assert.match(voiceHtml, /aria-label="Play Voice Message"/);
+
+    // Source contracts: right-click handler, Escape dismiss, and AudioMessage unmount cleanup.
+    assert.match(bubbleSource, /onContextMenu=\{handleContextMenu\}/);
+    assert.match(bubbleSource, /event\.key === 'Escape'/);
+    assert.match(bubbleSource, /cancelAnimationFrame\(animFrameRef\.current\)[\s\S]*audioRef\.current\.pause\(\)/);
+});
+
+test('composer preview tray, paste, drag-and-drop, TUS resumable video, HEIC conversion, and Shared Media drawer are wired', () => {
+    const input = readFileSync('src/components/messenger/MessageInput.js', 'utf8');
+    const page = readFileSync('pages/hub/messenger.js', 'utf8');
+    const uploader = readFileSync('src/lib/messenger/mediaUpload.js', 'utf8');
+    const dock = readFileSync('src/components/messenger/dock/MessengerChat.jsx', 'utf8');
+
+    assert.match(input, /data-attachment-preview/);
+    assert.match(input, /data-upload-progress/);
+    assert.match(input, /aria-label="Cancel Upload"/);
+    assert.match(input, /aria-label="Remove Attachment"/);
+    assert.match(input, /onPaste=\{handlePaste\}/);
+    assert.match(input, /Add A Caption/);
+
+    assert.match(page, /prepareMessengerUploadFile/);
+    assert.match(page, /uploadFileWithProgress/);
+    assert.match(page, /data-chat-drop-overlay/);
+    assert.match(page, /data-testid="conversation-info-drawer"/);
+    assert.match(page, /extractSharedThreadMedia\(messages\)/);
+    assert.match(page, /media_width: prepared\.width, media_height: prepared\.height/);
+
+    assert.match(uploader, /import \* as tus from 'tus-js-client'/);
+    assert.match(uploader, /isHeicFile/);
+    assert.match(uploader, /removeFingerprintOnSuccess: true/);
+    assert.equal(/onBeforeRequest\s*:/.test(uploader), false, 'tus-js-client v4.3.1 onBeforeRequest setHeader appends headers and breaks Supabase JWS');
+    assert.equal(/storeFingerprintForResuming\s*:/.test(uploader), false, 'stale fingerprints cause silent TUS stalls');
+
+    assert.match(dock, /prepareMessengerUploadFile/);
+    assert.match(dock, /uploadFileWithProgress/);
+    assert.match(dock, /dock-media-preview/);
+    assert.match(dock, /dock-upload-progress/);
+    assert.match(dock, /onPaste=\{handlePaste\}/);
+    assert.match(dock, /extractMediaDimensions/);
 });

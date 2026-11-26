@@ -71,7 +71,9 @@ import InvoicePaymentsPanel from '../../src/components/messenger/InvoicePayments
 import StatementsPanel from '../../src/components/messenger/StatementsPanel';
 import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
-import { encodeMessageMedia, formatReplyQuote, isStructuredMessageContent, resolveUploadMedia, stripForwardPrefix } from '../../src/lib/messenger/messageMedia.mjs';
+import { encodeMessageMedia, extractSharedThreadMedia, formatReplyQuote, isStructuredMessageContent, mediaThumbnailUrl, resolveUploadMedia, stripForwardPrefix, videoPreviewUrl } from '../../src/lib/messenger/messageMedia.mjs';
+import { prepareMessengerUploadFile, uploadFileWithProgress } from '../../src/lib/messenger/mediaUpload';
+import MediaViewer from '../../src/components/messenger/MediaViewer';
 import { messengerPreviewText } from '../../src/lib/messengerPreview.mjs';
 
 // Default light theme (overridden at component level)
@@ -409,6 +411,10 @@ function MessengerPage() {
     const [onlineUsers, setOnlineUsers] = useState(new Set());
     const [friends, setFriends] = useState([]); // Friends list for quick access
     const [showUserInfo, setShowUserInfo] = useState(false);
+    const [stagedMediaFile, setStagedMediaFile] = useState(null);
+    const [isDragOverChat, setIsDragOverChat] = useState(false);
+    const [galleryViewerUrl, setGalleryViewerUrl] = useState(null);
+    const dragDepthRef = useRef(0);
     // Editing State
     const [editingMessage, setEditingMessage] = useState(null); // message being edited
     const [editText, setEditText] = useState('');
@@ -658,10 +664,20 @@ function MessengerPage() {
         return () => window.removeEventListener('resize', check);
     }, []);
 
+    // Reset per-conversation overlay state whenever the active thread changes.
+    useEffect(() => {
+        setShowUserInfo(false);
+        setStagedMediaFile(null);
+        setIsDragOverChat(false);
+        setGalleryViewerUrl(null);
+        dragDepthRef.current = 0;
+    }, [activeConversation?.id]);
+
     // Phase 3: Keyboard shortcuts (Escape closes panels)
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
+                if (galleryViewerUrl) { setGalleryViewerUrl(null); return; }
                 if (showUserInfo) { setShowUserInfo(false); return; }
                 if (showMessageSearch) { setShowMessageSearch(false); return; }
                 if (forwardingMessage) { setForwardingMessage(null); return; }
@@ -674,7 +690,7 @@ function MessengerPage() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showUserInfo, showMessageSearch, forwardingMessage, editingMessage, replyToMessage, menuOpen, isMobile, activeConversation]);
+    }, [galleryViewerUrl, showUserInfo, showMessageSearch, forwardingMessage, editingMessage, replyToMessage, menuOpen, isMobile, activeConversation]);
 
     // NOTE: Identity-switch reload effect is placed AFTER loadConversationsRef declaration below
 
@@ -2428,14 +2444,24 @@ function MessengerPage() {
 
     // Uploads retain their original account, destination and club identity. Only
     // the final URL enters a durable send operation; a blob preview is not retryable.
-    const uploadMessengerAttachment = async (file, { fileName, mimeType, contentForUrl, timeoutMs }) => {
+    const uploadMessengerAttachment = async (file, {
+        kind = 'image',
+        fileName,
+        mimeType,
+        contentForUrl,
+        extraMetadata = null,
+        onProgress,
+        signal,
+        timeoutMs,
+    }) => {
         if (!user || !activeConversation || !file) return;
         const actorId = user.id;
         const conversationId = activeConversation.id;
         const generation = authGenerationRef.current;
         const scope = workspaceRef.current;
         const requestId = crypto.randomUUID();
-        const metadata = getClubMetadata();
+        const clubMeta = getClubMetadata();
+        const metadata = extraMetadata ? { ...(clubMeta || {}), ...extraMetadata } : clubMeta;
         const profile = isClubMode && clubPage
             ? { id: actorId, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
             : { id: actorId, username: user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url };
@@ -2450,7 +2476,7 @@ function MessengerPage() {
         }
         const tempId = `temp-${requestId}`;
         setMessages(previous => [...previous, { id: tempId, request_id: requestId, conversation_id: conversationId,
-            content: previewContent, created_at: new Date().toISOString(), sender_id: actorId,
+            content: previewContent, media_metadata: metadata, created_at: new Date().toISOString(), sender_id: actorId,
             profiles: profile, status: 'sending' }]);
         setToast({ type: 'info', message: 'Uploading...' });
         try {
@@ -2458,16 +2484,19 @@ function MessengerPage() {
             const response = await authedFetch('/api/social/upload-url', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ fileName, fileSize: file.size, mimeType, folder: 'messages', prefix: actorId }),
+                signal,
             });
             const upload = await response.json();
             if (!response.ok || !upload.success || !upload.signedUrl || !upload.publicUrl) throw new Error('Upload Could Not Be Started');
             if (!sameAccount()) return;
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), timeoutMs);
-            try {
-                const result = await fetch(upload.signedUrl, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: file, signal: controller.signal });
-                if (!result.ok) throw new Error('Upload Did Not Complete');
-            } finally { clearTimeout(timeout); }
+            await uploadFileWithProgress(file, upload, {
+                kind,
+                mimeType,
+                accessToken: token,
+                onProgress,
+                signal,
+                timeoutMs,
+            });
             if (!sameAccount()) return;
             const sendContent = contentForUrl(upload.publicUrl);
             if (!sendContent) throw new Error('Upload Produced An Unusable Address');
@@ -2482,37 +2511,53 @@ function MessengerPage() {
         } catch (error) {
             if (current()) {
                 setMessages(previous => current() ? previous.filter(message => message.id !== tempId) : previous);
-                setToast({ type: 'error', message: 'Upload Failed. Select The File Again To Retry.' });
+                if (error?.name === 'AbortError') {
+                    setToast({ type: 'info', message: 'Upload Cancelled' });
+                } else {
+                    setToast({ type: 'error', message: 'Upload Failed. Select The File Again To Retry.' });
+                }
             }
         } finally {
             URL.revokeObjectURL(blobUrl);
         }
     };
 
-    // Handle media (photo/video) upload.
-    const handleMediaUpload = async (file) => {
+    // Handle media (photo/video) upload with HEIC conversion, dimension capture, and TUS video resume.
+    const handleMediaUpload = async (file, { caption = '', onProgress, signal } = {}) => {
         if (!user || !activeConversation || !file) return;
-        const resolved = resolveUploadMedia(file);
-        if (!resolved) {
+        const prepared = await prepareMessengerUploadFile(file);
+        if (!prepared) {
             setToast({ type: 'error', message: 'Only Images And Videos Are Supported' });
             return;
         }
-        const isVideo = resolved.kind === 'video';
+        const isVideo = prepared.kind === 'video';
         const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-        if (file.size > maxSize) {
+        if (prepared.file.size > maxSize) {
             setToast({ type: 'error', message: `File Too Large. Max ${isVideo ? '50MB' : '10MB'}` });
             return;
         }
-        return uploadMessengerAttachment(file, {
-            fileName: file.name || `media_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
-            mimeType: resolved.mimeType,
-            contentForUrl: url => encodeMessageMedia({ kind: resolved.kind, url }), timeoutMs: 5 * 60 * 1000,
+        if (prepared.heicUnsupportedInBrowser) {
+            setToast({ type: 'info', message: 'Uploading Original HEIC File. Use JPG Or PNG For All Browsers.' });
+        }
+        const extraMetadata = prepared.width && prepared.height
+            ? { media_width: prepared.width, media_height: prepared.height }
+            : null;
+        return uploadMessengerAttachment(prepared.file, {
+            kind: prepared.kind,
+            fileName: prepared.fileName,
+            mimeType: prepared.mimeType,
+            contentForUrl: url => encodeMessageMedia({ kind: prepared.kind, url, caption }),
+            extraMetadata,
+            onProgress,
+            signal,
+            timeoutMs: isVideo ? 10 * 60 * 1000 : 5 * 60 * 1000,
         });
     };
 
     const handleVoiceSend = async (audioBlob, durationSeconds) => {
         if (!user || !activeConversation || !audioBlob) return;
         return uploadMessengerAttachment(audioBlob, {
+            kind: 'audio',
             fileName: `voice_${Date.now()}.webm`, mimeType: 'audio/webm',
             contentForUrl: url => encodeMessageMedia({ kind: 'audio', url, duration: durationSeconds }), timeoutMs: 60000,
         });
@@ -3264,6 +3309,7 @@ function MessengerPage() {
                                             conv.otherUser?.id
                                             || conv.participants?.find(p => p.id !== user.id)?.id
                                         )}
+                                        draftText={continuity.state(conv.id).draft?.text || conv.draftPreview || ''}
                                         onBlock={handleToggleBlock}
                                         theme={C}
                                         onPin={handleTogglePin}
@@ -3511,7 +3557,39 @@ function MessengerPage() {
                 {/* ════════════════════════════════════════════════════════
                     RIGHT PANEL - Chat Window
                     ════════════════════════════════════════════════════════ */}
-                <main style={{
+                <main
+                    onDragEnter={(e) => {
+                        if (!activeConversation || activeConversation.isJarvis) return;
+                        if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+                        e.preventDefault();
+                        dragDepthRef.current += 1;
+                        setIsDragOverChat(true);
+                    }}
+                    onDragOver={(e) => {
+                        if (!activeConversation || activeConversation.isJarvis) return;
+                        if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+                        e.preventDefault();
+                        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+                    }}
+                    onDragLeave={(e) => {
+                        if (!activeConversation || activeConversation.isJarvis) return;
+                        e.preventDefault();
+                        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+                        if (dragDepthRef.current === 0) setIsDragOverChat(false);
+                    }}
+                    onDrop={(e) => {
+                        if (!activeConversation || activeConversation.isJarvis) return;
+                        e.preventDefault();
+                        dragDepthRef.current = 0;
+                        setIsDragOverChat(false);
+                        const dropped = Array.from(e.dataTransfer?.files || []).find(f => resolveUploadMedia(f));
+                        if (dropped) {
+                            setStagedMediaFile(dropped);
+                        } else if ((e.dataTransfer?.files?.length || 0) > 0) {
+                            setToast({ type: 'error', message: 'Only Images And Videos Are Supported' });
+                        }
+                    }}
+                    style={{
                     flex: 1,
                     minHeight: 0,
                     minWidth: 0,
@@ -3520,6 +3598,28 @@ function MessengerPage() {
                     background: C.card,
                     position: 'relative', // Phase 3 BUGFIX: anchor for scroll-to-bottom FAB
                 }}>
+                    {isDragOverChat && activeConversation && !activeConversation.isJarvis && (
+                        <div
+                            data-chat-drop-overlay
+                            style={{
+                                position: 'absolute',
+                                inset: 12,
+                                zIndex: 120,
+                                borderRadius: 16,
+                                border: `2px dashed ${C.blue}`,
+                                background: isDarkMode ? 'rgba(24, 25, 26, 0.88)' : 'rgba(255, 255, 255, 0.92)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 8,
+                                pointerEvents: 'none',
+                            }}
+                        >
+                            <div style={{ fontSize: 18, fontWeight: 700, color: C.blue }}>Drop Photo Or Video To Attach</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Preview And Add An Optional Caption Before Sending</div>
+                        </div>
+                    )}
                     {
                         workspaceSelection.folder === 'statements' && selectedClub ? (
                             <StatementsPanel key={`${user.id}:${selectedClub.id}`} club={selectedClub} userId={user.id} theme={C}
@@ -3638,14 +3738,15 @@ function MessengerPage() {
                                             }}><VideoIcon size={22} /></button>
                                             </>
                                         )}
-                                        {/* User Info had no panel behind it and did nothing; it opens the profile. */}
-                                        {!activeConversation.isAccounting && !activeConversation.is_group && otherUser?.username && <button
-                                            onClick={() => router.push(`/hub/user/${encodeURIComponent(otherUser.username)}`)}
-                                            title="View Profile"
+                                        {!activeConversation.isJarvis && <button
+                                            type="button"
+                                            onClick={() => setShowUserInfo(prev => !prev)}
+                                            title="Conversation Info And Shared Media"
                                             aria-label="User Info"
+                                            aria-expanded={showUserInfo}
                                             style={{
                                                 width: 40, height: 40, borderRadius: '50%', flexShrink: 0, touchAction: 'manipulation',
-                                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                                background: showUserInfo ? C.bg : 'transparent', border: 'none', cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             }}><InfoIcon size={20} /></button>}
                                     </div>
@@ -4032,8 +4133,170 @@ function MessengerPage() {
 
                                 <ContinuityStatus controller={continuity} conversationId={activeConversation.isJarvis ? null : activeConversation.id} theme={C}
                                     onUsePosition={position => loadMessages(activeConversation.id, position.messageId ? { anchorMessageId: position.messageId, offset: position.offset } : { latest: true })} />
-                                <MessageInput key={`${user.id}:${activeConversation.id}`} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} autoFocus={composeFocus} value={activeConversation.isJarvis ? undefined : continuity.state(activeConversation.id).draft.text}
+                                <MessageInput key={`${user.id}:${activeConversation.id}`} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} stagedFile={stagedMediaFile} onStagedFileConsumed={() => setStagedMediaFile(null)} autoFocus={composeFocus} value={activeConversation.isJarvis ? undefined : continuity.state(activeConversation.id).draft.text}
                                     onDraftChange={activeConversation.isJarvis ? undefined : text => editContinuity(activeConversation.id, 'draft', { text, replyToId: continuity.state(activeConversation.id).draft.replyToId })} theme={C} />
+
+                                {showUserInfo && !activeConversation.isJarvis && (() => {
+                                    const sharedMedia = extractSharedThreadMedia(messages);
+                                    return (
+                                        <aside
+                                            aria-label="Conversation Info"
+                                            data-testid="conversation-info-drawer"
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                width: isMobile ? '100%' : 320,
+                                                maxWidth: '100%',
+                                                background: C.card,
+                                                borderLeft: isMobile ? 'none' : `1px solid ${C.border}`,
+                                                boxShadow: '-4px 0 20px rgba(0,0,0,0.14)',
+                                                zIndex: 90,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                            }}
+                                        >
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                padding: '12px 16px',
+                                                borderBottom: `1px solid ${C.border}`,
+                                            }}>
+                                                <strong style={{ fontSize: 15, color: C.text }}>Conversation Info</strong>
+                                                <button
+                                                    type="button"
+                                                    aria-label="Close Conversation Info"
+                                                    onClick={() => setShowUserInfo(false)}
+                                                    style={{
+                                                        width: 32, height: 32, borderRadius: '50%', border: 'none',
+                                                        background: C.bg, color: C.text, cursor: 'pointer', fontSize: 18,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    }}
+                                                >×</button>
+                                            </div>
+                                            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+                                                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                                                    <Avatar src={otherUser?.avatar_url} name={activeTitle} size={64} online={!activeConversation.is_group && isActiveOtherOnline} theme={C} />
+                                                    <div style={{ marginTop: 10, fontWeight: 700, fontSize: 16, color: C.text }}>{activeTitle}</div>
+                                                    {!activeConversation.isAccounting && !activeConversation.is_group && otherUser?.username && (
+                                                        <Link
+                                                            href={`/hub/user/${encodeURIComponent(otherUser.username)}`}
+                                                            style={{
+                                                                display: 'inline-block',
+                                                                marginTop: 10,
+                                                                padding: '7px 14px',
+                                                                borderRadius: 18,
+                                                                background: C.bg,
+                                                                color: C.blue,
+                                                                textDecoration: 'none',
+                                                                fontSize: 13,
+                                                                fontWeight: 600,
+                                                            }}
+                                                        >View Profile</Link>
+                                                    )}
+                                                </div>
+                                                <div style={{
+                                                    fontSize: 12,
+                                                    fontWeight: 700,
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.04em',
+                                                    color: C.textSec,
+                                                    marginBottom: 10,
+                                                }}>
+                                                    Shared Media ({sharedMedia.length})
+                                                </div>
+                                                {sharedMedia.length === 0 ? (
+                                                    <div style={{
+                                                        padding: '24px 12px',
+                                                        textAlign: 'center',
+                                                        fontSize: 13,
+                                                        color: C.textSec,
+                                                        background: C.bg,
+                                                        borderRadius: 10,
+                                                    }}>
+                                                        No Shared Photos Or Videos Yet
+                                                    </div>
+                                                ) : (
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                                                        gap: 6,
+                                                    }}>
+                                                        {sharedMedia.map((item) => (
+                                                            item.kind === 'video' ? (
+                                                                <a
+                                                                    key={item.id}
+                                                                    href={item.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    aria-label="Open Shared Video"
+                                                                    style={{
+                                                                        position: 'relative',
+                                                                        aspectRatio: '1 / 1',
+                                                                        borderRadius: 8,
+                                                                        overflow: 'hidden',
+                                                                        border: `1px solid ${C.border}`,
+                                                                        background: '#000',
+                                                                        display: 'block',
+                                                                    }}
+                                                                >
+                                                                    <video
+                                                                        src={videoPreviewUrl(item.url) || item.url}
+                                                                        muted
+                                                                        playsInline
+                                                                        preload="metadata"
+                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                                    />
+                                                                    <span aria-hidden="true" style={{
+                                                                        position: 'absolute',
+                                                                        right: 6,
+                                                                        bottom: 6,
+                                                                        background: 'rgba(0,0,0,0.72)',
+                                                                        color: '#fff',
+                                                                        borderRadius: 999,
+                                                                        padding: '2px 6px',
+                                                                        fontSize: 10,
+                                                                        fontWeight: 700,
+                                                                    }}>▶</span>
+                                                                </a>
+                                                            ) : (
+                                                                <button
+                                                                    key={item.id}
+                                                                    type="button"
+                                                                    aria-label={item.kind === 'gif' ? 'View Shared GIF' : 'View Shared Photo'}
+                                                                    onClick={() => setGalleryViewerUrl(item.url)}
+                                                                    style={{
+                                                                        aspectRatio: '1 / 1',
+                                                                        padding: 0,
+                                                                        borderRadius: 8,
+                                                                        overflow: 'hidden',
+                                                                        border: `1px solid ${C.border}`,
+                                                                        background: C.bg,
+                                                                        cursor: 'zoom-in',
+                                                                        display: 'block',
+                                                                    }}
+                                                                >
+                                                                    <img
+                                                                        src={mediaThumbnailUrl(item.url, { kind: item.kind, width: 320, quality: 72 }) || item.url}
+                                                                        alt={item.caption || (item.kind === 'gif' ? 'Shared GIF' : 'Shared Photo')}
+                                                                        loading="lazy"
+                                                                        decoding="async"
+                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                                    />
+                                                                </button>
+                                                            )
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </aside>
+                                    );
+                                })()}
+                                {galleryViewerUrl && (
+                                    <MediaViewer url={galleryViewerUrl} label="Shared Photo" onClose={() => setGalleryViewerUrl(null)} />
+                                )}
                             </>
                         ) : (
                             /* No conversation selected */

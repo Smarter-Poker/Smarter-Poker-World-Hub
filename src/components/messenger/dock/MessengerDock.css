@@ -778,3 +778,106 @@
 .dock-chat-relationships p {
   margin: 0;
 }
+
+.dock-chat-dragover {
+  outline: 2px dashed #0084ff;
+  outline-offset: -3px;
+}
+.dock-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #f0f2f5;
+  border-top: 1px solid #e4e6eb;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1c1e21;
+}
+.dock-upload-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: #d8dadf;
+  overflow: hidden;
+}
+.dock-upload-bar > div {
+  height: 100%;
+  background: #0084ff;
+  border-radius: 999px;
+  transition: width 0.15s ease-out;
+}
+.dock-upload-progress button {
+  border: 0;
+  background: transparent;
+  color: #e41e3f;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 4px;
+}
+.dock-media-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #f0f2f5;
+  border-top: 1px solid #e4e6eb;
+}
+.dock-media-preview img,
+.dock-media-preview video {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e4e6eb;
+  flex-shrink: 0;
+  background: #000;
+}
+.dock-media-preview > span {
+  flex: 1;
+  min-width: 0;
+}
+.dock-media-preview strong,
+.dock-media-preview small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dock-media-preview strong {
+  font-size: 12px;
+}
+.dock-media-preview small {
+  font-size: 11px;
+  color: #65676b;
+}
+.dock-media-preview > button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: #e4e6eb;
+  color: #1c1e21;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .dock-upload-progress,
+  .dock-media-preview {
+    background: #1c1e21;
+    border-top-color: #3e4042;
+    color: #e4e6eb;
+  }
+  .dock-upload-bar {
+    background: #3e4042;
+  }
+  .dock-media-preview small {
+    color: #b0b3b8;
+  }
+  .dock-media-preview > button {
+    background: #3a3b3c;
+    color: #e4e6eb;
+  }
+}
