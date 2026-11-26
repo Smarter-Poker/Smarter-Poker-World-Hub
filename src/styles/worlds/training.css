@@ -3718,7 +3718,7 @@ body.world-training .sp-training-intelligence--leaderboard a[style] {
     text-shadow: 0 1px 1px #000;
 }
 
-body.world-training .sp-training-intelligence button[aria-pressed="true"] {
+body.world-training .sp-training-intelligence button[aria-pressed="true"]:not(.sd-button) {
     color: #031018 !important;
     border-color: #c5f8ff !important;
     background: linear-gradient(180deg, #e9fcff 0%, #8feaff 45%, #25b8e4 52%, #86e8ff 100%) !important;
