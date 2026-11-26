@@ -552,3 +552,85 @@ test('Phase 17 full suite: PLO8/Fixed-Limit specialized curriculum, Shared Drill
   }
 });
 
+test('Phase 18 full suite: Real-Time Co-Op Study Room, Post-Session 3-Hand Leak Receipt, Interactive Range Matrix Painter, and 0 documented-follow-up debt', async () => {
+  const {
+    encodeCoopStudyRoom,
+    decodeCoopStudyRoom,
+    buildThreeHandLeakReceipt,
+    decodeSharedDrillPack,
+    RANGE_PAINTER_5X5_CLUSTERS,
+    scoreRangePainterEstimate,
+  } = await import('../src/lib/training/trainingPresets.mjs');
+
+  // 1. Real-Time Co-Op Study Room encode/decode round-trip + tamper rejection
+  const coopToken = encodeCoopStudyRoom({
+    roomId: 'room-plo8-btn-flop',
+    coachName: 'Coach Dan',
+    title: 'PLO8 Scoop Co-Op Room',
+    gameId: 'cash-005',
+    variant: 'plo8',
+    bettingStructure: 'pot_limit',
+    format: 'cash',
+    stackDepthBb: 100,
+    heroPosition: 'BTN',
+    targetStreet: 'flop',
+  });
+  assert.ok(coopToken.startsWith('coop1.'), 'Co-Op Study Room token must start with coop1.');
+  const decodedCoop = decodeCoopStudyRoom(coopToken);
+  assert.ok(decodedCoop, 'decodeCoopStudyRoom must decode valid token');
+  assert.equal(decodedCoop.roomId, 'room-plo8-btn-flop');
+  assert.equal(decodedCoop.coachName, 'Coach Dan');
+  assert.equal(decodedCoop.variant, 'plo8');
+  assert.equal(decodeCoopStudyRoom(`${coopToken}tampered`), null, 'Tampered Co-Op token must return null');
+
+  // 2. Post-Session 3-Hand Leak Receipt generates 3 spots + valid signed packToken
+  const receipt = buildThreeHandLeakReceipt({
+    gameId: 'mtt-005',
+    title: 'MTT Bubble 3-Hand Leak Receipt',
+    variant: 'nlh',
+    bettingStructure: 'no_limit',
+    format: 'mtt',
+    stackDepthBb: 40,
+    heroPosition: 'CO',
+    targetStreet: 'flop',
+  });
+  assert.equal(receipt.spots.length, 3, '3-Hand Leak Receipt must include 3 priority leak spots');
+  assert.ok(receipt.totalEvLossBb > 0, '3-Hand Leak Receipt must compute positive recoverable EV');
+  assert.ok(receipt.href.includes('pack='), '3-Hand Leak Receipt href must embed signed pack permalink');
+  const decodedReceiptPack = decodeSharedDrillPack(receipt.packToken);
+  assert.ok(decodedReceiptPack, '3-Hand Leak Receipt packToken must decode via decodeSharedDrillPack');
+  assert.equal(decodedReceiptPack.format, 'mtt');
+  assert.equal(decodedReceiptPack.heroPosition, 'CO');
+
+  // 3. Interactive Range Matrix Painter scoring
+  assert.equal(RANGE_PAINTER_5X5_CLUSTERS.flat().length, 25, 'Range Painter must provide 25 canonical hand clusters');
+  const perfectEval = scoreRangePainterEstimate(
+    ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AKo', 'KQs', 'QJs', 'JTs', 'A5s'],
+    { street: 'flop', facingBetBb: 4 },
+  );
+  assert.equal(perfectEval.accuracyPct, 100, 'Exact match with solver reference range must score 100%');
+  assert.equal(perfectEval.gradeLabel, 'Elite Range Read');
+
+  // 4. Verify UI wiring markers across Phase 18 files
+  const arenaRouteSrc = read('pages/hub/training/arena/[gameId].js');
+  assert.ok(arenaRouteSrc.includes('data-coop-study-room-banner="true"'), 'Arena route must render Co-Op Study Room banner when ?coopRoom= is active');
+
+  const coachModeSrc = read('pages/hub/training/coach-mode.js');
+  assert.ok(coachModeSrc.includes('data-launch-coop-study-room="true"'), 'Coach Mode must render Host Live Co-Op Study Room CTA');
+  assert.ok(coachModeSrc.includes('data-copy-coop-study-room="true"'), 'Coach Mode must render Copy Co-Op Study Room Link CTA');
+
+  const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.ok(udtSrc.includes('data-table-range-matrix-painter="true"'), 'UniversalDynamicTable study drawer must include Interactive Range Matrix Painter');
+  assert.ok(udtSrc.includes('data-coop-study-room-panel="true"'), 'UniversalDynamicTable study drawer must include Real-Time Co-Op Study Room vote panel');
+
+  for (const relPath of [
+    'src/components/training/GodModeArena.jsx',
+    'pages/hub/training/live-hud-sync.js',
+    'pages/hub/training.js',
+  ]) {
+    const src = read(relPath);
+    assert.ok(src.includes('data-three-hand-leak-receipt="true"'), `${relPath} must expose data-three-hand-leak-receipt="true"`);
+  }
+});
+
+

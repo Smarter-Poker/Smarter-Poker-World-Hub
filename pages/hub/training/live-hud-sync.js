@@ -5,6 +5,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter.js';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import { buildThreeHandLeakReceipt } from '../../../src/lib/training/trainingPresets.mjs';
 
 const HERO_CARDS_BY_VARIANT = {
   nlh: ['As', 'Kd'],
@@ -677,6 +678,70 @@ export default function LiveHudSyncPage() {
                   </button>
                 </div>
               )}
+
+              {/* Phase 18: Post-Session 3-Hand Leak Receipt Push Notification Card */}
+              {(() => {
+                const leakReceipt = buildThreeHandLeakReceipt({
+                  gameId: previewVariant === 'nlh' ? 'cash-002' : 'cash-005',
+                  title: `Club Arena ${previewVariant.toUpperCase()} 3-Hand Leak Receipt`,
+                  variant: previewVariant,
+                  bettingStructure: previewVariant === 'nlh' ? 'no_limit' : 'pot_limit',
+                  format: 'cash',
+                  stackDepthBb: 100,
+                  heroPosition: topLeakHand?.heroPosition || 'BTN',
+                  targetStreet: topLeakHand?.street || 'flop',
+                });
+                return (
+                  <div
+                    data-three-hand-leak-receipt="true"
+                    data-leak-receipt-id={leakReceipt.receiptId}
+                    data-leak-receipt-pack-token={leakReceipt.packToken}
+                    style={{
+                      marginTop: 14,
+                      padding: '14px 16px',
+                      borderRadius: 7,
+                      border: '1px solid #688299',
+                      borderTopColor: '#aec0d0',
+                      background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <div style={{ color: '#83deff', fontSize: 12, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {`Post-Session 3-Hand Leak Receipt Ready · +${leakReceipt.totalEvLossBb} BB Recoverable EV`}
+                      </div>
+                      <div style={{ marginTop: 4, color: '#e6f3ff', fontSize: 12 }}>
+                        {leakReceipt.spots.map((s, i) => `${i + 1}. ${s.label} (+${s.evLossBb} BB)`).join(' · ')}
+                      </div>
+                    </div>
+                    <a
+                      href={leakReceipt.href}
+                      data-launch-three-hand-leak-receipt="true"
+                      data-drill-similar-spot-cta="true"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        minHeight: 40,
+                        padding: '0 16px',
+                        borderRadius: 7,
+                        border: '1px solid #56d8ff',
+                        borderTopColor: '#b3eaff',
+                        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                        color: '#f4fbff',
+                        fontSize: 12,
+                        fontWeight: 900,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Practice 3-Hand Leak Receipt →
+                    </a>
+                  </div>
+                );
+              })()}
 
               {/* Participant-Verified Hands List with "Train This Hand" */}
               <div data-synced-hands-list="true" style={{ marginTop: 16, display: 'grid', gap: 10 }}>

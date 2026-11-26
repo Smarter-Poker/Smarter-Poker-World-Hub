@@ -69,6 +69,7 @@ import {
   saveTrainingPreferences,
   saveResumableTrainingSession,
   loadResumableTrainingSession,
+  buildThreeHandLeakReceipt,
 } from '../../src/lib/training/trainingPresets.mjs';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
@@ -714,14 +715,38 @@ export default function TrainingPage() {
                     {fiveMinuteLeakFix.subtitle}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="sp-cta sp-cta-primary"
-                  data-start-five-minute-fix-cta="true"
-                  onClick={() => quickStartDrill(fiveMinuteLeakFix.game, fiveMinuteLeakFix.overrides)}
-                >
-                  <Zap size={16} aria-hidden /> Start 5-Minute Fix (10 Hands) →
-                </button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="sp-cta sp-cta-primary"
+                    data-start-five-minute-fix-cta="true"
+                    onClick={() => quickStartDrill(fiveMinuteLeakFix.game, fiveMinuteLeakFix.overrides)}
+                  >
+                    <Zap size={16} aria-hidden /> Start 5-Minute Fix (10 Hands) →
+                  </button>
+                  {(() => {
+                    const homeLeakReceipt = buildThreeHandLeakReceipt({
+                      gameId: fiveMinuteLeakFix.game?.id || 'cash-002',
+                      title: `${fiveMinuteLeakFix.game?.name || 'Daily'} 3-Hand Leak Receipt`,
+                      variant: fiveMinuteLeakFix.overrides?.variant || 'nlh',
+                      bettingStructure: fiveMinuteLeakFix.overrides?.bettingStructure || 'no_limit',
+                      format: fiveMinuteLeakFix.overrides?.format || 'cash',
+                      heroPosition: fiveMinuteLeakFix.overrides?.heroPosition || 'BTN',
+                      targetStreet: fiveMinuteLeakFix.overrides?.targetStreet || 'flop',
+                    });
+                    return (
+                      <a
+                        href={homeLeakReceipt.href}
+                        className="sp-cta sp-cta-secondary"
+                        data-three-hand-leak-receipt="true"
+                        data-launch-three-hand-leak-receipt="true"
+                        data-leak-receipt-pack-token={homeLeakReceipt.packToken}
+                      >
+                        Practice 3-Hand Leak Receipt (+{homeLeakReceipt.totalEvLossBb} BB) →
+                      </a>
+                    );
+                  })()}
+                </div>
               </section>
             )}
 
