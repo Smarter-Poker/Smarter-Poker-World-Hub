@@ -460,8 +460,13 @@ export default function TriviaPoolDashboard({
             if (resp.status === 403 && payload?.requiresMfa === true) {
                 setActionFeedback({
                     kind: 'mfa',
-                    text: payload?.error || 'MFA Verification Required Before Submitting Pool Curation Writes.',
-                    stepUpUrl: '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-pool',
+                    text: payload?.requiresEnrollment === true
+                        ? 'MFA Enrollment Required: Enroll An Authenticator Before Submitting Pool Curation Writes.'
+                        : (payload?.error || 'MFA Verification Required Before Submitting Pool Curation Writes.'),
+                    requiresEnrollment: payload?.requiresEnrollment === true,
+                    stepUpUrl: payload?.requiresEnrollment === true
+                        ? '/auth/mfa?enroll=1&next=%2Fadmin%2Ftrivia-pool'
+                        : '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-pool',
                 });
                 setActionBusy(false);
                 return;
@@ -646,7 +651,7 @@ export default function TriviaPoolDashboard({
                                     textDecoration: 'none',
                                 }}
                             >
-                                Verify MFA Session
+                                {actionFeedback.requiresEnrollment ? 'Enroll MFA' : 'Verify MFA Session'}
                             </a>
                         )}
                     </div>

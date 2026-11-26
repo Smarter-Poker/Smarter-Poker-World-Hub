@@ -151,7 +151,7 @@ test('operationsSnapshot normalizes legacy_observation, launch_readiness, and op
 
 test('trivia-operations API wires verifyMfaCookie, legacy observation, launch readiness, and fail-safe MFA write proof', () => {
     const apiSource = read('pages/api/admin/trivia-operations.js');
-    assert.match(apiSource, /import\s+\{\s*verifyMfaCookie\s*\}\s+from\s+'\.\.\/\.\.\/\.\.\/src\/lib\/mfaGate'/);
+    assert.match(apiSource, /import\s+\{[^}]*\bverifyMfaCookie\b[^}]*\}\s+from\s+'\.\.\/\.\.\/\.\.\/src\/lib\/mfaGate'/);
     assert.match(apiSource, /client\.rpc\('trivia_legacy_observation_status_v1',\s*\{\s*p_record_baseline:\s*false\s*\}\)/);
     assert.match(apiSource, /client\.rpc\('trivia_launch_readiness_v1'\)/);
     assert.match(apiSource, /verifyMfaCookie\(req,\s*operator\.user\.id\)/);
