@@ -120,7 +120,8 @@ export async function fetchLedgerEntries(
       .eq('user_id', userId)
       .eq('is_revision', false)
       .order('entry_date', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
 
     if (filters.category && filters.category !== 'all') {
       query = query.eq('category', filters.category);
@@ -163,6 +164,21 @@ export async function fetchLedgerEntries(
       })) || []
     );
   });
+}
+
+// Reports and charts use real ledger rows across the complete selected range.
+// The Recent Activity presentation may collapse a trip into a single item.
+export async function fetchReportLedger(
+  userId: string,
+  filters: Omit<LedgerFilters, 'limit' | 'offset'>
+): Promise<LedgerEntry[]> {
+  const limit = 500;
+  const entries: LedgerEntry[] = [];
+  for (let offset = 0; ; offset += limit) {
+    const rows = await fetchLedgerEntries(userId, { ...filters, limit, offset });
+    entries.push(...rows);
+    if (rows.length < limit) return entries;
+  }
 }
 
 /**

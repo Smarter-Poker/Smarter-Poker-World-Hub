@@ -86,12 +86,17 @@ import process from 'node:process';
  * over this budget before that change (297.9 MB across 1,961 files against
  * 272.0 / 1,850); that excess belongs to other areas and is not absorbed here.
  *
+ * NOVEMBER 26, 2026: Bankroll and Toke use 26 individually loaded WebP scene/seal
+ * pairs and five workspace illustrations. The two superseded masthead images
+ * were removed. Count only the net 1,139,514 bytes and 57 first-party files.
+ * The existing main-branch excess is excluded from this allowance.
+ *
  * THE NUMBER GOES DOWN. If you lower it, say in the commit what you removed.
  */
-const BUDGET_BYTES = 275_750_000;
+const BUDGET_BYTES = 276_889_514;
 
 /** Also a ratchet: a thousand new files is a problem a size cap can miss. */
-const BUDGET_FILES = 2_037;
+const BUDGET_FILES = 2_094;
 
 function walk(dir) {
   let bytes = 0;

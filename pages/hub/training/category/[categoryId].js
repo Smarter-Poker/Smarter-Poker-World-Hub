@@ -258,10 +258,10 @@ export default function CategoryPage() {
                 @media (max-width: 768px) {
                     main { width: 100%; padding: 0 0 calc(74px + env(safe-area-inset-bottom, 0px)); }
                     .sp-category-hero { min-height: 0; }
-                    .sp-category-hero-art { height: 300px; object-position: 62% center; }
-                    .sp-category-hero-shade { background: linear-gradient(180deg, rgba(1,4,6,.12), rgba(1,5,8,.2) 30%, rgba(1,5,8,.93) 48%, #020608 66%); }
+                    .sp-category-hero-art { height: 100%; object-position: 65% center; }
+                    .sp-category-hero-shade { background: linear-gradient(90deg, rgba(4,13,24,.98), rgba(4,13,24,.7) 65%, rgba(4,13,24,.25)), linear-gradient(0deg, #040d18 12%, transparent 90%); }
                     .sp-category-back { top: 14px; left: 13px; }
-                    .sp-category-copy { width: auto; padding: 285px 16px 24px; }
+                    .sp-category-copy { width: auto; padding: 62px 16px 24px; }
                     .sp-category-title-row { align-items: flex-start; gap: 11px; }
                     .sp-category-icon { width: 42px; height: 42px; flex: 0 0 auto; }
                     h1 { font-size: clamp(28px, 9vw, 40px); }

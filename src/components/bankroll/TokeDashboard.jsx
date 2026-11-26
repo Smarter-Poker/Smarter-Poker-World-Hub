@@ -7,7 +7,10 @@
  */
 
 import view from './toke/TokeWorkspace.module.css';
-import { memo, useState, useEffect, useMemo, useCallback } from 'react';
+import desk from './toke/DealerAnalytics.module.css';
+import { Activity, CalendarDays, ChevronDown, Copy, Download } from 'lucide-react';
+import { safeCopyToClipboard } from '../../lib/clipboard';
+import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import ResponsiveTable from '../ui/ResponsiveTable';
 import { getTokeAnalytics } from '../../lib/bankroll/tokeSelectors';
@@ -60,23 +63,32 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
     const [activeChart, setActiveChart] = useState('trend');
     const [expanded, setExpanded] = useState(initiallyExpanded);
     const [loadError, setLoadError] = useState(false);
+    const [range, setRange] = useState(0);
+    const [feedback, setFeedback] = useState('');
+    const requestId = useRef(0);
+    const rangeName = range ? 'Last ' + range + ' Days' : 'Career';
+    const scopeTitle = range ? 'Period Tokes' : 'Career Tokes';
 
     const load = useCallback(async () => {
+        const request = ++requestId.current;
         if (!userId) return;
         try {
             setLoading(true);
             setLoadError(false);
-            const data = await getTokeAnalytics(userId);
-            setAnalytics(data);
+            const start = new Date();
+            start.setDate(start.getDate() - (range - 1));
+            const startDate = range ? [start.getFullYear(), String(start.getMonth()+1).padStart(2,'0'), String(start.getDate()).padStart(2,'0')].join('-') : undefined;
+            const data = await getTokeAnalytics(userId, startDate);
+            if (request === requestId.current) setAnalytics(data);
         } catch (err) {
-            setLoadError(true);
+            if (request === requestId.current) setLoadError(true);
             console.warn('TokeDashboard analytics error:', err);
         } finally {
-            setLoading(false);
+            if (request === requestId.current) setLoading(false);
         }
-    }, [userId]);
+    }, [userId, range]);
 
-    useEffect(() => { load(); }, [load, refreshTrigger]);
+    useEffect(() => { load(); return () => { ++requestId.current; }; }, [load, refreshTrigger]);
 
     // ── Bus listener: auto-refresh when toke data changes in other components ──
     useEffect(() => {
@@ -96,7 +108,7 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
         if (!analytics?.eventTrend) return [];
         return analytics.eventTrend.map(e => ({
             ...e,
-            date: new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            date: new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         }));
     }, [analytics]);
 
@@ -120,24 +132,27 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
 
     // ── Main render ──────────────────────────────────────────
     return (
-        <section className={"sd-panel " + view.panel}>
+        <section className={"sd-panel " + desk.earnings}>
             {/* Collapsible header */}
             <button type="button" className={view.disclosure} aria-expanded={expanded} onClick={() => setExpanded(e => !e)}>
-                <div style={S.headerLeft}>
-                    <div>
+                <div className={desk.sectionHead}><Activity size={22} aria-hidden/><div>
                         <div className="sd-section-title">Earnings Overview</div>
                         <div style={S.headerSub}>
                             {!userId ? 'Sign In To View Your Earnings' : loading ? 'Loading…' : loadError ? 'Earnings Unavailable' : hasData
-                                ? `${analytics.totalEvents} Events · ${fmt(analytics.careerTokes)} Career Tokes`
-                                : 'Complete Your First Event To See Analytics'}
+                                ? `${analytics.totalEvents} Events · ${fmt(analytics.careerTokes)} ${scopeTitle}`
+                                : 'No Completed Events'}
                         </div>
                     </div>
                 </div>
-                <span style={{ ...S.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                <ChevronDown aria-hidden size={18} style={{transform:expanded?'rotate(180deg)':undefined}}/>
             </button>
 
             {expanded && (
-                <div style={S.body}>
+                <div className={desk.body}>
+                    {userId && <div className={desk.range}><CalendarDays aria-hidden size={16}/><div role="group" aria-label="Earnings Period">
+                      {[30,90,0].map(days=><button className="sd-button" type="button" key={days}
+                        aria-pressed={range===days} onClick={()=>{setRange(days);setFeedback('');}}>{days?days+' Days':'Career'}</button>)}
+                    </div></div>}
                     {!userId ? <p className={view.status}>Sign In To View Your Dealer Earnings.</p> : loading ? (
                         <div aria-label="Loading Earnings" role="status" style={S.loadingRow}>
                             <div style={S.skeleton} />
@@ -152,9 +167,9 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                     ) : (
                         <>
                             {/* ── KPI Strip ── */}
-                            <div className={view.metrics}>
+                            <div className={desk.metrics}>
                                 <KpiTile
-                                    label="Career Tokes"
+                                    label={scopeTitle}
                                     value={fmt(analytics?.careerTokes || 0)}
                                     color="#85d8fb"
                                 />
@@ -195,23 +210,24 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                             </div>
 
                             {/* ── Chart Area ── */}
-                            <div style={S.chartArea}>
+                            <div className={desk.plot}>
+                                <div className={desk.plotHead}><h3>{{trend:'Cumulative Tokes',events:'Tokes Per Event',monthly:'Monthly Earnings',types:'Down Distribution'}[activeChart]}</h3><span>{rangeName}</span></div>
                                 <TokeEarningsChart {...{ activeChart, trendData, monthlyData, donutData, totalDowns, fmt }} />
                                 <ChartDataTable {...{ activeChart, trendData, monthlyData, donutData }} />
                             </div>
 
                             {/* ── Export Buttons ── */}
                             {hasData && (
-                                <div style={S.exportRow}>
+                                <div className={desk.exports}>
                                     <button
                                         className="sd-button"
-                                        onClick={() => {
+                                        onClick={async () => {
                                             const a = analytics;
                                             const lines = [
                                                 `TOKE ANALYTICS SUMMARY`,
                                                 `Generated: ${new Date().toLocaleDateString()}`,
                                                 ``,
-                                                `Career Tokes:   ${fmt(a.careerTokes)}`,
+                                                `${scopeTitle}:   ${fmt(a.careerTokes)}`,
                                                 `Total Events:   ${a.totalEvents}`,
                                                 `Hours Worked:   ${a.totalHours}h`,
                                                 `Avg Toke/Down:  ${fmt(a.avgTokePerDown)}`,
@@ -226,15 +242,14 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                                             if (a.monthlyTrend?.length) {
                                                 lines.push(``, `Monthly Breakdown:`);
                                                 for (const m of a.monthlyTrend) {
-                                                    if (m.tokes > 0) lines.push(`  ${m.month}: ${fmt(m.tokes)} (${m.events} event${m.events !== 1 ? 's' : ''})`);
+                                                    if (m.events > 0) lines.push(`  ${m.month}: ${fmt(m.tokes)} (${m.events} event${m.events !== 1 ? 's' : ''})`);
                                                 }
                                             }
-                                            navigator.clipboard.writeText(lines.join('\n'))
-                                                .then(() => { /* silent success toast handled by parent */ })
-                                                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                                            const copied = await safeCopyToClipboard(lines.join('\n'));
+                                            setFeedback(copied ? 'Earnings Summary Copied.' : 'Clipboard Access Is Unavailable.');
                                         }}
                                     >
-                                        Copy Summary
+                                        <Copy size={15} aria-hidden/> Copy Summary
                                     </button>
                                     <button
                                         className="sd-button"
@@ -242,7 +257,7 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                                             const a = analytics;
                                             const rows = [
                                                 ['Metric', 'Value'],
-                                                ['Career Tokes', a.careerTokes || 0],
+                                                [scopeTitle, a.careerTokes || 0],
                                                 ['Total Events', a.totalEvents || 0],
                                                 ['Hours Worked', a.totalHours || 0],
                                                 ['Avg Toke/Down', a.avgTokePerDown || 0],
@@ -273,10 +288,11 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                                             link.download = `toke-analytics-${new Date().toISOString().split('T')[0]}.csv`;
                                             link.click();
                                             URL.revokeObjectURL(url);
+                                            setFeedback('Earnings CSV Download Requested.');
                                         }}
                                     >
-                                        Download CSV
-                                    </button>
+                                        <Download size={15} aria-hidden/> Download CSV
+                                    </button><span role="status">{feedback}</span>
                                 </div>
                             )}
                         </>

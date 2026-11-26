@@ -1,8 +1,10 @@
 import React, { memo, useEffect, useRef } from 'react';
+import { Layers, Coins, Trophy, Coffee, ClipboardList } from 'lucide-react';
+import shift from './ShiftConsole.module.css';
 import view from './TokeWorkspace.module.css';
 
 const types = [
-    ['cash', 'Cash Game'], ['tournament', 'Tournament'], ['break', 'On Break'], ['brush', 'Brush'],
+    ['cash', 'Cash Game', Coins], ['tournament', 'Tournament', Trophy], ['break', 'On Break', Coffee], ['brush', 'Brush', ClipboardList],
 ];
 
 function AddDownModal({ show, downForm, setDownForm, onSubmit, onClose }) {
@@ -21,22 +23,22 @@ function AddDownModal({ show, downForm, setDownForm, onSubmit, onClose }) {
     if (!show) return null;
     const playing = downForm.down_type === 'cash' || downForm.down_type === 'tournament';
     return (
-        <dialog ref={dialog} className={'sd-panel ' + view.dialog} aria-labelledby="toke-new-down-title"
+        <dialog ref={dialog} className={'sd-panel ' + view.dialog + ' ' + shift.dialog} aria-labelledby="toke-new-down-title"
             onCancel={event => { event.preventDefault(); onClose(); }}>
-            <h2 className="sd-section-title" id="toke-new-down-title">Add Down</h2>
-            <form onSubmit={event => { event.preventDefault(); onSubmit(); }}>
-                <fieldset className={view.types}>
+            <h2 className={shift.dialogTitle} id="toke-new-down-title"><Layers size={23} aria-hidden="true" />Add Down</h2>
+            <form className={shift.form} onSubmit={event => { event.preventDefault(); onSubmit(); }}>
+                <fieldset className={shift.fieldset}>
                     <legend>Down Type</legend>
-                    <div className={view.chartChoices}>
-                        {types.map(([value, label]) => (
+                    <div className={shift.choices}>
+                        {types.map(([value, label, Icon]) => (
                             <button key={value} type="button" className="sd-button"
                                 aria-pressed={value === downForm.down_type}
-                                onClick={() => setDownForm({ ...downForm, down_type: value })}>{label}</button>
+                                onClick={() => setDownForm({ ...downForm, down_type: value })}><Icon size={17} aria-hidden="true" />{label}</button>
                         ))}
                     </div>
                 </fieldset>
                 {downForm.down_type === 'cash' && (
-                    <div className={view.formRow}>
+                    <div className={shift.pair}>
                         <label>Game
                             <select value={downForm.cash_variant} onChange={e => setDownForm({ ...downForm, cash_variant: e.target.value })}>
                                 <option value="Holdem">Holdem</option><option value="PLO">PLO</option><option value="Mixed">Mixed</option>
@@ -55,7 +57,7 @@ function AddDownModal({ show, downForm, setDownForm, onSubmit, onClose }) {
                 {playing && <label>Table Number
                     <input value={downForm.table_number || ''} onChange={e => setDownForm({ ...downForm, table_number: e.target.value })} />
                 </label>}
-                <div className={view.formActions}>
+                <div className={shift.actions}>
                     <button className="sd-button" type="button" onClick={onClose}>Cancel</button>
                     <button className="sd-button sd-primary" type="submit">Start Down</button>
                 </div>

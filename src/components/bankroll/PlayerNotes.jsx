@@ -1,3 +1,4 @@
+import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
  * LIVE PLAYER NOTES
  * Track opponents with photos, bios, and gameplay notes
@@ -5,6 +6,8 @@
 
 import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect, useRef } from 'react';
+import { useModalHistory } from '../../hooks/useModalHistory';
+import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 
@@ -69,9 +72,11 @@ export default function PlayerNotes({ userId }) {
         <div className="sd-panel">
             <div style={styles.header}>
                 <h2 style={styles.title}>Player Notes</h2>
-                <button onClick={() => setShowAddModal(true)} style={styles.addBtn}>
-                    + Add Player
-                </button>
+                <BankrollHeaderAdd label="Add Player Note" onClick={() => setShowAddModal(true)}>
+                    <button onClick={() => setShowAddModal(true)} style={styles.addBtn}>
+                        + Add Player
+                    </button>
+                </BankrollHeaderAdd>
             </div>
 
             {/* Search */}
@@ -161,6 +166,19 @@ export default function PlayerNotes({ userId }) {
 }
 
 function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
+    const dialog = useRef(null);
+    useModalHistory(true, onClose);
+    const scrim = useScrimDismiss(onClose);
+    useEffect(() => {
+        const node = dialog.current;
+        const opener = document.activeElement;
+        node.showModal();
+        return () => {
+            node.close();
+            opener?.focus?.({ preventScroll: true });
+        };
+    }, []);
+
     const [formData, setFormData] = useState({
         nickname: player?.nickname || '',
         real_name: player?.real_name || '',
@@ -310,25 +328,14 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
     }
 
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={styles.modalOverlay}
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ scale: 0.95, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 20 }}
-                className="sd-panel" style={styles.modal}
-                onClick={e => e.stopPropagation()}
-            >
+        <dialog ref={dialog} className="sd-panel" style={styles.modal} aria-labelledby="bankroll-player-note-title"
+            onCancel={event => { event.preventDefault(); onClose(); }} {...scrim}>
+            <div style={styles.modalContent}>
                 <div style={styles.modalHeader}>
-                    <h3 style={styles.modalTitle}>
+                    <h3 id="bankroll-player-note-title" style={styles.modalTitle}>
                         {player ? 'Edit Player' : 'Add Player'}
                     </h3>
-                    <button onClick={onClose} style={styles.closeBtn}>×</button>
+                    <button type="button" aria-label="Close Player Note" onClick={onClose} style={styles.closeBtn}>×</button>
                 </div>
 
                 <div style={styles.modalBody}>
@@ -541,8 +548,8 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                         {isSaving ? 'Saving...' : 'Save Player'}
                     </button>
                 </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </dialog>
     );
 }
 
@@ -671,27 +678,20 @@ const styles = {
         fontSize: 20,
         color: 'rgba(255, 255, 255, 0.3)',
     },
-    modalOverlay: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.85)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
-        padding: 20,
-    },
     modal: {
-        borderRadius: 16,
-
-        width: '100%',
-        maxWidth: 500,
-        maxHeight: '90vh',
+        position: 'fixed',
+        inset: 0,
+        margin: 'auto',
+        padding: 0,
+        width: 'min(500px, calc(100% - 32px))',
+        maxHeight: 'calc(100dvh - 40px)',
+        color: '#edf6ff',
+        backgroundColor: '#081626',
+    },
+    modalContent: {
         display: 'flex',
         flexDirection: 'column',
+        maxHeight: 'calc(100dvh - 48px)',
         overflow: 'hidden',
     },
     modalHeader: {

@@ -8,6 +8,19 @@ Use an ink-navy canvas, a single continuous steel edge, cobalt for the selected 
 
 Use title case for interface labels. Preserve usernames, identifiers, real product names, units and conventional acronyms. Use strong condensed type for titles, readable labels for controls, and tabular figures for balances and statistics. Align comparable amounts on the same edge. Give each metric its unit and keep its label beside it, including on narrow phones.
 
+## Image headers
+
+The Cashier header is the visual reference for every #SMARTERDESIGN page image header. Use the following composition inside one continuous steel rim.
+
+- Place a bold, recognizable page icon on the left in a circular chrome frame. Reserve room for the full circle at phone widths.
+- Set the page name beside the icon in bold, solid white or silver type. Keep lettering live and selectable, with a uniform fill through the middle of each letter. Keep any existing meaningful club name above the title.
+- Transition the dark title area smoothly into a realistic scene on the right. Give each page its own icon, subject and composition. The vault belongs to Cashier. Carry the framing and typography across pages while choosing artwork that identifies each destination.
+- Anchor a working question-mark button in the upper-right corner. Give it a page-specific accessible name, visible keyboard focus and at least a 44px touch target. It opens that page’s help, FAQs or tutorial. Keep both the title and the help control clear when the title wraps or the artwork crops.
+
+![Cashier reference showing the circular chip emblem, title, vault scene and help button](../.agent/skills/smarterdesign/references/cashier-header.webp)
+
+The approved lettering treatment for new work is solid white or silver. Preserve the product’s locked global header and footer around the page image header.
+
 ## Color
 
 Use white for primary text, silver for secondary text, and ice blue or cyan for emphasis, links and focus. Use signed amounts and semantic green or red for actual gains, losses and errors. Use a text label or symbol alongside color when the distinction matters.
@@ -19,6 +32,10 @@ Never use yellow, gold, amber, purple, violet, lavender, pink or magenta text an
 Use one frame per surface. Group related information with spacing, dividers and headings. Keep the primary action visible and subordinate secondary actions. Mark selection visually and expose it to assistive technology. Give buttons a visible keyboard focus, pressed and disabled state and a comfortable touch target. Use one simple view with authorized tools available in context.
 
 Allow long lists, ledgers and dialogs to scroll vertically. Keep amounts and actions reachable above the actual footer. Let a long label wrap or move the entire value below its label. Keep avatars in a reserved column when identities are displayed. Make charts fit the viewport and give their numbers readable text equivalents. Respect reduced motion and keep live status quiet between meaningful updates.
+
+Apply the treatment to every control and display in a workflow, including the working form, its close button, selected filters, chart annotations, readouts and empty states. Use a clear, labeled close control with a 44px touch target. Center adjustment dialogs in the viewport and keep fields and dismissal reachable with the keyboard and on small screens.
+
+In Bankroll Manager, open the dashboard on a normal entry. Show the launcher there and place Jarvis Insights at the bottom. Each destination has a Back To Dashboard control. A header Add + opens the existing entry flow wherever the user can create records. Place contextual descriptions, FAQs and tutorials behind the upper-right question mark on the product header. Keep required field labels, form feedback and units visible.
 
 ## Applying the style in World Hub
 

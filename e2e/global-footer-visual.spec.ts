@@ -125,9 +125,14 @@ const reachableRouteOverrides: Record<string, string> = {
 // runtime owner is the immersive Training Arena. The arena deliberately has
 // no World Hub footer, so the route matrix must verify the redirect boundary
 // instead of attributing a footer to the pre-redirect page.
-const redirectOwnedRoutes: Record<string, { pathname: string }> = {
+const redirectOwnedRoutes: Record<string, { pathname: string; level: string }> = {
+  '/hub/training/play-mode': {
+    pathname: '/hub/training/arena/cash-001',
+    level: '1',
+  },
   '/hub/training/quiz-gauntlet': {
     pathname: '/hub/training/arena/quiz-gauntlet',
+    level: '1',
   },
 };
 
@@ -439,8 +444,12 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
           const html = await response.text();
           const redirectOwner = redirectOwnedRoutes[sourceRoute];
           if (redirectOwner) {
-            expect(new URL(response.url()).pathname, `${sourceRoute} redirect owner drifted`).toBe(
+            const destination = new URL(response.url());
+            expect(destination.pathname, `${sourceRoute} redirect owner drifted`).toBe(
               redirectOwner.pathname
+            );
+            expect(destination.searchParams.get('level'), `${sourceRoute} level drifted`).toBe(
+              redirectOwner.level
             );
             expect(
               html,
