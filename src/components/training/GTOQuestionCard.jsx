@@ -235,16 +235,17 @@ export default function GTOQuestionCard({
     onNextHand = null,
 }) {
     const [hoveredId, setHoveredId] = useState(null);
-    const [selectedId, setSelectedId] = useState(null);
+    const [pendingId, setPendingId] = useState(null);
+    const selectedId = showFeedback ? (question?.selectedAnswer ?? pendingId) : pendingId;
     const reduceMotion = useReducedMotion();
     const { viewMode } = useTrainingSettings();
 
     // Reset selection/hover when a new question arrives so stale
     // highlights don't carry over between questions
     useEffect(() => {
-        setSelectedId(null);
+        setPendingId(null);
         setHoveredId(null);
-    }, [question]);
+    }, [question?._gradingContext?.submissionId, question?.id, questionNumber]);
 
     // BUG-D FIX: Fisher-Yates shuffle options per question to eliminate position bias
     const shuffledOptions = useMemo(() => {
@@ -306,7 +307,7 @@ export default function GTOQuestionCard({
     const handleSelect = (optionId) => {
         if (showFeedback) return; // Disable during feedback
         playCardSound('click');
-        setSelectedId(optionId);
+        setPendingId(optionId);
         onAnswer?.(optionId);
     };
 

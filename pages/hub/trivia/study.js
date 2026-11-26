@@ -246,18 +246,19 @@ export default function TriviaStudyDeck() {
                                             <span className="study-session-bar__count">
                                                 Session Mastery: {formatTriviaDisplayNumber(sessionMasteredInDeck)} Of {formatTriviaDisplayNumber(items.length)} Got It
                                             </span>
-                                            <label className="study-session-bar__toggle">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={hideMastered}
-                                                    onChange={(e) => {
-                                                        setHideMastered(e.target.checked);
-                                                        setCurrentIndex(0);
-                                                        setIsFlipped(false);
-                                                    }}
-                                                />
-                                                <span>Hide Mastered</span>
-                                            </label>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={hideMastered}
+                                                className={`sd-button${hideMastered ? ' sd-primary' : ''} study-session-bar__toggle`}
+                                                onClick={() => {
+                                                    setHideMastered((prev) => !prev);
+                                                    setCurrentIndex(0);
+                                                    setIsFlipped(false);
+                                                }}
+                                            >
+                                                <span>Hide Mastered: {hideMastered ? 'On' : 'Off'}</span>
+                                            </button>
                                         </div>
 
                                         <fieldset className="trivia-progress-filter study-filter-group">
@@ -415,10 +416,16 @@ export default function TriviaStudyDeck() {
                     .study-session-bar__toggle {
                         display: inline-flex;
                         align-items: center;
+                        justify-content: center;
                         gap: 8px;
+                        min-height: 44px;
+                        min-width: 44px;
+                        padding: 8px 14px;
                         font-size: 13px;
-                        color: #dbe8fa;
+                        font-weight: 700;
+                        color: #f2f7ff;
                         cursor: pointer;
+                        touch-action: manipulation;
                     }
                     .study-card {
                         display: flex;

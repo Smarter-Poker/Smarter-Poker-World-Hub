@@ -274,7 +274,9 @@ export default function useServerGradedRun(mode, opts = {}) {
             || verified.phase !== written.phase
             || verified.settlementRequestId !== written.settlementRequestId
             || verified.pendingTimeoutQuestionId !== written.pendingTimeoutQuestionId
-            || verified.survivalLevel !== written.survivalLevel) return null;
+            || verified.survivalLevel !== written.survivalLevel
+            || verified.answeredCount !== written.answeredCount
+            || verified.totalQuestions !== written.totalQuestions) return null;
         recoveryRef.current = verified;
         setRecoverableSession(verified);
         return verified;
@@ -462,6 +464,8 @@ export default function useServerGradedRun(mode, opts = {}) {
                         settlementRequestId: recovery?.settlementRequestId || null,
                         pendingTimeoutQuestionId: recovery?.pendingTimeoutQuestionId || null,
                         survivalLevel: recovery?.survivalLevel || null,
+                        answeredCount: recovery?.answeredCount ?? null,
+                        totalQuestions: recovery?.totalQuestions ?? null,
                     }));
                     if (!custody) throw recoveryCustodyError();
                     recovery = custody;
@@ -498,6 +502,14 @@ export default function useServerGradedRun(mode, opts = {}) {
             setMissLimit(Number.isInteger(json.missLimit) ? json.missLimit : null);
             setRunMissLimitReached(json.runMissLimitReached === true);
             if (mode !== 'pvp' && accountId) {
+                const resolvedTotalQuestions = Array.isArray(json.questions) && json.questions.length > 0
+                    ? json.questions.length
+                    : (recovery?.totalQuestions ?? null);
+                const resolvedAnsweredCount = Number.isInteger(json.answeredCount) && json.answeredCount >= 0
+                    ? json.answeredCount
+                    : Array.isArray(json.answeredQuestionIds)
+                        ? json.answeredQuestionIds.length
+                        : (json.resumed === true ? (recovery?.answeredCount ?? 0) : 0);
                 const custody = persistRecovery(createSoloRunRecovery({
                     mode,
                     accountId,
@@ -507,6 +519,8 @@ export default function useServerGradedRun(mode, opts = {}) {
                     expiresAt: json.expiresAt || recovery?.expiresAt || null,
                     pendingTimeoutQuestionId: recovery?.pendingTimeoutQuestionId || null,
                     survivalLevel: Number.isInteger(json.survivalLevel) ? json.survivalLevel : null,
+                    answeredCount: resolvedAnsweredCount,
+                    totalQuestions: resolvedTotalQuestions,
                 }));
                 if (!custody) throw recoveryCustodyError();
                 recovery = custody;
@@ -594,6 +608,27 @@ export default function useServerGradedRun(mode, opts = {}) {
             if (durableTimeout && !clearPendingTimeout(questionId, id)) {
                 throw recoveryCustodyError();
             }
+            if (mode !== 'pvp' && accountId) {
+                const currentRecovery = recoveryRef.current
+                    || readSoloRunRecovery(browserStorage(), mode, accountId);
+                if (currentRecovery && currentRecovery.sessionId === id) {
+                    const prevCount = Number.isInteger(currentRecovery.answeredCount)
+                        ? currentRecovery.answeredCount
+                        : 0;
+                    const nextAnswered = Number.isInteger(verdict?.answeredCount) && verdict.answeredCount >= 0
+                        ? verdict.answeredCount
+                        : (verdict?.fresh === false ? prevCount : prevCount + 1);
+                    const boundedAnswered = Number.isInteger(currentRecovery.totalQuestions)
+                        ? Math.min(nextAnswered, currentRecovery.totalQuestions)
+                        : nextAnswered;
+                    if (boundedAnswered !== currentRecovery.answeredCount) {
+                        persistRecovery(createSoloRunRecovery({
+                            ...currentRecovery,
+                            answeredCount: boundedAnswered,
+                        }));
+                    }
+                }
+            }
             if (Number.isInteger(verdict.nonPaidMissCount)) setNonPaidMissCount(verdict.nonPaidMissCount);
             if (Number.isInteger(verdict.terminalFailureCount)) setTerminalFailureCount(verdict.terminalFailureCount);
             if (Number.isInteger(verdict.missLimit)) setMissLimit(verdict.missLimit);
@@ -636,7 +671,7 @@ export default function useServerGradedRun(mode, opts = {}) {
             }
             throw e;
         }
-    }, [captureCurrentOperation, clearActiveRun, clearPendingTimeout, integrityTelemetry.recordAnswerTiming, isEnabled, mode, persistPendingTimeout, requireCurrentOperation, resolveAccessToken, retireRecovery]);
+    }, [accountId, captureCurrentOperation, clearActiveRun, clearPendingTimeout, integrityTelemetry.recordAnswerTiming, isEnabled, mode, persistPendingTimeout, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
 
     /**
      * Atomically buy/VIP-authorize and bind one Endless/Survival skip. The

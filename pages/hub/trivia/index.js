@@ -193,6 +193,7 @@ export default function TriviaHubPage({ modeAvailability }) {
     const latestUserIdRef = useRef(userId || null);
     latestUserIdRef.current = userId || null;
     const inFlightFetchKeyRef = useRef(null);
+    const lastCompletedFetchKeyRef = useRef(null);
     const deepLinkHandledRef = useRef('');
 
     // Deep-link support: honor ?mode=<slug> cleanly once router is ready.
@@ -214,6 +215,7 @@ export default function TriviaHubPage({ modeAvailability }) {
     useEffect(() => {
         playerDataRequestGuardRef.current.invalidate();
         inFlightFetchKeyRef.current = null;
+        lastCompletedFetchKeyRef.current = null;
         setUserDiamonds(0);
         setIsVip(false);
         setArcadeTicketCount(0);
@@ -279,32 +281,31 @@ export default function TriviaHubPage({ modeAvailability }) {
     });
 
     const loadUserData = useCallback(async ({ force = false } = {}) => {
+        if (authLoading) return;
         const requestUserId = userId || null;
         if (requestUserId !== latestUserIdRef.current) return;
 
         if (!userId) {
-            if (!authLoading) {
-                const request = playerDataRequestGuardRef.current.begin(null);
-                if (playerDataRequestGuardRef.current.isCurrent(request, latestUserIdRef.current)) {
-                    setUserDiamonds(0);
-                    setIsVip(false);
-                    setArcadeTicketCount(0);
-                    setDailyCompleted(false);
-                    setCurrentStreak(0);
-                    setPlayerDataStatus({
-                        profile: 'signed-out',
-                        daily: 'signed-out',
-                        streak: 'signed-out',
-                    });
-                    setIsLoading(false);
-                }
+            const request = playerDataRequestGuardRef.current.begin(null);
+            if (playerDataRequestGuardRef.current.isCurrent(request, latestUserIdRef.current)) {
+                setUserDiamonds(0);
+                setIsVip(false);
+                setArcadeTicketCount(0);
+                setDailyCompleted(false);
+                setCurrentStreak(0);
+                setPlayerDataStatus({
+                    profile: 'signed-out',
+                    daily: 'signed-out',
+                    streak: 'signed-out',
+                });
+                setIsLoading(false);
             }
             return;
         }
 
-        // Deduplicate concurrent identical reads for the same signed-in user.
+        // Deduplicate concurrent and recently completed identical reads for the same signed-in user.
         const fetchKey = `${requestUserId}:${getTodayCST()}`;
-        if (!force && inFlightFetchKeyRef.current === fetchKey) return;
+        if (!force && (inFlightFetchKeyRef.current === fetchKey || lastCompletedFetchKeyRef.current === fetchKey)) return;
         inFlightFetchKeyRef.current = fetchKey;
 
         const request = playerDataRequestGuardRef.current.begin(requestUserId);
@@ -336,8 +337,8 @@ export default function TriviaHubPage({ modeAvailability }) {
                     .eq('user_id', userId)
                     .maybeSingle(),
                 supabase
-                    .from('user_trivia_items')
-                    .select('quantity')
+                    .from('trivia_user_items')
+                    .select('item_type, quantity')
                     .eq('user_id', userId)
                     .eq('item_type', 'arcade_ticket')
                     .maybeSingle(),
@@ -378,6 +379,7 @@ export default function TriviaHubPage({ modeAvailability }) {
                 }
             }
             setPlayerDataStatus(nextStatus);
+            lastCompletedFetchKeyRef.current = fetchKey;
         } catch (error) {
             if (!requestIsCurrent()) return;
             console.warn('Error loading user data:', error);
