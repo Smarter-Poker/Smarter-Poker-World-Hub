@@ -1,3 +1,4 @@
+// TRAIN-BANKROLL-A11Y-1: The report destination owns the named heading and focus.
 export async function getServerSideProps() {
   return {
     redirect: {

@@ -34351,7 +34351,7 @@
       "functions": [
         {
           "name": "getServerSideProps",
-          "line": 1,
+          "line": 2,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -34359,7 +34359,7 @@
         },
         {
           "name": "BankrollCoachRedirect",
-          "line": 10,
+          "line": 11,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -42512,7 +42512,7 @@
       "functions": [
         {
           "name": "getServerSideProps",
-          "line": 1,
+          "line": 3,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42520,7 +42520,7 @@
         },
         {
           "name": "QuizGauntletRedirect",
-          "line": 10,
+          "line": 12,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -123788,7 +123788,7 @@
       {
         "file": "pages/hub/training/bankroll-coach.js",
         "name": "getServerSideProps",
-        "line": 1,
+        "line": 2,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -123801,7 +123801,7 @@
       {
         "file": "pages/hub/training/bankroll-coach.js",
         "name": "BankrollCoachRedirect",
-        "line": 10,
+        "line": 11,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -124596,7 +124596,7 @@
       {
         "file": "pages/hub/training/quiz-gauntlet.js",
         "name": "getServerSideProps",
-        "line": 1,
+        "line": 3,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124609,7 +124609,7 @@
       {
         "file": "pages/hub/training/quiz-gauntlet.js",
         "name": "QuizGauntletRedirect",
-        "line": 10,
+        "line": 12,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -134516,7 +134516,7 @@
       {
         "file": "pages/hub/training/bankroll-coach.js",
         "name": "getServerSideProps",
-        "line": 1,
+        "line": 2,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -134529,7 +134529,7 @@
       {
         "file": "pages/hub/training/bankroll-coach.js",
         "name": "BankrollCoachRedirect",
-        "line": 10,
+        "line": 11,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -135324,7 +135324,7 @@
       {
         "file": "pages/hub/training/quiz-gauntlet.js",
         "name": "getServerSideProps",
-        "line": 1,
+        "line": 3,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135337,7 +135337,7 @@
       {
         "file": "pages/hub/training/quiz-gauntlet.js",
         "name": "QuizGauntletRedirect",
-        "line": 10,
+        "line": 12,
         "references": 1,
         "exported": true,
         "defaultExport": true,
