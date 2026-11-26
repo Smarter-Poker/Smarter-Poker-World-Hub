@@ -137,7 +137,7 @@ test('coaching API authenticates server-side and supports only bounded explicit 
   assert.match(api, /\.eq\('user_id', userId\)/);
   assert.match(api, /T23:59:59\.999Z/);
   assert.match(api, /optionalLeakId\(body\.leakId\)/);
-  assert.match(api, /evidence_scope: 'club_arena'/);
+  assert.match(api, /evidence_scope: (?:row\.evidence_scope \|\| )?'club_arena'/);
   assert.match(api, /DECISION_WINDOW_LIMIT = 5000/);
   assert.match(api, /coverage\.windowLimited/);
 });
