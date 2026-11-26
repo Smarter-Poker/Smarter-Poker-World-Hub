@@ -406,7 +406,9 @@ async function publishCompiledIssue(sb, { issuePeriod, sendEmail = false, siteUr
     const issueRoute = `/hub/magazine/${encodeURIComponent(slug)}`;
 
     try {
-        await submitToIndexNow([`${siteUrl}/hub/magazine`, `${siteUrl}${issueRoute}`]);
+        const newsstandUrl = new URL('/hub/magazine', siteUrl);
+        const publishedIssueUrl = new URL(issueRoute, siteUrl);
+        await submitToIndexNow([newsstandUrl.href, publishedIssueUrl.href]);
     } catch {
         /* non-blocking SEO ping */
     }
