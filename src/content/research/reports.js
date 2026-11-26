@@ -259,7 +259,7 @@ const RAW_RESEARCH_REPORTS = [
   {
     slug: 'pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study',
     title: 'Pot-Limit Omaha (PLO4, PLO5, PLO6) Multiway Equity Compression And Bankroll Variance Study',
-    shortTitle: 'PLO4, PLO5, And PLO6 Equity And Variance Study',
+    shortTitle: 'PLO4 Vs PLO5 Vs PLO6 Equity & Variance Study',
     publishedDate: '2026-10-01',
     modifiedDate: '2026-10-31',
     category: 'Omaha Mathematics & Variance',

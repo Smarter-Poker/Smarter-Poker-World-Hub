@@ -1685,6 +1685,9 @@ export default function UniversalHeader({
               <img
                 src={displayAvatar || '/default-avatar.png'}
                 alt=""
+                width="48"
+                height="48"
+                decoding="async"
                 className="approved-global-header__avatar"
                 onError={(event) => {
                   event.currentTarget.src = '/default-avatar.png';

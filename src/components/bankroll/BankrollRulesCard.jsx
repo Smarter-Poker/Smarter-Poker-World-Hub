@@ -9,6 +9,7 @@ import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
+import { BANKROLL_RULE_UPSERT } from '../../lib/bankroll/naturalKeys.mjs';
 
 const PREMADE_RULES = [
   {
@@ -123,13 +124,15 @@ export default function BankrollRulesCard({ userId }) {
       } else {
         const { data, error } = await supabase
           .from('bankroll_rules')
-          .insert({
+          // The page also creates the default rules on open; a plain insert
+          // racing that (or a stale list) hit the (user_id, rule_type) key.
+          .upsert({
             user_id: userId,
             rule_type: premadeRule.rule_type,
             value: premadeRule.defaultValue,
             is_active: true,
             is_strict: false,
-          })
+          }, BANKROLL_RULE_UPSERT)
           .select()
           .maybeSingle();
         if (error) throw error;
@@ -180,13 +183,15 @@ export default function BankrollRulesCard({ userId }) {
       } else {
         const { data, error } = await supabase
           .from('bankroll_rules')
-          .insert({
+          // The page also creates the default rules on open; a plain insert
+          // racing that (or a stale list) hit the (user_id, rule_type) key.
+          .upsert({
             user_id: userId,
             rule_type: premadeRule.rule_type,
             value: newValue,
             is_active: true,
             is_strict: false,
-          })
+          }, BANKROLL_RULE_UPSERT)
           .select()
           .maybeSingle();
         if (error) throw error;

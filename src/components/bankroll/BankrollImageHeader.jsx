@@ -17,7 +17,7 @@ export default function BankrollImageHeader({
   const asset = '/images/smarterdesign/headers/' + art;
   return (
     <header className={'sd-masthead ' + styles.header + ' ' + className} data-header-art={art}>
-      <img className={styles.scene} src={artwork?.scene || asset + '-scene.webp'} alt="" aria-hidden="true" />
+      <img className={styles.scene} src={artwork?.scene || asset + '-scene.webp'} alt="" width="1200" height="240" fetchpriority="high" decoding="async" aria-hidden="true" />
       <span className={styles.seal} aria-hidden="true">
         <img src={artwork?.seal || asset + '-seal.webp'} alt="" width="176" height="176" />
       </span>

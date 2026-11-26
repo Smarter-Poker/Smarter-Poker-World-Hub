@@ -117,6 +117,8 @@ import './the-welcome-package-is-earned-by-phone-verification.law.test.mjs';
 import './phone-verification-uptake.test.mjs';
 // Cancellation's transactional storage cases belong to the same required CHECK 8 registry.
 import './horses-tournament-intent-storage.test.mjs';
+// API/server @vercel/nft static-page trace guard (incident 86bcafc1, 2026-11-26).
+import './api-routes-never-trace-static-pages.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
@@ -923,7 +925,7 @@ import './weekly-wire-v5-ecosystem-suite.law.test.mjs';
 import './newsletter-v6-forensic-hardening.law.test.mjs';
 import './seo-aeo-geo-phase4-20261126.law.test.mjs';
 import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
-import './api-routes-never-trace-static-pages.law.test.mjs';
+import './seo-aeo-geo-phase6-20261126.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

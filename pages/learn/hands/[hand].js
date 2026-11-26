@@ -19,6 +19,7 @@ import SEOHead, { schemas } from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../../src/components/seo/FaqSection';
+import { firstThatFits, fitMetaDescription } from '../../../src/lib/seo/titleFit.js';
 import {
   SITE_URL,
   LEARN_URL,
@@ -155,11 +156,18 @@ export default function StartingHandDetailPage({ hand }) {
     }
   };
 
+  const metaTitle = firstThatFits([
+    `How To Play ${hand.name} (${hand.code}) GTO Guide`,
+    `How To Play ${hand.code}: GTO Poker Strategy`,
+    `${hand.name} (${hand.code}) GTO Guide`,
+  ]);
+  const metaDescription = fitMetaDescription(hand.summary, 158);
+
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title={`How To Play ${hand.name} (${hand.code}): GTO Poker Strategy`}
-        description={hand.summary}
+        title={metaTitle}
+        description={metaDescription}
         canonical={path}
         jsonLd={handJsonLd(hand)}
       />
