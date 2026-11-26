@@ -1,0 +1,24 @@
+.sheet.sheet { padding: 0; width: min(520px, calc(100% - 24px)); max-height: calc(100dvh - 28px); overflow: auto; overscroll-behavior: contain; scrollbar-gutter: auto; }
+.header { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 14px clamp(12px, 4vw, 23px); background: radial-gradient(ellipse at 4% 100%, #1b4772, transparent 56%), linear-gradient(108deg,#152f49,#0a192a 74%); border-bottom: 1px solid #57738c; }
+.seal { display: grid; place-items: center; width: 37px; height: 37px; box-sizing: border-box; border: 2px solid #9cb9d1; border-radius: 50%; background: radial-gradient(at 40% 23%,#27639a,#0a2849 65%,#061526); color: #cfeeff; box-shadow: inset 0 0 0 2px #10253b; }
+.heading { min-width: 0; }
+.header .heading h2 { margin: 0; color: #f2f7ff; font: 750 clamp(1.35rem,2.1vw,1.65rem)/1.1 var(--sd-type); overflow-wrap: anywhere; }
+.heading p { margin: 4px 0 0; color: #b7d7ea; overflow-wrap: anywhere; font-size: .88rem; }
+.header .close { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 4px; }
+.fields { display: grid; gap: 12px; min-width: 0; padding: 16px clamp(12px, 4vw, 23px); }
+.fields label { min-width: 0; }
+.fields label :is(input,select,textarea) { box-sizing: border-box; max-width: 100%; min-width: 0; }
+.actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; align-items: stretch; padding: 12px clamp(12px, 4vw, 23px); border-top: 1px solid #49627c; background: #08192a; }
+.actions button { min-width: 0; min-height: 44px; }
+.sheet .fields p { margin: 0; color: #d3e2ef; }
+.sheet form { min-width: 0; }
+.sheet:focus-visible, .sheet :is(button,input,select):focus-visible { outline: 2px solid #9bdeff; outline-offset: 2px; }
+@media(max-height:510px){ .header, .actions { padding-block: 8px; } .fields { padding-block: 10px; } }
+
+.eventHeading { display:grid; grid-template-columns: auto minmax(0,1fr) auto; align-items:center; gap:10px; padding-bottom:10px; }
+.eventHeading h2 { margin:0; }
+.eventHeading > span:last-child:not(:first-child) { color:var(--sd-ice); font-weight:700; font-variant-numeric:tabular-nums; }
+.eventEdit { border-inline-start:2px solid #77bbef; background:#0a1d30; }
+.eventEdit h3 { margin:0; padding:12px clamp(12px,4vw,23px) 0; color:var(--sd-text); }
+.editActions { grid-template-columns:44px repeat(2,minmax(0,1fr)); }
+.editActions button:first-child { display:grid; place-items:center; padding-inline:0; }

@@ -11,9 +11,9 @@ import { createPortal } from 'react-dom';
 import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 import BankrollHeaderAdd from './BankrollHeaderAdd';
 import shift from './toke/ShiftConsole.module.css';
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Camera, CarFront, CircleCheck, Download, Pencil, PlusCircle, Receipt, Target, Trash2 } from 'lucide-react';
+import { Activity, Camera, CarFront, CircleCheck, Download, Pencil, PlusCircle, Receipt, Trash2 } from 'lucide-react';
 import ReceiptScanner from './ReceiptScanner';
 import DoubleDownPrompt from './toke/DoubleDownPrompt';
 import AddDownModal from './toke/AddDownModal';
@@ -21,6 +21,8 @@ import AddExpenseModal from './toke/AddExpenseModal';
 import CompletedEventsList from './toke/CompletedEventsList';
 import TokeCalendar from './TokeCalendar';
 import TokeDashboard from './TokeDashboard';
+import MonthlyIncomeGoal from './toke/MonthlyIncomeGoal';
+import DealerReference from './toke/DealerReference';
 import DealerVault from './DealerVault';
 import VenueIntelligence from './VenueIntelligence';
 import TaxSummaryModal from './TaxSummaryModal';
@@ -160,43 +162,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const [expenseForm, setExpenseForm] = useState({ category: 'food', amount: '', description: '', receipt_url: null });
     const [showScanner, setShowScanner] = useState(false);
     const [viewingReceiptUrl, setViewingReceiptUrl] = useState(null);
-
-    // Jarvis Reference Panel state
-    const [jarvisQuery, setJarvisQuery] = useState('');
-    const [jarvisAnswer, setJarvisAnswer] = useState(null);
-    const [jarvisLoading, setJarvisLoading] = useState(false);
-    const [jarvisHistory, setJarvisHistory] = useState([]);
-    const [jarvisExpanded, setJarvisExpanded] = useState(true);
-
-    // Monthly Income Goal (localStorage)
-    const [monthlyGoal, setMonthlyGoal] = useState(() => {
-        try { return parseFloat(localStorage.getItem('toke_monthly_goal') || '0') || 0; }
-        catch { return 0; }
-    });
-    const [goalInput, setGoalInput] = useState('');
-    const [showGoalEdit, setShowGoalEdit] = useState(false);
-
-    const currentMonthTokes = useMemo(() => {
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = now.getMonth();
-        return completedGigs.reduce((sum, gig) => {
-            if (!gig.start_date) return sum;
-            const d = new Date(gig.start_date + 'T12:00:00');
-            if (d.getFullYear() !== y || d.getMonth() !== m) return sum;
-            return sum + (gig.days || []).reduce((s2, day) =>
-                s2 + (day.downs || []).reduce((s3, dn) => s3 + (dn.toke_amount || 0), 0), 0
-            );
-        }, 0);
-    }, [completedGigs]);
-
-    const saveGoal = () => {
-        const val = parseFloat(goalInput) || 0;
-        setMonthlyGoal(val);
-        try { localStorage.setItem('toke_monthly_goal', String(val)); } catch (e) { console.warn('[App] Handled exception:', e); }
-        setShowGoalEdit(false);
-        setGoalInput('');
-    };
 
     // Timer for 35-min down reminder
     const downTimerRef = useRef(null);
@@ -958,35 +923,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             if (!isAbortError(err)) toast.error(err.message || 'Failed to delete expense');
         }
     };
-
-    // ── Jarvis Dealer Reference ──
-    const handleAskJarvis = async (query) => {
-        const q = (query || jarvisQuery).trim();
-        if (!q) return;
-        setJarvisLoading(true);
-        setJarvisAnswer(null);
-        try {
-            const res = await fetch('/api/jarvis/dealer-reference', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: q, history: jarvisHistory }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Jarvis error');
-            setJarvisAnswer(data.answer);
-            setJarvisHistory(prev => [
-                ...prev.slice(-4),
-                { question: q, answer: data.answer },
-            ]);
-            setJarvisQuery('');
-        } catch (err) {
-            toast.error(err.message || 'Jarvis unavailable - try again');
-        } finally {
-            setJarvisLoading(false);
-        }
-    };
-
-    // Jarvis chips removed — clean input only
 
     // ── Report View ──
     const handleViewReport = async (gigId) => {
@@ -1819,129 +1755,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 onDeleteGig={handleDeleteCompletedGig}
             />
 
-            {/* ── MONTHLY INCOME GOAL (at bottom) ── */}
-            {
-                (monthlyGoal > 0 || showGoalEdit) && (
-                    <div className="sd-panel">
-                        <div style={styles.goalHeader}>
-                            <span className="sd-section-title">Monthly Goal</span>
-                            <button className="sd-button" onClick={() => { setGoalInput(String(monthlyGoal)); setShowGoalEdit(true); }}>Edit</button>
-                        </div>
-                        {showGoalEdit ? (
-                            <div style={styles.goalEditRow}>
-                                <input
-                                    type="number"
-                                    style={styles.goalInput}
-                                    aria-label="Monthly Income Goal" placeholder="Monthly $ Goal"
-                                    value={goalInput}
-                                    onChange={e => setGoalInput(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && saveGoal()}
-                                    autoFocus
-                                />
-                                <button className="sd-button sd-primary" onClick={saveGoal}>Save</button>
-                                <button className="sd-button" onClick={() => setShowGoalEdit(false)}>×</button>
-                            </div>
-                        ) : (() => {
-                            const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
-                            const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                            const daysLeft = daysInMonth - new Date().getDate();
-                            const barColor = pct >= 80 ? '#8cdeee' : pct >= 50 ? '#38bdf8' : '#e7effa';
-                            return (
-                                <>
-                                    <div style={styles.goalText}>
-                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) - {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
-                                    </div>
-                                    <div style={styles.goalBarBg}>
-                                        <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
-                                    </div>
-                                </>
-                            );
-                        })()}
-                    </div>
-                )
-            }
+            <MonthlyIncomeGoal key={userId || 'guest'} userId={userId} completedGigs={completedGigs} />
 
-            {/* ── JARVIS DEALER REFERENCE PANEL ── */}
-            <div className="sd-panel">
-                <button aria-expanded={jarvisExpanded} className={"sd-button " + shift.wide} onClick={() => setJarvisExpanded(e => !e)}>
-                    <span style={styles.jarvisHeaderLeft}>
-                        <img src="/images/jarvis-avatar-circle.png" alt="Jarvis" style={styles.jarvisAvatarImg} />
-                        <div>
-                            <div style={styles.jarvisTitle}>Jarvis - Dealer Reference</div>
-                            <div style={styles.jarvisSub}>Ask For Rules, TDA Lookups & Game Refreshers</div>
-                        </div>
-                    </span>
-                    <span style={{ ...styles.jarvisChevron, transform: jarvisExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-                </button>
-
-                <AnimatePresence>
-                    {jarvisExpanded && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            style={{ overflow: 'hidden' }}
-                        >
-
-                            {/* Input row */}
-                            <div style={styles.jarvisInputRow}>
-                                <input
-                                    type="text"
-                                    value={jarvisQuery}
-                                    onChange={e => setJarvisQuery(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter') handleAskJarvis(); }}
-                                    placeholder="Ask Jarvis Anything About Dealing..."
-                                    style={styles.jarvisInput}
-                                    disabled={jarvisLoading}
-                                />
-                                <button
-                                    onClick={() => handleAskJarvis()}
-                                    className="sd-button sd-primary"
-                                    disabled={jarvisLoading || !jarvisQuery.trim()}
-                                >
-                                    {jarvisLoading ? '...' : 'Ask'}
-                                </button>
-                            </div>
-
-                            {/* Answer area */}
-                            {jarvisLoading && (
-                                <div style={styles.jarvisLoading}>
-                                    <span style={styles.jarvisLoadingDot} />
-                                    Jarvis Is Thinking...
-                                </div>
-                            )}
-                            {jarvisAnswer && !jarvisLoading && (
-                                <div style={styles.jarvisAnswer}>
-                                    <div style={styles.jarvisAnswerLabel}><img src="/images/jarvis-avatar-circle.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }} />Jarvis</div>
-                                    <div style={styles.jarvisAnswerText}>{jarvisAnswer}</div>
-                                </div>
-                            )}
-
-                            {/* History (last 3 previous Q&As) */}
-                            {jarvisHistory.length > 0 && !jarvisAnswer && (
-                                <div style={styles.jarvisHistory}>
-                                    {jarvisHistory.slice(-3).reverse().map((item, i) => (
-                                        <div key={i} style={styles.jarvisHistoryItem}>
-                                            <div style={styles.jarvisHistoryQ}>Q: {item.question}</div>
-                                            <div style={styles.jarvisHistoryA}>{item.answer}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* ── SET MONTHLY GOAL (below Jarvis) ── */}
-            {
-                !monthlyGoal && !showGoalEdit && (
-                    <button className="sd-button" onClick={() => setShowGoalEdit(true)}>
-                        <Target size={18} aria-hidden="true" />
-                        Set Monthly Income Goal
-                    </button>
-                )
-            }
+            <DealerReference key={'reference-' + (userId || 'guest')} />
 
             {/* ── DEALER VAULT (hidden in standalone mode) ── */}
             {!standalone && <DealerVault userId={userId} completedGigs={completedGigs} />}
@@ -2114,68 +1930,12 @@ const styles = {
     reportBreakdownGrid: { display: 'flex', flexWrap: 'wrap', gap: 8 },
     breakdownItem: { fontSize: 13, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 10px', color: '#94a3b8' },
 
-    // Jarvis Panel
-    jarvisHeaderLeft: { display: 'flex', alignItems: 'center', gap: 10 },
-    jarvisIcon: { fontSize: 26 },
-    jarvisAvatarImg: { width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
-    jarvisTitle: { fontSize: 16, fontWeight: 700, color: '#eff5fc', textAlign: 'left' },
-    jarvisSub: { fontSize: 12, color: '#a6bfd3', marginTop: 1, textAlign: 'left' },
-    jarvisChevron: { fontSize: 14, color: '#a6bfd3', transition: 'transform 0.2s', flexShrink: 0 },
-    jarvisChips: {
-        display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 12,
-    },
-    jarvisChip: {
-        fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 20, cursor: 'pointer',
-        background: 'rgba(56,189,248,0.08)', color: '#38bdf8',
-        border: '2px solid rgba(56,189,248,0.25)', transition: 'all 0.15s',
-    },
-    jarvisInputRow: { display: 'flex', gap: 8, marginBottom: 12 },
-    jarvisInput: {
-        flex: 1, padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
-        border: '2px solid rgba(255,255,255,0.12)', borderRadius: 8,
-        color: '#fff', fontSize: 14, outline: 'none',
-    },
-    jarvisLoading: {
-        display: 'flex', alignItems: 'center', gap: 8,
-        color: '#38bdf8', fontSize: 13, fontWeight: 600, padding: '10px 0',
-    },
-    jarvisLoadingDot: {
-        width: 8, height: 8, borderRadius: '50%', background: '#38bdf8',
-        animation: 'pulse 1s infinite',
-    },
-    jarvisAnswer: {
-        background: 'rgba(0,0,0,0.25)', borderRadius: 10,
-        padding: 14, border: '2px solid rgba(56,189,248,0.15)',
-    },
-    jarvisAnswerLabel: { fontSize: 12, fontWeight: 700, color: '#38bdf8', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
-    jarvisAnswerText: { fontSize: 13, color: '#eff5fc', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
-    jarvisHistory: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
-    jarvisHistoryItem: {
-        background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: '10px 12px',
-        border: '2px solid rgba(255,255,255,0.05)',
-    },
     taxSummaryBtn: {
         width: '100%', padding: '13px', background: 'rgba(54,187,106,0.08)',
         border: '1px dashed rgba(54,187,106,0.4)', borderRadius: 10,
         color: '#8cdeee', fontSize: 14, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
-    // Event action row (edit/delete for completed events)
-    jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
-    jarvisHistoryA: { fontSize: 12, color: '#bfcee0', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
-
-    // Monthly Income Goal
-    goalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-    goalText: { fontSize: 14, color: '#bfcee0', marginBottom: 10, lineHeight: 1.5 },
-    goalBarBg: { height: 8, background: '#30485f', borderRadius: 4, overflow: 'hidden' },
-    goalBarFill: { height: '100%', borderRadius: 4, transition: 'width 0.4s ease' },
-    goalEditRow: { display: 'flex', gap: 8, alignItems: 'center' },
-    goalInput: {
-        flex: 1, padding: '10px 12px', background: '#07111e', border: '2px solid rgba(255,255,255,0.12)',
-        borderRadius: 8, color: '#eff5fc', fontSize: 14, outline: 'none',
-    },
-    goalBtnIcon: { fontSize: 16 },
-
     // Calendar wrapper
     calendarWrapper: {
         background: '#112338', border: '2px solid rgba(255,255,255,0.07)',

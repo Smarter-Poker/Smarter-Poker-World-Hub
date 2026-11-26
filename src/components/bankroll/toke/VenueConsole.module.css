@@ -1,0 +1,615 @@
+.stack {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.stack [hidden] {
+  display: none;
+}
+.summary,
+.panel {
+  min-width: 0;
+  padding: clamp(12px, 2.2vw, 23px);
+  color: var(--sd-text);
+  background: linear-gradient(115deg, #122a41, #091724 66%, #06121f);
+}
+.summary {
+  display: grid;
+  grid-template-columns: minmax(195px, 0.88fr) minmax(0, 1.12fr);
+  align-items: center;
+  gap: 12px;
+}
+.summaryTitle,
+.sectionTitle,
+.calendarHeading h2,
+.dialogHead h2,
+.monthView h3 {
+  margin: 0;
+  font: 750 clamp(21px, 3vw, 28px)/1.12 var(--sd-type, system-ui);
+  color: #f1f7ff;
+  letter-spacing: -0.015em;
+}
+.sectionTitle {
+  font-size: clamp(19px, 2.5vw, 25px);
+}
+.summaryTitle button,
+.sectionTitle button {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.summaryTitle svg,
+.sectionTitle svg,
+.calendarHeading svg,
+.dialogHead svg,
+.alertRow svg {
+  color: #9cddff;
+  flex: none;
+}
+.chevron {
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+button[aria-expanded='true'] > .chevron {
+  transform: rotate(180deg);
+}
+.summaryFigures,
+.rowFigures,
+.details {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.summaryFigures {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 0.75fr;
+  gap: 8px;
+}
+.summaryFigures > div {
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 1px solid #426782;
+}
+.summaryFigures dt,
+.rowFigures dt,
+.details dt {
+  color: #aac4d7;
+  line-height: 1.3;
+  font: 600 0.78rem/1.3 var(--font-inter, system-ui);
+}
+.summaryFigures dd,
+.rowFigures dd,
+.details dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.summaryFigures dd {
+  font: 750 clamp(20px, 3.6vw, 33px)/1.12 var(--sd-type, system-ui);
+  color: #f0f6fd;
+}
+.summaryFigures > div:first-child dd {
+  color: #97dbff;
+}
+.panel:has(.sectionTitle) {
+  padding-top: 9px;
+}
+.sectionTitle + div:not([hidden]),
+.calendarHeading {
+  border-bottom: 1px solid #36526b;
+}
+.sectionTitle + div:not([hidden]) {
+  border-bottom: 0;
+  border-top: 1px solid #36526b;
+  padding-top: 11px;
+  margin-top: 4px;
+}
+.sortRail {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.sortRail button {
+  min-height: 44px;
+  padding-inline: 15px;
+}
+.sortRail button[aria-pressed='true'],
+.alertRow button[aria-pressed='true'] {
+  background: var(--sd-cobalt);
+  color: #fff;
+  border-color: #93d4ff;
+}
+.ranking,
+.agenda {
+  padding: 0;
+  margin: 10px 0 0;
+  list-style: none;
+}
+.ranking li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) minmax(190px, 0.65fr);
+  align-items: center;
+  gap: 6px 11px;
+  padding: 12px 0;
+  border-top: 1px solid #2f4b64;
+  min-width: 0;
+}
+.rank {
+  grid-row: 1 / 3;
+  display: grid;
+  place-content: center;
+  min-height: 36px;
+  align-self: start;
+  font: 700 20px/1 var(--sd-type, system-ui);
+  color: #a2dfff;
+  background: linear-gradient(130deg, #234260, #0b1e32);
+  border: 1px solid #456482;
+  border-radius: 4px;
+}
+.venueName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.venueName strong {
+  font: 750 1.18rem/1.15 var(--sd-type, system-ui);
+  color: #f0f6fc;
+}
+.venueName small,
+.agenda small {
+  display: block;
+  color: #abc1d4;
+  font: 0.8rem/1.4 var(--font-inter, system-ui);
+  margin-top: 3px;
+}
+.rowFigures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  text-align: right;
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+.rowFigures dd {
+  font: 700 1.2rem/1.12 var(--sd-type, system-ui);
+  color: #e6f5ff;
+}
+.meter {
+  height: 4px;
+  grid-column: 2;
+  background: #233b50;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.meter span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #337bd0, #85d8ff);
+}
+.table :global(caption) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.table :global(.sp-rtable table) {
+  font-variant-numeric: tabular-nums;
+}
+.table :global(.sp-rtable th) {
+  color: #bbdbf0;
+  opacity: 1;
+  text-transform: none;
+  background: #122a40;
+}
+.table :global(.sp-rtable td) {
+  color: #e6f0f9;
+}
+.table :global(.sp-rtable td:first-child),
+.table :global(.sp-rtable td:last-child) {
+  font-weight: 700;
+}
+.table :global(.sp-rtable td:last-child) {
+  color: #a2dcff;
+}
+.empty,
+.status,
+.upcoming {
+  margin: 8px 0;
+  color: #bcd0e2;
+  font: 0.88rem/1.5 var(--font-inter, system-ui);
+  overflow-wrap: anywhere;
+}
+.status button,
+.empty button {
+  margin-inline-start: 8px;
+}
+.calendarHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 11px;
+}
+.calendarHeading h2,
+.yearControls,
+.dialogHead,
+.alertRow,
+.alertRow > span {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+.yearControls {
+  gap: 5px;
+}
+.yearControls button,
+.close,
+.alertRow button,
+.actions button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.yearControls button {
+  display: grid;
+  place-items: center;
+  padding: 6px 10px;
+}
+.yearControls strong {
+  color: #d7efff;
+  min-width: 4ch;
+  text-align: center;
+  font: 750 22px/1 var(--sd-type, system-ui);
+}
+.monthRail {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+.monthRail button,
+.dayGrid button,
+.agenda button {
+  border: 1px solid #36536c;
+  border-radius: 3px;
+  color: #e4eff8;
+  background: #10253b;
+  font: 650 0.88rem/1.2 var(--sd-type, system-ui);
+  cursor: pointer;
+}
+.monthRail button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.monthRail button[aria-expanded='true'],
+.dayGrid button[aria-current='date'] {
+  background: var(--sd-cobalt);
+  border-color: #91cfff;
+  color: white;
+}
+.monthRail small {
+  color: #b4e8ff;
+  font-size: 12px;
+}
+.monthView {
+  margin-top: 13px;
+  border-top: 1px solid #395870;
+  padding-top: 12px;
+}
+.monthView h3 {
+  font-size: 1.35rem;
+  margin-bottom: 10px;
+}
+.dayGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+.weekday {
+  text-align: center;
+  color: #abcadd;
+  font-weight: 650;
+  font-size: 0.8rem;
+  padding: 3px 0;
+}
+.dayGrid button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  position: relative;
+  color: #e4f2ff;
+}
+.dayGrid button:disabled {
+  color: #8a9bab;
+  background: #0c1a28;
+  border-color: #1c3041;
+  cursor: default;
+}
+.dayGrid button[data-event] {
+  border-color: #6db4ec;
+}
+.dayGrid button i {
+  position: absolute;
+  bottom: 3px;
+  left: calc(50% - 2px);
+  width: 4px;
+  height: 4px;
+  background: #97ddff;
+  border-radius: 50%;
+}
+.agenda button {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  min-height: 46px;
+  overflow-wrap: anywhere;
+}
+.agenda li + li {
+  margin-top: 5px;
+}
+.agenda time {
+  color: #9cdbff;
+  font-weight: 750;
+}
+.dialog.dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  box-sizing: border-box;
+  width: min(510px, calc(100vw - 20px));
+  max-height: calc(
+    100dvh - max(20px, env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px))
+  );
+  padding: 0;
+  overflow: hidden;
+  color: #edf7ff;
+  background: linear-gradient(130deg, #132b40, #091827 63%);
+  font-family: var(--font-inter, system-ui), sans-serif;
+}
+.dialog:global([open]) {
+  display: flex;
+  flex-direction: column;
+}
+.dialog::backdrop {
+  background: #010712cf;
+  backdrop-filter: blur(3px);
+}
+.dialogHead {
+  flex: none;
+  padding: max(9px, env(safe-area-inset-top, 0px)) clamp(12px, 3.5vw, 20px) 9px;
+  border-bottom: 1px solid #36516c;
+  background: linear-gradient(100deg, #17344c, #0b1a2a);
+}
+.dialogHead h2 {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(20px, 4vw, 27px);
+}
+.close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #7796b0;
+  background: #132b40;
+  color: #f2f7ff;
+  cursor: pointer;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+}
+.formBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(12px, 3.5vw, 20px);
+}
+.formBody fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.formBody fieldset + fieldset {
+  margin-top: 16px;
+  border-top: 1px solid #34516a;
+  padding-top: 4px;
+}
+.formBody legend {
+  color: #a3ddff;
+  font: 700 1.05rem/1.2 var(--sd-type, system-ui);
+  padding: 0 6px 0 0;
+}
+.formBody label {
+  margin: 10px 0 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #e8f4fc;
+  font: 650 0.88rem/1.3 var(--font-inter, system-ui);
+}
+.formBody label small {
+  color: #b2c7d7;
+  font-size: 0.76rem;
+  font-weight: 450;
+}
+.formBody :is(input, textarea) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border: 1px solid #597187;
+  background: #071624;
+  color: #f1f7fc;
+  font: 400 1rem/1.3 var(--font-inter, system-ui);
+  padding: 9px 11px;
+  color-scheme: dark;
+}
+.formBody textarea {
+  resize: vertical;
+}
+.formBody :is(input, textarea)::placeholder {
+  color: #a4b7cb;
+}
+.alertRow {
+  justify-content: space-between;
+  margin-top: 12px;
+  color: #c8def0;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+.actions {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  gap: 7px;
+  padding: 10px clamp(12px, 3.5vw, 20px) max(12px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #36536a;
+  background: #0b1c2a;
+}
+.actions button {
+  min-width: 90px;
+}
+.details > div {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.38fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid #30485d;
+}
+.details dt,
+.details dd {
+  align-self: start;
+  white-space: pre-wrap;
+}
+.formError {
+  color: #ffaeb2;
+}
+.dialog :is(button, input, textarea):focus-visible,
+.panel :is(button, summary):focus-visible,
+.summary button:focus-visible {
+  outline: 2px solid #9cdfff;
+  outline-offset: 2px;
+}
+@media (max-width: 768px) {
+  .table :global(.sp-rtable-card) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    border: 0;
+    border-bottom: 1px solid #34516b;
+    border-radius: 0;
+    background: transparent;
+    padding: 9px 0 13px;
+  }
+  .table :global(.sp-rtable-cell) {
+    display: block;
+    min-width: 0;
+  }
+  .table :global(.sp-rtable-cell:first-child) {
+    grid-column: 1/-1;
+  }
+  .table :global(.sp-rtable-label) {
+    display: block;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #a9c7db;
+    white-space: normal;
+    opacity: 1;
+  }
+  .table :global(.sp-rtable-cell:first-child .sp-rtable-label) {
+    display: none;
+  }
+  .table :global(.sp-rtable-value) {
+    display: block;
+    text-align: left;
+    margin-top: 2px;
+    color: #eff7ff;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .summary {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 570px) {
+  .ranking li {
+    grid-template-columns: 30px minmax(0, 1fr);
+    align-items: start;
+  }
+  .rowFigures {
+    grid-column: 2;
+    grid-row: auto;
+    text-align: left;
+  }
+  .rank {
+    min-height: 30px;
+  }
+  .meter {
+    grid-column: 2;
+  }
+  .monthRail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .sortRail {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .sortRail button {
+    min-width: 0;
+    padding-inline: 4px;
+  }
+}
+@media (max-width: 360px) {
+  .summaryFigures {
+    gap: 4px;
+  }
+  .summaryFigures > div {
+    padding-left: 5px;
+  }
+  .summaryFigures dt {
+    font-size: 12px;
+  }
+  .dialogHead {
+    gap: 5px;
+  }
+  .calendarHeading h2 {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}

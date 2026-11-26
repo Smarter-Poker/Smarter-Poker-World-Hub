@@ -150,7 +150,7 @@ export default function ShareResultCardModal({
                 : shareState === 'shared'
                     ? 'Shared'
                     : isVerifiedCard ? 'Verified' : 'Preview'}
-            pillInk={copyState === 'copied' || linkCopyState === 'copied' || shareState === 'shared' || isVerifiedCard ? 'green' : 'gold'}
+            pillInk={copyState === 'copied' || linkCopyState === 'copied' || shareState === 'shared' || isVerifiedCard ? 'green' : 'blue'}
             secondaryAction={{ label: 'Close', onClick: onClose }}
             primaryAction={{
                 label: copyState === 'copied' ? 'Score Grid Copied' : 'Copy Score Grid',
@@ -196,7 +196,7 @@ export default function ShareResultCardModal({
                         href={cardUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="tc-word tc-ink--gold"
+                        className="tc-word tc-ink--cyan"
                         style={{ padding: '10px 12px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}
                     >
                         Open Card Image

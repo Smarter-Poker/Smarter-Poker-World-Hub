@@ -247,7 +247,8 @@ test('dynamic [mode] route admits arcade free-entry holders and passes mode to P
     const page = read('pages/hub/trivia/[mode].js');
     assert.match(page, /let arcadeFreeEntryCount = 0;/);
     assert.match(page, /arcadeFreeEntryCount = itemMap\.get\('arcade_ticket'\) \|\| 0;/);
-    assert.match(page, /if \(mode === 'arcade' && !vipStatus && arcadeFreeEntryCount < 1\)/);
+    assert.doesNotMatch(page, /if \(mode === 'arcade' && !vipStatus && arcadeFreeEntryCount < 1\)/);
+    assert.match(page, /const hasArcadeFreeEntry = mode === 'arcade' && \(arcadeInventory\?\.freeEntry \|\| 0\) >= 1;/);
     assert.match(page, /<PrizeWheel[\s\S]*?mode=\{mode\}/);
 
     const wheel = read('src/components/trivia/PrizeWheel.jsx');

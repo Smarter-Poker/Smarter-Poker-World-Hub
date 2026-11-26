@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
   Activity,
@@ -21,8 +22,6 @@ import {
   Clock3,
   Droplet,
   FlaskConical,
-  History,
-  Layers,
   Play,
   Route,
   RotateCw,
@@ -53,6 +52,9 @@ import PersonalAssistantCopyPolicy from '../../../src/components/personal-assist
 import { resolveDailyHeroHand } from '../../../src/lib/personal-assistant/dailyHandContract.mjs';
 import {
   PA_ANALYSIS_DEFAULTS,
+  describePracticePreset,
+  getSafeLocalStorage,
+  loadAssistantPreferences,
   resolveHomePrimaryState,
 } from '../../../src/lib/personal-assistant/assistantDefaults.mjs';
 
@@ -200,6 +202,48 @@ export default function PersonalAssistantPage() {
   const sessionsBusy = sessionsLoading && dataLoading;
 
   useEffect(() => { setMounted(true); }, []);
+
+  const [assistantPrefs, setAssistantPrefs] = useState(() => loadAssistantPreferences(null, null));
+  useEffect(() => {
+    setAssistantPrefs(loadAssistantPreferences(getSafeLocalStorage(), user?.id));
+  }, [user?.id]);
+
+  // Direct hand deep-link handoff: ?hand=<uuid> routes straight to Leak Finder hand review.
+  useEffect(() => {
+    if (router?.isReady === false) return;
+    const searchParams = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search)
+      : null;
+    const rawHand = Array.isArray(router?.query?.hand)
+      ? router.query.hand[0]
+      : (router?.query?.hand ?? searchParams?.get('hand'));
+    const handId = typeof rawHand === 'string' ? rawHand.trim() : '';
+    if (!handId) return;
+    const rawSource = Array.isArray(router?.query?.source)
+      ? router.query.source[0]
+      : (router?.query?.source ?? searchParams?.get('source'));
+    const rawFormat = Array.isArray(router?.query?.format)
+      ? router.query.format[0]
+      : (router?.query?.format ?? searchParams?.get('format'));
+    const rawDrill = Array.isArray(router?.query?.drill)
+      ? router.query.drill[0]
+      : (router?.query?.drill ?? searchParams?.get('drill'));
+    const params = new URLSearchParams();
+    params.set('hand', handId);
+    params.set('source', typeof rawSource === 'string' && rawSource.trim() ? rawSource.trim() : 'personal-assistant');
+    if (typeof rawFormat === 'string' && rawFormat.trim()) {
+      params.set('format', rawFormat.trim());
+    }
+    if (typeof rawDrill === 'string' && rawDrill.trim()) {
+      params.set('drill', rawDrill.trim());
+    }
+    const targetUrl = `/hub/personal-assistant/leaks?${params.toString()}`;
+    if (typeof router?.replace === 'function') {
+      router.replace(targetUrl);
+    } else if (typeof router?.push === 'function') {
+      router.push(targetUrl);
+    }
+  }, [router, router?.isReady, router?.query?.hand, router?.query?.source, router?.query?.format, router?.query?.drill]);
 
   const [trainingPlanReloadKey, setTrainingPlanReloadKey] = useState(0);
 
@@ -388,7 +432,6 @@ export default function PersonalAssistantPage() {
   const handsAnalyzedCount = parseMetric(stats?.handsAnalyzed);
   const availableClubArenaHands = parseMetric(stats?.availableClubArenaHands);
   const sessionsReviewedCount = parseMetric(stats?.sessionsReviewed);
-  const sandboxSessionsCount = parseMetric(stats?.sandboxSessions);
   const trainingPlan = coachingSnapshot?.trainingPlan || null;
   const reviewDueCount = Number(
     coachingSnapshot?.summary?.due ?? coachingSnapshot?.trainingPlan?.dueNowCount ?? 0,
@@ -505,81 +548,34 @@ export default function PersonalAssistantPage() {
     },
   ];
 
+  const drillsDueCount = statsUnavailable ? null : dueCount;
   const statCards = [
     {
       title: 'Active Leaks',
       value: activeLeakCount,
-      label: resolvedLeakCount === null
+      label: activeLeakCount === null
         ? unavailableLabel
-        : `${resolvedLeakCount.toLocaleString()} Resolved${dueCount > 0 ? ` · ${dueCount} Due` : ''}`,
+        : `${activeLeakCount.toLocaleString()} Open`,
       Icon: Droplet,
-      route: dueCount > 0 ? '/hub/personal-assistant/leaks?tab=leaks' : '/hub/personal-assistant/leaks',
-    },
-    {
-      title: 'Hands Analyzed',
-      value: handsAnalyzedCount,
-      label: handsAnalyzedCount === null ? unavailableLabel : 'Verified Audits',
-      Icon: Layers,
       route: '/hub/personal-assistant/leaks',
     },
     {
-      title: 'Sessions Reviewed',
-      value: sessionsReviewedCount,
-      label: sessionsReviewedCount === null ? unavailableLabel : 'Records',
-      Icon: History,
-      route: '/hub/personal-assistant/sandbox',
-    },
-    {
-      title: 'Archived Sessions',
-      value: sandboxSessionsCount,
-      label: sandboxSessionsCount === null ? unavailableLabel : 'Archive',
-      Icon: FlaskConical,
-      route: '/hub/personal-assistant/sandbox',
-    },
-  ];
-
-  const activityCards = [
-    {
-      title: 'Recent Sessions',
-      label: sessionsBusy
-        ? 'Loading Session History…'
-        : (recentSessions || []).length > 0
-          ? `${(recentSessions || []).length} Session${recentSessions.length === 1 ? '' : 's'} Available`
-          : 'No Sessions Yet',
-      detail: (recentSessions || [])[0]
-        ? `${recentSessions[0].title}${recentSessions[0].isDemo ? ' (Sample)' : ''} · ${formatEv(recentSessions[0].evLoss)}`
-        : 'Open Verified Training',
+      title: 'Drills Due',
+      value: drillsDueCount,
+      label: drillsDueCount === null
+        ? unavailableLabel
+        : `${dueCount} Due`,
       Icon: Clock3,
-      onClick: () => openGuardedRoute('/hub/training?source=personal-assistant-activity'),
+      route: '/hub/personal-assistant/leaks?tab=plan',
     },
     {
-      title: 'Leak Finder',
-      label: statsBusy
-        ? 'Loading Leak Data…'
-        : activeLeakCount === null
-          ? 'Not Available'
-          : `${activeLeakCount.toLocaleString()} Active`,
-      detail: statsBusy
-        ? 'Checking Progress'
-        : resolvedLeakCount === null
-          ? unavailableLabel
-          : `${resolvedLeakCount.toLocaleString()} Resolved`,
-      Icon: ScanSearch,
-      onClick: () => openGuardedRoute('/hub/personal-assistant/leaks'),
-    },
-    {
-      title: 'Coaching & Settings',
-      label: 'Plan, Goals, Export, Privacy',
-      detail: 'Open Coaching Workspace',
-      Icon: Activity,
-      onClick: () => openGuardedRoute('/hub/personal-assistant/leaks?tab=coaching&view=coach'),
-    },
-    {
-      title: 'Training Center',
-      label: 'Signed Solver Practice',
-      detail: 'Open Training',
-      Icon: BrainCircuit,
-      onClick: () => openGuardedRoute('/hub/training'),
+      title: 'Verified Fixed',
+      value: resolvedLeakCount,
+      label: resolvedLeakCount === null
+        ? unavailableLabel
+        : 'Confirmed Live',
+      Icon: CheckCircle2,
+      route: '/hub/personal-assistant/leaks?status=fixed',
     },
   ];
 
@@ -631,14 +627,25 @@ export default function PersonalAssistantPage() {
         {/* Compact single-row MTT lobby tab strip */}
         <nav className={styles.tabs} aria-label="Personal Assistant Sections" data-tutorial="nav">
           <a className={styles.activeTab} href="#overview" aria-current="page" onClick={() => haptic('light')}>Overview</a>
-          <button
-            type="button"
-            onClick={() => openGuardedRoute(dueCount > 0 ? '/hub/personal-assistant/leaks?tab=leaks' : '/hub/personal-assistant/leaks')}
+          <Link
+            href={dueCount > 0 ? '/hub/personal-assistant/leaks?tab=leaks' : '/hub/personal-assistant/leaks'}
+            onClick={(event) => {
+              event.preventDefault();
+              openGuardedRoute(dueCount > 0 ? '/hub/personal-assistant/leaks?tab=leaks' : '/hub/personal-assistant/leaks');
+            }}
             aria-label={dueCount > 0 ? `Leak Finder, ${dueCount} Review${dueCount === 1 ? '' : 's'} Due` : undefined}
           >
             Leak Finder{dueSuffix}
-          </button>
-          <button type="button" onClick={() => openGuardedRoute('/hub/training')}>Training Center</button>
+          </Link>
+          <Link
+            href="/hub/training"
+            onClick={(event) => {
+              event.preventDefault();
+              openGuardedRoute('/hub/training');
+            }}
+          >
+            Training Games
+          </Link>
         </nav>
 
         <PullToRefresh onRefresh={retryAssistantData} disabled={showMenu}>
@@ -647,10 +654,11 @@ export default function PersonalAssistantPage() {
           <section className={`${styles.frame} ${styles.hero}`} aria-labelledby="assistant-title">
             <div className={styles.heroInner}>
               <div className={styles.heroCopy}>
-                <span className={styles.eyebrow}>Personal Poker Assistant</span>
-                <h1 id="assistant-title">Personal Assistant</h1>
-                <p>Find Leaks In Your Completed Club Arena Hands And Practice The Exact Spots Costing You Chips.</p>
-                <div className={styles.heroMetaRow}>
+                <div className={styles.heroTopRow}>
+                  <div>
+                    <span className={styles.eyebrow}>Personal Poker Assistant</span>
+                    <h1 id="assistant-title">Personal Assistant</h1>
+                  </div>
                   <div className={`${styles.statusBadge} ${dataSyncError ? styles.statusWarning : ''}`} role="status">
                     <span className={styles.statusDot} aria-hidden="true" />
                     {dataSyncError ? 'Data Sync Needs Attention' : 'Training Pipeline Connected'}
@@ -675,11 +683,11 @@ export default function PersonalAssistantPage() {
             </div>
           )}
 
-          {/* Primary State-Driven Next Action Card */}
+          {/* Above The Fold: Single Dynamic Your Next Step Hero Card */}
           <section className={styles.section} aria-labelledby="mission-title" data-tutorial="mission">
             <SectionBar
               id="mission-title"
-              title="Next Action"
+              title="Your Next Step"
               meta={(statsDemo || stats?.isDemo) ? 'Preview Mode' : primaryState.badge}
             />
             <div className={styles.missionFrame} aria-live="polite" aria-busy={primaryState.state === 'loading'}>
@@ -695,7 +703,7 @@ export default function PersonalAssistantPage() {
                   <p>{primaryState.summary}</p>
                   <span className={styles.missionSignal}>
                     <Activity size={13} aria-hidden="true" />
-                    Default Scope: {PA_ANALYSIS_DEFAULTS.scopeSummary}
+                    Default Scope: {PA_ANALYSIS_DEFAULTS.scopeSummary} · {describePracticePreset(assistantPrefs)}
                   </span>
                 </div>
                 <button
@@ -707,42 +715,19 @@ export default function PersonalAssistantPage() {
                   {isRetrying ? 'Retrying Data' : primaryState.ctaLabel}
                   <ChevronRight size={16} aria-hidden="true" />
                 </button>
-              </div>
-
-              <div className={styles.decisionLoop} aria-label="Improvement path" data-tutorial="loop">
-                <span className={styles.loopLabel}><Route size={14} aria-hidden="true" />Decision Loop</span>
-                {decisionLoop.map(({ step, title, detail, Icon, route }) => (
-                  <button
-                    type="button"
-                    className={styles.loopStep}
-                    key={step}
-                    onClick={() => openGuardedRoute(route)}
-                    aria-label={`${step}. ${title}. ${detail}.`}
+                {Array.isArray(trainingPlan?.modules) && trainingPlan.modules.length > 0 && (
+                  <Link
+                    href="/hub/personal-assistant/leaks?tab=plan"
+                    className={styles.quietSecondaryLink}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      openGuardedRoute('/hub/personal-assistant/leaks?tab=plan');
+                    }}
                   >
-                    <span className={styles.loopNumber}>{step}</span>
-                    <span><strong>{title}</strong><small>{statsBusy ? 'Syncing' : detail}</small></span>
-                  </button>
-                ))}
+                    Open Training Plan · {trainingPlan.modules[0].title}
+                  </Link>
+                )}
               </div>
-
-              {Array.isArray(trainingPlan?.modules) && trainingPlan.modules.length > 0 && (
-                <div className={styles.missionPrimary} aria-label="Deterministic Training Plan Preview">
-                  <div className={styles.missionCopy}>
-                    <span className={styles.missionBadge}>
-                      {trainingPlan.modules[0].formatScope} · {trainingPlan.modules[0].tableVerification?.label || 'Training In Progress'}
-                    </span>
-                    <h3>Next Drill: {trainingPlan.modules[0].title}</h3>
-                    <p>{trainingPlan.modules[0].objective}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => openGuardedRoute('/hub/personal-assistant/leaks?tab=coaching&view=coach')}
-                  >
-                    Open Training Plan<ChevronRight size={16} aria-hidden="true" />
-                  </button>
-                </div>
-              )}
 
               {/* Last Session Recap: only after a finished session, never while seated at a live table */}
               {showSessionRecap && recapHands.length > 0 && (
@@ -762,23 +747,30 @@ export default function PersonalAssistantPage() {
                       ))}
                     </ul>
                   </div>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => openGuardedRoute(
+                  <Link
+                    href={
                       recapDrillHandId
                         ? `/hub/personal-assistant/leaks?hand=${encodeURIComponent(recapDrillHandId)}&drill=1`
-                        : '/hub/personal-assistant/leaks?tab=coaching&view=coach',
-                    )}
+                        : '/hub/personal-assistant/leaks?tab=plan'
+                    }
+                    className={styles.quietSecondaryLink}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      openGuardedRoute(
+                        recapDrillHandId
+                          ? `/hub/personal-assistant/leaks?hand=${encodeURIComponent(recapDrillHandId)}&drill=1`
+                          : '/hub/personal-assistant/leaks?tab=plan',
+                      );
+                    }}
                   >
-                    Drill Session Spots<ChevronRight size={16} aria-hidden="true" />
-                  </button>
+                    Drill Session Spots<ChevronRight size={15} aria-hidden="true" />
+                  </Link>
                 </div>
               )}
             </div>
           </section>
 
-          {/* Compact 4-Metric Summary Strip */}
+          {/* Compact 4-Metric Summary Strip -> 3-Tile Stat Strip */}
           <section className={styles.section} aria-labelledby="dashboard-title" data-tutorial="stats">
             <SectionBar id="dashboard-title" title="Summary" meta={(statsDemo || stats?.isDemo) ? 'Sample View' : 'Your Account'} />
             {(statsDemo || stats?.isDemo) && (
@@ -800,7 +792,7 @@ export default function PersonalAssistantPage() {
                   aria-label={`${title}: ${displayValue}. ${label}.`}
                 >
                   <span className={styles.statCardInner}>
-                    <span className={styles.statTopline}><Icon size={14} aria-hidden="true" />{title}</span>
+                    <span className={styles.statTopline}><Icon size={13} aria-hidden="true" />{title}</span>
                     <strong>{displayValue}</strong>
                     <span className={styles.statLabel}>{statsBusy ? 'Loading…' : label}</span>
                   </span>
@@ -810,12 +802,109 @@ export default function PersonalAssistantPage() {
             </div>
           </section>
 
-          {/* Secondary Disclosures: More Tools & Evidence Archive */}
+          {/* Directly Below 3-Tile Stat Strip: Daily Hand Compact Interactive Card */}
+          <section className={styles.section} aria-labelledby="daily-title" data-tutorial="daily">
+            <SectionBar
+              id="daily-title"
+              title="Daily Hand"
+              meta={dailyHand ? (dailyHand.position || 'Daily Spot') : 'Daily Drill'}
+            />
+            <div className={styles.dailyFrame}>
+              {dailyHand ? (
+                <div className={styles.dailyInner}>
+                  <div className={styles.holeCards} aria-label={`Hero hand ${dailyHand.heroHand || 'unknown'}`}>
+                    {(heroCards.length ? heroCards : [formatCard('?'), formatCard('?')]).map((card, index) => (
+                      <span className={`${styles.playingCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
+                        {card.rank}<i>{card.suit}</i>
+                      </span>
+                    ))}
+                  </div>
+                  <div className={styles.dailyCopy}>
+                    <span className={styles.dailyEyebrow}>
+                      {dailyHand.position || 'Daily Spot'} · {Number(dailyHand.pot) > 0 ? `Pot ${Number(dailyHand.pot)} BB` : 'Daily Scenario'}
+                    </span>
+                    <h3>{dailyHand.title || 'What Is The Best Line?'}</h3>
+                    {boardCards.length > 0 && (
+                      <div className={styles.boardCards} aria-label={`Board ${dailyHand.board}`}>
+                        {boardCards.map((card, index) => (
+                          <span className={`${styles.boardCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
+                            {card.rank}<i>{card.suit}</i>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <span className={styles.dailyPrompt}><Sparkles size={13} aria-hidden="true" />Continue In The Signed Training Pipeline</span>
+                  </div>
+                  <button type="button" className={styles.primaryButton} onClick={openDailyTraining}>
+                    <Play size={14} fill="currentColor" aria-hidden="true" />Open Verified Training
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={styles.dailyState}
+                  role={dailyHandStatus === 'error' ? 'alert' : 'status'}
+                  aria-live="polite"
+                >
+                  <span className={`${styles.dailyStateIcon} ${dailyHandStatus === 'loading' ? styles.dailyStateIconLoading : ''}`} aria-hidden="true">
+                    <RotateCw size={20} />
+                  </span>
+                  <div className={styles.dailyStateCopy}>
+                    <span className={styles.dailyEyebrow}>
+                      {dailyHandStatus === 'loading' ? 'Syncing Training Question' : 'Training Feed Interrupted'}
+                    </span>
+                    <h3>{dailyHandStatus === 'loading' ? 'Loading Today’s Decision' : 'Daily Hand Temporarily Unavailable'}</h3>
+                    <p>
+                      {dailyHandStatus === 'loading'
+                        ? 'Retrieving Today’s Hand, Board, Position, And Pot.'
+                        : 'Your Other Tools Remain Available. Retry To Restore Today’s Spot.'}
+                    </p>
+                  </div>
+                  {dailyHandStatus === 'error' && (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        if (!requireOnline()) return;
+                        haptic('light');
+                        setDailyHandReloadKey((key) => key + 1);
+                      }}
+                    >
+                      <RotateCw size={14} aria-hidden="true" />Retry Daily Hand
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Concise 3-Destination Quick Navigation Strip (Links, zero button clutter) */}
+          <section className={styles.section} aria-label="Improvement path">
+            <div className={styles.decisionLoop} data-tutorial="loop">
+              <span className={styles.loopLabel}><Route size={14} aria-hidden="true" />Decision Loop</span>
+              {decisionLoop.map(({ step, title, detail, route }) => (
+                <Link
+                  href={route}
+                  className={styles.loopStep}
+                  key={step}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    openGuardedRoute(route);
+                  }}
+                  aria-label={`${step}. ${title}. ${detail}.`}
+                >
+                  <span className={styles.loopNumber}>{step}</span>
+                  <span><strong>{title}</strong><small>{statsBusy ? 'Syncing' : detail}</small></span>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {/* Single Collapsed Secondary Disclosure: Tools, Evidence Boundary & Recent Sessions */}
           <section className={styles.section} aria-labelledby="systems-title" data-tutorial="systems">
             <details className={styles.disclosure}>
               <summary id="systems-title">
                 <span>Tools &amp; Evidence Boundary</span>
-                <small>Leak Finder · Live Spots · Scenario Archive</small>
+                <small>Live Spot Import · Scenario Archive · Sessions</small>
               </summary>
               <div className={styles.disclosureBody}>
                 <div className={styles.systemGrid}>
@@ -842,149 +931,49 @@ export default function PersonalAssistantPage() {
                     </button>
                   </article>
                 </div>
-              </div>
-            </details>
-          </section>
 
-          {/* Secondary Disclosure: Activity & Recent Sessions */}
-          <section className={styles.section} id="activity" aria-labelledby="activity-title" data-tutorial="activity">
-            <details className={styles.disclosure}>
-              <summary id="activity-title">
-                <span>Activity, Sessions &amp; Settings</span>
-                <small>{(recentSessions || []).length} Recent</small>
-              </summary>
-              <div className={styles.disclosureBody}>
-                <div className={styles.activityGrid}>
-                  {activityCards.map(({ title, label, detail, Icon, onClick }) => (
-                    <button type="button" className={styles.activityCard} key={title} onClick={onClick}>
-                      <span className={styles.activityCardInner}>
-                        <span className={styles.activityIcon}><Icon size={17} aria-hidden="true" /></span>
-                        <span className={styles.activityContent}>
-                          <strong>{title}</strong>
-                          <span>{label}</span>
-                          <small>{detail}</small>
-                        </span>
-                        <ChevronRight className={styles.activityChevron} size={15} aria-hidden="true" />
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                {!sessionsBusy && (recentSessions || []).length > 0 && (
+                {/* Secondary Disclosure: Activity */}
+                <div id="activity" data-tutorial="activity">
                   <div className={styles.sessionRail} aria-label="Recent session history" data-tutorial="sessions">
                     <div className={styles.sessionRailHeader}>
                       <span>Continue A Session</span>
-                      <small>Most Recent First</small>
+                      <small>{sessionsBusy ? 'Syncing' : `${(recentSessions || []).length} Recent`}</small>
                     </div>
-                    <div className={styles.sessionList}>
-                      {recentSessions.slice(0, 3).map((session) => (
-                        <button
-                          type="button"
-                          className={styles.sessionRow}
-                          key={`${session.type}-${session.id}`}
-                          onClick={() => openSession(session)}
-                          aria-label={`Open ${session.title}. ${sessionTypeLabel(session)}. ${formatEv(session.evLoss)}.`}
-                        >
-                          <span className={styles.sessionMarker} aria-hidden="true">
-                            {session.type === 'leak' ? <ScanSearch size={15} /> : <FlaskConical size={15} />}
-                          </span>
-                          <span className={styles.sessionIdentity}>
-                            <strong>{session.title}</strong>
-                            <small>{sessionTypeLabel(session)}{session.isDemo ? ' · Sample' : ''}</small>
-                          </span>
-                          <span className={styles.sessionDate}>{formatSessionDate(session.date) || 'Recent'}</span>
-                          <span className={`${styles.sessionEv} ${typeof session.evLoss === 'number' && session.evLoss < 0 ? styles.negativeEv : ''}`}>
-                            {formatEv(session.evLoss)}
-                          </span>
-                          <ChevronRight size={15} aria-hidden="true" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </details>
-          </section>
-
-          {/* Secondary Disclosure: Hand Of The Day */}
-          <section className={styles.section} aria-labelledby="daily-title" data-tutorial="daily">
-            <details className={styles.disclosure}>
-              <summary id="daily-title">
-                <span>Hand Of The Day</span>
-                <small>{dailyHand ? (dailyHand.position || 'Daily Spot') : 'Daily Drill'}</small>
-              </summary>
-              <div className={styles.disclosureBody}>
-                <div className={styles.dailyFrame}>
-                  {dailyHand ? (
-                    <div className={styles.dailyInner}>
-                      <div className={styles.holeCards} aria-label={`Hero hand ${dailyHand.heroHand || 'unknown'}`}>
-                        {(heroCards.length ? heroCards : [formatCard('?'), formatCard('?')]).map((card, index) => (
-                          <span className={`${styles.playingCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
-                            {card.rank}<i>{card.suit}</i>
-                          </span>
+                    {!sessionsBusy && (recentSessions || []).length > 0 && (
+                      <div className={styles.sessionList}>
+                        {recentSessions.slice(0, 3).map((session) => (
+                          <button
+                            type="button"
+                            className={styles.sessionRow}
+                            key={`${session.type}-${session.id}`}
+                            onClick={() => openSession(session)}
+                            aria-label={`Open ${session.title}. ${sessionTypeLabel(session)}. ${formatEv(session.evLoss)}.`}
+                          >
+                            <span className={styles.sessionMarker} aria-hidden="true">
+                              {session.type === 'leak' ? <ScanSearch size={15} /> : <FlaskConical size={15} />}
+                            </span>
+                            <span className={styles.sessionIdentity}>
+                              <strong>{session.title}</strong>
+                              <small>{sessionTypeLabel(session)}{session.isDemo ? ' · Sample' : ''}</small>
+                            </span>
+                            <span className={styles.sessionDate}>{formatSessionDate(session.date) || 'Recent'}</span>
+                            <span className={`${styles.sessionEv} ${typeof session.evLoss === 'number' && session.evLoss < 0 ? styles.negativeEv : ''}`}>
+                              {formatEv(session.evLoss)}
+                            </span>
+                            <ChevronRight size={15} aria-hidden="true" />
+                          </button>
                         ))}
                       </div>
-                      <div className={styles.dailyCopy}>
-                        <span className={styles.dailyEyebrow}>
-                          {dailyHand.position || 'Daily Spot'} · {Number(dailyHand.pot) > 0 ? `Pot ${Number(dailyHand.pot)} BB` : 'Daily Scenario'}
-                        </span>
-                        <h3>{dailyHand.title || 'What Is The Best Line?'}</h3>
-                        {boardCards.length > 0 && (
-                          <div className={styles.boardCards} aria-label={`Board ${dailyHand.board}`}>
-                            {boardCards.map((card, index) => (
-                              <span className={`${styles.boardCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
-                                {card.rank}<i>{card.suit}</i>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <span className={styles.dailyPrompt}><Sparkles size={13} aria-hidden="true" />Continue In The Signed Training Pipeline</span>
-                      </div>
-                      <button type="button" className={styles.primaryButton} onClick={openDailyTraining}>
-                        <Play size={14} fill="currentColor" aria-hidden="true" />Open Verified Training
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      className={styles.dailyState}
-                      role={dailyHandStatus === 'error' ? 'alert' : 'status'}
-                      aria-live="polite"
-                    >
-                      <span className={`${styles.dailyStateIcon} ${dailyHandStatus === 'loading' ? styles.dailyStateIconLoading : ''}`} aria-hidden="true">
-                        <RotateCw size={20} />
-                      </span>
-                      <div className={styles.dailyStateCopy}>
-                        <span className={styles.dailyEyebrow}>
-                          {dailyHandStatus === 'loading' ? 'Syncing Training Question' : 'Training Feed Interrupted'}
-                        </span>
-                        <h3>{dailyHandStatus === 'loading' ? 'Loading Today’s Decision' : 'Daily Hand Temporarily Unavailable'}</h3>
-                        <p>
-                          {dailyHandStatus === 'loading'
-                            ? 'Retrieving Today’s Hand, Board, Position, And Pot.'
-                            : 'Your Other Tools Remain Available. Retry To Restore Today’s Spot.'}
-                        </p>
-                      </div>
-                      {dailyHandStatus === 'error' && (
-                        <button
-                          type="button"
-                          className={styles.secondaryButton}
-                          onClick={() => {
-                            if (!requireOnline()) return;
-                            haptic('light');
-                            setDailyHandReloadKey((key) => key + 1);
-                          }}
-                        >
-                          <RotateCw size={14} aria-hidden="true" />Retry Daily Hand
-                        </button>
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
+
+                <HubPageSummary page="personal-assistant" />
               </div>
             </details>
           </section>
           </>
           )}
-          <HubPageSummary page="personal-assistant" />
         </main>
         </PullToRefresh>
       </div>

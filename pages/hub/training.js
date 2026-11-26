@@ -68,12 +68,21 @@ import { analyzeVerifiedTrainingWeaknesses } from '../../src/lib/training/weakne
 import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
 
 const CATEGORY_META = {
-  MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#FB923C', glow: 'rgba(251,146,60,0.25)' },
+  MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#86daff', glow: 'rgba(134,218,255,0.22)' },
   CASH:       { label: 'Cash Games',   Icon: DollarSign, color: '#4ADE80', glow: 'rgba(74,222,128,0.22)' },
   SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
   PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
   ADVANCED:   { label: 'Poker Strategy',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
+
+const VARIANT_FILTERS = Object.freeze([
+  { id: 'all',  label: 'All' },
+  { id: 'nlh',  label: "Hold'em" },
+  { id: 'plo4', label: 'PLO4' },
+  { id: 'plo5', label: 'PLO5 (5-Card)' },
+  { id: 'plo6', label: 'PLO6 (6-Card)' },
+  { id: 'plo8', label: 'PLO8 (Hi-Lo)' },
+]);
 
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
 
@@ -136,6 +145,7 @@ export default function TrainingPage() {
   const [authUser, setAuthUser] = useState(null);
 
   const [activeCat, setActiveCat] = useState('ALL');
+  const [activeVariantFilter, setActiveVariantFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const libraryHeadingRef = useRef(null);
@@ -181,11 +191,19 @@ export default function TrainingPage() {
     const ql = debouncedQuery.trim().toLowerCase();
     return TRAINING_LIBRARY.filter(g => {
       if (activeCat !== 'ALL' && g.category !== activeCat) return false;
+      const isOmahaGame = ['cash-005', 'cash-015', 'mtt-018'].includes(g.id);
+      if (activeVariantFilter !== 'all') {
+        if (activeVariantFilter === 'nlh' && isOmahaGame) return false;
+        if (['plo4', 'plo5', 'plo6', 'plo8'].includes(activeVariantFilter) && !isOmahaGame && g.category !== 'CASH') return false;
+      }
       if (!ql) return true;
+      const omahaQueryMatch = isOmahaGame && (ql.includes('omaha') || ql.includes('plo') || ql.includes('5-card') || ql.includes('five-card') || ql.includes('6-card') || ql.includes('hi-lo'));
       return (g.name || '').toLowerCase().includes(ql)
-          || (CATEGORY_META[g.category]?.label || '').toLowerCase().includes(ql);
+          || (g.focus || '').toLowerCase().includes(ql)
+          || (CATEGORY_META[g.category]?.label || '').toLowerCase().includes(ql)
+          || omahaQueryMatch;
     });
-  }, [activeCat, debouncedQuery]);
+  }, [activeCat, activeVariantFilter, debouncedQuery]);
 
   // PROGRESSIVE GAME GRID (2026-10-12). The full library is 107 cards of ~49
   // elements each - 5,250 of the page's 5,600 elements - and every one of them
@@ -198,6 +216,7 @@ export default function TrainingPage() {
   // crawlable text.
   const [visibleCardCount, setVisibleCardCount] = useState(INITIAL_GAME_CARDS);
   useEffect(() => { setVisibleCardCount(INITIAL_GAME_CARDS); }, [activeCat, debouncedQuery]);
+  useEffect(() => { setVisibleCardCount(INITIAL_GAME_CARDS); }, [activeVariantFilter]);
   const visibleGames = filtered.slice(0, visibleCardCount);
   const moreGamesPending = visibleCardCount < filtered.length;
   const gridSentinelRef = useRef(null);
@@ -227,7 +246,13 @@ export default function TrainingPage() {
     if (!game || !requireOnline()) return;
     haptic('light');
     const query = { gameId: game.id, start: '1', source: 'training-home' };
-    if (focus?.variant) query.variant = focus.variant;
+    const effectiveVariant = focus?.variant || (activeVariantFilter !== 'all' ? activeVariantFilter : null);
+    if (effectiveVariant) {
+      query.variant = effectiveVariant;
+      if (!focus?.bettingStructure && effectiveVariant !== 'nlh') {
+        query.bettingStructure = 'pot_limit';
+      }
+    }
     if (focus?.bettingStructure) query.bettingStructure = focus.bettingStructure;
     if (focus?.format) query.format = focus.format;
     if (focus?.targetStreet) query.targetStreet = focus.targetStreet;
@@ -236,7 +261,7 @@ export default function TrainingPage() {
     }
     if (Number.isInteger(focus?.questionsCount)) query.hands = String(focus.questionsCount);
     router.push({ pathname: '/hub/training/arena/[gameId]', query });
-  }, [haptic, requireOnline, router]);
+  }, [activeVariantFilter, haptic, requireOnline, router]);
 
   const heroGame = jarvisPick || TRAINING_LIBRARY[0];
   const continueTarget = useMemo(() => {
@@ -388,6 +413,7 @@ export default function TrainingPage() {
 
   const browseTrainingLibrary = useCallback(() => {
     setActiveCat('ALL');
+    setActiveVariantFilter('all');
     setQuery('');
     setDebouncedQuery('');
     if (typeof window === 'undefined') return;
@@ -404,6 +430,7 @@ export default function TrainingPage() {
 
   const resetBrowseFilters = useCallback(() => {
     setActiveCat('ALL');
+    setActiveVariantFilter('all');
     setQuery('');
     setDebouncedQuery('');
   }, []);
@@ -496,6 +523,41 @@ export default function TrainingPage() {
                 })}
               </nav>
 
+              <div className="sp-cat-chips" role="group" aria-label="Filter or launch by poker variant" data-variant-filter-bar="true">
+                {VARIANT_FILTERS.map((vf) => {
+                  const isActive = activeVariantFilter === vf.id;
+                  return (
+                    <button
+                      key={vf.id}
+                      type="button"
+                      className="sp-cat-chip sd-button"
+                      data-variant-filter={vf.id}
+                      aria-pressed={isActive}
+                      onClick={() => setActiveVariantFilter(vf.id)}
+                    >
+                      {vf.label}
+                    </button>
+                  );
+                })}
+                {['plo4', 'plo5', 'plo6', 'plo8'].includes(activeVariantFilter) && (
+                  <button
+                    type="button"
+                    className="sp-cat-chip sd-button sd-primary"
+                    data-quick-launch-omaha={activeVariantFilter}
+                    onClick={() => {
+                      const omahaCashGame = TRAINING_LIBRARY.find((g) => g.id === 'cash-005') || TRAINING_LIBRARY[0];
+                      playGame(omahaCashGame, {
+                        variant: activeVariantFilter,
+                        bettingStructure: 'pot_limit',
+                        format: 'cash',
+                      });
+                    }}
+                  >
+                    <Play size={14} aria-hidden /> Play {activeVariantFilter.toUpperCase()} Cash Now
+                  </button>
+                )}
+              </div>
+
               {filtered.length > 0 ? (
                 <>
                   <div className="sp-grid" data-tutorial="games">
@@ -503,6 +565,8 @@ export default function TrainingPage() {
                       <GameCardNew
                         key={g.id}
                         game={g}
+                        isFirstCard={g.id === visibleGames[0]?.id}
+                        variantOverride={activeVariantFilter !== 'all' ? activeVariantFilter : null}
                         progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
                         isRecommended={g.id === jarvisPick?.id}
                         onStart={() => playGame(g)}
@@ -827,9 +891,20 @@ function Sparkline({ data }) {
   );
 }
 
-function GameCardNew({ game, progress, isRecommended, onStart }) {
+function GameCardNew({ game, isFirstCard = false, variantOverride = null, progress, isRecommended, onStart }) {
+  void isFirstCard;
   const meta = CATEGORY_META[game.category] || CATEGORY_META.MTT;
   const Icon = meta.Icon;
+  const preset = resolvePresetForGame(
+    game,
+    variantOverride
+      ? {
+          variant: variantOverride,
+          bettingStructure: variantOverride === 'nlh' ? 'no_limit' : 'pot_limit',
+        }
+      : {}
+  );
+  const choiceSummary = `${preset.variant.toUpperCase()} · ${preset.format === 'mtt' ? 'MTT' : preset.format === 'spins' ? 'Spins' : preset.format === 'hu' ? 'Heads-Up' : 'Cash'} · ${preset.tableSize} · ${preset.stackDepthBb} BB`;
   const tag  = isRecommended ? 'recommended'
               : progress >= 100 ? 'mastered'
               : progress === 0  ? 'new'
@@ -838,9 +913,10 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
     <button
       className="sp-card"
       data-category={game.category.toLowerCase()}
+      data-training-game-card={game.id}
       style={{ '--cat-color': meta.color, '--cover-glow': meta.glow }}
       onClick={onStart}
-      aria-label={`Play ${game.name}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
+      aria-label={`Play ${game.name}, ${choiceSummary}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
     >
       <div className="sp-card-cover">
         <TrainingGameArt
@@ -872,7 +948,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
         </div>
       </div>
       <div className="sp-card-body">
-        <div className="sp-card-cat"><span className="sp-swatch" /> {meta.label}</div>
+        <div className="sp-card-cat" data-game-preset-summary="true"><span className="sp-swatch" /> {meta.label} · {choiceSummary} · Single-Decision Drill</div>
         <h3 className="sp-card-title">{game.name}</h3>
         <p className="sp-card-focus">{game.focus}</p>
         <div className="sp-card-meta">
@@ -1690,10 +1766,10 @@ function GlobalStyle() {
         background: linear-gradient(180deg, #18314d 0%, #0c1f35 42%, #040d18 100%);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 26px 48px rgba(0,0,0,.58), 0 0 28px rgba(8,124,250,.22);
       }
-      .sp-card[data-category="mtt"] { --sector-accent: #fb923c; }
+      .sp-card[data-category="mtt"] { --sector-accent: #86daff; }
       .sp-card[data-category="cash"] { --sector-accent: #4ade80; }
-      .sp-card[data-category="spins"] { --sector-accent: #facc15; }
-      .sp-card[data-category="psychology"] { --sector-accent: #c084fc; }
+      .sp-card[data-category="spins"] { --sector-accent: #86daff; }
+      .sp-card[data-category="psychology"] { --sector-accent: #86daff; }
       .sp-card[data-category="advanced"] { --sector-accent: #60a5fa; }
       .sp-card-cover {
         aspect-ratio: 16 / 10;

@@ -219,13 +219,38 @@ function legacyTrainingDrill(leak) {
     return null;
 }
 
-const STREET_HINTS = [
-    // Order matters: 'preflop' contains 'flop', so preflop is tested first.
-    ['Preflop', /pre[\s_-]?flop|preflop|3[\s_-]?bet|three[\s_-]?bet|4[\s_-]?bet|four[\s_-]?bet|open[\s_-]?rais|limp|vpip|cold[\s_-]?call|steal|squeeze|blind[\s_-]?defen|rfi/i],
-    ['River', /river/i],
-    ['Turn', /turn|barrel|double[\s_-]?barrel/i],
-    ['Flop', /flop|c[\s_-]?bet|cbet|continuation|check[\s_-]?rais|donk/i],
+// Explicit street names MUST be evaluated before action-type keywords so a
+// postflop spot inside a 3-bet pot (e.g. "BB vs River Bet in 3-Bet Pots" or
+// "solver_club_arena_cash_007_river_bb_3bet_pot") resolves to River/Turn/Flop
+// rather than matching "3-bet" as Preflop.
+const EXPLICIT_STREET_HINTS = [
+    ['River', /(?:\b|[_-])river(?:\b|[_-])/i],
+    ['Turn', /(?:\b|[_-])turn(?:\b|[_-])/i],
+    ['Preflop', /pre[\s_-]?flop|preflop/i],
+    ['Flop', /(?:\b|[_-])flop(?:\b|[_-])/i],
 ];
+
+const ACTION_STREET_HINTS = [
+    ['River', /bluff[\s_-]?catch|thin[\s_-]?value|hero[\s_-]?call|triple[\s_-]?barrel/i],
+    ['Turn', /double[\s_-]?barrel|second[\s_-]?barrel|probe|delayed[\s_-]?c[\s_-]?bet|barrel/i],
+    ['Flop', /c[\s_-]?bet|cbet|continuation|check[\s_-]?rais|donk|post[\s_-]?flop/i],
+    ['Preflop', /3[\s_-]?bet|three[\s_-]?bet|4[\s_-]?bet|four[\s_-]?bet|open[\s_-]?rais|limp|vpip|pfr|cold[\s_-]?call|steal|squeeze|blind[\s_-]?defen|rfi|push[\s_-]?fold/i],
+];
+
+const PREFLOP_ONLY_GAMES = new Set([
+    'cash-001', 'cash-006', 'cash-007', 'cash-008', 'cash-010', 'cash-018',
+    'mtt-001', 'mtt-002', 'mtt-003', 'mtt-004', 'mtt-005', 'mtt-006',
+    'mtt-007', 'mtt-008', 'mtt-009', 'mtt-010', 'mtt-011', 'mtt-012',
+    'mtt-013', 'mtt-014', 'mtt-015', 'mtt-016', 'mtt-017', 'mtt-018',
+    'mtt-019', 'mtt-020', 'mtt-022', 'mtt-023',
+]);
+
+const FLOP_ONLY_GAMES = new Set(['cash-002', 'cash-011', 'cash-014']);
+
+const NON_LIBRARY_AUDIT_SLUGS = new Set([
+    'cash-hand-audit', 'mtt-hand-audit', 'cash_hand_audit', 'mtt_hand_audit',
+    'hand-audit', 'hand_audit', 'training', 'cash', 'mtt', 'tournament',
+]);
 
 const POSITION_ALIASES = [
     ['UTG', /\bunder[\s_-]?the[\s_-]?gun\b/i],
@@ -248,7 +273,14 @@ export function streetFromHint(hint) {
     for (const canonical of DRILL_STREETS) {
         if (lower === canonical.toLowerCase()) return canonical;
     }
-    for (const [canonical, re] of STREET_HINTS) {
+    for (const [canonical, re] of EXPLICIT_STREET_HINTS) {
+        try {
+            if (re.test(text)) return canonical;
+        } catch (e) {
+            /* a regex cannot throw here, but never let one kill a drill */
+        }
+    }
+    for (const [canonical, re] of ACTION_STREET_HINTS) {
         try {
             if (re.test(text)) return canonical;
         } catch (e) {
@@ -256,6 +288,168 @@ export function streetFromHint(hint) {
         }
     }
     return null;
+}
+
+function isTournamentLeakContext(leak) {
+    const format = str(leak?.formatScope ?? leak?.format_scope ?? leak?.format ?? '').trim().toLowerCase();
+    if (format === 'tournament' || format === 'mtt' || format.includes('tournament')) return true;
+    const rawType = str(leak?.leakType ?? leak?.leak_type ?? '').trim().toLowerCase();
+    if (/^(?:mtt|tournament)_/.test(rawType) || /^solver_[^_]+_mtt_/.test(rawType)) return true;
+    const rec = str(leak?.recommendedDrill ?? leak?.recommended_drill ?? '').trim().toLowerCase();
+    return rec.startsWith('mtt-') || rec.startsWith('mtt_');
+}
+
+function hasSemanticLeakDescriptor(leak) {
+    if (!isPlainRecordish(leak)) return false;
+    const fields = [
+        leak.leakType, leak.leak_type,
+        leak.spotType, leak.spot_type,
+        leak.situationClass, leak.situation_class,
+        leak.leakName, leak.leak_name,
+        leak.name, leak.title,
+    ];
+    return fields.some(val => str(val).trim().length > 0);
+}
+
+/**
+ * Resolve the canonical skill-matched Training Library game ID for a leak based
+ * on its street, format (Cash vs Tournament), and strategic spot type.
+ *
+ * Guarantees that a postflop leak (e.g. a river call facing a large bet, turn
+ * barrel, or flop check-raise) NEVER resolves to a generic preflop drill.
+ */
+export function resolveSkillMatchedDrillGame(leak, resolvedStreet = null) {
+    if (!isPlainRecordish(leak)) return null;
+    const legacy = legacyTrainingDrill(leak);
+    const street = resolvedStreet
+        || streetFromHint(leak.street)
+        || streetFromHint(leak.leakType ?? leak.leak_type)
+        || streetFromHint(leak.spotType ?? leak.spot_type)
+        || streetFromHint(leak.situationClass ?? leak.situation_class)
+        || streetFromHint(leak.leakCategory ?? leak.leak_category)
+        || legacy?.street
+        || null;
+    if (!street) return null;
+
+    const isMtt = isTournamentLeakContext(leak);
+    const rawType = str(leak.leakType ?? leak.leak_type).trim().toLowerCase();
+    const rawSpot = str(leak.spotType ?? leak.spot_type).trim().toLowerCase();
+    const rawSit = str(leak.situationClass ?? leak.situation_class ?? leak.title ?? leak.leakName ?? leak.leak_name).trim().toLowerCase();
+    const playerAction = str(leak.playerAction ?? leak.player_action).trim().toLowerCase();
+    const combined = `${rawType} ${rawSpot} ${rawSit} ${playerAction}`.trim();
+
+    if (street === 'River') {
+        if (isMtt) {
+            if (/check[\s_-]?(?:raise|shove)|(?:\b|[_-])xr(?:\b|[_-])/i.test(combined)) return 'mtt-021';
+            return 'mtt-024';
+        }
+        if (/overbet/i.test(combined) && !/facing|faces|defen|call|fold|bluff[\s_-]?catch/i.test(combined)) {
+            return 'cash-015';
+        }
+        if (
+            /river[\s_-]?overfold|bluff[\s_-]?catch|hero[\s_-]?call|faces[\s_-]?bet|facing[\s_-]?(?:large[\s_-]?|big[\s_-]?|river[\s_-]?|over)?bet|river[\s_-]?call|over[\s_-]?call|river[\s_-]?defen/i.test(combined)
+            || playerAction === 'call'
+            || playerAction === 'fold'
+        ) {
+            return 'cash-005';
+        }
+        if (/thin[\s_-]?value|missed[\s_-]?value|missing[\s_-]?thin[\s_-]?value|river[\s_-]?value/i.test(combined)) {
+            return 'cash-004';
+        }
+        if (/lack[\s_-]?of[\s_-]?river[\s_-]?bluffs|river[\s_-]?barrel|river[\s_-]?bluff/i.test(combined)) {
+            return 'cash-012';
+        }
+        return 'cash-012';
+    }
+
+    if (street === 'Turn') {
+        if (isMtt) {
+            if (/turn[\s_-]?overfold|faces[\s_-]?bet|facing|turn[\s_-]?defen|check[\s_-]?(?:raise|shove)/i.test(combined)) {
+                return 'mtt-021';
+            }
+            return 'mtt-024';
+        }
+        if (/turn[\s_-]?overfold|faces[\s_-]?bet|facing[\s_-]?(?:large[\s_-]?|turn[\s_-]?)?bet|turn[\s_-]?defen|over[\s_-]?call/i.test(combined)) {
+            return 'cash-003';
+        }
+        if (/probe/i.test(combined)) {
+            return 'cash-013';
+        }
+        return 'cash-004';
+    }
+
+    if (street === 'Flop') {
+        // Preserve explicit historical LAW_01 ("Position Is Power" -> cash-006)
+        if (legacy && (rawType === 'law_01' || rawType === 'position_is_power' || /position[\s_-]?is[\s_-]?power|\blaw[\s_-]?01\b/i.test(combined))) {
+            return legacy.game;
+        }
+        if (isMtt) {
+            if (/c[\s_-]?bet|cbet|continuation|barrel/i.test(combined) && !/overfold|faces[\s_-]?bet|facing|defen|check[\s_-]?rais/i.test(combined)) {
+                return 'mtt-024';
+            }
+            return 'mtt-021';
+        }
+        if (/check[\s_-]?rais|(?:\b|[_-])xr(?:\b|[_-])/i.test(combined)) {
+            return 'cash-014';
+        }
+        if (/donk/i.test(combined)) {
+            return 'cash-011';
+        }
+        if (/overfolding[\s_-]?to[\s_-]?cbets|flop[\s_-]?overfold|cbet[\s_-]?defen|faces[\s_-]?bet|facing[\s_-]?(?:c[\s_-]?bet|bet)|flop[\s_-]?defen|over[\s_-]?call/i.test(combined)) {
+            return 'cash-003';
+        }
+        if (/over[\s_-]?aggressive[\s_-]?postflop|pot[\s_-]?control/i.test(combined)) {
+            return 'cash-024';
+        }
+        if (/passive[\s_-]?postflop|aggression[\s_-]?low|bet[\s_-]?for[\s_-]?value|\blaw[\s_-]?06\b/i.test(combined)) {
+            return 'cash-004';
+        }
+        return 'cash-002';
+    }
+
+    if (street === 'Preflop') {
+        if (!hasSemanticLeakDescriptor(leak)) return null;
+        if (isMtt) {
+            if (/squeeze/i.test(combined)) return 'mtt-010';
+            if (/3[\s_-]?bet|three[\s_-]?bet|vs3bet|resteal/i.test(combined)) return 'mtt-009';
+            if (/blind[\s_-]?defen|bb[\s_-]?overfold|bb[\s_-]?defen/i.test(combined)) return 'mtt-017';
+            if (/btn[\s_-]?too[\s_-]?tight|\bbutton\b/i.test(combined)) return 'mtt-018';
+            if (/utg[\s_-]?too[\s_-]?loose/i.test(combined)) {
+                return /mtt[\s_-]?short/i.test(rawType) ? 'mtt-001' : 'mtt-007';
+            }
+            if (/steal[\s_-]?too[\s_-]?rare/i.test(combined)) {
+                return /mtt[\s_-]?short/i.test(rawType) ? 'mtt-001' : 'mtt-011';
+            }
+            return 'mtt-001';
+        }
+        if (/4[\s_-]?bet|four[\s_-]?bet/i.test(combined)) return 'cash-008';
+        if (/fold[\s_-]?to[\s_-]?3[\s_-]?bet|overfolding[\s_-]?to[\s_-]?3[\s_-]?bet|vs3bet|facing[\s_-]?3[\s_-]?bet/i.test(combined)) {
+            return 'cash-007';
+        }
+        if (/three[\s_-]?bet[\s_-]?too[\s_-]?(?:tight|loose)/i.test(combined)) return 'cash-001';
+        if (/squeeze/i.test(combined)) return 'cash-016';
+        if (/cold[\s_-]?call|blind[\s_-]?defen|bb[\s_-]?overfold|bb[\s_-]?defen/i.test(combined)) return 'cash-003';
+        if (/btn[\s_-]?too[\s_-]?tight/i.test(combined)) return 'cash-006';
+        return 'cash-001';
+    }
+
+    return legacy?.game || null;
+}
+
+export function isGameMismatchedForStreet(gameId, street, leak) {
+    const clean = str(gameId).trim().toLowerCase().replace(/_/g, '-');
+    if (!clean) return true;
+    if (NON_LIBRARY_AUDIT_SLUGS.has(clean)) return true;
+    // Allow explicit LAW_01 -> cash-006 mapping on Flop
+    const rawType = str(leak?.leakType ?? leak?.leak_type ?? leak?.leakCategory ?? leak?.leak_category).trim().toLowerCase();
+    if (clean === 'cash-006' && (rawType === 'law_01' || rawType === 'position_is_power')) return false;
+    if ((street === 'River' || street === 'Turn' || street === 'Flop') && PREFLOP_ONLY_GAMES.has(clean)) {
+        return true;
+    }
+    if ((street === 'River' || street === 'Turn') && FLOP_ONLY_GAMES.has(clean)) {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -336,11 +530,17 @@ export function leakToDrill(leak) {
     const recommendedDrill = leak.recommendedDrill ?? leak.recommended_drill;
     const leakCategory = leak.leakCategory ?? leak.leak_category;
     const leakType = leak.leakType ?? leak.leak_type;
+    const spotType = leak.spotType ?? leak.spot_type;
     const situationClass = leak.situationClass ?? leak.situation_class;
 
     const legacyDrill = legacyTrainingDrill(leak);
     let street = null;
-    const sources = [recommendedDrill, leakCategory, leakType, situationClass];
+    // If leakCategory is generic 'postflop', check leakType / spotType / situationClass
+    // first so a river or turn leak with category:'postflop' is not flattened to 'Flop'.
+    const catIsGenericPostflop = str(leakCategory).trim().toLowerCase() === 'postflop';
+    const sources = catIsGenericPostflop
+        ? [recommendedDrill, leak.street, leakType, spotType, situationClass, leakCategory]
+        : [recommendedDrill, leak.street, leakCategory, leakType, spotType, situationClass];
     for (const source of sources) {
         street = streetFromHint(source);
         if (street) break;
@@ -348,7 +548,9 @@ export function leakToDrill(leak) {
     if (!street) street = legacyDrill?.street || null;
     if (!street) return null;
 
-    const position = positionFromHint(situationClass)
+    const explicitPos = positionFromHint(leak.heroPosition ?? leak.hero_position ?? leak.position);
+    const position = explicitPos
+        || positionFromHint(situationClass)
         || positionFromHint(recommendedDrill)
         || positionFromHint(leakType)
         || 'Any';
@@ -358,35 +560,66 @@ export function leakToDrill(leak) {
         position,
         limit: clamp(drillLength(leak), 1, 20),
     };
-    // Solver-derived and Club Arena hand-fact leaks carry the exact Training Arena
-    // game that matches their format and street. Preserve it cleanly.
+    // Solver-derived, Club Arena hand-fact, and skill-matched statistical leaks
+    // resolve to the Training Library game that matches their format, street, and spot.
     const source = str(leak.sourceSystem || leak.source_system).trim().toLowerCase();
     const game = str(recommendedDrill).trim().toLowerCase();
-    if (['solver_engine', 'training_solver', 'ca_hand_facts'].includes(source)
-        && /^[a-z0-9][a-z0-9_-]{1,64}$/.test(game)) {
-        drill.game = game;
-    } else {
-        if (legacyDrill?.game) drill.game = legacyDrill.game;
+    const validGameToken = /^[a-z0-9][a-z0-9_-]{1,64}$/.test(game);
+    if (['solver_engine', 'training_solver', 'ca_hand_facts'].includes(source)) {
+        if (validGameToken && !isGameMismatchedForStreet(game, street, leak)) {
+            drill.game = game;
+        } else {
+            const skillMatched = resolveSkillMatchedDrillGame(leak, street);
+            if (skillMatched) drill.game = skillMatched;
+            else if (validGameToken) drill.game = game;
+        }
+    } else if (legacyDrill?.game) {
+        drill.game = legacyDrill.game;
     }
     return drill;
 }
 
+const DEFAULT_CANONICAL_TRAINING_GAME_IDS = Object.freeze([
+    ...Array.from({ length: 25 }, (_, i) => `cash-${String(i + 1).padStart(3, '0')}`),
+    ...Array.from({ length: 25 }, (_, i) => `mtt-${String(i + 1).padStart(3, '0')}`),
+    ...Array.from({ length: 10 }, (_, i) => `spins-${String(i + 1).padStart(3, '0')}`),
+    ...Array.from({ length: 5 }, (_, i) => `psy-${String(i + 1).padStart(3, '0')}`),
+    ...Array.from({ length: 5 }, (_, i) => `adv-${String(i + 1).padStart(3, '0')}`),
+]);
+
 /**
- * Resolve The Exact Training Library Game Carried By A Solver Leak.
+ * Resolve The Exact Training Library Game Carried By A Leak.
  *
  * The Detector Stores Game Identifiers In Both Hyphenated And Underscored
  * Forms. The Training Library Uses One Canonical Identifier. A Caller Must
  * Supply The Library Identifiers It Can Actually Launch, So A Historical Or
- * Malformed Recommendation Can Never Become A Dead Arena Route.
+ * Malformed Recommendation Can Never Become A Dead Arena Route. When
+ * `availableGameIds` is omitted or null, validates against the canonical
+ * 70-game Training Library catalog.
  */
-export function leakToTrainingGame(leak, availableGameIds = []) {
+export function leakToTrainingGame(leak, availableGameIds = null) {
     const drill = leakToDrill(leak);
-    if (!drill?.game || !Array.isArray(availableGameIds)) return null;
+    const catalog = availableGameIds === null || availableGameIds === undefined
+        ? DEFAULT_CANONICAL_TRAINING_GAME_IDS
+        : availableGameIds;
+    if (!drill || !Array.isArray(catalog)) return null;
 
-    const requested = str(drill.game).trim().toLowerCase();
+    const source = str(leak?.sourceSystem || leak?.source_system).trim().toLowerCase();
+    const hasExplicitRec = str(leak?.recommendedDrill ?? leak?.recommended_drill).trim().length > 0;
+    let candidateGame = drill.game || null;
+    if (!candidateGame && hasSemanticLeakDescriptor(leak)) {
+        // When sourceSystem is live_play with an explicit non-solver recommendedDrill
+        // and no semantic leakType/spotType/situationClass, do not invent a solver game.
+        if (!(source === 'live_play' && hasExplicitRec && !leak?.leakType && !leak?.leak_type && !leak?.spotType && !leak?.spot_type)) {
+            candidateGame = resolveSkillMatchedDrillGame(leak, drill.street);
+        }
+    }
+    if (!candidateGame) return null;
+
+    const requested = str(candidateGame).trim().toLowerCase();
     if (!requested) return null;
     const aliases = new Set([requested, requested.replace(/_/g, '-'), requested.replace(/-/g, '_')]);
-    for (const candidate of availableGameIds) {
+    for (const candidate of catalog) {
         const gameId = str(candidate).trim().toLowerCase();
         if (!gameId) continue;
         if (aliases.has(gameId) || aliases.has(gameId.replace(/_/g, '-')) || aliases.has(gameId.replace(/-/g, '_'))) {

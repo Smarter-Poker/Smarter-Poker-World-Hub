@@ -254,7 +254,7 @@ const LevelCard: React.FC<{
                         {highScore !== null ? (
                             <div style={{
                                 ...styles.highScore,
-                                color: highScore >= passingGrade ? '#4CAF50' : '#FF6B35',
+                                color: highScore >= passingGrade ? '#4CAF50' : '#fca5a5',
                             }}>
                                 <span style={styles.highScoreLabel}>Best</span>
                                 <span style={styles.highScoreValue}>{highScore}%</span>

@@ -6,6 +6,10 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 export const config = { maxDuration: 30 };
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+  _supabase = client;
+}
+
 function getSupabase() {
   if (!_supabase) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
