@@ -38,6 +38,7 @@ import {
     resolveWeeklyWireRecipients,
 } from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import { mergeFinalCampaignErrorSummary } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
+import { submitToIndexNow } from '../../../src/lib/seo/indexingService.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -228,6 +229,7 @@ export default async function handler(req, res) {
             bodyAction === 'preview' ||
             ['1', 'true', 'yes'].includes(String(safeQ(req.query.dryRun) || '').toLowerCase());
         const isTestSend = bodyAction === 'test';
+        const testOnly = isTestSend;
         const days = clampInt(bodyObj.days ?? safeQ(req.query.days), DEFAULT_WINDOW_DAYS, 1, 30);
         const articleLimit = clampInt(bodyObj.limit ?? safeQ(req.query.limit), DEFAULT_ARTICLE_COUNT, 1, 12);
         const audienceMode =
@@ -594,6 +596,39 @@ export default async function handler(req, res) {
                 recipients: recipientsCount,
                 error: 'Email was processed but campaign history could not be finalized.',
             });
+        }
+
+        if (!dryRun && !testOnly && sent > 0) {
+            try {
+                await submitToIndexNow([`${siteUrl}/hub/wire`, `${siteUrl}/hub/wire/${edition.editionNumber}`]);
+            } catch (_idxErr) {
+                /* non-blocking */
+            }
+
+            try {
+                const memberUserIds = [...new Set(recipientsList.map((r) => r.userId).filter(Boolean))].slice(0, 2000);
+                for (let i = 0; i < memberUserIds.length; i += 200) {
+                    const chunk = memberUserIds.slice(i, i + 200);
+                    await sb.from('notifications').insert(
+                        chunk.map((uid) => ({
+                            user_id: uid,
+                            type: 'weekly_wire_published',
+                            title: `Weekly Wire #${edition.editionNumber} Is Live`,
+                            message: edition.articles?.[0]?.title
+                                ? `Top Story: ${edition.articles[0].title}`
+                                : 'New Solver Spot, Poker News & Kings Club Schedule Ready.',
+                            data: {
+                                kind: 'weekly_wire',
+                                edition: edition.editionNumber,
+                                url: `/hub/wire/${edition.editionNumber}`,
+                            },
+                            read: false,
+                        }))
+                    );
+                }
+            } catch (_notifErr) {
+                /* non-blocking */
+            }
         }
 
         return res.status(200).json({

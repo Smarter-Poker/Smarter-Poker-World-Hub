@@ -31,6 +31,7 @@ import {
 } from './welcomeBackOffer.mjs';
 import { buildMastheadCrestUrl } from '../newsletter/emailImageProxy.mjs';
 import { mergeFinalCampaignErrorSummary } from '../newsletter/campaignTelemetry.mjs';
+import { appendNewsletterUtm } from '../newsletter/utmAttribution.mjs';
 
 export { DEFAULT_WELCOME_BACK_DRAFT };
 
@@ -237,6 +238,7 @@ export function renderPromoEmail({
     unsubscribeUrl,
     preferencesUrl = '',
     preheader = '',
+    scope = '',
 }) {
     const cleanCopy = (val) => String(val || '').replace(/[—–]/g, '-');
     const cleanSubject = cleanCopy(subject);
@@ -253,7 +255,13 @@ export function renderPromoEmail({
         )
         .join('');
     const cleanSite = String(siteUrl || DEFAULT_SITE_URL).replace(/\/+$/, '');
-    const safeCtaUrl = escapeHtml(ctaUrl);
+    const resolvedCtaUrl = appendNewsletterUtm(ctaUrl, {
+        source: 'promo_campaign',
+        medium: 'email',
+        campaign: scope || 'promo_blast',
+        content: 'primary_cta',
+    });
+    const safeCtaUrl = escapeHtml(resolvedCtaUrl);
     const safeCtaLabel = escapeHtml(cleanCopy(ctaLabel || 'Get Started'));
     const safeUnsub = escapeHtml(unsubscribeUrl || `${cleanSite}/api/news/subscribe?unsubscribe=preview`);
     const safePrefs = escapeHtml(preferencesUrl || unsubscribeUrl || `${cleanSite}/hub/email-preferences`);
@@ -1076,6 +1084,7 @@ export async function dispatchPromoCampaign(
                 siteUrl,
                 unsubscribeUrl,
                 preferencesUrl,
+                scope: cleanScope,
             });
             if (resendFactory) {
                 const resend = effectiveResendFactory(apiKey);
@@ -1143,6 +1152,7 @@ export async function dispatchPromoCampaign(
         siteUrl,
         unsubscribeUrl: sampleUnsubUrl,
         preferencesUrl: samplePrefsUrl,
+        scope: cleanScope,
     });
 
     if (dryRun) {
@@ -1236,6 +1246,7 @@ export async function dispatchPromoCampaign(
                         siteUrl,
                         unsubscribeUrl,
                         preferencesUrl,
+                        scope: cleanScope,
                     });
                     return {
                         from,

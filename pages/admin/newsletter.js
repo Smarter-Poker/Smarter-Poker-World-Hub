@@ -209,6 +209,7 @@ export default function NewsletterOperations() {
     const [testEmail, setTestEmail] = useState('');
     const [testPhone, setTestPhone] = useState('');
     const [leadInput, setLeadInput] = useState('');
+    const [draftName, setDraftName] = useState('');
     const [importResult, setImportResult] = useState(null);
     const [lifecyclePreview, setLifecyclePreview] = useState(null);
     const [lifecycleTestTrigger, setLifecycleTestTrigger] = useState('unverified_48h');
@@ -349,6 +350,81 @@ export default function NewsletterOperations() {
         } else {
             setPromoDraft({ ...INITIAL_PROMO_DRAFT, ...(promoMeta?.defaultDraft || {}) });
         }
+    };
+
+    const savePromoDraft = async () => {
+        if (!token) return;
+        const cleanName = draftName.trim();
+        if (!cleanName) {
+            setPromoInlineError('Enter A Draft Name First.');
+            return;
+        }
+        setRunning('save-draft');
+        setPromoInlineError('');
+        setPromoInlineNotice('');
+        try {
+            const response = await fetch('/api/news/operations', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'save_promo_draft',
+                    name: cleanName,
+                    draft: promoDraft,
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || !body?.success) {
+                throw new Error(body?.error || 'Unable to save promo draft');
+            }
+            setPromoInlineNotice(`Draft Saved: ${cleanName}`);
+            setDraftName('');
+            await load(token, 1, search);
+        } catch (err) {
+            setPromoInlineError(err?.message || 'Unable to save promo draft');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const deletePromoDraft = async (draftId) => {
+        if (!token || !draftId) return;
+        setRunning(`delete-draft-${draftId}`);
+        setPromoInlineError('');
+        setPromoInlineNotice('');
+        try {
+            const response = await fetch('/api/news/operations', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'delete_promo_draft',
+                    draftId,
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || !body?.success) {
+                throw new Error(body?.error || 'Unable to delete promo draft');
+            }
+            setPromoInlineNotice('Draft Deleted.');
+            await load(token, 1, search);
+        } catch (err) {
+            setPromoInlineError(err?.message || 'Unable to delete promo draft');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const loadPromoDraft = (saved) => {
+        if (!saved?.draft) return;
+        setPromoDraft((prev) => ({ ...prev, ...saved.draft }));
+        setPromoTouched(true);
+        setPromoPreview(null);
+        setPromoInlineNotice(`Loaded Draft: ${saved.name || 'Saved Draft'}`);
     };
 
     const updatePromoField = (field, value) => {
@@ -666,6 +742,45 @@ export default function NewsletterOperations() {
                     <article><OperatorGlyph kind="clock" size={17} /><span>Last Dispatch</span><strong className={styles.dateValue}>{lastDispatchValue()}</strong></article>
                 </section>
 
+                {data?.attributionSummary && (
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+                        <span
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                background: 'rgba(79, 193, 179, 0.12)',
+                                border: '1px solid #4fc1b3',
+                                color: '#e2e8f0',
+                                borderRadius: 999,
+                                padding: '5px 14px',
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                            }}
+                        >
+                            <span aria-hidden="true" style={{ color: '#4fc1b3' }}>&#9679;</span>
+                            Attributed Signups: <strong style={{ color: '#ffffff', marginLeft: 4 }}>{data.attributionSummary.totalSignups ?? 0}</strong>
+                        </span>
+                        <span
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                background: 'rgba(96, 165, 250, 0.12)',
+                                border: '1px solid #60a5fa',
+                                color: '#e2e8f0',
+                                borderRadius: 999,
+                                padding: '5px 14px',
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                            }}
+                        >
+                            <span aria-hidden="true" style={{ color: '#60a5fa' }}>&#9679;</span>
+                            Phone-Verified Attributed Players: <strong style={{ color: '#ffffff', marginLeft: 4 }}>{data.attributionSummary.phoneVerifiedSignups ?? 0}</strong>
+                        </span>
+                    </div>
+                )}
+
                 <section className={styles.dispatch}>
                     <div className={styles.sectionHeading}>
                         <div>
@@ -683,6 +798,104 @@ export default function NewsletterOperations() {
                                 <button type="button" className={styles.previewButton} onClick={() => applyPromoPreset('welcome_back')} disabled={Boolean(running)}>
                                     Load 3-Week Welcome-Back Offer
                                 </button>
+                            </div>
+
+                            <div style={{ background: '#07121c', border: '1px solid #1b2c3d', borderRadius: 10, padding: '12px 14px', margin: '14px 0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                                    <span style={{ color: '#4fc1b3', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                        Save Promo Draft
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <input
+                                        value={draftName}
+                                        onChange={(e) => setDraftName(e.target.value)}
+                                        placeholder="Enter Promo Draft Name"
+                                        aria-label="Enter Promo Draft Name"
+                                        style={{
+                                            flex: '1 1 200px',
+                                            background: '#0b1118',
+                                            border: '1px solid #1b2c3d',
+                                            borderRadius: 8,
+                                            padding: '8px 12px',
+                                            color: '#ffffff',
+                                            fontSize: 13,
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.previewButton}
+                                        onClick={savePromoDraft}
+                                        disabled={Boolean(running) || !draftName.trim()}
+                                    >
+                                        {running === 'save-draft' ? <OperatorGlyph kind="refresh" size={14} className={styles.spin} /> : <OperatorGlyph kind="spark" size={14} />}
+                                        Save Promo Draft
+                                    </button>
+                                </div>
+
+                                {(data?.promoDrafts || []).length > 0 && (
+                                    <div style={{ marginTop: 12 }}>
+                                        <span style={{ color: '#60a5fa', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 6 }}>
+                                            Saved Promo Drafts
+                                        </span>
+                                        <div style={{ display: 'grid', gap: 6 }}>
+                                            {data.promoDrafts.map((d) => (
+                                                <div
+                                                    key={d.id}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        background: '#0b1118',
+                                                        border: '1px solid #1b2c3d',
+                                                        borderRadius: 8,
+                                                        padding: '8px 12px',
+                                                        gap: 10,
+                                                    }}
+                                                >
+                                                    <span style={{ color: '#ffffff', fontSize: 13, fontWeight: 700 }}>
+                                                        {d.name}
+                                                    </span>
+                                                    <div style={{ display: 'flex', gap: 6 }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => loadPromoDraft(d)}
+                                                            style={{
+                                                                background: '#101a24',
+                                                                border: '1px solid #4fc1b3',
+                                                                color: '#4fc1b3',
+                                                                borderRadius: 6,
+                                                                padding: '4px 10px',
+                                                                fontSize: 12,
+                                                                fontWeight: 700,
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            Load Draft
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => deletePromoDraft(d.id)}
+                                                            disabled={running === `delete-draft-${d.id}`}
+                                                            style={{
+                                                                background: '#101a24',
+                                                                border: '1px solid #f87171',
+                                                                color: '#f87171',
+                                                                borderRadius: 6,
+                                                                padding: '4px 10px',
+                                                                fontSize: 12,
+                                                                fontWeight: 700,
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className={styles.fieldRow}>
                                 <label>
@@ -1219,7 +1432,48 @@ export default function NewsletterOperations() {
                                         <td><Status value={campaign.status} /></td>
                                         <td>{campaign.recipient_count}</td>
                                         <td>{campaign.sent_count}{campaign.failed_count ? ` / ${campaign.failed_count} failed` : ''}</td>
-                                        <td>{campaign.opens || 0} / {campaign.clicks || 0}</td>
+                                        <td>
+                                            <div>{campaign.opens || 0} / {campaign.clicks || 0}</div>
+                                            {campaign.telemetry?.sections && (
+                                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                                                    {Boolean(campaign.telemetry.sections.spot) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #4fc1b3', color: '#4fc1b3' }}>
+                                                            Spot: {campaign.telemetry.sections.spot}
+                                                        </span>
+                                                    )}
+                                                    {Boolean(campaign.telemetry.sections.news) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #60a5fa', color: '#60a5fa' }}>
+                                                            News: {campaign.telemetry.sections.news}
+                                                        </span>
+                                                    )}
+                                                    {Boolean(campaign.telemetry.sections.promo) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #cbd5e1', color: '#cbd5e1' }}>
+                                                            Promo: {campaign.telemetry.sections.promo}
+                                                        </span>
+                                                    )}
+                                                    {Boolean(campaign.telemetry.sections.kings_club || campaign.telemetry.sections['kings club'] || campaign.telemetry.sections.kingsClub) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #4fc1b3', color: '#4fc1b3' }}>
+                                                            Kings Club: {campaign.telemetry.sections.kings_club || campaign.telemetry.sections['kings club'] || campaign.telemetry.sections.kingsClub}
+                                                        </span>
+                                                    )}
+                                                    {Boolean(campaign.telemetry.sections.video) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #60a5fa', color: '#60a5fa' }}>
+                                                            Video: {campaign.telemetry.sections.video}
+                                                        </span>
+                                                    )}
+                                                    {Boolean(campaign.telemetry.sections.trivia) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #4fc1b3', color: '#4fc1b3' }}>
+                                                            Trivia: {campaign.telemetry.sections.trivia}
+                                                        </span>
+                                                    )}
+                                                    {Boolean(campaign.telemetry.sections.tool) && (
+                                                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#101a24', border: '1px solid #60a5fa', color: '#60a5fa' }}>
+                                                            Tool: {campaign.telemetry.sections.tool}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td>{formatDate(campaign.started_at || campaign.completed_at || campaign.created_at)}</td>
                                     </tr>
                                 ))}

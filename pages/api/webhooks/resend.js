@@ -13,7 +13,8 @@ import { verifySvixSignature } from '../../../src/lib/email/svixSignature.mjs';
 import {
     applyCampaignTelemetryEvent,
     parseCampaignTelemetrySummary,
-} from '../../../src/lib/promoCampaigns/lifecycleEngine.mjs';
+    parseCampaignSectionClicks,
+} from '../../../src/lib/newsletter/campaignTelemetry.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -41,6 +42,7 @@ export function extractResendCampaignId(tagsOrEvent) {
 export {
     verifySvixSignature,
     parseCampaignTelemetrySummary,
+    parseCampaignSectionClicks,
     applyCampaignTelemetryEvent,
 };
 
@@ -165,7 +167,10 @@ export default async function handler(req, res) {
                 });
             }
 
-            const updated = applyCampaignTelemetryEvent(campaign.error_summary, type);
+            const clickedUrl = String(
+                event?.data?.click?.link || event?.data?.link || event?.click?.link || ''
+            ).trim();
+            const updated = applyCampaignTelemetryEvent(campaign.error_summary, type, { clickedUrl });
             await sb
                 .from('newsletter_campaigns')
                 .update({
@@ -181,6 +186,7 @@ export default async function handler(req, res) {
                 campaignId,
                 opens: updated.opens,
                 clicks: updated.clicks,
+                sections: parseCampaignSectionClicks(updated.errorSummary),
                 engagementStamped,
             });
         } catch (err) {

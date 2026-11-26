@@ -1,5 +1,6 @@
 import { buildPromoSignupUrl } from '../promoCampaigns/promoSignupToken.mjs';
 import { buildMastheadCrestUrl } from './emailImageProxy.mjs';
+import { appendNewsletterUtm } from './utmAttribution.mjs';
 
 const DEFAULT_SITE_URL = 'https://smarter.poker';
 const DEFAULT_POSTAL_ADDRESS = 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453';
@@ -46,13 +47,23 @@ export function buildWelcomeEmail({
 } = {}) {
     const cleanSite = String(siteUrl || DEFAULT_SITE_URL).replace(/\/+$/, '');
     const safeCrestUrl = escapeHtml(buildMastheadCrestUrl({ siteUrl: cleanSite }));
+    const utmCampaign = hasExistingProfile ? 'day0_member' : 'day0_new_lead';
+    const tagUrl = (u) =>
+        appendNewsletterUtm(u, {
+            source: 'welcome_email',
+            medium: 'email',
+            campaign: utmCampaign,
+        });
 
     if (!hasExistingProfile) {
         const subject = 'Welcome To Smarter.Poker: Claim 25 Free Chips + 30-Day VIP + 500 Free Diamonds';
-        const signupUrl = buildPromoSignupUrl(
+        const rawSignupUrl = buildPromoSignupUrl(
             `${cleanSite}/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450`,
             { siteUrl: cleanSite }
         );
+        const signupUrl = tagUrl(rawSignupUrl);
+        const wireArchiveUrl = tagUrl(`${cleanSite}/hub/wire`);
+        const toolsUrl = tagUrl(`${cleanSite}/tools`);
         const preheader = 'Your Weekly Wire subscription is active - claim 25 Free Kings Club Chips, 30-Day VIP, and 500 Free Diamonds.';
         const html = `<!doctype html>
 <html lang="en">
@@ -81,13 +92,13 @@ export function buildWelcomeEmail({
 <a href="${escapeHtml(signupUrl)}" style="display:inline-block;background:#4fc1b3;color:#05070a;text-decoration:none;font-weight:800;font-size:14px;padding:12px 22px;border-radius:8px;">Claim Your Free Welcome Bonus</a>
 </td></tr>
 </table>
-<p style="margin:0 0 10px 0;color:#b7cadc;font-size:13.5px;line-height:1.55;">While you wait for the next Weekly Wire edition, explore <a href="${escapeHtml(cleanSite)}/hub/wire" style="color:#4fc1b3;text-decoration:underline;">past Weekly Wire issues</a> or run math in our <a href="${escapeHtml(cleanSite)}/tools" style="color:#60a5fa;text-decoration:underline;">42 Free Poker Calculators</a>.</p>
+<p style="margin:0 0 10px 0;color:#b7cadc;font-size:13.5px;line-height:1.55;">While you wait for the next Weekly Wire edition, explore <a href="${escapeHtml(wireArchiveUrl)}" style="color:#4fc1b3;text-decoration:underline;">past Weekly Wire issues</a> or run math in our <a href="${escapeHtml(toolsUrl)}" style="color:#60a5fa;text-decoration:underline;">42 Free Poker Calculators</a>.</p>
 <div style="border-top:1px solid #1b2c3d;margin-top:22px;padding-top:16px;color:#8fa6bc;font-size:12px;line-height:1.6;">
 <div>Smarter.Poker &middot; ${escapeHtml(DEFAULT_POSTAL_ADDRESS)}</div>
 <div style="margin-top:6px;">
 <a href="${escapeHtml(preferencesUrl)}" style="color:#9fb3c8;text-decoration:underline;">Email Preferences</a> &middot;
 <a href="${escapeHtml(unsubscribeUrl)}" style="color:#9fb3c8;text-decoration:underline;">Unsubscribe</a> &middot;
-<a href="${escapeHtml(cleanSite)}/hub/wire" style="color:#9fb3c8;text-decoration:underline;">Web Archive</a>
+<a href="${escapeHtml(wireArchiveUrl)}" style="color:#9fb3c8;text-decoration:underline;">Web Archive</a>
 </div>
 </div>
 </td></tr>
@@ -103,7 +114,7 @@ export function buildWelcomeEmail({
             'Create your free account and verify your phone number to claim 25 Free Chips in Kings Club (Code 25450), 30-Day VIP, and 500 Free Diamonds:',
             signupUrl,
             '',
-            `Web Archive: ${cleanSite}/hub/wire`,
+            `Web Archive: ${wireArchiveUrl}`,
             `Email Preferences: ${preferencesUrl}`,
             `Unsubscribe: ${unsubscribeUrl}`,
             `Smarter.Poker | ${DEFAULT_POSTAL_ADDRESS}`,
@@ -115,6 +126,9 @@ export function buildWelcomeEmail({
     const subject = "You're On The Smarter.Poker Weekly Wire";
     const greeting = username ? `@${username}` : 'Player';
     const preheader = 'Your Weekly Wire subscription is confirmed - jump into GTO Hand Lab or Club Arena anytime.';
+    const handLabUrl = tagUrl(`${cleanSite}/hub/training/hand-lab`);
+    const clubArenaUrl = tagUrl(`${cleanSite}/hub/club-arena/`);
+    const wireArchiveUrl = tagUrl(`${cleanSite}/hub/wire`);
     const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -139,8 +153,8 @@ export function buildWelcomeEmail({
 <div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">READY RIGHT NOW</div>
 <div style="color:#ffffff;font-size:18px;font-weight:800;margin:6px 0 8px 0;">Sharpen Your Edge &amp; Hit The Tables</div>
 <div style="color:#b7cadc;font-size:14px;line-height:1.55;margin-bottom:16px;">Warm up with real-time EV grading in the 4-Variant GTO Hand Lab or jump straight into live cash and tournament tables inside Club Arena.</div>
-<a href="${escapeHtml(cleanSite)}/hub/training/hand-lab" style="display:inline-block;background:#4fc1b3;color:#05070a;text-decoration:none;font-weight:800;font-size:13.5px;padding:11px 18px;border-radius:8px;margin-right:10px;">Open GTO Hand Lab</a>
-<a href="${escapeHtml(cleanSite)}/hub/club-arena/" style="display:inline-block;background:#1b2c3d;color:#ffffff;text-decoration:none;font-weight:800;font-size:13.5px;padding:11px 18px;border-radius:8px;">Enter Club Arena</a>
+<a href="${escapeHtml(handLabUrl)}" style="display:inline-block;background:#4fc1b3;color:#05070a;text-decoration:none;font-weight:800;font-size:13.5px;padding:11px 18px;border-radius:8px;margin-right:10px;">Open GTO Hand Lab</a>
+<a href="${escapeHtml(clubArenaUrl)}" style="display:inline-block;background:#1b2c3d;color:#ffffff;text-decoration:none;font-weight:800;font-size:13.5px;padding:11px 18px;border-radius:8px;">Enter Club Arena</a>
 </td></tr>
 </table>
 <div style="border-top:1px solid #1b2c3d;margin-top:22px;padding-top:16px;color:#8fa6bc;font-size:12px;line-height:1.6;">
@@ -148,7 +162,7 @@ export function buildWelcomeEmail({
 <div style="margin-top:6px;">
 <a href="${escapeHtml(preferencesUrl)}" style="color:#9fb3c8;text-decoration:underline;">Email Preferences</a> &middot;
 <a href="${escapeHtml(unsubscribeUrl)}" style="color:#9fb3c8;text-decoration:underline;">Unsubscribe</a> &middot;
-<a href="${escapeHtml(cleanSite)}/hub/wire" style="color:#9fb3c8;text-decoration:underline;">Web Archive</a>
+<a href="${escapeHtml(wireArchiveUrl)}" style="color:#9fb3c8;text-decoration:underline;">Web Archive</a>
 </div>
 </div>
 </td></tr>
@@ -161,9 +175,9 @@ export function buildWelcomeEmail({
         'SMARTER.POKER WEEKLY WIRE',
         '',
         `Welcome ${greeting} - you are now subscribed to the Smarter.Poker Weekly Wire.`,
-        `Open GTO Hand Lab: ${cleanSite}/hub/training/hand-lab`,
-        `Enter Club Arena: ${cleanSite}/hub/club-arena/`,
-        `Web Archive: ${cleanSite}/hub/wire`,
+        `Open GTO Hand Lab: ${handLabUrl}`,
+        `Enter Club Arena: ${clubArenaUrl}`,
+        `Web Archive: ${wireArchiveUrl}`,
         '',
         `Email Preferences: ${preferencesUrl}`,
         `Unsubscribe: ${unsubscribeUrl}`,

@@ -14,7 +14,7 @@ export function isWeeklyWireDigestCampaign(row) {
     if (!row || typeof row !== 'object') return false;
     const subj = String(row.subject || '').trim();
     if (!subj) return false;
-    if (/^\[(?:promo|lifecycle|sms|test)\b/i.test(subj)) return false;
+    if (/^\[(?:promo|lifecycle|sms|test|spot-vote)\b/i.test(subj)) return false;
     const ids = Array.isArray(row.article_ids)
         ? row.article_ids.filter((id) => typeof id === 'string' && id.trim().length > 0)
         : [];

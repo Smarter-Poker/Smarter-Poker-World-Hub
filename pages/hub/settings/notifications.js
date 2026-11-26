@@ -8,8 +8,133 @@
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import PushNotificationToggle from '../../../src/components/notifications/PushNotificationToggle';
+
+function WeeklyWireCadenceCard() {
+    const [mode, setMode] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [feedback, setFeedback] = useState('');
+
+    useEffect(() => {
+        let mounted = true;
+        const token = getAccessToken();
+        if (!token) {
+            setLoading(false);
+            return;
+        }
+        fetch('/api/news/subscribe?preferences=session', {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then((res) => res.json())
+            .then((body) => {
+                if (mounted && body?.success && body?.currentMode) {
+                    setMode(body.currentMode);
+                }
+            })
+            .catch(() => {})
+            .finally(() => {
+                if (mounted) setLoading(false);
+            });
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const handleSelectMode = async (targetMode) => {
+        const token = getAccessToken();
+        if (!token || saving) return;
+        setSaving(true);
+        setFeedback('');
+        try {
+            const res = await fetch('/api/news/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ action: 'preferences', mode: targetMode }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (data?.success) {
+                setMode(targetMode);
+                setFeedback('Saved');
+            } else {
+                setFeedback('Unable To Save');
+            }
+        } catch {
+            setFeedback('Unable To Save');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const MODES = [
+        { key: 'all', label: 'All Updates And Rewards', desc: 'Receive All Weekly Wire Editions And Special Promotions' },
+        { key: 'wire_only', label: 'Weekly Wire Only', desc: 'Receive Only The Sunday Weekly Wire Digest' },
+        { key: 'snooze_30d', label: 'Pause For 30 Days', desc: 'Temporarily Pause Email Delivery For One Month' },
+        { key: 'unsubscribe', label: 'Unsubscribe From Email', desc: 'Opt Out Of All Email Communications' },
+    ];
+
+    const isCurrent = (key) => {
+        if (key === 'unsubscribe') {
+            return mode === 'unsubscribe' || mode === 'unsubscribed';
+        }
+        return mode === key;
+    };
+
+    return (
+        <div className="mt-8 rounded-xl border border-white/10 bg-[#111827] p-5">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-bold text-white">Weekly Wire And Email Cadence</h2>
+                    <p className="mt-1 text-sm text-gray-400">
+                        Choose How Often You Receive News, GTO Analysis And Tournament Alerts.
+                    </p>
+                </div>
+                {feedback && (
+                    <span className="rounded-full bg-[#4fc1b3]/20 px-3 py-1 text-xs font-semibold text-[#4fc1b3]">
+                        {feedback}
+                    </span>
+                )}
+            </div>
+
+            {loading ? (
+                <p className="mt-4 text-sm text-gray-500">Loading Preferences...</p>
+            ) : (
+                <div className="mt-4 space-y-3">
+                    {MODES.map((item) => {
+                        const active = isCurrent(item.key);
+                        return (
+                            <button
+                                key={item.key}
+                                type="button"
+                                disabled={saving}
+                                onClick={() => handleSelectMode(item.key)}
+                                className={`flex w-full items-center justify-between rounded-lg border p-3.5 text-left transition-colors ${
+                                    active
+                                        ? 'border-[#4fc1b3] bg-[#4fc1b3]/10 text-white'
+                                        : 'border-white/10 bg-[#0b1118] text-gray-300 hover:border-gray-600 hover:text-white'
+                                }`}
+                            >
+                                <div>
+                                    <div className="font-semibold text-white">{item.label}</div>
+                                    <div className="text-xs text-gray-400">{item.desc}</div>
+                                </div>
+                                {active && (
+                                    <span className="ml-3 rounded bg-[#4fc1b3] px-2 py-0.5 text-xs font-bold text-[#05070a]">
+                                        Active
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function NotificationSettingsPage() {
     const router = useRouter();
@@ -59,7 +184,10 @@ export default function NotificationSettingsPage() {
                                 </button>
                             </div>
                         ) : (
-                            <PushNotificationToggle />
+                            <>
+                                <PushNotificationToggle />
+                                <WeeklyWireCadenceCard />
+                            </>
                         )}
                     </div>
 
