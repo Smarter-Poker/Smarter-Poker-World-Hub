@@ -47736,7 +47736,7 @@
         {
           "element": "button",
           "name": "Sign In",
-          "line": 1894,
+          "line": 1897,
           "handler": "() => {\n                  try {\n                    window.top.location.href = '/auth/login';\n                  } catch (err) {\n                    window.location.href = '/auth/login';\n                  }\n                }",
           "destination": null,
           "type": null,
@@ -47746,7 +47746,7 @@
         {
           "element": "button",
           "name": "Back To Training",
-          "line": 1916,
+          "line": 1919,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -47756,7 +47756,7 @@
         {
           "element": "button",
           "name": "← Back",
-          "line": 2009,
+          "line": 2012,
           "handler": "onExit",
           "destination": null,
           "type": "button",
@@ -47766,7 +47766,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2133,
+          "line": 2136,
           "handler": "() => retrainMistakes()",
           "destination": null,
           "type": "button",
@@ -47776,7 +47776,7 @@
         {
           "element": "button",
           "name": "Next Level ( ) →",
-          "line": 2306,
+          "line": 2309,
           "handler": "() => startNextLevel()",
           "destination": null,
           "type": "button",
@@ -47786,7 +47786,7 @@
         {
           "element": "button",
           "name": "Play Again",
-          "line": 2326,
+          "line": 2329,
           "handler": "() => retryLevel()",
           "destination": null,
           "type": "button",
@@ -47796,7 +47796,7 @@
         {
           "element": "button",
           "name": "Train Mistakes ( )",
-          "line": 2349,
+          "line": 2352,
           "handler": "() => retrainMistakes()",
           "destination": null,
           "type": "button",
@@ -47806,7 +47806,7 @@
         {
           "element": "button",
           "name": "← Back To Training",
-          "line": 2369,
+          "line": 2372,
           "handler": "() => {\n                onComplete?.({\n                  gameId,\n                  accuracy,\n                  questionsAnswered: totalQuestions,\n                  questionsCorrect: correctCount,\n                  bestStreak,\n                  levelPassed,\n                  level: currentLevel,\n                  gtowScore,\n                  totalEVLoss: measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,\n                  measuredEVDecisions: measuredEVReviewHistory.length,\n                  sessionMistakes,\n                });\n                onExit?.();\n              }",
           "destination": null,
           "type": "button",
@@ -47816,7 +47816,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2600,
+          "line": 2603,
           "handler": "() => setReviewTab(tab.id)",
           "destination": null,
           "type": null,
@@ -47826,7 +47826,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4514,
+          "line": 4517,
           "handler": "retryAnswerPersistence",
           "destination": null,
           "type": "button",
@@ -47836,7 +47836,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4577,
+          "line": 4580,
           "handler": "retryTransition",
           "destination": null,
           "type": "button",
@@ -47846,7 +47846,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4887,
+          "line": 4890,
           "handler": "() => setDifficulty(d.key)",
           "destination": null,
           "type": null,
@@ -47856,7 +47856,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4934,
+          "line": 4937,
           "handler": "() => setTimerMode(t.key)",
           "destination": null,
           "type": null,
@@ -47866,7 +47866,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 5093,
+          "line": 5096,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -47876,7 +47876,7 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 5186,
+          "line": 5189,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -47886,7 +47886,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 5199,
+          "line": 5202,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -48000,7 +48000,7 @@
         },
         {
           "name": "fetchCoaching",
-          "line": 1184,
+          "line": 1186,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48008,7 +48008,7 @@
         },
         {
           "name": "GodModeArena",
-          "line": 5642,
+          "line": 5645,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -48048,7 +48048,7 @@
         },
         {
           "name": "findWeakest",
-          "line": 1194,
+          "line": 1196,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48056,7 +48056,7 @@
         },
         {
           "name": "hdOf",
-          "line": 1224,
+          "line": 1226,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -48064,7 +48064,7 @@
         },
         {
           "name": "handler",
-          "line": 1557,
+          "line": 1559,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -48072,7 +48072,7 @@
         },
         {
           "name": "grade",
-          "line": 4349,
+          "line": 4352,
           "references": 17,
           "exported": false,
           "defaultExport": false,
@@ -48083,7 +48083,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 1395,
+          "line": 1397,
           "excerpt": "// timerEnabled through trainerConfig below. A \"fallback\" interval used to",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -48091,7 +48091,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1820,
+          "line": 1823,
           "excerpt": "// ERROR STATE — Graceful fallback when API fails (auth, network, etc.)",
           "disposition": "identity-or-persistence-resilience",
           "review": "accepted",
@@ -48100,7 +48100,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2589,
+          "line": 2592,
           "excerpt": "was an explicit sample-data placeholder). Their imports and",
           "disposition": "historical-defect-comment",
           "review": "accepted",
@@ -89105,11 +89105,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:1894:7",
+      "id": "src/components/training/GodModeArena.jsx:1897:7",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Sign In",
-      "line": 1894,
+      "line": 1897,
       "handler": "() => {\n                  try {\n                    window.top.location.href = '/auth/login';\n                  } catch (err) {\n                    window.location.href = '/auth/login';\n                  }\n                }",
       "destination": null,
       "type": null,
@@ -89118,11 +89118,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:1916:8",
+      "id": "src/components/training/GodModeArena.jsx:1919:8",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Back To Training",
-      "line": 1916,
+      "line": 1919,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -89131,11 +89131,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2009:9",
+      "id": "src/components/training/GodModeArena.jsx:2012:9",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "← Back",
-      "line": 2009,
+      "line": 2012,
       "handler": "onExit",
       "destination": null,
       "type": "button",
@@ -89144,11 +89144,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2133:10",
+      "id": "src/components/training/GodModeArena.jsx:2136:10",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2133,
+      "line": 2136,
       "handler": "() => retrainMistakes()",
       "destination": null,
       "type": "button",
@@ -89157,11 +89157,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2306:11",
+      "id": "src/components/training/GodModeArena.jsx:2309:11",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Next Level ( ) →",
-      "line": 2306,
+      "line": 2309,
       "handler": "() => startNextLevel()",
       "destination": null,
       "type": "button",
@@ -89170,11 +89170,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2326:12",
+      "id": "src/components/training/GodModeArena.jsx:2329:12",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Play Again",
-      "line": 2326,
+      "line": 2329,
       "handler": "() => retryLevel()",
       "destination": null,
       "type": "button",
@@ -89183,11 +89183,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2349:13",
+      "id": "src/components/training/GodModeArena.jsx:2352:13",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Train Mistakes ( )",
-      "line": 2349,
+      "line": 2352,
       "handler": "() => retrainMistakes()",
       "destination": null,
       "type": "button",
@@ -89196,11 +89196,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2369:14",
+      "id": "src/components/training/GodModeArena.jsx:2372:14",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "← Back To Training",
-      "line": 2369,
+      "line": 2372,
       "handler": "() => {\n                onComplete?.({\n                  gameId,\n                  accuracy,\n                  questionsAnswered: totalQuestions,\n                  questionsCorrect: correctCount,\n                  bestStreak,\n                  levelPassed,\n                  level: currentLevel,\n                  gtowScore,\n                  totalEVLoss: measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,\n                  measuredEVDecisions: measuredEVReviewHistory.length,\n                  sessionMistakes,\n                });\n                onExit?.();\n              }",
       "destination": null,
       "type": "button",
@@ -89209,11 +89209,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2600:15",
+      "id": "src/components/training/GodModeArena.jsx:2603:15",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2600,
+      "line": 2603,
       "handler": "() => setReviewTab(tab.id)",
       "destination": null,
       "type": null,
@@ -89222,11 +89222,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4514:16",
+      "id": "src/components/training/GodModeArena.jsx:4517:16",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4514,
+      "line": 4517,
       "handler": "retryAnswerPersistence",
       "destination": null,
       "type": "button",
@@ -89235,11 +89235,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4577:17",
+      "id": "src/components/training/GodModeArena.jsx:4580:17",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4577,
+      "line": 4580,
       "handler": "retryTransition",
       "destination": null,
       "type": "button",
@@ -89248,11 +89248,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4887:18",
+      "id": "src/components/training/GodModeArena.jsx:4890:18",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4887,
+      "line": 4890,
       "handler": "() => setDifficulty(d.key)",
       "destination": null,
       "type": null,
@@ -89261,11 +89261,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4934:19",
+      "id": "src/components/training/GodModeArena.jsx:4937:19",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4934,
+      "line": 4937,
       "handler": "() => setTimerMode(t.key)",
       "destination": null,
       "type": null,
@@ -89274,11 +89274,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5093:20",
+      "id": "src/components/training/GodModeArena.jsx:5096:20",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 5093,
+      "line": 5096,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -89287,11 +89287,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5186:21",
+      "id": "src/components/training/GodModeArena.jsx:5189:21",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "← Exit",
-      "line": 5186,
+      "line": 5189,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -89300,11 +89300,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5199:22",
+      "id": "src/components/training/GodModeArena.jsx:5202:22",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 5199,
+      "line": 5202,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -116149,7 +116149,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "FALLBACK",
-        "line": 1395,
+        "line": 1397,
         "excerpt": "// timerEnabled through trainerConfig below. A \"fallback\" interval used to",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -116158,7 +116158,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "FALLBACK",
-        "line": 1820,
+        "line": 1823,
         "excerpt": "// ERROR STATE — Graceful fallback when API fails (auth, network, etc.)",
         "disposition": "identity-or-persistence-resilience",
         "review": "accepted",
@@ -116168,7 +116168,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2589,
+        "line": 2592,
         "excerpt": "was an explicit sample-data placeholder). Their imports and",
         "disposition": "historical-defect-comment",
         "review": "accepted",
@@ -127184,7 +127184,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "FALLBACK",
-        "line": 1395,
+        "line": 1397,
         "excerpt": "// timerEnabled through trainerConfig below. A \"fallback\" interval used to",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -127193,7 +127193,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "FALLBACK",
-        "line": 1820,
+        "line": 1823,
         "excerpt": "// ERROR STATE — Graceful fallback when API fails (auth, network, etc.)",
         "disposition": "identity-or-persistence-resilience",
         "review": "accepted",
@@ -127203,7 +127203,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2589,
+        "line": 2592,
         "excerpt": "was an explicit sample-data placeholder). Their imports and",
         "disposition": "historical-defect-comment",
         "review": "accepted",
