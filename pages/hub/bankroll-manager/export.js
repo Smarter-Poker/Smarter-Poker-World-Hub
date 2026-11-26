@@ -3,6 +3,8 @@
  */
 
 import BankrollExportFormats from '../../../src/components/bankroll/BankrollExportFormats';
+import Link from 'next/link';
+import BankrollHelp from '../../../src/components/bankroll/BankrollHelp';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import layout from '../../../styles/BankrollManager.module.css';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -23,11 +25,14 @@ export default function BankrollExport() {
                     <UniversalHeader pageDepth={2} />
                     <main className={`smarterdesign ${layout.exportContent}`}>
                         <header className={`sd-masthead ${layout.mast}`}>
-                            <img className={layout.walletMark} src="/images/header-wallet-v2.png" alt="" width="72" height="72" />
                             <div className={layout.titleGroup}>
                                 <div className={layout.productName}>Bankroll Manager</div>
                                 <h1>Export Data</h1>
                             </div>
+                            <div className={layout.headerActions}>
+                                <Link href="/hub/bankroll-manager" className="sd-button">Back To Dashboard</Link>
+                            </div>
+                            <BankrollHelp title="Export Data" section="export" />
                         </header>
                         <div className="sd-panel">
                             <BankrollExportFormats />

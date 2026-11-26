@@ -20,6 +20,10 @@ Use one frame per surface. Group related information with spacing, dividers and 
 
 Allow long lists, ledgers and dialogs to scroll vertically. Keep amounts and actions reachable above the actual footer. Let a long label wrap or move the entire value below its label. Keep avatars in a reserved column when identities are displayed. Make charts fit the viewport and give their numbers readable text equivalents. Respect reduced motion and keep live status quiet between meaningful updates.
 
+Apply the treatment to every control and display in a workflow, including the working form, its close button, selected filters, chart annotations, readouts and empty states. Use a clear, labeled close control with a 44px touch target. Center adjustment dialogs in the viewport and keep fields and dismissal reachable with the keyboard and on small screens.
+
+In Bankroll Manager, open the dashboard on a normal entry. Show the launcher there and place Jarvis Insights at the bottom. Each destination has a Back To Dashboard control. A header Add + opens the existing entry flow wherever the user can create records. Place contextual descriptions, FAQs and tutorials behind the upper-right question mark on the product header. Keep required field labels, form feedback and units visible.
+
 ## Applying the style in World Hub
 
 Use the source classes in `styles/smarterdesign.css` for mastheads, sections, metrics, tabs and actions. Product components own the layout of their data. The native layout and authentication, financial calculations, persistence, entitlements and navigation remain the source of truth.

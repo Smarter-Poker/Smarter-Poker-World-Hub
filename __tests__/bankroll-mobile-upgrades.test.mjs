@@ -86,13 +86,23 @@ test('LogEntryModal is a back-gesture bottom sheet with safe-area padding', () =
   assert.match(src, /inputMode="decimal"/);
 });
 
-test('every bankroll modal carries the sheet classes and the back-gesture hook', () => {
-  for (const f of ['StartingBankrollModal', 'AdjustBankrollModal', 'ManageVenuesModal', 'BankrollProjection']) {
+test('bankroll bottom sheets carry the sheet classes and the back-gesture hook', () => {
+  for (const f of ['StartingBankrollModal', 'ManageVenuesModal', 'BankrollProjection']) {
     const src = read(`${COMPONENT_DIR}/${f}.jsx`);
     assert.match(src, /useModalHistory/, `${f} uses useModalHistory`);
     assert.match(src, /className="bankroll-modal"/, `${f} has the sheet container class`);
     assert.match(src, /bankroll-modal-close/, `${f} has a 44px close control`);
   }
+});
+
+test('Adjust Bankroll opens centered in the top layer and retains phone back and dismissal', () => {
+  const src = read(COMPONENT_DIR + '/AdjustBankrollModal.jsx');
+  assert.match(src, /useModalHistory\(true,/);
+  assert.match(src, /<dialog /);
+  assert.match(src, /node\.showModal\(\)/);
+  assert.match(src, /aria-label="Close Adjust Bankroll"/);
+  assert.match(src, /inputMode="decimal"/);
+  assert.match(read(COMPONENT_DIR + '/BankrollForms.module.css'), /\.adjust \{[^}]*inset:0; margin:auto;/);
 });
 
 test('bankroll.css holds the sheet rules under the one 600px breakpoint and the skeleton', () => {

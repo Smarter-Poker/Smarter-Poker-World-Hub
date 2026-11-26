@@ -12,4 +12,7 @@ description: Apply the approved Smarter.Poker chrome and cobalt console style to
 5. Use the existing World Hub `styles/smarterdesign.css` components or the current product’s approved equivalents. Keep a single simple workflow with partitioned permissions. Preserve accessible focus, selection, reduced motion and pressed feedback. Reuse existing handlers and maintain truthful loading, success and error states.
 6. Check the real page at phone and desktop widths. Open and close nested views, change a filter and verify its content, and check portaled UI and chart text. Use isolated fixtures for write paths. Follow the repository’s publication and signed-in verification procedure before claiming a live result.
 
+7. Carry the design through every screen and interaction. Inspect every button and its states, chart, data display, dialog, and X/close affordance. Give close controls an accessible name and a 44px hit area. Center adjustment dialogs and verify focus, Escape, mobile scrolling and return navigation.
+8. For Bankroll Manager and Toke Tracker, keep entry actions near the top and contextual help in the upper-right question mark. Keep the Bankroll launcher on Dashboard and Jarvis Insights at its foot. Subpages provide Back To Dashboard.
+
 In World Hub, read `docs/SMARTERDESIGN.md` for the canonical design standard.

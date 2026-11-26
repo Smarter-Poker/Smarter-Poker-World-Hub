@@ -1,536 +1,125 @@
-/**
- * JARVIS LEAK INSIGHTS COMPONENT
- * AI-powered bankroll analysis — user-triggered only, full-screen modal
- */
-
-import { GRADIENTS, METAL } from './metalStyles';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronRight, LockKeyhole } from 'lucide-react';
 import useVIPGate from '../../hooks/useVIPGate';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
+import { getFreshAccessToken } from '../../lib/authUtils';
 import VIPGateModal from '../ui/VIPGateModal';
+import view from './JarvisLeakInsights.module.css';
 
-const RISK_CONFIG = {
-    low: { color: '#22c55e', label: 'Low Risk', bg: 'rgba(34,197,94,0.15)' },
-    medium: { color: '#56c8dd', label: 'Moderate', bg: 'rgba(86, 200, 221,0.15)' },
-    high: { color: '#ef4444', label: 'High Risk', bg: 'rgba(239,68,68,0.15)' },
-    unknown: { color: '#9fb4c8', label: 'Unknown', bg: 'rgba(136,136,136,0.15)' },
-};
+const money = value => value == null ? 'Not Measured' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const date = iso => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso + 'T00:00:00Z'));
 
-export default function JarvisLeakInsights({ userId, onRefresh }) {
-    const [insights, setInsights] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [lastUpdated, setLastUpdated] = useState(null);
-    const [showModal, setShowModal] = useState(false);
-    
-    const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('bankroll-manager');
-
-    const fetchInsights = async () => {
-        if (!userId) return;
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const _jSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-            const res = await fetch('/api/jarvis/bankroll-analysis', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${_jSession?.access_token || ''}`
-                },
-                body: JSON.stringify({ userId })
-            });
-            const data = await res.json();
-            if (data.success) {
-                setInsights(data.insights);
-                setLastUpdated(new Date());
-                onRefresh?.();
-            } else {
-                setError(data.error || 'Analysis failed');
-            }
-        } catch (err) {
-            console.warn('[Jarvis Insights] Error:', err);
-            setError('Failed to connect to Jarvis');
-        }
-        setIsLoading(false);
-    };
-
-    const handleOpen = () => {
-        if (!allowed) {
-            showUpgradeModal();
-            return;
-        }
-        setShowModal(true);
-        // Only fetch if we don't already have insights
-        if (!insights && !isLoading) {
-            fetchInsights();
-        }
-    };
-
-    if (!userId) return null;
-
-    const riskConfig = RISK_CONFIG[insights?.riskLevel] || RISK_CONFIG.unknown;
-
-    return (
-        <>
-            {/* Sidebar Trigger Button */}
-            <button onClick={handleOpen} style={styles.triggerBtn}>
-                <img src="/images/jarvis-avatar.webp" alt="Jarvis" style={styles.triggerAvatar} />
-                <div style={styles.triggerText}>
-                    <span style={styles.triggerTitle}>Jarvis Insights {!allowed && '🔒'}</span>
-                </div>
-                <span style={styles.triggerArrow}>›</span>
-            </button>
-            
-            <VIPGateModal 
-                visible={upgradeModalVisible}
-                onClose={hideUpgradeModal}
-                featureName="Jarvis AI Leak Detection"
-                featureConfig={featureConfig}
-            />
-
-            {/* Full-Screen Modal */}
-            <AnimatePresence>
-                {showModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        style={styles.overlay}
-                        onClick={() => setShowModal(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.95, y: 20 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="sd-panel" style={styles.modal}
-                            onClick={e => e.stopPropagation()}
-                        >
-                            {/* Modal Header */}
-                            <div style={styles.modalHeader}>
-                                <div style={styles.modalTitleRow}>
-                                    <img src="/images/jarvis-avatar.webp" alt="Jarvis" style={styles.modalAvatar} />
-                                    <div>
-                                        <h2 style={styles.modalTitle}>Jarvis Insights</h2>
-                                        <p style={styles.modalSubtitle}>AI-Powered Bankroll Analysis</p>
-                                    </div>
-                                </div>
-                                <div style={styles.modalHeaderActions}>
-                                    <button
-                                        onClick={fetchInsights}
-                                        disabled={isLoading}
-                                        style={styles.refreshBtn}
-                                    >
-                                        {isLoading ? '⏳' : '↻'} {isLoading ? 'Analyzing...' : 'Refresh'}
-                                    </button>
-                                    <button onClick={() => setShowModal(false)} style={styles.closeBtn}>✕</button>
-                                </div>
-                            </div>
-
-                            {/* Modal Body */}
-                            <div style={styles.modalBody}>
-                                {/* Loading State */}
-                                {isLoading && !insights && (
-                                    <div style={styles.loadingState}>
-                                        <motion.div
-                                            animate={{ opacity: [0.4, 1, 0.4] }}
-                                            transition={{ duration: 2, repeat: Infinity }}
-                                            style={styles.loadingText}
-                                        >
-                                            🧠 Analyzing Your Bankroll Data...
-                                        </motion.div>
-                                        <p style={styles.loadingHint}>This Usually Takes A Few Seconds</p>
-                                    </div>
-                                )}
-
-                                {/* Error State */}
-                                {error && !insights && (
-                                    <div style={styles.errorState}>
-                                        <p style={styles.errorText}>{error}</p>
-                                        <button onClick={fetchInsights} style={styles.retryBtn}>
-                                            Try Again
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Insights Content */}
-                                {insights && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                    >
-                                        {/* Risk Badge */}
-                                        <div style={{ ...styles.riskBadge, background: riskConfig.bg, borderColor: riskConfig.color }}>
-                                            <span style={{ color: riskConfig.color, fontWeight: 700 }}>{riskConfig.label}</span>
-                                        </div>
-
-                                        {/* Summary */}
-                                        <div style={styles.summaryCard}>
-                                            <div style={styles.sectionLabel}>Summary</div>
-                                            <p style={styles.summaryText}>
-                                                {insights.summary || 'Analysis complete.'}
-                                            </p>
-                                        </div>
-
-                                        {/* Two-Column Layout for Patterns & Recommendations */}
-                                        <div style={styles.twoCol}>
-                                            {/* Patterns */}
-                                            {insights.patterns?.length > 0 && (
-                                                <div style={styles.sectionCard}>
-                                                    <div style={styles.sectionLabel}>Patterns Detected</div>
-                                                    <ul style={styles.list}>
-                                                        {insights.patterns.map((pattern, idx) => (
-                                                            <li key={idx} style={styles.listItem}>
-                                                                <span style={styles.bullet}>•</span>
-                                                                {pattern}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-
-                                            {/* Recommendations */}
-                                            {insights.recommendations?.length > 0 && (
-                                                <div style={styles.sectionCard}>
-                                                    <div style={styles.sectionLabel}>Recommendations</div>
-                                                    <ul style={styles.list}>
-                                                        {insights.recommendations.map((rec, idx) => (
-                                                            <motion.li
-                                                                key={idx}
-                                                                style={styles.recItem}
-                                                                initial={{ opacity: 0, x: -10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                transition={{ delay: idx * 0.08 }}
-                                                            >
-                                                                <span style={styles.recArrow}>→</span>
-                                                                {rec}
-                                                            </motion.li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Last Updated */}
-                                        {lastUpdated && (
-                                            <div style={styles.timestamp}>
-                                                Last Updated {lastUpdated.toLocaleTimeString()}
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                )}
-
-                                {/* Empty State (no insights yet, not loading) */}
-                                {!isLoading && !error && !insights && (
-                                    <div style={styles.emptyState}>
-                                        <div style={styles.emptyIcon}>🧠</div>
-                                        <h3 style={styles.emptyTitle}>Ready To Analyze</h3>
-                                        <p style={styles.emptyHint}>Get AI-Powered Insights On Your Bankroll Performance, Leak Detection, And Personalized Recommendations.</p>
-                                        <button onClick={fetchInsights} style={styles.analyzeBtn}>
-                                            Run Analysis
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </>
-    );
+function Metric({ label, value, detail }) {
+  return <div className={'sd-metric ' + view.metric}><dt>{label}</dt><dd>{value}</dd><small>{detail}</small></div>;
 }
 
-const styles = {
-    /* ── Sidebar Trigger Button ── */
-    triggerBtn: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        width: '100%',
-        padding: '12px 14px',
-        background: '#081320',
-        border: '2px solid rgba(255,255,255,0.1)',
-        borderRadius: 12,
-        cursor: 'pointer',
-        marginBottom: 16,
-        textAlign: 'left',
-        transition: 'border-color 0.2s, box-shadow 0.2s',
-    },
-    triggerAvatar: {
-        width: 52,
-        height: 52,
-        borderRadius: '50%',
-        flexShrink: 0,
-        border: '2px solid rgba(139, 185, 244,0.4)',
-        boxShadow: '0 0 12px rgba(139, 185, 244,0.2)',
-    },
-    triggerText: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-    },
-    triggerTitle: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#fff',
-    },
-    triggerHint: {
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.4)',
-        marginTop: 1,
-    },
-    triggerArrow: {
-        fontSize: 18,
-        color: 'rgba(255,255,255,0.3)',
-        flexShrink: 0,
-    },
+function Results({ report }) {
+  const { sample, window, metrics, formats, findings } = report;
+  return <>
+    <div className={view.source}>
+      <strong>{date(window.start)} To {date(window.end)}</strong>
+      <span>{sample.measured} Measured {sample.measured === 1 ? 'session' : 'sessions'} · USD</span>
+    </div>
+    {report.state === 'empty' ? <p role="status">No Gaming Sessions Were Logged For These Dates. Choose A Longer Period Or Log A Session In Bankroll.</p> : <>
+      {report.state === 'incomplete' && <p className={view.notice}>{sample.missing} Of {sample.eligible} Entries Have No Usable Result. Totals Below Cover The {sample.measured} Measured Sessions.</p>}
+      {report.state === 'small' && <p className={view.notice}>This Window Has Fewer Than {sample.minimumComparison} Sessions. The Figures Describe Those Sessions Only.</p>}
+      <dl className={view.metrics}>
+        <Metric label="Session Net" value={money(metrics.netPL)} detail="Cash-outs less buy-ins" />
+        <Metric label="Winning Sessions" value={metrics.winRate == null ? 'Not Measured' : metrics.winRate + '%'} detail={metrics.wins + ' won · ' + metrics.losses + ' lost · ' + metrics.even + ' even'} />
+        <Metric label="Net Per Hour" value={money(metrics.hourlyRate)} detail={metrics.timedSessions ? money(metrics.timedNet) + ' over ' + metrics.hours.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' logged hours' : 'No complete session times'} />
+        <Metric label="Daily Drawdown" value={money(metrics.dailyDrawdown)} detail="Largest decline from a daily closing peak" />
+      </dl>
+      {formats.length > 0 && <section className={view.section}>
+        <h3>Results By Format</h3>
+        <ul className={view.formats}>{formats.map(item => <li key={item.name}>
+          <span>{item.name}<small>{item.sessions} {item.sessions === 1 ? 'session' : 'sessions'}</small></span><strong>{money(item.net)}</strong>
+        </li>)}</ul>
+      </section>}
+      {findings.length > 0 && <section className={view.section}><h3>What To Review</h3>
+        <ul className={view.findings}>{findings.map(item => <li key={item.title}>
+          <strong>{item.title}</strong><p>{item.evidence}</p><p>{item.action}</p>
+        </li>)}</ul>
+      </section>}
+    </>}
+    <details className={view.method}><summary>How These Figures Are Calculated</summary>
+      <p>The Analysis Uses Your Cash Game, Tournament, Casino Table, Slot And Sports Entries Dated Within The Selected UTC Calendar Days. It Excludes Deposits, Withdrawals, Expenses And Superseded Entries.</p>
+      <p>Winning Percentage Counts Profitable Sessions Divided By Sessions With A Recorded Result. Hourly Results Use Earnings And Time From The Same Timed Sessions. Drawdown Starts At Zero And Follows Each Day’s Closing Net.</p>
+      <p>Period Comparisons Require At Least {sample.minimumComparison} Measured Sessions In Both This Window And The Preceding {window.days} Days, With Complete Results In Both.</p>
+    </details>
+  </>;
+}
 
-    /* ── Full-Screen Modal ── */
-    overlay: {
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.85)',
-        backdropFilter: 'blur(10px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: 20,
-    },
-    modal: {
-        width: '100%',
-        maxWidth: 680,
-        maxHeight: '90vh',
+function OwnerInsights({ userId }) {
+  const { allowed, loading: checkingAccess, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('bankroll-manager');
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState(90);
+  const [revision, setRevision] = useState(0);
+  const [result, setResult] = useState(null);
+  const { dialogRef, initialFocusRef } = useAccessibleDialog({ open: open && allowed, onClose: () => setOpen(false) });
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!open || !allowed || !dialog) return;
+    dialog.showModal();
+    return () => { if (dialog.open) dialog.close(); };
+  }, [open, allowed, dialogRef]);
+  useEffect(() => {
+    if (!allowed || !open) return;
+    const controller = new AbortController();
+    const active = () => !controller.signal.aborted;
+    async function load() {
+      try {
+        const token = await getFreshAccessToken();
+        if (!active()) return;
+        if (!token) throw new Error('Sign in to review your ledger.');
+        const response = await fetch('/api/jarvis/bankroll-analysis', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          cache: 'no-store', signal: controller.signal, body: JSON.stringify({ days }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success || !data.insights) throw new Error(data.error || 'Your ledger analysis is unavailable.');
+        if (active()) setResult({ days, revision, report: data.insights });
+      } catch (error) {
+        if (active()) setResult({ days, revision, error: error.message || 'Your ledger analysis is unavailable.' });
+      }
+    }
+    load();
+    return () => controller.abort();
+  }, [userId, days, revision, open, allowed]);
+  const current = result?.days === days && result.revision === revision ? result : null;
+  const refresh = () => setRevision(n => n + 1);
+  return <>
+    <button type="button" className={'sd-button ' + view.launcher} disabled={checkingAccess} aria-haspopup="dialog"
+      onClick={() => { if (!allowed) { showUpgradeModal(); return; } refresh(); setOpen(true); }}>
+      <img src="/images/smarterdesign/jarvis-insights.webp" alt="" width="192" height="96" />
+      <span className={view.launchCopy}><strong>Jarvis Insights</strong><span>Review Session Results, Hourly Earnings And Drawdowns.</span></span>
+      {allowed ? <ChevronRight aria-hidden="true" size={21} /> : <LockKeyhole aria-hidden="true" size={17} />}
+    </button>
+    <VIPGateModal visible={upgradeModalVisible} onClose={hideUpgradeModal} featureName="Jarvis Insights" featureConfig={featureConfig} />
+    {open && allowed && createPortal(<dialog className={'smarterdesign sd-panel ' + view.sheet}
+      aria-labelledby="bankroll-insights-title" ref={dialogRef}
+      onCancel={event => { event.preventDefault(); setOpen(false); }}
+      onClick={event => {
+        if (event.target !== event.currentTarget) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setOpen(false);
+      }}>
+        <header className={view.titlebar}><h2 id="bankroll-insights-title">Jarvis Insights</h2>
+          <button className="sd-button" ref={initialFocusRef} type="button" onClick={() => setOpen(false)} aria-label="Close Jarvis Insights">Close</button>
+        </header>
+        <div className={view.content}>
+          <div className={'sd-tabs ' + view.windows} role="group" aria-label="Analysis Window">
+            {[7, 30, 90].map(period => <button key={period} type="button" aria-pressed={days === period} onClick={() => setDays(period)}>{period} Days</button>)}
+          </div>
+          {current?.error ? <div role="alert" className={view.notice}><p>{current.error}</p><button type="button" className="sd-button" onClick={refresh}>Retry</button></div>
+            : current?.report ? <Results report={current.report} /> : <p role="status">Reading Your Session Ledger…</p>}
+          {current?.report && <button type="button" className="sd-button" onClick={refresh}>Refresh Analysis</button>}
+        </div>
+    </dialog>, document.body)}
+  </>;
+}
 
-        borderRadius: 16,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-    },
-    modalHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '16px 24px',
-        borderBottom: '1px solid rgba(139, 185, 244,0.2)',
-        background: 'rgba(139, 185, 244,0.05)',
-    },
-    modalTitleRow: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-    },
-    modalAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: '50%',
-        border: '2px solid rgba(139, 185, 244,0.5)',
-    },
-    modalTitle: {
-        margin: 0,
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#fff',
-    },
-    modalSubtitle: {
-        margin: 0,
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.4)',
-    },
-    modalHeaderActions: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-    },
-    refreshBtn: {
-        padding: '8px 16px',
-        background: GRADIENTS.metalButton,
-        border: `1px solid ${METAL.highlight}`,
-        borderRadius: 8,
-        color: '#edf6ff',
-        cursor: 'pointer',
-        fontSize: 14,
-        fontWeight: 600,
-    },
-    closeBtn: {
-        width: 36,
-        height: 36,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.1)',
-        borderRadius: 8,
-        color: '#9fb4c8',
-        cursor: 'pointer',
-        fontSize: 16,
-    },
-    modalBody: {
-        flex: 1,
-        overflowY: 'auto',
-        padding: 24,
-    },
-
-    /* ── Loading ── */
-    loadingState: {
-        padding: 60,
-        textAlign: 'center',
-    },
-    loadingText: {
-        fontSize: 18,
-        color: '#8bb9f4',
-        fontWeight: 600,
-        marginBottom: 8,
-    },
-    loadingHint: {
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.4)',
-        margin: 0,
-    },
-
-    /* ── Error ── */
-    errorState: {
-        padding: 40,
-        textAlign: 'center',
-    },
-    errorText: {
-        color: '#ef4444',
-        fontSize: 14,
-        marginBottom: 16,
-    },
-    retryBtn: {
-        padding: '10px 24px',
-        background: GRADIENTS.cyanAction,
-        border: `1px solid ${METAL.highlight}`,
-        borderRadius: 8,
-        color: '#edf6ff',
-        cursor: 'pointer',
-        fontSize: 14,
-        fontWeight: 600,
-    },
-
-    /* ── Insights Content ── */
-    riskBadge: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '6px 16px',
-        borderRadius: 20,
-        fontSize: 14,
-        fontWeight: 600,
-        marginBottom: 16,
-        border: '2px solid',
-    },
-    summaryCard: {
-        padding: 16,
-        background: GRADIENTS.darkPanel,
-        border: `1px solid ${METAL.highlight}`,
-        borderRadius: 12,
-        marginBottom: 20,
-    },
-    sectionLabel: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: 'rgba(255,255,255,0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        marginBottom: 10,
-    },
-    summaryText: {
-        fontSize: 15,
-        color: '#fff',
-        lineHeight: 1.6,
-        margin: 0,
-    },
-    twoCol: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 16,
-    },
-    sectionCard: {
-        padding: 16,
-        background: GRADIENTS.darkPanel,
-        border: `1px solid ${METAL.highlight}`,
-        borderRadius: 12,
-    },
-    list: {
-        margin: 0,
-        padding: 0,
-        listStyle: 'none',
-    },
-    listItem: {
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 8,
-        fontSize: 14,
-        color: '#edf6ff',
-        padding: '6px 0',
-        lineHeight: 1.4,
-    },
-    bullet: {
-        color: '#8bb9f4',
-        fontWeight: 700,
-        flexShrink: 0,
-    },
-    recItem: {
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 8,
-        fontSize: 14,
-        color: '#fff',
-        padding: '8px 12px',
-        background: 'rgba(139, 185, 244,0.08)',
-        borderRadius: 8,
-        marginBottom: 6,
-        lineHeight: 1.4,
-    },
-    recArrow: {
-        color: '#8bb9f4',
-        fontWeight: 700,
-        flexShrink: 0,
-    },
-    timestamp: {
-        fontSize: 14,
-        color: '#555',
-        textAlign: 'right',
-        marginTop: 16,
-    },
-
-    /* ── Empty State ── */
-    emptyState: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: 48,
-        textAlign: 'center',
-    },
-    emptyIcon: {
-        fontSize: 48,
-        marginBottom: 16,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: 700,
-        color: '#fff',
-        margin: '0 0 8px',
-    },
-    emptyHint: {
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.5)',
-        maxWidth: 400,
-        lineHeight: 1.5,
-        margin: '0 0 24px',
-    },
-    analyzeBtn: {
-        padding: '14px 32px',
-        background: GRADIENTS.cyanAction,
-        border: `1px solid ${METAL.highlight}`,
-        borderRadius: 10,
-        color: '#edf6ff',
-        fontWeight: 600,
-        cursor: 'pointer',
-        fontSize: 15,
-        boxShadow: '0 4px 20px rgba(139, 185, 244,0.3)',
-    },
-};
+// Remount the entire private view when the verified account changes.
+export default function JarvisLeakInsights({ userId }) {
+  return userId ? <OwnerInsights key={userId} userId={userId} /> : null;
+}

@@ -120328,6 +120328,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/api/jarvis/bankroll-analysis.js",
           "src/lib/__tests__/supabaseKeys.test.mjs",
           "src/lib/authUtils.js",
           "src/lib/authUtils.ts",
@@ -122489,6 +122490,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/hub/bankroll-manager.js",
           "src/components/ui/HamburgerMenu.jsx"
         ]
       },
@@ -131033,6 +131035,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/api/jarvis/bankroll-analysis.js",
           "src/lib/__tests__/supabaseKeys.test.mjs",
           "src/lib/authUtils.js",
           "src/lib/authUtils.ts",
@@ -133194,6 +133197,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/hub/bankroll-manager.js",
           "src/components/ui/HamburgerMenu.jsx"
         ]
       },

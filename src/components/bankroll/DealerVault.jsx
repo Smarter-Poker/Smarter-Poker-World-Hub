@@ -6,9 +6,11 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+import BankrollHeaderAdd from './BankrollHeaderAdd';
+import vault from './toke/DealerVault.module.css';
 import view from './toke/TokeWorkspace.module.css';
 import { memo, useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, FileText, Loader2 } from 'lucide-react';
+import { Camera, FileText, Loader2, Upload, Trash2, FolderLock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
 import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
@@ -88,6 +90,7 @@ function DealerVault({ userId, completedGigs = [] }) {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [expanded, setExpanded] = useState(true);
     const fileInputRef = useRef(null);
+    const uploading = useRef(false);
 
     // Upload form state
     const [uploadForm, setUploadForm] = useState({
@@ -336,11 +339,13 @@ function DealerVault({ userId, completedGigs = [] }) {
     };
 
     const handleUpload = async () => {
-        if (!pendingFile || !userId) return;
+        if (!pendingFile || uploading.current) return;
+        if (!userId) { toast.error('Sign In To Upload A Document'); return; }
         if (activeTab === 'gaming_license' && !uploadForm.state) {
             toast.error('Please select a state');
             return;
         }
+        uploading.current = true;
         setIsUploading(true);
         try {
             // The upload goes through the one module that knows the bucket.
@@ -381,6 +386,7 @@ function DealerVault({ userId, completedGigs = [] }) {
         } catch (err) {
             toast.error(err.message || 'Upload failed');
         } finally {
+            uploading.current = false;
             setIsUploading(false);
         }
     };
@@ -388,12 +394,12 @@ function DealerVault({ userId, completedGigs = [] }) {
     const handleDelete = async (doc) => {
         if (!confirm(`Delete "${doc.label || doc.file_name}"?`)) return;
         try {
-            // Old objects live in `images`, new ones in the bankroll bucket;
-            // the remover reads the bucket from the URL.
-            await removeBankrollObject(supabase, doc.file_url);
-            const { error: err_dealer_documents_akm0s } = await supabase.from('dealer_documents').delete().eq('id', doc.id);
-            if (err_dealer_documents_akm0s) console.warn('[Supabase] Silent mutation failed in dealer_documents:', err_dealer_documents_akm0s.message);
-            toast.success('Document deleted');
+            const { data, error } = await supabase.from('dealer_documents')
+                .delete().eq('id', doc.id).eq('user_id', userId).select('id').maybeSingle();
+            if (error || !data) throw new Error('The document could not be deleted');
+            const removed = await removeBankrollObject(supabase, doc.file_url);
+            if (removed) toast.success('Document Deleted');
+            else toast.error('Record Deleted. The Stored File Could Not Be Removed.');
             await loadDocs();
             window.dispatchEvent(new CustomEvent('bankroll-updated'));
         } catch (err) {
@@ -403,10 +409,13 @@ function DealerVault({ userId, completedGigs = [] }) {
 
     // ── Render ───────────────────────────────────────────────────
     return (
-        <section className={"sd-panel " + view.panel}>
+        <section className={'sd-panel ' + view.panel + ' ' + vault.library}>
+            {userId && !showUploadForm && !isUploading && <BankrollHeaderAdd label="Upload Document" onClick={() => fileInputRef.current?.click()} />}
+            <input ref={fileInputRef} type="file" accept="image/*,application/pdf" hidden onChange={e => { handleFileSelect(e.target.files?.[0]); e.target.value = ''; }} />
+
             {/* Header */}
             <button type="button" className={view.disclosure} aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>
-                <div style={s.headerLeft}>
+                <div style={s.headerLeft}><FolderLock size={24} aria-hidden="true" />
 
                     <div>
                         <div className="sd-section-title">Documents</div>
@@ -444,11 +453,11 @@ function DealerVault({ userId, completedGigs = [] }) {
 
                     {/* Year Filter (tax + paystub only) */}
                     {['tax', 'paystub'].includes(activeTab) && (
-                        <div style={s.yearRow}>
+                        <div className={vault.years}>
                             {YEARS.map(y => (
                                 <button
                                     key={y} aria-pressed={selectedYear === y}
-                                    style={{ ...s.yearBtn, ...(selectedYear === y ? s.yearBtnActive : {}) }}
+                                    className="sd-button"
                                     onClick={() => setSelectedYear(y)}
                                 >{y}</button>
                             ))}
@@ -464,54 +473,19 @@ function DealerVault({ userId, completedGigs = [] }) {
                     )}
 
                     {/* Camera Button & Drop Zone */}
-                    {!showUploadForm && !showLiveCamera && (
-                        <div>
-                            {/* Camera Scan Button */}
-                            <div
-                                style={{
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                    padding: '24px 0', cursor: 'pointer', background: METAL.mid,
-                                    borderRadius: 12, border: `1px solid ${METAL.highlight}`, marginBottom: 16
-                                }}
-                                onClick={() => setShowLiveCamera(true)}
-                            >
-                                <div style={{
-                                    width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: 'rgba(74,144,217,0.1)', border: `2px dashed ${METAL.primary}`,
-                                    borderRadius: '50%', color: METAL.primary, marginBottom: 12
-                                }}>
-                                    <Camera size={32} />
-                                </div>
-                                <div style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.05em' }}>TAP TO SCAN DOCUMENT</div>
-                                <div style={{ color: METAL.textSecondary, fontSize: 13, marginTop: 4 }}>Auto-Detects And Extracts Data</div>
-                            </div>
-
-                            <div style={{ textAlign: 'center', color: METAL.textSecondary, margin: '8px 0', fontSize: 14 }}>Or Choose A File From Device</div>
-
-                            <div
-                                style={{ ...s.dropZone, ...(isDragging ? s.dropZoneActive : {}) }}
-                                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                                onDragLeave={() => setIsDragging(false)}
-                                onDrop={handleDrop}
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <div style={s.dropIcon}></div>
-                                <div style={s.dropText}>Drop A Document Here Or Tap To Upload</div>
-                                <div style={s.dropSub}>JPG · PNG · PDF · HEIC</div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*,application/pdf"
-                                    style={{ display: 'none' }}
-                                    onChange={e => handleFileSelect(e.target.files?.[0])}
-                                />
-                            </div>
+                    {userId && !showUploadForm && !showLiveCamera && (
+                        <div className={vault.intake}>
+                            <button type="button" className="sd-button" onClick={() => setShowLiveCamera(true)}><Camera size={23} aria-hidden="true" />Scan Document</button>
+                            <button type="button" className="sd-button" data-dragging={isDragging} onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                onDragLeave={() => setIsDragging(false)} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}>
+                                <Upload size={23} aria-hidden="true" />Upload Document
+                            </button>
                         </div>
                     )}
 
                     {/* Upload Form */}
                     {showUploadForm && (
-                        <div style={s.uploadForm}>
+                        <div className={vault.form}>
                             {isAnalyzing && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(74,144,217,0.1)', border: `1px solid ${METAL.primary}`, borderRadius: 8, marginBottom: 16, color: METAL.primary }}>
                                     <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
@@ -527,6 +501,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                             <input
                                 style={s.input}
                                 placeholder="Label (e.g. Nevada Gaming License 2025)"
+                                aria-label="Document Label"
                                 value={uploadForm.label}
                                 onChange={e => setUploadForm(f => ({ ...f, label: e.target.value }))}
                             />
@@ -536,6 +511,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                     <div style={s.row2}>
                                         <select
                                             style={s.select}
+                                            aria-label="Issuing State"
                                             value={uploadForm.state}
                                             onChange={e => setUploadForm(f => ({ ...f, state: e.target.value }))}
                                         >
@@ -546,6 +522,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                         <input
                                             style={s.input}
                                             placeholder="License #"
+                                            aria-label="License Number"
                                             value={uploadForm.license_number}
                                             onChange={e => setUploadForm(f => ({ ...f, license_number: e.target.value }))}
                                         />
@@ -556,6 +533,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                             <input
                                                 type="date"
                                                 style={s.input}
+                                                aria-label="Issue Date"
                                                 value={uploadForm.issued_date}
                                                 onChange={e => setUploadForm(f => ({ ...f, issued_date: e.target.value }))}
                                             />
@@ -565,6 +543,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                             <input
                                                 type="date"
                                                 style={s.input}
+                                                aria-label="Expiry Date"
                                                 value={uploadForm.expiry_date}
                                                 onChange={e => setUploadForm(f => ({ ...f, expiry_date: e.target.value }))}
                                             />
@@ -578,6 +557,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                     <div style={s.row2}>
                                         <select
                                             style={s.select}
+                                            aria-label="Document Type"
                                             value={uploadForm.sub_type}
                                             onChange={e => setUploadForm(f => ({ ...f, sub_type: e.target.value }))}
                                         >
@@ -588,6 +568,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                         </select>
                                         <select
                                             style={s.select}
+                                            aria-label="Tax Year"
                                             value={uploadForm.tax_year}
                                             onChange={e => setUploadForm(f => ({ ...f, tax_year: parseInt(e.target.value, 10) }))}
                                         >
@@ -598,6 +579,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                         type="number"
                                         style={s.input}
                                         placeholder="Amount (optional)"
+                                        aria-label="Amount"
                                         value={uploadForm.amount}
                                         onChange={e => setUploadForm(f => ({ ...f, amount: e.target.value }))}
                                     />
@@ -607,6 +589,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                             {activeTab === 'employment' && (
                                 <select
                                     style={s.select}
+                                    aria-label="Document Type"
                                     value={uploadForm.sub_type}
                                     onChange={e => setUploadForm(f => ({ ...f, sub_type: e.target.value }))}
                                 >
@@ -623,11 +606,13 @@ function DealerVault({ userId, completedGigs = [] }) {
                                         type="number"
                                         style={s.input}
                                         placeholder="Gross amount"
+                                        aria-label="Amount"
                                         value={uploadForm.amount}
                                         onChange={e => setUploadForm(f => ({ ...f, amount: e.target.value }))}
                                     />
                                     <select
                                         style={s.select}
+                                        aria-label="Tax Year"
                                         value={uploadForm.tax_year}
                                         onChange={e => setUploadForm(f => ({ ...f, tax_year: parseInt(e.target.value, 10) }))}
                                     >
@@ -639,6 +624,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                             <input
                                 style={s.input}
                                 placeholder="Notes (optional)"
+                                aria-label="Notes"
                                 value={uploadForm.notes}
                                 onChange={e => setUploadForm(f => ({ ...f, notes: e.target.value }))}
                             />
@@ -652,7 +638,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                     {isUploading ? 'Uploading...' : 'Upload'}
                                 </button>
                                 <button
-                                    style={{ ...s.btn, background: METAL.elevated }}
+                                    className="sd-button"
                                     onClick={() => { setPendingFile(null); setShowUploadForm(false); }}
                                     disabled={isUploading}
                                 >
@@ -672,12 +658,12 @@ function DealerVault({ userId, completedGigs = [] }) {
                     ) : sortedDocs.length === 0 ? (
                         <div role="status" className={view.status}>No {TABS.find(t => t.id === activeTab)?.label} Uploaded Yet</div>
                     ) : (
-                        <div style={s.docList}>
+                        <div className={vault.documents}>
                             {sortedDocs.map(doc => {
                                 const badge = activeTab === 'gaming_license' ? expiryBadge(doc.expiry_date) : null;
                                 const isImage = doc.file_url && !doc.file_url.toLowerCase().endsWith('.pdf');
                                 return (
-                                    <div key={doc.id} style={s.docCard}>
+                                    <div key={doc.id} className={vault.document}>
                                         {/* Thumbnail or PDF icon */}
                                         <a href={doc.file_url} target="_blank" rel="noreferrer"
                                             aria-label={'Open ' + (doc.label || doc.file_name)}
@@ -733,13 +719,13 @@ function DealerVault({ userId, completedGigs = [] }) {
                                         {/* Actions */}
                                         <div style={s.docActions}>
                                             <button
-                                                style={s.viewBtn}
-                                                onClick={() => window.open(doc.file_url, '_blank')}
+                                                className="sd-button"
+                                                onClick={() => window.open(doc.file_url, '_blank', 'noopener,noreferrer')}
                                             >View</button>
                                             <button
-                                                style={s.deleteBtn}
+                                                className={vault.deleteButton} aria-label={'Delete ' + (doc.label || doc.file_name)}
                                                 onClick={() => handleDelete(doc)}
-                                            ></button>
+                                            ><Trash2 size={17} aria-hidden="true" /></button>
                                         </div>
                                     </div>
                                 );

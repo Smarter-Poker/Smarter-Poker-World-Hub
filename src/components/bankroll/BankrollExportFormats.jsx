@@ -3,12 +3,13 @@ import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import { fetchBankrollExport } from '../../lib/bankroll/exportDownload.mjs';
+import { FileSpreadsheet, Braces, FileText } from 'lucide-react';
 import layout from '../../../styles/BankrollManager.module.css';
 
 const FORMATS = [
-    { id: 'csv', label: 'CSV', description: 'Session Rows For Excel Or Google Sheets' },
-    { id: 'json', label: 'JSON', description: 'Structured Ledger Entries And Summary' },
-    { id: 'pdf', label: 'PDF', description: 'Printable Bankroll Report' },
+    { id: 'csv', label: 'CSV', Icon: FileSpreadsheet },
+    { id: 'json', label: 'JSON', Icon: Braces },
+    { id: 'pdf', label: 'PDF', Icon: FileText },
 ];
 
 export default function BankrollExportFormats() {
@@ -47,10 +48,8 @@ export default function BankrollExportFormats() {
         <ul className={layout.exportList} aria-label="Export Formats">
             {FORMATS.map(format => (
                 <li className={layout.exportRow} key={format.id}>
-                    <div>
-                        <h2>{format.label}</h2>
-                        <p>{format.description}</p>
-                    </div>
+                    <format.Icon size={23} aria-hidden="true" />
+                    <h2>{format.label}</h2>
                     <button type="button" className="sd-button sd-primary" disabled={!!exporting}
                         aria-label={`Export ${format.label}`} onClick={() => download(format.id)}>
                         {exporting === format.id ? 'Exporting…' : 'Export'}

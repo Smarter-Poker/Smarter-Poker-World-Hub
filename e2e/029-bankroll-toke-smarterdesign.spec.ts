@@ -1,3 +1,4 @@
+import { captureBankrollPanel } from './fixtures/bankrollPanelCapture';
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
 
@@ -125,12 +126,20 @@ test('Toke destinations retain readable navigation and an accessible tax sheet',
   const home = '/hub/toke-tracker';
   await page.goto(home, { waitUntil: 'domcontentloaded' });
   let workspace = await review(page, 'Toke Tracker', 'toke-home', info);
+  const returnHome = workspace.getByRole('link', { name: 'Back To Dashboard' });
+  await expect(returnHome).toHaveAttribute('href', '/hub/bankroll-manager');
   const destinationTitle = workspace.getByRole('navigation', { name: 'Toke Tracker Tools' }).getByText('Shift Tracker', { exact: true });
   expect(await destinationTitle.evaluate(el => getComputedStyle(el).fontFamily)).toMatch(/Inter|sans-serif/i);
   for (const [slug, title] of [['shift', 'Shift Tracker'], ['analytics', 'Analytics'], ['venues', 'Venue Intel'], ['vault', 'Dealer Vault']]) {
     await workspace.getByRole('navigation', { name: 'Toke Tracker Tools' }).getByRole('link', { name: new RegExp(title) }).click();
     await expect(page).toHaveURL(new RegExp(home + '/' + slug + '$'));
     workspace = await review(page, title, 'toke-' + slug, info);
+    await workspace.getByRole('button', {name: 'Help For ' + title}).click();
+    const help = page.getByRole('dialog', {name: title + ' Help'});
+    await expect(help).toBeVisible();
+    await help.getByRole('button', {name:'Close Help'}).click();
+    await expect(help).toBeHidden();
+    await expect(workspace.getByRole('link', {name:'Back To Dashboard'})).toHaveAttribute('href','/hub/bankroll-manager');
     await expect(workspace.getByRole('link', { name: title, exact: true })).toHaveAttribute('aria-current', 'page');
   }
   // The guest workspace offers the annual tax sheet via its Taxes destination.
@@ -159,6 +168,143 @@ async function installBankrollSession(page: Page) {
   await page.route('**/auth/v1/user*', route => route.fulfill({ json: user }));
   return user;
 }
+
+test('Bankroll dashboard owns its launcher, popup actions and contextual Add controls', async ({ page }, info) => {
+  await installBankrollSession(page);
+  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
+  await page.addInitScript(() => {
+    localStorage.setItem('sp-filters-bankroll-manager', JSON.stringify({ __v: { activeSection: 'players' }, __exp: Date.now() + 60000 }));
+  });
+  await page.goto('/hub/bankroll-manager');
+  const nav = page.getByRole('navigation', { name: 'Bankroll Manager Sections' });
+  await expect(nav.getByRole('button')).toHaveCount(14);
+  await expect(page.locator('[data-tutorial="insights"]')).toBeVisible();
+  expect(await nav.evaluate(el => Boolean(el.compareDocumentPosition(document.querySelector('[data-tutorial="insights"]')!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  await nav.getByRole('button', { name: 'Adjust Bankroll' }).click();
+  const adjust = page.getByRole('heading', { name: 'Adjust Bankroll' });
+  await expect(adjust).toBeVisible();
+  const editor = page.getByRole('dialog', {name:'Adjust Bankroll'});
+  const centered = await editor.evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    return node.matches(':modal') && Math.abs(rect.top + rect.height / 2 - innerHeight / 2) < 3;
+  });
+  expect(centered).toBe(true);
+  await captureBankrollPanel(page, editor, info, 'adjust-bankroll');
+  await editor.getByRole('button', {name:'Withdraw',exact:true}).click();
+  await editor.getByRole('textbox', {name:/Amount/}).fill('82.50');
+  await expect(editor.getByRole('button', {name:'Withdraw From Bankroll'})).toBeEnabled();
+  await page.getByRole('dialog', { name: 'Adjust Bankroll' }).getByRole('button', { name: 'Close Adjust Bankroll' }).click();
+  await expect(adjust).toBeHidden();
+  await expect(nav.getByRole('button')).toHaveCount(14);
+  await nav.getByRole('button', { name: 'Player Notes' }).click();
+  await expect(page).toHaveURL(/view=players/);
+  await expect(nav).toHaveCount(0);
+  const header = page.locator('.sd-masthead');
+  await header.getByRole('button', { name: /Add .*Player Note/ }).click();
+  await expect(page.getByRole('heading', { name: 'Add Player', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await header.getByRole('button', { name: 'Help For Player Notes' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await header.getByRole('link', { name: 'Back To Dashboard' }).click();
+  await expect(nav.getByRole('button')).toHaveCount(14);
+  await page.goto('/hub/bankroll-manager?view=obsolete-bookmark');
+  await expect(nav.getByRole('button')).toHaveCount(14);
+});
+
+test('A bookmarked projection opens its popup and returns to the dashboard', async ({ page }) => {
+  await installBankrollSession(page);
+  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
+  await page.goto('/hub/bankroll-manager?view=projection', { waitUntil: 'domcontentloaded' });
+  const modal = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: /Bankroll Projection/ }) });
+  await expect(modal).toBeVisible({ timeout: 20000 });
+  await modal.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(modal).toBeHidden();
+  await expect(page).toHaveURL(/\/hub\/bankroll-manager$/);
+  await expect(page.getByRole('navigation', { name: 'Bankroll Manager Sections' }).getByRole('button')).toHaveCount(14);
+});
+
+test('Bankroll entry screens open their own real form from the masthead', async ({ page }) => {
+  await installBankrollSession(page);
+  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
+  const cases = [
+    ['view=trips', 'Trip Tracker', 'Start A New Trip', 'New Trip'],
+    ['view=series', 'Series Tracker', 'Start A New Series', 'New Series'],
+    ['view=staking', 'Staking Tracker', 'New Staking Deal', 'New Staking Arrangement'],
+    ['type=cash', 'Cash Games', 'Log Category Entry', 'Log Cash Games'],
+    ['view=receipts', 'Saved Receipts', 'Scan Receipt', 'Scan Receipt'],
+  ];
+  for (const [query, title, action, form] of cases) {
+    await page.goto('/hub/bankroll-manager?' + query, { waitUntil: 'domcontentloaded' });
+    const header = page.locator('.sd-masthead').filter({ has: page.getByRole('heading', { name: title, level: 1, exact: true }) });
+    await expect(header.getByRole('link', { name: 'Back To Dashboard' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Bankroll Manager Sections' })).toHaveCount(0);
+    await header.getByRole('button', { name: 'Add + · ' + action }).click();
+    await expect(page.getByRole('heading', { name: form, exact: true })).toBeVisible();
+  }
+  await page.goto('/hub/bankroll-manager?view=advanced-tax', { waitUntil: 'domcontentloaded' });
+  const header = page.locator('.sd-masthead');
+  await expect(header.getByRole('heading', { name: 'Tax Reports', exact: true })).toBeVisible();
+  await header.getByRole('button', { name: 'Add + · Upload W-2G' }).click();
+  await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
+});
+
+test('Reports count filtered ledger sessions across pages and preserve signed currency', async ({ page }) => {
+  const user = await installBankrollSession(page);
+  const rows = Array.from({ length: 501 }, (_, i) => ({
+    id: 'fixture-' + i, user_id: user.id, category: 'poker_cash', is_revision: false, entry_date: '2026-10-10',
+    gross_in: 20, gross_out: 20, net_result: i === 500 ? -125.25 : 0,
+  }));
+  const offsets: number[] = [];
+  await page.route('**/rest/v1/bankroll_ledger*', route => {
+    const request = route.request();
+    const q = new URL(request.url()).searchParams;
+    if (request.method() === 'GET' && q.get('limit') === '500' && q.get('select')?.includes('bankroll_locations')) {
+      const offset = Number(q.get('offset') || 0);
+      offsets.push(offset);
+      return route.fulfill({ json: rows.slice(offset, offset + 500) });
+    }
+    return route.fallback();
+  });
+  await page.goto('/hub/bankroll-manager?view=reports');
+  await expect(page.getByRole('heading', { level: 1, name: 'Reports' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Bankroll Manager Sections' })).toHaveCount(0);
+  const metrics = page.locator('dl').filter({ hasText: 'Total Sessions' });
+  await expect(metrics.locator('dd')).toHaveText(['501', '0%', '-$125.25', '-$0.25']);
+  expect(offsets).toContain(500);
+  await page.goto('/hub/bankroll-manager/export');
+  await page.getByRole('link', { name: 'Back To Dashboard' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Bankroll Manager' })).toBeVisible();
+});
+
+test('Section help can start the dashboard tutorial', async ({ page }) => {
+  await page.goto('/hub/bankroll-manager?view=players', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Help For Player Notes' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Page Tutorial' }).click();
+  await expect(page).toHaveURL(/\/hub\/bankroll-manager$/);
+  await expect(page.locator('[data-tutorial-open="true"]')).toBeVisible();
+});
+
+test('An unavailable Reports ledger offers retry without showing an empty balance', async ({ page }) => {
+  await installBankrollSession(page);
+  let unavailable = true;
+  await page.route('**/rest/v1/bankroll_ledger*', route => {
+    const params = new URL(route.request().url()).searchParams;
+    if (params.get('limit') === '500' && params.get('select')?.includes('bankroll_locations') && unavailable) {
+      return route.fulfill({ status: 403, json: { code: '42501', message: 'Fixture Read Unavailable' } });
+    }
+    return route.fallback();
+  });
+  await page.goto('/hub/bankroll-manager?view=reports', { waitUntil: 'domcontentloaded' });
+  const warning = page.getByRole('alert').filter({ hasText: 'Could Not Refresh Reports' });
+  await expect(warning).toBeVisible({ timeout: 15000 });
+  const metrics = page.locator('dl').filter({ hasText: 'Total Sessions' });
+  await expect(metrics).toHaveCount(0);
+  unavailable = false;
+  await warning.getByRole('button', { name: 'Retry' }).click();
+  await expect(metrics.locator('dd')).toHaveText(['0', '0%', '$0.00', '$0.00']);
+  await expect(warning).toHaveCount(0);
+});
 
 test('Dealer Vault announces its stored document count for empty, singular and plural inventories', async ({ page }) => {
   const user = await installBankrollSession(page);
@@ -234,3 +380,155 @@ for (const format of ['CSV', 'JSON', 'PDF']) {
     expect(downloads).toEqual([]);
   });
 }
+
+test('Ledger chart modes, venue ordering, history and staking privacy use the displayed records', async ({page}, info) => {
+  const user = await installBankrollSession(page);
+  await page.addInitScript(()=>localStorage.setItem('bankroll_tutorial_seen_v1:prompt','1'));
+  const dates = [4, 3, 1].map(offset => new Date(Date.now() - offset * 86400000).toISOString().slice(0,10));
+  const rows = dates.map((entry_date, i) => ({
+    id:'sample-'+i, user_id:user.id, entry_date, category:i===2?'poker_mtt':'poker_cash',
+    gross_in:20, gross_out:[8.5,27.25,39.5][i], net_result:[-11.5,7.25,19.5][i],
+    location_id:i===2?'summit':'river', bankroll_locations:{name:i===2?'Summit Room':'River Room'},
+    start_time:entry_date+'T12:00:00Z',end_time:entry_date+'T14:00:00Z',is_revision:false,
+  }));
+  await page.route('**/rest/v1/bankroll_ledger*', route => {
+    const q = new URL(route.request().url()).searchParams;
+    return q.get('select')?.includes('bankroll_locations') ? route.fulfill({json:rows}) : route.fallback();
+  });
+  await page.route('**/rest/v1/profiles*', route => {
+    const profile = {id:user.id, username:'FixtureDealer', is_vip:true};
+    return route.fulfill({json:route.request().headers().accept?.includes('vnd.pgrst.object')?profile:[profile]});
+  });
+  await page.route('**/api/vip/check-status?*', route=>route.fulfill({json:{isVip:true}}));
+  await page.addInitScript(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+    writeText:async (value:string)=>{sessionStorage.setItem('captured-copy',value);}
+  }}));
+  await page.goto('/hub/bankroll-manager');
+  const trend = page.getByRole('region',{name:'Bankroll Trend'});
+  await expect(trend).toContainText('+$15.25');
+  await expect(trend.locator('.recharts-area-curve')).toBeVisible();
+  const shots = (locator:Locator,name:string) => captureBankrollPanel(page,locator,info,name);
+  await shots(trend,'ledger-trend');
+  let previous='Line Chart';
+  for(const [next, painted] of [
+    ['Bar Chart','.recharts-bar-rectangle path'],['Stacked Bar','.recharts-bar-rectangle path'],
+    ['Histogram','.recharts-bar-rectangle path'],['Donut Chart','.recharts-pie-sector path'],['Heatmap','button[aria-pressed]']
+  ]){
+    await page.getByRole('button',{name:new RegExp('^'+previous)}).first().click();
+    await page.getByRole('button',{name:next,exact:true}).click();
+    await expect(trend.locator(painted).first()).toBeVisible();
+    await trend.getByText('View Chart Data',{exact:true}).click();
+    await expect(trend.locator('.sp-rtable')).toBeVisible();
+    await trend.getByText('View Chart Data',{exact:true}).click();
+    previous=next;
+  }
+  const venue=page.getByRole('region',{name:'Venue Analytics'});
+  await expect(venue.getByRole('listitem').first()).toContainText('Summit Room');
+  await venue.getByRole('button',{name:'Sessions'}).click();
+  await expect(venue.getByRole('listitem').first()).toContainText('River Room');
+  await expect(page.getByRole('region',{name:'Variance Analysis'})).toContainText('3 With Recorded Hours');
+  const history=page.getByRole('region',{name:'Historical Comparison'});
+  await history.getByRole('button',{name:'Year'}).click();
+  await expect(history).toContainText('+$15.25');
+  await shots(page.locator('[data-tutorial="analytics"]'),'analytics-grid');
+  await page.goto('/hub/bankroll-manager?view=staking-profile');
+  const profile=page.getByRole('region',{name:'Staking Profile Card'});
+  await expect(profile.getByRole('img',{name:'Running Net Across Recorded Sessions'})).toBeVisible();
+  await shots(profile,'staking-profile');
+  await profile.getByRole('button',{name:'Net Result',exact:true}).click();
+  await profile.getByRole('button',{name:'Result Trend',exact:true}).click();
+  await profile.getByRole('button',{name:'Copy Stats Card'}).click();
+  await expect(profile.getByRole('status')).toHaveText('Selected Stats Card Copied.');
+  const copy=await page.evaluate(()=>sessionStorage.getItem('captured-copy'));
+  expect(copy).toContain('Sessions: 3'); expect(copy).not.toContain('Net Result'); expect(copy).not.toContain('Result Trend');
+  await page.reload();
+  await expect(profile.getByRole('button',{name:'Net Result',exact:true})).toHaveAttribute('aria-pressed','false');
+  await profile.getByRole('button',{name:'Copy Public Profile Link'}).click();
+  await expect(profile.getByRole('status')).toHaveText('Public Profile Link Copied.');
+  expect(await page.evaluate(()=>sessionStorage.getItem('captured-copy'))).toMatch(/\/u\/FixtureDealer$/);
+  await profile.getByRole('button',{name:'Close Staking Profile'}).click();
+  await expect(page.getByRole('heading',{name:'Bankroll Manager',exact:true})).toBeVisible();
+});
+
+test('Jarvis Insights opens the owner report and recalculates the selected ledger window', async ({ page }, info) => {
+  const { analyzeSessionRecords, analysisWindow } = await import('../src/lib/bankroll/sessionInsights.mjs');
+  await installBankrollSession(page);
+  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
+  const requests: number[] = [];
+  await page.route('**/api/jarvis/bankroll-analysis', route => {
+    const { days } = route.request().postDataJSON();
+    expect(route.request().headers().authorization).toMatch(/^Bearer /);
+    requests.push(days);
+    const rows = [
+      { category: 'poker_cash', entry_date: '2026-05-30', net_result: 42.50, start_time: '2026-05-30T10:00:00Z', end_time: '2026-05-30T12:00:00Z' },
+      { category: 'poker_mtt', entry_date: '2026-05-01', net_result: -12 },
+    ];
+    const insights = analyzeSessionRecords(rows, analysisWindow(days, new Date('2026-05-31T18:00:00Z')));
+    return route.fulfill({ json: { success: true, insights } });
+  });
+  await page.goto('/hub/bankroll-manager');
+  const launch = page.getByRole('button', { name: /Jarvis Insights/ });
+  await launch.click();
+  const dialog = page.getByRole('dialog', {name:'Jarvis Insights'});
+  await expect(dialog.getByRole('button',{name:'90 Days'})).toHaveAttribute('aria-pressed','true');
+  await expect(dialog.locator('.sd-metric').filter({hasText:'Session Net'})).toContainText('$30.50');
+  await expect(dialog.getByRole('heading',{name:'Results By Format'})).toBeVisible();
+  expect(await dialog.evaluate(el => el.matches(':modal'))).toBe(true);
+  const close = dialog.getByRole('button',{name:'Close Jarvis Insights'});
+  expect(await close.evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    return el.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+  })).toBe(true);
+  const image = info.outputPath('jarvis-ledger-results.png');
+  await page.screenshot({path: image});
+  await info.attach('jarvis-ledger-results', {path: image, contentType:'image/png'});
+  await dialog.getByRole('button',{name:'7 Days'}).click();
+  await expect(dialog.getByText('May 25, 2026 To May 31, 2026')).toBeVisible();
+  await expect(dialog.locator('.sd-metric').filter({hasText:'Session Net'})).toContainText('$42.50');
+  await expect(dialog.locator('.sd-metric').filter({hasText:'Net Per Hour'})).toContainText('$21.25');
+  await dialog.getByText('How These Figures Are Calculated').click();
+  await expect(dialog.getByText(/superseded entries/i)).toBeVisible();
+  await dialog.getByRole('button',{name:'Refresh Analysis'}).click();
+  await expect.poll(() => requests).toEqual([90,7,7]);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(launch).toBeFocused();
+});
+
+test('Dealer Vault places document actions in the header, keeps categories and exposes real files', async ({page}, info) => {
+  const user = await installBankrollSession(page);
+  const doc = { id: 'fa632919-1035-418b-aa61-ff27f3580b04', user_id: user.id, label: 'Fixture License', category: 'gaming_license', file_url: 'https://example.invalid/fixture.pdf', created_at: '2026-04-15' };
+  await page.route('**/rest/v1/dealer_documents*', route => route.fulfill({json:[doc]}));
+  await page.goto('/hub/toke-tracker/vault');
+  const workspace = await review(page,'Dealer Vault','vault-library',info);
+  await expect(workspace.getByRole('button',{name:'Delete Fixture License'})).toBeVisible();
+  const select = page.waitForEvent('filechooser');
+  await workspace.getByRole('button',{name:'Add + · Upload Document',exact:true}).click();
+  expect((await select).isMultiple()).toBe(false);
+  await workspace.getByRole('button',{name:'Pay Stubs',exact:true}).click();
+  await expect(workspace.getByRole('button',{name:'Pay Stubs',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(workspace.getByText('No Pay Stubs Uploaded Yet')).toBeVisible();
+  await workspace.getByRole('link',{name:'Back To Dashboard'}).click();
+  await expect(page.getByRole('heading',{level:1,name:'Bankroll Manager'})).toBeVisible();
+});
+
+test('State Tax Report switches periods, recalculates its visible estimate and exports the selected year', async ({page}, info) => {
+  await installBankrollSession(page);
+  await page.route('**/api/vip/check-status?*', route => route.fulfill({json:{isVip:true}}));
+  await page.goto('/hub/bankroll-manager?view=tax');
+  const report = page.getByRole('region',{name:'State Tax Report'});
+  await expect(report).toBeVisible();
+  const year = report.getByLabel('Tax Year');
+  const previous = String(Number(await year.inputValue()) - 1);
+  await year.selectOption(previous);
+  await report.getByLabel('Jurisdiction').selectOption('IL');
+  await report.getByText('Itemized Deductions',{exact:true}).click();
+  await report.getByLabel('Travel & Lodging',{exact:true}).fill('82.50');
+  await expect(report.getByText('-$82.50',{exact:true})).toBeVisible();
+  await report.getByText('Itemized Deductions',{exact:true}).click();
+  await expect(report.getByRole('table',{name:'Quarterly Results ' + previous}).getByRole('row')).toHaveCount(5);
+  await captureBankrollPanel(page, report, info, 'bankroll-tax-report');
+  const download = page.waitForEvent('download');
+  await report.getByRole('button',{name:'Export Tax Report',exact:true}).click();
+  expect((await download).suggestedFilename()).toBe('poker-tax-report-' + previous + '-IL.txt');
+});
