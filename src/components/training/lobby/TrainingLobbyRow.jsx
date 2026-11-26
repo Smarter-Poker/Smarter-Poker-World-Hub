@@ -16,7 +16,7 @@
  */
 
 import { memo } from 'react';
-import { Star, SlidersHorizontal, Lock, Check, Sparkles, AlertTriangle } from 'lucide-react';
+import { Play, Star, SlidersHorizontal, Lock, Check, Sparkles, AlertTriangle } from 'lucide-react';
 import TrainingGameArt from '../TrainingGameArt';
 
 function DifficultyPips({ level }) {
@@ -34,6 +34,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
   index = 0,
   onStart,
   onToggleFavorite,
+  favoritesUnavailable,
   onOpenPreview,
   selectedVariant,
 }) {
@@ -70,10 +71,6 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
   // Apply content-visibility: auto ONLY below the initial viewport fold
   const deferredClass = index >= 6 ? ' sp-arena-row--deferred' : '';
 
-  const plaqueText = selectedVariant && selectedVariant !== 'ALL' && meta.category !== 'PSYCHOLOGY'
-    ? `${selectedVariant.toUpperCase()} · ${meta.plaqueLabel}`
-    : meta.plaqueLabel;
-
   return (
     <article
       className={`sp-arena-row sp-arena-row--led-${ledTone}${isRecommended || isLeakTarget ? ' is-featured' : ''}${deferredClass}`}
@@ -88,7 +85,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
           type="button"
           className="sp-arena-row__head"
           onClick={() => onStart(game)}
-          aria-label={`Play ${game.name}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${meta.estMinutes} minutes, ${progress}% complete`}
+          aria-label={`Play ${game.name}, ${selectedVariant && selectedVariant !== 'ALL' ? selectedVariant.toUpperCase() : meta.variantShort}, ${meta.plaqueLabel}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${progress}% complete`}
         >
           <span className="sp-arena-row__emblem" aria-hidden="true">
             <TrainingGameArt
@@ -108,11 +105,11 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
                 </span>
               )}
             </span>
-            <span className="sp-arena-row__focus">{game.focus}</span>
+            <span className="sp-arena-row__focus" data-game-preset-summary="true">{selectedVariant && selectedVariant !== 'ALL' ? `${selectedVariant.toUpperCase()} · ` : ''}{game.focus}</span>
           </span>
 
-          <span className="sp-arena-row__plaque" data-game-preset-summary="true" aria-label={`Format ${plaqueText}`}>
-            <span>{plaqueText}</span>
+          <span className="sp-arena-row__plaque" aria-hidden="true">
+            <Play size={12} /> Play
           </span>
         </button>
 
@@ -149,9 +146,9 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
             <DifficultyPips level={meta.difficulty} />
           </span>
 
-          <span className="sp-arena-cell sp-arena-cell--length">
-            <span className="sp-arena-cell__label">Length</span>
-            <strong className="sp-arena-cell__value sp-num">{meta.estMinutes} Min</strong>
+          <span className="sp-arena-cell sp-arena-cell--stack">
+            <span className="sp-arena-cell__label">Stack</span>
+            <strong className="sp-arena-cell__value sp-num">{meta.stackBb == null ? 'N/A' : `${meta.stackBb} BB`}</strong>
           </span>
         </button>
 
@@ -161,6 +158,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
           aria-pressed={isFavorite}
           aria-label={isFavorite ? `Remove ${game.name} From Favorites` : `Add ${game.name} To Favorites`}
           data-favorite-game={game.id}
+          disabled={favoritesUnavailable}
           onClick={() => onToggleFavorite(game.id)}
         >
           <Star size={17} aria-hidden="true" fill={isFavorite ? 'currentColor' : 'none'} />

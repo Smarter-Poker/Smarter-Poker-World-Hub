@@ -1,22 +1,25 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { ArrowLeft, Atom, DollarSign, Rocket, Trophy, Brain, Search, X } from 'lucide-react';
+import { ArrowLeft, Atom, DollarSign, Rocket, Trophy, Brain, Search, X, SlidersHorizontal, Star } from 'lucide-react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { getGamesByCategory } from '../../../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import useTrainingFavorites from '../../../../src/hooks/useTrainingFavorites';
+import { useAvatar } from '../../../../src/contexts/AvatarContext';
+import TrainingFavoritesNotice from '../../../../src/components/training/lobby/TrainingFavoritesNotice';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import TrainingGameArt from '../../../../src/components/training/TrainingGameArt';
-import TrainingLobbyRow from '../../../../src/components/training/lobby/TrainingLobbyRow';
+import TrainingLobbyResults from '../../../../src/components/training/lobby/TrainingLobbyResults';
+import TrainingFiltersSheet from '../../../../src/components/training/lobby/TrainingFiltersSheet';
 import TrainingSortBar from '../../../../src/components/training/lobby/TrainingSortBar';
 import TrainingGamePreviewSheet from '../../../../src/components/training/lobby/TrainingGamePreviewSheet';
-import { getAuthUser } from '../../../../src/lib/authUtils';
-import { resolvePresetForGame } from '../../../../src/lib/training/trainingPresets.mjs';
+import { resolvePresetForGame, VARIANT_METADATA } from '../../../../src/lib/training/trainingPresets.mjs';
 import {
   DEFAULT_LOBBY_FILTERS,
   buildLobbyGameMeta,
+  countAdvancedFilters,
   filterAndSortTrainingGames,
 } from '../../../../src/lib/training/trainingLobbyFilter.mjs';
 
@@ -61,16 +64,17 @@ export default function CategoryPage() {
   const { getGameProgress } = useTrainingProgress();
   useTrainingBus('training-category', { categoryId });
 
-  const [authUser, setAuthUser] = useState(null);
-  useEffect(() => {
-    setAuthUser(getAuthUser());
-  }, []);
+  const { user: authUser, initializing } = useAvatar();
 
-  const { favoriteIds, favoriteCount, toggleFavorite } = useTrainingFavorites(authUser);
-  const [query, setQuery] = useState('');
-  const [sortKey, setSortKey] = useState('recommended');
-  const [sortDir, setSortDir] = useState('asc');
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const { favoriteIds, favoriteCount, favoritesLoading, favoritesError, retryFavorites, toggleFavorite } =
+    useTrainingFavorites(authUser, initializing);
+  const favoritesUnavailable = favoritesLoading || Boolean(favoritesError);
+  const [categoryFilters, setCategoryFilters] = useState(DEFAULT_LOBBY_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const { query, favoritesOnly, variant } = categoryFilters;
+  const advancedCount = countAdvancedFilters(categoryFilters);
+  const updateFilters = (patch) => setCategoryFilters((previous) => ({ ...previous, ...patch }));
+  const resetFilters = () => setCategoryFilters(DEFAULT_LOBBY_FILTERS);
   const [previewItem, setPreviewItem] = useState(null);
   const controlsRef = useRef(null);
   const searchRef = useRef(null);
@@ -91,15 +95,6 @@ export default function CategoryPage() {
     for (const g of games) map.set(g.id, buildLobbyGameMeta(g));
     return map;
   }, [games]);
-
-  const categoryFilters = useMemo(() => ({
-    ...DEFAULT_LOBBY_FILTERS,
-    category: 'ALL',
-    query,
-    sortKey,
-    sortDir,
-    favoritesOnly,
-  }), [query, sortKey, sortDir, favoritesOnly]);
 
   const items = useMemo(() => (
     filterAndSortTrainingGames(games, categoryFilters, {
@@ -130,7 +125,9 @@ export default function CategoryPage() {
   }
 
   const Icon = category.Icon;
-  const playGame = (game, overrides) => router.push({
+  const playGame = (game, overrides = variant !== 'ALL' && game.category !== 'PSYCHOLOGY'
+    ? { variant, bettingStructure: VARIANT_METADATA[variant]?.defaultStructure }
+    : null) => router.push({
     pathname: '/hub/training/arena/[gameId]',
     query: {
       gameId: game.id,
@@ -208,7 +205,7 @@ export default function CategoryPage() {
                   Choose A Game
                 </h2>
                 <span className="sp-arena-deck__count sp-num">
-                  {items.length} Of {games.length}
+                  {favoritesOnly && favoritesUnavailable ? 'Favorites' : `${items.length} Of ${games.length}`}
                 </span>
               </div>
 
@@ -221,30 +218,33 @@ export default function CategoryPage() {
                     aria-label={`Search ${category.title}`}
                     placeholder={`Search ${category.title}…`}
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => updateFilters({ query: e.target.value })}
                   />
                   {query && (
                     <button
                       type="button"
                       className="sp-arena-search__clear"
                       aria-label="Clear Search"
-                      onClick={() => setQuery('')}
+                      onClick={() => updateFilters({ query: '' })}
                     >
                       <X size={15} aria-hidden="true" />
                     </button>
                   )}
                 </label>
+                <button type="button" className="sp-arena-pill sd-button" aria-label="Favorite Games" aria-pressed={favoritesOnly} onClick={() => updateFilters({ favoritesOnly: !favoritesOnly })}>
+                  <Star size={16} aria-hidden="true" fill={favoritesOnly ? 'currentColor' : 'none'} />
+                </button>
+                <button type="button" className="sp-arena-pill sd-button" aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}>
+                  <SlidersHorizontal size={16} aria-hidden="true" /> Filters{advancedCount > 0 ? ` (${advancedCount})` : ''}
+                </button>
               </div>
             </div>
 
             <TrainingSortBar
               filters={categoryFilters}
-              onSortChange={(nextKey, nextDir) => {
-                setSortKey(nextKey);
-                setSortDir(nextDir);
-              }}
-              onToggleFavorites={() => setFavoritesOnly((prev) => !prev)}
-              onOpenFilters={() => searchRef.current?.focus()}
+              onSortChange={(sortKey, sortDir) => updateFilters({ sortKey, sortDir })}
+              onToggleFavorites={() => updateFilters({ favoritesOnly: !favoritesOnly })}
+              onOpenFilters={() => setFiltersOpen(true)}
               onJumpToControls={(focusSearch) => {
                 controlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 if (focusSearch) searchRef.current?.focus({ preventScroll: true });
@@ -253,31 +253,30 @@ export default function CategoryPage() {
               favoriteCount={favoriteCount}
             />
 
-            {items.length > 0 ? (
-              <div className="sp-arena-sections">
-                <div className="sp-arena-row-list">
-                  {items.map((item, index) => (
-                    <TrainingLobbyRow
-                      key={item.game.id}
-                      item={item}
-                      index={index}
-                      onStart={playGame}
-                      onToggleFavorite={toggleFavorite}
-                      onOpenPreview={setPreviewItem}
-                    />
-                  ))}
-                </div>
-              </div>
+            <TrainingFavoritesNotice
+              loading={favoritesOnly && favoritesLoading}
+              error={favoritesError}
+              onRetry={retryFavorites}
+            />
+            {favoritesOnly && favoritesUnavailable ? null : items.length > 0 ? (
+              <TrainingLobbyResults
+                key={JSON.stringify([categoryId, categoryFilters])}
+                sections={[{ id: categoryId, items }]}
+                onStart={playGame}
+                favoritesUnavailable={favoritesUnavailable}
+                onToggleFavorite={toggleFavorite}
+                onOpenPreview={setPreviewItem}
+                selectedVariant={variant}
+              />
             ) : (
               <div className="sp-arena-empty" role="status">
-                <p>No {category.title} Drills Match Your Filter.</p>
+                <p>{favoritesOnly && favoriteCount === 0
+                  ? 'No Favorite Games Yet. Tap The Star On Any Game To Pin It Here.'
+                  : `No ${category.title} Drills Match Your Filter.`}</p>
                 <button
                   type="button"
                   className="sd-button"
-                  onClick={() => {
-                    setQuery('');
-                    setFavoritesOnly(false);
-                  }}
+                  onClick={resetFilters}
                 >
                   Reset Filters
                 </button>
@@ -285,10 +284,22 @@ export default function CategoryPage() {
             )}
           </section>
 
+          <TrainingFiltersSheet
+            isOpen={filtersOpen}
+            onClose={() => setFiltersOpen(false)}
+            filters={categoryFilters}
+            onUpdateFilters={updateFilters}
+            onResetFilters={resetFilters}
+            matchingCount={items.length}
+          />
+
           <TrainingGamePreviewSheet
             item={previewItem}
+            isFavorite={favoriteIds.has(previewItem?.game.id)}
             onClose={() => setPreviewItem(null)}
             onLaunch={playGame}
+            defaultVariant={variant}
+            favoritesUnavailable={favoritesUnavailable}
             onToggleFavorite={toggleFavorite}
           />
         </main>

@@ -14,8 +14,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
+import { readGuestTrainingFavorites, toggleGuestTrainingFavorite } from '../src/lib/training/guestTrainingFavorites.mjs';
 import { TRAINING_LIBRARY } from '../src/data/TRAINING_LIBRARY.js';
 import {
   DEFAULT_LOBBY_FILTERS,
@@ -35,7 +37,8 @@ test('trainingLobbyFilter: enriches all 107 canonical games with coherent Arena-
     assert.ok(meta, `Missing meta for ${game.id}`);
     assert.ok(['DRILLS', 'LABS'].includes(meta.group));
     assert.ok(meta.difficulty >= 1 && meta.difficulty <= 5);
-    assert.ok(meta.estMinutes >= 1);
+    if (game.category === 'PSYCHOLOGY') assert.equal(meta.stackBb, null);
+    else assert.equal(meta.stackBb, meta.preset.stackDepthBb);
     assert.ok(meta.plaqueLabel.length >= 3);
     assert.ok(meta.styleLabel.length >= 3);
   }
@@ -77,6 +80,24 @@ test('trainingLobbyFilter: 3-tier selector deck filters accurately by group, cat
   assert.ok(icmSearch.some((i) => i.game.id === 'mtt-002'));
 });
 
+test('poker search understands common spellings and does not match PLO inside exploitative', () => {
+  const find = (query) => filterAndSortTrainingGames(TRAINING_LIBRARY, { query }).map(({ game }) => game.id);
+  assert.ok(find('3bet').includes('cash-007'));
+  assert.deepEqual(find('3 bet'), find('3-bet'));
+  assert.deepEqual(find('3bet'), find('3-bet'));
+  assert.ok(find('sit and go').includes('spins-001'));
+  const omaha = TRAINING_LIBRARY.filter((game) => buildLobbyGameMeta(game).preset.variant.startsWith('plo'));
+  assert.ok(omaha.length > 0);
+  for (const query of ['plo', 'omaha', 'plo5', 'five-card', 'hi-lo']) {
+    assert.deepEqual(new Set(find(query)), new Set(omaha.map((game) => game.id)));
+  }
+  const fiveCard = filterAndSortTrainingGames(TRAINING_LIBRARY, { variant: 'plo5' });
+  assert.deepEqual(new Set(fiveCard.map(({ game }) => game.id)), new Set([...omaha, ...TRAINING_LIBRARY.filter(g => g.category === 'CASH')].map(g => g.id)));
+  for (const game of TRAINING_LIBRARY) {
+    assert.ok(find(game.name).includes(game.id), game.name);
+  }
+});
+
 test('trainingLobbyFilter: column sorting, advanced count, and section grouping stay deterministic', () => {
   const byDiffAsc = filterAndSortTrainingGames(TRAINING_LIBRARY, {
     ...DEFAULT_LOBBY_FILTERS,
@@ -85,6 +106,14 @@ test('trainingLobbyFilter: column sorting, advanced count, and section grouping 
   });
   for (let i = 1; i < byDiffAsc.length; i += 1) {
     assert.ok(byDiffAsc[i - 1].meta.difficulty <= byDiffAsc[i].meta.difficulty);
+  }
+
+  for (const sortDir of ['asc', 'desc']) {
+    const sorted = filterAndSortTrainingGames(TRAINING_LIBRARY, { sortKey: 'stack', sortDir });
+    const stacks = sorted.map(({ meta }) => meta.stackBb);
+    const numeric = stacks.filter((bb) => bb != null);
+    assert.deepEqual(stacks.slice(0, numeric.length), numeric.toSorted((a, b) => sortDir === 'asc' ? a - b : b - a));
+    assert.equal(stacks.at(-1), null);
   }
 
   const byNameDesc = filterAndSortTrainingGames(TRAINING_LIBRARY, {
@@ -142,6 +171,15 @@ test('Arena Lobby CSS & dialogs obey #SMARTERDESIGN, mobile 12px floor, and mode
   const previewSheet = read('src/components/training/lobby/TrainingGamePreviewSheet.jsx');
   const row = read('src/components/training/lobby/TrainingLobbyRow.jsx');
 
+  for (const file of ['arena-mode.webp', 'arena-filter.webp', 'arena-row-rim.webp']) {
+    const url = '/images/training/lobby/' + file;
+    assert.ok(css.includes(url), `Missing Arena skin on live controls: ${file}`);
+    const asset = fs.readFileSync(path.join(ROOT, 'public', url));
+    assert.equal(asset.toString('ascii', 8, 12), 'WEBP');
+  }
+  assert.equal(countAdvancedFilters({ ...DEFAULT_LOBBY_FILTERS, quickFilter: 'BEGINNER' }), 1);
+  assert.match(filtersSheet, /data-quick-filter=\{pill.id.toLowerCase\(\)\}/);
+
   // Native <dialog closedby="any"> + showModal() + Safari pointer fallback + scroll containment
   for (const sheet of [filtersSheet, previewSheet]) {
     assert.match(sheet, /<dialog/);
@@ -169,5 +207,117 @@ test('Arena Lobby CSS & dialogs obey #SMARTERDESIGN, mobile 12px floor, and mode
   // Zero forbidden text colors (#SMARTERDESIGN: no yellow/gold/amber/purple/violet/pink/magenta text)
   for (const forbidden of [/#f3b151/i, /#ffe16a/i, /#facc15/i, /#ffd700/i, /#c084fc/i, /#c99cff/i, /#f59e0b/i, /#fb923c/i]) {
     assert.doesNotMatch(cssCode, forbidden, `Forbidden accent color ${forbidden} in training-lobby-arena.css`);
+  }
+});
+
+test('guest favorites survive lobby re-entry in the same tab and report storage failures', () => {
+  const values = new Map();
+  const storage = { getItem: key => values.get(key), setItem: (key, value) => values.set(key, value) };
+  assert.deepEqual([...toggleGuestTrainingFavorite(storage, 'cash-002')], ['cash-002']);
+  assert.deepEqual([...readGuestTrainingFavorites(storage)], ['cash-002']);
+  assert.deepEqual([...toggleGuestTrainingFavorite(storage, 'cash-002')], []);
+  assert.deepEqual([...readGuestTrainingFavorites(storage)], []);
+  storage.getItem = () => 'invalid json';
+  assert.deepEqual([...readGuestTrainingFavorites(storage)], []);
+  storage.setItem = () => { throw new Error('Storage blocked'); };
+  assert.throws(() => toggleGuestTrainingFavorite(storage, 'cash-002'), /Storage blocked/);
+});
+
+test('preview follows current favorite state on both entry points while preserving custom selections', () => {
+  for (const page of ['pages/hub/training.js', 'pages/hub/training/category/[categoryId].js']) {
+    assert.ok(read(page).includes('isFavorite={favoriteIds.has(previewItem?.game.id)}'));
+  }
+  const preview = read('src/components/training/lobby/TrainingGamePreviewSheet.jsx');
+  assert.ok(preview.includes('aria-pressed={isFavorite}'));
+  assert.ok(preview.includes('[item, defaultVariant]'));
+  assert.ok(!preview.includes('item.isFavorite'));
+  const header = read('src/components/training/lobby/TrainingLobbyHeader.jsx');
+  assert.ok(header.includes("'Play Again'"));
+  assert.ok(!header.includes("'Resume Session'"));
+});
+
+const nodeRequire = createRequire(import.meta.url);
+function loadFavoriteModule(file, dependencies) {
+  const ts = nodeRequire('typescript');
+  const code = ts.transpile(read(file), {
+    target: ts.ScriptTarget.ES2020,
+    module: ts.ModuleKind.CommonJS,
+  });
+  const exports = {};
+  const resolve = name => {
+    assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`);
+    return dependencies[name];
+  };
+  new Function('require', 'exports', code)(resolve, exports);
+  return exports.default;
+}
+
+test('favorites wait for identity, support retry, and ignore writes and reads from prior accounts', async () => {
+  const React = nodeRequire('react');
+  const { act, create } = nodeRequire('react-test-renderer');
+  const requests = [];
+  const useFavorites = loadFavoriteModule('src/hooks/useTrainingFavorites.js', {
+    react: React,
+    '../lib/authUtils': {
+      authedFetch: (_url, options) => new Promise(resolve => requests.push({ options, resolve })),
+    },
+    '../stores/toastStore': { default: { error: () => {}, info: () => {} } },
+    '../lib/training/guestTrainingFavorites.mjs': { readGuestTrainingFavorites, toggleGuestTrainingFavorite },
+  });
+  let state, tree;
+  function Probe({ id, initializing }) {
+    state = useFavorites(id ? { id } : null, initializing);
+    return null;
+  }
+  const view = (id, initializing = false) => React.createElement(Probe, { id, initializing });
+  const answer = (request, ok, body) => request.resolve({ ok, json: async () => body });
+  await act(async () => { tree = create(view(null, true)); });
+  try {
+    assert.equal(requests.length, 0);
+    assert.equal(state.favoritesLoading, true);
+    await act(async () => { tree.update(view('first')); });
+    assert.equal(await state.toggleFavorite('cash-002'), false);
+    await act(async () => { answer(requests[0], false, { success: false }); });
+    assert.ok(state.favoritesError);
+    assert.equal(await state.toggleFavorite('cash-002'), false);
+    await act(async () => { state.retryFavorites(); });
+    await act(async () => { answer(requests[1], true, { success: true, favorites: ['mtt-001'] }); });
+    assert.deepEqual([...state.favoriteIds], ['mtt-001']);
+    let writing;
+    await act(async () => { writing = state.toggleFavorite('cash-002'); });
+    assert.equal(requests[2].options.headers['X-Expected-Account'], 'first');
+    assert.equal(await state.toggleFavorite('cash-002'), false);
+    await act(async () => { tree.update(view('second')); });
+    assert.equal(state.favoritesLoading, true);
+    assert.equal(state.favoriteIds.size, 0);
+    await act(async () => { tree.update(view('third')); });
+    await act(async () => { answer(requests[4], true, { success: true, favorites: ['cash-005'] }); });
+    await act(async () => {
+      answer(requests[3], true, { success: true, favorites: ['cash-004'] });
+      answer(requests[2], true, { success: true });
+      assert.equal(await writing, false);
+    });
+    assert.deepEqual([...state.favoriteIds], ['cash-005']);
+    assert.equal(state.favoritesLoading, false);
+    assert.equal(state.favoritesError, null);
+  } finally {
+    await act(async () => { tree.unmount(); });
+  }
+});
+
+test('favorites API rejects a refreshed token for a different account before any database operation', async () => {
+  const handler = loadFavoriteModule('pages/api/training/game-favorites.js', {
+    '../../../src/lib/serverAuth': { getServerUserWithFallback: async () => ({ user: { id: 'second' } }) },
+    '../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
+    '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
+    '../../../src/utils/trainingApiUtils': { withTiming() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() { assert.fail('Unexpected API error'); } },
+    '../../../src/data/TRAINING_LIBRARY': { TRAINING_LIBRARY },
+  });
+  for (const method of ['GET', 'POST', 'DELETE']) {
+    const response = { status(code) { this.code = code; return this; }, json(body) { this.body = body; } };
+    await handler({ method, headers: { authorization: 'Bearer test', 'x-expected-account': 'first' } }, response);
+    assert.equal(response.code, 409);
+    assert.equal(response.body.success, false);
   }
 });

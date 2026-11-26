@@ -11,8 +11,9 @@ test('the alternate-drill CTA clears filters and moves keyboard focus to the ful
   const controls = read('src/components/training/lobby/TrainingLobbyControls.jsx');
 
   assert.match(source, /const browseTrainingLibrary = useCallback/);
-  assert.match(source, /setFilters\(DEFAULT_LOBBY_FILTERS\)/);
-  assert.match(source, /setDebouncedQuery\(''\)/);
+  assert.match(source, /const browseTrainingLibrary = useCallback\(\(\) => \{\s*setFilters\(DEFAULT_LOBBY_FILTERS\)/);
+  assert.match(source, /onResetFilters=\{browseTrainingLibrary\}/);
+  assert.match(source, /onClick=\{browseTrainingLibrary\}/);
   assert.match(source, /heading\.focus\(\{ preventScroll: true \}\)/);
   assert.match(source, /scrollIntoView\(\{/);
   assert.match(source, /prefers-reduced-motion: reduce/);

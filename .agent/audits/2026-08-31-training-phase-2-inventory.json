@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 397,
-    "componentFiles": 59,
+    "dependencyFiles": 401,
+    "componentFiles": 62,
     "hookFiles": 16,
-    "ctas": 523,
-    "dialogs": 15,
-    "persistenceFiles": 91,
+    "ctas": 538,
+    "dialogs": 18,
+    "persistenceFiles": 92,
     "realtimeFiles": 6,
-    "tests": 191,
-    "markerCandidates": 388,
-    "possibleUnwiredFunctions": 452,
+    "tests": 192,
+    "markerCandidates": 391,
+    "possibleUnwiredFunctions": 457,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -1259,14 +1259,14 @@
       "states": {
         "loading": true,
         "empty": true,
-        "error": false,
-        "retry": false,
+        "error": true,
+        "retry": true,
         "offline": false,
         "stale": false,
         "success": false,
         "authExpiry": false
       },
-      "ctaCount": 5,
+      "ctaCount": 7,
       "dialogCount": 0,
       "apiReferences": [],
       "persistenceWrites": {
@@ -7449,7 +7449,10 @@
         "src/components/store/StoreToast.jsx",
         "src/components/training/GameBadge.jsx",
         "src/components/training/TrainingGameArt.jsx",
+        "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+        "src/components/training/lobby/TrainingFiltersSheet.jsx",
         "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
+        "src/components/training/lobby/TrainingLobbyResults.jsx",
         "src/components/training/lobby/TrainingLobbyRow.jsx",
         "src/components/training/lobby/TrainingSortBar.jsx",
         "src/components/transitions/PageTransition.js",
@@ -7499,6 +7502,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/training/guestTrainingFavorites.mjs",
         "src/lib/training/trainingLobbyFilter.mjs",
         "src/lib/training/trainingPresets.mjs",
         "src/lib/world-menu/navigationState.mjs",
@@ -7520,6 +7524,7 @@
             "pages/hub/training/category/[categoryId].js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/TrainingGameArt.jsx",
+            "src/components/training/lobby/TrainingFavoritesNotice.jsx",
             "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
             "src/components/training/lobby/TrainingLobbyRow.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -7527,11 +7532,11 @@
             "src/components/ui/UniversalHeader.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
-            "src/hooks/useTrainingFavorites.js",
             "src/hooks/useTrainingProgress.js",
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
@@ -7545,6 +7550,7 @@
             "pages/hub/training/category/[categoryId].js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/training/lobby/TrainingFavoritesNotice.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -7563,6 +7569,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
@@ -7573,8 +7580,10 @@
         "error": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/category/[categoryId].js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/training/lobby/TrainingFavoritesNotice.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -7599,6 +7608,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
@@ -7609,9 +7619,12 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/category/[categoryId].js",
             "src/components/store/DiamondWalletModal.jsx",
+            "src/components/training/lobby/TrainingFavoritesNotice.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/hooks/useTrainingFavorites.js",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/push-client.js",
@@ -7621,6 +7634,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
@@ -7652,6 +7666,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
@@ -7670,6 +7685,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useDiamondBalance.js",
+            "src/hooks/useTrainingFavorites.js",
             "src/hooks/useTrainingProgress.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
@@ -7687,6 +7703,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
@@ -7701,6 +7718,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
@@ -7714,7 +7732,6 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
-            "src/hooks/useTrainingFavorites.js",
             "src/hooks/useTrainingProgress.js",
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
@@ -7722,6 +7739,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
@@ -7731,6 +7749,7 @@
         }
       },
       "existingTests": [
+        "__tests__/training-arena-lobby-ui.test.mjs",
         "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-hub-progressive-grid.test.mjs",
@@ -32511,16 +32530,18 @@
       "imports": [
         "src/components/seo/SEOHead.js",
         "src/components/training/TrainingGameArt.jsx",
+        "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+        "src/components/training/lobby/TrainingFiltersSheet.jsx",
         "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
-        "src/components/training/lobby/TrainingLobbyRow.jsx",
+        "src/components/training/lobby/TrainingLobbyResults.jsx",
         "src/components/training/lobby/TrainingSortBar.jsx",
         "src/components/transitions/PageTransition.js",
         "src/components/ui/UniversalHeader.js",
+        "src/contexts/AvatarContext.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
         "src/hooks/useTrainingFavorites.js",
         "src/hooks/useTrainingProgress.js",
-        "src/lib/authUtils.js",
         "src/lib/training/trainingLobbyFilter.mjs",
         "src/lib/training/trainingPresets.mjs"
       ],
@@ -32534,7 +32555,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 124,
+          "line": 119,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32544,7 +32565,7 @@
         {
           "element": "button",
           "name": "All Training Games",
-          "line": 163,
+          "line": 160,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32554,7 +32575,7 @@
         {
           "element": "button",
           "name": "Play Now",
-          "line": 192,
+          "line": 189,
           "handler": "() => playGame(featuredGame)",
           "destination": null,
           "type": "button",
@@ -32564,8 +32585,28 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 227,
-          "handler": "() => setQuery('')",
+          "line": 224,
+          "handler": "() => updateFilters({ query: '' })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Favorite Games",
+          "line": 234,
+          "handler": "() => updateFilters({ favoritesOnly: !favoritesOnly })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Filters",
+          "line": 237,
+          "handler": "() => setFiltersOpen(true)",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -32574,8 +32615,8 @@
         {
           "element": "button",
           "name": "Reset Filters",
-          "line": 274,
-          "handler": "() => {\n                    setQuery('');\n                    setFavoritesOnly(false);\n                  }",
+          "line": 276,
+          "handler": "resetFilters",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -32590,8 +32631,8 @@
       "states": {
         "loading": true,
         "empty": true,
-        "error": false,
-        "retry": false,
+        "error": true,
+        "retry": true,
         "offline": false,
         "stale": false,
         "success": false,
@@ -32614,15 +32655,31 @@
       "functions": [
         {
           "name": "CategoryPage",
-          "line": 56,
+          "line": 59,
           "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "updateFilters",
+          "line": 76,
+          "references": 7,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "resetFilters",
+          "line": 77,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "playGame",
-          "line": 133,
+          "line": 128,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -32635,7 +32692,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 222,
+          "line": 219,
           "excerpt": "placeholder={`Search ${category.title}…`}",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -50787,6 +50844,277 @@
       ]
     },
     {
+      "file": "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "button",
+          "name": "Retry Favorites",
+          "line": 7,
+          "handler": "onRetry",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "retry": true,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "TrainingFavoritesNotice",
+          "line": 1,
+          "references": 1,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "TrainingFavoritesNotice"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "imports": [
+        "src/lib/training/trainingLobbyFilter.mjs"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "button",
+          "name": "Close Filters",
+          "line": 134,
+          "handler": "() => dialogRef.current?.close()",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 166,
+          "handler": "() => onUpdateFilters({ quickFilter: filters.quickFilter === pill.id ? 'ALL' : pill.id })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 185,
+          "handler": "() => onUpdateFilters({ variant: opt.id })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 203,
+          "handler": "() => onUpdateFilters({ difficultyTier: opt.id })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 221,
+          "handler": "() => onUpdateFilters({ styleTag: opt.id })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 239,
+          "handler": "() => onUpdateFilters({ statusFilter: opt.id })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 257,
+          "handler": "() => onUpdateFilters({ accessFilter: opt.id })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 277,
+          "handler": "() => onUpdateFilters({ sortKey: opt.key, sortDir: opt.dir })",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Reset All",
+          "line": 293,
+          "handler": "onResetFilters",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Show",
+          "line": 301,
+          "handler": "() => dialogRef.current?.close()",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 3,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "isOutsideDialog",
+          "line": 60,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "TrainingFiltersSheet",
+          "line": 70,
+          "references": 2,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleClose",
+          "line": 90,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "onPointerDown",
+          "line": 100,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "onPointerUp",
+          "line": 101,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [],
+      "markers": [
+        {
+          "kind": "FALLBACK",
+          "line": 6,
+          "excerpt": "* the pointer-bounds light-dismiss fallback for browsers without closedby.",
+          "disposition": "historical-or-prohibition-comment",
+          "review": "accepted",
+          "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 96,
+          "excerpt": "// Safari / fallback for browsers without native <dialog closedby=\"any\">",
+          "disposition": "historical-or-prohibition-comment",
+          "review": "accepted",
+          "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+        },
+        {
+          "kind": "PLACEHOLDER",
+          "line": 156,
+          "excerpt": "placeholder=\"Push/Fold, ICM, 3-Bet, River, Tilt…\"",
+          "disposition": "ui-input-copy",
+          "review": "accepted",
+          "rationale": "JSX placeholder attribute, not placeholder implementation."
+        }
+      ]
+    },
+    {
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "imports": [
         "src/components/training/TrainingGameArt.jsx",
@@ -50799,7 +51127,7 @@
         {
           "element": "button",
           "name": "Close Preview",
-          "line": 126,
+          "line": 128,
           "handler": "() => dialogRef.current?.close()",
           "destination": null,
           "type": "button",
@@ -50809,7 +51137,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 163,
+          "line": 164,
           "handler": "() => setVariant(v)",
           "destination": null,
           "type": "button",
@@ -50819,7 +51147,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 182,
+          "line": 183,
           "handler": "() => setTargetStreet(opt.id)",
           "destination": null,
           "type": "button",
@@ -50829,17 +51157,17 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 198,
+          "line": 199,
           "handler": "() => onToggleFavorite(game.id)",
           "destination": null,
           "type": "button",
-          "disabled": null,
+          "disabled": "favoritesUnavailable",
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "Play Drill",
-          "line": 207,
+          "line": 209,
           "handler": "handleStart",
           "destination": null,
           "type": "button",
@@ -50895,7 +51223,7 @@
         },
         {
           "name": "handleClose",
-          "line": 67,
+          "line": 69,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50903,7 +51231,7 @@
         },
         {
           "name": "onPointerDown",
-          "line": 76,
+          "line": 78,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50911,7 +51239,7 @@
         },
         {
           "name": "onPointerUp",
-          "line": 77,
+          "line": 79,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50919,7 +51247,7 @@
         },
         {
           "name": "handleStart",
-          "line": 97,
+          "line": 99,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50927,6 +51255,89 @@
         }
       ],
       "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/components/training/lobby/TrainingLobbyResults.jsx",
+      "imports": [
+        "src/components/training/lobby/TrainingLobbyRow.jsx",
+        "src/lib/training/trainingLobbyFilter.mjs"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "button",
+          "name": "Previous",
+          "line": 48,
+          "handler": "() => goToPage(page - 1)",
+          "destination": null,
+          "type": "button",
+          "disabled": "page === 1",
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Next",
+          "line": 52,
+          "handler": "() => goToPage(page + 1)",
+          "destination": null,
+          "type": "button",
+          "disabled": "page === pageCount",
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "TrainingLobbyResults",
+          "line": 5,
+          "references": 1,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "goToPage",
+          "line": 20,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "TrainingLobbyResults"
+      ],
       "markers": []
     },
     {
@@ -50940,8 +51351,8 @@
       "ctas": [
         {
           "element": "button",
-          "name": "`Play ${game.name}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${meta.estMinutes} minutes, ${progress}% complete`",
-          "line": 87,
+          "name": "`Play ${game.name}, ${selectedVariant && selectedVariant !== 'ALL' ? selectedVariant.toUpperCase() : meta.variantShort}, ${meta.plaqueLabel}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${progress}% complete`",
+          "line": 84,
           "handler": "() => onStart(game)",
           "destination": null,
           "type": "button",
@@ -50951,7 +51362,7 @@
         {
           "element": "button",
           "name": "`Customize And Preview ${game.name}`",
-          "line": 120,
+          "line": 117,
           "handler": "() => onOpenPreview(item)",
           "destination": null,
           "type": "button",
@@ -50960,8 +51371,8 @@
         },
         {
           "element": "button",
-          "name": "Style Level Lvl Length Min",
-          "line": 134,
+          "name": "Style Level Lvl Stack",
+          "line": 131,
           "handler": "() => onStart(game)",
           "destination": null,
           "type": "button",
@@ -50971,17 +51382,17 @@
         {
           "element": "button",
           "name": "isFavorite ? `Remove ${game.name} From Favorites` : `Add ${game.name} To Favorites`",
-          "line": 158,
+          "line": 155,
           "handler": "() => onToggleFavorite(game.id)",
           "destination": null,
           "type": "button",
-          "disabled": null,
+          "disabled": "favoritesUnavailable",
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "Status",
-          "line": 169,
+          "line": 167,
           "handler": "() => onStart(game)",
           "destination": null,
           "type": "button",
@@ -51090,7 +51501,7 @@
         },
         {
           "element": "button",
-          "name": "<dynamic>",
+          "name": "isSorted ? `${col.label}, Sorted ${ariaSort}` : `Sort By ${col.label}`",
           "line": 134,
           "handler": "() => handleSortClick(col)",
           "destination": null,
@@ -58598,6 +59009,7 @@
       "file": "src/hooks/useTrainingFavorites.js",
       "imports": [
         "src/lib/authUtils.js",
+        "src/lib/training/guestTrainingFavorites.mjs",
         "src/stores/toastStore.js"
       ],
       "links": [],
@@ -58612,21 +59024,21 @@
         "modalComponents": []
       },
       "states": {
-        "loading": true,
+        "loading": false,
         "empty": false,
         "error": true,
-        "retry": false,
+        "retry": true,
         "offline": false,
-        "stale": false,
+        "stale": true,
         "success": true,
-        "authExpiry": true
+        "authExpiry": false
       },
       "persistenceWrites": {
         "localStorage": 0,
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
-        "deletes": 3,
+        "deletes": 2,
         "rpc": 0
       },
       "realtime": {
@@ -58638,14 +59050,24 @@
       "functions": [
         {
           "name": "useTrainingFavorites",
-          "line": 16,
-          "references": 2,
+          "line": 9,
+          "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
+        },
+        {
+          "name": "load",
+          "line": 22,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
         }
       ],
-      "possibleUnwiredFunctions": [],
+      "possibleUnwiredFunctions": [
+        "useTrainingFavorites"
+      ],
       "markers": []
     },
     {
@@ -70793,6 +71215,65 @@
       ]
     },
     {
+      "file": "src/lib/training/guestTrainingFavorites.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 1,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "readGuestTrainingFavorites",
+          "line": 3,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "toggleGuestTrainingFavorite",
+          "line": 14,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "toggleGuestTrainingFavorite"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/training/handAuditEngine.js",
       "imports": [
         "src/engines/HandHistoryParser.js",
@@ -75341,8 +75822,16 @@
       },
       "functions": [
         {
+          "name": "searchWords",
+          "line": 65,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "buildLobbyGameMeta",
-          "line": 70,
+          "line": 77,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -75350,7 +75839,7 @@
         },
         {
           "name": "countAdvancedFilters",
-          "line": 152,
+          "line": 154,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -75358,7 +75847,7 @@
         },
         {
           "name": "isRecommendedForPlayer",
-          "line": 166,
+          "line": 169,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -75366,7 +75855,7 @@
         },
         {
           "name": "filterAndSortTrainingGames",
-          "line": 182,
+          "line": 185,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -75374,7 +75863,15 @@
         },
         {
           "name": "buildLobbySections",
-          "line": 296,
+          "line": 298,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getLobbyResultsPage",
+          "line": 340,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -75382,7 +75879,7 @@
         },
         {
           "name": "rank",
-          "line": 278,
+          "line": 280,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -75392,7 +75889,8 @@
       "possibleUnwiredFunctions": [
         "countAdvancedFilters",
         "filterAndSortTrainingGames",
-        "buildLobbySections"
+        "buildLobbySections",
+        "getLobbyResultsPage"
       ],
       "markers": []
     },
@@ -79353,11 +79851,19 @@
     },
     {
       "from": "pages/hub/training/category/[categoryId].js",
+      "to": "src/components/training/lobby/TrainingFavoritesNotice.jsx"
+    },
+    {
+      "from": "pages/hub/training/category/[categoryId].js",
+      "to": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "from": "pages/hub/training/category/[categoryId].js",
       "to": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
       "from": "pages/hub/training/category/[categoryId].js",
-      "to": "src/components/training/lobby/TrainingLobbyRow.jsx"
+      "to": "src/components/training/lobby/TrainingLobbyResults.jsx"
     },
     {
       "from": "pages/hub/training/category/[categoryId].js",
@@ -79377,6 +79883,10 @@
     },
     {
       "from": "pages/hub/training/category/[categoryId].js",
+      "to": "src/contexts/AvatarContext.jsx"
+    },
+    {
+      "from": "pages/hub/training/category/[categoryId].js",
       "to": "src/data/TRAINING_LIBRARY.js"
     },
     {
@@ -79390,10 +79900,6 @@
     {
       "from": "pages/hub/training/category/[categoryId].js",
       "to": "src/hooks/useTrainingProgress.js"
-    },
-    {
-      "from": "pages/hub/training/category/[categoryId].js",
-      "to": "src/lib/authUtils.js"
     },
     {
       "from": "pages/hub/training/category/[categoryId].js",
@@ -81580,12 +82086,24 @@
       "to": "src/lib/training/customTrainingLaunchContract.mjs"
     },
     {
+      "from": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "to": "src/lib/training/trainingLobbyFilter.mjs"
+    },
+    {
       "from": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "to": "src/components/training/TrainingGameArt.jsx"
     },
     {
       "from": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "to": "src/lib/training/trainingPresets.mjs"
+    },
+    {
+      "from": "src/components/training/lobby/TrainingLobbyResults.jsx",
+      "to": "src/components/training/lobby/TrainingLobbyRow.jsx"
+    },
+    {
+      "from": "src/components/training/lobby/TrainingLobbyResults.jsx",
+      "to": "src/lib/training/trainingLobbyFilter.mjs"
     },
     {
       "from": "src/components/training/lobby/TrainingLobbyRow.jsx",
@@ -82110,6 +82628,10 @@
     {
       "from": "src/hooks/useTrainingFavorites.js",
       "to": "src/lib/authUtils.js"
+    },
+    {
+      "from": "src/hooks/useTrainingFavorites.js",
+      "to": "src/lib/training/guestTrainingFavorites.mjs"
     },
     {
       "from": "src/hooks/useTrainingFavorites.js",
@@ -82694,7 +83216,10 @@
     "src/components/training/games/PsychologyTiltControlUI.jsx",
     "src/components/training/games/UniversalDynamicTable.jsx",
     "src/components/training/games/potMath.js",
+    "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+    "src/components/training/lobby/TrainingFiltersSheet.jsx",
     "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
+    "src/components/training/lobby/TrainingLobbyResults.jsx",
     "src/components/training/lobby/TrainingLobbyRow.jsx",
     "src/components/training/lobby/TrainingSortBar.jsx",
     "src/components/training/rangeGridData.js",
@@ -82813,6 +83338,7 @@
     "__tests__/training-feed-authority.test.mjs",
     "__tests__/training-final-honesty-surfaces.test.mjs",
     "__tests__/training-focused-launch-wiring.test.mjs",
+    "__tests__/training-game-favorites-postgres.test.mjs",
     "__tests__/training-generated-scenario-provenance.test.mjs",
     "__tests__/training-grading-receipt.test.mjs",
     "__tests__/training-history-outage-honesty.test.mjs",
@@ -83555,7 +84081,7 @@
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
-        "deletes": 3,
+        "deletes": 2,
         "rpc": 0
       }
     },
@@ -83809,6 +84335,17 @@
         "inserts": 0,
         "updates": 10,
         "deletes": 0,
+        "rpc": 0
+      }
+    },
+    {
+      "file": "src/lib/training/guestTrainingFavorites.mjs",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 1,
         "rpc": 0
       }
     },
@@ -84215,11 +84752,11 @@
       "effectRef": "pages/hub/training/autopilot.js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:124:1",
+      "id": "pages/hub/training/category/[categoryId].js:119:1",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 124,
+      "line": 119,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -84228,11 +84765,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:163:2",
+      "id": "pages/hub/training/category/[categoryId].js:160:2",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "All Training Games",
-      "line": 163,
+      "line": 160,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -84241,11 +84778,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:192:3",
+      "id": "pages/hub/training/category/[categoryId].js:189:3",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Play Now",
-      "line": 192,
+      "line": 189,
       "handler": "() => playGame(featuredGame)",
       "destination": null,
       "type": "button",
@@ -84254,12 +84791,12 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:227:4",
+      "id": "pages/hub/training/category/[categoryId].js:224:4",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Clear Search",
-      "line": 227,
-      "handler": "() => setQuery('')",
+      "line": 224,
+      "handler": "() => updateFilters({ query: '' })",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -84267,12 +84804,38 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:274:5",
+      "id": "pages/hub/training/category/[categoryId].js:234:5",
+      "file": "pages/hub/training/category/[categoryId].js",
+      "element": "button",
+      "name": "Favorite Games",
+      "line": 234,
+      "handler": "() => updateFilters({ favoritesOnly: !favoritesOnly })",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/category/[categoryId].js"
+    },
+    {
+      "id": "pages/hub/training/category/[categoryId].js:237:6",
+      "file": "pages/hub/training/category/[categoryId].js",
+      "element": "button",
+      "name": "Filters",
+      "line": 237,
+      "handler": "() => setFiltersOpen(true)",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/category/[categoryId].js"
+    },
+    {
+      "id": "pages/hub/training/category/[categoryId].js:276:7",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Reset Filters",
-      "line": 274,
-      "handler": "() => {\n                    setQuery('');\n                    setFavoritesOnly(false);\n                  }",
+      "line": 276,
+      "handler": "resetFilters",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -89896,11 +90459,154 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:126:1",
+      "id": "src/components/training/lobby/TrainingFavoritesNotice.jsx:7:1",
+      "file": "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+      "element": "button",
+      "name": "Retry Favorites",
+      "line": 7,
+      "handler": "onRetry",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFavoritesNotice.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:134:1",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "Close Filters",
+      "line": 134,
+      "handler": "() => dialogRef.current?.close()",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:166:2",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 166,
+      "handler": "() => onUpdateFilters({ quickFilter: filters.quickFilter === pill.id ? 'ALL' : pill.id })",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:185:3",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 185,
+      "handler": "() => onUpdateFilters({ variant: opt.id })",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:203:4",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 203,
+      "handler": "() => onUpdateFilters({ difficultyTier: opt.id })",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:221:5",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 221,
+      "handler": "() => onUpdateFilters({ styleTag: opt.id })",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:239:6",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 239,
+      "handler": "() => onUpdateFilters({ statusFilter: opt.id })",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:257:7",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 257,
+      "handler": "() => onUpdateFilters({ accessFilter: opt.id })",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:277:8",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 277,
+      "handler": "() => onUpdateFilters({ sortKey: opt.key, sortDir: opt.dir })",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:293:9",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "Reset All",
+      "line": 293,
+      "handler": "onResetFilters",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:301:10",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "element": "button",
+      "name": "Show",
+      "line": 301,
+      "handler": "() => dialogRef.current?.close()",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:128:1",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "Close Preview",
-      "line": 126,
+      "line": 128,
       "handler": "() => dialogRef.current?.close()",
       "destination": null,
       "type": "button",
@@ -89909,11 +90615,11 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:163:2",
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:164:2",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 163,
+      "line": 164,
       "handler": "() => setVariant(v)",
       "destination": null,
       "type": "button",
@@ -89922,11 +90628,11 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:182:3",
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:183:3",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 182,
+      "line": 183,
       "handler": "() => setTargetStreet(opt.id)",
       "destination": null,
       "type": "button",
@@ -89935,24 +90641,24 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:198:4",
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:199:4",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 198,
+      "line": 199,
       "handler": "() => onToggleFavorite(game.id)",
       "destination": null,
       "type": "button",
-      "disabled": null,
+      "disabled": "favoritesUnavailable",
       "wiring": "handler",
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:207:5",
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:209:5",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "Play Drill",
-      "line": 207,
+      "line": 209,
       "handler": "handleStart",
       "destination": null,
       "type": "button",
@@ -89961,11 +90667,37 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:87:1",
+      "id": "src/components/training/lobby/TrainingLobbyResults.jsx:48:1",
+      "file": "src/components/training/lobby/TrainingLobbyResults.jsx",
+      "element": "button",
+      "name": "Previous",
+      "line": 48,
+      "handler": "() => goToPage(page - 1)",
+      "destination": null,
+      "type": "button",
+      "disabled": "page === 1",
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingLobbyResults.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingLobbyResults.jsx:52:2",
+      "file": "src/components/training/lobby/TrainingLobbyResults.jsx",
+      "element": "button",
+      "name": "Next",
+      "line": 52,
+      "handler": "() => goToPage(page + 1)",
+      "destination": null,
+      "type": "button",
+      "disabled": "page === pageCount",
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingLobbyResults.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:84:1",
       "file": "src/components/training/lobby/TrainingLobbyRow.jsx",
       "element": "button",
-      "name": "`Play ${game.name}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${meta.estMinutes} minutes, ${progress}% complete`",
-      "line": 87,
+      "name": "`Play ${game.name}, ${selectedVariant && selectedVariant !== 'ALL' ? selectedVariant.toUpperCase() : meta.variantShort}, ${meta.plaqueLabel}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${progress}% complete`",
+      "line": 84,
       "handler": "() => onStart(game)",
       "destination": null,
       "type": "button",
@@ -89974,11 +90706,11 @@
       "effectRef": "src/components/training/lobby/TrainingLobbyRow.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:120:2",
+      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:117:2",
       "file": "src/components/training/lobby/TrainingLobbyRow.jsx",
       "element": "button",
       "name": "`Customize And Preview ${game.name}`",
-      "line": 120,
+      "line": 117,
       "handler": "() => onOpenPreview(item)",
       "destination": null,
       "type": "button",
@@ -89987,11 +90719,11 @@
       "effectRef": "src/components/training/lobby/TrainingLobbyRow.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:134:3",
+      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:131:3",
       "file": "src/components/training/lobby/TrainingLobbyRow.jsx",
       "element": "button",
-      "name": "Style Level Lvl Length Min",
-      "line": 134,
+      "name": "Style Level Lvl Stack",
+      "line": 131,
       "handler": "() => onStart(game)",
       "destination": null,
       "type": "button",
@@ -90000,24 +90732,24 @@
       "effectRef": "src/components/training/lobby/TrainingLobbyRow.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:158:4",
+      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:155:4",
       "file": "src/components/training/lobby/TrainingLobbyRow.jsx",
       "element": "button",
       "name": "isFavorite ? `Remove ${game.name} From Favorites` : `Add ${game.name} To Favorites`",
-      "line": 158,
+      "line": 155,
       "handler": "() => onToggleFavorite(game.id)",
       "destination": null,
       "type": "button",
-      "disabled": null,
+      "disabled": "favoritesUnavailable",
       "wiring": "handler",
       "effectRef": "src/components/training/lobby/TrainingLobbyRow.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:169:5",
+      "id": "src/components/training/lobby/TrainingLobbyRow.jsx:167:5",
       "file": "src/components/training/lobby/TrainingLobbyRow.jsx",
       "element": "button",
       "name": "Status",
-      "line": 169,
+      "line": 167,
       "handler": "() => onStart(game)",
       "destination": null,
       "type": "button",
@@ -90081,7 +90813,7 @@
       "id": "src/components/training/lobby/TrainingSortBar.jsx:134:5",
       "file": "src/components/training/lobby/TrainingSortBar.jsx",
       "element": "button",
-      "name": "<dynamic>",
+      "name": "isSorted ? `${col.label}, Sorted ${ariaSort}` : `Sort By ${col.label}`",
       "line": 134,
       "handler": "() => handleSortClick(col)",
       "destination": null,
@@ -90828,6 +91560,24 @@
       "file": "src/components/training/TrainerConfigModal.jsx",
       "kind": "aria-dialog",
       "effectRef": "src/components/training/TrainerConfigModal.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:dialog:1",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "kind": "native-dialog",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:dialog:2",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "kind": "native-dialog",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingFiltersSheet.jsx:dialog:3",
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "kind": "native-dialog",
+      "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
     },
     {
       "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:dialog:1",
@@ -96213,7 +96963,10 @@
         "src/components/store/StoreToast.jsx",
         "src/components/training/GameBadge.jsx",
         "src/components/training/TrainingGameArt.jsx",
+        "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+        "src/components/training/lobby/TrainingFiltersSheet.jsx",
         "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
+        "src/components/training/lobby/TrainingLobbyResults.jsx",
         "src/components/training/lobby/TrainingLobbyRow.jsx",
         "src/components/training/lobby/TrainingSortBar.jsx",
         "src/components/transitions/PageTransition.js",
@@ -96263,6 +97016,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/training/guestTrainingFavorites.mjs",
         "src/lib/training/trainingLobbyFilter.mjs",
         "src/lib/training/trainingPresets.mjs",
         "src/lib/world-menu/navigationState.mjs",
@@ -96405,7 +97159,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 2,
             "rpc": 0
           }
         },
@@ -96477,6 +97231,17 @@
         },
         {
           "file": "src/lib/training/boundedTrainingFetch.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/training/guestTrainingFavorites.mjs",
           "writes": {
             "localStorage": 0,
             "sessionStorage": 0,
@@ -96579,6 +97344,7 @@
         }
       ],
       "tests": [
+        "__tests__/training-arena-lobby-ui.test.mjs",
         "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-hub-progressive-grid.test.mjs",
@@ -108068,6 +108834,43 @@
       "tests": []
     },
     {
+      "file": "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+      "reachableFiles": [
+        "src/components/training/lobby/TrainingFavoritesNotice.jsx"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+      "reachableFiles": [
+        "src/components/training/lobby/TrainingFiltersSheet.jsx",
+        "src/data/TRAINING_LIBRARY.js",
+        "src/lib/training/trainingLobbyFilter.mjs",
+        "src/lib/training/trainingPresets.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/training/trainingPresets.mjs",
+          "writes": {
+            "localStorage": 4,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-arena-lobby-ui.test.mjs"
+      ]
+    },
+    {
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "reachableFiles": [
         "src/components/training/TrainingGameArt.jsx",
@@ -108093,6 +108896,37 @@
       "realtime": [],
       "tests": [
         "__tests__/training-arena-lobby-ui.test.mjs"
+      ]
+    },
+    {
+      "file": "src/components/training/lobby/TrainingLobbyResults.jsx",
+      "reachableFiles": [
+        "src/components/training/TrainingGameArt.jsx",
+        "src/components/training/lobby/TrainingLobbyResults.jsx",
+        "src/components/training/lobby/TrainingLobbyRow.jsx",
+        "src/data/GAME_IMAGES.js",
+        "src/data/TRAINING_LIBRARY.js",
+        "src/lib/training/trainingLobbyFilter.mjs",
+        "src/lib/training/trainingPresets.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/training/trainingPresets.mjs",
+          "writes": {
+            "localStorage": 4,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/page-tutorials.test.mjs",
+        "__tests__/training-mobile-upgrades.test.mjs"
       ]
     },
     {
@@ -109282,6 +110116,7 @@
         "__tests__/training-campaign-batch-game-matrix.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
+        "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
         "__tests__/training-session-config-contract.test.mjs",
@@ -110184,6 +111019,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/training/guestTrainingFavorites.mjs",
         "src/stores/toastStore.js"
       ],
       "apiReferences": [
@@ -110199,7 +111035,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 2,
             "rpc": 0
           }
         },
@@ -110216,6 +111052,17 @@
         },
         {
           "file": "src/lib/training/boundedTrainingFetch.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/training/guestTrainingFavorites.mjs",
           "writes": {
             "localStorage": 0,
             "sessionStorage": 0,
@@ -112797,6 +113644,30 @@
       ]
     },
     {
+      "file": "src/lib/training/guestTrainingFavorites.mjs",
+      "reachableFiles": [
+        "src/lib/training/guestTrainingFavorites.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/training/guestTrainingFavorites.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-arena-lobby-ui.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/training/handAuditEngine.js",
       "reachableFiles": [
         "src/engines/HandHistoryParser.js",
@@ -113572,7 +114443,8 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/training-arena-lobby-ui.test.mjs"
+        "__tests__/training-arena-lobby-ui.test.mjs",
+        "__tests__/training-hub-progressive-grid.test.mjs"
       ]
     },
     {
@@ -113926,6 +114798,7 @@
         "__tests__/no-slide-to-see.law.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
+        "__tests__/training-arena-lobby-ui.test.mjs",
         "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-hub-outage-honesty.test.mjs",
@@ -114290,7 +115163,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "kind": "PLACEHOLDER",
-        "line": 222,
+        "line": 219,
         "excerpt": "placeholder={`Search ${category.title}…`}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -115201,6 +116074,33 @@
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
         "rationale": "Comment records a removed fallback or a guard that prevents fallback behavior."
+      },
+      {
+        "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+        "kind": "FALLBACK",
+        "line": 6,
+        "excerpt": "* the pointer-bounds light-dismiss fallback for browsers without closedby.",
+        "disposition": "historical-or-prohibition-comment",
+        "review": "accepted",
+        "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+      },
+      {
+        "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+        "kind": "FALLBACK",
+        "line": 96,
+        "excerpt": "// Safari / fallback for browsers without native <dialog closedby=\"any\">",
+        "disposition": "historical-or-prohibition-comment",
+        "review": "accepted",
+        "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+      },
+      {
+        "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+        "kind": "PLACEHOLDER",
+        "line": 156,
+        "excerpt": "placeholder=\"Push/Fold, ICM, 3-Bet, River, Tilt…\"",
+        "disposition": "ui-input-copy",
+        "review": "accepted",
+        "rationale": "JSX placeholder attribute, not placeholder implementation."
       },
       {
         "file": "src/components/ui/GeevesMenuWidget.jsx",
@@ -118478,7 +119378,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "name": "CategoryPage",
-        "line": 56,
+        "line": 59,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -120023,6 +120923,38 @@
         ]
       },
       {
+        "file": "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+        "name": "TrainingFavoritesNotice",
+        "line": 1,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/training.js",
+          "pages/hub/training/category/[categoryId].js"
+        ]
+      },
+      {
+        "file": "src/components/training/lobby/TrainingLobbyResults.jsx",
+        "name": "TrainingLobbyResults",
+        "line": 5,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/training.js",
+          "pages/hub/training/category/[categoryId].js"
+        ]
+      },
+      {
         "file": "src/components/training/rangeGridData.js",
         "name": "buildRangeGridData",
         "line": 77,
@@ -121268,6 +122200,22 @@
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/training/GodModeArena.jsx"
+        ]
+      },
+      {
+        "file": "src/hooks/useTrainingFavorites.js",
+        "name": "useTrainingFavorites",
+        "line": 9,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/training.js",
+          "pages/hub/training/category/[categoryId].js"
         ]
       },
       {
@@ -123082,6 +124030,22 @@
         ]
       },
       {
+        "file": "src/lib/training/guestTrainingFavorites.mjs",
+        "name": "toggleGuestTrainingFavorite",
+        "line": 14,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-arena-lobby-ui.test.mjs",
+          "src/hooks/useTrainingFavorites.js"
+        ]
+      },
+      {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "describeClubArenaHandSupport",
         "line": 145,
@@ -124040,7 +125004,7 @@
       {
         "file": "src/lib/training/trainingLobbyFilter.mjs",
         "name": "countAdvancedFilters",
-        "line": 152,
+        "line": 154,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124050,6 +125014,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-arena-lobby-ui.test.mjs",
+          "pages/hub/training/category/[categoryId].js",
           "src/components/training/lobby/TrainingLobbyControls.jsx",
           "src/components/training/lobby/TrainingSortBar.jsx"
         ]
@@ -124057,7 +125022,7 @@
       {
         "file": "src/lib/training/trainingLobbyFilter.mjs",
         "name": "filterAndSortTrainingGames",
-        "line": 182,
+        "line": 185,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124067,6 +125032,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-arena-lobby-ui.test.mjs",
+          "__tests__/training-hub-progressive-grid.test.mjs",
           "pages/hub/training.js",
           "pages/hub/training/category/[categoryId].js"
         ]
@@ -124074,7 +125040,7 @@
       {
         "file": "src/lib/training/trainingLobbyFilter.mjs",
         "name": "buildLobbySections",
-        "line": 296,
+        "line": 298,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124084,7 +125050,24 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-arena-lobby-ui.test.mjs",
+          "__tests__/training-hub-progressive-grid.test.mjs",
           "pages/hub/training.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingLobbyFilter.mjs",
+        "name": "getLobbyResultsPage",
+        "line": 340,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-hub-progressive-grid.test.mjs",
+          "src/components/training/lobby/TrainingLobbyResults.jsx"
         ]
       },
       {
@@ -125165,7 +126148,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "kind": "PLACEHOLDER",
-        "line": 222,
+        "line": 219,
         "excerpt": "placeholder={`Search ${category.title}…`}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -126076,6 +127059,33 @@
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
         "rationale": "Comment records a removed fallback or a guard that prevents fallback behavior."
+      },
+      {
+        "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+        "kind": "FALLBACK",
+        "line": 6,
+        "excerpt": "* the pointer-bounds light-dismiss fallback for browsers without closedby.",
+        "disposition": "historical-or-prohibition-comment",
+        "review": "accepted",
+        "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+      },
+      {
+        "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+        "kind": "FALLBACK",
+        "line": 96,
+        "excerpt": "// Safari / fallback for browsers without native <dialog closedby=\"any\">",
+        "disposition": "historical-or-prohibition-comment",
+        "review": "accepted",
+        "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+      },
+      {
+        "file": "src/components/training/lobby/TrainingFiltersSheet.jsx",
+        "kind": "PLACEHOLDER",
+        "line": 156,
+        "excerpt": "placeholder=\"Push/Fold, ICM, 3-Bet, River, Tilt…\"",
+        "disposition": "ui-input-copy",
+        "review": "accepted",
+        "rationale": "JSX placeholder attribute, not placeholder implementation."
       },
       {
         "file": "src/components/ui/GeevesMenuWidget.jsx",
@@ -129353,7 +130363,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "name": "CategoryPage",
-        "line": 56,
+        "line": 59,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -130898,6 +131908,38 @@
         ]
       },
       {
+        "file": "src/components/training/lobby/TrainingFavoritesNotice.jsx",
+        "name": "TrainingFavoritesNotice",
+        "line": 1,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/training.js",
+          "pages/hub/training/category/[categoryId].js"
+        ]
+      },
+      {
+        "file": "src/components/training/lobby/TrainingLobbyResults.jsx",
+        "name": "TrainingLobbyResults",
+        "line": 5,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/training.js",
+          "pages/hub/training/category/[categoryId].js"
+        ]
+      },
+      {
         "file": "src/components/training/rangeGridData.js",
         "name": "buildRangeGridData",
         "line": 77,
@@ -132143,6 +133185,22 @@
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/training/GodModeArena.jsx"
+        ]
+      },
+      {
+        "file": "src/hooks/useTrainingFavorites.js",
+        "name": "useTrainingFavorites",
+        "line": 9,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/training.js",
+          "pages/hub/training/category/[categoryId].js"
         ]
       },
       {
@@ -133957,6 +135015,22 @@
         ]
       },
       {
+        "file": "src/lib/training/guestTrainingFavorites.mjs",
+        "name": "toggleGuestTrainingFavorite",
+        "line": 14,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-arena-lobby-ui.test.mjs",
+          "src/hooks/useTrainingFavorites.js"
+        ]
+      },
+      {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "describeClubArenaHandSupport",
         "line": 145,
@@ -134915,7 +135989,7 @@
       {
         "file": "src/lib/training/trainingLobbyFilter.mjs",
         "name": "countAdvancedFilters",
-        "line": 152,
+        "line": 154,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -134925,6 +135999,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-arena-lobby-ui.test.mjs",
+          "pages/hub/training/category/[categoryId].js",
           "src/components/training/lobby/TrainingLobbyControls.jsx",
           "src/components/training/lobby/TrainingSortBar.jsx"
         ]
@@ -134932,7 +136007,7 @@
       {
         "file": "src/lib/training/trainingLobbyFilter.mjs",
         "name": "filterAndSortTrainingGames",
-        "line": 182,
+        "line": 185,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -134942,6 +136017,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-arena-lobby-ui.test.mjs",
+          "__tests__/training-hub-progressive-grid.test.mjs",
           "pages/hub/training.js",
           "pages/hub/training/category/[categoryId].js"
         ]
@@ -134949,7 +136025,7 @@
       {
         "file": "src/lib/training/trainingLobbyFilter.mjs",
         "name": "buildLobbySections",
-        "line": 296,
+        "line": 298,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -134959,7 +136035,24 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-arena-lobby-ui.test.mjs",
+          "__tests__/training-hub-progressive-grid.test.mjs",
           "pages/hub/training.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingLobbyFilter.mjs",
+        "name": "getLobbyResultsPage",
+        "line": 340,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-hub-progressive-grid.test.mjs",
+          "src/components/training/lobby/TrainingLobbyResults.jsx"
         ]
       },
       {
