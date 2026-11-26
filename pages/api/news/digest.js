@@ -38,6 +38,7 @@ import {
     resolveWeeklyWireRecipients,
 } from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import { mergeFinalCampaignErrorSummary } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
+import { harvestWeeklyWireEditionToVault } from '../../../src/lib/magazine/vaultHarvester.mjs';
 import { submitToIndexNow } from '../../../src/lib/seo/indexingService.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
@@ -599,6 +600,12 @@ export default async function handler(req, res) {
         }
 
         if (!dryRun && !testOnly && sent > 0) {
+            try {
+                await harvestWeeklyWireEditionToVault(sb, edition, { campaignId });
+            } catch (_vaultErr) {
+                /* non-blocking monthly magazine vault bank */
+            }
+
             try {
                 await submitToIndexNow([`${siteUrl}/hub/wire`, `${siteUrl}/hub/wire/${edition.editionNumber}`]);
             } catch (_idxErr) {

@@ -132,6 +132,9 @@ JOB_TIMEOUTS = {
     '/api/cron/revalidate-poker-clips': 120,
     '/api/news/digest':                300,
     '/api/news/digest?days=7':         300,
+    '/api/news/magazine-vault':        300,
+    '/api/news/magazine':              300,
+    '/api/news/magazine?action=monthly_publish': 300,
     # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
     # the timeout IS a kill - subprocess.run() sends SIGKILL and the day's
     # ingestion stops wherever it was. The scraper walks 23 YouTube channels
@@ -1030,6 +1033,10 @@ ALL_CRONS = [
     # real send. (The workflow defaulted dry_run=true only to make a mis-click
     # on the manual button harmless; workflow_dispatch is kept for that.)
     ('/api/news/digest?days=7',                   dict(day_of_week='tue', hour=14, minute=0)),
+
+    # ══ Monthly Smarter.Poker Magazine — continuous vault harvester & 1st-of-month publisher ══
+    ('/api/news/magazine-vault',                  dict(hour='*/6', minute=45)),
+    ('/api/news/magazine?action=monthly_publish', dict(day=1, hour=15, minute=0)),
 
     # ══ WEB PUSH (VAPID) — PepNationLab parity clone, added 2026-08-19 ═══════
     # push-dispatch drains push_outbox rows that inline delivery missed (crash

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Endpoint target (promo, weekly_wire, or lifecycle)'
+        description: 'Endpoint target (promo, weekly_wire, lifecycle, or magazine)'
         required: true
         default: 'promo'
         type: choice
@@ -12,6 +12,12 @@ on:
           - 'promo'
           - 'weekly_wire'
           - 'lifecycle'
+          - 'magazine'
+      issue_period:
+        description: 'Optional YYYY-MM period (for target=magazine, defaults to current month)'
+        required: false
+        default: ''
+        type: string
       action:
         description: 'Operation (preview, test, or send)'
         required: true
@@ -65,6 +71,7 @@ jobs:
           CONFIRM_SEND: ${{ inputs.confirm_send }}
           TEST_EMAIL: ${{ inputs.test_email }}
           TEST_PHONE: ${{ inputs.test_phone }}
+          ISSUE_PERIOD: ${{ inputs.issue_period }}
         run: |
           node - <<'EOF'
           const crypto = require('node:crypto');
@@ -75,21 +82,32 @@ jobs:
             const action = (process.env.PROMO_ACTION || 'preview').trim();
             const scope = (process.env.PROMO_SCOPE || 'non_accounts').trim();
             const confirmSend = (process.env.CONFIRM_SEND || '').trim();
+            const issuePeriod = (process.env.ISSUE_PERIOD || '').trim();
             if (!['preview', 'test', 'send'].includes(action)) {
               throw new Error('Only preview, test, or send actions are permitted');
             }
             if ((target === 'weekly_wire' || target === 'lifecycle') && action === 'send') {
               throw new Error(`Use admin dashboard or daily schedule for full ${target} send`);
             }
-            if (action === 'send' && confirmSend !== 'SEND_LIVE_PROMO') {
+            if (target === 'magazine' && action === 'send' && confirmSend !== 'PUBLISH_MAGAZINE_ONLINE') {
+              throw new Error('confirm_send must equal PUBLISH_MAGAZINE_ONLINE for target=magazine action=send');
+            }
+            if (target !== 'magazine' && action === 'send' && confirmSend !== 'SEND_LIVE_PROMO') {
               throw new Error('confirm_send must equal SEND_LIVE_PROMO for action=send');
             }
             const testEmail = (process.env.TEST_EMAIL || '').trim().toLowerCase();
-            const testPhone = (target === 'weekly_wire' || target === 'lifecycle') ? '' : (process.env.TEST_PHONE || '').trim();
+            const testPhone = (target === 'weekly_wire' || target === 'lifecycle' || target === 'magazine') ? '' : (process.env.TEST_PHONE || '').trim();
             const ts = String(Math.floor(Date.now() / 1000));
-            const sigPayload = action === 'send'
-              ? `${ts}:${action}:${testEmail}:${testPhone}:${confirmSend}`
-              : `${ts}:${action}:${testEmail}:${testPhone}`;
+            const magAction = target === 'magazine'
+              ? (action === 'preview' ? 'compile' : action === 'test' ? 'test_email' : 'publish')
+              : action;
+            const sigPayload = target === 'magazine'
+              ? (magAction === 'publish'
+                ? `${ts}:publish:${testEmail}::${confirmSend}`
+                : `${ts}:${magAction}:${testEmail}:`)
+              : (action === 'send'
+                ? `${ts}:${action}:${testEmail}:${testPhone}:${confirmSend}`
+                : `${ts}:${action}:${testEmail}:${testPhone}`);
             const sig = crypto
               .createHmac('sha256', secret)
               .update(sigPayload)
@@ -99,7 +117,26 @@ jobs:
               ? `https://smarter.poker/api/news/digest${action === 'preview' ? '?dryRun=1' : ''}`
               : target === 'lifecycle'
                 ? 'https://smarter.poker/api/news/lifecycle'
-                : 'https://smarter.poker/api/news/promo-campaign';
+                : target === 'magazine'
+                  ? 'https://smarter.poker/api/news/magazine'
+                  : 'https://smarter.poker/api/news/promo-campaign';
+
+            const payload = target === 'magazine'
+              ? {
+                  action: magAction,
+                  harvestFirst: magAction === 'compile',
+                  sendEmail: false,
+                  confirmSend,
+                  testEmail,
+                  ...(issuePeriod ? { issuePeriod } : {}),
+                }
+              : {
+                  action,
+                  scope,
+                  confirmSend,
+                  testEmail,
+                  testPhone,
+                };
 
             const res = await fetch(endpoint, {
               method: 'POST',
@@ -108,13 +145,7 @@ jobs:
                 'x-operator-timestamp': ts,
                 'x-operator-signature': sig,
               },
-              body: JSON.stringify({
-                action,
-                scope,
-                confirmSend,
-                testEmail,
-                testPhone,
-              }),
+              body: JSON.stringify(payload),
             });
             const body = await res.json().catch(() => ({}));
             console.log('HTTP', res.status);

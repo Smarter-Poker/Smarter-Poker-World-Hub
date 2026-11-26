@@ -779,6 +779,7 @@ const REQUIRED_TEST_FILES = [
     'tests/spin-reserve-fund-contract.test.mjs',
     '__tests__/newsletter-forensic-pass-hardening.law.test.mjs',
     '__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs',
+    '__tests__/smarter-poker-magazine.law.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {
@@ -912,6 +913,7 @@ import './trivia-smarterdesign-competitive-admin-laws.test.mjs';
 import './trivia-smarterdesign-gameplay-laws.test.mjs';
 import './trivia-smarterdesign-lobby-laws.test.mjs';
 import './newsletter-zero-broken-links-and-images.law.test.mjs';
+import './smarter-poker-magazine.law.test.mjs';
 import './newsletter-end-to-end-wiring-and-ops.law.test.mjs';
 import './weekly-wire-v4-enhancements.law.test.mjs';
 import './newsletter-forensic-pass-hardening.law.test.mjs';
