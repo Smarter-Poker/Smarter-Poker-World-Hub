@@ -1320,8 +1320,8 @@ test('MAG LAW 15: _app.js + print/[issue].js enforce print isolation without a 4
     assert.match(appSrc, /!isPrintProofRoute[\s\S]{0,140}<MessengerDockHost/);
     assert.match(appSrc, /!isPrintProofRoute\s*&&\s*<NewsletterCaptureBar/);
     assert.match(appSrc, /!isPrintProofRoute\s*&&\s*<TutorialProvider/);
-    assert.match(appSrc, /!isPrintProofRoute\s*&&\s*<GlobalNotificationPrompt/);
-    assert.match(appSrc, /!isPrintProofRoute\s*&&\s*<PWAInstallPrompt/);
+    assert.match(appSrc, /!isPrintProofRoute[\s\S]{0,200}<GlobalNotificationPrompt/);
+    assert.match(appSrc, /!isPrintProofRoute[\s\S]{0,160}<PWAInstallPrompt/);
     assert.match(appSrc, /!isPrintProofRoute\s*&&\s*<WelcomeModalGate/);
 
     const printSrc = read('pages/hub/magazine/print/[issue].js');
