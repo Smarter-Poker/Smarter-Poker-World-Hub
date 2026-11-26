@@ -2448,7 +2448,8 @@ function UniversalDynamicTable({
                 const alreadyTracked = sessionMistakesListRef.current.some(m => m.questionId === qId);
                 if (!alreadyTracked) {
                     const entryVariant = String(
-                        question?.scenario?.variant
+                        activeNormalizedVariant
+                        || question?.scenario?.variant
                         || trainerConfig?.variant
                         || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh'),
                     ).toLowerCase();

@@ -272,6 +272,8 @@ function createDeliveryFamilyKey(gameId, level, trainerConfig) {
     targetPositions: normalizedTargetPos && normalizedTargetPos !== 'ANY' ? normalizedTargetPos : null,
     handSelection: String(trainerConfig?.handSelection || 'all').toLowerCase(),
     variant: String(trainerConfig?.variant || '').toLowerCase() || null,
+    bettingStructure: String(trainerConfig?.bettingStructure || '').toLowerCase() || null,
+    format: String(trainerConfig?.format || '').toLowerCase() || null,
     duelToken: String(trainerConfig?.duelToken || '').trim() || null,
     syncedHandId: String(trainerConfig?.syncedHandId || '').trim() || null,
     custom: isCustomTrainerConfig(trainerConfig) ? {
@@ -707,7 +709,7 @@ export default function useGTOTrainer(
       if (trainerConfig?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())) {
         params.set('bettingStructure', String(trainerConfig.bettingStructure).toLowerCase());
       }
-      if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())) {
+      if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu', '9max'].includes(String(trainerConfig.format).toLowerCase())) {
         params.set('format', String(trainerConfig.format).toLowerCase());
       }
 
@@ -820,7 +822,7 @@ export default function useGTOTrainer(
       if (trainerConfig?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())) {
         params.set('bettingStructure', String(trainerConfig.bettingStructure).toLowerCase());
       }
-      if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())) {
+      if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu', '9max'].includes(String(trainerConfig.format).toLowerCase())) {
         params.set('format', String(trainerConfig.format).toLowerCase());
       }
 
@@ -932,7 +934,7 @@ export default function useGTOTrainer(
       bettingStructure: trainerConfig?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())
         ? String(trainerConfig.bettingStructure).toLowerCase()
         : null,
-      format: trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())
+      format: trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu', '9max'].includes(String(trainerConfig.format).toLowerCase())
         ? String(trainerConfig.format).toLowerCase()
         : null,
     };

@@ -787,5 +787,83 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
   assert.ok(godModeSrc.includes('data-export-session-study-dossier="true"'), 'GodModeArena review screen must expose Copy Exportable Session Study Dossier button');
 });
 
+test('Phase 20 forensic root-cause hardening: Arena clubCoachAssignment hydration, Training Home autoLaunch overrides, DeliveryFamilyKey format/structure isolation, Tournament Brain PLO8 tightening, and UDT mistake variant tracking', async () => {
+  // 1. Arena route must hydrate customLaunch and activeArenaVariant from clubCoachAssignment
+  const arenaSrc = read('pages/hub/training/arena/[gameId].js');
+  assert.ok(
+    arenaSrc.includes('clubCoachAssignment?.variant') &&
+    arenaSrc.includes('clubCoachAssignment?.bettingStructure') &&
+    arenaSrc.includes('clubCoachAssignment?.format') &&
+    arenaSrc.includes('clubCoachAssignment?.targetStreet') &&
+    arenaSrc.includes('clubCoachAssignment?.heroPosition') &&
+    arenaSrc.includes('clubAssignmentId: clubCoachAssignment.assignmentId'),
+    'Arena route must forward clubCoachAssignment variant, bettingStructure, format, street, position, and metadata into customLaunch.config',
+  );
+  assert.ok(
+    arenaSrc.includes("['cash', 'mtt', 'spins', 'hu', '9max'].includes(rawFormat)"),
+    'Arena route must accept 9max alongside cash/mtt/spins/hu in rawFormat validation',
+  );
+
+  // 2. Training Home (?autoLaunch=) must forward query variant/structure/format/street/position into quickStartDrill
+  const homeSrc = read('pages/hub/training.js');
+  assert.ok(
+    homeSrc.includes('quickStartDrill(game, queryOverrides)'),
+    'Training Home ?autoLaunch= must forward queryOverrides (variant, bettingStructure, format, targetStreet, heroPosition) into quickStartDrill',
+  );
+
+  // 3. useGTOTrainer createDeliveryFamilyKey must isolate bettingStructure and format, and allow 9max
+  const trainerHookSrc = read('src/hooks/useGTOTrainer.js');
+  assert.ok(
+    trainerHookSrc.includes("bettingStructure: String(trainerConfig?.bettingStructure || '').toLowerCase() || null") &&
+    trainerHookSrc.includes("format: String(trainerConfig?.format || '').toLowerCase() || null"),
+    'useGTOTrainer createDeliveryFamilyKey must include bettingStructure and format to prevent session/cache collisions',
+  );
+  assert.ok(
+    trainerHookSrc.includes("['cash', 'mtt', 'spins', 'hu', '9max']"),
+    'useGTOTrainer must allow 9max in format query parameter forwarding',
+  );
+
+  // 4. API batch-preload and get-question must accept 9max in requestedFormat
+  for (const apiPath of ['pages/api/training/batch-preload.js', 'pages/api/training/get-question.js']) {
+    const apiSrc = read(apiPath);
+    assert.ok(
+      apiSrc.includes("['cash', 'mtt', 'spins', 'hu', '9max'].includes(normalizedRawFormat)"),
+      `${apiPath} must accept 9max in requestedFormat validation`,
+    );
+  }
+
+  // 5. Tournament Brain must include plo8 in ploVariants and getPLOTournamentOverride
+  const tourneyBrainSrc = read('src/lib/poker-engine/brain/tournament-brain.js');
+  assert.ok(
+    tourneyBrainSrc.includes('plo8: 11') &&
+    tourneyBrainSrc.includes("['plo4', 'plo5', 'plo6', 'plo8', 'plo']"),
+    'tournament-brain.js must include plo8 in getPLOTournamentOverride and ploVariants arrays',
+  );
+
+  // 6. Blocker Matrix self-blocking suit check must include plo8
+  const presetsSrc = read('src/lib/training/trainingPresets.mjs');
+  assert.ok(
+    presetsSrc.includes("['plo4', 'plo5', 'plo6', 'plo8'].includes(variant)"),
+    'evaluateHandBlockerImpact in trainingPresets.mjs must include plo8 in the 4/5/6-card Omaha self-blocking suit check',
+  );
+
+  // 7. UniversalDynamicTable mistake tracking must prioritize activeNormalizedVariant before falling back to card length
+  const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.ok(
+    udtSrc.includes('activeNormalizedVariant\n                        || question?.scenario?.variant'),
+    'UniversalDynamicTable mistake tracking must prioritize activeNormalizedVariant so 4-card PLO8 hands are never misclassified as plo4',
+  );
+
+  // 8. Solver provenance displays in aggregate.js and reports.js must include PLO8-Brain.Js
+  for (const pagePath of ['pages/hub/training/aggregate.js', 'pages/hub/training/reports.js']) {
+    const pageSrc = read(pagePath);
+    assert.ok(
+      pageSrc.includes('PLO8-Brain.Js'),
+      `${pagePath} solver provenance engine list must include PLO8-Brain.Js`,
+    );
+  }
+});
+
+
 
 
