@@ -99,6 +99,11 @@ export function applyDifficultyToQuestion(question, difficultyMode) {
         .map((member) => (typeof member === 'string' ? member : member.id))
         .filter(Boolean);
       if (mapped.length) return mapped;
+      // Unsized actions pass through with their original IDs. Two raises can
+      // share a family without being interchangeable answers or solver masses.
+      if (simplifiedOption.id && enriched.some(option => option.id === simplifiedOption.id)) {
+        return [simplifiedOption.id];
+      }
       if (
         simplifiedOption.isSimplified
         && (simplifiedOption.label === 'Raise' || simplifiedOption.label === 'Bet')

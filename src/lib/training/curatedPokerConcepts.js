@@ -8,6 +8,7 @@
  * contains four meaningful alternatives.
  */
 
+import { trainingActionPrompt } from './decisionCoaching.mjs';
 import { evaluateTrainingSpotWithHorseBrain } from './horseBrainTrainingAdapter.js';
 
 const FACTS = {
@@ -182,44 +183,7 @@ const VARIANT_HERO_CARDS = {
   ],
 };
 
-const VARIANT_ACTION_CHOICES = {
-  plo_preflop: [
-    'Fold',
-    'Call Pot-Sized Open',
-    'Raise 50% Pot',
-    'Raise Pot (100% Max)',
-  ],
-  plo_postflop: [
-    'Check / Fold',
-    'Call / Check Back',
-    'Bet 50% Pot',
-    'Bet Pot (100% Max)',
-  ],
-  nlh_preflop: [
-    'Fold',
-    'Call Open',
-    'Raise To 2.5 BB',
-    '3-Bet / Jam All-In',
-  ],
-  nlh_postflop: [
-    'Check / Fold',
-    'Call / Check Back',
-    'Bet 33% Pot',
-    'Bet 75% Pot / Overbet',
-  ],
-  fixed_limit_preflop: [
-    'Fold',
-    'Call 1 Small Bet',
-    'Raise To 2 Small Bets',
-    'Cap At 4 Small Bets',
-  ],
-  fixed_limit_postflop: [
-    'Check / Fold',
-    'Call 1 Fixed Bet',
-    'Raise 1 Big Bet',
-    'Cap At 4 Bets',
-  ],
-};
+
 
 function normalizedTopic(topic) {
   const key = String(topic || '').toLowerCase();
@@ -406,24 +370,15 @@ export function generateCuratedPokerConceptBatch({
 
     const explicitStructure = String(gameConfig?.bettingStructure || '').trim().toLowerCase();
     const isFixedLimit = explicitStructure === 'fixed_limit';
-    const useActionChoices = isPloVariant || hasExplicitVariant || isFixedLimit;
-    const actionPool = isFixedLimit
-      ? (street === 'preflop' ? VARIANT_ACTION_CHOICES.fixed_limit_preflop : VARIANT_ACTION_CHOICES.fixed_limit_postflop)
-      : isPloVariant
-        ? (street === 'preflop' ? VARIANT_ACTION_CHOICES.plo_preflop : VARIANT_ACTION_CHOICES.plo_postflop)
-        : (street === 'preflop' ? VARIANT_ACTION_CHOICES.nlh_preflop : VARIANT_ACTION_CHOICES.nlh_postflop);
-    const fallbackAnswer = useActionChoices
-      ? actionPool[(index + style) % actionPool.length]
-      : fact[field];
-    const fallbackChoices = useActionChoices
-      ? rotateOptions(actionPool, fallbackAnswer, index + level)
-      : rotateOptions([fallbackAnswer, ...alternatives(topic, field, variant)], fallbackAnswer, index + level);
-
-    const useBrainActionChoices = useActionChoices
+    const useBrainActionChoices = (isPloVariant || hasExplicitVariant)
       && !isFixedLimit
       && brainEval?.ok
       && Array.isArray(brainEval.options)
       && brainEval.options.length === 4;
+    const fallbackAnswer = fact[field];
+    const fallbackChoices = rotateOptions(
+      [fallbackAnswer, ...alternatives(topic, field, variant)], fallbackAnswer, index + level,
+    );
     const finalOptions = useBrainActionChoices ? brainEval.options : fallbackChoices.options;
     const finalCorrectAnswer = useBrainActionChoices ? brainEval.correctAnswer : fallbackChoices.correctAnswer;
     const finalAnswerText = useBrainActionChoices ? brainEval.correctAnswerText : fallbackAnswer;
@@ -457,11 +412,12 @@ export function generateCuratedPokerConceptBatch({
       source: 'CURATED_SCENARIO',
       dataQuality: 'CURATED',
       evidenceDisclosure: 'Expert-authored poker concept; no solver-exact frequency or EV is claimed.',
-      question: useActionChoices
-        ? `[${variantTitle}] ${buildPrompt(fact, style, variant)}`
-        : buildPrompt(fact, style, variant),
+      question: useBrainActionChoices
+        ? trainingActionPrompt({ variant: effectiveVariant, bettingStructure: resolvedBettingStructure, street, heroPosition })
+        : (isFixedLimit ? `[${variantTitle}] ` : '') + buildPrompt(fact, style, variant),
       scenario: {
         isConceptQuestion: true,
+        isActionDrill: Boolean(useBrainActionChoices),
         street,
         variant: effectiveVariant,
         holeCardCount: heroCards.length,
@@ -477,6 +433,7 @@ export function generateCuratedPokerConceptBatch({
         villainStack: stackDepth,
         stackDepth,
         pot,
+        toCall: toCallBb,
         gameType: family,
         spotType: topic,
         ...(brainEval?.ok
@@ -520,8 +477,8 @@ export function generateCuratedPokerConceptBatch({
       correctAnswerText: finalAnswerText,
       explanation: useBrainActionChoices
         ? `${brainEval.explanation} This answer comes from the curated concept curriculum.`
-        : `${finalAnswerText}. ${fact.principle}. (${variantTitle} - ${isPloVariant ? 'Pot-Limit sizing rules apply; max bet/raise is 100% pot' : 'No-Limit sizing rules apply'}). This answer comes from the curated concept curriculum.`,
-      ...(brainEval?.structuredExplanation ? { structuredExplanation: brainEval.structuredExplanation } : {}),
+        : `${finalAnswerText}. ${fact.principle}. (${variantTitle}). This answer comes from the curated concept curriculum.`,
+      ...(useBrainActionChoices ? { structuredExplanation: brainEval.structuredExplanation } : {}),
       level,
     });
   }

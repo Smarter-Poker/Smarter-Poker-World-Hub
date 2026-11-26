@@ -490,8 +490,8 @@ test('Phase 17 full suite: PLO8/Fixed-Limit specialized curriculum, Shared Drill
     assert.equal(q.scenario.bettingStructure, 'fixed_limit');
     assert.ok(q.question.includes('Fixed-Limit'), 'Fixed-Limit curated prompt must label Fixed-Limit');
     assert.ok(
-      q.options.some((o) => /Cap At 4|Big Bet|Fixed Bet/i.test(o.text)),
-      'Fixed-Limit curated question must offer Fixed-Limit cap/increment action choices',
+      q.options.some((o) => /cap|big bet|small bet/i.test(o.text)),
+      'Fixed-Limit concept choices must teach the cap or betting increments',
     );
   }
 

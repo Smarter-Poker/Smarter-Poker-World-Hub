@@ -26,7 +26,7 @@ const VENUE_TYPES = [
     { id: 'home_game', label: 'Home Game' },
 ];
 
-export default function VenueSelector({ value, venueType, onChange, userId }) {
+export default function VenueSelector({ inputId, value, venueType, onChange, userId }) {
     const [selectedType, setSelectedType] = useState(venueType || 'casino');
     const [searchQuery, setSearchQuery] = useState(value || '');
     const [suggestions, setSuggestions] = useState([]);
@@ -204,6 +204,7 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
             {/* Search / Input Field */}
             <div style={styles.inputRow}>
                 <input
+                    id={inputId}
                     type="text"
                     value={searchQuery}
                     onChange={handleInputChange}
