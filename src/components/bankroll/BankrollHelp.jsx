@@ -27,6 +27,7 @@ const guides = {
   reports: ['Performance Reports summarizes session volume, profit and win rate. Choose CSV for spreadsheets, JSON for structured records, or PDF for a printable report.'],
   export: ['Choose CSV for spreadsheet rows, JSON for structured ledger records, or PDF for a printable report. Downloads require a connection.'],
   'toke-home': ['Shift Tracker records your shifts, downs and tokes. Analytics shows earnings and hourly trends.', 'Use Dealer Vault for licenses, pay stubs and tax documents. Open Venue Intel to compare venues and see your shift calendar.'],
+  'dealer-reference': ['Ask a question about a game, a dealing procedure or a tournament rule. Your latest answer stays here while you ask a follow-up.', 'Open Earlier Questions for the recent answers in this visit. For a disputed ruling, call the floor.'],
   'toke-shift': ['Clock in to begin a shift. Use the live shift controls to record downs and tokes, then clock out at the end of your shift.'],
   'toke-analytics': ['Review your earnings, recorded shifts and hourly rates. Change the available filters to compare periods.'],
   'toke-vault': ['Manage dealer licenses, pay stubs and tax documents here. Select a document to view its details.'],
