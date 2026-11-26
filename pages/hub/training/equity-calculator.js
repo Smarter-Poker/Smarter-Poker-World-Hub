@@ -1,3 +1,5 @@
+import PlayingCard from '../../../src/components/poker/PlayingCard';
+import { runLocalTrainingEquity } from '../../../src/lib/poker/runLocalTrainingEquity';
 /**
  * Equity Calculator — Monte Carlo Hand vs Hand Equity Tool
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -10,6 +12,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-11 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-8 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -39,7 +42,7 @@ const SUITS = [
   { char: 's', symbol: '\u2660', color: 'var(--sp-fg-muted)', name: 'Spades' },
 ];
 
-const PLAYER_COLORS = ['var(--sp-accent-cyan)', 'var(--sp-accent-red)', 'var(--sp-accent-green)', 'var(--sp-accent-orange)'];
+const PLAYER_COLORS = ['#c4edff', '#64a9ff', '#b7c8d7', '#59c9d4'];
 const PLAYER_LABELS = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
 
 const EQUITY_VARIANTS = [
@@ -137,24 +140,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
             >
               {card ? (
                 <>
-                  <span
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 800,
-                      color: SUITS.find((s) => s.char === card[1])?.color || '#fff',
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  >
-                    {card[0]}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      color: SUITS.find((s) => s.char === card[1])?.color || '#fff',
-                    }}
-                  >
-                    {SUITS.find((s) => s.char === card[1])?.symbol}
-                  </span>
+                  <PlayingCard arena card={card} width={40} />
                   <span
                     role="button"
                     tabIndex={0}
@@ -200,8 +186,8 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -5 }}
             style={{
-              position: 'absolute',
-              top: '100%',
+              position: 'relative',
+              maxHeight: '50dvh', overflowY: 'auto',
               left: 0,
               zIndex: 200,
               background: 'linear-gradient(145deg, #1a1a2e, #0f172a)',
@@ -246,7 +232,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
               </button>
             </div>
             {SUITS.map((suit) => (
-              <div key={suit.char} style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+              <div key={suit.char} style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 5 }}>
                 {RANKS.map((rank) => {
                   const card = rank + suit.char;
                   const used = usedCards.has(card);
@@ -257,8 +243,8 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                       onClick={() => !used && handlePick(rank, suit)}
                       disabled={used}
                       style={{
-                        width: 24,
-                        height: 28,
+                        width: 44,
+                        height: 46,
                         borderRadius: 3,
                         border: 'none',
                         fontSize: 12,
@@ -276,8 +262,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                         padding: 0,
                       }}
                     >
-                      <span style={{ fontSize: 12 }}>{rank}</span>
-                      <span style={{ fontSize: 12 }}>{suit.symbol}</span>
+                      <PlayingCard arena card={card} width={32} />
                     </button>
                   );
                 })}
@@ -360,23 +345,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
             >
               {card ? (
                 <>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 800,
-                      color: SUITS.find((s) => s.char === card[1])?.color || '#fff',
-                    }}
-                  >
-                    {card[0]}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: SUITS.find((s) => s.char === card[1])?.color || '#fff',
-                    }}
-                  >
-                    {SUITS.find((s) => s.char === card[1])?.symbol}
-                  </span>
+                  <PlayingCard arena card={card} width={34} />
                   <span
                     role="button"
                     tabIndex={0}
@@ -422,8 +391,8 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             style={{
-              position: 'absolute',
-              top: '100%',
+              position: 'relative',
+              maxHeight: '50dvh', overflowY: 'auto',
               left: 0,
               zIndex: 200,
               background: 'linear-gradient(145deg, #1a1a2e, #0f172a)',
@@ -468,7 +437,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
               </button>
             </div>
             {SUITS.map((suit) => (
-              <div key={suit.char} style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+              <div key={suit.char} style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 5 }}>
                 {RANKS.map((rank) => {
                   const card = rank + suit.char;
                   const used = usedCards.has(card);
@@ -479,8 +448,8 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                       onClick={() => !used && handlePick(rank, suit)}
                       disabled={used}
                       style={{
-                        width: 24,
-                        height: 28,
+                        width: 44,
+                        height: 46,
                         borderRadius: 3,
                         border: 'none',
                         fontSize: 12,
@@ -498,8 +467,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                         padding: 0,
                       }}
                     >
-                      <span style={{ fontSize: 12 }}>{rank}</span>
-                      <span style={{ fontSize: 12 }}>{suit.symbol}</span>
+                      <PlayingCard arena card={card} width={32} />
                     </button>
                   );
                 })}
@@ -553,7 +521,7 @@ function EquityBar({ results }) {
       {/* Bar */}
       <div
         style={{
-          height: 28,
+          height: 46,
           borderRadius: 14,
           overflow: 'hidden',
           display: 'flex',
@@ -671,13 +639,12 @@ export default function EquityCalculatorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [isOffline, setIsOffline] = useState(
-    typeof navigator !== 'undefined' ? !navigator.onLine : false,
-  );
+  const [isOffline, setIsOffline] = useState(false);
   const [offlineFallbackUsed, setOfflineFallbackUsed] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
+    setIsOffline(navigator.onLine === false);
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
     window.addEventListener('online', handleOnline);
@@ -752,19 +719,6 @@ export default function EquityCalculatorPage() {
       }
     });
 
-    const totalStrength =
-      playerEvals.reduce((sum, ev) => sum + Math.max(10, Number(ev?.handScore) || 50), 0) || 100;
-    const localResults = activeHands.map((playerCards, idx) => {
-      const score = Math.max(10, Number(playerEvals[idx]?.handScore) || 50);
-      const equity = Number(((score / totalStrength) * 100).toFixed(1));
-      return {
-        hand: (playerCards || []).join(''),
-        equity,
-        wins: Math.round((equity / 100) * 5000),
-        ties: 0,
-      };
-    });
-
     const p1Eval = playerEvals[0];
     const localBrainAnalysis = p1Eval
       ? {
@@ -779,7 +733,7 @@ export default function EquityCalculatorPage() {
         }
       : null;
 
-    return { localResults, localBrainAnalysis };
+    return { localBrainAnalysis };
   }, [variant, boardCards, hands, numPlayers, activeVariantSpec.holeCount]);
 
   const liveOfflineSpotPreview = useMemo(() => {
@@ -812,6 +766,7 @@ export default function EquityCalculatorPage() {
   // Switch variant
   const changeVariant = useCallback((nextVariant) => {
     calcSeqRef.current += 1;
+    setLoading(false);
     const nextSpec = EQUITY_VARIANTS.find((v) => v.id === nextVariant) || EQUITY_VARIANTS[0];
     setVariant(nextSpec.id);
     setHands((prev) => prev.map((h) => h.slice(0, nextSpec.holeCount)));
@@ -823,6 +778,7 @@ export default function EquityCalculatorPage() {
   // Update hand for player
   const updateHand = useCallback((playerIdx, cards) => {
     calcSeqRef.current += 1;
+    setLoading(false);
     setHands((prev) => {
       const next = [...prev];
       next[playerIdx] = cards;
@@ -835,6 +791,7 @@ export default function EquityCalculatorPage() {
   // Add/remove player
   const changePlayerCount = useCallback((count) => {
     calcSeqRef.current += 1;
+    setLoading(false);
     setNumPlayers(count);
     setHands((prev) => {
       const next = [...prev];
@@ -848,6 +805,7 @@ export default function EquityCalculatorPage() {
   // Update board cards
   const updateBoardCards = useCallback((nextBoard) => {
     calcSeqRef.current += 1;
+    setLoading(false);
     setBoardCards(nextBoard);
     setResults(null);
     setHorseBrainAnalysis(null);
@@ -857,6 +815,7 @@ export default function EquityCalculatorPage() {
   // Load preset
   const loadPreset = useCallback((preset) => {
     calcSeqRef.current += 1;
+    setLoading(false);
     const presetVariant = preset.variant || 'holdem';
     setVariant(presetVariant);
     const newHands = preset.hands.map((h) => {
@@ -878,6 +837,7 @@ export default function EquityCalculatorPage() {
   // Clear all
   const clearAll = useCallback(() => {
     calcSeqRef.current += 1;
+    setLoading(false);
     setHands([[], [], [], []]);
     setBoardCards([]);
     setResults(null);
@@ -893,18 +853,19 @@ export default function EquityCalculatorPage() {
     setLoading(true);
     setError(null);
 
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setIsOffline(true);
+    async function showLocalResults() {
+      const data = await runLocalTrainingEquity({ hands: hands.slice(0, numPlayers), board: boardCards, variant, iterations: 5000 });
+      if (reqSeq !== calcSeqRef.current) return;
       setOfflineFallbackUsed(true);
-      const { localResults, localBrainAnalysis } = buildLocalOfflineEvaluation();
-      setResults(localResults);
-      setHorseBrainAnalysis(localBrainAnalysis);
+      setResults(data.results);
+      setHorseBrainAnalysis(buildLocalOfflineEvaluation().localBrainAnalysis);
       setEquitySeq(reqSeq);
-      setLoading(false);
-      return;
     }
-
     try {
+      if (navigator.onLine === false) {
+        await showLocalResults();
+        return;
+      }
       const handStrings = hands.slice(0, numPlayers).map((h) => h.join(''));
       const res = await authedFetch('/api/training/equity', {
         method: 'POST',
@@ -931,12 +892,12 @@ export default function EquityCalculatorPage() {
       }
     } catch (err) {
       if (reqSeq === calcSeqRef.current) {
-        setOfflineFallbackUsed(true);
-        const { localResults, localBrainAnalysis } = buildLocalOfflineEvaluation();
-        setResults(localResults);
-        setHorseBrainAnalysis(localBrainAnalysis);
-        setEquitySeq(reqSeq);
-        setError(err.message);
+        try {
+          if (navigator.onLine === false) throw err;
+          await showLocalResults();
+        } catch (localError) {
+          if (reqSeq === calcSeqRef.current) setError(localError.message);
+        }
       }
     } finally {
       if (reqSeq === calcSeqRef.current) {
@@ -964,7 +925,7 @@ export default function EquityCalculatorPage() {
       },
       {
         question: 'How Does A Monte Carlo Equity Calculator Work?',
-        answer: 'A Monte Carlo Equity Calculator Simulates Thousands Of Random Unrevealed Community Board Runouts To Calculate Exact Win, Tie, And Loss Frequencies.',
+        answer: 'A Monte Carlo Equity Calculator Simulates Thousands Of Random Unrevealed Community Board Runouts To Calculate Estimated Win, Tie, And Loss Frequencies.',
       },
       {
         question: 'How Many Players Can Be Compared Simultaneously?',
@@ -989,7 +950,7 @@ export default function EquityCalculatorPage() {
         },
         {
           name: 'Run Monte Carlo Equity Simulation',
-          text: 'Click Calculate Equity to run server-side Monte Carlo iterations and inspect exact Win %, Tie %, and total Pot Equity bars for every hand.',
+          text: 'Click Calculate Equity to run server-side Monte Carlo iterations and inspect Win %, Tie %, and total Pot Equity bars for every hand.',
         },
       ],
     },
@@ -1013,61 +974,88 @@ export default function EquityCalculatorPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          className="sp-training-analysis-header"
-          style={{
-            padding: '20px 24px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <button
-              type="button"
-              onClick={() => router.push('/hub/training')}
+        <BankrollImageHeader art="jarvis" title="Equity Calculator" helpContent={<><p>Choose A Game And Enter Each Hand. Add Community Cards To Compare Win, Tie And Pot Equity. PLO8 Splits The Pot When A Low Qualifies.</p>
+          {/* About Section */}
+          <div
+            className="sp-equity-aeo-kernel"
+            style={{
+              marginTop: 20,
+              padding: '16px 20px',
+              background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 0.12), rgba(255,255,255,0.02))',
+              borderRadius: 12,
+              border: '1px solid rgba(168,85,247,0.3)',
+            }}
+          >
+            <div
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
                 fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              &larr; Training
-            </button>
-            <h1
-              style={{
-                fontSize: 22,
                 fontWeight: 800,
-                margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: 'var(--sp-accent-cyan)',
+                textTransform: 'uppercase',
+                letterSpacing: 1.2,
+                marginBottom: 8,
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              Equity Calculator
-            </h1>
-            <span
+              Direct Answer &bull; Poker Equity Overview
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+              The Poker Equity Calculator Computes Real-Time Hand-Versus-Hand Odds Using 5,000 Monte Carlo Iterations Across Any Community Board. Input 2 To 4 Hole-Card Matchups Pre-Flop, Flop, Or Turn To Instantaneously Calculate Mathematical Win, Tie, And Loss Probabilities.
+            </p>
+          </div>
+
+          {/* FAQ Accordion Section */}
+          <div
+            className="sp-equity-faq-section"
+            style={{
+              marginTop: 20,
+              padding: '16px 20px',
+              background: 'rgba(255,255,255,0.02)',
+              borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <div
               style={{
                 fontSize: 12,
-                color: '#86daff',
-                background: 'rgba(168,85,247,0.1)',
-                padding: '3px 8px',
-                borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(168,85,247,0.2)',
+                fontWeight: 800,
+                color: 'var(--sp-fg-dim)',
+                textTransform: 'uppercase',
+                letterSpacing: 1.2,
+                marginBottom: 12,
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              PHASE 19
-            </span>
+              Frequently Asked Questions
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
+                  What Is Poker Equity?
+                </summary>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
+                  Poker Equity Represents Your Expected Share Of The Pot Based On Your Mathematical Probability Of Winning Or Tying At Showdown.
+                </div>
+              </details>
+              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
+                  How Does A Monte Carlo Equity Calculator Work?
+                </summary>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
+                  A Monte Carlo Equity Calculator Simulates Thousands Of Random Unrevealed Community Board Runouts To Calculate Estimated Win, Tie, And Loss Frequencies.
+                </div>
+              </details>
+              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
+                  How Many Players Can Be Compared Simultaneously?
+                </summary>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
+                  This Tool Supports Comparing Equities For Up To 4 Active Players Simultaneously Pre-Flop, On The Flop, Or On The Turn.
+                </div>
+              </details>
+            </div>
           </div>
-        </div>
-
+          </>} />
         {/* Main Content */}
         <div className="sp-training-analysis-main" style={{ padding: '20px 24px', maxWidth: 700, margin: '0 auto' }}>
           {/* Variant & Player Count */}
@@ -1396,7 +1384,7 @@ export default function EquityCalculatorPage() {
                     marginBottom: 12,
                   }}
                 >
-                  EQUITY RESULTS (5,000 SIMULATIONS)
+                  {boardCards.length === 5 ? 'Exact Showdown Equity' : 'Estimated Equity · 5,000 Runouts'}
                 </div>
                 <EquityBar results={results} />
                 {horseBrainAnalysis && (
@@ -1485,86 +1473,6 @@ export default function EquityCalculatorPage() {
             </div>
           </div>
 
-          {/* About Section */}
-          <div
-            className="sp-equity-aeo-kernel"
-            style={{
-              marginTop: 20,
-              padding: '16px 20px',
-              background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 0.12), rgba(255,255,255,0.02))',
-              borderRadius: 12,
-              border: '1px solid rgba(168,85,247,0.3)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: 'var(--sp-accent-cyan)',
-                textTransform: 'uppercase',
-                letterSpacing: 1.2,
-                marginBottom: 8,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Direct Answer &bull; Poker Equity Overview
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-              The Poker Equity Calculator Computes Real-Time Hand-Versus-Hand Odds Using 5,000 Monte Carlo Iterations Across Any Community Board. Input 2 To 4 Hole-Card Matchups Pre-Flop, Flop, Or Turn To Instantaneously Calculate Mathematical Win, Tie, And Loss Probabilities.
-            </p>
-          </div>
-
-          {/* FAQ Accordion Section */}
-          <div
-            className="sp-equity-faq-section"
-            style={{
-              marginTop: 20,
-              padding: '16px 20px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1.2,
-                marginBottom: 12,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Frequently Asked Questions
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
-                  What Is Poker Equity?
-                </summary>
-                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
-                  Poker Equity Represents Your Expected Share Of The Pot Based On Your Mathematical Probability Of Winning Or Tying At Showdown.
-                </div>
-              </details>
-              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
-                  How Does A Monte Carlo Equity Calculator Work?
-                </summary>
-                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
-                  A Monte Carlo Equity Calculator Simulates Thousands Of Random Unrevealed Community Board Runouts To Calculate Exact Win, Tie, And Loss Frequencies.
-                </div>
-              </details>
-              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
-                  How Many Players Can Be Compared Simultaneously?
-                </summary>
-                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
-                  This Tool Supports Comparing Equities For Up To 4 Active Players Simultaneously Pre-Flop, On The Flop, Or On The Turn.
-                </div>
-              </details>
-            </div>
-          </div>
         </div>
       </div>
     </>

@@ -2,31 +2,60 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-// 2026-10-12: the hub rendered all 107 game cards (~5,250 of 5,600 elements)
-// at once, which kept it unresponsive for ~7s in Safari's engine. The first
-// cards render immediately; the rest mount in batches as the reader scrolls.
-const hub = readFileSync(new URL('../pages/hub/training.js', import.meta.url), 'utf8');
+import { TRAINING_LIBRARY } from '../src/data/TRAINING_LIBRARY.js';
+import {
+  DEFAULT_LOBBY_FILTERS,
+  buildLobbySections,
+  filterAndSortTrainingGames,
+  getLobbyResultsPage,
+} from '../src/lib/training/trainingLobbyFilter.mjs';
 
-test('the training hub renders a first batch of game cards, not the whole library', () => {
-  assert.match(hub, /const INITIAL_GAME_CARDS = 12;/);
-  assert.match(hub, /const GAME_CARD_BATCH = 24;/);
-  assert.match(hub, /const visibleGames = filtered\.slice\(0, visibleCardCount\);/);
-  assert.match(hub, /buildLobbySections\(visibleGames, effectiveFilters\)/);
-  assert.match(hub, /visibleSections\.reduce\(/);
-  assert.doesNotMatch(hub, /\{filtered\.map\(/);
+const hub = readFileSync(new URL('../pages/hub/training.js', import.meta.url), 'utf8');
+const category = readFileSync(new URL('../pages/hub/training/category/[categoryId].js', import.meta.url), 'utf8');
+
+test('eight games per page, every game reachable once in global recommended order', () => {
+  const items = filterAndSortTrainingGames(TRAINING_LIBRARY, DEFAULT_LOBBY_FILTERS, {
+    recommendedGameId: TRAINING_LIBRARY.at(-1).id,
+  });
+  const sections = buildLobbySections(items, DEFAULT_LOBBY_FILTERS);
+  const expected = sections.flatMap((section) => section.items.map((item) => item.game.id));
+  const ids = [];
+  const lastPage = Math.ceil(expected.length / 8);
+  for (let index = 1; index <= lastPage; index++) {
+    const result = getLobbyResultsPage(sections, index);
+    const pageIds = result.groups.flatMap((group) => group.items.map((item) => item.game.id));
+    assert.equal(result.first, (index - 1) * 8 + 1);
+    assert.equal(result.last, Math.min(index * 8, items.length));
+    assert.equal(result.pageCount, lastPage);
+    assert.deepEqual(pageIds, expected.slice(result.first - 1, result.last));
+    ids.push(...pageIds);
+  }
+  assert.equal(new Set(ids).size, TRAINING_LIBRARY.length);
+  assert.deepEqual(ids, expected);
+  assert.equal(getLobbyResultsPage(sections, 999).page, lastPage);
+  assert.equal(getLobbyResultsPage([], 999).first, 0);
 });
 
-test('the rest of the library mounts as the reader approaches it, and filters restart the batch', () => {
-  assert.match(hub, /new IntersectionObserver\(/);
-  assert.match(hub, /rootMargin: '1200px 0px'/);
-  assert.match(hub, /setVisibleCardCount\(\(count\) => Math\.min\(filtered\.length, count \+ GAME_CARD_BATCH\)\)/);
-  assert.match(hub, /setVisibleCardCount\(INITIAL_GAME_CARDS\);[\s\S]*?activeCat,[\s\S]*?debouncedQuery,/);
-  // Without IntersectionObserver every card renders rather than none.
-  assert.match(hub, /typeof IntersectionObserver !== 'function'\) \{\s*setVisibleCardCount\(filtered\.length\);/);
+test('search and category filters reach later games before pagination', () => {
+  const game = TRAINING_LIBRARY.at(-1);
+  for (const library of [TRAINING_LIBRARY, TRAINING_LIBRARY.filter((item) => item.category === game.category)]) {
+    const filters = { ...DEFAULT_LOBBY_FILTERS, query: game.id, category: game.category };
+    const filtered = filterAndSortTrainingGames(library, filters);
+    const result = getLobbyResultsPage(buildLobbySections(filtered, filters), 1);
+    assert.deepEqual(result.groups.flatMap((group) => group.items.map((item) => item.game.id)), [game.id]);
+    assert.equal(result.total, 1);
+  }
+  assert.match(hub, /filterAndSortTrainingGames\(TRAINING_LIBRARY, filters/);
+  assert.match(category, /filterAndSortTrainingGames\(games, categoryFilters/);
+  for (const source of [hub, category]) {
+    assert.match(source, /<TrainingLobbyResults\s+key=\{JSON\.stringify/);
+    assert.doesNotMatch(source, /gridSentinelRef|visibleCardCount/);
+  }
+  assert.match(category, /onOpenFilters=\{\(\) => setFiltersOpen\(true\)\}/);
+  assert.match(category, /<TrainingFiltersSheet\s+isOpen=\{filtersOpen\}/);
 });
 
 test('training home and category games open a dedicated preset arena', () => {
-  const category = readFileSync(new URL('../pages/hub/training/category/[categoryId].js', import.meta.url), 'utf8');
   const arena = readFileSync(new URL('../pages/hub/training/arena/[gameId].js', import.meta.url), 'utf8');
   const controls = readFileSync(new URL('../src/components/training/lobby/TrainingLobbyControls.jsx', import.meta.url), 'utf8');
 

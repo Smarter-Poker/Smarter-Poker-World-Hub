@@ -58,7 +58,9 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import useTrainingFavorites from '../../src/hooks/useTrainingFavorites';
-import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
+import { useAvatar } from '../../src/contexts/AvatarContext';
+import TrainingFavoritesNotice from '../../src/components/training/lobby/TrainingFavoritesNotice';
+import { authedFetch } from '../../src/lib/authUtils';
 import {
   resolvePresetForGame,
   loadResumableTrainingSession,
@@ -75,7 +77,7 @@ import {
 import TrainingLobbyHeader from '../../src/components/training/lobby/TrainingLobbyHeader';
 import TrainingLobbyControls from '../../src/components/training/lobby/TrainingLobbyControls';
 import TrainingSortBar from '../../src/components/training/lobby/TrainingSortBar';
-import TrainingLobbyRow from '../../src/components/training/lobby/TrainingLobbyRow';
+import TrainingLobbyResults from '../../src/components/training/lobby/TrainingLobbyResults';
 import TrainingFiltersSheet from '../../src/components/training/lobby/TrainingFiltersSheet';
 import TrainingGamePreviewSheet from '../../src/components/training/lobby/TrainingGamePreviewSheet';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
@@ -91,14 +93,14 @@ const CATEGORY_META = {
   ADVANCED:   { label: 'Poker Strategy',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
 
-const VARIANT_FILTERS = Object.freeze([
-  { id: 'all',  label: 'All' },
-  { id: 'nlh',  label: "Hold'em" },
+const VARIANT_FILTERS = [
+  { id: 'ALL', label: 'All' },
+  { id: 'nlh', label: 'NLH' },
   { id: 'plo4', label: 'PLO4' },
-  { id: 'plo5', label: 'PLO5 (5-Card)' },
-  { id: 'plo6', label: 'PLO6 (6-Card)' },
-  { id: 'plo8', label: 'PLO8 (Hi-Lo)' },
-]);
+  { id: 'plo5', label: 'PLO5' },
+  { id: 'plo6', label: 'PLO6' },
+  { id: 'plo8', label: 'PLO8' },
+];
 
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
 
@@ -138,11 +140,6 @@ function formatSignedValue(value) {
   return number >= 0 ? `+${number}` : number;
 }
 
-// Cards rendered before the reader scrolls (about three phone screens), and
-// how many more mount each time the grid's end comes within 1200px.
-const INITIAL_GAME_CARDS = 12;
-const GAME_CARD_BATCH = 24;
-
 export default function TrainingPage() {
   const router = useRouter();
   // Mobile phase 5 foundation (docs/mobile-standard/ROLLOUT-PLAN.md).
@@ -158,11 +155,12 @@ export default function TrainingPage() {
 
   const { getGameProgress } = useTrainingProgress();
 
-  const [authUser, setAuthUser] = useState(null);
-  const { favoriteIds, favoriteCount, toggleFavorite } = useTrainingFavorites(authUser);
+  const { user: authUser, initializing } = useAvatar();
+  const { favoriteIds, favoriteCount, favoritesLoading, favoritesError, retryFavorites, toggleFavorite } =
+    useTrainingFavorites(authUser, initializing);
+  const favoritesUnavailable = favoritesLoading || Boolean(favoritesError);
 
   const [filters, setFilters] = useState(DEFAULT_LOBBY_FILTERS);
-  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState(null);
   const libraryHeadingRef = useRef(null);
@@ -170,9 +168,6 @@ export default function TrainingPage() {
   const searchInputRef = useRef(null);
   const launchQueryHandledRef = useRef(null);
 
-  const activeCat = filters.category;
-  const activeVariantFilter = filters.variant === 'ALL' ? 'all' : filters.variant;
-  const query = filters.query;
   const setActiveCat = useCallback((cat) => {
     setFilters((prev) => ({
       ...prev,
@@ -181,27 +176,11 @@ export default function TrainingPage() {
       favoritesOnly: false,
     }));
   }, []);
-  const setActiveVariantFilter = useCallback((variantId) => {
-    setFilters((prev) => ({
-      ...prev,
-      variant: !variantId || variantId === 'all' ? 'ALL' : variantId,
-    }));
-  }, []);
   const setQuery = useCallback((nextQuery) => {
     setFilters((prev) => ({ ...prev, query: nextQuery }));
   }, []);
   const updateFilters = useCallback((patch) => {
     setFilters((prev) => ({ ...prev, ...patch }));
-  }, []);
-
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedQuery(filters.query), 120);
-    return () => clearTimeout(id);
-  }, [filters.query]);
-
-  useEffect(() => {
-    const user = getAuthUser();
-    setAuthUser(user);
   }, []);
 
   // Precompute deterministic Arena-row metadata for all 107 canonical games once
@@ -252,11 +231,6 @@ export default function TrainingPage() {
   // Use the real recommendation when available; null otherwise (UI handles empty state)
   const jarvisPick = recommendation;
 
-  const effectiveFilters = useMemo(
-    () => ({ ...filters, query: debouncedQuery }),
-    [filters, debouncedQuery],
-  );
-
   const progressById = useMemo(() => {
     const map = {};
     for (const g of TRAINING_LIBRARY) {
@@ -266,58 +240,16 @@ export default function TrainingPage() {
   }, [getGameProgress]);
 
   const filtered = useMemo(() => (
-    filterAndSortTrainingGames(TRAINING_LIBRARY, effectiveFilters, {
+    filterAndSortTrainingGames(TRAINING_LIBRARY, filters, {
       metaMap,
       favoriteIds,
       recommendedGameId: jarvisPick?.id || null,
       leakGameId: biggestLeak?.recommendedGame?.id || null,
       getProgress: (gameId) => progressById[gameId] ?? 0,
     })
-  ), [effectiveFilters, metaMap, favoriteIds, jarvisPick?.id, biggestLeak?.recommendedGame?.id, progressById]);
+  ), [filters, metaMap, favoriteIds, jarvisPick?.id, biggestLeak?.recommendedGame?.id, progressById]);
 
-  // PROGRESSIVE GAME GRID (2026-10-12). Mounts the initial batch immediately
-  // (server and first client render agree on the same count) and reveals the
-  // rest as the player scrolls, paired with below-the-fold content-visibility.
-  const [visibleCardCount, setVisibleCardCount] = useState(INITIAL_GAME_CARDS);
-  useEffect(() => {
-    setVisibleCardCount(INITIAL_GAME_CARDS);
-  }, [
-    activeCat,
-    activeVariantFilter,
-    debouncedQuery,
-    filters.group,
-    filters.favoritesOnly,
-    filters.quickFilter,
-    filters.difficultyTier,
-    filters.styleTag,
-    filters.statusFilter,
-    filters.accessFilter,
-    filters.variant,
-    filters.sortKey,
-    filters.sortDir,
-  ]);
-  const visibleGames = filtered.slice(0, visibleCardCount);
-  const visibleSections = useMemo(
-    () => buildLobbySections(visibleGames, effectiveFilters),
-    [visibleGames, effectiveFilters],
-  );
-  const moreGamesPending = visibleCardCount < filtered.length;
-  const gridSentinelRef = useRef(null);
-  useEffect(() => {
-    const sentinel = gridSentinelRef.current;
-    if (!moreGamesPending || !sentinel) return undefined;
-    if (typeof IntersectionObserver !== 'function') {
-      setVisibleCardCount(filtered.length);
-      return undefined;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        setVisibleCardCount((count) => Math.min(filtered.length, count + GAME_CARD_BATCH));
-      }
-    }, { rootMargin: '1200px 0px' });
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [moreGamesPending, filtered.length, visibleCardCount]);
+  const sections = useMemo(() => buildLobbySections(filtered, filters), [filtered, filters]);
 
   const [resumableSession, setResumableSession] = useState(null);
 
@@ -329,7 +261,7 @@ export default function TrainingPage() {
     if (!game || !requireOnline()) return;
     haptic('light');
     const query = { gameId: game.id, start: '1', source: 'training-home' };
-    const effectiveVariant = focus?.variant || (activeVariantFilter !== 'all' ? activeVariantFilter : null);
+    const effectiveVariant = focus?.variant || (filters.variant !== 'ALL' && game.category !== 'PSYCHOLOGY' ? filters.variant : null);
     if (effectiveVariant) {
       query.variant = effectiveVariant;
       if (!focus?.bettingStructure && effectiveVariant !== 'nlh') {
@@ -344,7 +276,7 @@ export default function TrainingPage() {
     }
     if (Number.isInteger(focus?.questionsCount)) query.hands = String(focus.questionsCount);
     router.push({ pathname: '/hub/training/arena/[gameId]', query });
-  }, [activeVariantFilter, haptic, requireOnline, router]);
+  }, [filters.variant, haptic, requireOnline, router]);
 
   const heroGame = jarvisPick || TRAINING_LIBRARY[0];
   const continueTarget = useMemo(() => {
@@ -438,7 +370,6 @@ export default function TrainingPage() {
     if (game && rawAutoLaunch) {
       setActiveCat(game.category || 'ALL');
       setQuery('');
-      setDebouncedQuery('');
       const qVariant = typeof router.query.variant === 'string' ? router.query.variant.trim().toLowerCase() : '';
       const qStruct = typeof router.query.bettingStructure === 'string' ? router.query.bettingStructure.trim().toLowerCase() : '';
       const qFormat = typeof router.query.format === 'string' ? router.query.format.trim().toLowerCase() : '';
@@ -461,14 +392,12 @@ export default function TrainingPage() {
     if (game) {
       setActiveCat(game.category || 'ALL');
       setQuery(game.name || game.id);
-      setDebouncedQuery(game.name || game.id);
       return;
     }
     if (CATEGORY_ORDER.includes(rawCategory)) setActiveCat(rawCategory);
     if (requestedGame) {
       const readable = requestedGame.replace(/[-_]+/g, ' ');
       setQuery(readable);
-      setDebouncedQuery(readable);
     }
   }, [router.isReady, router.query.autoLaunch, router.query.focus, router.query.category, playGame]);
 
@@ -496,7 +425,6 @@ export default function TrainingPage() {
 
   const browseTrainingLibrary = useCallback(() => {
     setFilters(DEFAULT_LOBBY_FILTERS);
-    setDebouncedQuery('');
     if (typeof window === 'undefined') return;
     window.requestAnimationFrame(() => {
       const heading = libraryHeadingRef.current;
@@ -511,7 +439,6 @@ export default function TrainingPage() {
 
   const resetBrowseFilters = useCallback(() => {
     setFilters(DEFAULT_LOBBY_FILTERS);
-    setDebouncedQuery('');
   }, []);
 
   const jumpToControls = useCallback((focusSearch = false) => {
@@ -566,62 +493,45 @@ export default function TrainingPage() {
             <TrainingLobbyHeader
               heroGame={heroGame}
               continueTarget={continueTarget}
-              stats={stats}
-              statsLoading={statsBusy}
-              statsError={statsError}
-              onRetryStats={retryStats}
-              signedIn={Boolean(authUser?.id)}
               onPlayGame={playGame}
-              fiveMinuteLeakFix={fiveMinuteLeakFix}
-              totalGames={TRAINING_LIBRARY.length}
             />
 
             <section id="training-library" className="sp-arena-lobby-section" aria-labelledby="lib-h" data-tutorial="library">
               <TrainingLobbyControls
                 filters={filters}
                 onUpdateFilters={updateFilters}
-                onResetFilters={resetBrowseFilters}
+                onResetFilters={browseTrainingLibrary}
                 onOpenFiltersSheet={() => setFiltersSheetOpen(true)}
                 counts={lobbyCounts}
                 favoriteCount={favoriteCount}
-                filteredCount={filtered.length}
+                filteredCount={filters.favoritesOnly && favoritesUnavailable ? null : filtered.length}
                 totalCount={TRAINING_LIBRARY.length}
                 searchInputRef={searchInputRef}
                 controlsRef={controlsRef}
                 headingRef={libraryHeadingRef}
               />
 
-              <div className="sp-cat-chips sp-arena-variant-bar" role="group" aria-label="Filter Or Launch By Poker Variant" data-variant-filter-bar="true">
-                {VARIANT_FILTERS.map((vf) => {
-                  const isActive = activeVariantFilter === vf.id;
-                  return (
-                    <button
-                      key={vf.id}
-                      type="button"
-                      className={`sp-cat-chip sp-arena-variant-pill sd-button${isActive ? ' is-active' : ''}`}
-                      data-variant-filter={vf.id}
-                      aria-pressed={isActive}
-                      onClick={() => setActiveVariantFilter(vf.id)}
-                    >
-                      {vf.label}
-                    </button>
-                  );
-                })}
-                {['plo4', 'plo5', 'plo6', 'plo8'].includes(activeVariantFilter) && (
+              <div className="sp-arena-variants" role="group" aria-label="Poker Variant" data-variant-filter-bar="true">
+                {VARIANT_FILTERS.map(({ id, label }) => (
                   <button
                     type="button"
-                    className="sp-cat-chip sp-arena-variant-pill sd-button sd-primary"
-                    data-quick-launch-omaha={activeVariantFilter}
-                    onClick={() => {
-                      const omahaCashGame = TRAINING_LIBRARY.find((g) => g.id === 'cash-005') || TRAINING_LIBRARY[0];
-                      playGame(omahaCashGame, {
-                        variant: activeVariantFilter,
-                        bettingStructure: 'pot_limit',
-                        format: 'cash',
-                      });
-                    }}
+                    key={id}
+                    data-variant-filter={id.toLowerCase()}
+                    aria-pressed={filters.variant === id}
+                    aria-label={id === 'ALL' ? 'All Poker Variants' : VARIANT_METADATA[id].label}
+                    onClick={() => updateFilters({ variant: id })}
+                  >{label}</button>
+                ))}
+                {filters.variant.startsWith('plo') && (
+                  <button
+                    type="button"
+                    className="sp-arena-variants__play"
+                    data-quick-launch-omaha={filters.variant}
+                    onClick={() => playGame(TRAINING_LIBRARY.find((game) => game.id === 'cash-005'), {
+                      variant: filters.variant, bettingStructure: 'pot_limit', format: 'cash',
+                    })}
                   >
-                    <Play size={14} aria-hidden /> Play {activeVariantFilter.toUpperCase()} Cash Now
+                    <Play size={14} aria-hidden="true" /> Play {filters.variant.toUpperCase()} Cash Now
                   </button>
                 )}
               </div>
@@ -636,51 +546,32 @@ export default function TrainingPage() {
                 favoriteCount={favoriteCount}
               />
 
-              {filtered.length > 0 ? (
-                <>
-                  <div className="sp-arena-sections" data-tutorial="games">
-                    {visibleSections.reduce((acc, section) => {
-                      const startOffset = acc.offset;
-                      acc.offset += section.items.length;
-                      acc.nodes.push(
-                        <div key={section.id} className="sp-arena-group">
-                          <div className="sp-arena-divider">
-                            <span className="sp-arena-divider__label">{section.label}</span>
-                            <span className="sp-arena-divider__count sp-num">{section.items.length}</span>
-                          </div>
-                          <div className="sp-arena-row-list">
-                            {section.items.map((item, localIdx) => (
-                              <TrainingLobbyRow
-                                key={item.game.id}
-                                item={item}
-                                index={startOffset + localIdx}
-                                onStart={handleRowStart}
-                                onToggleFavorite={toggleFavorite}
-                                onOpenPreview={setPreviewItem}
-                                selectedVariant={filters.variant}
-                              />
-                            ))}
-                          </div>
-                        </div>,
-                      );
-                      return acc;
-                    }, { offset: 0, nodes: [] }).nodes}
-                  </div>
-                  {moreGamesPending && (
-                    <div ref={gridSentinelRef} className="sp-grid-sentinel" aria-hidden="true" />
-                  )}
-                </>
+              <TrainingFavoritesNotice
+                loading={filters.favoritesOnly && favoritesLoading}
+                error={favoritesError}
+                onRetry={retryFavorites}
+              />
+              {filters.favoritesOnly && favoritesUnavailable ? null : filtered.length > 0 ? (
+                <TrainingLobbyResults
+                  key={JSON.stringify(filters)}
+                  sections={sections}
+                  onStart={handleRowStart}
+                  favoritesUnavailable={favoritesUnavailable}
+                  onToggleFavorite={toggleFavorite}
+                  onOpenPreview={setPreviewItem}
+                  selectedVariant={filters.variant}
+                />
               ) : (
-                <div className="sp-arena-empty" role="status">
+                <div id="training-results" tabIndex={-1} className="sp-arena-empty" role="status">
                   <p>
-                    {filters.favoritesOnly
+                    {filters.favoritesOnly && favoriteCount === 0
                       ? 'No Favorite Games Yet. Tap The Star On Any Game To Pin It Here.'
                       : 'No Training Games Match Those Filters.'}
                   </p>
                   <button
                     type="button"
                     className="sp-cta sp-cta-secondary sp-empty-reset sd-button"
-                    onClick={resetBrowseFilters}
+                    onClick={browseTrainingLibrary}
                   >
                     Reset All Filters
                   </button>
@@ -699,8 +590,10 @@ export default function TrainingPage() {
 
             <TrainingGamePreviewSheet
               item={previewItem}
+              isFavorite={favoriteIds.has(previewItem?.game.id)}
               onClose={() => setPreviewItem(null)}
               onLaunch={playGame}
+              favoritesUnavailable={favoritesUnavailable}
               onToggleFavorite={toggleFavorite}
               defaultVariant={filters.variant}
             />
@@ -795,6 +688,35 @@ export default function TrainingPage() {
                 <h2 id="prog-h" className="sp-section-title">Progress</h2>
                 <Link className="sp-section-link" href="/hub/training/progress">View Progress <ArrowRight size={14} aria-hidden /></Link>
               </div>
+              {fiveMinuteLeakFix && (
+                <div
+                  className="sp-arena-quickbar"
+                  data-five-minute-leak-fix="true"
+                  data-leak-fix-basis={fiveMinuteLeakFix.basis}
+                >
+                  <div className="sp-arena-quickbar__copy">
+                    <span className="sp-arena-quickbar__tag">
+                      <Zap size={12} aria-hidden="true" />
+                      {fiveMinuteLeakFix.basis === 'active-leak' ? '5-Min Leak Fix' : '5-Min Warmup'}
+                    </span>
+                    <span className="sp-arena-quickbar__text">{fiveMinuteLeakFix.title}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="sp-arena-quickbar__cta sd-button sd-primary"
+                    data-start-five-minute-fix-cta="true"
+                    data-speculative-prefetch="ready"
+                    onMouseEnter={() => {
+                      if (typeof window !== 'undefined') {
+                        window.__spSpeculativePrefetchGameId = fiveMinuteLeakFix.game?.id || 'cash-002';
+                      }
+                    }}
+                    onClick={() => playGame(fiveMinuteLeakFix.game, fiveMinuteLeakFix.overrides)}
+                  >
+                    10-Hand Fix
+                  </button>
+                </div>
+              )}
               <GradeCard
                 stats={stats}
                 loading={statsBusy}
@@ -1570,7 +1492,6 @@ function GlobalStyle() {
       .sp-cat-chip[aria-pressed="true"] .sp-cat-count { color: rgba(0,26,34,0.55); }
 
       .sp-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-      .sp-grid-sentinel { height: 1px; }
       @media (max-width: 600px) { .sp-grid { grid-template-columns: 1fr; } }
 
       .sp-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); overflow: hidden; transition: transform .15s, border-color .15s, background .15s; text-align: left; width: 100%; cursor: pointer; padding: 0; color: inherit; }

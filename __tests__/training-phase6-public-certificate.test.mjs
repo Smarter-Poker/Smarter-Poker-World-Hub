@@ -118,3 +118,11 @@ test('the results browser paces answer clicks using the existing production pace
   assert.match(runner, /resultsViewport \? createSlidingWindowRequestPacer\(\)/);
   assert.match(runner, /await recordPacer\.waitForSlot\(\);[\s\S]{0,620}decision\.click/);
 });
+
+test('catalog results traversal uses the actual Play button across paged lobby rows', () => {
+  const runner = readFileSync(new URL('../scripts/ci/training-catalog-live.mjs', import.meta.url), 'utf8');
+  assert.match(runner, /getByRole\('navigation', \{ name: 'Training Game Pages' \}\)/);
+  assert.match(runner, /next\.click\(\)[\s\S]*?hasNotText/);
+  assert.match(runner, /entry\.getByRole\('button', \{ name: `Play \$\{game\.name\},`/);
+  assert.match(runner, /const play = await findCatalogPlayButton\(page, game\)/);
+});

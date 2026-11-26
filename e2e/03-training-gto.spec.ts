@@ -15,6 +15,31 @@ function loadSavedSmarterPokerStorage() {
 }
 
 test.describe('3. GTO Training Flow', () => {
+  test('the phone lobby offers two playable games above its fixed footer', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/hub/training', { waitUntil: 'domcontentloaded' });
+    const rows = page.locator('article[data-game-id]');
+    await expect(rows.nth(1)).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const secondTitle = rows.nth(1).locator('.sp-arena-row__title');
+    await expect.poll(() => secondTitle.evaluate((title) => {
+      const rect = title.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      return rect.top >= 0 && rect.bottom <= innerHeight &&
+        title.closest('button')?.contains(document.elementFromPoint(x, y)) === true;
+    })).toBe(true);
+
+    const drills = page.locator('[data-group-plate="DRILLS"]');
+    const cash = page.locator('[data-category-tab="cash"]');
+    for (const [button, skin] of [[drills, 'arena-mode.webp'], [cash, 'arena-filter.webp']] as const) {
+      await expect(button).toHaveCSS('background-image', new RegExp(skin));
+      await button.click();
+      await expect(button).toHaveAttribute('aria-pressed', 'true');
+      await expect(button).toHaveCSS('background-image', new RegExp(skin));
+    }
+  });
+
   test('Club Arena gameplay grades, persists, and waits for explicit Next', async ({ page }) => {
     test.setTimeout(90_000);
     const pageErrors: string[] = [];

@@ -124,6 +124,7 @@ test('the tutorial is registered for the prefix with eight steps whose targets e
     read(HUB),
     read('src/components/training/lobby/TrainingLobbyHeader.jsx'),
     read('src/components/training/lobby/TrainingLobbyControls.jsx'),
+    read('src/components/training/lobby/TrainingLobbyResults.jsx'),
   ].join('\n');
   for (const t of [...tut.matchAll(/target: '([^']+)'/g)].flatMap((m) => m[1].split('|'))) {
     assert.match(dom, new RegExp(`data-tutorial="${t}"`), `no data-tutorial="${t}" on the hub`);

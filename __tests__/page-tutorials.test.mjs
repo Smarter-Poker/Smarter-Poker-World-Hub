@@ -61,6 +61,7 @@ const LANDED = [
     also: [
       'src/components/training/lobby/TrainingLobbyHeader.jsx',
       'src/components/training/lobby/TrainingLobbyControls.jsx',
+      'src/components/training/lobby/TrainingLobbyResults.jsx',
     ],
   },
 ];

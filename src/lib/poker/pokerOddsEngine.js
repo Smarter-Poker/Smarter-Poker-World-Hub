@@ -145,41 +145,34 @@ export function bestHand(cards, count = 5) {
 }
 
 /**
- * Omaha-style best hand: must use exactly 2 from hole, 3 from board
- */
-function bestOmahaHand(holeCards, board) {
-    const holeCombos = combinations(holeCards, 2);
-    const boardCombos = combinations(board, 3);
-    let best = null;
-    for (const hc of holeCombos) {
-        for (const bc of boardCombos) {
-            const ev = evaluate5([...hc, ...bc]);
-            if (!best || ev.score > best.score) best = ev;
-        }
-    }
-    return best;
-}
-
-/**
  * Razz: lowest 5-card hand (Ace is low, straights/flushes don't count)
  */
 function evaluateRazz5(cards) {
-    const vals = cards.map(c => c.value === 14 ? 1 : c.value).sort((a, b) => a - b);
-    // Lower is better, so we invert: score = negative of the hand value
-    let score = 0;
-    vals.forEach((v, i) => { score += v * Math.pow(15, 4 - i); });
-    return { score: -score, category: -1, name: `${vals.join('-')} low` };
+    const counts = new Map();
+    for (const { value } of cards) {
+        const rank = value === 14 ? 1 : value;
+        counts.set(rank, (counts.get(rank) || 0) + 1);
+    }
+    const groups = [...counts].sort(([a, n], [b, m]) => m - n || b - a);
+    // Compare multiplicities first, then the highest rank in each group.
+    // Fixed-width base-15 digits keep every unpaired low ahead of every pair.
+    const ranks = groups.flatMap(([rank, count]) => Array(count).fill(rank));
+    const digits = [...groups.map(([, count]) => count), ...Array(5 - groups.length).fill(0), ...ranks];
+    return { score: -digits.reduce((score, digit) => score * 15 + digit, 0) };
+
 }
 
 function bestRazzHand(cards) {
-    if (cards.length <= 5) return evaluateRazz5(cards);
-    const combos = combinations(cards, 5);
-    let best = null;
-    for (const combo of combos) {
-        const ev = evaluateRazz5(combo);
-        if (!best || ev.score > best.score) best = ev;
+    // Take one of each lowest rank before any second copy, then thirds.
+    const sorted = [...cards].sort((a,b) => (a.value % 14) - (b.value % 14));
+    const counts = new Map();
+    const layers = [[], [], [], []];
+    for (const card of sorted) {
+        const count = counts.get(card.value) || 0;
+        layers[count].push(card);
+        counts.set(card.value, count + 1);
     }
-    return best;
+    return evaluateRazz5(layers.flat().slice(0, 5));
 }
 
 // ─── Monte Carlo Simulation ─────────────────────────────────────
@@ -207,26 +200,47 @@ function shuffle(arr) {
 export function calculateEquity({ game = 'nlhe', hands = [], board = [], dead = [], iterations = 10000 }) {
     if (hands.length < 2) return hands.map(() => ({ wins: 0, ties: 0, total: 0, equity: 0 }));
 
-    const usedIds = new Set();
-    hands.forEach(h => h.forEach(c => usedIds.add(c.id)));
-    board.forEach(c => usedIds.add(c.id));
-    dead.forEach(c => usedIds.add(c.id));
-
+    const config = GAME_CONFIGS[game];
+    if (!config || !Number.isSafeInteger(iterations) || iterations < 1 ||
+        board.length > (config.hasBoard ? 5 : 0) ||
+        hands.some(h => config.hasBoard ? h.length !== config.holeCards : h.length > 7)) {
+        throw new RangeError('Invalid game, hand size, board or iteration count');
+    }
+    const known = [...hands.flat(), ...board, ...dead];
+    const usedIds = new Set(known.map(c => c.id));
+    if (usedIds.size !== known.length) throw new RangeError('Each card can only be used once');
     const remaining = fullDeck().filter(c => !usedIds.has(c.id));
-
-    const results = hands.map(() => ({ wins: 0, ties: 0, total: iterations }));
-
     const boardNeeded = getBoardNeeded(game, board.length);
     const studCardsNeeded = getStudCardsNeeded(game, hands);
-
-    for (let i = 0; i < iterations; i++) {
-        shuffle(remaining);
-
+    const draws = boardNeeded + studCardsNeeded.reduce((sum, n) => sum + n, 0);
+    if (remaining.length < draws) throw new RangeError('Too few cards remain to finish this deal');
+    const exact = draws <= 1 || (config.hasBoard && boardNeeded === 2);
+    const runouts = exact ? combinations(remaining, draws) : null;
+    const total = exact ? runouts.length : iterations;
+    const results = hands.map(() => ({ wins: 0, ties: 0, total, equity: 0, exact }));
+    // Rank multisets share a score regardless of suit except for flushes.
+    const cache = new Map();
+    const primes = [2,3,5,7,11,13,17,19,23,29,31,37,41];
+    function scoreFive(cards) {
+        let key = 1;
+        let flush = true;
+        for (const card of cards) {
+            key *= primes[card.value - 2];
+            flush &&= card.suit === cards[0].suit;
+        }
+        if (flush) key = -key;
+        if (!cache.has(key)) cache.set(key, evaluate5(cards).score);
+        return cache.get(key);
+    }
+    const holePairs = game.startsWith('plo') ? hands.map(h => combinations(h, 2)) : null;
+    const sevenIndices = combinations([0,1,2,3,4,5,6], 5);
+    for (let i = 0; i < total; i++) {
+        const deal = exact ? runouts[i] : shuffle(remaining);
         let idx = 0;
         // Deal remaining board cards
         const simBoard = [...board];
         for (let b = 0; b < boardNeeded; b++) {
-            simBoard.push(remaining[idx++]);
+            simBoard.push(deal[idx++]);
         }
 
         // Deal remaining stud cards
@@ -234,34 +248,35 @@ export function calculateEquity({ game = 'nlhe', hands = [], board = [], dead = 
             if (game === 'stud' || game === 'razz') {
                 const extra = studCardsNeeded[pi] || 0;
                 const full = [...h];
-                for (let e = 0; e < extra; e++) full.push(remaining[idx++]);
+                for (let e = 0; e < extra; e++) full.push(deal[idx++]);
                 return full;
             }
             return h;
         });
 
         // Evaluate each player
-        const scores = simHands.map((h, pi) => {
-            switch (game) {
-                case 'nlhe':
-                    return bestHand([...h, ...simBoard]).score;
-                case 'plo4':
-                case 'plo5':
-                case 'plo6':
-                    return bestOmahaHand(h, simBoard).score;
-                case 'stud':
-                    return bestHand(h).score;
-                case 'razz':
-                    return bestRazzHand(h).score;
-                default:
-                    return bestHand([...h, ...simBoard]).score;
+        const triples = holePairs && combinations(simBoard, 3);
+        const scores = simHands.map((hand, seat) => {
+            if (game === 'razz') return bestRazzHand(hand).score;
+            let best = -Infinity;
+            if (holePairs) {
+                for (const pair of holePairs[seat]) for (const triple of triples) {
+                    best = Math.max(best, scoreFive([...pair, ...triple]));
+                }
+            } else {
+                const cards = [...hand, ...simBoard];
+                for (const indices of sevenIndices) {
+                    best = Math.max(best, scoreFive(indices.map(index => cards[index])));
+                }
             }
+            return best;
         });
 
         // Determine winners
         const maxScore = Math.max(...scores);
         const winners = scores.reduce((acc, s, pi) => { if (s === maxScore) acc.push(pi); return acc; }, []);
 
+        for (const winner of winners) results[winner].equity += 1 / winners.length;
         if (winners.length === 1) {
             results[winners[0]].wins++;
         } else {
@@ -271,7 +286,7 @@ export function calculateEquity({ game = 'nlhe', hands = [], board = [], dead = 
 
     // Calculate equity
     results.forEach(r => {
-        r.equity = ((r.wins + r.ties / 2) / r.total * 100);
+        r.equity = (r.equity / r.total) * 100;
     });
 
     return results;
