@@ -37969,11 +37969,11 @@
         },
         {
           "element": "button",
-          "name": "TABLE",
+          "name": "Table",
           "line": 1408,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         }
@@ -41050,18 +41050,18 @@
       "ctas": [
         {
           "element": "button",
-          "name": "←",
-          "line": 308,
+          "name": "Back To Training",
+          "line": 296,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 555,
+          "line": 522,
           "handler": "() =>\n                          setSelectedTags(\n                            isActive\n                              ? selectedTags.filter((t) => t !== tag)\n                              : [...selectedTags, tag]\n                          )",
           "destination": null,
           "type": null,
@@ -41071,7 +41071,7 @@
         {
           "element": "button",
           "name": "#",
-          "line": 680,
+          "line": 647,
           "handler": "() => setSearchTerm(searchTerm === tag ? '' : tag)",
           "destination": null,
           "type": null,
@@ -41081,7 +41081,7 @@
         {
           "element": "button",
           "name": "Pin Note",
-          "line": 784,
+          "line": 751,
           "handler": "() => togglePin(note.id)",
           "destination": null,
           "type": null,
@@ -41128,15 +41128,7 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "SessionNotesPage",
-          "line": 78,
-          "references": 1,
-          "exported": true,
-          "defaultExport": true,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "parseMarkdown",
+          "name": "renderNoteText",
           "line": 42,
           "references": 2,
           "exported": false,
@@ -41144,8 +41136,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "SessionNotesPage",
+          "line": 74,
+          "references": 1,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "h",
-          "line": 146,
+          "line": 142,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -41153,7 +41153,7 @@
         },
         {
           "name": "persistNotesToServer",
-          "line": 151,
+          "line": 147,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41161,7 +41161,7 @@
         },
         {
           "name": "saveNote",
-          "line": 166,
+          "line": 162,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41169,7 +41169,7 @@
         },
         {
           "name": "togglePin",
-          "line": 193,
+          "line": 189,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41177,7 +41177,7 @@
         },
         {
           "name": "deleteNote",
-          "line": 202,
+          "line": 198,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41185,7 +41185,7 @@
         },
         {
           "name": "exportNotes",
-          "line": 255,
+          "line": 251,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41193,7 +41193,7 @@
         },
         {
           "name": "escCsv",
-          "line": 256,
+          "line": 252,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -41201,7 +41201,7 @@
         },
         {
           "name": "moodObj",
-          "line": 283,
+          "line": 279,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41214,7 +41214,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 455,
+          "line": 422,
           "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -41222,7 +41222,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 488,
+          "line": 455,
           "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -41230,7 +41230,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 521,
+          "line": 488,
           "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -41238,7 +41238,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 704,
+          "line": 671,
           "excerpt": "placeholder=\"Search notes...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -84527,11 +84527,11 @@
       "id": "pages/hub/training/multi-table.js:1408:8",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
-      "name": "TABLE",
+      "name": "Table",
       "line": 1408,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/multi-table.js"
@@ -85226,24 +85226,24 @@
       "effectRef": "pages/hub/training/session-dashboard.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:308:1",
+      "id": "pages/hub/training/session-notes.js:296:1",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
-      "name": "←",
-      "line": 308,
+      "name": "Back To Training",
+      "line": 296,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:555:2",
+      "id": "pages/hub/training/session-notes.js:522:2",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 555,
+      "line": 522,
       "handler": "() =>\n                          setSelectedTags(\n                            isActive\n                              ? selectedTags.filter((t) => t !== tag)\n                              : [...selectedTags, tag]\n                          )",
       "destination": null,
       "type": null,
@@ -85252,11 +85252,11 @@
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:680:3",
+      "id": "pages/hub/training/session-notes.js:647:3",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "#",
-      "line": 680,
+      "line": 647,
       "handler": "() => setSearchTerm(searchTerm === tag ? '' : tag)",
       "destination": null,
       "type": null,
@@ -85265,11 +85265,11 @@
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:784:4",
+      "id": "pages/hub/training/session-notes.js:751:4",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "Pin Note",
-      "line": 784,
+      "line": 751,
       "handler": "() => togglePin(note.id)",
       "destination": null,
       "type": null,
@@ -112791,7 +112791,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 455,
+        "line": 422,
         "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -112800,7 +112800,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 488,
+        "line": 455,
         "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -112809,7 +112809,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 521,
+        "line": 488,
         "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -112818,7 +112818,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 704,
+        "line": 671,
         "excerpt": "placeholder=\"Search notes...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -117443,7 +117443,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "name": "SessionNotesPage",
-        "line": 78,
+        "line": 74,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -123499,7 +123499,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 455,
+        "line": 422,
         "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -123508,7 +123508,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 488,
+        "line": 455,
         "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -123517,7 +123517,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 521,
+        "line": 488,
         "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -123526,7 +123526,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 704,
+        "line": 671,
         "excerpt": "placeholder=\"Search notes...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -128151,7 +128151,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "name": "SessionNotesPage",
-        "line": 78,
+        "line": 74,
         "references": 1,
         "exported": true,
         "defaultExport": true,

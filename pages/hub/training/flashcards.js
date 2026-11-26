@@ -713,7 +713,7 @@ export default function FlashcardsPage() {
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>{stats.learning}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#86daff' }}>{stats.learning}</div>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
               Learning
             </div>
@@ -943,7 +943,7 @@ export default function FlashcardsPage() {
                   borderRadius: 12,
                   border: '1px solid rgba(251,191,36,0.2)',
                   background: 'rgba(251,191,36,0.06)',
-                  color: 'var(--sp-accent-amber)',
+                  color: '#86daff',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',

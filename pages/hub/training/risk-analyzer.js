@@ -194,7 +194,7 @@ export default function RiskAnalyzerPage() {
                 <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                   Standard Deviation
                 </label>
-                <span style={{ color: 'var(--sp-accent-amber)', fontWeight: 800 }}>{stdDev} BB/100</span>
+                <span style={{ color: '#86daff', fontWeight: 800 }}>{stdDev} BB/100</span>
               </div>
               <input
                 aria-label="Standard Deviation"

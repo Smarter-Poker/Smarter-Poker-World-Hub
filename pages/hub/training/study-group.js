@@ -288,7 +288,7 @@ export default function StudyGroupRoom() {
                     {p.profile?.display_name || p.profile?.username || 'Member'}{' '}
                     {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces emoji — ternary form (SWC parser in next 16.2.4 chokes on JSX-inside-&&-paren here, even with comment outside; see PR #362, #364, and build logs from dpl_HJeXm). */}
                     {p.role === 'owner' ? (
-                      <span style={{ color: 'var(--sp-accent-amber)', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
+                      <span style={{ color: '#86daff', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
                         <CrownIcon size={12} />
                       </span>
                     ) : null}
