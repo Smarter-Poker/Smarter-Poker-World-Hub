@@ -187,9 +187,9 @@ test('negative proof: catches the exact #3060 magazine IndexNow template-string 
 test('negative proof: catches non-API page traces inside shared src/lib helpers', async () => {
     const target = path.join(ROOT, 'src/lib/seo/sitemapBuilders.mjs');
     const brokenFixture = [
-        'export function buildTrainingUrls(baseUrl, drillId) {',
-        '    const drillRoute = `/hub/training/${encodeURIComponent(drillId)}`;',
-        '    return [`${baseUrl}${drillRoute}`];',
+        'export function buildHomeGameUrls(baseUrl, gameSlug) {',
+        '    const gameRoute = `/hub/home-games/${encodeURIComponent(gameSlug)}`;',
+        '    return [`${baseUrl}${gameRoute}`];',
         '}',
     ].join('\n');
 
@@ -203,8 +203,8 @@ test('negative proof: catches non-API page traces inside shared src/lib helpers'
     );
     const traced = violations.get('src/lib/seo/sitemapBuilders.mjs');
     assert.ok(
-        traced.some((f) => f.startsWith('pages/hub/training/')),
-        `Expected pages/hub/training/* pages to be flagged, got: ${traced.join(', ')}`,
+        traced.some((f) => f.startsWith('pages/hub/home-games/')),
+        `Expected pages/hub/home-games/* pages to be flagged, got: ${traced.join(', ')}`,
     );
 });
 
