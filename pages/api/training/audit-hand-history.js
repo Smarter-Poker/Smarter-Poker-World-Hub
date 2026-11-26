@@ -9,14 +9,12 @@ import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTr
 import { parseStakesToBlinds } from '../../../src/lib/training/clubArenaTableParity.js';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter.js';
 
-const HERO_CARDS_BY_VARIANT = Object.freeze({
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+const HOLE_CARD_COUNT_BY_VARIANT = Object.freeze({
+  nlh: 2,
+  plo4: 4,
+  plo5: 5,
+  plo6: 6,
 });
-
-const BOARD_CARDS = Object.freeze(['8d', '5c', '2s', '6h', '3d']);
 
 function resolveHandVariant(hand = {}, defaultVariant = 'nlh') {
   const raw = String(hand?.variant || hand?.gameVariant || hand?.gameType || defaultVariant || 'nlh').trim().toLowerCase();
@@ -34,29 +32,25 @@ function resolveHandVariant(hand = {}, defaultVariant = 'nlh') {
   return 'nlh';
 }
 
-function resolveHandBoardCards(hand = {}, street = 'flop') {
+function resolveHandBoardCards(hand = {}, street = 'preflop') {
   const rawBoard = Array.isArray(hand?.boardCards) && hand.boardCards.length > 0
     ? hand.boardCards
     : Array.isArray(hand?.board) && hand.board.length > 0
       ? hand.board
       : extractBoardFromParsedHand(hand);
-  const normStreet = String(street || 'flop').toLowerCase();
+  const cleanBoard = Array.isArray(rawBoard)
+    ? rawBoard.filter((c) => typeof c === 'string' && c.trim().length > 0)
+    : [];
+  const normStreet = String(street || 'preflop').toLowerCase();
   const expectedCount = normStreet === 'preflop' ? 0
     : normStreet === 'turn' ? 4
       : normStreet === 'river' ? 5
         : 3;
-  if (expectedCount === 0) return [];
-  if (Array.isArray(rawBoard) && rawBoard.length >= expectedCount) {
-    return rawBoard.slice(0, expectedCount);
+  if (expectedCount === 0 || cleanBoard.length === 0) return [];
+  if (cleanBoard.length >= expectedCount) {
+    return cleanBoard.slice(0, expectedCount);
   }
-  const combined = [...(Array.isArray(rawBoard) ? rawBoard : [])];
-  for (const fallbackCard of BOARD_CARDS) {
-    if (combined.length >= expectedCount) break;
-    if (!combined.some((c) => String(c).toLowerCase() === fallbackCard.toLowerCase())) {
-      combined.push(fallbackCard);
-    }
-  }
-  return combined.slice(0, expectedCount);
+  return [...cleanBoard];
 }
 
 export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
@@ -64,16 +58,29 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
   const scored = hands.map((hand, idx) => {
     const variant = resolveHandVariant(hand, defaultVariant);
     const rawBoard = Array.isArray(hand?.boardCards) && hand.boardCards.length > 0
-      ? hand.boardCards
+      ? hand.boardCards.filter((c) => typeof c === 'string' && c.trim().length > 0)
       : Array.isArray(hand?.board) && hand.board.length > 0
-        ? hand.board
-        : extractBoardFromParsedHand(hand);
-    const street = String(
-      hand?.street
-      || (rawBoard.length >= 5 ? 'river' : rawBoard.length === 4 ? 'turn' : rawBoard.length >= 3 ? 'flop' : 'flop'),
-    ).toLowerCase();
+        ? hand.board.filter((c) => typeof c === 'string' && c.trim().length > 0)
+        : extractBoardFromParsedHand(hand).filter((c) => typeof c === 'string' && c.trim().length > 0);
+    const derivedStreet = rawBoard.length >= 5
+      ? 'river'
+      : rawBoard.length === 4
+        ? 'turn'
+        : rawBoard.length >= 3
+          ? 'flop'
+          : 'preflop';
+    const explicitStreet = typeof hand?.street === 'string' && hand.street.trim()
+      ? hand.street.trim().toLowerCase()
+      : derivedStreet;
+    const street = rawBoard.length === 0 ? 'preflop' : explicitStreet;
     const heroPosition = String(hand?.heroPosition || hand?.position || hand?.hero?.position || 'BTN').toUpperCase();
-    const isUnsupportedVariant = hand?.supported === false || !HERO_CARDS_BY_VARIANT[variant];
+    const rawHeroCards = Array.isArray(hand?.heroCards) && hand.heroCards.length > 0
+      ? hand.heroCards.filter((c) => typeof c === 'string' && c.trim().length > 0)
+      : Array.isArray(hand?.hero?.holeCards) && hand.hero.holeCards.length > 0
+        ? hand.hero.holeCards.filter((c) => typeof c === 'string' && c.trim().length > 0)
+        : [];
+    const expectedHoleCount = HOLE_CARD_COUNT_BY_VARIANT[variant];
+    const isUnsupportedVariant = hand?.supported === false || !expectedHoleCount;
     if (isUnsupportedVariant) {
       return {
         ...hand,
@@ -82,7 +89,7 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
         unsupportedReason: hand?.unsupportedReason || `unsupported_variant:${variant}`,
         street,
         heroPosition,
-        heroCards: Array.isArray(hand?.heroCards) ? hand.heroCards : (Array.isArray(hand?.hero?.holeCards) ? hand.hero.holeCards : []),
+        heroCards: rawHeroCards,
         board: Array.isArray(hand?.board) && hand.board.length > 0 ? hand.board : rawBoard,
         boardCards: rawBoard,
         potSizeBb: Math.max(0, Number(hand?.potSizeBb || hand?.pot || 0) || 0),
@@ -92,16 +99,27 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
         _originalIndex: idx,
       };
     }
-    const rawHeroCards = Array.isArray(hand?.heroCards) && hand.heroCards.length > 0
-      ? hand.heroCards
-      : Array.isArray(hand?.hero?.holeCards) && hand.hero.holeCards.length > 0
-        ? hand.hero.holeCards
-        : HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh;
-    const expectedHoleCount = (HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh).length;
-    const heroCards = rawHeroCards.length === expectedHoleCount
-      ? rawHeroCards
-      : (HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh);
+
     const boardCards = resolveHandBoardCards({ ...hand, boardCards: rawBoard }, street);
+    const missingRequiredBoard = street !== 'preflop' && boardCards.length < 3;
+    if (rawHeroCards.length !== expectedHoleCount || missingRequiredBoard) {
+      return {
+        ...hand,
+        variant,
+        street: boardCards.length === 0 ? 'preflop' : street,
+        heroPosition,
+        heroCards: rawHeroCards,
+        board: Array.isArray(hand?.board) && hand.board.length > 0 ? hand.board : boardCards,
+        boardCards,
+        potSizeBb: Math.max(0, Number(hand?.potSizeBb || hand?.pot || 0) || 0),
+        estimatedEvLossBb: null,
+        recommendedAction: null,
+        brainSource: null,
+        _originalIndex: idx,
+      };
+    }
+
+    const heroCards = rawHeroCards;
     const potSizeBb = Math.max(1.5, Number(hand?.potSizeBb || hand?.pot || 12) || 12);
     const facingBetBb = Math.max(0, Number(hand?.facingBetBb ?? 4) || 0);
     const effectiveStackBb = Math.max(10, Number(hand?.effectiveStackBb || hand?.stackDepth || 100) || 100);
@@ -119,23 +137,14 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
         effectiveStackBb,
       });
     } catch (_) {
-      brainDecision = evaluateTrainingSpotWithHorseBrain({
-        variant: 'nlh',
-        street: 'flop',
-        heroPosition: 'BTN',
-        heroCards: ['As', 'Kd'],
-        boardCards: ['8d', '5c', '2s'],
-        potSizeBb,
-        facingBetBb: 4,
-        effectiveStackBb: 100,
-      });
+      brainDecision = null;
     }
 
     const explicitLoss = Number(hand?.estimatedEvLossBb ?? hand?.evLoss);
-    let estimatedEvLossBb;
+    let estimatedEvLossBb = null;
     if (Number.isFinite(explicitLoss) && explicitLoss > 0) {
       estimatedEvLossBb = Number(explicitLoss.toFixed(2));
-    } else {
+    } else if (brainDecision) {
       const actionEvValues = Object.values(brainDecision?.actionEVs || {})
         .map(Number)
         .filter(Number.isFinite);
@@ -157,8 +166,8 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
       boardCards,
       potSizeBb,
       estimatedEvLossBb,
-      recommendedAction: brainDecision?.recommendedAction || brainDecision?.correctAnswerText || 'Bet 75% Pot',
-      brainSource: brainDecision?.engineModule || 'holdem-brain.js',
+      recommendedAction: brainDecision?.recommendedAction || brainDecision?.correctAnswerText || null,
+      brainSource: brainDecision ? (brainDecision.engineModule || 'holdem-brain.js') : null,
       _originalIndex: idx,
     };
   });
@@ -248,7 +257,21 @@ function extractBoardFromParsedHand(hand) {
   return board;
 }
 
-function buildDrillHrefForHand(hand, analysis = null) {
+function sanitizeDrillNavigationOptions(rawOptions = {}) {
+  const defaultOpts = { source: 'live-hand-sync', returnTo: null };
+  const rawSource = typeof rawOptions?.source === 'string' ? rawOptions.source.trim().toLowerCase() : '';
+  const source = /^[a-z0-9][a-z0-9_-]{1,63}$/.test(rawSource) ? rawSource : defaultOpts.source;
+  const rawReturnTo = typeof rawOptions?.returnTo === 'string' ? rawOptions.returnTo.trim() : '';
+  const returnTo = rawReturnTo.startsWith('/hub/')
+    && !rawReturnTo.startsWith('//')
+    && !rawReturnTo.includes('://')
+    && /^\/hub\/[A-Za-z0-9/_\-?=&%.:+]*$/.test(rawReturnTo)
+    ? rawReturnTo
+    : defaultOpts.returnTo;
+  return { source, returnTo };
+}
+
+function buildDrillHrefForHand(hand, analysis = null, navOptions = {}) {
   const board = extractBoardFromParsedHand(hand);
   const heroCards = Array.isArray(hand?.hero?.holeCards)
     ? hand.hero.holeCards
@@ -276,11 +299,15 @@ function buildDrillHrefForHand(hand, analysis = null) {
       : street === 'preflop'
         ? 'cash-001'
         : 'cash-002';
+  const nav = sanitizeDrillNavigationOptions(navOptions);
   const params = new URLSearchParams({
     level: '1',
-    source: 'live-hand-sync',
+    source: nav.source,
     syncedHandId: String(hand?.id || analysis?.handId || 'hand'),
   });
+  if (nav.returnTo) {
+    params.set('returnTo', nav.returnTo);
+  }
   const resolvedHandVar = resolveHandVariant(hand, 'nlh');
   if (resolvedHandVar === 'omaha_hi_lo' || resolvedHandVar === 'plo8') params.set('variant', 'plo8');
   else if (heroCards.length === 4 || resolvedHandVar === 'plo4') params.set('variant', 'plo4');
@@ -373,30 +400,30 @@ export default async function handler(req, res) {
           });
         }
 
-        // 2. Check synced hand records in training_tool_records
-        const { data: toolRows } = await supabase
+        // 2. Check synced hand records in training_tool_records (owner-scoped directly)
+        const toolQuery = supabase
           .from('training_tool_records')
           .select('id, user_id, record_type, record_key, data, created_at')
+          .eq('user_id', user.id)
           .eq('tool_id', 'synced-hand-history')
-          .eq('record_key', requestedHandId)
-          .limit(5);
+          .eq('record_key', requestedHandId);
+        const toolRes = typeof toolQuery.maybeSingle === 'function'
+          ? await toolQuery.maybeSingle()
+          : await toolQuery.limit(1);
+        const ownedRow = Array.isArray(toolRes?.data) ? toolRes.data[0] : (toolRes?.data || null);
 
-        if (Array.isArray(toolRows) && toolRows.length > 0) {
-          const ownedRow = toolRows.find((r) => {
-            const rowData = r?.data || {};
-            const participants = Array.isArray(rowData.participants)
-              ? rowData.participants.map(String)
-              : [String(r?.user_id || '')];
-            return String(r?.user_id || '') === String(user.id) && participants.includes(String(user.id));
-          });
-          if (!ownedRow) {
-            return res.status(403).json({
+        if (ownedRow && String(ownedRow.user_id || '') === String(user.id)) {
+          const handPayload = ownedRow.data || {};
+          const participants = Array.isArray(handPayload.participants)
+            ? handPayload.participants.map(String)
+            : [String(ownedRow.user_id || '')];
+          if (!participants.includes(String(user.id))) {
+            return res.status(404).json({
               success: false,
-              error: 'Participant-only access: you were not dealt into this hand.',
-              code: 'PARTICIPANT_ACCESS_DENIED',
+              error: 'Requested hand history was not found.',
+              code: 'HAND_NOT_FOUND',
             });
           }
-          const handPayload = ownedRow.data || {};
           const [rankedToolHand] = rankImportedHandsByEvLeak([{
             ...handPayload,
             id: String(handPayload.id || ownedRow.record_key),
@@ -473,15 +500,16 @@ export default async function handler(req, res) {
         for (const row of syncedRows || []) {
           if (String(row.user_id) !== String(user.id)) continue;
           const p = row.data || {};
+          const recordBoard = Array.isArray(p.board) ? p.board : [];
           const item = {
             id: String(p.id || row.record_key),
             site: p.site || 'Club Arena Sync',
             gameType: p.gameType || 'Cash',
             stakes: p.stakes || '1/2',
             heroCards: Array.isArray(p.heroCards) ? p.heroCards : [],
-            board: Array.isArray(p.board) ? p.board : [],
+            board: recordBoard,
             heroPosition: p.heroPosition || 'BTN',
-            street: p.street || 'flop',
+            street: p.street || (recordBoard.length >= 5 ? 'river' : recordBoard.length === 4 ? 'turn' : recordBoard.length >= 3 ? 'flop' : 'preflop'),
             pot: Number(p.pot) || 0,
             solverVerified: Boolean(p.solverVerified),
             evLoss: p.evLoss ?? null,
@@ -581,6 +609,10 @@ export default async function handler(req, res) {
       });
     }
 
+    const navOptions = sanitizeDrillNavigationOptions({
+      source: req.body?.source,
+      returnTo: req.body?.returnTo,
+    });
     const analysisById = new Map((result.analyses || []).map((a) => [String(a.handId), a]));
     const syncedHands = hands.map((hand) => {
       const analysis = analysisById.get(String(hand.id)) || null;
@@ -594,7 +626,7 @@ export default async function handler(req, res) {
           : board.length >= 3
             ? 'flop'
             : (analysis?.decisions?.[0]?.street || 'preflop');
-      const drillHref = buildDrillHrefForHand(hand, analysis);
+      const drillHref = buildDrillHrefForHand(hand, analysis, navOptions);
       if (analysis) {
         analysis.drillHref = drillHref;
         analysis.heroCards = heroCards;
@@ -602,32 +634,45 @@ export default async function handler(req, res) {
         analysis.heroPosition = heroPosition;
         analysis.street = street;
       }
-      const stakesInfo = parseStakesToBlinds(hand.stakes || '1/2');
-      const rawPotChips = Number(hand?.result?.pot || 0);
-      const potBb = stakesInfo.bigBlind > 0 && rawPotChips > 0
-        ? Number((rawPotChips / stakesInfo.bigBlind).toFixed(2))
+      const hasStakesText = typeof hand?.stakes === 'string' && hand.stakes.trim().length > 0;
+      const stakesInfo = hasStakesText ? parseStakesToBlinds(hand.stakes) : null;
+      const resolvedBigBlind = Number(hand?.bigBlind) > 0
+        ? Number(hand.bigBlind)
+        : (Number(stakesInfo?.bigBlind) > 0 ? Number(stakesInfo.bigBlind) : 2);
+      const resolvedSmallBlind = Number(hand?.smallBlind) > 0
+        ? Number(hand.smallBlind)
+        : (Number(stakesInfo?.smallBlind) > 0 ? Number(stakesInfo.smallBlind) : Number((resolvedBigBlind / 2).toFixed(2)));
+      const stakesLabel = stakesInfo?.stakesLabel
+        || (hasStakesText ? hand.stakes.trim() : `${resolvedSmallBlind}/${resolvedBigBlind}`);
+      const rawPotChips = Number(hand?.result?.pot ?? hand?.pot ?? 0);
+      const potBb = resolvedBigBlind > 0 && rawPotChips > 0
+        ? Number((rawPotChips / resolvedBigBlind).toFixed(2))
         : rawPotChips;
       const rawHeroStackChips = Number(hand?.hero?.stack || hand?.hero?.startingStack || 0);
-      const stackDepthBb = stakesInfo.bigBlind > 0 && rawHeroStackChips > 0
-        ? Number((rawHeroStackChips / stakesInfo.bigBlind).toFixed(2))
-        : 100;
+      const stackDepthBb = Number(hand?.effectiveStackBb) > 0
+        ? Number(hand.effectiveStackBb)
+        : (resolvedBigBlind > 0 && rawHeroStackChips > 0
+            ? Number((rawHeroStackChips / resolvedBigBlind).toFixed(2))
+            : 100);
       const heroStackChips = rawHeroStackChips > 0
         ? rawHeroStackChips
-        : Number((stackDepthBb * stakesInfo.bigBlind).toFixed(2));
+        : Number((stackDepthBb * resolvedBigBlind).toFixed(2));
       return {
         id: String(hand.id),
         site: hand.site || 'PokerStars',
         gameType: hand.gameType || 'Cash',
-        stakes: stakesInfo.stakesLabel,
-        smallBlind: stakesInfo.smallBlind,
-        bigBlind: stakesInfo.bigBlind,
+        stakes: stakesLabel,
+        smallBlind: resolvedSmallBlind,
+        bigBlind: resolvedBigBlind,
         heroCards,
         board,
         heroPosition,
         street,
         pot: potBb,
-        potChips: rawPotChips > 0 ? rawPotChips : Number((potBb * stakesInfo.bigBlind).toFixed(2)),
+        potSizeBb: potBb,
+        potChips: rawPotChips > 0 ? rawPotChips : Number((potBb * resolvedBigBlind).toFixed(2)),
         stackDepth: stackDepthBb,
+        effectiveStackBb: stackDepthBb,
         heroStackChips,
         solverVerified: Boolean(analysis?.solverVerified),
         evLoss: analysis?.totalEVLoss ?? null,

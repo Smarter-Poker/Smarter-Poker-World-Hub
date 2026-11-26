@@ -337,6 +337,8 @@ export default function QuickSpotDrill({
             if (!res.ok || json?.success === false) {
                 const error = new Error(json?.error || `Drill request failed (${res.status})`);
                 error.reason = json?.reason;
+                error.status = res.status;
+                error.blocked = json?.blocked === true;
                 throw error;
             }
 
@@ -376,10 +378,14 @@ export default function QuickSpotDrill({
         } catch (e) {
             if (e?.name === 'AbortError' || myRunId !== runIdRef.current) return;
             console.warn('[QuickSpotDrill] Load error:', e?.message || e);
-            setLoadError(['insufficient_verified_questions', 'no_practice_questions'].includes(e?.reason)
+            const isPermanentOrBlocked =
+                e?.blocked === true
+                || [401, 403, 422].includes(e?.status)
+                || ['insufficient_verified_questions', 'no_practice_questions'].includes(e?.reason);
+            setLoadError(isPermanentOrBlocked && e?.message
                 ? e.message
                 : 'Could not load drills. Check your connection and try again.');
-            setLoadErrorPermanent(['insufficient_verified_questions', 'no_practice_questions'].includes(e?.reason));
+            setLoadErrorPermanent(isPermanentOrBlocked);
             setQuestions([]);
             setDrillToken(null);
             setPracticeDisclosure(null);

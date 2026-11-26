@@ -4,9 +4,10 @@ import {
   Crosshair, Database, Download, Flag, Gauge, ListChecks, MessageSquareWarning, MoreHorizontal,
   RefreshCw, Search, Settings, ShieldCheck, Target, Trash2, Trophy,
 } from 'lucide-react';
-import BottomSheet from '../ui/BottomSheet';
+import { BottomSheet } from '../sandbox/paKit';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { useLeakHandExamples } from '../../hooks/useAssistant';
+import { useModalHistory } from '../../hooks/useModalHistory';
 import {
   buildAdviceExplanation,
   buildEvidenceChain,
@@ -155,6 +156,8 @@ export default function CoachingWorkspace({
     if (onCloseSettings) onCloseSettings();
     else setInternalSettingsOpen(false);
   }, [onCloseSettings]);
+  const closeOverflowModule = useCallback(() => setOverflowModule(null), []);
+  useModalHistory(Boolean(overflowModule), closeOverflowModule);
 
   const activeMode = useMemo(() => {
     if (section === 'progress' || section === 'insights') return 'progress';
@@ -235,9 +238,9 @@ export default function CoachingWorkspace({
       const urlView = urlParams ? urlParams.get('view') : null;
       const urlSettings = urlParams ? urlParams.get('settings') : null;
       const saved = payload.preferences?.saved_view;
-      if (urlView === 'data' || urlSettings === '1') {
+      if ((urlView === 'data' || urlSettings === '1') && controlledSettingsOpen === undefined) {
         openSettingsSheet();
-      } else if (urlView && VIEWS.some(item => item.id === urlView)) {
+      } else if (urlView && VIEWS.some(item => item.id === urlView) && urlView !== 'data') {
         setView(urlView);
       } else if (VIEWS.some(item => item.id === saved) && saved !== 'data') {
         setView(saved);
@@ -414,7 +417,39 @@ export default function CoachingWorkspace({
     if ((view === 'data' || isSettingsOpen) && userId && !lifecycle) loadLifecycle();
   }, [isSettingsOpen, lifecycle, loadLifecycle, userId, view]);
 
-  const selectView = useCallback((nextView) => {
+  const syncSavedPreferences = useCallback((patch) => {
+    setWorkspace((current) => {
+      if (!current) return current;
+      const nextPreferences = {
+        ...(current.preferences || {}),
+        ...patch,
+      };
+      const nextSnapshot = current.snapshot
+        ? {
+            ...current.snapshot,
+            preferences: {
+              ...(current.snapshot.preferences || {}),
+              ...(patch.weekly_digest_opt_in !== undefined
+                ? { weeklyDigestOptIn: Boolean(patch.weekly_digest_opt_in) }
+                : {}),
+              ...(patch.analysis_depth !== undefined
+                ? { analysisDepth: patch.analysis_depth }
+                : {}),
+            },
+          }
+        : current.snapshot;
+      const next = {
+        ...current,
+        preferences: nextPreferences,
+        snapshot: nextSnapshot,
+      };
+      workspaceRef.current = next;
+      onPayloadUpdated?.(next);
+      return next;
+    });
+  }, [onPayloadUpdated]);
+
+  const selectView = useCallback(async (nextView) => {
     if (nextView === 'data') {
       openSettingsSheet();
       return;
@@ -424,7 +459,7 @@ export default function CoachingWorkspace({
       onSwitchSection(['evidence', 'timeline', 'goals', 'report'].includes(nextView) ? 'progress' : 'plan', nextView);
     }
     if (!userId) return;
-    write({
+    const saved = await write({
       action: 'save_preferences',
       preferences: {
         savedView: nextView,
@@ -433,7 +468,10 @@ export default function CoachingWorkspace({
         weeklyDigestOptIn: Boolean(weeklyDigestOptIn),
       },
     }, 'Saved View Updated', { reload: false });
-  }, [analysisDepth, onSwitchSection, openSettingsSheet, userId, weeklyDigestOptIn, workspace, write]);
+    if (saved) {
+      syncSavedPreferences({ saved_view: nextView, savedView: nextView });
+    }
+  }, [analysisDepth, onSwitchSection, openSettingsSheet, syncSavedPreferences, userId, weeklyDigestOptIn, workspace, write]);
 
   const selectAnalysisDepth = useCallback(async (nextDepth) => {
     const previousDepth = analysisDepth;
@@ -447,8 +485,12 @@ export default function CoachingWorkspace({
         weeklyDigestOptIn: Boolean(weeklyDigestOptIn),
       },
     }, 'Analysis Depth Updated', { reload: false });
-    if (!saved) setAnalysisDepth(previousDepth);
-  }, [analysisDepth, view, weeklyDigestOptIn, workspace, write]);
+    if (!saved) {
+      setAnalysisDepth(previousDepth);
+      return;
+    }
+    syncSavedPreferences({ analysis_depth: nextDepth, analysisDepth: nextDepth });
+  }, [analysisDepth, syncSavedPreferences, view, weeklyDigestOptIn, workspace, write]);
 
   const toggleWeeklyDigest = useCallback(async (enabled) => {
     const previousOptIn = Boolean(weeklyDigestOptIn);
@@ -472,8 +514,10 @@ export default function CoachingWorkspace({
     if (serverOptIn !== undefined && Boolean(serverOptIn) !== nextEnabled) {
       setWeeklyDigestOptIn(previousOptIn);
       setStatus({ tone: 'danger', text: 'Weekly Coaching Digest Preference Could Not Be Saved' });
+      return;
     }
-  }, [analysisDepth, view, weeklyDigestOptIn, workspace, write]);
+    syncSavedPreferences({ weekly_digest_opt_in: nextEnabled, weeklyDigestOptIn: nextEnabled });
+  }, [analysisDepth, syncSavedPreferences, view, weeklyDigestOptIn, workspace, write]);
 
   const getStudyPlanMarkdown = useCallback(async () => {
     try {
@@ -592,12 +636,55 @@ export default function CoachingWorkspace({
   }, []);
 
   const priorities = workspace?.snapshot?.priorities || [];
+  const fallbackSelectedPriority = useMemo(() => {
+    if (!selectedLeakId) return null;
+    const snapLeak = findLeak(workspace?.snapshot?.leaks, selectedLeakId);
+    const propLeak = findLeak(leaks, selectedLeakId);
+    const raw = snapLeak || propLeak;
+    if (!raw) return null;
+    const rawConf = raw.confidence;
+    const normalizedConfidence = rawConf && typeof rawConf === 'object' && Number.isFinite(Number(rawConf.score))
+      ? {
+          score: Number(rawConf.score),
+          level: rawConf.level || 'medium',
+          reasons: Array.isArray(rawConf.reasons) && rawConf.reasons.length > 0
+            ? rawConf.reasons
+            : ['Measured From Persisted Hand Evidence'],
+        }
+      : {
+          score: rawConf === 'high' ? 85 : rawConf === 'low' ? 45 : 68,
+          level: typeof rawConf === 'string' ? rawConf : 'medium',
+          reasons: [
+            raw.status === 'resolved'
+              ? 'Resolved Leak Preserved For Historical Evidence Inspection'
+              : 'Measured From Persisted Hand Evidence',
+          ],
+        };
+    return {
+      id: raw.id,
+      title: raw.title || raw.situationClass || 'Detected Leak',
+      category: raw.category || raw.leakCategory || 'preflop',
+      status: raw.status || 'resolved',
+      reason: raw.reason || raw.explanation || raw.situationClass || 'Measured From Persisted Evidence',
+      recommendedDrill: raw.recommendedDrill || null,
+      confidence: normalizedConfidence,
+    };
+  }, [leaks, selectedLeakId, workspace?.snapshot?.leaks]);
+  const allInspectablePriorities = useMemo(() => {
+    if (fallbackSelectedPriority && !priorities.some(item => String(item.id) === String(fallbackSelectedPriority.id))) {
+      return [fallbackSelectedPriority, ...priorities];
+    }
+    return priorities;
+  }, [fallbackSelectedPriority, priorities]);
   const needle = query.trim().toLowerCase();
-  const visiblePriorities = useMemo(() => !needle ? priorities : priorities.filter(item => (
+  const visiblePriorities = useMemo(() => !needle ? allInspectablePriorities : allInspectablePriorities.filter(item => (
     `${item.title} ${item.category} ${item.reason}`.toLowerCase().includes(needle)
-  )), [needle, priorities]);
-  const selectedPriority = priorities.find(item => String(item.id) === String(selectedLeakId)) || priorities[0] || null;
-  const selectedLeak = findLeak(leaks, selectedPriority?.id);
+  )), [allInspectablePriorities, needle]);
+  const selectedPriority = priorities.find(item => String(item.id) === String(selectedLeakId))
+    || fallbackSelectedPriority
+    || priorities[0]
+    || null;
+  const selectedLeak = findLeak(leaks, selectedPriority?.id) || findLeak(workspace?.snapshot?.leaks, selectedPriority?.id);
   const exampleLeakId = selectedLeak && /^[0-9a-f-]{36}$/i.test(String(selectedLeak.id)) ? selectedLeak.id : null;
   const { examples, isLoading: examplesLoading, error: examplesError, refetch: refetchExamples } = useLeakHandExamples(exampleLeakId);
   const evidence = selectedLeak
@@ -632,75 +719,88 @@ export default function CoachingWorkspace({
       <div className={styles.dataGrid}>
         {status && <div className={styles.status} data-tone={status.tone} role="status">{status.text}</div>}
 
-        <article className={styles.panel}>
-          <span className={styles.eyebrow}>Coaching Preferences</span>
-          <h3>Analysis Depth &amp; Weekly Digest</h3>
-          <div className={styles.commandControls}>
-            <label className={styles.depthControl}>
-              <span>Analysis Depth</span>
-              <select value={analysisDepth} disabled={saving} onChange={event => selectAnalysisDepth(event.target.value)} aria-label="Analysis Depth">
-                <option value="guided">Guided</option>
-                <option value="detailed">Detailed</option>
-                <option value="expert">Expert</option>
-              </select>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, cursor: 'pointer', marginTop: 4 }}>
-              <input
-                type="checkbox"
-                checked={Boolean(weeklyDigestOptIn)}
-                disabled={saving}
-                onChange={(event) => toggleWeeklyDigest(event.target.checked)}
-                aria-label="Weekly Coaching Digest"
-                style={{ width: 20, height: 20, minHeight: 20, margin: 0, cursor: 'pointer' }}
-              />
-              <span style={{ color: '#f1f5fc', fontSize: 13, fontWeight: 700 }}>
-                Weekly Coaching Digest
-              </span>
-            </label>
-            <div className={styles.receipt} aria-label="Reproducible Coaching Receipt">
-              <span>Analysis Receipt</span>
-              <strong data-pa-verbatim="true">{snapshot?.receipt || 'Unavailable'}</strong>
-            </div>
-          </div>
-        </article>
+        {userId ? (
+          <>
+            <article className={styles.panel}>
+              <span className={styles.eyebrow}>Coaching Preferences</span>
+              <h3>Analysis Depth &amp; Weekly Digest</h3>
+              <div className={styles.commandControls}>
+                <label className={styles.depthControl}>
+                  <span>Analysis Depth</span>
+                  <select value={analysisDepth} disabled={saving} onChange={event => selectAnalysisDepth(event.target.value)} aria-label="Analysis Depth">
+                    <option value="guided">Guided</option>
+                    <option value="detailed">Detailed</option>
+                    <option value="expert">Expert</option>
+                  </select>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, cursor: 'pointer', marginTop: 4 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(weeklyDigestOptIn)}
+                    disabled={saving}
+                    onChange={(event) => toggleWeeklyDigest(event.target.checked)}
+                    aria-label="Weekly Coaching Digest"
+                    style={{ width: 20, height: 20, minHeight: 20, margin: 0, cursor: 'pointer' }}
+                  />
+                  <span style={{ color: '#f1f5fc', fontSize: 13, fontWeight: 700 }}>
+                    Weekly Coaching Digest
+                  </span>
+                </label>
+                <div className={styles.receipt} aria-label="Reproducible Coaching Receipt">
+                  <span>Analysis Receipt</span>
+                  <strong data-pa-verbatim="true">{snapshot?.receipt || 'Unavailable'}</strong>
+                </div>
+              </div>
+            </article>
 
-        <article className={styles.panel}>
-          <span className={styles.eyebrow}>Coach-Ready Study Plan</span>
-          <h3>Export Study Plan</h3>
-          <p>Copy Or Download Your Ranked Improvement Plan With Zero Personal Account Identifiers.</p>
-          <div className={styles.actionRow}>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              onClick={() => setShowExportTray(prev => !prev)}
-              aria-expanded={showExportTray}
-              disabled={exportingPlan}
-            >
-              <Download size={16} aria-hidden="true" />
-              <span>Export Study Plan</span>
-            </button>
-          </div>
-          {showExportTray && (
-            <div className={styles.exportTray} role="region" aria-label="Export Study Plan Actions">
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={handleCopyStudyPlan}
-                disabled={exportingPlan}
-              >
-                Copy Markdown
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={handleDownloadStudyPlan}
-                disabled={exportingPlan}
-              >
-                Download .Md File
-              </button>
+            <article className={styles.panel}>
+              <span className={styles.eyebrow}>Coach-Ready Study Plan</span>
+              <h3>Export Study Plan</h3>
+              <p>Copy Or Download Your Ranked Improvement Plan With Zero Personal Account Identifiers.</p>
+              <div className={styles.actionRow}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => setShowExportTray(prev => !prev)}
+                  aria-expanded={showExportTray}
+                  disabled={exportingPlan}
+                >
+                  <Download size={16} aria-hidden="true" />
+                  <span>Export Study Plan</span>
+                </button>
+              </div>
+              {showExportTray && (
+                <div className={styles.exportTray} role="region" aria-label="Export Study Plan Actions">
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={handleCopyStudyPlan}
+                    disabled={exportingPlan}
+                  >
+                    Copy Markdown
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={handleDownloadStudyPlan}
+                    disabled={exportingPlan}
+                  >
+                    Download .Md File
+                  </button>
+                </div>
+              )}
+            </article>
+          </>
+        ) : (
+          <article className={styles.panel} data-testid="settings-signin-gate">
+            <span className={styles.eyebrow}>Account Coaching &amp; Data Controls</span>
+            <h3>Sign In To Sync Preferences &amp; Export Your Study Plan</h3>
+            <p>Local Filter And Practice Presets Below Apply Immediately On This Device. Sign In To Save Coaching Depth, Weekly Digests, Study Plan Exports, And Data Retention Controls To Your Account.</p>
+            <div className={styles.actionRow}>
+              <a href="/auth/login" className={styles.primaryButton}>Sign In</a>
             </div>
-          )}
-        </article>
+          </article>
+        )}
 
         {extraSettingsContent}
 
@@ -1478,7 +1578,7 @@ export default function CoachingWorkspace({
       {/* Overflow 1+1 Action Sheet for Training Plan Modules */}
       <BottomSheet
         open={Boolean(overflowModule)}
-        onClose={() => setOverflowModule(null)}
+        onClose={closeOverflowModule}
         title={overflowModule?.title || 'Leak Actions'}
         subtitle="Secondary Actions & Evidence Summary"
       >
@@ -1501,7 +1601,7 @@ export default function CoachingWorkspace({
                   </div>
                   <div>
                     <dt>Street &amp; Position</dt>
-                    <dd>{titleWords(overflowModule.representativeHand?.street || 'Preflop')} · {overflowModule.representativeHand?.heroPosition || 'BTN'}</dd>
+                    <dd>{titleWords(overflowModule.representativeHand?.street || (['preflop', 'flop', 'turn', 'river'].includes(String(overflowModule.category || '').toLowerCase()) ? overflowModule.category : 'All Streets'))} · {overflowModule.representativeHand?.heroPosition || 'All Positions'}</dd>
                   </div>
                   <div>
                     <dt>Price Or Sizing</dt>

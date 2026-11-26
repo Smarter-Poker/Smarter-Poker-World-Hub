@@ -23,6 +23,7 @@ const WAREHOUSE_SOURCES = new Set([
 ]);
 
 const GOOD_CLASSIFICATIONS = new Set(['best', 'correct']);
+export const BLUNDER_OPTIMAL_FREQUENCY_THRESHOLD = 80;
 
 /**
  * Historical memory-chart cache rows stored the audited push/fold percentage
@@ -177,7 +178,7 @@ export function classifyFrequencyDecision(frequencies = {}, selectedAnswer, decl
   else if (selectedFrequency >= 1) classification = 'inaccuracy';
   else {
     const nonZero = values.filter(v => v > 0).length;
-    classification = optimalFrequency >= 80 || nonZero <= 1 ? 'blunder' : 'wrong';
+    classification = optimalFrequency >= BLUNDER_OPTIMAL_FREQUENCY_THRESHOLD || nonZero <= 1 ? 'blunder' : 'wrong';
   }
 
   const optimalAction = Object.entries(frequencies).reduce((best, [id, value]) => {
@@ -463,6 +464,7 @@ export function summarizeSolverDecisionGroups(rows, { minSamples = 8, targetErro
           stackDepthBb: finiteNumber(row.stack_depth_bb ?? row.stackDepthBb),
           evLossBB: evVal,
           evLossMeasured: evVal !== null,
+          solverVerified: true,
         };
       }
     }
@@ -713,6 +715,7 @@ export {
 
 export default {
   SOLVER_EVIDENCE_RULE_VERSION,
+  BLUNDER_OPTIMAL_FREQUENCY_THRESHOLD,
   gradeCanonicalPolicyDecision,
   isVerifiedSolverQuestion,
   enforceSolverClaimHonesty,

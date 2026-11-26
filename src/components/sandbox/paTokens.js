@@ -51,7 +51,7 @@ export const E = {
 
 export const Z = {
     base: 1, felt: 10, feltCards: 20, sticky: 50, bottomNav: 100,
-    backdrop: 900, sheet: 901, popover: 950, toast: 1000,
+    backdrop: 950, sheet: 951, popover: 980, toast: 1000,
 };
 
 export const FONT = "Arial,'Inter',-apple-system,BlinkMacSystemFont,sans-serif";

@@ -52,7 +52,7 @@ const DESTINATIONS = [
   {
     title: 'Open Club Arena Hand History',
     description: 'Replay Your Persisted Club Arena Cash And Tournament Hands Directly Under Your Own Session.',
-    href: '/hub/club-arena/hand-history?source=assistant-sandbox-retired',
+    href: '/hub/club-arena/hand-history?source=personal-assistant-sandbox-retired',
     primary: false,
   },
 ];
