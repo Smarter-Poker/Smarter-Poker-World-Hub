@@ -5,7 +5,7 @@
  *   - /hub/wire/rss.xml (Crawlable SSR route under /hub/wire/ Allowed by robots.txt)
  *   - /api/news/wire-rss (Backwards-compatible API route)
  */
-import { isWeeklyWireDigestCampaign } from './weeklyWireEngine.mjs';
+import { isWeeklyWireDigestCampaign } from './wireCampaignPredicate.mjs';
 
 const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FEED_LIMIT = 25;

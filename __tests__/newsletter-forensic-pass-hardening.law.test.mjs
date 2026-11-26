@@ -597,3 +597,42 @@ test('FP LAW 8: CSP allows apex https://smarter.poker, crons enforce 300s/deadli
     assert.match(captureBarCss, /@media\s*\(max-width:\s*640px\)[\s\S]*?flex-wrap:\s*wrap/);
     assert.match(captureBarCss, /flex:\s*1\s+1\s+100%/);
 });
+
+// ── FP LAW 9: Sitemap Webpack Client-Bundle Isolation & Zero Phantom Columns ──
+test('FP LAW 9: sitemapBuilders.mjs stays zero-Node/zero-sharp for Webpack client bundles and zero newsletter/sitemap queries reference phantom newsletter_campaigns.sent_at', () => {
+    const sitemapBuildersSrc = readRepo('src/lib/seo/sitemapBuilders.mjs');
+    const predicateSrc = readRepo('src/lib/newsletter/wireCampaignPredicate.mjs');
+
+    assert.doesNotMatch(
+        sitemapBuildersSrc,
+        /weeklyWireEngine|emailImageProxy|sharp|node:/,
+        'sitemapBuilders.mjs is client-reachable in Webpack and must never import server-only weeklyWireEngine, emailImageProxy, sharp, or node:* modules'
+    );
+    const predicateCode = predicateSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    assert.doesNotMatch(
+        predicateCode,
+        /^\s*import\s|require\(|node:|sharp/m,
+        'wireCampaignPredicate.mjs must remain a pure zero-dependency predicate'
+    );
+
+    for (const rel of [
+        'src/lib/newsletter/weeklyWireEngine.mjs',
+        'src/lib/newsletter/wireRssBuilder.mjs',
+        'src/lib/seo/sitemapBuilders.mjs',
+        'pages/sitemap-core.xml.js',
+        'pages/sitemap.xml.js',
+        'pages/api/news/digest.js',
+        'pages/api/news/operations.js',
+        'pages/api/news/wire-rss.js',
+        'pages/hub/wire/index.js',
+        'pages/hub/wire/[edition].js',
+        'pages/hub/wire/rss.xml.js',
+    ]) {
+        assert.doesNotMatch(
+            readRepo(rel),
+            /\bsent_at\b/,
+            `${rel} must never reference phantom column newsletter_campaigns.sent_at (live schema uses completed_at / started_at / created_at)`
+        );
+    }
+});
+

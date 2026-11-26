@@ -51,7 +51,7 @@ import { HUD_STATS, HUD_STATS_AS_OF, hudStatPath } from '../../content/learn/hud
 import { EDITORIAL_AUTHORS, AUTHORS_AS_OF, authorPath } from '../../content/authors.js';
 import { POKER_TRAVEL_CORRIDORS, CORRIDORS_AS_OF, corridorGuidePath } from '../../content/guides/corridors.js';
 import { POKER_ROOMS_BY_GAME, BY_GAME_AS_OF, byGameGuidePath } from '../../content/guides/byGame.js';
-import { isWeeklyWireDigestCampaign } from '../newsletter/weeklyWireEngine.mjs';
+import { isWeeklyWireDigestCampaign } from '../newsletter/wireCampaignPredicate.mjs';
 
 export const SITE_URL = 'https://smarter.poker';
 export const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -494,7 +494,7 @@ export async function buildWireEditionUrls(wireCampaignRows) {
     if (sb) {
       const { data, error } = await sb
         .from('newsletter_campaigns')
-        .select('id, subject, status, sent_at, completed_at, created_at, article_ids')
+        .select('id, subject, status, completed_at, created_at, article_ids')
         .in('status', ['sent', 'partial'])
         .order('created_at', { ascending: true })
         .limit(200);
@@ -508,7 +508,7 @@ export async function buildWireEditionUrls(wireCampaignRows) {
           const client = createClient(url, key);
           const { data, error } = await client
             .from('newsletter_campaigns')
-            .select('id, subject, status, sent_at, completed_at, created_at, article_ids')
+            .select('id, subject, status, completed_at, created_at, article_ids')
             .in('status', ['sent', 'partial'])
             .order('created_at', { ascending: true })
             .limit(200);
@@ -528,7 +528,7 @@ export async function buildWireEditionUrls(wireCampaignRows) {
     let num = Number.isFinite(fromSubject) && fromSubject > 0 && !used.has(fromSubject) ? fromSubject : idx + 1;
     while (used.has(num)) num += 1;
     used.add(num);
-    const day = String(row.completed_at || row.sent_at || row.created_at || '').slice(0, 10);
+    const day = String(row.completed_at || row.created_at || '').slice(0, 10);
     const entry = { path: `/hub/wire/${num}`, priority: '0.7', changefreq: 'monthly' };
     if (/^\d{4}-\d{2}-\d{2}$/.test(day)) entry.lastmod = day;
     return entry;

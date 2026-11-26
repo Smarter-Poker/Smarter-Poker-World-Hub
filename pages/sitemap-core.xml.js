@@ -25,7 +25,7 @@ export async function getServerSideProps({ req, res }) {
     const supabase = createClient();
     const { data } = await supabase
       .from('newsletter_campaigns')
-      .select('id, subject, status, sent_at, completed_at, created_at, article_ids')
+      .select('id, subject, status, completed_at, created_at, article_ids')
       .eq('status', 'sent')
       .order('created_at', { ascending: true })
       .limit(200);

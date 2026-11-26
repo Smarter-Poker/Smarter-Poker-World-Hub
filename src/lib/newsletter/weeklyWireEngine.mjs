@@ -274,17 +274,8 @@ function decodeHtmlEntities(str) {
  * `article_ids` so empty promotional broadcasts can never hijack edition numbers
  * or render blank web archive issues.
  */
-export function isWeeklyWireDigestCampaign(row) {
-    if (!row || typeof row !== 'object') return false;
-    const subj = String(row.subject || '').trim();
-    if (!subj) return false;
-    if (/^\[(?:promo|lifecycle|sms|test)\b/i.test(subj)) return false;
-    const ids = Array.isArray(row.article_ids)
-        ? row.article_ids.filter((id) => typeof id === 'string' && id.trim().length > 0)
-        : [];
-    if (ids.length === 0) return false;
-    return true;
-}
+import { isWeeklyWireDigestCampaign } from './wireCampaignPredicate.mjs';
+export { isWeeklyWireDigestCampaign };
 
 /**
  * Enforces `pages/auth/signup.js`'s `isReferralInput` contract:
@@ -755,7 +746,7 @@ export function parseWireEditionSubjectNumber(subject) {
 export function numberWeeklyWireCampaigns(rows) {
     const list = (Array.isArray(rows) ? rows : []).filter(isWeeklyWireDigestCampaign);
     const getTimestamp = (r) => {
-        const val = r?.sent_at || r?.completed_at || r?.created_at;
+        const val = r?.completed_at || r?.started_at || r?.created_at;
         return val ? new Date(val).getTime() : 0;
     };
     list.sort((a, b) => getTimestamp(a) - getTimestamp(b));
@@ -796,7 +787,7 @@ export async function loadZeroRepeatLedger(sb) {
 
     const { data: campaigns, error } = await sb
         .from('newsletter_campaigns')
-        .select('id, subject, status, article_ids, created_at, sent_at, completed_at')
+        .select('id, subject, status, article_ids, created_at, completed_at')
         .in('status', ['sent', 'partial', 'sending'])
         .order('created_at', { ascending: false })
         .limit(250);
