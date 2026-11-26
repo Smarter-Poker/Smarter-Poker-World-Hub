@@ -60,9 +60,11 @@
 }
 
 .pageFooter {
-  width: min(calc(100% - 52px), 1188px);
-  margin: 28px auto calc(20px + env(safe-area-inset-bottom));
-  padding: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--sp-footer-dock-height);
+  margin: 28px 0 0;
+  padding-inline: 4px;
   border: 1px solid #2d4759;
   background: #050b11;
   box-shadow:
@@ -71,8 +73,14 @@
   font-family: var(--font-inter), Inter, Arial, sans-serif;
 }
 
+.pageFooter .links {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: 100%;
+}
+
 .pageFooter .link {
-  min-height: 48px;
+  min-height: 0;
+  padding-block: 0;
   border: 1px solid #2b4252;
   color: #cbd8df;
   background-color: #09121a;
@@ -108,15 +116,9 @@
     font-size: 11px;
   }
 
-  .pageFooter {
-    width: calc(100% - 20px);
-    margin-top: 20px;
-    padding: 8px;
-  }
-
   .pageFooter .link {
-    min-height: 48px;
-    padding: 8px 6px;
+    min-height: 0;
+    padding: 0 2px;
     font-size: 12px;
   }
 }

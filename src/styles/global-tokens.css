@@ -11,6 +11,7 @@
   --sp-header-height: 56px;
   --sp-bottom-nav-height: 56px;
   --sp-footer-frame-scale: 12.326vw;
+  --sp-footer-dock-height: clamp(44px, var(--sp-footer-frame-scale), 132px);
 
   /* ═══════════════════════════════════════════════════════════════════════════
      DEFAULT WORLD THEME

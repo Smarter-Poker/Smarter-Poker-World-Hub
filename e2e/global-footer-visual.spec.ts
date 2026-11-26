@@ -399,6 +399,11 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     await expect(pageFooter).toBeVisible();
     await expect(pageFooter).toHaveAttribute('data-footer-layout', 'in-flow');
     await expect(pageFooter).toHaveCSS('position', 'static');
+    const footerBox = await pageFooter.boundingBox();
+    expect(footerBox).not.toBeNull();
+    expect(Math.abs(footerBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(footerBox!.width - 390)).toBeLessThanOrEqual(1);
+    expect(Math.abs(footerBox!.height - expectedArenaDockHeight(390))).toBeLessThanOrEqual(1);
     await expect(page.locator('.world-copy-scope')).toHaveCount(1);
   });
 

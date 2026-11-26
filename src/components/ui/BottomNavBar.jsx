@@ -81,7 +81,7 @@ import { getFallbackFooter, resolveWorldFooter } from '../../config/worldFooterN
 // pointer-transparent.
 export const BOTTOM_NAV_Z = 900;
 export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
-export const BOTTOM_NAV_CLEARANCE = 'calc(clamp(44px, var(--sp-footer-frame-scale), 132px) + env(safe-area-inset-bottom, 0px))';
+export const BOTTOM_NAV_CLEARANCE = 'calc(var(--sp-footer-dock-height) + env(safe-area-inset-bottom, 0px))';
 
 /**
  * THE FOOTER GETS OUT OF THE WAY WHILE YOU READ (Dan, 2026-09-04, binding).
@@ -410,7 +410,7 @@ const artworkDisplayBounds = (artwork) =>
     : { x: 0, y: 0, width: artwork.width, height: artwork.height };
 
 // Club Arena uses this touch floor and the responsive height of its desktop and phone frames.
-export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, var(--sp-footer-frame-scale), 132px)';
+export const FOOTER_ARTWORK_HEIGHT = 'var(--sp-footer-dock-height)';
 const FOOTER_FRAME_HEIGHT = 'min(132px, var(--sp-footer-frame-scale))';
 const MIN_FOOTER_HIT_ZONE = 44;
 
