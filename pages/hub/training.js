@@ -26,6 +26,7 @@
  * Author: redesign generated 2026-05-06
  */
 
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -33,7 +34,7 @@ import dynamic from 'next/dynamic';
 import {
   Play, Shuffle, Target, Clock, Layers, Zap, AlertTriangle, Wrench,
   TrendingUp, Flame, Search, Trophy, DollarSign, Rocket, Brain, Atom,
-  Grid2x2, Check, Sparkles, Lock, Gem, Home, Users, BarChart3, User,
+  Check, Sparkles, Lock, Gem, Home, Users, BarChart3, User,
   ArrowRight,
 } from 'lucide-react';
 
@@ -89,7 +90,7 @@ const CATEGORY_META = {
   CASH:       { label: 'Cash Games',   Icon: DollarSign, color: '#4ADE80', glow: 'rgba(74,222,128,0.22)' },
   SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#FACC15', glow: 'rgba(250,204,21,0.22)' },
   PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#C084FC', glow: 'rgba(192,132,252,0.22)' },
-  ADVANCED:   { label: 'Advanced',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
+  ADVANCED:   { label: 'Poker Strategy',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
 
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
@@ -180,7 +181,6 @@ export default function TrainingPage() {
     statsError,
     retryStats,
     recommendation,
-    recommendationLoading,
   } = useTrainingDashboard(authUser);
   // Lifetime cross-session progress: real training_sessions rows +
   // training_answers position aggregates. Empty history renders an honest
@@ -316,11 +316,16 @@ export default function TrainingPage() {
     setShowArena(true);
   }, [authUser?.id, haptic, requireOnline, router, setActiveGame, setShowArena]);
 
+  const playGame = useCallback((game) => {
+    if (!game || !requireOnline()) return;
+    haptic('light');
+    router.push({
+      pathname: '/hub/training/arena/[gameId]',
+      query: { gameId: game.id, start: '1', source: 'training-home' },
+    });
+  }, [haptic, requireOnline, router]);
+
   const heroGame = jarvisPick || TRAINING_LIBRARY[0];
-  const heroPreset = useMemo(
-    () => resolvePresetForGame(heroGame, loadTrainingPreferences(heroGame?.id, authUser?.id)),
-    [heroGame, authUser?.id],
-  );
   const continueTarget = useMemo(() => {
     if (resumableSession?.game) return resumableSession;
     const latest = Array.isArray(lifetimeSessions) && lifetimeSessions[0] ? lifetimeSessions[0] : null;
@@ -637,42 +642,17 @@ export default function TrainingPage() {
 
             <section aria-labelledby="hero-h" className="sp-hero" data-tutorial="hero">
               <div className="sp-hero-copy">
-                <p className="sp-hero-eyebrow">
-                  <span className="sp-dot" aria-hidden />
-                  {jarvisPick?.estMinutes ? `Training Orb Online · ${jarvisPick.estMinutes} Minute Plan` : 'Training Orb Online'}
-                </p>
-                <h1 id="hero-h" className="sp-hero-title">
-                  {renderHeroHeadline({ authUser, stats, statsError, jarvisPick, statsLoading: statsBusy, recommendationLoading })}
-                </h1>
-                <p className="sp-hero-sub">
-                  {recommendationLoading
-                    ? 'Loading your daily plan…'
-                    : jarvisPick
-                      ? (jarvisPick.reason
-                          ? `Jarvis: ${jarvisPick.reason}`
-                          : `Jarvis picked one drill for you - ${jarvisPick.name}.`)
-                      : 'Browse The Library Below To Start Your First Drill.'}
-                </p>
-
-                {jarvisPick && <DrillCard game={jarvisPick} />}
-
-                {heroPreset && (
-                  <div className="sp-preset-bar" data-training-preset-summary="true">
-                    <span className="sp-preset-bar-label">Active Preset</span>
-                    <strong className="sp-preset-bar-value">{heroPreset.summary}</strong>
-                    <span className="sp-preset-bar-rules">{heroPreset.ruleSummary}</span>
-                  </div>
-                )}
+                <h1 id="hero-h" className="sp-hero-title">Training Games</h1>
+                <p className="sp-hero-sub">Practice Poker Decisions And Get Feedback.</p>
 
                 <div className="sp-cta-row">
                   <button
                     className="sp-cta sp-cta-primary"
                     data-start-training-cta="true"
-                    onClick={() => quickStartDrill(jarvisPick || TRAINING_LIBRARY[0])}
-                    disabled={recommendationLoading || !TRAINING_LIBRARY[0]}
-                    aria-disabled={recommendationLoading || !TRAINING_LIBRARY[0]}
+                    onClick={() => playGame(heroGame)}
+                    disabled={!heroGame}
                   >
-                    <Play size={18} aria-hidden /> {jarvisPick ? "Start Today's Drill" : 'Start Training'}
+                    <Play size={18} aria-hidden /> Play {heroGame?.name || 'Now'}
                   </button>
                   {continueTarget && (
                     <button
@@ -684,27 +664,75 @@ export default function TrainingPage() {
                       <Play size={16} aria-hidden /> Continue Training ({continueTarget.gameName})
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="sp-cta sp-cta-secondary"
-                    data-customize-preset-cta="true"
-                    onClick={() => startDrill(jarvisPick || TRAINING_LIBRARY[0])}
-                  >
-                    <Wrench size={16} aria-hidden /> Customize Preset
-                  </button>
                   <button className="sp-cta sp-cta-secondary" onClick={browseTrainingLibrary}>
                     <Shuffle size={18} aria-hidden /> Pick A Different Drill
                   </button>
                 </div>
               </div>
 
-              <GradeCard
-                stats={stats}
-                loading={statsBusy}
-                error={statsError}
-                onRetry={retryStats}
-                signedIn={Boolean(authUser?.id)}
-              />
+            </section>
+
+            <section id="training-library" aria-labelledby="lib-h" data-tutorial="library">
+              <div className="sp-section-head">
+                <h2 ref={libraryHeadingRef} id="lib-h" className="sp-section-title" tabIndex={-1}>Browse Games</h2>
+                <span className="sp-section-link" aria-live="polite">
+                  {filtered.length === TRAINING_LIBRARY.length ? `${TRAINING_LIBRARY.length} games` : `${filtered.length} of ${TRAINING_LIBRARY.length}`}
+                </span>
+              </div>
+
+              <div className="sp-toolbar" data-tutorial="search">
+                <label className="sp-search">
+                  <Search size={16} aria-hidden />
+                  <input
+                    type="search"
+                    aria-label="Search Games"
+                    placeholder="Search Games"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              <nav className="sp-cat-chips" aria-label="Training game categories" data-tutorial="categories">
+                {CATEGORY_ORDER.map(category => {
+                  const meta = CATEGORY_META[category];
+                  return (
+                    <Link key={category} className="sp-cat-chip" href={`/hub/training/category/${category.toLowerCase()}`}>
+                      <meta.Icon size={14} aria-hidden style={{ color: meta.color }} /> {meta.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              {filtered.length > 0 ? (
+                <>
+                  <div className="sp-grid" data-tutorial="games">
+                    {visibleGames.map(g => (
+                      <GameCardNew
+                        key={g.id}
+                        game={g}
+                        progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
+                        isRecommended={g.id === jarvisPick?.id}
+                        onStart={() => playGame(g)}
+                      />
+                    ))}
+                  </div>
+                  {moreGamesPending && (
+                    <div ref={gridSentinelRef} className="sp-grid-sentinel" aria-hidden="true" />
+                  )}
+                </>
+              ) : (
+                <div className="sp-empty" role="status">
+                  <p>No Drills Match - Try A Different Search.</p>
+                  <button
+                    type="button"
+                    className="sp-cta sp-cta-secondary sp-empty-reset"
+                    onClick={resetBrowseFilters}
+                  >
+                    Reset Browse Filters
+                  </button>
+                </div>
+              )}
             </section>
 
             {fiveMinuteLeakFix && (
@@ -962,6 +990,13 @@ export default function TrainingPage() {
               <div className="sp-section-head">
                 <h2 id="prog-h" className="sp-section-title">Progress</h2>
               </div>
+              <GradeCard
+                stats={stats}
+                loading={statsBusy}
+                error={statsError}
+                onRetry={retryStats}
+                signedIn={Boolean(authUser?.id)}
+              />
               <ProgressBlock
                 sessions={lifetimeSessions}
                 positionAccuracy={positionAccuracy}
@@ -972,73 +1007,6 @@ export default function TrainingPage() {
               />
             </section>
 
-            <section id="training-library" aria-labelledby="lib-h" data-tutorial="library">
-              <div className="sp-section-head">
-                <h2 ref={libraryHeadingRef} id="lib-h" className="sp-section-title" tabIndex={-1}>Browse The Training Library</h2>
-                <span className="sp-section-link" aria-live="polite">
-                  {filtered.length === TRAINING_LIBRARY.length ? `${TRAINING_LIBRARY.length} games` : `${filtered.length} of ${TRAINING_LIBRARY.length}`}
-                </span>
-              </div>
-
-              <div className="sp-toolbar" data-tutorial="search">
-                <label className="sp-search">
-                  <Search size={16} aria-hidden />
-                  <input
-                    type="search"
-                    aria-label="Search Games"
-                    placeholder="Search Drills, Spots, Formats…"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className="sp-cat-chips" role="group" aria-label="Game Categories" data-tutorial="categories">
-                <CatChip cat="ALL" active={activeCat==='ALL'} onClick={() => setActiveCat('ALL')} count={TRAINING_LIBRARY.length}>
-                  <Grid2x2 size={14} aria-hidden /> All
-                </CatChip>
-                {CATEGORY_ORDER.map(c => {
-                  const meta = CATEGORY_META[c];
-                  const count = TRAINING_LIBRARY.filter(g => g.category === c).length;
-                  return (
-                    <CatChip key={c} cat={c} active={activeCat===c} onClick={() => setActiveCat(c)} count={count}>
-                      <meta.Icon size={14} aria-hidden style={{ color: meta.color }} /> {meta.label}
-                    </CatChip>
-                  );
-                })}
-              </div>
-
-              {filtered.length > 0 ? (
-                <>
-                  <div className="sp-grid" data-tutorial="games">
-                    {visibleGames.map(g => (
-                      <GameCardNew
-                        key={g.id}
-                        game={g}
-                        progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
-                        isRecommended={g.id === jarvisPick?.id}
-                        onStart={() => quickStartDrill(g)}
-                      />
-                    ))}
-                  </div>
-                  {moreGamesPending && (
-                    <div ref={gridSentinelRef} className="sp-grid-sentinel" aria-hidden="true" />
-                  )}
-                </>
-              ) : (
-                <div className="sp-empty" role="status">
-                  <p>No Drills Match - Try A Different Search.</p>
-                  <button
-                    type="button"
-                    className="sp-cta sp-cta-secondary sp-empty-reset"
-                    onClick={resetBrowseFilters}
-                  >
-                    Reset Browse Filters
-                  </button>
-                </div>
-              )}
-            </section>
-
             <HubPageSummary page="training" />
 
           </main>
@@ -1047,39 +1015,6 @@ export default function TrainingPage() {
         </HubPageShell>
       )}
     </PageTransition>
-  );
-}
-
-function DrillCard({ game }) {
-  if (!game) return null;
-  // Render tags only for fields the recommendation/library actually provides.
-  const formatTag = [game.format, game.stack].filter(Boolean).join(' · ');
-  return (
-    <div className="sp-drill-card" role="group" aria-label="Today's recommended drill">
-      <div className="sp-drill-cover" aria-hidden>
-        <TrainingGameArt
-          gameId={game.id}
-          loading="eager"
-          sizes="(max-width: 720px) 92vw, 128px"
-          className="sp-drill-cover-img"
-        />
-        <Target size={22} className="sp-drill-cover-icon" />
-      </div>
-      <div className="sp-drill-meta">
-        <h2 className="sp-drill-title">{game.name}</h2>
-        <div className="sp-drill-tags">
-          {formatTag && (
-            <span className="sp-tag"><Layers size={12} aria-hidden /> {formatTag}</span>
-          )}
-          {game.estMinutes != null && (
-            <span className="sp-tag"><Clock size={12} aria-hidden /> ~{game.estMinutes} Min</span>
-          )}
-          {game.handsTarget != null && (
-            <span className="sp-tag"><Zap size={12} aria-hidden /> {game.handsTarget} Hands</span>
-          )}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -1203,52 +1138,6 @@ function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
       )}
       {sub && <div className="sp-stat-sub">{sub}</div>}
     </div>
-  );
-}
-
-/**
- * Real-data hero headline · never fabricates progression.
- * Shape:
- *   1) recommendation loaded + grade data exists → "<delta> correct hands away from <next>."
- *   2) recommendation loaded + no graded data    → "Ready to start training? Run your first drill."
- *   3) loading                                    → "Loading your daily plan…"
- *   4) no recommendation                          → "Browse the library to pick your first drill."
- */
-function renderHeroHeadline({ authUser, stats, statsError, jarvisPick, statsLoading, recommendationLoading }) {
-  const greet = authUser
-    ? `Welcome Back${authUser?.name ? `, ${authUser.name}` : ''}.`
-    : 'GTO Poker Training: Build Better Decisions, One Hand At A Time.';
-  // While the plan loads the heading is the greeting alone; the sub-line
-  // under it already says "Loading your daily plan". A crawler reads the
-  // server HTML, where loading is the only state, and a heading that ends in
-  // a loading message is what it took away (AEO phase 1, 2026-09-17).
-  if (statsLoading || recommendationLoading || (authUser && !stats && !statsError)) {
-    return <>{greet}</>;
-  }
-  if (authUser && (statsError || !stats)) {
-    return <>{greet} Your Training Summary Is Temporarily Unavailable.</>;
-  }
-  const hasGradeData = Number(stats?.rolling_total) > 0;
-  const delta = stats?.delta_correct_to_next;
-  const nextGrade = stats?.next_grade;
-  if (jarvisPick && hasGradeData && delta != null && nextGrade) {
-    const noun = delta === 1 ? 'correct hand' : 'correct hands';
-    return <>{greet} <em>{delta} {noun}</em> Away From Grade {nextGrade}.</>;
-  }
-  if (jarvisPick && !hasGradeData) {
-    return <>{greet} Ready To Start Training?</>;
-  }
-  if (!jarvisPick) {
-    return <>{greet} Browse The Library To Start Your First Drill.</>;
-  }
-  return <>{greet}</>;
-}
-
-function CatChip({ children, active, onClick, count }) {
-  return (
-    <button className="sp-cat-chip" aria-pressed={active} onClick={onClick}>
-      {children} <span className="sp-cat-count">{count}</span>
-    </button>
   );
 }
 
@@ -2499,6 +2388,13 @@ function GlobalStyle() {
         .sp-stat { min-height: 96px; padding: 11px; }
         .sp-card-body { min-height: 170px; padding: 13px; }
       }
+
+      .sp-main .sp-hero {
+        min-height: 240px;
+        grid-template-columns: 1fr;
+        padding: clamp(20px, 4vw, 48px);
+      }
+      .sp-main .sp-hero-title { font-size: clamp(28px, 5vw, 48px); }
 
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }

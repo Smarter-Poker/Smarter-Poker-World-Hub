@@ -112,9 +112,9 @@ test('MTT Lobby design tokens & progressive disclosure contracts exist in traini
 
 test('1-tap start flow, preset summary, and progressive disclosures are wired across Training surfaces', () => {
   const hubPage = read('pages/hub/training.js');
-  assert.ok(hubPage.includes('data-training-preset-summary="true"'), 'Training Home must display the active preset summary');
+  assert.ok(!hubPage.includes('data-training-preset-summary="true"'), 'Training Home must keep preset details out of the play entry point');
   assert.ok(hubPage.includes('data-start-training-cta="true"'), 'Training Home must provide a 1-tap Start Training CTA');
-  assert.ok(hubPage.includes('data-customize-preset-cta="true"'), 'Training Home must provide a secondary Customize Preset button');
+  assert.ok(!hubPage.includes('data-customize-preset-cta="true"'), 'Training Home must keep setup controls out of the play entry point');
   assert.ok(hubPage.includes('quickStartDrill'), 'Training Home must support 1-click immediate start without a mandatory setup wall');
 
   const setupModal = read('src/components/training/SessionSetupModal.jsx');

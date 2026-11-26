@@ -510,3 +510,32 @@ test('a stranger cannot use the welcome proof: participation is still required',
     tables.social_conversation_participants=tables.social_conversation_participants.filter(p=>!(p.conversation_id===welcomeThread&&p.user_id===ids.user));
     await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:welcomeThread},{authorizeOnly:true}),e=>e.status===403);
 });
+
+test('a message-less conversation with a saved draft appears in its matching workspace only, never resurrecting non-empty or wrong-context threads',async()=>{
+    const draftThread='30000000-0000-4000-8000-000000000099';
+    const hiddenWithMsgs='30000000-0000-4000-8000-000000000098';
+    const {db,tables}=welcomeFixture([]);
+    tables.social_conversations.push(
+        {id:draftThread,is_group:false,group_name:null,is_request:false},
+        {id:hiddenWithMsgs,is_group:false,group_name:null,is_request:false}
+    );
+    tables.social_conversation_participants.push(
+        {conversation_id:draftThread,user_id:ids.user,context_entity_id:null},
+        {conversation_id:draftThread,user_id:ids.other,context_entity_id:null},
+        {conversation_id:hiddenWithMsgs,user_id:ids.user,context_entity_id:null},
+        {conversation_id:hiddenWithMsgs,user_id:ids.other,context_entity_id:null}
+    );
+    tables.social_messages.push({id:'m-hidden',conversation_id:hiddenWithMsgs,sender_id:ids.other,content:'deleted thread'});
+    tables.messenger_conversation_state=[
+        {user_id:ids.user,conversation_id:draftThread,draft_text:'See you at the 2/5 table',updated_at:'2026-11-25T20:00:00Z'},
+        {user_id:ids.user,conversation_id:hiddenWithMsgs,draft_text:'Must not resurrect',updated_at:'2026-11-25T20:01:00Z'},
+    ];
+    const social=await getMessengerWorkspace(db,ids.user,{workspace:'social'});
+    const found=social.conversations.find(c=>c.id===draftThread);
+    assert.ok(found,'message-less social draft thread should appear');
+    assert.equal(found.draftPreview,'See you at the 2/5 table');
+    assert.equal(found.otherUser.id,ids.other);
+    assert.equal(social.conversations.some(c=>c.id===hiddenWithMsgs),false,'thread with messages must not be resurrected by draft');
+    const club=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club});
+    assert.equal(club.conversations.some(c=>c.id===draftThread),false,'personal draft must never leak into a club inbox');
+});

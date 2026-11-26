@@ -26,6 +26,7 @@ export function ConversationItem({
     onDelete,
     onBlock,
     isBlocked,
+    draftText = '',
     theme: C = defaultTheme
 }) {
     const otherUser = conversation.otherUser || conversation.participants?.find(p => p.id !== currentUserId);
@@ -46,6 +47,8 @@ export function ConversationItem({
         || groupTitle
         || (otherUser?.player_number ? `Player #${otherUser.player_number}` : 'Group');
     const lastMsg = conversation.last_message_preview || conversation.lastMessage;
+    const activeDraft = String(draftText || conversation.draftPreview || '').trim();
+    const showDraft = Boolean(activeDraft && (!isActive || !lastMsg));
     const isUnread = conversation.unreadCount > 0;
     
     // Real-time online status from Supabase Presence channel
@@ -171,8 +174,17 @@ export function ConversationItem({
                     minWidth: 0,
                 }}>
                     {/* The preview truncates; the time never does. */}
-                    <span data-user-content style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{messengerPreviewText(lastMsg || '')}</span>
-                    <span style={{ color: C.textSec, flexShrink: 0, whiteSpace: 'pre' }}> · {timeAgo(conversation.last_message_at)}</span>
+                    <span data-user-content style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+                        {showDraft ? (
+                            <>
+                                <span style={{ color: C.red, fontWeight: 600 }}>Draft: </span>
+                                {activeDraft}
+                            </>
+                        ) : messengerPreviewText(lastMsg || '')}
+                    </span>
+                    {conversation.last_message_at && (
+                        <span style={{ color: C.textSec, flexShrink: 0, whiteSpace: 'pre' }}> · {timeAgo(conversation.last_message_at)}</span>
+                    )}
                 </div>
             </div>
 

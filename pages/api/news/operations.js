@@ -96,8 +96,8 @@ export async function requireNewsletterAdmin(req, res, supabase = getSupabase())
 }
 
 export default async function handler(req, res) {
-    if (!['GET', 'PATCH'].includes(req.method)) {
-        res.setHeader('Allow', 'GET, PATCH');
+    if (!['GET', 'PATCH', 'POST'].includes(req.method)) {
+        res.setHeader('Allow', 'GET, PATCH, POST');
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
     if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
@@ -108,6 +108,99 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store');
 
     try {
+        if (req.method === 'POST') {
+            const { action } = req.body || {};
+            if (action === 'save_promo_draft') {
+                const { draftId, name, draft } = req.body || {};
+                const cleanName = String(name || '').trim();
+                if (!cleanName || cleanName.length > 80) {
+                    return res.status(400).json({ success: false, error: 'Draft name is required (1-80 characters)' });
+                }
+                if (!draft || typeof draft !== 'object') {
+                    return res.status(400).json({ success: false, error: 'Valid draft object is required' });
+                }
+                const cleanDraft = {
+                    subject: String(draft.subject || '').trim(),
+                    headline: String(draft.headline || '').trim(),
+                    body: String(draft.body || '').trim(),
+                    ctaLabel: String(draft.ctaLabel || '').trim(),
+                    ctaUrl: String(draft.ctaUrl || '').trim(),
+                    smsBody: String(draft.smsBody || '').trim(),
+                    scope: String(draft.scope || '').trim(),
+                    channels: Array.isArray(draft.channels) ? draft.channels : [],
+                };
+                const subject = `[PROMO DRAFT] ${cleanName}`.slice(0, 190);
+                const errorSummary = ('draft:' + JSON.stringify(cleanDraft)).slice(0, 4000);
+                const nowIso = new Date().toISOString();
+
+                let savedRow = null;
+                if (draftId && typeof draftId === 'string' && draftId.trim()) {
+                    const { data, error } = await supabase
+                        .from('newsletter_campaigns')
+                        .update({
+                            subject,
+                            error_summary: errorSummary,
+                            updated_at: nowIso,
+                        })
+                        .eq('id', draftId.trim())
+                        .eq('status', 'cancelled')
+                        .select('id, subject, error_summary, updated_at')
+                        .maybeSingle();
+                    if (error) throw error;
+                    savedRow = data;
+                }
+
+                if (!savedRow) {
+                    const { data, error } = await supabase
+                        .from('newsletter_campaigns')
+                        .insert({
+                            subject,
+                            status: 'cancelled',
+                            audience: 'active_subscribers',
+                            lookback_days: 7,
+                            article_limit: 5,
+                            article_ids: [],
+                            recipient_count: 0,
+                            sent_count: 0,
+                            failed_count: 0,
+                            error_summary: errorSummary,
+                            created_by: admin.id,
+                        })
+                        .select('id, subject, error_summary, updated_at')
+                        .maybeSingle();
+                    if (error) throw error;
+                    savedRow = data;
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    draft: {
+                        id: savedRow?.id,
+                        name: cleanName,
+                        draft: cleanDraft,
+                        updated_at: savedRow?.updated_at || nowIso,
+                    },
+                });
+            }
+
+            if (action === 'delete_promo_draft') {
+                const { draftId } = req.body || {};
+                if (!draftId || typeof draftId !== 'string' || !draftId.trim()) {
+                    return res.status(400).json({ success: false, error: 'draftId is required' });
+                }
+                const { error } = await supabase
+                    .from('newsletter_campaigns')
+                    .delete()
+                    .eq('id', draftId.trim())
+                    .eq('status', 'cancelled')
+                    .ilike('subject', '[PROMO DRAFT]%');
+                if (error) throw error;
+                return res.status(200).json({ success: true, deleted: true, draftId: draftId.trim() });
+            }
+
+            return res.status(400).json({ success: false, error: 'Unknown action' });
+        }
+
         if (req.method === 'PATCH') {
             const { id, is_active: isActive } = req.body || {};
             if (typeof id !== 'string' || !id.trim() || typeof isActive !== 'boolean') {
@@ -194,9 +287,16 @@ export default async function handler(req, res) {
             supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).like('email', '%@%').eq('is_active', false),
             supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).like('email', 'sms:%').or('is_active.is.null,is_active.eq.true'),
             supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).eq('source', 'pref:wire_only').or('is_active.is.null,is_active.eq.true'),
-            supabase.from('newsletter_campaigns').select('id', { count: 'exact', head: true }),
-            supabase.from('newsletter_campaigns')
+            supabase
+                .from('newsletter_campaigns')
+                .select('id', { count: 'exact', head: true })
+                .not('subject', 'ilike', '[SPOT-VOTE]%')
+                .not('subject', 'ilike', '[PROMO DRAFT]%'),
+            supabase
+                .from('newsletter_campaigns')
                 .select('id,subject,status,lookback_days,article_limit,recipient_count,sent_count,failed_count,error_summary,started_at,completed_at,created_at')
+                .not('subject', 'ilike', '[SPOT-VOTE]%')
+                .not('subject', 'ilike', '[PROMO DRAFT]%')
                 .order('created_at', { ascending: false })
                 .limit(20),
             supabase.from('poker_news')
@@ -242,13 +342,111 @@ export default async function handler(req, res) {
             welcomeBackRedemptions = wbCount || 0;
         }
 
+        let promoDrafts = [];
+        try {
+            const { data: draftRows } = await supabase
+                .from('newsletter_campaigns')
+                .select('id, subject, error_summary, updated_at')
+                .eq('status', 'cancelled')
+                .ilike('subject', '[PROMO DRAFT]%')
+                .order('updated_at', { ascending: false })
+                .limit(20);
+            for (const row of draftRows || []) {
+                const nameMatch = String(row?.subject || '').match(/^\[PROMO DRAFT\]\s*(.+)$/i);
+                const name = nameMatch ? nameMatch[1].trim() : String(row?.subject || '');
+                let draft = null;
+                const err = String(row?.error_summary || '');
+                if (err.startsWith('draft:')) {
+                    try {
+                        draft = JSON.parse(err.slice(6));
+                    } catch {}
+                }
+                promoDrafts.push({
+                    id: row.id,
+                    name,
+                    draft: draft || {},
+                    updated_at: row.updated_at,
+                });
+            }
+        } catch (_draftErr) {
+            /* non-blocking */
+        }
+
+        let attributionSummary = {
+            totalSignups: 0,
+            phoneVerifiedSignups: 0,
+            bySource: {
+                weekly_wire: 0,
+                welcome_email: 0,
+                promo_campaign: 0,
+                promo_sms: 0,
+                welcome_back_sms: 0,
+                lifecycle: 0,
+            },
+        };
+        try {
+            const ALLOWED_SOURCES = ['weekly_wire', 'welcome_email', 'promo_campaign', 'promo_sms', 'welcome_back_sms', 'lifecycle'];
+            if (supabase?.auth?.admin?.listUsers) {
+                const { data: usersData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+                const userList = usersData?.users || [];
+                const attributedIds = [];
+                for (const u of userList) {
+                    const source = u?.user_metadata?.acquisition_utm_source || u?.raw_user_meta_data?.acquisition_utm_source;
+                    if (source && ALLOWED_SOURCES.includes(source)) {
+                        attributionSummary.totalSignups += 1;
+                        attributionSummary.bySource[source] = (attributionSummary.bySource[source] || 0) + 1;
+                        if (u.id) attributedIds.push(u.id);
+                    }
+                }
+                if (attributedIds.length > 0) {
+                    // in-list: bounded attributed user ids
+                    const { data: verifiedProfiles } = await supabase
+                        .from('profiles')
+                        .select('id, phone_verified')
+                        .in('id', attributedIds.slice(0, 200))
+                        .eq('phone_verified', true);
+                    attributionSummary.phoneVerifiedSignups = (verifiedProfiles || []).length;
+                }
+            }
+        } catch (_attrErr) {
+            /* non-blocking */
+        }
+
         const wireOnlyCount = wireOnlyResult.count || 0;
         const parsedCampaigns = (campaignsResult.data || []).map((campaign) => {
             const telemetry = parseCampaignTelemetrySummary(campaign.error_summary);
+            let sections = {};
+            const rawErr = String(campaign.error_summary || '');
+            const telemIdx = rawErr.indexOf('telemetry:');
+            if (telemIdx !== -1) {
+                const jsonStr = rawErr.slice(telemIdx + 'telemetry:'.length).trim();
+                try {
+                    const parsed = JSON.parse(jsonStr);
+                    if (parsed?.sections && typeof parsed.sections === 'object' && !Array.isArray(parsed.sections)) {
+                        sections = parsed.sections;
+                    }
+                } catch {
+                    const m = jsonStr.match(/(\{.*\})/);
+                    if (m) {
+                        try {
+                            const parsed = JSON.parse(m[1]);
+                            if (parsed?.sections && typeof parsed.sections === 'object') {
+                                sections = parsed.sections;
+                            }
+                        } catch {}
+                    }
+                }
+            }
             return {
                 ...campaign,
                 opens: telemetry.opens,
                 clicks: telemetry.clicks,
+                sections,
+                telemetry: {
+                    opens: telemetry.opens,
+                    clicks: telemetry.clicks,
+                    sections,
+                },
                 error_summary: telemetry.cleanErrorSummary,
             };
         });
@@ -289,6 +487,8 @@ export default async function handler(req, res) {
                 pages: Math.max(1, Math.ceil((subscribersResult.count || 0) / pageSize)),
             },
             campaigns: parsedCampaigns,
+            promoDrafts,
+            attributionSummary,
             recentArticles: articlesResult.data || [],
         });
     } catch (error) {

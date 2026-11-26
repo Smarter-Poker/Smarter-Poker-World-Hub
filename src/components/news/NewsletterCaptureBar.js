@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { getAccessToken } from '../../lib/authUtils';
 import styles from './NewsletterCaptureBar.module.css';
 
 export const WIRE_SUBSCRIBED_KEY = 'sp_wire_subscribed_v1';
@@ -24,7 +25,28 @@ export function isNewsletterCaptureRoute(rawPath) {
         raw.startsWith('/hub/poker-series') ||
         raw.startsWith('/hub/series/') ||
         raw === '/hub/wire' ||
-        raw.startsWith('/hub/wire/')
+        raw.startsWith('/hub/wire/') ||
+        raw === '/hub/news' ||
+        raw.startsWith('/hub/news/') ||
+        raw === '/learn' ||
+        raw.startsWith('/learn/') ||
+        raw === '/rules' ||
+        raw.startsWith('/rules/') ||
+        raw === '/games' ||
+        raw.startsWith('/games/') ||
+        raw === '/poker-rooms' ||
+        raw.startsWith('/poker-rooms/') ||
+        raw === '/freerolls' ||
+        raw === '/weekend-tournaments' ||
+        raw === '/research' ||
+        raw.startsWith('/research/') ||
+        raw === '/glossary' ||
+        raw.startsWith('/glossary/') ||
+        raw.startsWith('/hub/venues/') ||
+        raw.startsWith('/hub/tours/') ||
+        raw === '/hub/poker-tours' ||
+        raw === '/hub/daily-tournaments' ||
+        raw === '/hub/events-calendar'
     );
 }
 
@@ -35,7 +57,39 @@ export function deriveCaptureSource(rawPath) {
     if (raw.startsWith('/hub/poker-near-me')) return 'capture:poker-near-me';
     if (raw.startsWith('/hub/poker-series') || raw.startsWith('/hub/series/')) return 'capture:series';
     if (raw === '/hub/wire' || raw.startsWith('/hub/wire/')) return 'capture:wire';
+    if (raw === '/hub/news' || raw.startsWith('/hub/news/')) return 'capture:news';
+    if (raw === '/learn' || raw.startsWith('/learn/')) return 'capture:learn';
+    if (raw === '/rules' || raw.startsWith('/rules/')) return 'capture:rules';
+    if (raw === '/games' || raw.startsWith('/games/')) return 'capture:games';
+    if (raw === '/poker-rooms' || raw.startsWith('/poker-rooms/')) return 'capture:poker-rooms';
+    if (raw === '/freerolls' || raw === '/weekend-tournaments') return 'capture:freerolls';
+    if (raw === '/research' || raw.startsWith('/research/')) return 'capture:research';
+    if (raw === '/glossary' || raw.startsWith('/glossary/')) return 'capture:glossary';
+    if (raw.startsWith('/hub/venues/')) return 'capture:venues';
+    if (raw.startsWith('/hub/tours/') || raw === '/hub/poker-tours' || raw === '/hub/daily-tournaments' || raw === '/hub/events-calendar') return 'capture:tours';
     return 'capture:hub';
+}
+
+export function deriveCaptureHeadline(rawPath) {
+    const raw = String(rawPath || '').split(/[?#]/, 1)[0].trim();
+    if (
+        raw.startsWith('/poker-rooms') ||
+        raw.startsWith('/hub/venues/') ||
+        raw.startsWith('/hub/poker-near-me') ||
+        raw === '/freerolls' ||
+        raw === '/weekend-tournaments'
+    ) {
+        return 'Get Live Tournament Schedules And Weekly Solver Spots In Your Inbox';
+    }
+    if (
+        raw.startsWith('/learn') ||
+        raw.startsWith('/tools/') ||
+        raw.startsWith('/rules') ||
+        raw.startsWith('/games')
+    ) {
+        return 'Get Weekly GTO Solver Spots, Leaks And Calculator Drops';
+    }
+    return 'Get Curated World Poker News, Solver Spots And Club Rewards';
 }
 
 export default function NewsletterCaptureBar({ pathname: pathnameProp, variant = 'floating', alwaysVisible = false }) {
@@ -66,7 +120,34 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
         }
         setHidden(alreadySubscribed || dismissedSession);
         setReady(true);
-    }, [activePath]);
+
+        if (!alwaysVisible && !alreadySubscribed) {
+            try {
+                const token = getAccessToken();
+                const sessionChecked = window.sessionStorage.getItem('sp_wire_session_checked_v1') === '1';
+                if (token && !sessionChecked) {
+                    window.sessionStorage.setItem('sp_wire_session_checked_v1', '1');
+                    fetch('/api/news/subscribe?preferences=session', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    })
+                        .then((res) => res.json())
+                        .then((body) => {
+                            if (body?.success && body?.currentMode && body.currentMode !== 'unsubscribed') {
+                                try {
+                                    window.localStorage.setItem(WIRE_SUBSCRIBED_KEY, '1');
+                                } catch {
+                                    /* ignore storage restrictions */
+                                }
+                                setHidden(true);
+                            }
+                        })
+                        .catch(() => {});
+                }
+            } catch {
+                /* ignore storage or network restrictions */
+            }
+        }
+    }, [activePath, alwaysVisible]);
 
     const cleanPath = String(activePath || '').split(/[?#]/, 1)[0].trim();
     const routeEligible = isNewsletterCaptureRoute(cleanPath);
@@ -169,7 +250,7 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
                                     <span className={styles.badge}>25 Free Bonus Chips</span>
                                 </div>
                                 <p className={styles.headline}>
-                                    Get Solver Spots, Pro Poker Tools &amp; Live Series Intelligence Every Week
+                                    {deriveCaptureHeadline(cleanPath)}
                                 </p>
                                 {isInline && (
                                     <p className={styles.subcopy}>

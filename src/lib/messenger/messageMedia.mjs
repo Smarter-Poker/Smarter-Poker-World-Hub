@@ -104,12 +104,63 @@ function normalizedDuration(value) {
 }
 
 /** The single writer. Returns null rather than emitting an unsafe message. */
-export function encodeMessageMedia({ kind, url, duration } = {}) {
+export function encodeMessageMedia({ kind, url, duration, caption } = {}) {
     const marker = MARKER_BY_KIND[kind];
     if (!marker || !isSafeMediaUrl(url)) return null;
-    const body = `[${marker}](${url.trim()})`;
-    if (kind !== 'audio') return body;
-    return `${body}|dur:${normalizedDuration(duration)}`;
+    const base = `[${marker}](${url.trim()})`;
+    const body = kind === 'audio' ? `${base}|dur:${normalizedDuration(duration)}` : base;
+    const cleanCaption = typeof caption === 'string'
+        ? caption.replace(/\r\n?/g, '\n').trim()
+        : '';
+    if (!cleanCaption) return body;
+    return `${body} ${cleanCaption}`;
+}
+
+const MIN_MEDIA_ASPECT = 0.25;
+const MAX_MEDIA_ASPECT = 4;
+
+/**
+ * Extract validated positive pixel dimensions and a clamped CSS aspect ratio
+ * from a message's media_metadata so visual frames reserve space before decode
+ * without layout shift (CLS).
+ */
+export function extractMediaDimensions(meta) {
+    if (!meta || typeof meta !== 'object') return null;
+    const width = Number(meta.media_width ?? meta.width);
+    const height = Number(meta.media_height ?? meta.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+    const w = Math.round(width);
+    const h = Math.round(height);
+    if (w < 16 || h < 16 || w > 16384 || h > 16384) return null;
+    const ratio = w / h;
+    if (!Number.isFinite(ratio) || ratio < MIN_MEDIA_ASPECT || ratio > MAX_MEDIA_ASPECT) return null;
+    return { width: w, height: h, aspectRatio: `${w} / ${h}` };
+}
+
+/**
+ * Extract all visual media items (photos, GIFs, videos) from a thread's
+ * message list for the Shared Media gallery drawer, newest first.
+ */
+export function extractSharedThreadMedia(messages) {
+    if (!Array.isArray(messages)) return [];
+    const items = [];
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+        const message = messages[i];
+        if (!message || message.is_deleted || message.message_type === 'invoice') continue;
+        const content = String(message.content || message.text || '');
+        const parsed = parseMessageMedia(content);
+        if (!parsed || !isVisualMediaKind(parsed.kind)) continue;
+        items.push({
+            id: message.id || `${parsed.kind}-${i}`,
+            kind: parsed.kind,
+            url: parsed.url,
+            caption: parsed.caption || '',
+            createdAt: message.created_at || message.timestamp || null,
+            sender: message.profiles || null,
+            dimensions: extractMediaDimensions(message.media_metadata || message.metadata),
+        });
+    }
+    return items;
 }
 
 function fromLegacyMedia(rest) {
@@ -220,12 +271,10 @@ export function isMediaMessage(content) {
     return parseMessageMedia(content) !== null;
 }
 
-// A thread photo is drawn at most 280 CSS pixels tall, but the file behind it
-// is whatever came off the phone. Jimmy's screenshot is 1,209,873 bytes of
-// 1080x2340 JPEG, displayed 129 pixels wide — every reader downloaded all of
-// it. Storage renders a fitted copy on demand: the same image at width 560
-// (twice the drawn size, so it stays sharp on a retina screen) is 96,180
-// bytes of WebP. 92% less, measured 2026-11-09.
+// A thread photo is drawn up to 400 CSS pixels wide on desktop, but the file
+// behind it is whatever came off the phone (often 1080x2340+ JPEG, >1 MB).
+// Storage renders a fitted WebP copy on demand: width 800 stays 2x retina
+// sharp across the full 400px desktop width while cutting payload by ~85-90%.
 //
 // The viewer is deliberately NOT transformed: it fills the screen and may be
 // zoomed, so it loads the original.
@@ -236,7 +285,7 @@ const STORAGE_OBJECT = /^(https:\/\/[a-z0-9-]+\.supabase\.co)\/storage\/v1\/obje
  * Never returns a transform for an animated GIF, which would come back as a
  * still frame, and never for anything that is not our own storage.
  */
-export function mediaThumbnailUrl(url, { kind = 'image', width = 560, quality = 72 } = {}) {
+export function mediaThumbnailUrl(url, { kind = 'image', width = 800, quality = 72 } = {}) {
     if (!isSafeMediaUrl(url)) return null;
     if (kind !== 'image') return url;
     if (!Number.isInteger(width) || width < 16 || width > 4096) return url;

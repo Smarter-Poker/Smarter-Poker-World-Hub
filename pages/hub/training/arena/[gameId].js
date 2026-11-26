@@ -27,6 +27,8 @@ import {
     buildCustomTrainingArenaHref,
 } from '../../../../src/lib/training/horseBrainTrainingAdapter';
 import {
+    resolvePresetForGame,
+    saveResumableTrainingSession,
     decodeSharedDrillPack,
     decodeCoopStudyRoom,
     decodeClubCoachAssignment,
@@ -287,11 +289,19 @@ export default function TrainingArenaPage() {
         ? getGameById(gameId)
         : null;
     const gameName = game?.name || 'Training Game';
+    const startsWithPreset = router.query.start === '1' && Boolean(game);
+    const initialConfig = useMemo(() => (
+        customLaunch.config || (startsWithPreset ? resolvePresetForGame(game) : null)
+    ), [customLaunch.config, game, startsWithPreset]);
     const level = parseInt(queryLevel, 10) || 1;
+    useEffect(() => {
+        if (!startsWithPreset || !userId || !resolvedSessionId || customLaunch.error) return;
+        saveResumableTrainingSession({ ...initialConfig, gameId, gameName, level }, userId);
+    }, [startsWithPreset, userId, resolvedSessionId, customLaunch.error, initialConfig, gameId, gameName, level]);
     const resolvedQueryVariant = (
         typeof router.query.variant === 'string' && router.query.variant.trim()
             ? router.query.variant.trim().toLowerCase()
-            : (sharedDrillPack?.variant || coopStudyRoom?.variant || clubCoachAssignment?.variant || 'nlh')
+            : (initialConfig?.variant || sharedDrillPack?.variant || coopStudyRoom?.variant || clubCoachAssignment?.variant || 'nlh')
     );
     const activeArenaVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(resolvedQueryVariant)
         ? resolvedQueryVariant
@@ -336,6 +346,14 @@ export default function TrainingArenaPage() {
 
     // Handle arena exit — return to level selector preserving active training context
     const handleExit = useCallback(() => {
+        if (startsWithPreset && router.query.source === 'training-home') {
+            router.push('/hub/training');
+            return;
+        }
+        if (startsWithPreset && router.query.source === 'training-category') {
+            router.push(`/hub/training/category/${game.category.toLowerCase()}`);
+            return;
+        }
         const exitParams = new URLSearchParams();
         for (const key of ['variant', 'bettingStructure', 'format', 'street', 'position', 'source']) {
             const val = router.query?.[key];
@@ -345,7 +363,7 @@ export default function TrainingArenaPage() {
         }
         const qs = exitParams.toString();
         router.push(qs ? `/hub/training/play/${gameId}?${qs}` : `/hub/training/play/${gameId}`);
-    }, [router, gameId]);
+    }, [router, gameId, game, startsWithPreset]);
 
     // Handle session complete
     const handleComplete = useCallback((results) => {
@@ -623,7 +641,8 @@ export default function TrainingArenaPage() {
                     gameName={gameName}
                     level={level}
                     sessionId={resolvedSessionId}
-                    initialConfig={customLaunch.config}
+                    initialConfig={initialConfig}
+                    presetOnly={startsWithPreset && !customLaunch.config}
                     onComplete={handleComplete}
                     onExit={handleExit}
                 />

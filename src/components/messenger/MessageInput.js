@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { defaultTheme } from './MessengerTheme';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
+import { resolveUploadMedia } from '../../lib/messenger/messageMedia.mjs';
 
 export function MessageInput({ 
     onSend, 
@@ -8,6 +9,8 @@ export function MessageInput({
     onMediaUpload, 
     onGifSend, 
     onVoiceSend, 
+    stagedFile = null,
+    onStagedFileConsumed,
     disabled, 
     autoFocus, 
     initialText,
@@ -29,6 +32,11 @@ export function MessageInput({
     const [loadingGifs, setLoadingGifs] = useState(false);
     const [gifError, setGifError] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(null);
+    const [pendingMedia, setPendingMedia] = useState(null);
+    const [mediaError, setMediaError] = useState('');
+    const uploadAbortRef = useRef(null);
+    const pendingPreviewUrlRef = useRef(null);
     // Voice recording state
     const [isRecording, setIsRecording] = useState(false);
     const [recordingDuration, setRecordingDuration] = useState(0);
@@ -40,10 +48,66 @@ export function MessageInput({
     const fileInputRef = useRef(null);
     const gifSearchTimer = useRef(null);
 
+    const clearPendingMedia = () => {
+        if (pendingPreviewUrlRef.current) {
+            URL.revokeObjectURL(pendingPreviewUrlRef.current);
+            pendingPreviewUrlRef.current = null;
+        }
+        setPendingMedia(null);
+        setMediaError('');
+    };
+
+    const stageMediaFile = (file) => {
+        if (!file) return false;
+        const resolved = resolveUploadMedia(file);
+        if (!resolved) {
+            setMediaError('Only Images And Videos Are Supported');
+            return false;
+        }
+        const maxSize = resolved.kind === 'video' ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            setMediaError(`File Too Large. Max ${resolved.kind === 'video' ? '50MB' : '10MB'}`);
+            return false;
+        }
+        if (pendingPreviewUrlRef.current) {
+            URL.revokeObjectURL(pendingPreviewUrlRef.current);
+            pendingPreviewUrlRef.current = null;
+        }
+        const previewUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
+            ? URL.createObjectURL(file)
+            : '';
+        pendingPreviewUrlRef.current = previewUrl || null;
+        setMediaError('');
+        setPendingMedia({
+            file,
+            kind: resolved.kind,
+            mimeType: resolved.mimeType,
+            name: file.name || (resolved.kind === 'video' ? 'Video' : 'Photo'),
+            previewUrl,
+        });
+        setShowEmoji(false);
+        setShowGifPicker(false);
+        setTimeout(() => inputRef.current?.focus(), 0);
+        return true;
+    };
+
+    useEffect(() => {
+        if (!stagedFile) return;
+        stageMediaFile(stagedFile);
+        onStagedFileConsumed?.();
+    }, [stagedFile]);
+
     useEffect(() => {
         return () => {
             clearInterval(recordingTimerRef.current);
             if (recordingMaxTimerRef.current) clearTimeout(recordingMaxTimerRef.current);
+            if (uploadAbortRef.current) {
+                try { uploadAbortRef.current.abort(); } catch { /* unmounting */ }
+            }
+            if (pendingPreviewUrlRef.current) {
+                URL.revokeObjectURL(pendingPreviewUrlRef.current);
+                pendingPreviewUrlRef.current = null;
+            }
             try {
                 if (mediaRecorderRef.current) {
                     if (mediaRecorderRef.current.state !== 'inactive') {
@@ -107,10 +171,75 @@ export function MessageInput({
         if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; }
     };
 
+    const sendPendingMedia = async () => {
+        if (!pendingMedia || !onMediaUpload || uploading) return;
+        const mediaToSend = pendingMedia;
+        const caption = text.trim();
+        const submitted = text;
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        uploadAbortRef.current = controller;
+        setUploading(true);
+        setUploadProgress(0);
+        setShowEmoji(false);
+        clearPendingMedia();
+        if (caption) {
+            if (onDraftChange) onDraftChange('');
+            else setLocalText(current => current === submitted ? '' : current);
+            if (inputRef.current) inputRef.current.style.height = 'auto';
+        }
+        try {
+            await onMediaUpload(mediaToSend.file, {
+                caption,
+                signal: controller?.signal,
+                onProgress: (pct) => setUploadProgress(pct),
+            });
+        } finally {
+            if (uploadAbortRef.current === controller) uploadAbortRef.current = null;
+            setUploading(false);
+            setUploadProgress(null);
+        }
+        inputRef.current?.focus();
+    };
+
+    const handleSubmit = () => {
+        if (pendingMedia) {
+            void sendPendingMedia();
+            return;
+        }
+        handleSend();
+    };
+
+    const handleCancelUpload = () => {
+        if (uploadAbortRef.current) {
+            try { uploadAbortRef.current.abort(); } catch { /* ignore */ }
+        }
+    };
+
+    const handlePaste = (e) => {
+        if (!onMediaUpload || uploading) return;
+        const items = Array.from(e.clipboardData?.items || []);
+        for (const item of items) {
+            if (item.kind === 'file') {
+                const pasted = item.getAsFile?.();
+                if (pasted && resolveUploadMedia(pasted)) {
+                    e.preventDefault();
+                    stageMediaFile(pasted);
+                    return;
+                }
+            }
+        }
+        const files = Array.from(e.clipboardData?.files || []);
+        const matched = files.find(f => resolveUploadMedia(f));
+        if (matched) {
+            e.preventDefault();
+            stageMediaFile(matched);
+        }
+    };
+
     const handleKeyDown = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSend();
+            handleSubmit();
         }
     };
 
@@ -259,31 +388,170 @@ export function MessageInput({
     };
 
     return (
-        <div style={{
-            padding: '8px clamp(6px, 2.5vw, 16px)',
-            paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))',
-            background: C.card,
-            borderTop: `1px solid ${C.border}`,
-            display: 'flex',
-            alignItems: 'flex-end',
-            gap: 'clamp(2px, 1vw, 8px)',
-            position: 'relative',
-        }}>
+        <div
+            style={{
+                background: C.card,
+                borderTop: `1px solid ${C.border}`,
+                position: 'relative',
+            }}
+        >
+            {mediaError && (
+                <div role="alert" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    padding: '6px 14px',
+                    background: 'rgba(228, 30, 63, 0.1)',
+                    color: C.red,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    borderBottom: `1px solid ${C.border}`,
+                }}>
+                    <span>{mediaError}</span>
+                    <button
+                        type="button"
+                        aria-label="Dismiss Attachment Error"
+                        onClick={() => setMediaError('')}
+                        style={{ border: 'none', background: 'transparent', color: C.red, cursor: 'pointer', fontSize: 16, padding: 0 }}
+                    >×</button>
+                </div>
+            )}
+
+            {uploading && (
+                <div data-upload-progress role="status" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 14px',
+                    background: C.bg,
+                    borderBottom: `1px solid ${C.border}`,
+                    fontSize: 12,
+                    color: C.text,
+                }}>
+                    <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {uploadProgress != null ? `Uploading ${uploadProgress}%` : 'Uploading...'}
+                    </span>
+                    <div style={{
+                        flex: 1,
+                        height: 6,
+                        borderRadius: 999,
+                        background: C.border,
+                        overflow: 'hidden',
+                    }}>
+                        <div style={{
+                            width: `${Math.max(5, uploadProgress ?? 15)}%`,
+                            height: '100%',
+                            background: C.blue,
+                            borderRadius: 999,
+                            transition: 'width 0.15s ease-out',
+                        }} />
+                    </div>
+                    <button
+                        type="button"
+                        aria-label="Cancel Upload"
+                        onClick={handleCancelUpload}
+                        style={{
+                            border: `1px solid ${C.border}`,
+                            background: C.card,
+                            color: C.red,
+                            borderRadius: 12,
+                            padding: '3px 10px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >Cancel</button>
+                </div>
+            )}
+
+            {pendingMedia && !uploading && (
+                <div data-attachment-preview style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 14px',
+                    background: C.bg,
+                    borderBottom: `1px solid ${C.border}`,
+                }}>
+                    <div style={{
+                        position: 'relative',
+                        width: 64,
+                        height: 64,
+                        borderRadius: 10,
+                        overflow: 'hidden',
+                        border: `1px solid ${C.border}`,
+                        background: pendingMedia.kind === 'video' ? '#000' : C.card,
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}>
+                        {pendingMedia.kind === 'video' ? (
+                            <video
+                                src={pendingMedia.previewUrl}
+                                muted
+                                playsInline
+                                preload="metadata"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            />
+                        ) : (
+                            <img
+                                src={pendingMedia.previewUrl}
+                                alt="Attachment Preview"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            />
+                        )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {pendingMedia.kind === 'video' ? 'Video Ready To Send' : 'Photo Ready To Send'}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {pendingMedia.name}
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        aria-label="Remove Attachment"
+                        onClick={clearPendingMedia}
+                        style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: '50%',
+                            border: `1px solid ${C.border}`,
+                            background: C.card,
+                            color: C.textSec,
+                            cursor: 'pointer',
+                            fontSize: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                        }}
+                        title="Remove Attachment"
+                    >×</button>
+                </div>
+            )}
+
+            <div style={{
+                padding: '8px clamp(6px, 2.5vw, 16px)',
+                paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))',
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: 'clamp(2px, 1vw, 8px)',
+                position: 'relative',
+            }}>
             <input
                 type="file"
                 ref={fileInputRef}
                 accept="image/*,video/*"
                 style={{ display: 'none' }}
-                onChange={async (e) => {
+                onChange={(e) => {
                     const file = e.target.files?.[0];
+                    e.target.value = '';
                     if (!file || !onMediaUpload) return;
-                    setUploading(true);
-                    try {
-                        await onMediaUpload(file);
-                    } finally {
-                        setUploading(false);
-                        e.target.value = '';
-                    }
+                    stageMediaFile(file);
                 }}
             />
             <button
@@ -403,8 +671,9 @@ export function MessageInput({
                     value={text}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
-                    placeholder="Aa"
-                    aria-label="Message"
+                    onPaste={handlePaste}
+                    placeholder={pendingMedia ? 'Add A Caption...' : 'Aa'}
+                    aria-label={pendingMedia ? 'Add A Caption' : 'Message'}
                     maxLength={2000}
                     disabled={disabled}
                     rows={1}
@@ -533,21 +802,23 @@ export function MessageInput({
                         </svg>
                     </button>
                 </div>
-            ) : text.trim() ? (
+            ) : (text.trim() || pendingMedia) ? (
                 <button
-                    onClick={handleSend}
-                    aria-label="Send Message"
+                    onClick={handleSubmit}
+                    disabled={uploading}
+                    aria-label={pendingMedia ? 'Send Attachment' : 'Send Message'}
                     style={{
                         width: 40, height: 40, borderRadius: '50%', border: 'none',
                         background: C.blue,
-                        cursor: 'pointer',
+                        cursor: uploading ? 'wait' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         padding: 0,
                         flexShrink: 0,
+                        opacity: uploading ? 0.6 : 1,
                     }}
-                    title="Send Message"
+                    title={pendingMedia ? 'Send Attachment' : 'Send Message'}
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                         <path d="M2 21l21-9L2 3v7l15 2-15 2z" fill="white" />
@@ -612,6 +883,7 @@ export function MessageInput({
                     </button>
                 </div>
             )}
+            </div>
         </div>
     );
 }

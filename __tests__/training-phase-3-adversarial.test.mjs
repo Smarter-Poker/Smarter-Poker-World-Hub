@@ -46,7 +46,7 @@ test('Table Dynamics uses the straight metallic Training design system', () => {
 test('Training Hub categories and progress indicators expose valid accessible semantics', () => {
   const source = read('pages/hub/training.js');
 
-  assert.match(source, /className="sp-cat-chips" role="group" aria-label="Game Categories"/);
+  assert.match(source, /className="sp-cat-chips" aria-label="Training game categories"/);
   assert.doesNotMatch(source, /className="sp-cat-chip" role="tab" aria-pressed/);
   assert.match(source, /aria-label="Thirty Day GTO Accuracy"/);
   assert.match(source, /aria-label=\{`\$\{game\.name\} Training Calibration`\}/);
