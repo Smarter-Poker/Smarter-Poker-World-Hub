@@ -17224,6 +17224,7 @@
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -17273,6 +17274,7 @@
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -17324,6 +17326,7 @@
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -17355,6 +17358,7 @@
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -17395,6 +17399,7 @@
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -17440,6 +17445,7 @@
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -17460,6 +17466,7 @@
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -17486,6 +17493,7 @@
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
           ]
@@ -17500,6 +17508,7 @@
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
       ],
@@ -104435,6 +104444,7 @@
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
       ]
@@ -116232,6 +116242,7 @@
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
       ]

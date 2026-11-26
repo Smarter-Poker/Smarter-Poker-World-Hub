@@ -919,9 +919,13 @@ test('training hub keeps its signed-out primary action live and uses canonical l
   assert.match(hub, /pathname: '\/auth\/login'/);
   assert.match(hub, /query: \{ redirect: '\/hub\/training' \}/);
   assert.doesNotMatch(hub, /pathname: '\/login'|query: \{ next: '\/hub\/training' \}/);
-  assert.match(hub, /startDrill\(jarvisPick \|\| TRAINING_LIBRARY\[0\]\)/);
+  assert.match(hub, /onClick=\{\(\) => playGame\(heroGame\)\}/);
+  assert.match(hub, /const heroGame = jarvisPick \|\| TRAINING_LIBRARY\[0\]/);
+  const arena = fs.readFileSync(path.join(ROOT, 'pages/hub/training/arena/[gameId].js'), 'utf8');
+  assert.match(hub, /pathname: '\/hub\/training\/arena\/\[gameId\]'/);
+  assert.match(arena, /router\.replace\(`\/auth\/login\?redirect=\$\{encodeURIComponent\(router\.asPath\)\}`\)/);
   assert.doesNotMatch(hub, /disabled=\{!jarvisPick\}/);
-  assert.match(hub, /Build Better Decisions, One Hand At A Time\./);
+  assert.match(hub, /<h1[^>]*>Training Games<\/h1>/);
   assert.match(hub, /label: 'Cash Games'/);
   assert.match(hub, /label: 'Mental Game'/);
 });
