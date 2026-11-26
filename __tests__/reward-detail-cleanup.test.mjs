@@ -12,16 +12,18 @@ import postcss from 'postcss';
 const require = createRequire(import.meta.url);
 const css = readFileSync('src/components/store/MarketplaceDetailExperience.module.css', 'utf8');
 
-test('detail pages do not reserve an already in-flow sticky header twice', () => {
+test('detail pages rely on the global header clearance', () => {
   const header = readFileSync('src/components/ui/UniversalHeader.js', 'utf8');
-  assert.match(header, /\.approved-global-header\s*\{\s*position:\s*sticky/);
+  assert.match(header, /\.approved-global-header\s*\{\s*position:\s*fixed/);
+  assert.match(header, /\.approved-global-header__clearance\s*\{[^}]*height:\s*calc\(/);
+  assert.match(header, /<div className="approved-global-header__clearance" aria-hidden="true" \/>/);
   const owner = readFileSync('src/components/store/MarketplaceDetailExperience.jsx', 'utf8');
   assert.ok(owner.indexOf('<UniversalHeader') < owner.indexOf('<main'));
   let pageRules = 0;
   postcss.parse(css).walkRules('.page', (rule) => {
     const padding = rule.nodes.find((node) => node.prop === 'padding');
     assert.ok(padding, 'each desktop/mobile page rule declares its own spacing');
-    assert.equal(padding.value.split(/\s+/)[0], '14px', 'keep one content gap below the in-flow header');
+    assert.equal(padding.value.split(/\s+/)[0], '14px', 'keep one content gap below the header clearance');
     pageRules += 1;
   });
   assert.equal(pageRules, 2, 'desktop and phone keep the same header clearance contract');
