@@ -818,7 +818,7 @@ export default function HandLabV2() {
                         results.horseBrainAnalysis.omahaBestTwoHole.length === 2 &&
                         Array.isArray(results.horseBrainAnalysis.omahaBestThreeBoard) &&
                         results.horseBrainAnalysis.omahaBestThreeBoard.length === 3 && (
-                          <div data-omaha-best-combination="true" style={{ color: '#fde68a', fontWeight: 700, marginBottom: 4 }}>
+                          <div data-omaha-best-combination="true" style={{ color: '#86daff', fontWeight: 700, marginBottom: 4 }}>
                             {`2-Hole + 3-Board Omaha Combo: ${results.horseBrainAnalysis.omahaBestTwoHole.join(' ')} + ${results.horseBrainAnalysis.omahaBestThreeBoard.join(' ')}`}
                           </div>
                         )}

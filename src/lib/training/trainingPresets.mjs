@@ -551,15 +551,24 @@ export function validateTrainingPreset(config = {}) {
   });
 }
 
+const DEFAULT_GAME_PRESET_CACHE = new Map();
+
 /**
  * Resolves the exact default preset for any game in TRAINING_LIBRARY or custom request.
  */
 export function resolvePresetForGame(gameOrId, overrides = {}) {
+  const hasOverrides = Boolean(
+    overrides && typeof overrides === 'object' && Object.keys(overrides).length > 0
+  );
   const gameObj = typeof gameOrId === 'string'
     ? TRAINING_LIBRARY.find((g) => g.id === gameOrId) || { id: gameOrId }
     : (gameOrId || {});
   const gameId = String(gameObj.id || gameObj.slug || 'cash-001').toLowerCase();
   const category = String(gameObj.category || '').toUpperCase();
+  const cacheKey = `${gameId}:${category}:${String(gameObj.name || '')}`;
+  if (!hasOverrides && DEFAULT_GAME_PRESET_CACHE.has(cacheKey)) {
+    return DEFAULT_GAME_PRESET_CACHE.get(cacheKey);
+  }
 
   let basePreset = TRAINING_PRESETS.cash_nlh_6max;
   if (gameId === 'mtt-015' || gameId === 'spins-004' || /heads[- ]?up/i.test(String(gameObj.name || ''))) {
@@ -578,11 +587,17 @@ export function resolvePresetForGame(gameOrId, overrides = {}) {
     basePreset = { ...TRAINING_PRESETS.cash_nlh_6max, stackDepthBb: 40, title: "Short Stack Hold'em Cash (40 BB)" };
   }
 
-  const merged = {
-    ...basePreset,
-    ...(overrides && typeof overrides === 'object' ? overrides : {}),
-  };
-  return validateTrainingPreset(merged).preset;
+  const merged = hasOverrides
+    ? {
+        ...basePreset,
+        ...overrides,
+      }
+    : basePreset;
+  const resolved = validateTrainingPreset(merged).preset;
+  if (!hasOverrides) {
+    DEFAULT_GAME_PRESET_CACHE.set(cacheKey, resolved);
+  }
+  return resolved;
 }
 
 const PREFS_KEY_PREFIX = 'sp-train-prefs-';

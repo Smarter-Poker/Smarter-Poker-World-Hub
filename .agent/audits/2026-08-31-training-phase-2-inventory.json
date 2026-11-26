@@ -14,7 +14,7 @@
     "dependencyFiles": 385,
     "componentFiles": 55,
     "hookFiles": 15,
-    "ctas": 503,
+    "ctas": 505,
     "dialogs": 12,
     "persistenceFiles": 89,
     "realtimeFiles": 6,
@@ -5548,6 +5548,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -6029,6 +6030,7 @@
           "evidence": [
             "src/components/gates/FeatureGatePopup.jsx",
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -6621,6 +6623,7 @@
           "evidence": [
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -7005,6 +7008,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -7329,6 +7333,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -9939,6 +9944,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -10397,6 +10403,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -11046,6 +11053,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -12075,6 +12083,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -13231,6 +13240,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -14930,6 +14940,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -15269,6 +15280,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -15625,6 +15637,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -16175,6 +16188,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -16611,6 +16625,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -17366,6 +17381,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -17840,6 +17856,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -18164,6 +18181,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -19450,6 +19468,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -20019,6 +20038,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -20484,6 +20504,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -22759,6 +22780,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -24200,6 +24222,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -25894,6 +25917,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/training/ErrorBanner.js",
+            "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -47066,10 +47090,20 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 459,
+          "line": 462,
           "handler": "onNextHand",
           "destination": null,
           "type": null,
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Practice Again",
+          "line": 473,
+          "handler": "() => onNextHand({ retry: true, retryQuestion: question })",
+          "destination": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         }
@@ -47083,7 +47117,7 @@
         "loading": false,
         "empty": false,
         "error": false,
-        "retry": false,
+        "retry": true,
         "offline": false,
         "stale": true,
         "success": false,
@@ -47226,7 +47260,8 @@
         "src/components/training/TrainingGameArt.jsx",
         "src/config/LevelRegistry.ts",
         "src/config/trainingConfig.js",
-        "src/data/GAME_IMAGES.js"
+        "src/data/GAME_IMAGES.js",
+        "src/lib/training/trainingPresets.mjs"
       ],
       "links": [],
       "apiReferences": [],
@@ -47264,7 +47299,7 @@
       "functions": [
         {
           "name": "GameCard",
-          "line": 18,
+          "line": 19,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -49292,7 +49327,7 @@
         {
           "element": "button",
           "name": "Back to Training",
-          "line": 5503,
+          "line": 5505,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -49302,7 +49337,7 @@
         {
           "element": "button",
           "name": "!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')",
-          "line": 5535,
+          "line": 5537,
           "handler": "() => {\n                                if (solverFrequencyVerified) setRngMode(v => !v);\n                            }",
           "destination": null,
           "type": null,
@@ -49312,7 +49347,7 @@
         {
           "element": "button",
           "name": "`Randomiser direction: ${rngTheme.label}`",
-          "line": 5551,
+          "line": 5553,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -49322,7 +49357,17 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5819,
+          "line": 5829,
+          "handler": "() => setCustomizeOpen((prev) => !prev)",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 5872,
           "handler": "() => handleSelectVariant(v.id)",
           "destination": null,
           "type": "button",
@@ -49332,7 +49377,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5857,
+          "line": 5911,
           "handler": "() => handleSelectBettingStructure(bs.id)",
           "destination": null,
           "type": "button",
@@ -49342,7 +49387,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5919,
+          "line": 5973,
           "handler": "() => handleSelectGameFormat(fmt.id)",
           "destination": null,
           "type": "button",
@@ -49352,7 +49397,7 @@
         {
           "element": "button",
           "name": "Toggle Display Units Toolbar",
-          "line": 5978,
+          "line": 6032,
           "handler": "handleToggleDisplayUnit",
           "destination": null,
           "type": "button",
@@ -49362,7 +49407,7 @@
         {
           "element": "button",
           "name": "Toggle Display Units Settings",
-          "line": 6001,
+          "line": 6055,
           "handler": "handleToggleDisplayUnit",
           "destination": null,
           "type": "button",
@@ -49372,7 +49417,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6041,
+          "line": 6096,
           "handler": "handleToggleAudioMute",
           "destination": null,
           "type": "button",
@@ -49382,7 +49427,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6059,
+          "line": 6114,
           "handler": "handleCycleAudioPack",
           "destination": null,
           "type": "button",
@@ -49392,7 +49437,7 @@
         {
           "element": "button",
           "name": "Restart Scenario",
-          "line": 6076,
+          "line": 6131,
           "handler": "handleRestartScenario",
           "destination": null,
           "type": "button",
@@ -49402,7 +49447,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6093,
+          "line": 6148,
           "handler": "handleToggleVoiceCoach",
           "destination": null,
           "type": "button",
@@ -49412,7 +49457,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6152,
+          "line": 6207,
           "handler": "handleToggleIcmPkoPreview",
           "destination": null,
           "type": "button",
@@ -49422,7 +49467,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6172,
+          "line": 6227,
           "handler": "handleToggleShotClock",
           "destination": null,
           "type": "button",
@@ -49432,7 +49477,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6210,
+          "line": 6265,
           "handler": "() => handleSelectTableRule(rl.id)",
           "destination": null,
           "type": "button",
@@ -49442,7 +49487,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6235,
+          "line": 6290,
           "handler": "handleToggleContinuousSession",
           "destination": null,
           "type": "button",
@@ -49452,7 +49497,7 @@
         {
           "element": "button",
           "name": "Rotate Dealer Button",
-          "line": 6255,
+          "line": 6310,
           "handler": "handleRotateDealerButton",
           "destination": null,
           "type": "button",
@@ -49462,7 +49507,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6272,
+          "line": 6327,
           "handler": "handleToggleHandHistoryDrawer",
           "destination": null,
           "type": "button",
@@ -49472,7 +49517,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6300,
+          "line": 6355,
           "handler": "toggleFourColorDeck",
           "destination": null,
           "type": "button",
@@ -49482,7 +49527,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6318,
+          "line": 6373,
           "handler": "cycleFeltTheme",
           "destination": null,
           "type": "button",
@@ -49492,7 +49537,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6509,
+          "line": 6564,
           "handler": "() => handleSelectVillainProfile(prof.key)",
           "destination": null,
           "type": "button",
@@ -49502,7 +49547,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6640,
+          "line": 6695,
           "handler": "() => handleContinuationFeltAction(act.key, act.label, act.addBb)",
           "destination": null,
           "type": "button",
@@ -49512,7 +49557,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6688,
+          "line": 6743,
           "handler": "() => setChoreographyFastForward((p) => !p)",
           "destination": null,
           "type": "button",
@@ -49522,7 +49567,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6709,
+          "line": 6764,
           "handler": "handleToggleCoachingTiming",
           "destination": null,
           "type": "button",
@@ -49532,7 +49577,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6747,
+          "line": 6802,
           "handler": "() => setActiveHudSeatPosition((prev) => (prev ? null : (villainPosition || 'BB')))",
           "destination": null,
           "type": "button",
@@ -49542,7 +49587,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6766,
+          "line": 6821,
           "handler": "() => {\n                                    setRabbitHuntRevealed((prev) => !prev);\n                                    soundManager?.play('deal');\n                                }",
           "destination": null,
           "type": "button",
@@ -49552,7 +49597,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6810,
+          "line": 6865,
           "handler": "() => {\n                                    const modes = ['standard', 'dramatic_peel', 'corner_squeeze'];\n                                    setCardPresentationMode((prev) => modes[(modes.indexOf(prev) + 1) % modes.length]);\n                                    setRiverCardSqueezed((prev) => !prev);\n                                    soundManager?.play('deal');\n                                }",
           "destination": null,
           "type": "button",
@@ -49562,7 +49607,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6836,
+          "line": 6891,
           "handler": "handleCycleKillPotMode",
           "destination": null,
           "type": "button",
@@ -49572,7 +49617,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6864,
+          "line": 6919,
           "handler": "handleUseTimebankChip",
           "destination": null,
           "type": "button",
@@ -49582,7 +49627,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6885,
+          "line": 6940,
           "handler": "handleCycleCardBackStyle",
           "destination": null,
           "type": "button",
@@ -49592,7 +49637,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6924,
+          "line": 6979,
           "handler": "handleCycleRealismHudMode",
           "destination": null,
           "type": "button",
@@ -49602,7 +49647,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6944,
+          "line": 6999,
           "handler": "handleCycleMultiwayCount",
           "destination": null,
           "type": "button",
@@ -49612,7 +49657,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6966,
+          "line": 7021,
           "handler": "() => setFoldProtectionEnabled((p) => !p)",
           "destination": null,
           "type": "button",
@@ -49622,7 +49667,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6988,
+          "line": 7043,
           "handler": "handleLightningNextHand",
           "destination": null,
           "type": "button",
@@ -49632,7 +49677,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7008,
+          "line": 7063,
           "handler": "() => setAutoTopUpEnabled((p) => !p)",
           "destination": null,
           "type": "button",
@@ -49642,7 +49687,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7031,
+          "line": 7086,
           "handler": "() => setBbjPlateVisible((p) => !p)",
           "destination": null,
           "type": "button",
@@ -49652,7 +49697,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7079,
+          "line": 7134,
           "handler": "() => setVillainColorTag(tagColor)",
           "destination": null,
           "type": "button",
@@ -49662,7 +49707,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7132,
+          "line": 7187,
           "handler": "() => setArmedPreAction((prev) => (prev === pa.id ? null : pa.id))",
           "destination": null,
           "type": "button",
@@ -49672,7 +49717,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7180,
+          "line": 7235,
           "handler": "() => setRangePainterRevealed((p) => !p)",
           "destination": null,
           "type": "button",
@@ -49682,7 +49727,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7205,
+          "line": 7260,
           "handler": "() => handleTogglePaintedRangeCell(cell)",
           "destination": null,
           "type": "button",
@@ -49692,7 +49737,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7265,
+          "line": 7320,
           "handler": "() => setCoopBroadcastVote(vOpt.id)",
           "destination": null,
           "type": "button",
@@ -49702,7 +49747,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7285,
+          "line": 7340,
           "handler": "() => setCoopVerdictRevealed((p) => !p)",
           "destination": null,
           "type": "button",
@@ -49712,7 +49757,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7302,
+          "line": 7357,
           "handler": "handleCopyCoopRoomPermalink",
           "destination": null,
           "type": "button",
@@ -49722,7 +49767,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 7370,
+          "line": 7425,
           "handler": "() => setAdaptiveVillainEnabled((p) => !p)",
           "destination": null,
           "type": "button",
@@ -49732,7 +49777,7 @@
         {
           "element": "button",
           "name": "trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'",
-          "line": 7501,
+          "line": 7556,
           "handler": "onConfigClick",
           "destination": null,
           "type": null,
@@ -49742,7 +49787,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 8747,
+          "line": 8802,
           "handler": "() => {\n                                            if (!isRaiseReopened) return;\n                                            setSliderSizingBb(p.bb);\n                                        }",
           "destination": null,
           "type": "button",
@@ -49752,7 +49797,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 8801,
+          "line": 8856,
           "handler": "() => {\n                                    if (!isRaiseReopened) return;\n                                    const customEval = evaluateCustomRaiseSizing({\n                                        chosenSizingBb: effectiveSliderBb,\n                                        gradedOption: {\n                                            id: matchedAggressiveOpt.id,\n                                            label: matchedAggressiveOpt.label,\n                                            sizingBb: matchedAggressiveOpt.bb,\n                                        },\n                                        minRaiseToBb: minRaiseBb,\n                                        maxRaiseToBb: maxRaiseBb,\n                                        potBb: basePotBb,\n                                        callBb,\n                                        variant: currentVariant,\n                                        street: streetLabel.toLowerCase(),\n                                        stakes: scenario?.stakes || trainerConfig?.stakes,\n                                        brainEvaluation: scenario?.brainEvaluation,\n                                    });\n                                    setChosenRaiseInfo(customEval);\n                                    handleAnswerWithGrouping(matchedAggressiveOpt.id);\n                                }",
           "destination": null,
           "type": "button",
@@ -49762,7 +49807,7 @@
         {
           "element": "button",
           "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-          "line": 9088,
+          "line": 9143,
           "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
           "destination": null,
           "type": null,
@@ -49772,7 +49817,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9351,
+          "line": 9406,
           "handler": "() => rngAvailable && setRngMode(!rngMode)",
           "destination": null,
           "type": null,
@@ -49782,7 +49827,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9355,
+          "line": 9410,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -49792,7 +49837,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9362,
+          "line": 9417,
           "handler": "toggleFourColorDeck",
           "destination": null,
           "type": null,
@@ -49802,7 +49847,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9373,
+          "line": 9428,
           "handler": "cycleFeltTheme",
           "destination": null,
           "type": null,
@@ -49812,7 +49857,7 @@
         {
           "element": "button",
           "name": "Toggle Display Units Settings",
-          "line": 9380,
+          "line": 9435,
           "handler": "handleToggleDisplayUnit",
           "destination": null,
           "type": "button",
@@ -49822,7 +49867,7 @@
         {
           "element": "button",
           "name": "Quit Session",
-          "line": 9398,
+          "line": 9453,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -49832,7 +49877,7 @@
         {
           "element": "button",
           "name": "·",
-          "line": 9636,
+          "line": 9693,
           "handler": "() => setSelectedRunoutCard(candidate.card)",
           "destination": null,
           "type": "button",
@@ -49842,7 +49887,7 @@
         {
           "element": "button",
           "name": "Play Out Next Street On Felt",
-          "line": 9665,
+          "line": 9722,
           "handler": "handlePlayNextStreetOnFelt",
           "destination": null,
           "type": "button",
@@ -49852,7 +49897,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9715,
+          "line": 9772,
           "handler": "() => handleSelectVillainBucket(bucket.key)",
           "destination": null,
           "type": "button",
@@ -49862,7 +49907,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9774,
+          "line": 9831,
           "handler": "handleToggleRunItTwice",
           "destination": null,
           "type": "button",
@@ -49872,7 +49917,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9859,
+          "line": 9916,
           "handler": "() => setInsuranceDecisionChoice(choice)",
           "destination": null,
           "type": "button",
@@ -49882,7 +49927,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9911,
+          "line": 9968,
           "handler": "() => setRewoundStreetTarget(stEval.street)",
           "destination": null,
           "type": "button",
@@ -49892,7 +49937,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9937,
+          "line": 9994,
           "handler": "() => setActiveLineBranch(br.branchId)",
           "destination": null,
           "type": "button",
@@ -49902,7 +49947,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 9965,
+          "line": 10022,
           "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
           "destination": null,
           "type": null,
@@ -49912,7 +49957,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 10338,
+          "line": 10395,
           "handler": "() => setDeepAnalysisOpen(v => !v)",
           "destination": null,
           "type": null,
@@ -49922,7 +49967,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 10544,
+          "line": 10601,
           "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
           "destination": null,
           "type": null,
@@ -49932,7 +49977,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 10557,
+          "line": 10614,
           "handler": "() => setShowRangeGrid(!showRangeGrid)",
           "destination": null,
           "type": null,
@@ -49942,7 +49987,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 11293,
+          "line": 11352,
           "handler": "handleShareTrainingSpot",
           "destination": null,
           "type": "button",
@@ -49952,7 +49997,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 11311,
+          "line": 11370,
           "handler": "handleChallengeSpotDuel",
           "destination": null,
           "type": "button",
@@ -49962,7 +50007,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 11329,
+          "line": 11388,
           "handler": "handleExportHandHistory",
           "destination": null,
           "type": "button",
@@ -49972,7 +50017,7 @@
         {
           "element": "button",
           "name": "Drill Similar Spot (10 Hands) →",
-          "line": 11367,
+          "line": 11426,
           "handler": "() => {\n                                        if (typeof window !== 'undefined') {\n                                            window.location.assign(drillSimilarSpotHref);\n                                        }\n                                    }",
           "destination": null,
           "type": "button",
@@ -49982,7 +50027,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 11389,
+          "line": 11448,
           "handler": "() => {\n                                        if (typeof window !== 'undefined') {\n                                            window.location.assign(sessionMistakeTarget.href);\n                                        }\n                                    }",
           "destination": null,
           "type": "button",
@@ -49992,7 +50037,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 11476,
+          "line": 11535,
           "handler": "handleShareTrainingSpot",
           "destination": null,
           "type": "button",
@@ -50002,7 +50047,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 11495,
+          "line": 11554,
           "handler": "handleChallengeSpotDuel",
           "destination": null,
           "type": "button",
@@ -50012,7 +50057,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 11514,
+          "line": 11573,
           "handler": "handleExportHandHistory",
           "destination": null,
           "type": "button",
@@ -50022,7 +50067,7 @@
         {
           "element": "button",
           "name": "Drill Similar Spot (10 Hands) →",
-          "line": 11533,
+          "line": 11592,
           "handler": "() => {\n                                        if (typeof window !== 'undefined') {\n                                            window.location.assign(drillSimilarSpotHref);\n                                        }\n                                    }",
           "destination": null,
           "type": "button",
@@ -50032,7 +50077,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 11555,
+          "line": 11614,
           "handler": "() => {\n                                        if (typeof window !== 'undefined') {\n                                            window.location.assign(sessionMistakeTarget.href);\n                                        }\n                                    }",
           "destination": null,
           "type": "button",
@@ -50042,7 +50087,7 @@
         {
           "element": "button",
           "name": "Prev",
-          "line": 11636,
+          "line": 11695,
           "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
           "destination": null,
           "type": null,
@@ -50052,7 +50097,7 @@
         {
           "element": "button",
           "name": "Next",
-          "line": 11643,
+          "line": 11702,
           "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
           "destination": null,
           "type": null,
@@ -50062,7 +50107,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 11650,
+          "line": 11709,
           "handler": "() => setShowMistakeReview(false)",
           "destination": null,
           "type": null,
@@ -50326,7 +50371,7 @@
         },
         {
           "name": "rng",
-          "line": 2293,
+          "line": 2295,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50334,7 +50379,7 @@
         },
         {
           "name": "pickFromPool",
-          "line": 3760,
+          "line": 3762,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -50342,7 +50387,7 @@
         },
         {
           "name": "handleModeKey",
-          "line": 4229,
+          "line": 4231,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50350,7 +50395,7 @@
         },
         {
           "name": "dealerButtonSeatIndex",
-          "line": 4315,
+          "line": 4317,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50358,7 +50403,7 @@
         },
         {
           "name": "isBinary",
-          "line": 4614,
+          "line": 4616,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50366,7 +50411,7 @@
         },
         {
           "name": "handleKeyDown",
-          "line": 4803,
+          "line": 4805,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50374,7 +50419,7 @@
         },
         {
           "name": "getActionButtonStyle",
-          "line": 4977,
+          "line": 4979,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50382,7 +50427,7 @@
         },
         {
           "name": "handleSelectVariant",
-          "line": 5771,
+          "line": 5773,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50390,7 +50435,7 @@
         },
         {
           "name": "entryMatchesSeat",
-          "line": 7639,
+          "line": 7694,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -50398,7 +50443,7 @@
         },
         {
           "name": "pick",
-          "line": 8521,
+          "line": 8576,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -50406,7 +50451,7 @@
         },
         {
           "name": "mistakeFeedback",
-          "line": 10404,
+          "line": 10461,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -50469,7 +50514,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 2599,
+          "line": 2601,
           "excerpt": "// When preflop (0 board cards), seed a deterministic 3-card flop disjoint from heroCards for simulation",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -50477,7 +50522,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 4434,
+          "line": 4436,
           "excerpt": "// not fabricate one from a fallback answer: it both hints the result",
           "disposition": "runtime-resilience-fallback",
           "review": "accepted",
@@ -50486,7 +50531,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 8298,
+          "line": 8353,
           "excerpt": "The denominator counts the dealing placeholder too --",
           "disposition": "poker-normalization-or-ui-state",
           "review": "accepted",
@@ -50494,7 +50539,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 8314,
+          "line": 8369,
           "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -50502,7 +50547,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 9626,
+          "line": 9683,
           "excerpt": "Next-Street Runout What-If Explorer ({nextStreet.toUpperCase()} Simulation)",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -50510,7 +50555,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 10679,
+          "line": 10736,
           "excerpt": "// Fallback to basic classifier",
           "disposition": "runtime-resilience-fallback",
           "review": "accepted",
@@ -74371,7 +74416,7 @@
         },
         {
           "name": "resolvePresetForGame",
-          "line": 557,
+          "line": 559,
           "references": 7,
           "exported": true,
           "defaultExport": false,
@@ -74379,14 +74424,6 @@
         },
         {
           "name": "loadTrainingPreferences",
-          "line": 591,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "saveTrainingPreferences",
           "line": 606,
           "references": 1,
           "exported": true,
@@ -74394,8 +74431,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "saveTrainingPreferences",
+          "line": 621,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "resetTrainingPreferences",
-          "line": 633,
+          "line": 648,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74403,7 +74448,7 @@
         },
         {
           "name": "saveResumableTrainingSession",
-          "line": 647,
+          "line": 662,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74411,7 +74456,7 @@
         },
         {
           "name": "loadResumableTrainingSession",
-          "line": 674,
+          "line": 689,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74419,7 +74464,7 @@
         },
         {
           "name": "computeSharedPackChecksum",
-          "line": 697,
+          "line": 712,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -74427,7 +74472,7 @@
         },
         {
           "name": "encodeSharedDrillPack",
-          "line": 710,
+          "line": 725,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -74435,7 +74480,7 @@
         },
         {
           "name": "decodeSharedDrillPack",
-          "line": 737,
+          "line": 752,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74443,7 +74488,7 @@
         },
         {
           "name": "encodeCoopStudyRoom",
-          "line": 780,
+          "line": 795,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74451,7 +74496,7 @@
         },
         {
           "name": "decodeCoopStudyRoom",
-          "line": 807,
+          "line": 822,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74459,7 +74504,7 @@
         },
         {
           "name": "buildThreeHandLeakReceipt",
-          "line": 851,
+          "line": 866,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74467,7 +74512,7 @@
         },
         {
           "name": "scoreRangePainterEstimate",
-          "line": 923,
+          "line": 938,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74475,7 +74520,7 @@
         },
         {
           "name": "encodeClubCoachAssignment",
-          "line": 968,
+          "line": 983,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74483,7 +74528,7 @@
         },
         {
           "name": "decodeClubCoachAssignment",
-          "line": 994,
+          "line": 1009,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74491,7 +74536,7 @@
         },
         {
           "name": "computeIcmChopAndPayJump",
-          "line": 1052,
+          "line": 1067,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74499,7 +74544,7 @@
         },
         {
           "name": "evaluateHandBlockerImpact",
-          "line": 1097,
+          "line": 1112,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74507,7 +74552,7 @@
         },
         {
           "name": "buildSessionStudyDossierMarkdown",
-          "line": 1158,
+          "line": 1173,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74515,7 +74560,7 @@
         },
         {
           "name": "evaluateMultiStreetLineConsistency",
-          "line": 1188,
+          "line": 1203,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74523,7 +74568,7 @@
         },
         {
           "name": "evaluateAdaptiveVillainCounterStrategy",
-          "line": 1214,
+          "line": 1229,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74531,7 +74576,7 @@
         },
         {
           "name": "computeSurvivingRangeFunnel",
-          "line": 1246,
+          "line": 1261,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74539,7 +74584,7 @@
         },
         {
           "name": "evaluateTiltAndDecisionPacingGuard",
-          "line": 1272,
+          "line": 1287,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -80090,6 +80135,10 @@
     {
       "from": "src/components/training/GameCard.jsx",
       "to": "src/data/GAME_IMAGES.js"
+    },
+    {
+      "from": "src/components/training/GameCard.jsx",
+      "to": "src/lib/training/trainingPresets.mjs"
     },
     {
       "from": "src/components/training/games/PsychologyTiltControlUI.jsx",
@@ -86851,14 +86900,27 @@
       "effectRef": "src/components/training/GTOQuestionCard.jsx"
     },
     {
-      "id": "src/components/training/GTOQuestionCard.jsx:459:2",
+      "id": "src/components/training/GTOQuestionCard.jsx:462:2",
       "file": "src/components/training/GTOQuestionCard.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 459,
+      "line": 462,
       "handler": "onNextHand",
       "destination": null,
       "type": null,
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/GTOQuestionCard.jsx"
+    },
+    {
+      "id": "src/components/training/GTOQuestionCard.jsx:473:3",
+      "file": "src/components/training/GTOQuestionCard.jsx",
+      "element": "button",
+      "name": "Practice Again",
+      "line": 473,
+      "handler": "() => onNextHand({ retry: true, retryQuestion: question })",
+      "destination": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "src/components/training/GTOQuestionCard.jsx"
@@ -87501,11 +87563,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5503:2",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5505:2",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Back to Training",
-      "line": 5503,
+      "line": 5505,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -87514,11 +87576,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5535:3",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5537:3",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')",
-      "line": 5535,
+      "line": 5537,
       "handler": "() => {\n                                if (solverFrequencyVerified) setRngMode(v => !v);\n                            }",
       "destination": null,
       "type": null,
@@ -87527,11 +87589,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5551:4",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5553:4",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "`Randomiser direction: ${rngTheme.label}`",
-      "line": 5551,
+      "line": 5553,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -87540,11 +87602,24 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5819:5",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5829:5",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5819,
+      "line": 5829,
+      "handler": "() => setCustomizeOpen((prev) => !prev)",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
+    },
+    {
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5872:6",
+      "file": "src/components/training/games/UniversalDynamicTable.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 5872,
       "handler": "() => handleSelectVariant(v.id)",
       "destination": null,
       "type": "button",
@@ -87553,11 +87628,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5857:6",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5911:7",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5857,
+      "line": 5911,
       "handler": "() => handleSelectBettingStructure(bs.id)",
       "destination": null,
       "type": "button",
@@ -87566,11 +87641,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5919:7",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5973:8",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5919,
+      "line": 5973,
       "handler": "() => handleSelectGameFormat(fmt.id)",
       "destination": null,
       "type": "button",
@@ -87579,11 +87654,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5978:8",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6032:9",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Toggle Display Units Toolbar",
-      "line": 5978,
+      "line": 6032,
       "handler": "handleToggleDisplayUnit",
       "destination": null,
       "type": "button",
@@ -87592,11 +87667,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6001:9",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6055:10",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Toggle Display Units Settings",
-      "line": 6001,
+      "line": 6055,
       "handler": "handleToggleDisplayUnit",
       "destination": null,
       "type": "button",
@@ -87605,11 +87680,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6041:10",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6096:11",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6041,
+      "line": 6096,
       "handler": "handleToggleAudioMute",
       "destination": null,
       "type": "button",
@@ -87618,11 +87693,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6059:11",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6114:12",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6059,
+      "line": 6114,
       "handler": "handleCycleAudioPack",
       "destination": null,
       "type": "button",
@@ -87631,11 +87706,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6076:12",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6131:13",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Restart Scenario",
-      "line": 6076,
+      "line": 6131,
       "handler": "handleRestartScenario",
       "destination": null,
       "type": "button",
@@ -87644,11 +87719,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6093:13",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6148:14",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6093,
+      "line": 6148,
       "handler": "handleToggleVoiceCoach",
       "destination": null,
       "type": "button",
@@ -87657,11 +87732,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6152:14",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6207:15",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6152,
+      "line": 6207,
       "handler": "handleToggleIcmPkoPreview",
       "destination": null,
       "type": "button",
@@ -87670,11 +87745,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6172:15",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6227:16",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6172,
+      "line": 6227,
       "handler": "handleToggleShotClock",
       "destination": null,
       "type": "button",
@@ -87683,11 +87758,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6210:16",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6265:17",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6210,
+      "line": 6265,
       "handler": "() => handleSelectTableRule(rl.id)",
       "destination": null,
       "type": "button",
@@ -87696,11 +87771,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6235:17",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6290:18",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6235,
+      "line": 6290,
       "handler": "handleToggleContinuousSession",
       "destination": null,
       "type": "button",
@@ -87709,11 +87784,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6255:18",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6310:19",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Rotate Dealer Button",
-      "line": 6255,
+      "line": 6310,
       "handler": "handleRotateDealerButton",
       "destination": null,
       "type": "button",
@@ -87722,11 +87797,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6272:19",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6327:20",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6272,
+      "line": 6327,
       "handler": "handleToggleHandHistoryDrawer",
       "destination": null,
       "type": "button",
@@ -87735,11 +87810,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6300:20",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6355:21",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6300,
+      "line": 6355,
       "handler": "toggleFourColorDeck",
       "destination": null,
       "type": "button",
@@ -87748,11 +87823,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6318:21",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6373:22",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6318,
+      "line": 6373,
       "handler": "cycleFeltTheme",
       "destination": null,
       "type": "button",
@@ -87761,11 +87836,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6509:22",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6564:23",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6509,
+      "line": 6564,
       "handler": "() => handleSelectVillainProfile(prof.key)",
       "destination": null,
       "type": "button",
@@ -87774,11 +87849,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6640:23",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6695:24",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6640,
+      "line": 6695,
       "handler": "() => handleContinuationFeltAction(act.key, act.label, act.addBb)",
       "destination": null,
       "type": "button",
@@ -87787,11 +87862,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6688:24",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6743:25",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6688,
+      "line": 6743,
       "handler": "() => setChoreographyFastForward((p) => !p)",
       "destination": null,
       "type": "button",
@@ -87800,11 +87875,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6709:25",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6764:26",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6709,
+      "line": 6764,
       "handler": "handleToggleCoachingTiming",
       "destination": null,
       "type": "button",
@@ -87813,11 +87888,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6747:26",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6802:27",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6747,
+      "line": 6802,
       "handler": "() => setActiveHudSeatPosition((prev) => (prev ? null : (villainPosition || 'BB')))",
       "destination": null,
       "type": "button",
@@ -87826,11 +87901,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6766:27",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6821:28",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6766,
+      "line": 6821,
       "handler": "() => {\n                                    setRabbitHuntRevealed((prev) => !prev);\n                                    soundManager?.play('deal');\n                                }",
       "destination": null,
       "type": "button",
@@ -87839,11 +87914,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6810:28",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6865:29",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6810,
+      "line": 6865,
       "handler": "() => {\n                                    const modes = ['standard', 'dramatic_peel', 'corner_squeeze'];\n                                    setCardPresentationMode((prev) => modes[(modes.indexOf(prev) + 1) % modes.length]);\n                                    setRiverCardSqueezed((prev) => !prev);\n                                    soundManager?.play('deal');\n                                }",
       "destination": null,
       "type": "button",
@@ -87852,11 +87927,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6836:29",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6891:30",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6836,
+      "line": 6891,
       "handler": "handleCycleKillPotMode",
       "destination": null,
       "type": "button",
@@ -87865,11 +87940,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6864:30",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6919:31",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6864,
+      "line": 6919,
       "handler": "handleUseTimebankChip",
       "destination": null,
       "type": "button",
@@ -87878,11 +87953,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6885:31",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6940:32",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6885,
+      "line": 6940,
       "handler": "handleCycleCardBackStyle",
       "destination": null,
       "type": "button",
@@ -87891,11 +87966,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6924:32",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6979:33",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6924,
+      "line": 6979,
       "handler": "handleCycleRealismHudMode",
       "destination": null,
       "type": "button",
@@ -87904,11 +87979,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6944:33",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6999:34",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6944,
+      "line": 6999,
       "handler": "handleCycleMultiwayCount",
       "destination": null,
       "type": "button",
@@ -87917,11 +87992,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6966:34",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7021:35",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6966,
+      "line": 7021,
       "handler": "() => setFoldProtectionEnabled((p) => !p)",
       "destination": null,
       "type": "button",
@@ -87930,11 +88005,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6988:35",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7043:36",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6988,
+      "line": 7043,
       "handler": "handleLightningNextHand",
       "destination": null,
       "type": "button",
@@ -87943,11 +88018,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7008:36",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7063:37",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7008,
+      "line": 7063,
       "handler": "() => setAutoTopUpEnabled((p) => !p)",
       "destination": null,
       "type": "button",
@@ -87956,11 +88031,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7031:37",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7086:38",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7031,
+      "line": 7086,
       "handler": "() => setBbjPlateVisible((p) => !p)",
       "destination": null,
       "type": "button",
@@ -87969,11 +88044,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7079:38",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7134:39",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7079,
+      "line": 7134,
       "handler": "() => setVillainColorTag(tagColor)",
       "destination": null,
       "type": "button",
@@ -87982,11 +88057,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7132:39",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7187:40",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7132,
+      "line": 7187,
       "handler": "() => setArmedPreAction((prev) => (prev === pa.id ? null : pa.id))",
       "destination": null,
       "type": "button",
@@ -87995,11 +88070,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7180:40",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7235:41",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7180,
+      "line": 7235,
       "handler": "() => setRangePainterRevealed((p) => !p)",
       "destination": null,
       "type": "button",
@@ -88008,11 +88083,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7205:41",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7260:42",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7205,
+      "line": 7260,
       "handler": "() => handleTogglePaintedRangeCell(cell)",
       "destination": null,
       "type": "button",
@@ -88021,11 +88096,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7265:42",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7320:43",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7265,
+      "line": 7320,
       "handler": "() => setCoopBroadcastVote(vOpt.id)",
       "destination": null,
       "type": "button",
@@ -88034,11 +88109,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7285:43",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7340:44",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7285,
+      "line": 7340,
       "handler": "() => setCoopVerdictRevealed((p) => !p)",
       "destination": null,
       "type": "button",
@@ -88047,11 +88122,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7302:44",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7357:45",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7302,
+      "line": 7357,
       "handler": "handleCopyCoopRoomPermalink",
       "destination": null,
       "type": "button",
@@ -88060,11 +88135,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7370:45",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7425:46",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 7370,
+      "line": 7425,
       "handler": "() => setAdaptiveVillainEnabled((p) => !p)",
       "destination": null,
       "type": "button",
@@ -88073,11 +88148,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7501:46",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7556:47",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'",
-      "line": 7501,
+      "line": 7556,
       "handler": "onConfigClick",
       "destination": null,
       "type": null,
@@ -88086,11 +88161,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:8747:47",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:8802:48",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 8747,
+      "line": 8802,
       "handler": "() => {\n                                            if (!isRaiseReopened) return;\n                                            setSliderSizingBb(p.bb);\n                                        }",
       "destination": null,
       "type": "button",
@@ -88099,11 +88174,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:8801:48",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:8856:49",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 8801,
+      "line": 8856,
       "handler": "() => {\n                                    if (!isRaiseReopened) return;\n                                    const customEval = evaluateCustomRaiseSizing({\n                                        chosenSizingBb: effectiveSliderBb,\n                                        gradedOption: {\n                                            id: matchedAggressiveOpt.id,\n                                            label: matchedAggressiveOpt.label,\n                                            sizingBb: matchedAggressiveOpt.bb,\n                                        },\n                                        minRaiseToBb: minRaiseBb,\n                                        maxRaiseToBb: maxRaiseBb,\n                                        potBb: basePotBb,\n                                        callBb,\n                                        variant: currentVariant,\n                                        street: streetLabel.toLowerCase(),\n                                        stakes: scenario?.stakes || trainerConfig?.stakes,\n                                        brainEvaluation: scenario?.brainEvaluation,\n                                    });\n                                    setChosenRaiseInfo(customEval);\n                                    handleAnswerWithGrouping(matchedAggressiveOpt.id);\n                                }",
       "destination": null,
       "type": "button",
@@ -88112,11 +88187,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9088:49",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9143:50",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-      "line": 9088,
+      "line": 9143,
       "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
       "destination": null,
       "type": null,
@@ -88125,11 +88200,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9351:50",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9406:51",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9351,
+      "line": 9406,
       "handler": "() => rngAvailable && setRngMode(!rngMode)",
       "destination": null,
       "type": null,
@@ -88138,11 +88213,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9355:51",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9410:52",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9355,
+      "line": 9410,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -88151,11 +88226,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9362:52",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9417:53",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9362,
+      "line": 9417,
       "handler": "toggleFourColorDeck",
       "destination": null,
       "type": null,
@@ -88164,11 +88239,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9373:53",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9428:54",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9373,
+      "line": 9428,
       "handler": "cycleFeltTheme",
       "destination": null,
       "type": null,
@@ -88177,11 +88252,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9380:54",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9435:55",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Toggle Display Units Settings",
-      "line": 9380,
+      "line": 9435,
       "handler": "handleToggleDisplayUnit",
       "destination": null,
       "type": "button",
@@ -88190,11 +88265,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9398:55",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9453:56",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Quit Session",
-      "line": 9398,
+      "line": 9453,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -88203,11 +88278,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9636:56",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9693:57",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "·",
-      "line": 9636,
+      "line": 9693,
       "handler": "() => setSelectedRunoutCard(candidate.card)",
       "destination": null,
       "type": "button",
@@ -88216,11 +88291,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9665:57",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9722:58",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Play Out Next Street On Felt",
-      "line": 9665,
+      "line": 9722,
       "handler": "handlePlayNextStreetOnFelt",
       "destination": null,
       "type": "button",
@@ -88229,11 +88304,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9715:58",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9772:59",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9715,
+      "line": 9772,
       "handler": "() => handleSelectVillainBucket(bucket.key)",
       "destination": null,
       "type": "button",
@@ -88242,11 +88317,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9774:59",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9831:60",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9774,
+      "line": 9831,
       "handler": "handleToggleRunItTwice",
       "destination": null,
       "type": "button",
@@ -88255,11 +88330,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9859:60",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9916:61",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9859,
+      "line": 9916,
       "handler": "() => setInsuranceDecisionChoice(choice)",
       "destination": null,
       "type": "button",
@@ -88268,11 +88343,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9911:61",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9968:62",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9911,
+      "line": 9968,
       "handler": "() => setRewoundStreetTarget(stEval.street)",
       "destination": null,
       "type": "button",
@@ -88281,11 +88356,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9937:62",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:9994:63",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9937,
+      "line": 9994,
       "handler": "() => setActiveLineBranch(br.branchId)",
       "destination": null,
       "type": "button",
@@ -88294,11 +88369,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:9965:63",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:10022:64",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 9965,
+      "line": 10022,
       "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
       "destination": null,
       "type": null,
@@ -88307,11 +88382,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:10338:64",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:10395:65",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 10338,
+      "line": 10395,
       "handler": "() => setDeepAnalysisOpen(v => !v)",
       "destination": null,
       "type": null,
@@ -88320,11 +88395,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:10544:65",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:10601:66",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 10544,
+      "line": 10601,
       "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
       "destination": null,
       "type": null,
@@ -88333,11 +88408,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:10557:66",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:10614:67",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 10557,
+      "line": 10614,
       "handler": "() => setShowRangeGrid(!showRangeGrid)",
       "destination": null,
       "type": null,
@@ -88346,11 +88421,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11293:67",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11352:68",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 11293,
+      "line": 11352,
       "handler": "handleShareTrainingSpot",
       "destination": null,
       "type": "button",
@@ -88359,11 +88434,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11311:68",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11370:69",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 11311,
+      "line": 11370,
       "handler": "handleChallengeSpotDuel",
       "destination": null,
       "type": "button",
@@ -88372,11 +88447,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11329:69",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11388:70",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 11329,
+      "line": 11388,
       "handler": "handleExportHandHistory",
       "destination": null,
       "type": "button",
@@ -88385,11 +88460,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11367:70",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11426:71",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Drill Similar Spot (10 Hands) →",
-      "line": 11367,
+      "line": 11426,
       "handler": "() => {\n                                        if (typeof window !== 'undefined') {\n                                            window.location.assign(drillSimilarSpotHref);\n                                        }\n                                    }",
       "destination": null,
       "type": "button",
@@ -88398,11 +88473,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11389:71",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11448:72",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 11389,
+      "line": 11448,
       "handler": "() => {\n                                        if (typeof window !== 'undefined') {\n                                            window.location.assign(sessionMistakeTarget.href);\n                                        }\n                                    }",
       "destination": null,
       "type": "button",
@@ -88411,11 +88486,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11476:72",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11535:73",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 11476,
+      "line": 11535,
       "handler": "handleShareTrainingSpot",
       "destination": null,
       "type": "button",
@@ -88424,11 +88499,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11495:73",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11554:74",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 11495,
+      "line": 11554,
       "handler": "handleChallengeSpotDuel",
       "destination": null,
       "type": "button",
@@ -88437,11 +88512,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11514:74",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11573:75",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 11514,
+      "line": 11573,
       "handler": "handleExportHandHistory",
       "destination": null,
       "type": "button",
@@ -88450,11 +88525,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11533:75",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11592:76",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Drill Similar Spot (10 Hands) →",
-      "line": 11533,
+      "line": 11592,
       "handler": "() => {\n                                        if (typeof window !== 'undefined') {\n                                            window.location.assign(drillSimilarSpotHref);\n                                        }\n                                    }",
       "destination": null,
       "type": "button",
@@ -88463,11 +88538,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11555:76",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11614:77",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 11555,
+      "line": 11614,
       "handler": "() => {\n                                        if (typeof window !== 'undefined') {\n                                            window.location.assign(sessionMistakeTarget.href);\n                                        }\n                                    }",
       "destination": null,
       "type": "button",
@@ -88476,11 +88551,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11636:77",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11695:78",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Prev",
-      "line": 11636,
+      "line": 11695,
       "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
       "destination": null,
       "type": null,
@@ -88489,11 +88564,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11643:78",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11702:79",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Next",
-      "line": 11643,
+      "line": 11702,
       "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
       "destination": null,
       "type": null,
@@ -88502,11 +88577,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:11650:79",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:11709:80",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Close",
-      "line": 11650,
+      "line": 11709,
       "handler": "() => setShowMistakeReview(false)",
       "destination": null,
       "type": null,
@@ -105008,10 +105083,23 @@
         "src/config/LevelRegistry.ts",
         "src/config/trainingConfig.js",
         "src/data/GAME_IMAGES.js",
-        "src/data/TRAINING_LIBRARY.js"
+        "src/data/TRAINING_LIBRARY.js",
+        "src/lib/training/trainingPresets.mjs"
       ],
       "apiReferences": [],
-      "persistence": [],
+      "persistence": [
+        {
+          "file": "src/lib/training/trainingPresets.mjs",
+          "writes": {
+            "localStorage": 4,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        }
+      ],
       "realtime": [],
       "tests": [
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -110630,7 +110718,8 @@
       "realtime": [],
       "tests": [
         "__tests__/training-casino-realism-catalog.test.mjs",
-        "__tests__/training-club-arena-geometry.test.mjs"
+        "__tests__/training-club-arena-geometry.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },
     {
@@ -110644,7 +110733,8 @@
       "persistence": [],
       "realtime": [],
       "tests": [
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },
     {
@@ -113258,7 +113348,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "SIMULATION",
-        "line": 2599,
+        "line": 2601,
         "excerpt": "// When preflop (0 board cards), seed a deterministic 3-card flop disjoint from heroCards for simulation",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -113267,7 +113357,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 4434,
+        "line": 4436,
         "excerpt": "// not fabricate one from a fallback answer: it both hints the result",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -113277,7 +113367,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 8298,
+        "line": 8353,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -113286,7 +113376,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 8314,
+        "line": 8369,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -113295,7 +113385,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "SIMULATION",
-        "line": 9626,
+        "line": 9683,
         "excerpt": "Next-Street Runout What-If Explorer ({nextStreet.toUpperCase()} Simulation)",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -113304,7 +113394,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 10679,
+        "line": 10736,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -117943,7 +118033,7 @@
       {
         "file": "src/components/training/GameCard.jsx",
         "name": "GameCard",
-        "line": 18,
+        "line": 19,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -122134,21 +122224,6 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "loadTrainingPreferences",
-        "line": 591,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/training/SessionSetupModal.jsx"
-        ]
-      },
-      {
-        "file": "src/lib/training/trainingPresets.mjs",
-        "name": "saveTrainingPreferences",
         "line": 606,
         "references": 1,
         "exported": true,
@@ -122163,8 +122238,23 @@
       },
       {
         "file": "src/lib/training/trainingPresets.mjs",
+        "name": "saveTrainingPreferences",
+        "line": 621,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/training/SessionSetupModal.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingPresets.mjs",
         "name": "resetTrainingPreferences",
-        "line": 633,
+        "line": 648,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122179,7 +122269,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "saveResumableTrainingSession",
-        "line": 647,
+        "line": 662,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122194,7 +122284,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "loadResumableTrainingSession",
-        "line": 674,
+        "line": 689,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122209,7 +122299,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeSharedDrillPack",
-        "line": 737,
+        "line": 752,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122224,7 +122314,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "encodeCoopStudyRoom",
-        "line": 780,
+        "line": 795,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122240,7 +122330,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeCoopStudyRoom",
-        "line": 807,
+        "line": 822,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122255,7 +122345,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "buildThreeHandLeakReceipt",
-        "line": 851,
+        "line": 866,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122270,7 +122360,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "scoreRangePainterEstimate",
-        "line": 923,
+        "line": 938,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122285,7 +122375,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "encodeClubCoachAssignment",
-        "line": 968,
+        "line": 983,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122300,7 +122390,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeClubCoachAssignment",
-        "line": 994,
+        "line": 1009,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122315,7 +122405,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "computeIcmChopAndPayJump",
-        "line": 1052,
+        "line": 1067,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122330,7 +122420,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateHandBlockerImpact",
-        "line": 1097,
+        "line": 1112,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122345,7 +122435,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "buildSessionStudyDossierMarkdown",
-        "line": 1158,
+        "line": 1173,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122360,7 +122450,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateMultiStreetLineConsistency",
-        "line": 1188,
+        "line": 1203,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122375,7 +122465,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateAdaptiveVillainCounterStrategy",
-        "line": 1214,
+        "line": 1229,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122390,7 +122480,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "computeSurvivingRangeFunnel",
-        "line": 1246,
+        "line": 1261,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -122405,7 +122495,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateTiltAndDecisionPacingGuard",
-        "line": 1272,
+        "line": 1287,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -123966,7 +124056,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "SIMULATION",
-        "line": 2599,
+        "line": 2601,
         "excerpt": "// When preflop (0 board cards), seed a deterministic 3-card flop disjoint from heroCards for simulation",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -123975,7 +124065,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 4434,
+        "line": 4436,
         "excerpt": "// not fabricate one from a fallback answer: it both hints the result",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -123985,7 +124075,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 8298,
+        "line": 8353,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -123994,7 +124084,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 8314,
+        "line": 8369,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -124003,7 +124093,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "SIMULATION",
-        "line": 9626,
+        "line": 9683,
         "excerpt": "Next-Street Runout What-If Explorer ({nextStreet.toUpperCase()} Simulation)",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -124012,7 +124102,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 10679,
+        "line": 10736,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -128651,7 +128741,7 @@
       {
         "file": "src/components/training/GameCard.jsx",
         "name": "GameCard",
-        "line": 18,
+        "line": 19,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132842,21 +132932,6 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "loadTrainingPreferences",
-        "line": 591,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/training/SessionSetupModal.jsx"
-        ]
-      },
-      {
-        "file": "src/lib/training/trainingPresets.mjs",
-        "name": "saveTrainingPreferences",
         "line": 606,
         "references": 1,
         "exported": true,
@@ -132871,8 +132946,23 @@
       },
       {
         "file": "src/lib/training/trainingPresets.mjs",
+        "name": "saveTrainingPreferences",
+        "line": 621,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/training/SessionSetupModal.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingPresets.mjs",
         "name": "resetTrainingPreferences",
-        "line": 633,
+        "line": 648,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132887,7 +132977,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "saveResumableTrainingSession",
-        "line": 647,
+        "line": 662,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132902,7 +132992,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "loadResumableTrainingSession",
-        "line": 674,
+        "line": 689,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132917,7 +133007,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeSharedDrillPack",
-        "line": 737,
+        "line": 752,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132932,7 +133022,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "encodeCoopStudyRoom",
-        "line": 780,
+        "line": 795,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132948,7 +133038,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeCoopStudyRoom",
-        "line": 807,
+        "line": 822,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132963,7 +133053,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "buildThreeHandLeakReceipt",
-        "line": 851,
+        "line": 866,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132978,7 +133068,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "scoreRangePainterEstimate",
-        "line": 923,
+        "line": 938,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132993,7 +133083,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "encodeClubCoachAssignment",
-        "line": 968,
+        "line": 983,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133008,7 +133098,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "decodeClubCoachAssignment",
-        "line": 994,
+        "line": 1009,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133023,7 +133113,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "computeIcmChopAndPayJump",
-        "line": 1052,
+        "line": 1067,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133038,7 +133128,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateHandBlockerImpact",
-        "line": 1097,
+        "line": 1112,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133053,7 +133143,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "buildSessionStudyDossierMarkdown",
-        "line": 1158,
+        "line": 1173,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133068,7 +133158,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateMultiStreetLineConsistency",
-        "line": 1188,
+        "line": 1203,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133083,7 +133173,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateAdaptiveVillainCounterStrategy",
-        "line": 1214,
+        "line": 1229,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133098,7 +133188,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "computeSurvivingRangeFunnel",
-        "line": 1246,
+        "line": 1261,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133113,7 +133203,7 @@
       {
         "file": "src/lib/training/trainingPresets.mjs",
         "name": "evaluateTiltAndDecisionPacingGuard",
-        "line": 1272,
+        "line": 1287,
         "references": 1,
         "exported": true,
         "defaultExport": false,

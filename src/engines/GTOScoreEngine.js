@@ -17,8 +17,8 @@
 
 export const MOVE_CLASSIFICATIONS = {
     CORRECT: { key: 'correct', label: 'Correct', color: '#27ae60', evThreshold: 0.25 },
-    INACCURACY: { key: 'inaccuracy', label: 'Inaccuracy', color: '#f39c12', evThreshold: 1.0 },
-    MISTAKE: { key: 'mistake', label: 'Mistake', color: '#e67e22', evThreshold: 3.0 },
+    INACCURACY: { key: 'inaccuracy', label: 'Inaccuracy', color: '#86daff', evThreshold: 1.0 },
+    MISTAKE: { key: 'mistake', label: 'Mistake', color: '#fca5a5', evThreshold: 3.0 },
     BLUNDER: { key: 'blunder', label: 'Blunder', color: '#e74c3c', evThreshold: Infinity },
 };
 
@@ -49,7 +49,7 @@ export function classifyMove(evLoss) {
 // respectable +70 signed score (equivalent to 85 on the old scale) as red.
 export function getScoreColor(score) {
     if (score >= 80) return '#27ae60'; // Green
-    if (score >= 40) return '#f39c12'; // Yellow/Orange
+    if (score >= 40) return '#86daff'; // Ice-Blue (#SMARTERDESIGN)
     return '#e74c3c';                   // Red
 }
 
@@ -69,7 +69,7 @@ export function getArenaScoreColor(score) {
     const s = Number(score);
     if (!Number.isFinite(s)) return '#ef4444';
     if (s >= 60) return '#22c55e'; // green
-    if (s >= 20) return '#fbbf24'; // amber
+    if (s >= 20) return '#86daff'; // ice-blue
     return '#ef4444';              // red
 }
 

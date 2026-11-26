@@ -429,7 +429,7 @@ export default function LiveHudSyncPage() {
                               background: hand.leakPriorityRank === 1
                                 ? 'rgba(217,119,6,.32)'
                                 : 'rgba(20,48,66,.55)',
-                              color: hand.leakPriorityRank === 1 ? '#fde68a' : '#82e7ff',
+                              color: hand.leakPriorityRank === 1 ? '#86daff' : '#82e7ff',
                               fontSize: 12,
                               fontWeight: 900,
                             }}
@@ -464,7 +464,7 @@ export default function LiveHudSyncPage() {
                           </strong>
                           {' · '}
                           Recommended:{' '}
-                          <strong style={{ color: '#fde68a' }}>
+                          <strong style={{ color: '#86daff' }}>
                             {hand.recommendedAction || 'Unavailable'}
                           </strong>
                         </div>

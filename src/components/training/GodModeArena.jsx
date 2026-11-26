@@ -299,7 +299,7 @@ function AccuracyByPositionChart({ handHistory }) {
                 style={{
                   height: '100%',
                   borderRadius: 3,
-                  background: pct >= 70 ? '#22c55e' : pct >= 50 ? '#fbbf24' : '#ef4444',
+                  background: pct >= 70 ? '#22c55e' : pct >= 50 ? '#86daff' : '#ef4444',
                 }}
               />
             </div>
@@ -308,7 +308,7 @@ function AccuracyByPositionChart({ handHistory }) {
                 width: 35,
                 fontSize: 12,
                 fontWeight: 'bold',
-                color: pct >= 70 ? '#22c55e' : pct >= 50 ? '#fbbf24' : '#ef4444',
+                color: pct >= 70 ? '#22c55e' : pct >= 50 ? '#86daff' : '#ef4444',
                 textAlign: 'right',
               }}
             >
@@ -780,7 +780,7 @@ function DrillFilters({
                   background: streets.includes(s)
                     ? 'rgba(139,92,246,0.2)'
                     : 'rgba(255,255,255,0.05)',
-                  color: streets.includes(s) ? '#a78bfa' : '#94a3b8',
+                  color: streets.includes(s) ? '#86daff' : '#94a3b8',
                   border: `1px solid ${streets.includes(s) ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
                   cursor: 'pointer',
                   textTransform: 'capitalize',
@@ -941,7 +941,7 @@ function SessionScoreTarget({ gtowScore, targetScore = 70 }) {
         <span style={{ fontSize: 18 }}>{achieved ? '✓' : '◎'}</span>
         <div>
           <div
-            style={{ fontSize: 12, fontWeight: 'bold', color: achieved ? '#22c55e' : '#a78bfa' }}
+            style={{ fontSize: 12, fontWeight: 'bold', color: achieved ? '#22c55e' : '#86daff' }}
           >
             {achieved ? 'Session Score Target Met' : 'Session Score Target'}
           </div>
@@ -1805,7 +1805,7 @@ function GodModeArenaInner({
     nextHandPrefetched,
   }), [trainerConfig, timerMode, outboxPendingCount, nextHandPrefetched]);
   const handleConfigClick = useCallback(() => setShowConfigModal(true), []);
-  const handleDefaultNextHand = useCallback(() => nextQuestion(), [nextQuestion]);
+  const handleDefaultNextHand = useCallback((arg) => nextQuestion(arg), [nextQuestion]);
 
   // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // ERROR STATE — Graceful fallback when API fails (auth, network, etc.)
@@ -2418,7 +2418,7 @@ function GodModeArenaInner({
               <div style={styles.summaryLabel}>Measured EV/Decision</div>
             </div>
             <div style={styles.summaryItem}>
-              <div style={{ ...styles.summaryValue, color: '#f97316' }}>
+              <div style={{ ...styles.summaryValue, color: '#fca5a5' }}>
                 {measuredEVPerMistake === null
                   ? '-'
                   : `-${Math.abs(measuredEVPerMistake).toFixed(2)}`}
@@ -2446,7 +2446,7 @@ function GodModeArenaInner({
               { key: 'best', label: 'Best', color: '#22c55e', count: classificationCounts.best || 0 },
               { key: 'correct', label: 'Correct', color: '#00d4ff', count: classificationCounts.correct || 0 },
               { key: 'inaccuracy', label: 'Inaccuracy', color: '#86daff', count: classificationCounts.inaccuracy || 0 },
-              { key: 'wrong', label: 'Wrong', color: '#f97316', count: classificationCounts.wrong || 0 },
+              { key: 'wrong', label: 'Wrong', color: '#fca5a5', count: classificationCounts.wrong || 0 },
               { key: 'blunder', label: 'Blunder', color: '#ef4444', count: classificationCounts.blunder || 0 },
             ];
             const lit = segments.filter((seg) => seg.count > 0);
@@ -3104,13 +3104,13 @@ function GodModeArenaInner({
                         tips.push({
                           priority: 2,
                           text: 'Your bet sizes are too small. Use larger bets with strong hands to build pots and deny equity.',
-                          color: '#f97316',
+                          color: '#fca5a5',
                         });
                       else if (leak.type === 'bet_too_big')
                         tips.push({
                           priority: 2,
                           text: "You're overbetting too often. Use smaller sizes with merged ranges on dry boards.",
-                          color: '#f97316',
+                          color: '#fca5a5',
                         });
                       else if (leak.type === 'missed_value')
                         tips.push({
@@ -3130,7 +3130,7 @@ function GodModeArenaInner({
                           text:
                             leak.tip ||
                             `Fix your ${leak.type.replace(/_/g, ' ')} leak (${leak.count} times this session).`,
-                          color: '#f97316',
+                          color: '#fca5a5',
                         });
                     });
                     medLeaks.forEach((leak) => {
@@ -3151,7 +3151,7 @@ function GodModeArenaInner({
                       tips.push({
                         priority: 2,
                         text: `Your ${weakestPosition} play is weak (${Math.round(weakAcc)}% accuracy). Study ${weakestPosition} ranges and common spots from this seat.`,
-                        color: '#f97316',
+                        color: '#fca5a5',
                       });
                     }
                   }
@@ -3167,13 +3167,13 @@ function GodModeArenaInner({
                         tips.push({
                           priority: 2,
                           text: `Preflop accuracy is low (${Math.round(acc)}%). Drill opening ranges and 3-bet/call frequencies.`,
-                          color: '#f97316',
+                          color: '#fca5a5',
                         });
                       else if (st === 'river')
                         tips.push({
                           priority: 2,
                           text: `River decisions need work (${Math.round(acc)}%). Focus on bluff-catching frequencies and value bet sizing.`,
-                          color: '#f97316',
+                          color: '#fca5a5',
                         });
                       else
                         tips.push({
@@ -3269,7 +3269,7 @@ function GodModeArenaInner({
                     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                       {handTypePerformance.slice(0, 6).map((ht) => {
                         const accColor =
-                          ht.accuracy >= 80 ? '#22c55e' : ht.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                          ht.accuracy >= 80 ? '#22c55e' : ht.accuracy >= 60 ? '#86daff' : '#ef4444';
                         const isWorst = handTypePerformance[0] === ht && ht.accuracy < 60;
                         return (
                           <div
@@ -3425,7 +3425,7 @@ function GodModeArenaInner({
                               style={{
                                 fontSize: 12,
                                 fontWeight: 700,
-                                color: '#f97316',
+                                color: '#fca5a5',
                                 textTransform: 'uppercase',
                                 letterSpacing: 0.5,
                                 marginBottom: 4,
@@ -3580,7 +3580,7 @@ function GodModeArenaInner({
                             fontWeight: 700,
                             letterSpacing: 0.5,
                             textTransform: 'uppercase',
-                            color: pattern.severity === 'high' ? '#ef4444' : '#fbbf24',
+                            color: pattern.severity === 'high' ? '#ef4444' : '#86daff',
                           }}
                         >
                           {pattern.type.replace('_', ' ')} ({pattern.count}x)
@@ -3868,7 +3868,7 @@ function GodModeArenaInner({
                       borderRadius: 8,
                       border: '1px solid rgba(251, 146, 60, 0.3)',
                       background: 'rgba(251, 146, 60, 0.1)',
-                      color: '#fb923c',
+                      color: '#86daff',
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -4421,7 +4421,7 @@ function GodModeArenaInner({
               <div
                 style={{
                   fontSize: 12,
-                  color: masteryStatus.passed ? '#22c55e' : '#f97316',
+                  color: masteryStatus.passed ? '#22c55e' : '#fca5a5',
                   fontWeight: 600,
                   marginTop: 4,
                 }}
@@ -4550,7 +4550,7 @@ function GodModeArenaInner({
         background: 'linear-gradient(180deg, rgba(54,35,12,.98), rgba(13,9,5,.98))',
         border: '1px solid rgba(251,191,36,.72)',
         boxShadow: 'inset 0 1px rgba(255,255,255,.16), 0 14px 36px rgba(0,0,0,.62)',
-        color: '#fef3c7',
+        color: '#86daff',
         display: 'flex',
         gap: 14,
         alignItems: 'center',
@@ -5259,7 +5259,7 @@ function GodModeArenaInner({
         </div>
         <div style={styles.footerStat}>
           <span style={{ color: '#94a3b8' }}>Streak:</span>
-          <span style={{ color: '#f97316', fontWeight: 'bold', marginLeft: 6 }}>{streak}</span>
+          <span style={{ color: '#fca5a5', fontWeight: 'bold', marginLeft: 6 }}>{streak}</span>
         </div>
       </div>
     </div>
