@@ -249,9 +249,9 @@ function CatRow({ catId, counts, track }) {
                 </span>
                 {PRETTY[catId]}
             </td>
-            <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.easy, targetEasy, '#fbbf24')}</td>
+            <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.easy, targetEasy, '#86daff')}</td>
             <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.medium, targetMedium, '#3b82f6')}</td>
-            <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.hard, targetHard, '#a855f7')}</td>
+            <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.hard, targetHard, '#22c55e')}</td>
             <td style={{ padding: '12px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: belowFloor ? '#ef4444' : totalPct >= 100 ? '#22c55e' : '#fff' }}>
                 {counts.total} / {TARGET_PER_CATEGORY}
                 <div style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.72)' }}>
@@ -481,10 +481,14 @@ export default function TriviaPoolDashboard({
             }
             setActionFeedback({
                 kind: 'success',
-                text: `Action ${payload.action} Applied To ${payload.affectedCount} Question(s). Receipt ${String(payload.receiptId || '').slice(0, 8)}`,
+                text: `Action ${payload.action} Applied To ${payload.affectedCount} Question(s). Receipt ${String(payload.receiptId || '')}`,
             });
             setSelectedIds([]);
-            await loadWorkbench();
+            try {
+                await loadWorkbench();
+            } catch (_refreshError) {
+                // Keep the confirmed curation receipt visible even if the follow-up workbench refresh fails.
+            }
         } catch (_err) {
             setActionFeedback({ kind: 'error', text: 'Batch Curation Request Failed.' });
         } finally {
@@ -524,11 +528,11 @@ export default function TriviaPoolDashboard({
     );
 
     if (clientLoading) {
-        return <main className={consoleStyles.surface}><div className={consoleStyles.state} role="status" style={{ padding: 24 }}>Loading Trivia Pool Dashboard...</div></main>;
+        return <main className={`smarterdesign ${consoleStyles.surface}`}><div className={consoleStyles.state} role="status" style={{ padding: 24 }}>Loading Trivia Pool Dashboard...</div></main>;
     }
 
     if (clientError) {
-        return <main className={consoleStyles.surface}><div className={consoleStyles.state} role="alert" style={{ padding: 24, color: '#ff7a7a' }}>Error: {clientError}</div></main>;
+        return <main className={`smarterdesign ${consoleStyles.surface}`}><div className={consoleStyles.state} role="alert" style={{ padding: 24, color: '#ff7a7a' }}>Error: {clientError}</div></main>;
     }
 
     const activeByCat = poolByCat || buildCategoryCounts(null, workbenchData?.categoryDepth || null);
@@ -541,37 +545,37 @@ export default function TriviaPoolDashboard({
     const displayGeneratedAt = poolGeneratedAt || new Date().toISOString();
 
     return (
-        <main className={consoleStyles.surface} style={{ background: '#0a0a15', minHeight: '100vh', color: '#fff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <main className={`smarterdesign ${consoleStyles.surface}`} style={{ background: '#040d18', minHeight: '100vh', color: '#f2f7ff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
             <div style={{ maxWidth: 1140, margin: '0 auto' }}>
                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
-                    <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Trivia Pool Dashboard</h1>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>
-                        Generated {new Date(displayGeneratedAt).toLocaleString()} · <a href="/admin/trivia-pool" style={{ color: '#00D4FF' }}>Reload</a>
+                    <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, color: '#f2f7ff' }}>Trivia Pool Dashboard</h1>
+                    <div style={{ fontSize: 12, color: '#bdd0e2' }}>
+                        Generated {new Date(displayGeneratedAt).toLocaleString()} · <a href="/admin/trivia-pool" style={{ color: '#86daff', display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>Reload</a>
                     </div>
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 18 }}>
+                <div style={{ color: '#bdd0e2', fontSize: 14, marginBottom: 18 }}>
                     Phase 49 Target: 1,500 Per Category · 60-Day Floor: 1,200 · 90-Day Supply Alert: 1,800 Eligible · 20/50/30 Easy/Medium/Hard Mix
                 </div>
 
                 {/* Category Depth Alerts (Below 90-Day Supply) */}
                 {categoryDepthAlerts.length > 0 && (
                     <section
-                        className={consoleStyles.panel}
+                        className={`sd-panel ${consoleStyles.panel}`}
                         role="status"
                         aria-label="Category Depth Alerts Below 90-Day Supply"
-                        style={{ padding: 16, marginBottom: 20, border: '1px solid rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.08)' }}
+                        style={{ padding: 16, marginBottom: 20, border: '1px solid rgba(134, 218, 255, 0.45)', background: 'rgba(12, 85, 192, 0.14)' }}
                     >
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24', marginBottom: 8 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 8 }}>
                             Category Depth Alerts: {categoryDepthAlerts.length} Categories Below 90-Day Supply ({NINETY_DAY_FLOOR.toLocaleString()} Eligible)
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 8 }}>
                             {categoryDepthAlerts.map((alertRow) => (
-                                <div key={alertRow.category} style={{ padding: '8px 10px', borderRadius: 6, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(251,191,36,0.28)' }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{PRETTY[alertRow.category] || alertRow.category}</div>
-                                    <div style={{ fontSize: 12, color: '#fbbf24' }}>
+                                <div key={alertRow.category} style={{ padding: '8px 10px', borderRadius: 6, background: 'rgba(4, 13, 24, 0.65)', border: '1px solid rgba(134, 218, 255, 0.28)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f2f7ff' }}>{PRETTY[alertRow.category] || alertRow.category}</div>
+                                    <div style={{ fontSize: 12, color: '#86daff' }}>
                                         {Number(alertRow.eligible_count || 0).toLocaleString()} Eligible ({alertRow.days_of_supply}d Supply)
                                     </div>
-                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>
+                                    <div style={{ fontSize: 12, color: '#bdd0e2' }}>
                                         Shortfall {Number(alertRow.shortfall_90_day || 0).toLocaleString()} · Queue {Number(alertRow.review_queue_count || 0).toLocaleString()}
                                     </div>
                                 </div>
@@ -581,7 +585,7 @@ export default function TriviaPoolDashboard({
                 )}
 
                 {/* Workbench Tab Bar */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 22 }} role="tablist" aria-label="Trivia Pool Workbench Views">
+                <div className="sd-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 22 }} role="tablist" aria-label="Trivia Pool Workbench Views">
                     {WORKBENCH_TABS.map((tab) => {
                         const isActive = activeTab === tab.id;
                         return (
@@ -593,14 +597,15 @@ export default function TriviaPoolDashboard({
                                 aria-pressed={isActive}
                                 onClick={() => setActiveTab(tab.id)}
                                 style={{
+                                    minHeight: 44,
                                     padding: '10px 16px',
                                     borderRadius: 8,
                                     fontSize: 13,
                                     fontWeight: 700,
                                     cursor: 'pointer',
-                                    border: isActive ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.2)',
-                                    background: isActive ? 'rgba(56,189,248,0.22)' : 'rgba(255,255,255,0.05)',
-                                    color: isActive ? '#e0f2fe' : 'rgba(255,255,255,0.82)',
+                                    border: isActive ? '1px solid #86daff' : '1px solid rgba(189, 208, 226, 0.28)',
+                                    background: isActive ? 'rgba(12, 85, 192, 0.45)' : 'rgba(10, 24, 41, 0.72)',
+                                    color: isActive ? '#f2f7ff' : '#bdd0e2',
                                 }}
                             >
                                 {tab.label}
@@ -625,13 +630,13 @@ export default function TriviaPoolDashboard({
                             justifyContent: 'space-between',
                             gap: 12,
                             background: actionFeedback.kind === 'mfa'
-                                ? 'rgba(217,119,6,0.18)'
+                                ? 'rgba(12, 85, 192, 0.22)'
                                 : (actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.16)'),
                             border: `1px solid ${actionFeedback.kind === 'mfa'
-                                ? 'rgba(245,158,11,0.55)'
+                                ? 'rgba(134, 218, 255, 0.55)'
                                 : (actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(34,197,94,0.45)')}`,
                             color: actionFeedback.kind === 'mfa'
-                                ? '#fef3c7'
+                                ? '#f2f7ff'
                                 : (actionFeedback.kind === 'error' ? '#fecaca' : '#bbf7d0'),
                         }}
                     >
@@ -639,14 +644,16 @@ export default function TriviaPoolDashboard({
                         {actionFeedback.kind === 'mfa' && (
                             <a
                                 href={actionFeedback.stepUpUrl || '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-pool'}
+                                className="sd-button"
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
+                                    minHeight: 44,
                                     padding: '8px 14px',
                                     borderRadius: 6,
-                                    border: '1px solid #f59e0b',
-                                    background: '#78350f',
-                                    color: '#fffbeb',
+                                    border: '1px solid #86daff',
+                                    background: '#0c55c0',
+                                    color: '#f2f7ff',
                                     fontWeight: 700,
                                     textDecoration: 'none',
                                 }}
@@ -661,9 +668,9 @@ export default function TriviaPoolDashboard({
                 {activeTab === 'overview' && (
                     <>
                         <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-                            <Card title="Pool Total" value={`${totalCount.toLocaleString()} / ${targetTotal.toLocaleString()}`} subtitle={`${overallPct}% complete`} color={overallPct >= 100 ? '#22c55e' : overallPct >= 50 ? '#fbbf24' : '#ef4444'} />
+                            <Card title="Pool Total" value={`${totalCount.toLocaleString()} / ${targetTotal.toLocaleString()}`} subtitle={`${overallPct}% complete`} color={overallPct >= 100 ? '#22c55e' : overallPct >= 50 ? '#86daff' : '#ef4444'} />
                             <Card title="Track A (Deterministic)" value={`${trackATotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackATotal / 7500) * 100)}% - solver-grounded`} color="#22c55e" />
-                            <Card title="Track B (Grok-3-Mini)" value={`${trackBTotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackBTotal / 7500) * 100)}% - fact-verified`} color="#06b6d4" />
+                            <Card title="Track B (Grok-3-Mini)" value={`${trackBTotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackBTotal / 7500) * 100)}% - fact-verified`} color="#86daff" />
                         </div>
 
                         <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Trivia Questions By Category" style={{ marginBottom: 24 }}>
@@ -714,11 +721,11 @@ export default function TriviaPoolDashboard({
                             <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
                                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>FACT-CHECK AUDIT (Track B Only)</h3>
                                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
-                                    <Card title="Grok Questions" value={poolAudit.grokTotal.toLocaleString()} subtitle="Track B total" color="#06b6d4" />
-                                    <Card title="Audited" value={`${poolAudit.grokAudited.toLocaleString()} / ${poolAudit.grokTotal.toLocaleString()}`} subtitle={`${poolAudit.grokTotal > 0 ? Math.round((poolAudit.grokAudited / poolAudit.grokTotal) * 100) : 0}% reviewed`} color="#fbbf24" />
+                                    <Card title="Grok Questions" value={poolAudit.grokTotal.toLocaleString()} subtitle="Track B total" color="#86daff" />
+                                    <Card title="Audited" value={`${poolAudit.grokAudited.toLocaleString()} / ${poolAudit.grokTotal.toLocaleString()}`} subtitle={`${poolAudit.grokTotal > 0 ? Math.round((poolAudit.grokAudited / poolAudit.grokTotal) * 100) : 0}% reviewed`} color="#bdd0e2" />
                                     <Card title="Verified" value={poolAudit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
                                     <Card title="Flagged" value={poolAudit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
-                                    <Card title="Last 24h" value={poolAudit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#a855f7" />
+                                    <Card title="Last 24h" value={poolAudit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#86daff" />
                                 </div>
                                 {poolAudit.recentFlagged.length > 0 && (
                                     <>
@@ -750,10 +757,10 @@ export default function TriviaPoolDashboard({
                                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>QUALITY SYSTEMS (Phase 54)</h3>
                                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
                                     <Card title="Paused Categories" value={poolPhase54.pausedCategories.length.toString()} subtitle={poolPhase54.pausedCategories.length === 0 ? 'all generating' : poolPhase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={poolPhase54.pausedCategories.length > 0 ? '#ef4444' : '#22c55e'} />
-                                    <Card title="Open Reports" value={poolPhase54.unresolvedReportCount.toString()} subtitle="users flagged" color={poolPhase54.unresolvedReportCount > 0 ? '#fbbf24' : '#22c55e'} />
+                                    <Card title="Open Reports" value={poolPhase54.unresolvedReportCount.toString()} subtitle="users flagged" color={poolPhase54.unresolvedReportCount > 0 ? '#86daff' : '#22c55e'} />
                                     <Card title="Regression Failures" value={poolPhase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={poolPhase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#22c55e'} />
-                                    <Card title="Embedding Backlog" value={poolPhase54.embeddingBacklog.toLocaleString()} subtitle="questions un-embedded" color="#a855f7" />
-                                    <Card title="Theme Backlog" value={poolPhase54.themeBacklog.toLocaleString()} subtitle="questions un-tagged" color="#a855f7" />
+                                    <Card title="Embedding Backlog" value={poolPhase54.embeddingBacklog.toLocaleString()} subtitle="questions un-embedded" color="#86daff" />
+                                    <Card title="Theme Backlog" value={poolPhase54.themeBacklog.toLocaleString()} subtitle="questions un-tagged" color="#bdd0e2" />
                                 </div>
 
                                 {poolPhase54.categoryHealth.length > 0 && (
@@ -777,11 +784,11 @@ export default function TriviaPoolDashboard({
                                 {poolPhase54.recentReports.length > 0 && (
                                     <div style={{ marginBottom: 16 }}>
                                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>RECENT USER REPORTS</div>
-                                        <div style={{ background: 'rgba(251,191,36,0.04)', borderRadius: 8, overflow: 'hidden' }}>
+                                        <div style={{ background: 'rgba(134, 218, 255, 0.06)', borderRadius: 8, overflow: 'hidden' }}>
                                             {poolPhase54.recentReports.map((r, i) => (
                                                 <div key={r.id} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                                                        <span style={{ color: '#fbbf24', fontWeight: 600, minWidth: 100 }}>{r.reason}</span>
+                                                        <span style={{ color: '#86daff', fontWeight: 600, minWidth: 100 }}>{r.reason}</span>
                                                         <code style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{r.question_id.slice(0, 8)}</code>
                                                         <span style={{ color: 'rgba(255,255,255,0.72)', marginLeft: 'auto' }}>{new Date(r.created_at).toLocaleString()}</span>
                                                     </div>
@@ -870,10 +877,10 @@ export default function TriviaPoolDashboard({
                                         loadWorkbench({ mode: queueMode, category: queueCategory, min: minShown, thinFirst: nextThin });
                                     }}
                                     style={{
-                                        padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                                        border: thinCategoriesFirst ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.22)',
-                                        background: thinCategoriesFirst ? 'rgba(251,191,36,0.22)' : 'rgba(255,255,255,0.06)',
-                                        color: thinCategoriesFirst ? '#fde68a' : '#fff',
+                                        minHeight: 44, padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                        border: thinCategoriesFirst ? '1px solid #86daff' : '1px solid rgba(255,255,255,0.22)',
+                                        background: thinCategoriesFirst ? 'rgba(12, 85, 192, 0.42)' : 'rgba(255,255,255,0.06)',
+                                        color: thinCategoriesFirst ? '#f2f7ff' : '#bdd0e2',
                                     }}
                                 >
                                     Thin Categories First
@@ -968,7 +975,7 @@ export default function TriviaPoolDashboard({
                                 type="button"
                                 disabled={actionBusy || selectedIds.length === 0}
                                 onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'set_difficulty_easy', reason: curationReason })}
-                                style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(251,191,36,0.2)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.45)' }}
+                                style={{ minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(134, 218, 255, 0.16)', color: '#f2f7ff', border: '1px solid rgba(134, 218, 255, 0.45)' }}
                             >
                                 Re-Tier Easy
                             </button>
@@ -976,7 +983,7 @@ export default function TriviaPoolDashboard({
                                 type="button"
                                 disabled={actionBusy || selectedIds.length === 0}
                                 onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'set_difficulty_medium', reason: curationReason })}
-                                style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(59,130,246,0.22)', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.45)' }}
+                                style={{ minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(12, 85, 192, 0.34)', color: '#f2f7ff', border: '1px solid rgba(134, 218, 255, 0.45)' }}
                             >
                                 Re-Tier Medium
                             </button>
@@ -984,7 +991,7 @@ export default function TriviaPoolDashboard({
                                 type="button"
                                 disabled={actionBusy || selectedIds.length === 0}
                                 onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'set_difficulty_hard', reason: curationReason })}
-                                style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(168,85,247,0.22)', color: '#e9d5ff', border: '1px solid rgba(168,85,247,0.45)' }}
+                                style={{ minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(34, 197, 94, 0.18)', color: '#f2f7ff', border: '1px solid rgba(34, 197, 94, 0.45)' }}
                             >
                                 Re-Tier Hard
                             </button>
@@ -1028,7 +1035,7 @@ export default function TriviaPoolDashboard({
                                                 <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
                                                     <div>{PRETTY[item.category] || item.category}</div>
                                                     {item.isThinCategory && (
-                                                        <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 6px', borderRadius: 999, background: 'rgba(251,191,36,0.18)', color: '#fde68a', fontSize: 12, fontWeight: 600 }}>
+                                                        <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 6px', borderRadius: 999, background: 'rgba(134, 218, 255, 0.16)', color: '#86daff', fontSize: 12, fontWeight: 600 }}>
                                                             Thin Priority
                                                         </span>
                                                     )}
@@ -1110,10 +1117,10 @@ export default function TriviaPoolDashboard({
                         </div>
 
                         <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 18 }}>
-                            <Card title="Flagged Outliers" value={String(calibrationSummary.flagged_count || 0)} subtitle={`Min shown >= ${minShown}`} color="#fbbf24" />
+                            <Card title="Flagged Outliers" value={String(calibrationSummary.flagged_count || 0)} subtitle={`Min shown >= ${minShown}`} color="#86daff" />
                             <Card title="Easy Too Hard" value={String(calibrationSummary.easy_too_hard_count || 0)} subtitle="Solve rate < 35%" color="#ef4444" />
                             <Card title="Hard Too Easy" value={String(calibrationSummary.hard_too_easy_count || 0)} subtitle="Solve rate > 85%" color="#22c55e" />
-                            <Card title="Skip Or Report Outliers" value={String((calibrationSummary.high_skip_count || 0) + (calibrationSummary.high_report_count || 0))} subtitle="High skip or open reports" color="#a855f7" />
+                            <Card title="Skip Or Report Outliers" value={String((calibrationSummary.high_skip_count || 0) + (calibrationSummary.high_report_count || 0))} subtitle="High skip or open reports" color="#bdd0e2" />
                         </div>
 
                         <div style={{ marginBottom: 16 }}>
@@ -1157,7 +1164,7 @@ export default function TriviaPoolDashboard({
                                                 <td style={{ padding: '10px 10px', fontSize: 12, textTransform: 'capitalize' }}>
                                                     <div>Current: {row.difficulty}</div>
                                                     {row.suggested_difficulty && (
-                                                        <div style={{ color: '#fbbf24' }}>Suggested: {row.suggested_difficulty}</div>
+                                                        <div style={{ color: '#86daff' }}>Suggested: {row.suggested_difficulty}</div>
                                                     )}
                                                 </td>
                                                 <td style={{ padding: '10px 10px', fontSize: 12 }}>
@@ -1168,7 +1175,7 @@ export default function TriviaPoolDashboard({
                                                 </td>
                                                 <td style={{ padding: '10px 10px', fontSize: 12 }}>
                                                     {(row.flags || []).map((flag) => (
-                                                        <span key={flag} style={{ display: 'inline-block', marginRight: 6, marginBottom: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(251,191,36,0.16)', color: '#fde68a', fontSize: 12 }}>
+                                                        <span key={flag} style={{ display: 'inline-block', marginRight: 6, marginBottom: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(134, 218, 255, 0.16)', color: '#86daff', fontSize: 12 }}>
                                                             {formatFlagLabel(flag)}
                                                         </span>
                                                     ))}
@@ -1179,7 +1186,7 @@ export default function TriviaPoolDashboard({
                                                             type="button"
                                                             disabled={actionBusy}
                                                             onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'set_difficulty_easy', reason: calibrationReason })}
-                                                            style={{ padding: '6px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(251,191,36,0.2)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.45)' }}
+                                                            style={{ minHeight: 44, padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(134, 218, 255, 0.16)', color: '#f2f7ff', border: '1px solid rgba(134, 218, 255, 0.45)' }}
                                                         >
                                                             Easy
                                                         </button>
@@ -1187,7 +1194,7 @@ export default function TriviaPoolDashboard({
                                                             type="button"
                                                             disabled={actionBusy}
                                                             onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'set_difficulty_medium', reason: calibrationReason })}
-                                                            style={{ padding: '6px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(59,130,246,0.22)', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.45)' }}
+                                                            style={{ minHeight: 44, padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(12, 85, 192, 0.34)', color: '#f2f7ff', border: '1px solid rgba(134, 218, 255, 0.45)' }}
                                                         >
                                                             Medium
                                                         </button>
@@ -1195,7 +1202,7 @@ export default function TriviaPoolDashboard({
                                                             type="button"
                                                             disabled={actionBusy}
                                                             onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'set_difficulty_hard', reason: calibrationReason })}
-                                                            style={{ padding: '6px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(168,85,247,0.22)', color: '#e9d5ff', border: '1px solid rgba(168,85,247,0.45)' }}
+                                                            style={{ minHeight: 44, padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(34, 197, 94, 0.18)', color: '#f2f7ff', border: '1px solid rgba(34, 197, 94, 0.45)' }}
                                                         >
                                                             Hard
                                                         </button>
@@ -1203,7 +1210,7 @@ export default function TriviaPoolDashboard({
                                                             type="button"
                                                             disabled={actionBusy}
                                                             onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'quarantine', reason: calibrationReason })}
-                                                            style={{ padding: '6px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#991b1b', color: '#fff', border: '1px solid #ef4444' }}
+                                                            style={{ minHeight: 44, padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#991b1b', color: '#f2f7ff', border: '1px solid #ef4444' }}
                                                         >
                                                             Quarantine
                                                         </button>
@@ -1224,10 +1231,10 @@ export default function TriviaPoolDashboard({
 
 function Card({ title, value, subtitle, color }) {
     return (
-        <div className={consoleStyles.metric} style={{ padding: 20, borderLeft: `3px solid ${color}` }}>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{title}</div>
-            <div style={{ fontSize: 26, fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{value}</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{subtitle}</div>
+        <div className={`sd-metric ${consoleStyles.metric}`} style={{ padding: 20, borderLeft: `3px solid ${color}` }}>
+            <div style={{ fontSize: 12, color: '#bdd0e2', letterSpacing: 0.5, marginBottom: 8 }}>{title}</div>
+            <div style={{ fontSize: 26, fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginBottom: 4, color: '#f2f7ff' }}>{value}</div>
+            <div style={{ fontSize: 12, color: '#bdd0e2' }}>{subtitle}</div>
         </div>
     );
 }
