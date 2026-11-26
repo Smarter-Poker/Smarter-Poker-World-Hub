@@ -456,14 +456,42 @@ export function normalizeClubArenaHand(row, userId) {
   if (!hasExplicitAntePosts && declaredAnte > 0) {
     const isBigBlindAnte = summary.bigBlindAnte === true || row?.big_blind_ante === true;
     const explicitTotal = Number(summary.anteTotal ?? row?.ante_total);
-    if (Number.isFinite(explicitTotal) && explicitTotal > 0) {
-      synthesizedAnteTotal = explicitTotal;
-    } else if (isBigBlindAnte) {
-      synthesizedAnteTotal = declaredAnte;
+    if (isBigBlindAnte) {
+      const bbaAmount = Number.isFinite(explicitTotal) && explicitTotal > 0 ? explicitTotal : declaredAnte;
+      synthesizedAnteTotal = bbaAmount;
       const bbPlayer = players.find(player => player.position === 'BB');
       if (bbPlayer) {
         const bbKey = actorKeyForPlayer(bbPlayer);
-        totalCommittedByActor.set(bbKey, (totalCommittedByActor.get(bbKey) || 0) + declaredAnte);
+        totalCommittedByActor.set(bbKey, (totalCommittedByActor.get(bbKey) || 0) + bbaAmount);
+        forcedPosts.push({
+          street: 'preflop',
+          player: bbPlayer.name,
+          playerId: bbPlayer.id,
+          position: bbPlayer.position,
+          type: 'ante',
+          amount: bbaAmount,
+          amountBB: hasKnownBlinds ? bbaAmount / bigBlind : null,
+          dead: true,
+          isHero: String(bbPlayer.id) === String(userId),
+        });
+      }
+    } else if (Number.isFinite(explicitTotal) && explicitTotal > 0) {
+      synthesizedAnteTotal = explicitTotal;
+      const perSeatAnte = players.length > 0 ? +(explicitTotal / players.length).toFixed(4) : declaredAnte;
+      for (const p of players) {
+        const pKey = actorKeyForPlayer(p);
+        totalCommittedByActor.set(pKey, (totalCommittedByActor.get(pKey) || 0) + perSeatAnte);
+        forcedPosts.push({
+          street: 'preflop',
+          player: p.name,
+          playerId: p.id,
+          position: p.position,
+          type: 'ante',
+          amount: perSeatAnte,
+          amountBB: hasKnownBlinds ? perSeatAnte / bigBlind : null,
+          dead: true,
+          isHero: String(p.id) === String(userId),
+        });
       }
     } else {
       synthesizedAnteTotal = declaredAnte * Math.max(1, players.length);
@@ -838,9 +866,24 @@ export function normalizeClubArenaHand(row, userId) {
   for (const rawP of rawPlayers) {
     const pId = playerId(rawP);
     if (pId === null || pId === undefined || String(pId) === '') continue;
-    if (rawP?.mucked === true || rawP?.showdown_reveal?.mucked === true || rawP?.showed === false || rawP?.showedCards === false) {
+    if (
+      rawP?.mucked === true
+      || rawP?.showdown_reveal?.mucked === true
+      || rawP?.showed === false
+      || rawP?.shown === false
+      || rawP?.revealed === false
+      || rawP?.showedCards === false
+      || rawP?.showed_cards === false
+    ) {
       muckedPlayerIds.add(String(pId));
-    } else if (rawP?.showed === true || rawP?.showedCards === true || (rawP?.showdown_reveal && rawP.showdown_reveal.mucked === false)) {
+    } else if (
+      rawP?.showed === true
+      || rawP?.shown === true
+      || rawP?.revealed === true
+      || rawP?.showedCards === true
+      || rawP?.showed_cards === true
+      || (rawP?.showdown_reveal && rawP.showdown_reveal.mucked === false)
+    ) {
       revealedShowdownIds.add(String(pId));
     }
   }
@@ -857,13 +900,12 @@ export function normalizeClubArenaHand(row, userId) {
       p.holeCardsAvailable = true;
       p.mucked = didMuck;
     } else {
-      const publicRevealed = cards(row?.hole_cards?.[pIdStr]);
+      const publicRevealed = cards(row?.hole_cards?.[pIdStr] ?? row?.holeCards?.[pIdStr]);
       const playerCards = p.holeCards || [];
       const candidateRevealed = publicRevealed.length === 2 ? publicRevealed : (playerCards.length === 2 ? playerCards : []);
       const canReveal = !didFold && !didMuck && (
         publicRevealed.length === 2
         || revealedShowdownIds.has(pIdStr)
-        || (rawShowdown.length === 0 && candidateRevealed.length === 2)
       );
       p.holeCards = canReveal ? candidateRevealed : [];
       p.holeCardsAvailable = p.holeCards.length === 2;
@@ -1248,7 +1290,16 @@ function exactIdentityCompatible(question, hand, point) {
 
   const questionStack = Number(scenario.stackDepth ?? scenario.effectiveStack);
   if (Number.isFinite(questionStack) && questionStack > 0) {
-    const heroStack = Number(hand?.hero?.stack);
+    const resolvedBb = resolveStackDepthBb(hand, point);
+    const hasExplicitBbOrStakes = (hand?.bigBlind !== undefined && hand?.bigBlind !== null && hand?.bigBlind !== '')
+      || (hand?.big_blind !== undefined && hand?.big_blind !== null && hand?.big_blind !== '')
+      || Boolean(hand?.stakes)
+      || Boolean(hand?.blindLevel)
+      || hand?.stackUnit === 'chips'
+      || hand?.hero?.stackUnit === 'chips';
+    const heroStack = resolvedBb !== null
+      ? resolvedBb
+      : (!hasExplicitBbOrStakes ? Number(hand?.hero?.stack) : Number.NaN);
     if (!Number.isFinite(heroStack) || Math.abs(heroStack - questionStack) > 1) return false;
   }
 
@@ -1385,7 +1436,8 @@ export function resolveStackDepthBb(hand, point) {
   // never divide them by bigBlind a second time.
   const isBbUnit = hand?.stackUnit === 'bb'
     || hand?.hero?.stackUnit === 'bb'
-    || hand?.site === 'smarter-poker-club-arena';
+    || hand?.site === 'smarter-poker-club-arena'
+    || String(hand?.id || '').startsWith('club-arena:');
   if (isBbUnit) {
     return clampStackDepthBb(effectiveRawStack);
   }
@@ -1393,7 +1445,7 @@ export function resolveStackDepthBb(hand, point) {
   const explicitBb = Number(hand?.bigBlind ?? hand?.big_blind);
   const bigBlind = Number.isFinite(explicitBb) && explicitBb > 0
     ? explicitBb
-    : parseBigBlindFromStakes(hand?.stakes);
+    : parseBigBlindFromStakes(hand?.stakes ?? hand?.blindLevel);
 
   if (Number.isFinite(bigBlind) && bigBlind > 0) {
     return clampStackDepthBb(effectiveRawStack / bigBlind);
@@ -1502,8 +1554,9 @@ export async function auditParsedHands(db, userId, hands, {
     analyses.push(analysis);
     fullyEnumeratedHandIds.push(externalHandId);
     for (const [index, point] of points.entries()) {
+      const resolvedStackBb = resolveStackDepthBb(hand, point);
       const signature = [
-        hand.format, hand.gameType, hand.tableSize, hand.hero?.stack,
+        hand.format, hand.gameType, hand.tableSize, resolvedStackBb ?? hand.hero?.stack,
         point.street, point.position, point.nodeClass, handNotation(point.holeCards),
         canonicalCombo(point.holeCards), canonicalBoard(point.board), point.action, point.amount,
         point.potBeforeBB, point.sizingPct, point.villainPosition,
@@ -2036,6 +2089,8 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       obsoleteDecisionsRemoved: 0,
       complete: errors.length === 0 && !sourceIncomplete,
       truncated: sourceIncomplete,
+      pageRetrying: false,
+      hasMorePages: Boolean(sourceIncomplete),
       incrementalStop: reachedWatermark,
       latestHandWatermark,
       reconciliation: {
@@ -2176,6 +2231,8 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     evidenceReconciled: result.evidenceReconciled,
     obsoleteDecisionsRemoved: result.obsoleteDecisionsRemoved,
     truncated: result.truncated || sourceIncomplete,
+    pageRetrying: Boolean(result.truncated),
+    hasMorePages: Boolean(sourceIncomplete),
     incrementalStop: reachedWatermark,
     latestHandWatermark,
     reconciliation: {

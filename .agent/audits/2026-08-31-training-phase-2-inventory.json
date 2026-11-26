@@ -14,7 +14,7 @@
     "dependencyFiles": 402,
     "componentFiles": 62,
     "hookFiles": 16,
-    "ctas": 538,
+    "ctas": 539,
     "dialogs": 18,
     "persistenceFiles": 92,
     "realtimeFiles": 6,
@@ -1030,7 +1030,7 @@
         "success": false,
         "authExpiry": true
       },
-      "ctaCount": 7,
+      "ctaCount": 8,
       "dialogCount": 0,
       "apiReferences": [],
       "persistenceWrites": {
@@ -26854,7 +26854,7 @@
       "functions": [
         {
           "name": "resolveHandVariant",
-          "line": 21,
+          "line": 19,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26862,7 +26862,7 @@
         },
         {
           "name": "resolveHandBoardCards",
-          "line": 37,
+          "line": 35,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26870,7 +26870,7 @@
         },
         {
           "name": "rankImportedHandsByEvLeak",
-          "line": 62,
+          "line": 56,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -26878,7 +26878,7 @@
         },
         {
           "name": "getSupabase",
-          "line": 182,
+          "line": 191,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -26886,7 +26886,7 @@
         },
         {
           "name": "normalizeClubArenaHand",
-          "line": 194,
+          "line": 203,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26894,7 +26894,7 @@
         },
         {
           "name": "isUserParticipantInHandRow",
-          "line": 232,
+          "line": 241,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26902,15 +26902,23 @@
         },
         {
           "name": "extractBoardFromParsedHand",
-          "line": 242,
+          "line": 251,
           "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "sanitizeDrillNavigationOptions",
+          "line": 260,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "buildDrillHrefForHand",
-          "line": 251,
+          "line": 274,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -26918,7 +26926,7 @@
         },
         {
           "name": "handler",
-          "line": 294,
+          "line": 321,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -31992,6 +32000,7 @@
         "/hub/training/category/",
         "/hub/training/coach-mode",
         "/hub/training/drill-builder",
+        "/hub/training/hand-history-upload",
         "/hub/training/leaderboard",
         "/hub/training/live-hud-sync",
         "/hub/training/play/",
@@ -32003,7 +32012,7 @@
         {
           "element": "button",
           "name": "Reload Arena",
-          "line": 103,
+          "line": 111,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -32013,7 +32022,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 331,
+          "line": 355,
           "handler": "() => router.replace('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32022,10 +32031,20 @@
         },
         {
           "element": "a",
-          "name": "← Return To Live Hand Sync",
-          "line": 395,
+          "name": "← Return To Personal Assistant",
+          "line": 434,
           "handler": null,
-          "destination": "/hub/training/live-hud-sync",
+          "destination": "personalAssistantReturnHref",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "a",
+          "name": "<dynamic>",
+          "line": 476,
+          "handler": null,
+          "destination": "syncedHandReturnHref",
           "type": null,
           "disabled": null,
           "wiring": "destination"
@@ -32033,7 +32052,7 @@
         {
           "element": "a",
           "name": "Customize Pack In Drill Builder →",
-          "line": 431,
+          "line": 512,
           "handler": null,
           "destination": "/hub/training/drill-builder",
           "type": null,
@@ -32043,7 +32062,7 @@
         {
           "element": "a",
           "name": "Return To Coach Broadcast →",
-          "line": 468,
+          "line": 549,
           "handler": null,
           "destination": "/hub/training/coach-mode",
           "type": null,
@@ -32053,7 +32072,7 @@
         {
           "element": "a",
           "name": "View Club Leaderboard →",
-          "line": 504,
+          "line": 585,
           "handler": null,
           "destination": "/hub/training/leaderboard",
           "type": null,
@@ -32063,7 +32082,7 @@
         {
           "element": "a",
           "name": "View Verified Two-Player Scoreboard →",
-          "line": 539,
+          "line": 620,
           "handler": null,
           "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
           "type": null,
@@ -32102,8 +32121,16 @@
       },
       "functions": [
         {
+          "name": "sanitizeHubReturnTo",
+          "line": 27,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "TrainingArenaPage",
-          "line": 121,
+          "line": 129,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -32111,7 +32138,7 @@
         },
         {
           "name": "onSyncedHand",
-          "line": 135,
+          "line": 143,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36075,9 +36102,9 @@
         },
         {
           "element": "button",
-          "name": "Back To Training",
-          "line": 1263,
-          "handler": "() => router.push('/hub/training')",
+          "name": "backLabel",
+          "line": 1271,
+          "handler": "() => router.push(backHref)",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -36086,7 +36113,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1301,
+          "line": 1312,
           "handler": "() => setActiveView(tab.key)",
           "destination": null,
           "type": null,
@@ -36096,7 +36123,7 @@
         {
           "element": "button",
           "name": "Upload New File",
-          "line": 1535,
+          "line": 1546,
           "handler": "() => {\n                        setParsedHands([]);\n                        setStats(null);\n                      }",
           "destination": null,
           "type": null,
@@ -40630,9 +40657,9 @@
       "ctas": [
         {
           "element": "button",
-          "name": "Return To Training Hub",
-          "line": 187,
-          "handler": "() => router.push('/hub/training')",
+          "name": "isPaSource ? 'Back To Personal Assistant' : 'Return To Training Hub'",
+          "line": 194,
+          "handler": "() => router.push(backHref)",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -40641,7 +40668,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 202,
+          "line": 209,
           "handler": "() => setPeriod(option.value)",
           "destination": null,
           "type": "button",
@@ -40756,7 +40783,7 @@
       "markers": [
         {
           "kind": "SIMULATED",
-          "line": 182,
+          "line": 189,
           "excerpt": "<meta name=\"description\" content=\"Review sealed Training results and measured solver evidence without inferred or simulated player statistics.\" />",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -42277,9 +42304,9 @@
       "ctas": [
         {
           "element": "button",
-          "name": "← Training",
-          "line": 171,
-          "handler": "() => router.push('/hub/training')",
+          "name": "isPaSource ? 'Back To Personal Assistant' : 'Back To Training'",
+          "line": 177,
+          "handler": "() => router.push(backHref)",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -42288,7 +42315,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 238,
+          "line": 245,
           "handler": "() => setFormat(option.value)",
           "destination": null,
           "type": "button",
@@ -42298,7 +42325,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 250,
+          "line": 257,
           "handler": "() => setPosition(option.value)",
           "destination": null,
           "type": "button",
@@ -42308,7 +42335,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 277,
+          "line": 284,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -42318,7 +42345,7 @@
         {
           "element": "button",
           "name": "Load Another",
-          "line": 319,
+          "line": 326,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -42328,7 +42355,7 @@
         {
           "element": "button",
           "name": "Load Another Audited Spot",
-          "line": 445,
+          "line": 452,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -53929,7 +53956,7 @@
       "functions": [
         {
           "name": "applyWorldMenuDeck",
-          "line": 1414,
+          "line": 1415,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -53937,7 +53964,7 @@
         },
         {
           "name": "getMenuConfig",
-          "line": 1449,
+          "line": 1450,
           "references": 10,
           "exported": true,
           "defaultExport": false,
@@ -53945,7 +53972,7 @@
         },
         {
           "name": "getMenuConfigForPath",
-          "line": 1487,
+          "line": 1488,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -53969,7 +53996,7 @@
         },
         {
           "name": "hasItemWithId",
-          "line": 1362,
+          "line": 1363,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -53977,7 +54004,7 @@
         },
         {
           "name": "worldPrimaryDeck",
-          "line": 1364,
+          "line": 1365,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -53985,7 +54012,7 @@
         },
         {
           "name": "removePrimaryDuplicates",
-          "line": 1393,
+          "line": 1394,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -53999,7 +54026,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 354,
+          "line": 355,
           "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -56738,7 +56765,7 @@
         },
         {
           "name": "parsePokerStars",
-          "line": 270,
+          "line": 271,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -56746,7 +56773,7 @@
         },
         {
           "name": "_parsePSHeader",
-          "line": 285,
+          "line": 287,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56754,15 +56781,15 @@
         },
         {
           "name": "_stakesFromHeader",
-          "line": 294,
-          "references": 2,
+          "line": 296,
+          "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "_parsePSHand",
-          "line": 301,
+          "line": 304,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -56770,7 +56797,7 @@
         },
         {
           "name": "parseGGPoker",
-          "line": 439,
+          "line": 442,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56778,7 +56805,7 @@
         },
         {
           "name": "_parseGGHand",
-          "line": 454,
+          "line": 458,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56786,7 +56813,7 @@
         },
         {
           "name": "_normalizeColonlessBlock",
-          "line": 475,
+          "line": 479,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56794,7 +56821,7 @@
         },
         {
           "name": "_parseWpnStyleHeader",
-          "line": 509,
+          "line": 513,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56802,7 +56829,7 @@
         },
         {
           "name": "_parseWpnStyleHands",
-          "line": 517,
+          "line": 521,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56810,7 +56837,7 @@
         },
         {
           "name": "parseACR",
-          "line": 536,
+          "line": 540,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -56818,7 +56845,7 @@
         },
         {
           "name": "parseClubGG",
-          "line": 544,
+          "line": 548,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -56826,7 +56853,7 @@
         },
         {
           "name": "parse888Poker",
-          "line": 555,
+          "line": 559,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56834,7 +56861,7 @@
         },
         {
           "name": "_parse888Hand",
-          "line": 570,
+          "line": 575,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56842,7 +56869,7 @@
         },
         {
           "name": "_normalizeCard",
-          "line": 660,
+          "line": 678,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -56850,7 +56877,7 @@
         },
         {
           "name": "_normalizeAction",
-          "line": 674,
+          "line": 692,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56858,7 +56885,7 @@
         },
         {
           "name": "_assignPositions",
-          "line": 688,
+          "line": 706,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56866,7 +56893,7 @@
         },
         {
           "name": "getBoardAtStreet",
-          "line": 737,
+          "line": 755,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -56874,7 +56901,7 @@
         },
         {
           "name": "getHeroDecisionPoints",
-          "line": 751,
+          "line": 769,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56882,7 +56909,7 @@
         },
         {
           "name": "playerKey",
-          "line": 775,
+          "line": 793,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56890,7 +56917,7 @@
         },
         {
           "name": "isAggro",
-          "line": 816,
+          "line": 834,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -56901,7 +56928,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 261,
+          "line": 262,
           "excerpt": "// Try PokerStars format as fallback (most common)",
           "disposition": "training-data-provenance-fallback",
           "review": "accepted",
@@ -70796,6 +70823,7 @@
       "file": "src/lib/training/directSolverMatcher.mjs",
       "imports": [
         "src/lib/training/customSolverSpotContract.mjs",
+        "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/solverMatrixTrust.js"
       ],
       "links": [],
@@ -70834,7 +70862,7 @@
       "functions": [
         {
           "name": "cardIndex",
-          "line": 63,
+          "line": 66,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -70842,7 +70870,7 @@
         },
         {
           "name": "comboIndex",
-          "line": 73,
+          "line": 76,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -70850,7 +70878,7 @@
         },
         {
           "name": "normalizeCard",
-          "line": 83,
+          "line": 86,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -70858,7 +70886,7 @@
         },
         {
           "name": "exactBoardStrings",
-          "line": 96,
+          "line": 99,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -70866,7 +70894,7 @@
         },
         {
           "name": "handClassNotation",
-          "line": 113,
+          "line": 116,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70874,7 +70902,7 @@
         },
         {
           "name": "classifyFromPercentFrequency",
-          "line": 130,
+          "line": 133,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -70882,7 +70910,7 @@
         },
         {
           "name": "normalizeActionLabel",
-          "line": 137,
+          "line": 140,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70890,7 +70918,7 @@
         },
         {
           "name": "extractV2TargetChips",
-          "line": 149,
+          "line": 152,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70898,7 +70926,7 @@
         },
         {
           "name": "isV2ActionAllIn",
-          "line": 159,
+          "line": 162,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70906,7 +70934,7 @@
         },
         {
           "name": "deriveV2ActionSizingPct",
-          "line": 175,
+          "line": 178,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -70914,7 +70942,7 @@
         },
         {
           "name": "matchV2Action",
-          "line": 198,
+          "line": 201,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70922,15 +70950,39 @@
         },
         {
           "name": "v2NodeMatchesPoint",
-          "line": 247,
+          "line": 250,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "parseBigBlindFromStakes",
+          "line": 280,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isHeroPlayerEntry",
+          "line": 290,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "resolveSolverStackDepthBb",
+          "line": 303,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "nearestExactStack",
-          "line": 277,
+          "line": 372,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70938,7 +70990,7 @@
         },
         {
           "name": "candidateV2GameTypes",
-          "line": 292,
+          "line": 387,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70946,7 +70998,7 @@
         },
         {
           "name": "streetHashPrefix",
-          "line": 306,
+          "line": 401,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70954,7 +71006,7 @@
         },
         {
           "name": "findSolvedSpotV2Match",
-          "line": 318,
+          "line": 413,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -70962,7 +71014,7 @@
         },
         {
           "name": "mapChartAction",
-          "line": 478,
+          "line": 573,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70970,7 +71022,7 @@
         },
         {
           "name": "hasPriorPreflopCalls",
-          "line": 495,
+          "line": 590,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70978,7 +71030,7 @@
         },
         {
           "name": "findMemoryChartMatch",
-          "line": 506,
+          "line": 601,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -70986,7 +71038,7 @@
         },
         {
           "name": "findDirectCorpusSolverMatch",
-          "line": 608,
+          "line": 703,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -71440,7 +71492,7 @@
         {
           "name": "playerId",
           "line": 46,
-          "references": 24,
+          "references": 26,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -71567,7 +71619,7 @@
         },
         {
           "name": "fetchPrivateHeroCards",
-          "line": 1051,
+          "line": 1093,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71575,7 +71627,7 @@
         },
         {
           "name": "handNotation",
-          "line": 1085,
+          "line": 1127,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -71583,7 +71635,7 @@
         },
         {
           "name": "canonicalBoard",
-          "line": 1098,
+          "line": 1140,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -71591,7 +71643,7 @@
         },
         {
           "name": "canonicalCombo",
-          "line": 1104,
+          "line": 1146,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -71599,7 +71651,7 @@
         },
         {
           "name": "isSupportedHoldemHand",
-          "line": 1108,
+          "line": 1150,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71607,7 +71659,7 @@
         },
         {
           "name": "questionBoard",
-          "line": 1113,
+          "line": 1155,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71615,7 +71667,7 @@
         },
         {
           "name": "optionAction",
-          "line": 1120,
+          "line": 1162,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -71623,7 +71675,7 @@
         },
         {
           "name": "optionSizingPercent",
-          "line": 1132,
+          "line": 1174,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71631,7 +71683,7 @@
         },
         {
           "name": "mapPlayedAction",
-          "line": 1141,
+          "line": 1183,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71639,7 +71691,7 @@
         },
         {
           "name": "normalizedDecisionAction",
-          "line": 1161,
+          "line": 1203,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71647,7 +71699,7 @@
         },
         {
           "name": "exactActionHistoryCompatible",
-          "line": 1172,
+          "line": 1214,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71655,30 +71707,6 @@
         },
         {
           "name": "questionNode",
-          "line": 1189,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "nodeCompatible",
-          "line": 1209,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "fingerprint",
-          "line": 1225,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "canonicalFingerprint",
           "line": 1231,
           "references": 2,
           "exported": false,
@@ -71686,8 +71714,32 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "nodeCompatible",
+          "line": 1251,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "fingerprint",
+          "line": 1267,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "canonicalFingerprint",
+          "line": 1273,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "exactIdentityCompatible",
-          "line": 1235,
+          "line": 1277,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71695,7 +71747,7 @@
         },
         {
           "name": "findQuestion",
-          "line": 1275,
+          "line": 1326,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71703,7 +71755,7 @@
         },
         {
           "name": "clampStackDepthBb",
-          "line": 1313,
+          "line": 1364,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -71711,7 +71763,7 @@
         },
         {
           "name": "parseBigBlindFromStakes",
-          "line": 1321,
+          "line": 1372,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71719,7 +71771,7 @@
         },
         {
           "name": "isHeroPlayerEntry",
-          "line": 1331,
+          "line": 1382,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71727,15 +71779,15 @@
         },
         {
           "name": "resolveStackDepthBb",
-          "line": 1344,
-          "references": 2,
+          "line": 1395,
+          "references": 4,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "summary",
-          "line": 1405,
+          "line": 1457,
           "references": 79,
           "exported": false,
           "defaultExport": false,
@@ -71743,7 +71795,7 @@
         },
         {
           "name": "runWithConcurrency",
-          "line": 1428,
+          "line": 1480,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71751,7 +71803,7 @@
         },
         {
           "name": "replacePersistedDecisionEvidence",
-          "line": 1449,
+          "line": 1501,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71759,7 +71811,7 @@
         },
         {
           "name": "auditParsedHands",
-          "line": 1478,
+          "line": 1530,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -71767,7 +71819,7 @@
         },
         {
           "name": "fetchClubHandsForKey",
-          "line": 1664,
+          "line": 1717,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71775,7 +71827,7 @@
         },
         {
           "name": "parseTimestampMicros",
-          "line": 1703,
+          "line": 1756,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71783,7 +71835,7 @@
         },
         {
           "name": "compareHandKeyDescending",
-          "line": 1713,
+          "line": 1766,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -71791,7 +71843,7 @@
         },
         {
           "name": "fetchExistingAuditRows",
-          "line": 1721,
+          "line": 1774,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71799,7 +71851,7 @@
         },
         {
           "name": "auditRowTime",
-          "line": 1736,
+          "line": 1789,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -71807,7 +71859,7 @@
         },
         {
           "name": "emptyIntervalReconciliation",
-          "line": 1741,
+          "line": 1794,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71815,7 +71867,7 @@
         },
         {
           "name": "addReconciliationCounts",
-          "line": 1771,
+          "line": 1824,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71823,7 +71875,7 @@
         },
         {
           "name": "syncClubArenaHandsForAudit",
-          "line": 1810,
+          "line": 1863,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -71840,7 +71892,7 @@
         {
           "name": "actorKeyForPlayer",
           "line": 339,
-          "references": 10,
+          "references": 11,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -71855,7 +71907,7 @@
         },
         {
           "name": "normalizeStreet",
-          "line": 491,
+          "line": 519,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -74084,7 +74136,7 @@
       "functions": [
         {
           "name": "normalizeAuditedChartQuestion",
-          "line": 32,
+          "line": 33,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74092,7 +74144,7 @@
         },
         {
           "name": "verifiedSolverSource",
-          "line": 60,
+          "line": 61,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74100,7 +74152,7 @@
         },
         {
           "name": "finiteNumber",
-          "line": 68,
+          "line": 69,
           "references": 13,
           "exported": false,
           "defaultExport": false,
@@ -74108,7 +74160,7 @@
         },
         {
           "name": "readFrequency",
-          "line": 74,
+          "line": 75,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74116,7 +74168,7 @@
         },
         {
           "name": "readActionEV",
-          "line": 84,
+          "line": 85,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74124,7 +74176,7 @@
         },
         {
           "name": "isVerifiedSolverQuestion",
-          "line": 101,
+          "line": 102,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -74132,7 +74184,7 @@
         },
         {
           "name": "enforceSolverClaimHonesty",
-          "line": 119,
+          "line": 120,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74140,7 +74192,7 @@
         },
         {
           "name": "classifyFrequencyDecision",
-          "line": 156,
+          "line": 157,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -74148,7 +74200,7 @@
         },
         {
           "name": "gradeSolverDecision",
-          "line": 197,
+          "line": 198,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74156,7 +74208,7 @@
         },
         {
           "name": "safeSlug",
-          "line": 242,
+          "line": 243,
           "references": 17,
           "exported": false,
           "defaultExport": false,
@@ -74164,7 +74216,7 @@
         },
         {
           "name": "displayToken",
-          "line": 251,
+          "line": 252,
           "references": 12,
           "exported": false,
           "defaultExport": false,
@@ -74172,7 +74224,7 @@
         },
         {
           "name": "decisionRowIdentityKey",
-          "line": 258,
+          "line": 259,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74180,7 +74232,7 @@
         },
         {
           "name": "isChartDecisionRow",
-          "line": 276,
+          "line": 277,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74188,7 +74240,7 @@
         },
         {
           "name": "resolveSolverRecommendedDrill",
-          "line": 297,
+          "line": 298,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -74196,7 +74248,7 @@
         },
         {
           "name": "solverDecisionGroupKey",
-          "line": 376,
+          "line": 377,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -74204,7 +74256,7 @@
         },
         {
           "name": "summarizeSolverDecisionGroups",
-          "line": 387,
+          "line": 388,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -74212,7 +74264,7 @@
         },
         {
           "name": "canResolveSolverLeakScope",
-          "line": 504,
+          "line": 506,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74220,7 +74272,7 @@
         },
         {
           "name": "aggregateSolverLeaks",
-          "line": 531,
+          "line": 533,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -74228,7 +74280,7 @@
         },
         {
           "name": "qualifySolverDecisionSample",
-          "line": 585,
+          "line": 587,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74241,7 +74293,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 242,
+          "line": 243,
           "excerpt": "function safeSlug(value, fallback) {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -74249,7 +74301,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 243,
+          "line": 244,
           "excerpt": "const slug = String(value || fallback || 'unknown')",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -74257,7 +74309,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 248,
+          "line": 249,
           "excerpt": "return slug || fallback || 'unknown';",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -74265,7 +74317,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 251,
+          "line": 252,
           "excerpt": "function displayToken(value, fallback) {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -74273,7 +74325,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 252,
+          "line": 253,
           "excerpt": "const text = String(value || fallback || 'Unknown').replace(/[_-]+/g, ' ').trim();",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -83057,6 +83109,10 @@
     },
     {
       "from": "src/lib/training/directSolverMatcher.mjs",
+      "to": "src/lib/training/solverDecisionEvidence.js"
+    },
+    {
+      "from": "src/lib/training/directSolverMatcher.mjs",
       "to": "src/lib/training/solverMatrixTrust.js"
     },
     {
@@ -84780,11 +84836,11 @@
       "effectRef": "pages/hub/training/aggregate.js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:103:1",
+      "id": "pages/hub/training/arena/[gameId].js:111:1",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Reload Arena",
-      "line": 103,
+      "line": 111,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -84793,11 +84849,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:331:2",
+      "id": "pages/hub/training/arena/[gameId].js:355:2",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 331,
+      "line": 355,
       "handler": "() => router.replace('/hub/training')",
       "destination": null,
       "type": "button",
@@ -84806,24 +84862,37 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:395:3",
+      "id": "pages/hub/training/arena/[gameId].js:434:3",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
-      "name": "← Return To Live Hand Sync",
-      "line": 395,
+      "name": "← Return To Personal Assistant",
+      "line": 434,
       "handler": null,
-      "destination": "/hub/training/live-hud-sync",
+      "destination": "personalAssistantReturnHref",
       "type": null,
       "disabled": null,
       "wiring": "destination",
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:431:4",
+      "id": "pages/hub/training/arena/[gameId].js:476:4",
+      "file": "pages/hub/training/arena/[gameId].js",
+      "element": "a",
+      "name": "<dynamic>",
+      "line": 476,
+      "handler": null,
+      "destination": "syncedHandReturnHref",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/arena/[gameId].js"
+    },
+    {
+      "id": "pages/hub/training/arena/[gameId].js:512:5",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Customize Pack In Drill Builder →",
-      "line": 431,
+      "line": 512,
       "handler": null,
       "destination": "/hub/training/drill-builder",
       "type": null,
@@ -84832,11 +84901,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:468:5",
+      "id": "pages/hub/training/arena/[gameId].js:549:6",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Return To Coach Broadcast →",
-      "line": 468,
+      "line": 549,
       "handler": null,
       "destination": "/hub/training/coach-mode",
       "type": null,
@@ -84845,11 +84914,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:504:6",
+      "id": "pages/hub/training/arena/[gameId].js:585:7",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Club Leaderboard →",
-      "line": 504,
+      "line": 585,
       "handler": null,
       "destination": "/hub/training/leaderboard",
       "type": null,
@@ -84858,11 +84927,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:539:7",
+      "id": "pages/hub/training/arena/[gameId].js:620:8",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Verified Two-Player Scoreboard →",
-      "line": 539,
+      "line": 620,
       "handler": null,
       "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
       "type": null,
@@ -85937,12 +86006,12 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-history-upload.js:1263:3",
+      "id": "pages/hub/training/hand-history-upload.js:1271:3",
       "file": "pages/hub/training/hand-history-upload.js",
       "element": "button",
-      "name": "Back To Training",
-      "line": 1263,
-      "handler": "() => router.push('/hub/training')",
+      "name": "backLabel",
+      "line": 1271,
+      "handler": "() => router.push(backHref)",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -85950,11 +86019,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-history-upload.js:1301:4",
+      "id": "pages/hub/training/hand-history-upload.js:1312:4",
       "file": "pages/hub/training/hand-history-upload.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1301,
+      "line": 1312,
       "handler": "() => setActiveView(tab.key)",
       "destination": null,
       "type": null,
@@ -85963,11 +86032,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-history-upload.js:1535:5",
+      "id": "pages/hub/training/hand-history-upload.js:1546:5",
       "file": "pages/hub/training/hand-history-upload.js",
       "element": "button",
       "name": "Upload New File",
-      "line": 1535,
+      "line": 1546,
       "handler": "() => {\n                        setParsedHands([]);\n                        setStats(null);\n                      }",
       "destination": null,
       "type": null,
@@ -87107,12 +87176,12 @@
       "effectRef": "pages/hub/training/replay-theater.js"
     },
     {
-      "id": "pages/hub/training/reports.js:187:1",
+      "id": "pages/hub/training/reports.js:194:1",
       "file": "pages/hub/training/reports.js",
       "element": "button",
-      "name": "Return To Training Hub",
-      "line": 187,
-      "handler": "() => router.push('/hub/training')",
+      "name": "isPaSource ? 'Back To Personal Assistant' : 'Return To Training Hub'",
+      "line": 194,
+      "handler": "() => router.push(backHref)",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -87120,11 +87189,11 @@
       "effectRef": "pages/hub/training/reports.js"
     },
     {
-      "id": "pages/hub/training/reports.js:202:2",
+      "id": "pages/hub/training/reports.js:209:2",
       "file": "pages/hub/training/reports.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 202,
+      "line": 209,
       "handler": "() => setPeriod(option.value)",
       "destination": null,
       "type": "button",
@@ -87575,12 +87644,12 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:171:1",
+      "id": "pages/hub/training/spot-trainer.js:177:1",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
-      "name": "← Training",
-      "line": 171,
-      "handler": "() => router.push('/hub/training')",
+      "name": "isPaSource ? 'Back To Personal Assistant' : 'Back To Training'",
+      "line": 177,
+      "handler": "() => router.push(backHref)",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -87588,11 +87657,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:238:2",
+      "id": "pages/hub/training/spot-trainer.js:245:2",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 238,
+      "line": 245,
       "handler": "() => setFormat(option.value)",
       "destination": null,
       "type": "button",
@@ -87601,11 +87670,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:250:3",
+      "id": "pages/hub/training/spot-trainer.js:257:3",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 250,
+      "line": 257,
       "handler": "() => setPosition(option.value)",
       "destination": null,
       "type": "button",
@@ -87614,11 +87683,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:277:4",
+      "id": "pages/hub/training/spot-trainer.js:284:4",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Retry",
-      "line": 277,
+      "line": 284,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -87627,11 +87696,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:319:5",
+      "id": "pages/hub/training/spot-trainer.js:326:5",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Load Another",
-      "line": 319,
+      "line": 326,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -87640,11 +87709,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:445:6",
+      "id": "pages/hub/training/spot-trainer.js:452:6",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Load Another Audited Spot",
-      "line": 445,
+      "line": 452,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -91900,6 +91969,7 @@
         "src/lib/training/directSolverMatcher.mjs",
         "src/lib/training/handAuditEngine.js",
         "src/lib/training/horseBrainTrainingAdapter.js",
+        "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
@@ -113734,9 +113804,12 @@
     {
       "file": "src/lib/training/directSolverMatcher.mjs",
       "reachableFiles": [
+        "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/directSolverMatcher.mjs",
+        "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/solverMatrixTrust.js",
+        "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/utils/v2Matrix.js"
       ],
@@ -113842,6 +113915,7 @@
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/directSolverMatcher.mjs",
         "src/lib/training/handAuditEngine.js",
+        "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
@@ -115651,7 +115725,7 @@
       {
         "file": "pages/hub/training/reports.js",
         "kind": "SIMULATED",
-        "line": 182,
+        "line": 189,
         "excerpt": "<meta name=\"description\" content=\"Review sealed Training results and measured solver evidence without inferred or simulated player statistics.\" />",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -116616,7 +116690,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 354,
+        "line": 355,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -117039,7 +117113,7 @@
       {
         "file": "src/engines/HandHistoryParser.js",
         "kind": "FALLBACK",
-        "line": 261,
+        "line": 262,
         "excerpt": "// Try PokerStars format as fallback (most common)",
         "disposition": "training-data-provenance-fallback",
         "review": "accepted",
@@ -118551,7 +118625,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 242,
+        "line": 243,
         "excerpt": "function safeSlug(value, fallback) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -118560,7 +118634,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 243,
+        "line": 244,
         "excerpt": "const slug = String(value || fallback || 'unknown')",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -118569,7 +118643,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 248,
+        "line": 249,
         "excerpt": "return slug || fallback || 'unknown';",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -118578,7 +118652,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 251,
+        "line": 252,
         "excerpt": "function displayToken(value, fallback) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -118587,7 +118661,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 252,
+        "line": 253,
         "excerpt": "const text = String(value || fallback || 'Unknown').replace(/[_-]+/g, ' ').trim();",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -118766,7 +118840,7 @@
       {
         "file": "pages/api/training/audit-hand-history.js",
         "name": "handler",
-        "line": 294,
+        "line": 321,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -119455,7 +119529,7 @@
       {
         "file": "pages/hub/training/arena/[gameId].js",
         "name": "TrainingArenaPage",
-        "line": 121,
+        "line": 129,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -121379,7 +121453,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1487,
+        "line": 1488,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124281,7 +124355,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 1810,
+        "line": 1863,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124834,7 +124908,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "name": "normalizeAuditedChartQuestion",
-        "line": 32,
+        "line": 33,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -126686,7 +126760,7 @@
       {
         "file": "pages/hub/training/reports.js",
         "kind": "SIMULATED",
-        "line": 182,
+        "line": 189,
         "excerpt": "<meta name=\"description\" content=\"Review sealed Training results and measured solver evidence without inferred or simulated player statistics.\" />",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -127651,7 +127725,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 354,
+        "line": 355,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -128074,7 +128148,7 @@
       {
         "file": "src/engines/HandHistoryParser.js",
         "kind": "FALLBACK",
-        "line": 261,
+        "line": 262,
         "excerpt": "// Try PokerStars format as fallback (most common)",
         "disposition": "training-data-provenance-fallback",
         "review": "accepted",
@@ -129586,7 +129660,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 242,
+        "line": 243,
         "excerpt": "function safeSlug(value, fallback) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -129595,7 +129669,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 243,
+        "line": 244,
         "excerpt": "const slug = String(value || fallback || 'unknown')",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -129604,7 +129678,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 248,
+        "line": 249,
         "excerpt": "return slug || fallback || 'unknown';",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -129613,7 +129687,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 251,
+        "line": 252,
         "excerpt": "function displayToken(value, fallback) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -129622,7 +129696,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "kind": "FALLBACK",
-        "line": 252,
+        "line": 253,
         "excerpt": "const text = String(value || fallback || 'Unknown').replace(/[_-]+/g, ' ').trim();",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -129801,7 +129875,7 @@
       {
         "file": "pages/api/training/audit-hand-history.js",
         "name": "handler",
-        "line": 294,
+        "line": 321,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -130490,7 +130564,7 @@
       {
         "file": "pages/hub/training/arena/[gameId].js",
         "name": "TrainingArenaPage",
-        "line": 121,
+        "line": 129,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132414,7 +132488,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1487,
+        "line": 1488,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135316,7 +135390,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 1810,
+        "line": 1863,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135869,7 +135943,7 @@
       {
         "file": "src/lib/training/solverDecisionEvidence.js",
         "name": "normalizeAuditedChartQuestion",
-        "line": 32,
+        "line": 33,
         "references": 1,
         "exported": true,
         "defaultExport": false,

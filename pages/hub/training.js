@@ -83,7 +83,15 @@ import TrainingGamePreviewSheet from '../../src/components/training/lobby/Traini
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
 import { analyzeVerifiedTrainingWeaknesses } from '../../src/lib/training/weaknessAnalysis.mjs';
+import { normalizeLaunchFormat } from '../../src/lib/training/customTrainingLaunchContract.mjs';
 import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
+
+function sanitizeHubReturnTo(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('/hub/') || trimmed.startsWith('//') || trimmed.includes('://')) return null;
+  return trimmed;
+}
 
 const CATEGORY_META = {
   MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#86daff', glow: 'rgba(134,218,255,0.22)' },
@@ -261,6 +269,19 @@ export default function TrainingPage() {
     if (!game || !requireOnline()) return;
     haptic('light');
     const query = { gameId: game.id, start: '1', source: 'training-home' };
+    if (focus?.from || focus?.source) {
+      query.source = focus.from || focus.source;
+    }
+    if (typeof focus?.from === 'string' && focus.from.trim()) {
+      query.from = focus.from.trim();
+    }
+    if (typeof focus?.leak === 'string' && focus.leak.trim()) {
+      query.leak = focus.leak.trim();
+    }
+    const safeReturnTo = sanitizeHubReturnTo(focus?.returnTo);
+    if (safeReturnTo) {
+      query.returnTo = safeReturnTo;
+    }
     const effectiveVariant = focus?.variant || (filters.variant !== 'ALL' && game.category !== 'PSYCHOLOGY' ? filters.variant : null);
     if (effectiveVariant) {
       query.variant = effectiveVariant;
@@ -269,13 +290,19 @@ export default function TrainingPage() {
       }
     }
     if (focus?.bettingStructure) query.bettingStructure = focus.bettingStructure;
-    if (focus?.format) query.format = focus.format;
+    const normalizedFocusFormat = normalizeLaunchFormat(focus?.format) || focus?.format;
+    if (normalizedFocusFormat) query.format = normalizedFocusFormat;
     if (focus?.targetStreet) query.targetStreet = focus.targetStreet;
     if (focus?.heroPosition || focus?.targetPositions) {
       query.position = focus.heroPosition || focus.targetPositions;
     }
     if (Number.isInteger(focus?.questionsCount)) query.hands = String(focus.questionsCount);
-    router.push({ pathname: '/hub/training/arena/[gameId]', query });
+    const navTarget = { pathname: '/hub/training/arena/[gameId]', query };
+    if (focus?.replace === true) {
+      router.replace(navTarget);
+    } else {
+      router.push(navTarget);
+    }
   }, [filters.variant, haptic, requireOnline, router]);
 
   const heroGame = jarvisPick || TRAINING_LIBRARY[0];
@@ -350,7 +377,8 @@ export default function TrainingPage() {
   // Library Search When A Historical Recommendation No Longer Exists.
   useEffect(() => {
     if (!router.isReady) return;
-    const rawAutoLaunch = typeof router.query.autoLaunch === 'string' ? router.query.autoLaunch.trim().toLowerCase() : '';
+    const rawAutoLaunchInput = router.query.autoLaunch || router.query.game;
+    const rawAutoLaunch = typeof rawAutoLaunchInput === 'string' ? rawAutoLaunchInput.trim().toLowerCase() : '';
     const rawFocus = typeof router.query.focus === 'string' ? router.query.focus.trim().toLowerCase() : '';
     const rawCategory = typeof router.query.category === 'string' ? router.query.category.trim().toUpperCase() : '';
     const requestKey = `${rawAutoLaunch}|${rawFocus}|${rawCategory}`;
@@ -372,19 +400,29 @@ export default function TrainingPage() {
       setQuery('');
       const qVariant = typeof router.query.variant === 'string' ? router.query.variant.trim().toLowerCase() : '';
       const qStruct = typeof router.query.bettingStructure === 'string' ? router.query.bettingStructure.trim().toLowerCase() : '';
-      const qFormat = typeof router.query.format === 'string' ? router.query.format.trim().toLowerCase() : '';
+      const rawQFormat = typeof router.query.format === 'string' ? router.query.format.trim().toLowerCase() : '';
+      const qFormat = normalizeLaunchFormat(rawQFormat) || rawQFormat;
       const qStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
         ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
         : '';
       const qPos = typeof (router.query.position || router.query.heroPosition) === 'string'
         ? String(router.query.position || router.query.heroPosition).trim().toUpperCase()
         : '';
+      const qFrom = typeof router.query.from === 'string' ? router.query.from.trim() : '';
+      const qSource = typeof router.query.source === 'string' ? router.query.source.trim() : '';
+      const qLeak = typeof router.query.leak === 'string' ? router.query.leak.trim() : '';
+      const qReturnTo = sanitizeHubReturnTo(router.query.returnTo);
       const queryOverrides = {
+        replace: true,
         ...(['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(qVariant) ? { variant: qVariant } : {}),
         ...(['no_limit', 'pot_limit', 'fixed_limit'].includes(qStruct) ? { bettingStructure: qStruct } : {}),
         ...(['cash', 'mtt', 'spins', 'hu', '9max'].includes(qFormat) ? { format: qFormat } : {}),
         ...(['preflop', 'flop', 'turn', 'river'].includes(qStreet) ? { targetStreet: qStreet, scope: 'street' } : {}),
         ...(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(qPos) ? { heroPosition: qPos, targetPositions: qPos } : {}),
+        ...(qFrom ? { from: qFrom } : {}),
+        ...(qSource ? { source: qSource } : {}),
+        ...(qLeak ? { leak: qLeak } : {}),
+        ...(qReturnTo ? { returnTo: qReturnTo } : {}),
       };
       playGame(game, queryOverrides);
       return;
@@ -399,7 +437,7 @@ export default function TrainingPage() {
       const readable = requestedGame.replace(/[-_]+/g, ' ');
       setQuery(readable);
     }
-  }, [router.isReady, router.query.autoLaunch, router.query.focus, router.query.category, playGame]);
+  }, [router.isReady, router.query.autoLaunch, router.query.game, router.query.focus, router.query.category, playGame]);
 
   /* LOAD FAILSAFE (mobile phase 0a). The dashboard and progress hooks own
      their own loading flags; a request that never settles used to pin the

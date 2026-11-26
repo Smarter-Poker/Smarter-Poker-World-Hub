@@ -144,6 +144,12 @@ export default function SpotTrainerPage() {
     return () => requestAbortRef.current?.abort();
   }, [fetchSpot]);
   const sourceBadge = trainingSourcePresentation(spot?.sourceClassification);
+  const querySource = typeof router.query?.source === 'string' ? router.query.source.trim() : '';
+  const queryLeak = typeof router.query?.leak === 'string' ? router.query.leak.trim() : '';
+  const isPaSource = querySource.startsWith('personal-assistant') || querySource.startsWith('assistant-sandbox');
+  const backHref = isPaSource
+    ? (queryLeak ? `/hub/personal-assistant/leaks?leak=${encodeURIComponent(queryLeak)}` : '/hub/personal-assistant/leaks')
+    : '/hub/training';
 
   return (
     <>
@@ -170,7 +176,8 @@ export default function SpotTrainerPage() {
           <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={() => router.push('/hub/training')}
+              aria-label={isPaSource ? 'Back To Personal Assistant' : 'Back To Training'}
+              onClick={() => router.push(backHref)}
               style={{
                 background: 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))',
                 border: '1px solid rgba(255,255,255,0.16)',
@@ -182,7 +189,7 @@ export default function SpotTrainerPage() {
                 fontWeight: 700,
               }}
             >
-              &larr; Training
+              {isPaSource ? '← Back To Personal Assistant' : '← Training'}
             </button>
             <h1
               style={{

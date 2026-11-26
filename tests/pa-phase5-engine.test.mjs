@@ -672,7 +672,7 @@ test('executeSingleHandAudit passes evidenceScope: club_arena and enriches hand 
   assert.equal(res.body.hand.potSize, 36);
   assert.equal(res.body.hand.potBb, 18);
   assert.equal(res.body.hand.effectiveStackBb, 100);
-  assert.equal(res.body.hand.effectiveStack, 100);
+  assert.equal(res.body.hand.effectiveStack, 200);
   assert.equal(res.body.hand.heroPosition, 'BTN');
   assert.equal(res.body.hand.street, 'turn');
   assert.equal(res.body.decisions[0].evLossMeasured, true);

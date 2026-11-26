@@ -51,7 +51,8 @@ export function mergeAuditJobProgress(previous, detection, batchDurationMs = 0, 
   const sync = detection?.clubArenaSync || {};
   const next = { ...prior };
   const acceptedBatch = detection?.success === true && options.countAcceptedBatch !== false;
-  const pageRetrying = sync.truncated === true;
+  const pageRetrying = sync.pageRetrying === true
+    || (sync.pageRetrying === undefined && sync.truncated === true && sync.hasMorePages !== true);
   for (const [target, source] of Object.entries(METRIC_MAP)) {
     if (target === 'handsScanned' && acceptedBatch && Number.isFinite(Number(sync.cumulativeHandsFound))) {
       next.handsScanned = Math.max(number(prior.handsScanned), number(sync.cumulativeHandsFound));

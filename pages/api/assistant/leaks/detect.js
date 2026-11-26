@@ -738,7 +738,7 @@ async function readCompletedJobBoundary(db, userId) {
   }
 }
 
-async function readCaHandFactsAnalysis(db, userId) {
+export async function readCaHandFactsAnalysis(db, userId) {
   try {
     const { data, error } = await db
       .from('ca_hand_facts')
@@ -746,10 +746,18 @@ async function readCaHandFactsAnalysis(db, userId) {
       .eq('user_id', userId)
       .order('played_at', { ascending: false })
       .limit(2000);
-    if (error || !Array.isArray(data) || data.length === 0) return null;
-    return analyzeCaHandFacts(data);
-  } catch (_) {
-    return null;
+    if (error) {
+      console.warn('[LeakDetect] ca_hand_facts query failed:', error.message || error);
+      return { ok: false, error, analysis: null };
+    }
+    if (!Array.isArray(data) || data.length === 0) {
+      return { ok: true, error: null, analysis: null };
+    }
+    const analysis = analyzeCaHandFacts(data);
+    return { ok: true, error: null, analysis, ...analysis };
+  } catch (error) {
+    console.warn('[LeakDetect] ca_hand_facts query threw:', error?.message || error);
+    return { ok: false, error, analysis: null };
   }
 }
 
@@ -930,10 +938,12 @@ export default async function handler(req, res) {
 
       // Live tendencies, format-scoped ca_hand_facts, and solver-graded decisions
       // are separate evidence sets. They must never be blended into one invented frequency.
-      const [stats, caHandFactsResult] = await Promise.all([
+      const [stats, caHandFactsOutcome] = await Promise.all([
         getPlayerStats(getSupabase(), userId),
         readCaHandFactsAnalysis(getSupabase(), userId),
       ]);
+      const caHandFactsFailed = caHandFactsOutcome?.ok === false;
+      const caHandFactsResult = caHandFactsOutcome?.analysis || null;
       // Read solver evidence after syncing so newly audited Club Arena
       // decisions are included in this same scan.
       const solverEvidence = await getSolverTrainingEvidence(getSupabase(), userId);
@@ -960,6 +970,7 @@ export default async function handler(req, res) {
         trainingSolver: solverEvidence.sources?.training?.complete === true,
         handAudit: solverEvidence.sources?.handAudit?.complete === true,
         clubArena: clubArenaSync.complete === true,
+        caHandFacts: !caHandFactsFailed,
       };
       const evidenceCoverage = {
         ...evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }),
@@ -970,6 +981,7 @@ export default async function handler(req, res) {
         trainingSolver: solverEvidence.sources?.training?.available === true,
         handAudit: solverEvidence.sources?.handAudit?.available === true,
         clubArena: clubArenaSync.available === true,
+        caHandFacts: !caHandFactsFailed,
       };
 
       // Record the completed signed-snapshot hand total even when the account
@@ -998,11 +1010,11 @@ export default async function handler(req, res) {
           clubArenaSync,
           evidenceSources,
           evidenceCoverage,
-          evidencePartial: !sourceCompleteness.trainingSolver || !sourceCompleteness.handAudit,
+          evidencePartial: !sourceCompleteness.trainingSolver || !sourceCompleteness.handAudit || caHandFactsFailed,
           leaksDetected: 0,
           leaks: [],
           persisted: statsPersisted,
-          partial: !statsPersisted,
+          partial: !statsPersisted || caHandFactsFailed,
         });
       }
 
@@ -1083,6 +1095,7 @@ export default async function handler(req, res) {
       // Append format-scoped, position- & street-specific deterministic leaks
       // measured directly from Club Arena ca_hand_facts opportunity columns
       // (separating Cash NLH vs. stack-depth-aware Tournament NLH baselines).
+      const solverSourceHands = new Map();
       const detectedLeakTypeSet = new Set(detectedLeaks.map(l => l.leak_type));
       for (const factLeak of (caHandFactsResult?.detectedLeaks || [])) {
         if (detectedLeakTypeSet.has(factLeak.leak_type)) continue;
@@ -1124,12 +1137,23 @@ export default async function handler(req, res) {
           totalSamples: factLeak.total_samples,
           mistakeCount: factLeak.occurrence_count,
         });
+        const sampleHandIds = [
+          ...(Array.isArray(factLeak.sample_hand_ids) ? factLeak.sample_hand_ids : []),
+          ...(factLeak.representative_hand_id ? [factLeak.representative_hand_id] : []),
+        ]
+          .map(id => String(id || '').trim())
+          .filter(Boolean);
+        if (sampleHandIds.length > 0) {
+          solverSourceHands.set(
+            factLeak.leak_type,
+            [...new Set(sampleHandIds.map(id => (id.startsWith('club-arena:') ? id : `club-arena:${id}`)))],
+          );
+        }
       }
 
       // Append solver-derived leaks. Their occurrence count is the number of
       // actual mistaken decisions, their denominator is the situation group's
       // sample count, and BB loss is zero unless exact per-action EVs exist.
-      const solverSourceHands = new Map();
       for (const solverLeak of solverEvidence.leaks) {
         const {
           _sample_count,
@@ -1282,7 +1306,7 @@ export default async function handler(req, res) {
         return detectedTypes.has(canonicalType) || solverRecoveryByType.get(canonicalType) === true;
       };
       const canResolveCaFactLeak = (leakType) => {
-        if (!caHandFactsResult) return false;
+        if (caHandFactsFailed || !caHandFactsResult) return false;
         const key = String(leakType || '');
         let metrics = null;
         let posMetrics = null;
@@ -1409,8 +1433,8 @@ export default async function handler(req, res) {
       // misreport successfully persisted Club Arena findings as a failed
       // transaction. Recovery already fails closed per affected solver scope.
       const evidencePartial = !sourceCompleteness.trainingSolver ||
-        !sourceCompleteness.handAudit || existingResult.complete !== true;
-      const partial = !resolutionsSynced || !statsSynced ||
+        !sourceCompleteness.handAudit || existingResult.complete !== true || caHandFactsFailed;
+      const partial = !resolutionsSynced || !statsSynced || caHandFactsFailed ||
         clubArenaSync.persisted === false || clubArenaSync.complete === false ||
         secondarySync.handExamples?.persisted === false || !secondarySync.suggestionsPersisted;
 
@@ -1466,23 +1490,30 @@ export default async function handler(req, res) {
  * candidates for statistical leaks, then saves one idempotent batch.
  * `leaksWithIds` entries need: id, leak_type, avg_ev_loss_bb.
  */
+const HAND_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function linkHandExamples(userId, leaksWithIds, db = getSupabase()) {
   try {
     const exactExternalIds = [...new Set(leaksWithIds
       .flatMap(leak => Array.isArray(leak.sourceHandExternalIds) ? leak.sourceHandExternalIds : [])
       .filter(id => String(id).startsWith('club-arena:'))
-      .map(id => String(id).slice('club-arena:'.length))
-      .filter(Boolean))];
+      .map(id => String(id).slice('club-arena:'.length).trim())
+      .filter(id => HAND_UUID_RE.test(id)))];
     const needsStatisticalCandidates = leaksWithIds.some(leak => leak.sourceHandExternalIds === null);
     const handsById = new Map();
     const readErrors = [];
     const select = 'id, tournament_id, game_variant, bomb_pot, kill_pot, rit_boards, actions, players, summary, hole_cards, board, community_cards, community_cards2, community_cards3, button_seat, pot_size, created_at';
-    const readOwnedHands = async (membershipKey, ids = null) => {
+    const readOwnedHands = async (membershipKey, rawIds = null) => {
+      const ids = Array.isArray(rawIds)
+        ? rawIds.map(id => String(id || '').trim()).filter(id => HAND_UUID_RE.test(id))
+        : null;
+      if (Array.isArray(rawIds) && ids.length === 0) return;
       let query = db.from('hand_history')
         .select(select)
         // Both writer generations are owner-scoped here. Never fetch an exact
         // audit id first and check ownership in application code afterward.
         .contains('players', JSON.stringify([{ [membershipKey]: userId }]));
+      // in-list: bounded 100 validated UUIDs per batch
       if (ids) query = query.in('id', ids);
       const result = await query.order('created_at', { ascending: false }).limit(ids ? ids.length : 100);
       if (result.error) readErrors.push(result.error);
@@ -1493,7 +1524,8 @@ export async function linkHandExamples(userId, leaksWithIds, db = getSupabase())
       await Promise.all([readOwnedHands('userId'), readOwnedHands('id')]);
     }
     for (let index = 0; index < exactExternalIds.length; index += 100) {
-      const batch = exactExternalIds.slice(index, index + 100);
+      const batch = exactExternalIds.slice(index, index + 100).filter(id => HAND_UUID_RE.test(id));
+      if (batch.length === 0) continue;
       await Promise.all([readOwnedHands('userId', batch), readOwnedHands('id', batch)]);
     }
 

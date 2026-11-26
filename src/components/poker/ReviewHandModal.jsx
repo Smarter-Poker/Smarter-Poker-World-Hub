@@ -22,9 +22,13 @@ export default function ReviewHandModal({ initialData, onSave, onCancel }) {
   const handleChange = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
 
   const handleAnalyze = () => {
-    // Navigate to Personal Assistant and pass JSON string safely
-    const payload = btoa(JSON.stringify(initialData));
-    router.push(`/hub/personal-assistant?handPayload=${payload}`);
+    const handId = typeof initialData?.id === 'string' ? initialData.id.trim() : '';
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(handId);
+    if (isUuid) {
+      router.push(`/hub/personal-assistant/leaks?hand=${encodeURIComponent(handId)}&source=hub-hand-history`);
+      return;
+    }
+    router.push('/hub/personal-assistant/leaks?quickspot=1&source=hub-hand-history');
   };
 
   const handleSave = () => {

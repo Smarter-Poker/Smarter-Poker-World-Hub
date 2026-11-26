@@ -13,6 +13,7 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { availabilityFailure, persistedResult } from '../../../../src/lib/personal-assistant/persistenceContract';
 import leakRecord, { leakStatusPersistenceFields, leakTypeSlug, normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
@@ -20,6 +21,10 @@ import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/l
 export const SUPPORTED_LEAK_CATALOG = leakRecord;
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+    _supabase = client;
+}
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -116,7 +121,7 @@ export default async function handler(req, res) {
     }
 
     // Extract userId from JWT · this is the ONLY trusted source
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers?.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
       if (authErr || !authUser) {
@@ -128,11 +133,33 @@ export default async function handler(req, res) {
         });
       }
       userId = authUser.id;
+    } else if (req.headers?.cookie) {
+      const { user: authUser, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
+      if (authStatus === 503) {
+        return res.status(503).json({
+          success: false,
+          error: 'Session verification unavailable',
+        });
+      }
+      if (authUser?.id) userId = authUser.id;
     }
 
     // Require JWT auth for write operations
     if (req.method !== 'GET' && !userId) {
       return res.status(401).json({ success: false, error: 'Authentication required or invalid token' });
+    }
+
+    if (userId) {
+      const access = await checkSandboxAccess(getSupabase(), userId);
+      if (!access?.allowed || !isFeatureAccessible(access.accessLevel, 'leak_finder_view')) {
+        return res.status(403).json({
+          success: false,
+          blocked: true,
+          contextState: access?.contextState || 'session_active_unknown',
+          accessLevel: access?.accessLevel || 'hard_block',
+          error: access?.message || 'Leak Finder is unavailable during live play.',
+        });
+      }
     }
 
     if (req.method === 'GET') {

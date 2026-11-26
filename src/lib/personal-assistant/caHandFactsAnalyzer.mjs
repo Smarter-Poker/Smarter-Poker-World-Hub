@@ -726,7 +726,7 @@ function evaluateFormatLeaks(metrics, posMetrics, formatScope, stackBucket, base
       nextTimeAction: `Replace passive turn and river calls with value bets, semi-bluff barrels, or disciplined folds to reach an aggression factor of ${baseline.turnRiverAf[0]}-${baseline.turnRiverAf[1]}. Practice in ${passiveTurnRiverDrill}.`,
       sampleHandIds: metrics.sampleHands?.turnRiverPassive,
     }));
-  } else if (metrics.postflopActions >= 40 && metrics.postflopAf !== null && metrics.postflopAf < baseline.turnRiverAf[0] - 0.3) {
+  } else if (metrics.postflopActions >= 40 && metrics.postflopAf !== null && metrics.postflopAf < baseline.postflopAf[0] - 0.3) {
     leaks.push(buildFactLeak({
       formatScope,
       stackBucket,
@@ -737,25 +737,27 @@ function evaluateFormatLeaks(metrics, posMetrics, formatScope, stackBucket, base
       spotType: 'cbet',
       title: 'Too Passive Postflop',
       currentValue: metrics.postflopAf,
-      optimalRange: baseline.turnRiverAf,
+      optimalRange: baseline.postflopAf,
       samples: metrics.postflopActions,
       mistakes: Math.max(5, Math.round(metrics.postflopActions * 0.2)),
       evImpact: 0.09,
       recommendedDrill: passivePostflopDrill,
-      explanation: `Your call-only aggression factor is ${metrics.postflopAf} across ${metrics.postflopActions} bet/raise/call actions vs. ${baseline.turnRiverAf[0]}-${baseline.turnRiverAf[1]}.`,
+      explanation: `Your call-only aggression factor is ${metrics.postflopAf} across ${metrics.postflopActions} bet/raise/call actions vs. ${baseline.postflopAf[0]}-${baseline.postflopAf[1]}.`,
       why: 'Calling too often relative to betting and raising surrenders fold equity and misses thin value.',
-      nextTimeAction: `Convert passive postflop flat-calls into raises or folds and bet more frequently for value to reach ${baseline.turnRiverAf[0]}-${baseline.turnRiverAf[1]} AF. Practice in ${passivePostflopDrill}.`,
+      nextTimeAction: `Convert passive postflop flat-calls into raises or folds and bet more frequently for value to reach ${baseline.postflopAf[0]}-${baseline.postflopAf[1]} AF. Practice in ${passivePostflopDrill}.`,
       sampleHandIds: metrics.sampleHands?.postflopPassive,
     }));
   }
 
   // 9. Position-specific leaks (BTN too tight, UTG too loose)
+  // Always emit format-level keys (`cash_btn_too_tight` / `mtt_btn_too_tight` / `mtt_utg_too_loose`)
+  // because positional counters aggregate across the format rather than per stack bucket.
   const btn = posMetrics?.BTN;
   if (btn && btn.hands >= 40 && btn.vpip !== null && btn.vpip < baseline.btnVpip[0] - 6) {
     const gap = Math.max(1, Math.round(((baseline.btnVpip[0] - btn.vpip) / 100) * btn.hands));
     leaks.push(buildFactLeak({
       formatScope,
-      stackBucket,
+      stackBucket: null,
       slug: 'btn_too_tight',
       category: 'preflop',
       street: 'preflop',
@@ -780,7 +782,7 @@ function evaluateFormatLeaks(metrics, posMetrics, formatScope, stackBucket, base
     const gap = Math.max(1, Math.round(((utg.vpip - baseline.utgVpip[1]) / 100) * utg.hands));
     leaks.push(buildFactLeak({
       formatScope,
-      stackBucket,
+      stackBucket: null,
       slug: 'utg_too_loose',
       category: 'preflop',
       street: 'preflop',
@@ -880,23 +882,23 @@ export function analyzeCaHandFacts(rows = []) {
       for (const b of qualifiedBuckets) {
         detectedLeaks.push(...evaluateFormatLeaks(
           b.metrics,
-          qualifiedBuckets.length === 1 ? tournamentPositions : {},
+          {},
           'tournament',
           b.key,
           b.baseline,
         ));
       }
-      if (qualifiedBuckets.length > 1) {
-        // Position-specific BTN/UTG leaks use aggregate tournament positions against neutral mid baseline.
-        const posOnly = evaluateFormatLeaks(
-          { hands: 0, blindDefenseOpps: 0, stealOpps: 0, squeezeOpps: 0, facedThreeBet: 0, barrelTurnOpps: 0, barrelRiverOpps: 0, checkRaiseOpps: 0, turnRiverActions: 0, postflopActions: 0 },
-          tournamentPositions,
-          'tournament',
-          null,
-          FORMAT_BASELINES.tournament_mid,
-        );
-        detectedLeaks.push(...posOnly);
-      }
+      // Position-specific BTN/UTG leaks always use aggregate tournament positions
+      // with stackBucket=null so leak_type stays stable (`mtt_btn_too_tight` / `mtt_utg_too_loose`)
+      // regardless of whether 1 or 2+ stack buckets qualified.
+      const posOnly = evaluateFormatLeaks(
+        { hands: 0, blindDefenseOpps: 0, stealOpps: 0, squeezeOpps: 0, facedThreeBet: 0, barrelTurnOpps: 0, barrelRiverOpps: 0, checkRaiseOpps: 0, turnRiverActions: 0, postflopActions: 0 },
+        tournamentPositions,
+        'tournament',
+        null,
+        FORMAT_BASELINES.tournament_mid,
+      );
+      detectedLeaks.push(...posOnly);
     } else {
       // Unknown or low-volume stack splits: never force `<20bb` short-stack baseline on unknown stacks.
       const knownTotal = tournamentByStack.short.hands + tournamentByStack.mid.hands + tournamentByStack.deep.hands;

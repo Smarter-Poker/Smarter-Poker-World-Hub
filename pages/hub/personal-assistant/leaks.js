@@ -31,7 +31,6 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
-import UiBottomSheet from '../../../src/components/ui/BottomSheet';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useLeaks, useAssistantStats, useLeakDetection, useLeakHandExamples } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
@@ -571,24 +570,39 @@ function SourceBadge({ source }) {
 // TREND CHART · responsive SVG, no fixed pixel width, tap-to-read points
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TrendStatTiles({ current, optimal, color }) {
+function isRatioMetricLeak(leakType) {
+  const slug = String(leakType || '').trim().toLowerCase();
+  return (
+    slug === 'passive_postflop'
+    || slug === 'over_aggressive_postflop'
+    || slug.endsWith('_passive_postflop_facts')
+    || slug.endsWith('_over_aggressive_postflop_facts')
+  );
+}
+
+function TrendStatTiles({ current, optimal, color, isRatio = false }) {
+  const fmtStat = (v) => {
+    if (!Number.isFinite(v)) return 'Not Available';
+    return isRatio ? v.toFixed(2) : `${v.toFixed(0)}%`;
+  };
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: S.sm }}>
       <div style={styles.miniTile}>
         <span style={styles.miniTileLabel}>You</span>
-        <span style={{ ...styles.miniTileValue, color }}>{Number.isFinite(current) ? `${current.toFixed(0)}%` : 'Not Available'}</span>
+        <span style={{ ...styles.miniTileValue, color }}>{fmtStat(current)}</span>
       </div>
       <div style={styles.miniTile}>
         <span style={styles.miniTileLabel}>Optimal</span>
-        <span style={{ ...styles.miniTileValue, color: T.success }}>{Number.isFinite(optimal) ? `${optimal.toFixed(0)}%` : 'Not Available'}</span>
+        <span style={{ ...styles.miniTileValue, color: T.success }}>{fmtStat(optimal)}</span>
       </div>
     </div>
   );
 }
 
-function TrendChart({ data, optimal, current, status }) {
+function TrendChart({ data, optimal, current, status, leakType = null, isRatio: isRatioProp = false }) {
   const points = useMemo(() => coerceTrendPoints(data), [data]);
   const [activeIdx, setActiveIdx] = useState(null);
+  const isRatio = Boolean(isRatioProp || isRatioMetricLeak(leakType));
 
   const meta = statusMeta(status);
   const lineColor = meta.color;
@@ -599,10 +613,12 @@ function TrendChart({ data, optimal, current, status }) {
 
   const header = (
     <div style={styles.trendHeader}>
-      <span style={styles.trendHeaderLabel}>Frequency Vs Optimal</span>
+      <span style={styles.trendHeaderLabel}>{isRatio ? 'Aggression Factor Vs Optimal' : 'Frequency Vs Optimal'}</span>
       {deltaPts !== null && (
         <span style={{ ...pill(meta.tone), ...numeric }}>
-          {Math.abs(deltaPts).toFixed(1)} Pts {deltaPts >= 0 ? 'above' : 'below'} Optimal
+          {isRatio
+            ? `${Math.abs(deltaPts).toFixed(2)} ${deltaPts >= 0 ? 'above' : 'below'} Optimal`
+            : `${Math.abs(deltaPts).toFixed(1)} Pts ${deltaPts >= 0 ? 'above' : 'below'} Optimal`}
         </span>
       )}
     </div>
@@ -616,7 +632,7 @@ function TrendChart({ data, optimal, current, status }) {
           <p style={styles.trendEmptyText}>
             Not Enough History Yet · This Leak Needs At Least Two Detection Runs To Plot A Trend.
           </p>
-          <TrendStatTiles current={currentVal} optimal={optimalVal} color={lineColor} />
+          <TrendStatTiles current={currentVal} optimal={optimalVal} color={lineColor} isRatio={isRatio} />
         </div>
       </div>
     );
@@ -631,8 +647,12 @@ function TrendChart({ data, optimal, current, status }) {
 
   const values = points.map(p => p.value);
   const bounds = optimalVal === null ? values : values.concat([optimalVal]);
-  const minVal = Math.min(...bounds) - 5;
-  const maxVal = Math.max(...bounds) + 5;
+  const minVal = isRatio
+    ? Math.max(0, Math.min(...bounds) - 0.5)
+    : Math.max(0, Math.min(...bounds) - 5);
+  const maxVal = isRatio
+    ? Math.max(minVal + 1, Math.max(...bounds) + 0.5)
+    : Math.max(minVal + 5, Math.max(...bounds) + 5);
   const range = (maxVal - minVal) || 1;
 
   const getY = (val) => padding.top + chartHeight - ((num(val) - minVal) / range) * chartHeight;
@@ -656,7 +676,9 @@ function TrendChart({ data, optimal, current, status }) {
         viewBox={`0 0 ${width} ${height}`}
         style={{ display: 'block', width: '100%', height: 'auto', maxWidth: '100%' }}
         role="img"
-        aria-label={`Frequency trend from ${points[0].date} to ${points[points.length - 1].date}. Latest ${points[points.length - 1].value} percent.`}
+        aria-label={isRatio
+          ? `Aggression factor trend from ${points[0].date} to ${points[points.length - 1].date}. Latest ${points[points.length - 1].value.toFixed(2)}.`
+          : `Frequency trend from ${points[0].date} to ${points[points.length - 1].date}. Latest ${points[points.length - 1].value} percent.`}
       >
         {[0, 25, 50, 75, 100].map(pct => {
           const y = padding.top + (pct / 100) * chartHeight;
@@ -696,12 +718,14 @@ function TrendChart({ data, optimal, current, status }) {
       {/* Axis + scale info as HTML so font sizes stay in CSS pixels */}
       <div style={styles.trendScaleRow}>
         <span style={styles.trendScaleText}>
-          Range {minVal.toFixed(0)}%-{maxVal.toFixed(0)}%
+          {isRatio
+            ? `Range ${minVal.toFixed(1)}-${maxVal.toFixed(1)}`
+            : `Range ${minVal.toFixed(0)}%-${maxVal.toFixed(0)}%`}
         </span>
         {optimalVal !== null && (
           <span style={styles.trendScaleText}>
             <span aria-hidden="true" style={{ display: 'inline-block', width: 14, borderTop: `2px dashed ${T.success}`, marginRight: 6, verticalAlign: 'middle' }} />
-            Optimal {optimalVal.toFixed(0)}%
+            {isRatio ? `Optimal ${optimalVal.toFixed(2)}` : `Optimal ${optimalVal.toFixed(0)}%`}
           </span>
         )}
       </div>
@@ -721,7 +745,7 @@ function TrendChart({ data, optimal, current, status }) {
               background: activeIdx === i ? `${lineColor}22` : T.surface2,
             }}
           >
-            <span style={styles.trendPointValue}>{p.value.toFixed(0)}%</span>
+            <span style={styles.trendPointValue}>{isRatio ? p.value.toFixed(2) : `${p.value.toFixed(0)}%`}</span>
             <span style={styles.trendPointDate}>{shortPointLabel(p.date)}</span>
           </button>
         ))}
@@ -729,7 +753,9 @@ function TrendChart({ data, optimal, current, status }) {
 
       <p style={styles.trendCaption} aria-live="polite">
         {active
-          ? `${active.date}: you played this spot at ${active.value.toFixed(1)}%${optimalVal !== null ? ` (optimal ${optimalVal.toFixed(0)}%)` : ''}.`
+          ? (isRatio
+              ? `${active.date}: your aggression factor was ${active.value.toFixed(2)}${optimalVal !== null ? ` (optimal ${optimalVal.toFixed(2)})` : ''}.`
+              : `${active.date}: you played this spot at ${active.value.toFixed(1)}%${optimalVal !== null ? ` (optimal ${optimalVal.toFixed(0)}%)` : ''}.`)
           : points.length < 2
             ? 'Only one detection run so far · run detection again to see a trend line.'
             : 'Tap a point to read that period.'}
@@ -1494,7 +1520,7 @@ function LeakDetail({
           <div style={styles.evidenceSummaryRow}>
             <dt style={styles.evidenceSummaryLabel}>Street &amp; Position</dt>
             <dd style={styles.evidenceSummaryValue}>
-              {titleCaseTokens(detailRepHand.street || leak.leakCategory || 'Preflop')} · {detailRepHand.heroPosition || 'BTN'}
+              {titleCaseTokens(detailRepHand.street || (['preflop', 'flop', 'turn', 'river'].includes(String(leak.leakCategory || '').toLowerCase()) ? leak.leakCategory : 'All Streets'))} · {detailRepHand.heroPosition || 'All Positions'}
             </dd>
           </div>
           <div style={styles.evidenceSummaryRow}>
@@ -1549,6 +1575,7 @@ function LeakDetail({
             optimal={leak.optimalFrequency}
             current={leak.currentFrequency}
             status={leak.status}
+            leakType={leak.leakType}
           />
         </LeakErrorBoundary>
         {leak.frequencyIsEstimated && (
@@ -1852,12 +1879,19 @@ export default function LeakFinderPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [pastOpen, setPastOpen] = useState(false);
 
-  // Account-scoped saved analysis preferences (wait for auth hydration; preserve explicit URL ?format=).
+  const prevQueryHydrationRef = useRef({ format: null, status: null, tab: null, view: null, settings: null, searchTerm: null });
+
+  // Account-scoped saved analysis preferences (wait for auth hydration; preserve explicit URL ?format= and ?status=).
   useEffect(() => {
     if (authInitializing) return;
     const saved = loadAssistantPreferences(getSafeLocalStorage(), userId);
     setSortMode(saved.sortMode);
-    setStatusFilter(saved.statusFilter);
+    const rawUrlStatus = Array.isArray(router.query?.status) ? router.query.status[0] : router.query?.status;
+    const urlStatus = String(rawUrlStatus || '').trim().toLowerCase();
+    const hasExplicitUrlStatus = router.isReady && ['persistent', 'emerging', 'improving', 'all', 'fixed', 'resolved', 'due'].includes(urlStatus);
+    if (!hasExplicitUrlStatus) {
+      setStatusFilter(saved.statusFilter);
+    }
     setPracticeLength(saved.practiceLength);
     setPracticeDifficulty(saved.practiceDifficulty);
     const rawUrlFmt = Array.isArray(router.query?.format) ? router.query.format[0] : router.query?.format;
@@ -1866,7 +1900,7 @@ export default function LeakFinderPage() {
     if (!hasExplicitUrlFmt) {
       setFormatFilter(saved.format);
     }
-  }, [authInitializing, userId, router.isReady, router.query?.format]);
+  }, [authInitializing, userId, router.isReady]);
 
   const persistPrefs = useCallback((patch) => {
     const storage = getSafeLocalStorage();
@@ -1890,6 +1924,7 @@ export default function LeakFinderPage() {
     setFormatFilter(nextFormat);
     persistPrefs({ format: nextFormat });
     if (router.isReady && router.query?.format) {
+      prevQueryHydrationRef.current.format = null;
       const { format: _removed, ...restQuery } = router.query;
       router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
     }
@@ -1924,6 +1959,8 @@ export default function LeakFinderPage() {
     setQuickChip('all');
     setQuery('');
     if (router.isReady && (router.query?.format || router.query?.street || router.query?.position || router.query?.leakType)) {
+      prevQueryHydrationRef.current.format = null;
+      prevQueryHydrationRef.current.searchTerm = null;
       const { format: _f, street: _s, position: _p, leakType: _l, ...restQuery } = router.query;
       router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
     }
@@ -1963,7 +2000,10 @@ export default function LeakFinderPage() {
     userId,
     ready: !authInitializing,
   });
-  const { runDetection, isDetecting, detectionResult, detectionProgress, auditJob, error: detectionError } = useLeakDetection();
+  const { runDetection, isDetecting, detectionResult, detectionProgress, auditJob, error: detectionError } = useLeakDetection({
+    userId,
+    ready: !authInitializing,
+  });
 
   // Live-play verification lives on the coaching snapshot, not on the leaks list. It is optional
   // enrichment: when it is missing or fails, no badge renders (never a guessed claim).
@@ -2097,6 +2137,13 @@ export default function LeakFinderPage() {
 
   const fetchCoachAccuracy = useCallback(async () => {
     const requestId = ++coachRequestIdRef.current;
+    if (authInitializing) return;
+    if (!userId) {
+      setCoachAccuracy(null);
+      setCoachError(null);
+      setCoachLoading(false);
+      return;
+    }
     setCoachLoading(true);
     setCoachError(null);
     try {
@@ -2128,7 +2175,7 @@ export default function LeakFinderPage() {
     } finally {
       if (requestId === coachRequestIdRef.current) setCoachLoading(false);
     }
-  }, [requestCoachAccuracy]);
+  }, [authInitializing, userId, requestCoachAccuracy]);
 
   useEffect(() => {
     fetchCoachAccuracy();
@@ -2177,7 +2224,7 @@ export default function LeakFinderPage() {
 
   useEffect(() => {
     if (!router.isReady) return;
-    const raw = router.query?.hand;
+    const raw = router.query?.hand ?? router.query?.handId;
     const value = Array.isArray(raw) ? raw[0] : raw;
     if (!value) {
       setLinkedClubHand(null);
@@ -2209,9 +2256,8 @@ export default function LeakFinderPage() {
     setLinkedClubHand(null);
     setLinkedHandAudit(null);
     setLinkedHandError(null);
-  }, [router.isReady, router.query?.hand]);
+  }, [router.isReady, router.query?.hand, router.query?.handId]);
 
-  const prevQueryHydrationRef = useRef({ format: null, status: null, tab: null, view: null, settings: null, searchTerm: null });
   useEffect(() => {
     if (!router.isReady) return;
     const rawFmt = Array.isArray(router.query?.format) ? router.query.format[0] : router.query?.format;
@@ -2255,6 +2301,10 @@ export default function LeakFinderPage() {
 
     if ((nextSettings === '1' || nextSettings === 'true' || nextView === 'data') && (nextSettings !== prev.settings || nextView !== prev.view)) {
       setSettingsOpen(true);
+      const nextQuery = { ...router.query };
+      delete nextQuery.settings;
+      if (nextView === 'data') delete nextQuery.view;
+      router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true });
     }
 
     if (['evidence', 'timeline', 'goals', 'report'].includes(nextView) && nextView !== prev.view) {
@@ -2366,6 +2416,10 @@ export default function LeakFinderPage() {
         refetchLeaks();
         refetchStats?.();
         if (typeof window !== 'undefined') window.dispatchEvent(new Event('pa-data-updated'));
+      } else if (payload.supported !== false && payload.audited !== false) {
+        const warnMsg = payload.persistenceWarning || 'Hand Audit Completed, But Decision Evidence Could Not Be Saved. Retry To Persist.';
+        setLinkedHandError(warnMsg);
+        toast.error(warnMsg);
       }
     } catch (err) {
       if (controller.signal.aborted || isAbortError(err) || seq !== linkedPostSeqRef.current) return;
@@ -2375,11 +2429,11 @@ export default function LeakFinderPage() {
     }
   }, [fetchLinkedHandAudit, linkedClubHand?.id, refetchLeaks, refetchStats, requireOnline, userId]);
 
-  // Deep link: /hub/personal-assistant/leaks?leak=<id>
+  // Deep link: /hub/personal-assistant/leaks?leak=<id> or ?leakId=<id>
   const deepLinkedTargetRef = useRef(null);
   useEffect(() => {
     if (!router.isReady || leaksLoading) return;
-    const raw = router.query?.leak;
+    const raw = router.query?.leak ?? router.query?.leakId;
     const target = Array.isArray(raw) ? raw[0] : raw;
     if (!target) { deepLinkedTargetRef.current = null; return; }
     if (deepLinkedTargetRef.current === String(target)) return;
@@ -2470,7 +2524,7 @@ export default function LeakFinderPage() {
     const { autorun: _removed, ...restQuery } = router.query;
     router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
     if (!userId) return;
-    if (router.query?.hand) return;
+    if (router.query?.hand || router.query?.handId) return;
     if (isDetecting || auditJob?.status === 'queued' || auditJob?.status === 'running') return;
     if (!guardAction()) return;
     autoDetectRef.current = userId;
@@ -2615,38 +2669,103 @@ export default function LeakFinderPage() {
     const rawHandId = String(example?.handId ?? example?.hand_history_id ?? '')
       .replace(/^club-arena:/, '')
       .trim();
+    const leakId = _leak?.id ?? selectedLeak?.id ?? null;
+    const leakParam = leakId ? `&leak=${encodeURIComponent(String(leakId))}` : '';
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawHandId)) {
-      const targetUrl = `/hub/club-arena/hand-history?hand=${encodeURIComponent(rawHandId)}&source=personal-assistant`;
+      const targetUrl = `/hub/club-arena/hand-history?hand=${encodeURIComponent(rawHandId)}&source=personal-assistant${leakParam}`;
       // /hub/club-arena/* is a reverse-proxy rewrite to Club Arena's static app,
       // not a Next.js page bundle - use full document navigation.
       if (typeof window !== 'undefined') window.location.assign(targetUrl);
       else router.push(targetUrl);
       return;
     }
-    router.push('/hub/training/hand-history-upload?source=personal-assistant-leak-example');
-  }, [guardAction, router]);
+    router.push(`/hub/training/hand-history-upload?source=personal-assistant-leak-example${leakParam}`);
+  }, [guardAction, router, selectedLeak?.id]);
 
   const handleTrainDrills = useCallback((leak) => {
     if (!guardAction()) return;
     const target = leak || selectedLeak;
     if (!target) return;
     const exactGame = leakToTrainingGame(target, TRAINING_GAME_IDS);
+    const drillParams = leakToDrill(target) || {};
+    const repHand = target?.representativeHand || target?.adviceExplanation?.representativeHand || {};
     const q = { from: 'leak-finder' };
     const focus = exactGame || target?.recommendedDrill || target?.leakType || slugFromTitle(target?.title);
     if (exactGame) q.autoLaunch = exactGame;
     else if (focus) q.focus = focus;
-    if (target?.leakCategory) q.category = target.leakCategory;
-    if (target?.id != null) q.leak = String(target.id);
+
+    const rawCat = String(target?.leakCategory || '').trim().toLowerCase();
+    const streetCandidate = String(
+      repHand.street
+      || drillParams.street
+      || target?.street
+      || (['preflop', 'flop', 'turn', 'river'].includes(rawCat) ? rawCat : '')
+      || '',
+    ).trim().toLowerCase();
+    if (['preflop', 'flop', 'turn', 'river'].includes(streetCandidate)) {
+      q.street = streetCandidate;
+    } else if (target?.leakCategory && !['live_play', 'training'].includes(rawCat)) {
+      q.category = target.leakCategory;
+    }
+
+    const posCandidate = String(
+      repHand.heroPosition
+      || repHand.position
+      || drillParams.position
+      || target?.heroPosition
+      || target?.position
+      || '',
+    ).trim().toUpperCase();
+    if (['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].includes(posCandidate)) {
+      q.position = posCandidate;
+    }
+
+    const rawFormat = String(
+      target?.formatScope
+      || drillParams.gameType
+      || (formatFilter !== 'all' ? formatFilter : '')
+      || '',
+    ).trim().toLowerCase();
+    if (rawFormat === 'tournament' || rawFormat === 'mtt' || rawFormat === 'tournament_nlh') {
+      q.format = 'mtt';
+    } else if (rawFormat === 'cash' || rawFormat === 'cash_game' || rawFormat === 'cash_nlh') {
+      q.format = 'cash';
+    }
+
+    if (target?.id != null) {
+      q.leak = String(target.id);
+      q.returnTo = `/hub/personal-assistant/leaks?leak=${encodeURIComponent(String(target.id))}`;
+    } else {
+      q.returnTo = '/hub/personal-assistant/leaks';
+    }
     router.push({ pathname: '/hub/training', query: q });
-  }, [guardAction, router, selectedLeak]);
+  }, [formatFilter, guardAction, router, selectedLeak]);
 
   const handleShareLeak = useCallback(async (leak) => {
     if (!leak || typeof window === 'undefined') return;
-    const url = `${window.location.origin}/hub/personal-assistant/leaks?leak=${encodeURIComponent(leak.id)}`;
+    const rep = leak.representativeHand || leak.adviceExplanation?.representativeHand || {};
+    const rawCat = String(leak.leakCategory || '').trim().toLowerCase();
+    const resolvedFormatLabel = leak.formatScope === 'tournament'
+      ? 'Tournament NLH'
+      : leak.formatScope === 'cash'
+        ? 'Cash NLH'
+        : 'Smarter.Poker Leak Review';
+    const url = buildHandReviewShareUrl({
+      origin: window.location.origin,
+      street: rep.street || (['preflop', 'flop', 'turn', 'river'].includes(rawCat) ? rawCat : null),
+      position: rep.heroPosition || rep.position || null,
+      board: rep.board || null,
+      heroCards: rep.heroCards || null,
+      stakes: rep.stakes || null,
+      formatLabel: resolvedFormatLabel,
+      title: leak.title || leak.situationClass || 'Poker Leak Review',
+      anonymize: true,
+      includeHoleCards: false,
+    });
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-        toast.success('Link copied');
+        toast.success('Read-Only Review Link Copied');
         return;
       }
     } catch (e) {
@@ -2698,6 +2817,14 @@ export default function LeakFinderPage() {
 
   const fetchReviewSchedule = useCallback(async () => {
     const requestId = ++reviewRequestIdRef.current;
+    if (authInitializing) return;
+    if (!userId) {
+      setReviewServerRecords([]);
+      setReviewError(null);
+      setReviewLoading(false);
+      setReviewLoaded(true);
+      return;
+    }
     setReviewLoading(true);
     setReviewError(null);
     try {
@@ -2736,7 +2863,7 @@ export default function LeakFinderPage() {
         setReviewLoaded(true);
       }
     }
-  }, [requestReviewSchedule]);
+  }, [authInitializing, userId, requestReviewSchedule]);
 
   useEffect(() => { fetchReviewSchedule(); }, [fetchReviewSchedule, userId]);
 
@@ -3083,11 +3210,12 @@ export default function LeakFinderPage() {
     onPracticeWorst: () => {
       const worst = visibleLeaks[0] || activeLeaks[0];
       if (!worst) { setTab('leaks'); jumpTo('leak-list'); return; }
-      handleOpenHandReview(worst);
+      if (leakToDrill(worst)) handleStartReview({ leak: worst });
+      else handleTrainDrills(worst);
     },
     // Toggles keep the drawer open, so this only changes state · no scroll.
     onToggleResolved: (next) => { setTab('leaks'); setPastOpen(!!next); },
-  }), [jumpTo, isDetecting, handleRunDetection, visibleLeaks, activeLeaks, handleOpenHandReview]);
+  }), [jumpTo, isDetecting, handleRunDetection, visibleLeaks, activeLeaks, handleStartReview, handleTrainDrills]);
 
   const menuConfig = useMemo(() => getMenuConfig('leaks', null, {
     leakCount: activeLeaks.length,
@@ -3416,8 +3544,15 @@ export default function LeakFinderPage() {
                     aria-pressed={quickChip === 'all' && formatFilter === 'all' && statusFilter === 'all'}
                     onClick={() => {
                       setQuickChip('all');
-                      updateFormatFilter('all');
-                      updateStatusFilter('all');
+                      setFormatFilter('all');
+                      setStatusFilter('all');
+                      persistPrefs({ format: 'all', statusFilter: 'all' });
+                      if (router.isReady && (router.query?.format || router.query?.status)) {
+                        prevQueryHydrationRef.current.format = null;
+                        prevQueryHydrationRef.current.status = null;
+                        const { format: _removedFmt, status: _removedStatus, ...restQuery } = router.query;
+                        router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+                      }
                     }}
                   >
                     <span>All</span>
@@ -3552,7 +3687,11 @@ export default function LeakFinderPage() {
                           <span style={pill('warn')}>Unsupported Format · Unmeasured</span>
                         )}
                         {linkedHandAudit?.supported === true && linkedHandAudit?.audited === false && (
-                          <span style={pill('warn')}>Unmeasured Under Retention Policy</span>
+                          <span style={pill('warn')}>
+                            {linkedHandAudit?.reason === 'cooldown_active' || linkedHandAudit?.contextState?.cooldownActive
+                              ? 'Solver Grading Paused During Cooldown'
+                              : 'Unmeasured Under Retention Policy'}
+                          </span>
                         )}
                       </div>
                       <div style={{ marginTop: S.xs, fontSize: F.bodySm, color: T.text }}>
@@ -3567,7 +3706,7 @@ export default function LeakFinderPage() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
-                      {userId && (
+                      {userId && linkedHandAudit?.strategySupported !== false && linkedHandAudit?.supported !== false && (
                         <button
                           type="button"
                           className="pa-btn"
@@ -3609,8 +3748,8 @@ export default function LeakFinderPage() {
                           setLinkedClubHand(null);
                           setLinkedHandAudit(null);
                           setLinkedHandError(null);
-                          if (router.query?.hand) {
-                            const { hand: _removed, ...restQuery } = router.query;
+                          if (router.query?.hand || router.query?.handId) {
+                            const { hand: _removed, handId: _removedId, ...restQuery } = router.query;
                             router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
                           }
                         }}
@@ -3917,11 +4056,13 @@ export default function LeakFinderPage() {
                 </div>
               ) : (
                 <>
-                  <LeakErrorBoundary label="The bleed summary">
-                    <BleedSummary leaks={visibleLeaks} isDemo={leaksAreDemo} />
-                  </LeakErrorBoundary>
+                  {quickChip !== 'fixed' && (
+                    <LeakErrorBoundary label="The bleed summary">
+                      <BleedSummary leaks={visibleLeaks} isDemo={leaksAreDemo} />
+                    </LeakErrorBoundary>
+                  )}
 
-                  {shownLeaks[0] && (
+                  {quickChip !== 'fixed' && shownLeaks[0] && (
                     <div
                       data-pa-leak-training-bridge="true"
                       style={{
@@ -3940,7 +4081,7 @@ export default function LeakFinderPage() {
                     >
                       <div style={{ flex: '1 1 240px', minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 800, color: '#83deff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                          1-Tap Club Arena Corrective Drill
+                          1-Tap Training Arena Corrective Drill
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 800, color: '#f4fbff', marginTop: 2 }}>
                           {shownLeaks[0].title}
@@ -3955,7 +4096,7 @@ export default function LeakFinderPage() {
                         data-drill-similar-spot-cta="true"
                         onClick={() => handleTrainDrills(shownLeaks[0])}
                         style={{
-                          minHeight: 40,
+                          minHeight: 44,
                           padding: '8px 14px',
                           borderRadius: 7,
                           border: '1px solid #56d8ff',
@@ -3967,7 +4108,7 @@ export default function LeakFinderPage() {
                           cursor: 'pointer',
                         }}
                       >
-                        Train Top Detected Leak In Club Arena →
+                        Train Top Detected Leak In Training Arena →
                       </button>
                     </div>
                   )}
@@ -4280,7 +4421,7 @@ export default function LeakFinderPage() {
         </main>
 
         {/* ── Unified + Add / Audit Hands 2-Option BottomSheet ── */}
-        <UiBottomSheet
+        <BottomSheet
           open={addHandsOpen}
           onClose={closeAddHands}
           title="Add Or Audit Hands"
@@ -4361,10 +4502,10 @@ export default function LeakFinderPage() {
               </button>
             </div>
           </div>
-        </UiBottomSheet>
+        </BottomSheet>
 
         {/* ── Advanced Filters & Practice Presets BottomSheet ── */}
-        <UiBottomSheet
+        <BottomSheet
           open={filtersOpen}
           onClose={closeFilters}
           title="Filters & Practice Presets"
@@ -4457,10 +4598,10 @@ export default function LeakFinderPage() {
               </button>
             </div>
           </div>
-        </UiBottomSheet>
+        </BottomSheet>
 
         {/* ── Leak Card 1+1 Secondary Actions Overflow BottomSheet ── */}
-        <UiBottomSheet
+        <BottomSheet
           open={Boolean(overflowLeak)}
           onClose={closeOverflowLeak}
           title={overflowLeak?.title || 'Leak Actions'}
@@ -4541,7 +4682,7 @@ export default function LeakFinderPage() {
               </button>
             </div>
           )}
-        </UiBottomSheet>
+        </BottomSheet>
 
         {/* ── Live spot logger + external hand-history import ── */}
         {liveSpotOpen && (

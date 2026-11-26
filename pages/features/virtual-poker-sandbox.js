@@ -72,22 +72,74 @@ export default function VirtualPokerSandboxPage() {
   ];
 
   return (
-    <FeatureLanderLayout
-      title="Virtual Poker Table Sandbox & Runout Simulator"
-      metaTitle="Virtual Poker Table Sandbox & Runout Simulator | Smarter.Poker"
-      description="Interactive 3D Poker Table Simulator. Construct Custom Boards, Test Runout Distributions, Model Multiway Pot Equities, And Replay Epic Hands."
-      canonical="/features/virtual-poker-sandbox"
-      badgeText="100% Free Poker Simulation Lab"
-      primaryCtaText="Open Virtual Sandbox"
-      primaryCtaHref="/tools/poker-odds-calculator"
-      secondaryCtaText="View Plain-Text Spec"
-      secondaryCtaHref="/features/virtual-poker-sandbox.md"
-      markdownUrl="https://smarter.poker/features/virtual-poker-sandbox.md"
-      features={features}
-      comparison={comparison}
-      howItWorks={howItWorks}
-      faqs={faqs}
-    />
+    <div className="virtual-sandbox-lander" data-testid="virtual-sandbox-lander">
+      <FeatureLanderLayout
+        title="Virtual Poker Table Sandbox & Runout Simulator"
+        metaTitle="Virtual Poker Table Sandbox & Runout Simulator | Smarter.Poker"
+        description="Interactive 3D Poker Table Simulator. Construct Custom Boards, Test Runout Distributions, Model Multiway Pot Equities, And Replay Epic Hands."
+        canonical="/features/virtual-poker-sandbox"
+        badgeText="100% Free Poker Simulation Lab"
+        primaryCtaText="Open Virtual Sandbox"
+        primaryCtaHref="/tools/poker-odds-calculator"
+        secondaryCtaText="View Plain-Text Spec"
+        secondaryCtaHref="/features/virtual-poker-sandbox.md"
+        markdownUrl="https://smarter.poker/features/virtual-poker-sandbox.md"
+        features={features}
+        comparison={comparison}
+        howItWorks={howItWorks}
+        faqs={faqs}
+      />
+      <style jsx global>{`
+        .virtual-sandbox-lander,
+        .virtual-sandbox-lander main {
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: clip;
+          box-sizing: border-box;
+        }
+        .virtual-sandbox-lander article,
+        .virtual-sandbox-lander section,
+        .virtual-sandbox-lander header,
+        .virtual-sandbox-lander footer,
+        .virtual-sandbox-lander div {
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+        .virtual-sandbox-lander nav[aria-label="Breadcrumb"],
+        .virtual-sandbox-lander section > div,
+        .virtual-sandbox-lander footer > div {
+          flex-wrap: wrap !important;
+        }
+        .virtual-sandbox-lander table {
+          width: 100%;
+          max-width: 100%;
+          table-layout: fixed;
+          border-collapse: collapse;
+        }
+        .virtual-sandbox-lander th,
+        .virtual-sandbox-lander td {
+          overflow-wrap: break-word;
+          word-break: break-word;
+        }
+        .virtual-sandbox-lander pre {
+          max-width: 100%;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        @media (max-width: 768px) {
+          .virtual-sandbox-lander article {
+            padding-left: 14px !important;
+            padding-right: 14px !important;
+          }
+          .virtual-sandbox-lander th,
+          .virtual-sandbox-lander td {
+            padding: 10px 8px !important;
+            font-size: 12px !important;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
 
