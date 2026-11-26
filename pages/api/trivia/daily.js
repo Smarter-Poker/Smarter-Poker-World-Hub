@@ -42,24 +42,15 @@ const QUALITY_FLOOR = 6;
 const CANDIDATE_POOL_SIZE = 400;
 
 let _supabase = null;
-let _warnedNoServiceRole = false;
-let _hasServiceRole = false;
 
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        _hasServiceRole = !!serviceKey;
-        if (!serviceKey && !_warnedNoServiceRole) {
-            _warnedNoServiceRole = true;
-            // Silent-degradation guard: with the anon key and no user session
-            // attached, every RLS-locked read below returns zero rows, so
-            // hasPlayedToday is permanently false and roster tagging fails —
-            // a misconfiguration that used to look like a behaviour bug.
-            console.warn('[Trivia API] SUPABASE_SERVICE_ROLE_KEY missing - RLS reads/writes will silently fail');
+        const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+        const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+        if (!url || !serviceKey) {
+            return null;
         }
-        const key = serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
+        _supabase = createClient(url, serviceKey);
     }
     return _supabase;
 }
@@ -495,13 +486,9 @@ async function buildRosterFromPool(supabase, today) {
     const chosen = shuffleArray(slice).slice(0, ROSTER_SIZE);
 
     // Tag the chosen rows so every player today gets the same roster and the
-    // rotation is recorded. Requires the service-role key; failure is
-    // non-fatal (we still serve the questions for this request).
+    // rotation is recorded. Failure is non-fatal (we still serve the questions
+    // for this request).
     const nowIso = new Date().toISOString();
-    if (!_hasServiceRole) {
-        console.warn('[Trivia API] skipping roster tagging - no service-role key, RLS would reject the write');
-        return chosen.map(({ last_used_at: _lastUsed, ...rest }) => rest);
-    }
     await Promise.all(chosen.map((q, idx) =>
         supabase
             .from('trivia_questions')
@@ -528,9 +515,13 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       const today = getTodayCST();
+      const supabase = getSupabase();
+      if (!supabase) {
+          res.setHeader('Cache-Control', 'no-store');
+          return res.status(503).json({ success: false, error: 'server_misconfigured' });
+      }
 
       try {
-          const supabase = getSupabase();
           const v3Enabled = isSoloEngineV3Enabled(process.env);
 
           let questions = [];
