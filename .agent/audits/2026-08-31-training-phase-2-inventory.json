@@ -5408,6 +5408,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
             "e2e/03-training-gto.spec.ts"
@@ -5473,6 +5474,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
             "e2e/03-training-gto.spec.ts"
@@ -5530,6 +5532,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
             "e2e/03-training-gto.spec.ts"
@@ -5562,6 +5565,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
             "e2e/03-training-gto.spec.ts"
@@ -5597,6 +5601,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
             "e2e/03-training-gto.spec.ts"
@@ -5639,6 +5644,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
             "e2e/03-training-gto.spec.ts"
@@ -5664,6 +5670,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
             "e2e/03-training-gto.spec.ts"
@@ -5693,6 +5700,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
             "e2e/03-training-gto.spec.ts"
@@ -5711,6 +5719,7 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+        "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-surface-inventory.test.mjs",
         "e2e/03-training-gto.spec.ts"
@@ -16799,6 +16808,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -16834,6 +16844,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -16878,6 +16889,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -16909,6 +16921,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -16947,6 +16960,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -16989,6 +17003,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -17011,6 +17026,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -17039,6 +17055,7 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+            "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -17056,6 +17073,7 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+        "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-surface-inventory.test.mjs"
       ],
@@ -31847,7 +31865,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 346,
+          "line": 347,
           "handler": "() => router.replace('/hub/training')",
           "destination": null,
           "type": "button",
@@ -31857,7 +31875,7 @@
         {
           "element": "a",
           "name": "← Return To Live Hand Sync",
-          "line": 423,
+          "line": 424,
           "handler": null,
           "destination": "/hub/training/live-hud-sync",
           "type": null,
@@ -31867,7 +31885,7 @@
         {
           "element": "a",
           "name": "Customize Pack In Drill Builder →",
-          "line": 459,
+          "line": 460,
           "handler": null,
           "destination": "/hub/training/drill-builder",
           "type": null,
@@ -31877,7 +31895,7 @@
         {
           "element": "a",
           "name": "Return To Coach Broadcast →",
-          "line": 496,
+          "line": 497,
           "handler": null,
           "destination": "/hub/training/coach-mode",
           "type": null,
@@ -31887,7 +31905,7 @@
         {
           "element": "a",
           "name": "View Club Leaderboard →",
-          "line": 532,
+          "line": 533,
           "handler": null,
           "destination": "/hub/training/leaderboard",
           "type": null,
@@ -31897,7 +31915,7 @@
         {
           "element": "a",
           "name": "View Verified Two-Player Scoreboard →",
-          "line": 567,
+          "line": 568,
           "handler": null,
           "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
           "type": null,
@@ -82727,11 +82745,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:346:2",
+      "id": "pages/hub/training/arena/[gameId].js:347:2",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 346,
+      "line": 347,
       "handler": "() => router.replace('/hub/training')",
       "destination": null,
       "type": "button",
@@ -82740,11 +82758,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:423:3",
+      "id": "pages/hub/training/arena/[gameId].js:424:3",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "← Return To Live Hand Sync",
-      "line": 423,
+      "line": 424,
       "handler": null,
       "destination": "/hub/training/live-hud-sync",
       "type": null,
@@ -82753,11 +82771,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:459:4",
+      "id": "pages/hub/training/arena/[gameId].js:460:4",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Customize Pack In Drill Builder →",
-      "line": 459,
+      "line": 460,
       "handler": null,
       "destination": "/hub/training/drill-builder",
       "type": null,
@@ -82766,11 +82784,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:496:5",
+      "id": "pages/hub/training/arena/[gameId].js:497:5",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Return To Coach Broadcast →",
-      "line": 496,
+      "line": 497,
       "handler": null,
       "destination": "/hub/training/coach-mode",
       "type": null,
@@ -82779,11 +82797,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:532:6",
+      "id": "pages/hub/training/arena/[gameId].js:533:6",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Club Leaderboard →",
-      "line": 532,
+      "line": 533,
       "handler": null,
       "destination": "/hub/training/leaderboard",
       "type": null,
@@ -82792,11 +82810,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:567:7",
+      "id": "pages/hub/training/arena/[gameId].js:568:7",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Verified Two-Player Scoreboard →",
-      "line": 567,
+      "line": 568,
       "handler": null,
       "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
       "type": null,
@@ -93640,6 +93658,7 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+        "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-surface-inventory.test.mjs"
       ]
@@ -99576,6 +99595,7 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+        "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-surface-inventory.test.mjs"
       ]
@@ -107472,6 +107492,7 @@
         "__tests__/training-focused-launch-wiring.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
+        "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-verified-leaderboard.test.mjs"
       ]
@@ -111684,6 +111705,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },

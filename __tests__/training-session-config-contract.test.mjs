@@ -9,6 +9,8 @@ import {
   withTrainingSessionDifficulty,
 } from '../src/lib/training/sessionConfigContract.mjs';
 import { isCustomTrainerConfig } from '../src/lib/training/trainerConfigMode.mjs';
+import { TRAINING_LIBRARY } from '../src/data/TRAINING_LIBRARY.js';
+import { resolvePresetForGame } from '../src/lib/training/trainingPresets.mjs';
 
 const ROOT = process.cwd();
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
@@ -66,6 +68,22 @@ test('normalization preserves custom trainer fields without misclassifying prefe
   });
   assert.equal(custom.position, 'BTN');
   assert.equal(isCustomTrainerConfig(custom), true);
+});
+
+test('every catalog preset keeps signed catalog delivery with its default opponent seat', () => {
+  assert.equal(TRAINING_LIBRARY.length, 107);
+  for (const game of TRAINING_LIBRARY) {
+    const config = normalizeTrainingSessionConfig({
+      ...resolvePresetForGame(game),
+      configType: 'catalog-preset',
+    });
+    assert.ok(config.villainPosition);
+    assert.equal(isCustomTrainerConfig(config), false, game.id);
+    assert.equal(isCustomTrainerConfig({ ...config, isCustomTrainer: true }), true, game.id);
+  }
+  const arena = read('pages/hub/training/arena/[gameId].js');
+  assert.match(arena, /if \(!startsWithPreset\) return customLaunch\.config/);
+  assert.match(arena, /\.\.\.resolvePresetForGame\(game\),\s*\.\.\.customLaunch\.config,\s*configType: 'catalog-preset'/);
 });
 
 test('direct difficulty selection always produces an engine-visible config', () => {

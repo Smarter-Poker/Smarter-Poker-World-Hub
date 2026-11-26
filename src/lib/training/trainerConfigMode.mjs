@@ -19,6 +19,8 @@ const CUSTOM_TRAINER_KEYS = [
 export function isCustomTrainerConfig(config) {
   if (!config || typeof config !== 'object') return false;
   if (config.isCustomTrainer === true || config.configType === 'custom-trainer') return true;
+  // Catalog presets include a default opponent seat for presentation.
+  if (config.configType === 'catalog-preset') return false;
   return CUSTOM_TRAINER_KEYS.some((key) => {
     const value = config[key];
     return value !== undefined && value !== null && value !== '' && value !== 'any';
