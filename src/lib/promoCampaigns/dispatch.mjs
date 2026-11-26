@@ -937,12 +937,13 @@ export async function resolvePromoAudience(
 function createHttpResendBatchSender(apiKey, fetchImpl = fetch) {
     return {
         batch: {
-            async send(payload) {
+            async send(payload, options = {}) {
                 const res = await fetchImpl('https://api.resend.com/emails/batch', {
                     method: 'POST',
                     headers: {
                         Authorization: `Bearer ${apiKey}`,
                         'Content-Type': 'application/json',
+                        ...(options?.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}),
                     },
                     signal: AbortSignal.timeout(20000),
                     body: JSON.stringify(payload),
@@ -957,19 +958,22 @@ function createHttpResendBatchSender(apiKey, fetchImpl = fetch) {
     };
 }
 
-async function sendResendBatch(resend, messages) {
-    const attempt = async (payload) => {
-        const result = await resend.batch.send(payload);
+async function sendResendBatch(resend, messages, idempotencyKey = '') {
+    const attempt = async (payload, opts) => {
+        const result = opts ? await resend.batch.send(payload, opts) : await resend.batch.send(payload);
         if (result?.error) throw new Error(result.error.message || 'Resend batch error');
         return result;
     };
 
     try {
-        await attempt(messages);
+        await attempt(messages, idempotencyKey ? { idempotencyKey } : undefined);
         return { sent: messages.length, failed: 0, error: null };
     } catch (_firstErr) {
         try {
-            await attempt(messages.map(({ headers, tags, ...rest }) => rest));
+            await attempt(
+                messages.map(({ headers, tags, ...rest }) => rest),
+                idempotencyKey ? { idempotencyKey: `${idempotencyKey}-plain` } : undefined
+            );
             return { sent: messages.length, failed: 0, error: null };
         } catch (retryError) {
             return {
@@ -1214,6 +1218,7 @@ export async function dispatchPromoCampaign(
     try {
         if (wantEmail && targetEmails.length > 0) {
             const resend = effectiveResendFactory(apiKey);
+            let batchIndex = 0;
             for (let i = 0; i < targetEmails.length; i += EMAIL_BATCH_SIZE) {
                 const chunk = targetEmails.slice(i, i + EMAIL_BATCH_SIZE);
                 const messages = chunk.map((email) => {
@@ -1245,7 +1250,9 @@ export async function dispatchPromoCampaign(
                         tags: [{ name: 'campaign_id', value: String(campaign.id) }],
                     };
                 });
-                const res = await sendResendBatch(resend, messages);
+                const batchIdempotencyKey = `promo-${campaign?.id || 'run'}-batch-${batchIndex}`;
+                const res = await sendResendBatch(resend, messages, batchIdempotencyKey);
+                batchIndex += 1;
                 emailSent += res.sent;
                 emailFailed += res.failed;
                 if (res.error && errors.length < 5) errors.push(`email: ${res.error}`);

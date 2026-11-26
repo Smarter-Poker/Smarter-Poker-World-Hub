@@ -135,19 +135,22 @@ function makeUnsubscribeToken(email) {
     return `${payload}.${sig}`;
 }
 
-async function sendBatch(resend, messages) {
-    const attempt = async (payload) => {
-        const result = await resend.batch.send(payload);
+async function sendBatch(resend, messages, idempotencyKey = '') {
+    const attempt = async (payload, opts) => {
+        const result = opts ? await resend.batch.send(payload, opts) : await resend.batch.send(payload);
         if (result?.error) throw new Error(result.error.message || 'Resend batch error');
         return result;
     };
 
     try {
-        await attempt(messages);
+        await attempt(messages, idempotencyKey ? { idempotencyKey } : undefined);
         return { sent: messages.length, failed: 0, error: null };
     } catch (_firstErr) {
         try {
-            await attempt(messages.map(({ headers, tags, ...rest }) => rest));
+            await attempt(
+                messages.map(({ headers, tags, ...rest }) => rest),
+                idempotencyKey ? { idempotencyKey: `${idempotencyKey}-plain` } : undefined
+            );
             return { sent: messages.length, failed: 0, error: null };
         } catch (retryError) {
             return {
@@ -497,6 +500,7 @@ export default async function handler(req, res) {
         let sent = 0;
         let failed = 0;
         const errors = [];
+        let batchIndex = 0;
 
         for (let i = 0; i < recipientsList.length; i += SEND_BATCH_SIZE) {
             const chunk = recipientsList.slice(i, i + SEND_BATCH_SIZE);
@@ -539,7 +543,9 @@ export default async function handler(req, res) {
                 };
             });
 
-            const result = await sendBatch(resend, messages);
+            const batchIdempotencyKey = `wire-${campaignId}-batch-${batchIndex}`;
+            const result = await sendBatch(resend, messages, batchIdempotencyKey);
+            batchIndex += 1;
             sent += result.sent;
             failed += result.failed;
             if (result.error && errors.length < 5) errors.push(result.error);

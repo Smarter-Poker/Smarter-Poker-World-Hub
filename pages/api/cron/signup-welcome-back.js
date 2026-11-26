@@ -83,6 +83,7 @@ async function handler(req, res) {
                 lifecycle = await runLifecycleRetention(sb, {
                     dryRun: false,
                     dailyGate: true,
+                    deadline: startedAt + 290_000,
                 });
             } else {
                 lifecycle = { skipped: true, reason: 'outside_16h_utc_window' };

@@ -205,8 +205,20 @@
   }
 
   .formRow {
+    display: flex;
+    flex-wrap: wrap;
     width: 100%;
     max-width: none;
+  }
+
+  .emailInput {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .submitBtn {
+    flex: 1 1 auto;
   }
 
   .subcopy {

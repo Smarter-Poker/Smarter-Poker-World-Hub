@@ -12,13 +12,34 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { verifySvixSignature } from '../../../src/lib/email/svixSignature.mjs';
 import {
     applyCampaignTelemetryEvent,
-    extractResendCampaignId,
     parseCampaignTelemetrySummary,
 } from '../../../src/lib/promoCampaigns/lifecycleEngine.mjs';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function extractResendCampaignId(tagsOrEvent) {
+    if (!tagsOrEvent) return null;
+    const rawTags = tagsOrEvent?.data?.tags ?? tagsOrEvent?.tags ?? tagsOrEvent;
+    if (!rawTags) return null;
+    if (Array.isArray(rawTags)) {
+        for (const item of rawTags) {
+            const name = String(item?.name || '').trim().toLowerCase();
+            if (name === 'campaign_id' || name === 'campaignid') {
+                const val = String(item?.value || '').trim();
+                return UUID_RE.test(val) ? val.toLowerCase() : null;
+            }
+        }
+        return null;
+    }
+    if (typeof rawTags === 'object') {
+        const val = String(rawTags.campaign_id ?? rawTags.campaignId ?? '').trim();
+        return UUID_RE.test(val) ? val.toLowerCase() : null;
+    }
+    return null;
+}
+
 export {
     verifySvixSignature,
-    extractResendCampaignId,
     parseCampaignTelemetrySummary,
     applyCampaignTelemetryEvent,
 };

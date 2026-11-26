@@ -9,6 +9,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { isWeeklyWireDigestCampaign } from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
+import { buildWeeklyWireRssXml as buildSharedWeeklyWireRssXml } from '../../../src/lib/newsletter/wireRssBuilder.mjs';
 
 const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FEED_LIMIT = 25;
@@ -68,11 +69,17 @@ function toRfc2822(iso) {
 /**
  * Pure RSS 2.0 builder. `editions` are newest first:
  * `{ editionNumber, subject, publishedAt, headlines: string[] }`.
+ * When passed a Supabase client, delegates to the shared async builder.
  */
-export function buildWeeklyWireRssXml(editions, { siteUrl = 'https://smarter.poker' } = {}) {
+export function buildWeeklyWireRssXml(supabaseOrEditions, { siteUrl = 'https://smarter.poker', selfPath = '/api/news/wire-rss' } = {}) {
+    if (!Array.isArray(supabaseOrEditions) && supabaseOrEditions && typeof supabaseOrEditions.from === 'function') {
+        return buildSharedWeeklyWireRssXml(supabaseOrEditions, { siteUrl, selfPath });
+    }
+
     const origin = String(siteUrl || 'https://smarter.poker').replace(/\/+$/, '');
-    const list = Array.isArray(editions) ? editions : [];
+    const list = Array.isArray(supabaseOrEditions) ? supabaseOrEditions : [];
     const newestDate = list.map((ed) => toRfc2822(ed?.publishedAt)).find(Boolean) || '';
+    const linkPath = selfPath.startsWith('/') ? selfPath : `/${selfPath}`;
 
     const items = list
         .map((ed) => {
@@ -108,7 +115,7 @@ export function buildWeeklyWireRssXml(editions, { siteUrl = 'https://smarter.pok
         '    <description>Curated world poker news, solver decision spots, pro calculator spotlights, and platform upgrades from Smarter.Poker.</description>',
         '    <language>en-us</language>',
         newestDate ? `    <lastBuildDate>${newestDate}</lastBuildDate>` : '',
-        `    <atom:link href="${escapeXml(origin)}/api/news/wire-rss" rel="self" type="application/rss+xml" />`,
+        `    <atom:link href="${escapeXml(origin)}${escapeXml(linkPath)}" rel="self" type="application/rss+xml" />`,
         ...items,
         '  </channel>',
         '</rss>',
@@ -127,49 +134,8 @@ export default async function handler(req, res) {
 
     try {
         const sb = getSupabase();
-        const { data: rows, error } = await sb
-            .from('newsletter_campaigns')
-            .select('id, subject, status, article_ids, sent_count, completed_at, created_at')
-            .in('status', ['sent', 'partial'])
-            .order('created_at', { ascending: true })
-            .limit(200);
-        if (error) throw error;
+        const xml = await buildSharedWeeklyWireRssXml(sb, { siteUrl: 'https://smarter.poker', selfPath: '/hub/wire/rss.xml' });
 
-        const numbered = numberWeeklyWireEditions((rows || []).filter(isWeeklyWireDigestCampaign));
-        const latest = numbered.slice(-FEED_LIMIT).reverse();
-
-        const realIds = [];
-        for (const ed of latest) {
-            for (const id of (Array.isArray(ed.article_ids) ? ed.article_ids : []).slice(0, 3)) {
-                const clean = String(id || '').trim().toLowerCase();
-                if (UUID_SHAPE_RE.test(clean) && !realIds.includes(clean)) realIds.push(clean);
-            }
-        }
-
-        const titleById = new Map();
-        if (realIds.length > 0) {
-            // in-list: bounded <= 150
-            const { data: newsRows } = await sb
-                .from('poker_news')
-                .select('id, title, category')
-                .in('id', realIds.slice(0, 150));
-            for (const row of newsRows || []) {
-                if (row?.id && row.category !== 'platform_update' && row.title) {
-                    titleById.set(String(row.id).toLowerCase(), row.title);
-                }
-            }
-        }
-
-        const editions = latest.map((ed) => ({
-            editionNumber: ed.editionNumber,
-            subject: ed.subject,
-            publishedAt: ed.completed_at || ed.created_at || null,
-            headlines: (Array.isArray(ed.article_ids) ? ed.article_ids : [])
-                .map((id) => titleById.get(String(id || '').trim().toLowerCase()))
-                .filter(Boolean),
-        }));
-
-        const xml = buildWeeklyWireRssXml(editions);
         res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
         res.setHeader('Cache-Control', 'public, max-age=900, s-maxage=1800, stale-while-revalidate=86400');
         res.setHeader('X-Content-Type-Options', 'nosniff');

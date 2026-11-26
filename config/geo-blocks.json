@@ -50,7 +50,17 @@
     "/api/promo/validate-promo-code",
     "/api/promo/validate-referral-code",
     "/Portfolio",
-    "/Portfolio/"
+    "/Portfolio/",
+    "/api/news/subscribe",
+    "/api/news/email-image",
+    "/api/news/wire-rss",
+    "/api/news/calendar-ics",
+    "/hub/email-preferences",
+    "/hub/wire",
+    "/hub/wire/",
+    "/go/promo",
+    "/go/welcome-back",
+    "/promo/welcome-back"
   ],
   "admin_bypass_header": "x-geo-bypass"
 }

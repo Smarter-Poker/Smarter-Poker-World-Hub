@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { buildSignedEmailImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
+import NewsletterCaptureBar from '../../../src/components/news/NewsletterCaptureBar';
 
 const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FALLBACK_THUMB_SRC = '/api/news/email-image?fallback=1&m=thumb';
@@ -210,7 +211,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                     rel="alternate"
                     type="application/rss+xml"
                     title="Smarter.Poker Weekly Wire RSS"
-                    href="https://smarter.poker/api/news/wire-rss"
+                    href="https://smarter.poker/hub/wire/rss.xml"
                 />
                 <script
                     key="wire-jsonld"
@@ -272,7 +273,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                     Live News Hub &rarr;
                                 </Link>
                                 <a
-                                    href="/api/news/wire-rss"
+                                    href="/hub/wire/rss.xml"
                                     type="application/rss+xml"
                                     style={{
                                         display: 'inline-flex',
@@ -320,6 +321,10 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                             Browse Every Published Weekly Wire Edition Featuring Curated World Poker Storylines, Solver Decision Spots, Pro Calculator Spotlights, And Smarter.Poker Platform Upgrades.
                         </p>
                     </header>
+
+                    <div style={{ marginBottom: '26px' }}>
+                        <NewsletterCaptureBar variant="inline" alwaysVisible />
+                    </div>
 
                     {livePreview && (
                         <section

@@ -47,6 +47,14 @@ const AUTH_ALWAYS_ALLOW = [
   '/api/promo/validate-referral-code',
   '/api/health',
   '/api/health/signup',
+  // CAN-SPAM 15 U.S.C. § 7704(a)(3) requires opt-out & preference routes to remain reachable from every jurisdiction including restricted US states
+  '/api/news/subscribe',
+  '/api/news/email-image',
+  '/api/news/wire-rss',
+  '/api/news/calendar-ics',
+  '/hub/email-preferences',
+  '/hub/wire',
+  '/hub/wire/',
 ];
 
 function isAuthAlwaysAllow(pathname: string): boolean {

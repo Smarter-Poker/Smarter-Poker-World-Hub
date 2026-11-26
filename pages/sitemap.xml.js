@@ -804,43 +804,7 @@ function sitemapLastmodLine(lastmod) {
   return `    <lastmod>${new Date(time).toISOString()}</lastmod>\n`;
 }
 
-import { sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
-import { isWeeklyWireDigestCampaign } from '../src/lib/newsletter/weeklyWireEngine.mjs';
-
-// Weekly Wire editions: one URL per published digest, numbered exactly like
-// /hub/wire and /hub/wire/[edition] so every <loc> resolves. lastmod is the real
-// completion/creation date of the campaign and is omitted when absent.
-async function buildWireEditionUrls() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return [];
-
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(url, key);
-    const { data, error } = await supabase
-      .from('newsletter_campaigns')
-      .select('id, subject, status, article_ids, completed_at, created_at')
-      .in('status', ['sent', 'partial'])
-      .order('created_at', { ascending: true })
-      .limit(200);
-    if (error || !Array.isArray(data)) return [];
-
-    const used = new Set();
-    return data.filter(isWeeklyWireDigestCampaign).map((row, idx) => {
-      const fromSubject = parseInt((String(row.subject || '').match(/wire\s*#(\d+)/i) || [])[1], 10);
-      let num = Number.isFinite(fromSubject) && fromSubject > 0 && !used.has(fromSubject) ? fromSubject : idx + 1;
-      while (used.has(num)) num += 1;
-      used.add(num);
-      const day = String(row.completed_at || row.created_at || '').slice(0, 10);
-      const entry = { path: `/hub/wire/${num}`, priority: '0.7', changefreq: 'monthly' };
-      if (/^\d{4}-\d{2}-\d{2}$/.test(day)) entry.lastmod = day;
-      return entry;
-    });
-  } catch {
-    return [];
-  }
-}
+import { sendSitemapXmlResponse, buildWireEditionUrls } from '../src/lib/seo/sitemapBuilders.mjs';
 
 export async function getServerSideProps({ req, res }) {
   const [homeGameUrls, pokerVenueUrls, pokerEventDetailUrls, wireEditionUrls] = await Promise.all([
