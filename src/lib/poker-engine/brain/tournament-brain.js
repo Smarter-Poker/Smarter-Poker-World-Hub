@@ -557,6 +557,7 @@ function getPLOTournamentOverride(variant, stageInfo, stackBB) {
     // Base PLO tournament tightening (from strategy plan)
     const variantTighten = {
         plo4: 10,
+        plo8: 11,
         plo5: 12,
         plo6: 15, // PLO6 tournaments are the tightest
     };
@@ -1521,9 +1522,10 @@ function getTournamentAggregatedRangeAdj(params) {
 
     // 5. PLO variant adjustment
     let ploAdj = 0;
-    const ploVariants = ['plo4', 'plo5', 'plo6', 'plo'];
+    const ploVariants = ['plo4', 'plo5', 'plo6', 'plo8', 'plo'];
     if (ploVariants.includes((variant || '').toLowerCase())) {
-        ploAdj = variant.toLowerCase() === 'plo6' ? 15 : variant.toLowerCase() === 'plo5' ? 12 : 10;
+        const lowerVar = variant.toLowerCase();
+        ploAdj = lowerVar === 'plo6' ? 15 : lowerVar === 'plo5' ? 12 : lowerVar === 'plo8' ? 11 : 10;
         // PLO multiway penalty
         if (numPlayers > 3) ploAdj += 5;
     }
@@ -1818,7 +1820,7 @@ function applyTournamentAdjustments(baseDecision, gameState, legalActions) {
 
     // ---- PLO TOURNAMENT OVERRIDE: Extra tightening for PLO variants ----
     const variant = gameState.variant || gameState.gameType || 'holdem';
-    const ploVariants = ['plo4', 'plo5', 'plo6', 'plo', 'PLO', 'PLO4', 'PLO5', 'PLO6'];
+    const ploVariants = ['plo4', 'plo5', 'plo6', 'plo8', 'plo', 'PLO', 'PLO4', 'PLO5', 'PLO6', 'PLO8'];
     if (ploVariants.includes(variant)) {
         const ploOverride = getPLOTournamentOverride(variant.toLowerCase(), stageInfo, stackBB);
 
