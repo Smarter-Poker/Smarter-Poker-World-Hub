@@ -27456,7 +27456,7 @@
         },
         {
           "name": "isAggressiveAnswer",
-          "line": 1038,
+          "line": 1047,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27476,7 +27476,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 931,
+          "line": 940,
           "excerpt": "// honest fallback instead of rows this route",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -27484,7 +27484,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 964,
+          "line": 973,
           "excerpt": "// No AI fallback — engines handle all question generation",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -27492,7 +27492,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1009,
+          "line": 1018,
           "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -27500,7 +27500,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 1127,
+          "line": 1136,
           "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -27508,7 +27508,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1139,
+          "line": 1148,
           "excerpt": "* \"fallback\" called this same route (see the note in",
           "disposition": "runtime-resilience-fallback",
           "review": "accepted",
@@ -28626,7 +28626,7 @@
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 887,
+          "line": 910,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -28653,7 +28653,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 642,
+          "line": 665,
           "excerpt": "// STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)",
           "disposition": "training-data-provenance-fallback",
           "review": "accepted",
@@ -28662,7 +28662,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 697,
+          "line": 720,
           "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -28670,7 +28670,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 707,
+          "line": 730,
           "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -28678,7 +28678,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 709,
+          "line": 732,
           "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -28686,7 +28686,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 741,
+          "line": 764,
           "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -28694,7 +28694,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 870,
+          "line": 893,
           "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -130714,7 +130714,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 931,
+        "line": 940,
         "excerpt": "// honest fallback instead of rows this route",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -130723,7 +130723,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 964,
+        "line": 973,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -130732,7 +130732,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 1009,
+        "line": 1018,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -130741,7 +130741,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 1127,
+        "line": 1136,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -130750,7 +130750,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 1139,
+        "line": 1148,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -130778,7 +130778,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 642,
+        "line": 665,
         "excerpt": "// STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)",
         "disposition": "training-data-provenance-fallback",
         "review": "accepted",
@@ -130788,7 +130788,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 697,
+        "line": 720,
         "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -130797,7 +130797,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 707,
+        "line": 730,
         "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -130806,7 +130806,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 709,
+        "line": 732,
         "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -130815,7 +130815,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "SIMULATED",
-        "line": 741,
+        "line": 764,
         "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -130824,7 +130824,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 870,
+        "line": 893,
         "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -141348,7 +141348,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 931,
+        "line": 940,
         "excerpt": "// honest fallback instead of rows this route",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -141357,7 +141357,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 964,
+        "line": 973,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -141366,7 +141366,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 1009,
+        "line": 1018,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -141375,7 +141375,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 1127,
+        "line": 1136,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -141384,7 +141384,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 1139,
+        "line": 1148,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -141412,7 +141412,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 642,
+        "line": 665,
         "excerpt": "// STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)",
         "disposition": "training-data-provenance-fallback",
         "review": "accepted",
@@ -141422,7 +141422,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 697,
+        "line": 720,
         "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -141431,7 +141431,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 707,
+        "line": 730,
         "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -141440,7 +141440,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 709,
+        "line": 732,
         "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -141449,7 +141449,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "SIMULATED",
-        "line": 741,
+        "line": 764,
         "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -141458,7 +141458,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 870,
+        "line": 893,
         "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",

@@ -811,12 +811,17 @@ test('Phase 20 forensic root-cause hardening: Arena clubCoachAssignment hydratio
     'useGTOTrainer must allow 9max in format query parameter forwarding',
   );
 
-  // 4. API batch-preload and get-question must accept 9max in requestedFormat
+  // 4. API batch-preload and get-question must accept 9max in requestedFormat and enforce expectedEngineModule & plo4/plo8 cache isolation
   for (const apiPath of ['pages/api/training/batch-preload.js', 'pages/api/training/get-question.js']) {
     const apiSrc = read(apiPath);
     assert.ok(
       apiSrc.includes("['cash', 'mtt', 'spins', 'hu', '9max'].includes(normalizedRawFormat)"),
       `${apiPath} must accept 9max in requestedFormat validation`,
+    );
+    assert.ok(
+      apiSrc.includes('if (expectedEngineModule && rowEngine !== expectedEngineModule) return false;') &&
+      apiSrc.includes("if (targetVariantFilter === 'plo4' && (q.scenario?.hiLo || q.scenario?.variant === 'plo8')) return false;"),
+      `${apiPath} must reject cross-variant cached snapshots so a 4-card PLO8 snapshot is never served for a PLO4 request`,
     );
   }
 

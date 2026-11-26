@@ -795,6 +795,12 @@ export default async function handler(req, res) {
               : (targetVariantFilter === 'plo4' || targetVariantFilter === 'plo8') ? 4
               : targetVariantFilter === 'nlh' ? 2
               : null;
+          const expectedEngineModule = targetVariantFilter === 'plo8' ? 'plo8-brain.js'
+              : targetVariantFilter === 'plo6' ? 'plo6-brain.js'
+              : targetVariantFilter === 'plo5' ? 'plo5-brain.js'
+              : targetVariantFilter === 'plo4' ? 'plo-core.js'
+              : targetVariantFilter === 'nlh' ? 'holdem-brain.js'
+              : null;
           const requiresPkoScenarioTelemetry = ['mtt-005', 'mtt-020'].includes(gameId);
           const requiresExploitScenarioTelemetry = ['adv-003', 'adv-015', 'adv-016', 'cash-020'].includes(gameId);
           const authorityEligibleRows = contractedRows
@@ -818,8 +824,11 @@ export default async function handler(req, res) {
                   if (expectedHoleCardCount !== null) {
                       const cards = Array.isArray(q.heroCards) ? q.heroCards : [];
                       if (cards.length !== expectedHoleCardCount) return false;
-                      if (!q.scenario?.brainEvaluation?.engineModule) return false;
+                      const rowEngine = String(q.scenario?.brainEvaluation?.engineModule || '');
+                      if (!rowEngine) return false;
+                      if (expectedEngineModule && rowEngine !== expectedEngineModule) return false;
                       if (targetVariantFilter === 'plo8' && !q.scenario?.hiLo && q.scenario?.variant !== 'plo8') return false;
+                      if (targetVariantFilter === 'plo4' && (q.scenario?.hiLo || q.scenario?.variant === 'plo8')) return false;
                   }
                   if (requiresPkoScenarioTelemetry && (!Number.isFinite(Number(q.scenario?.bountyBb)) || !q.scenario?.brainEvaluation?.engineModule)) {
                       return false;
