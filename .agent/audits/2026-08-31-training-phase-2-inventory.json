@@ -5411,7 +5411,8 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
-            "e2e/03-training-gto.spec.ts"
+            "e2e/03-training-gto.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "empty": {
@@ -5477,7 +5478,8 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
-            "e2e/03-training-gto.spec.ts"
+            "e2e/03-training-gto.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "error": {
@@ -5535,7 +5537,8 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
-            "e2e/03-training-gto.spec.ts"
+            "e2e/03-training-gto.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "retry": {
@@ -5568,7 +5571,8 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
-            "e2e/03-training-gto.spec.ts"
+            "e2e/03-training-gto.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "success": {
@@ -5604,7 +5608,8 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
-            "e2e/03-training-gto.spec.ts"
+            "e2e/03-training-gto.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "stale": {
@@ -5647,7 +5652,8 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
-            "e2e/03-training-gto.spec.ts"
+            "e2e/03-training-gto.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "offline": {
@@ -5673,7 +5679,8 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
-            "e2e/03-training-gto.spec.ts"
+            "e2e/03-training-gto.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "authExpiry": {
@@ -5703,7 +5710,8 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
-            "e2e/03-training-gto.spec.ts"
+            "e2e/03-training-gto.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         }
       },
@@ -5722,7 +5730,8 @@
         "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-surface-inventory.test.mjs",
-        "e2e/03-training-gto.spec.ts"
+        "e2e/03-training-gto.spec.ts",
+        "e2e/global-footer-visual.spec.ts"
       ],
       "uncoveredStates": []
     },
@@ -16474,7 +16483,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "empty": {
@@ -16528,7 +16538,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "error": {
@@ -16574,7 +16585,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "retry": {
@@ -16595,7 +16607,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "success": {
@@ -16619,7 +16632,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "stale": {
@@ -16650,7 +16664,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "offline": {
@@ -16664,7 +16679,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         },
         "authExpiry": {
@@ -16682,14 +16698,16 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/global-footer-visual.spec.ts"
           ]
         }
       },
       "existingTests": [
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
-        "e2e/020-hamburger.spec.ts"
+        "e2e/020-hamburger.spec.ts",
+        "e2e/global-footer-visual.spec.ts"
       ],
       "uncoveredStates": []
     },
