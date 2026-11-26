@@ -6,7 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -31,33 +31,69 @@ const SERIES_EVENTS = [
     { id: 'runup', series: 'PokerStars', name: 'Run It Up Reno', buyIn: 600, date: '2026-09-15', endDate: '2026-09-22', location: 'Reno, NV', color: '#83abc5', prizePool: '1M+' },
 ];
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+// These schedule values are civil dates, independent of the viewer's time zone.
+function calendarDate(year, month, day) {
+    return `${String(year).padStart(4, '0')}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function formatDate(date, options) {
+    return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { ...options, timeZone: 'UTC' });
+}
+
+const byStartDate = (a, b) => a.date.localeCompare(b.date);
+const fullDate = { month: 'long', day: 'numeric', year: 'numeric' };
+// August 1, 2021 was a Sunday, the first column of this calendar.
+const weekdays = Array.from({ length: 7 }, (_, index) =>
+    formatDate(calendarDate(2021, 7, index + 1), { weekday: 'short' })
+);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function TournamentCalendar({ bankrollTotal = 0 }) {
-    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-    const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+    const [visibleMonth, setVisibleMonth] = useState(() => new Date());
+    const currentMonth = visibleMonth.getMonth();
+    const currentYear = visibleMonth.getFullYear();
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [interested, setInterested] = useState(new Set());
     const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'list'
 
-    // Events for current month
-    const monthEvents = useMemo(() => {
-        return SERIES_EVENTS.filter(e => {
-            const d = new Date(e.date);
-            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-        }).sort((a, b) => new Date(a.date) - new Date(b.date));
-    }, [currentMonth, currentYear]);
+    const detailId = useId();
+    const detailTitle = useRef(null);
+    const opener = useRef(null);
+    const now = new Date();
+    const today = calendarDate(now.getFullYear(), now.getMonth(), now.getDate());
+    const monthStart = calendarDate(currentYear, currentMonth, 1);
+    const monthKey = monthStart.slice(0, 7);
 
-    // All upcoming events
-    const upcomingEvents = useMemo(() => {
-        const now = new Date();
-        return SERIES_EVENTS.filter(e => new Date(e.endDate || e.date) >= now)
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
-    }, []);
+    const monthEvents = useMemo(() => SERIES_EVENTS.filter(event =>
+        event.date.slice(0, 7) <= monthKey && (event.endDate || event.date).slice(0, 7) >= monthKey
+    ).sort(byStartDate), [monthKey]);
+    const upcomingEvents = useMemo(() => SERIES_EVENTS.filter(event =>
+        (event.endDate || event.date) >= today
+    ).sort(byStartDate), [today]);
+
+    useEffect(() => {
+        if (selectedEvent) detailTitle.current?.focus();
+    }, [selectedEvent]);
+
+    const showDetails = (event, trigger) => {
+        if (selectedEvent?.id === event.id) {
+            setSelectedEvent(null);
+        } else {
+            opener.current = trigger;
+            setSelectedEvent(event);
+        }
+    };
+    const closeDetails = () => {
+        setSelectedEvent(null);
+        opener.current?.focus();
+    };
+    const changeView = (mode) => {
+        if (mode !== viewMode) setSelectedEvent(null);
+        setViewMode(mode);
+    };
 
     // Budget planner
     const interestedEvents = useMemo(() => {
@@ -76,13 +112,9 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
         });
     };
 
-    const prevMonth = () => {
-        if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); }
-        else setCurrentMonth(m => m - 1);
-    };
-    const nextMonth = () => {
-        if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); }
-        else setCurrentMonth(m => m + 1);
+    const changeMonth = (offset) => {
+        setSelectedEvent(null);
+        setVisibleMonth(previous => new Date(previous.getFullYear(), previous.getMonth() + offset, 1));
     };
 
     // Calendar grid computation
@@ -95,16 +127,6 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
         return days;
     }, [currentMonth, currentYear]);
 
-    const getEventsForDay = (day) => {
-        if (!day) return [];
-        return monthEvents.filter(e => {
-            const startDay = new Date(e.date).getDate();
-            const endDay = e.endDate ? new Date(e.endDate).getDate() : startDay;
-            const eventMonth = new Date(e.date).getMonth();
-            return eventMonth === currentMonth && day >= startDay && day <= endDay;
-        });
-    };
-
     return (
         <div className="sd-panel">
             {/* Header */}
@@ -114,8 +136,8 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                     <div style={{ fontSize: 12, color: '#9aaec3' }}>Major Series Schedules & Budget Planning</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" className="sd-button" aria-pressed={viewMode === 'calendar'} onClick={() => setViewMode('calendar')}>Calendar</button>
-                    <button type="button" className="sd-button" aria-pressed={viewMode === 'list'} onClick={() => setViewMode('list')}>List</button>
+                    <button type="button" className="sd-button" aria-pressed={viewMode === 'calendar'} onClick={() => changeView('calendar')}>Calendar</button>
+                    <button type="button" className="sd-button" aria-pressed={viewMode === 'list'} onClick={() => changeView('list')}>List</button>
                 </div>
             </div>
 
@@ -126,8 +148,8 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                     border: '1px solid rgba(71, 149, 243,0.2)', borderRadius: 16, padding: '16px 20px', marginBottom: 20,
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0' }}>Budget Planner - {interestedEvents.length} Events</div>
-                        <div style={{ fontSize: 14, fontWeight: 900, color: budgetHealth >= 100 ? '#4ade80' : budgetHealth >= 50 ? '#94e7ff' : '#f87171' }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0' }}>Budget Planner - {interestedEvents.length} {interestedEvents.length === 1 ? 'Event' : 'Events'}</div>
+                        <div style={{ fontSize: 14, fontWeight: 900, color: budgetHealth >= 100 ? '#4ade80' : budgetHealth >= 50 ? '#94e7ff' : '#f45142' }}>
                             ${totalBudgetNeeded.toLocaleString()} Needed
                         </div>
                     </div>
@@ -156,9 +178,9 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                         background: 'rgba(255,255,255,0.02)', borderRadius: 12, padding: '12px 16px',
                         border: '1px solid rgba(255,255,255,0.05)',
                     }}>
-                        <button type="button" className="sd-button" aria-label="Previous Month" onClick={prevMonth}>‹</button>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: '#e2e8f0' }}>{MONTHS[currentMonth]} {currentYear}</div>
-                        <button type="button" className="sd-button" aria-label="Next Month" onClick={nextMonth}>›</button>
+                        <button type="button" className="sd-button" aria-label="Previous Month" onClick={() => changeMonth(-1)}>‹</button>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#e2e8f0' }}>{formatDate(monthStart, { month: 'long', year: 'numeric' })}</div>
+                        <button type="button" className="sd-button" aria-label="Next Month" onClick={() => changeMonth(1)}>›</button>
                     </div>
 
                     {/* Calendar Grid */}
@@ -168,15 +190,16 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                     }}>
                         {/* Day Headers */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                            {weekdays.map(d => (
                                 <div key={d} style={{ padding: '10px 4px', textAlign: 'center', fontSize: 12, fontWeight: 800, color: '#9aaec3', textTransform: 'uppercase', letterSpacing: 1 }}>{d}</div>
                             ))}
                         </div>
                         {/* Day Cells */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
                             {calendarDays.map((day, i) => {
-                                const dayEvents = getEventsForDay(day);
-                                const isToday = day && new Date().getDate() === day && new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear;
+                                const date = day ? calendarDate(currentYear, currentMonth, day) : null;
+                                const dayEvents = date ? monthEvents.filter(ev => ev.date <= date && (ev.endDate || ev.date) >= date) : [];
+                                const isToday = date === today;
                                 return (
                                     <div key={i} style={{
                                         minHeight: 64, padding: '4px', borderRight: (i + 1) % 7 !== 0 ? '1px solid rgba(255,255,255,0.03)' : 'none',
@@ -187,16 +210,20 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                                             <>
                                                 <div style={{ fontSize: 12, fontWeight: isToday ? 900 : 600, color: isToday ? '#00d4ff' : '#94a3b8', textAlign: 'right', padding: '2px 4px' }}>{day}</div>
                                                 {dayEvents.map(ev => (
-                                                    <div
+                                                    <button
+                                                        type="button"
                                                         key={ev.id}
-                                                        onClick={() => setSelectedEvent(selectedEvent?.id === ev.id ? null : ev)}
+                                                        aria-label={`${ev.name}, ${formatDate(date, fullDate)}`}
+                                                        aria-expanded={selectedEvent?.id === ev.id}
+                                                        aria-controls={selectedEvent?.id === ev.id ? detailId : undefined}
+                                                        onClick={(click) => showDetails(ev, click.currentTarget)}
                                                         style={{
                                                             fontSize: 12, fontWeight: 800, color: '#fff',
-                                                            background: `${ev.color}80`, borderRadius: 3,
+                                                            display: 'block', width: '100%', border: 0, background: `${ev.color}80`, borderRadius: 3,
                                                             padding: '2px 4px', marginTop: 2, cursor: 'pointer',
                                                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                                         }}
-                                                    >{ev.series}</div>
+                                                    >{ev.series}</button>
                                                 ))}
                                             </>
                                         )}
@@ -209,39 +236,43 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
             ) : (
                 /* List View */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+                    {upcomingEvents.length === 0 && <p role="status">No Upcoming Tournaments.</p>}
                     {upcomingEvents.map(ev => (
                         <div key={ev.id} style={{
-                            background: 'rgba(255,255,255,0.02)', border: `1px solid ${interested.has(ev.id) ? `${ev.color}40` : 'rgba(255,255,255,0.06)'}`,
-                            borderRadius: 14, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            cursor: 'pointer',
-                        }} onClick={() => setSelectedEvent(selectedEvent?.id === ev.id ? null : ev)}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                                <div style={{
-                                    width: 40, height: 40, borderRadius: 10, background: `${ev.color}15`,
-                                    border: `1px solid ${ev.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 12, fontWeight: 900, color: ev.color,
-                                }}>{ev.series.substring(0, 3)}</div>
-                                <div>
-                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>{ev.name}</div>
-                                    <div style={{ fontSize: 12, color: '#9aaec3' }}>{ev.series} • {ev.location}</div>
-                                </div>
-                            </div>
-                            <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div>
-                                    <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>${ev.buyIn.toLocaleString()}</div>
-                                    <div style={{ fontSize: 12, color: '#9aaec3' }}>{new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                                </div>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); toggleInterest(ev.id); }}
-                                    style={{
-                                        background: interested.has(ev.id) ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)',
-                                        border: `1px solid ${interested.has(ev.id) ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                                        borderRadius: 8, width: 32, height: 32, cursor: 'pointer',
-                                        color: interested.has(ev.id) ? '#4ade80' : '#64748b', fontSize: 14,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    }}
-                                >{interested.has(ev.id) ? '★' : '☆'}</button>
-                            </div>
+                            background: 'var(--sd-surface)', border: '1px solid var(--sd-line)', borderRadius: 14,
+                            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                        }}>
+                            <button
+                                type="button"
+                                aria-label={`View ${ev.name} Details`}
+                                aria-describedby={`${detailId}-${ev.id}-meta ${detailId}-${ev.id}-cost`}
+                                aria-expanded={selectedEvent?.id === ev.id}
+                                aria-controls={selectedEvent?.id === ev.id ? detailId : undefined}
+                                onClick={(click) => showDetails(ev, click.currentTarget)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, padding: '6px 2px', border: 0, background: 'transparent', textAlign: 'start', font: 'inherit', cursor: 'pointer' }}
+                            >
+                                <span aria-hidden="true" style={{
+                                    width: 40, height: 40, flexShrink: 0, borderRadius: 10, background: `${ev.color}15`,
+                                    border: `1px solid ${ev.color}30`, display: 'grid', placeItems: 'center',
+                                    fontSize: 12, fontWeight: 900, color: 'var(--sd-ice, #94e7ff)',
+                                }}>{ev.series.substring(0, 3)}</span>
+                                <span style={{ flex: 1, minWidth: 0 }}>
+                                    <strong style={{ display: 'block', fontSize: 14, color: '#e2e8f0' }}>{ev.name}</strong>
+                                    <span id={`${detailId}-${ev.id}-meta`} style={{ fontSize: 12, color: '#9aaec3' }}>{ev.series} • {ev.location}</span>
+                                </span>
+                                <span id={`${detailId}-${ev.id}-cost`} style={{ textAlign: 'end' }}>
+                                    <strong style={{ display: 'block', fontSize: 14, color: '#fff' }}>${ev.buyIn.toLocaleString()}</strong>
+                                    <time dateTime={ev.date} style={{ fontSize: 12, color: '#9aaec3' }}>{formatDate(ev.date, { month: 'short', day: 'numeric' })}</time>
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                className="sd-button"
+                                aria-label={`Favorite ${ev.name}`}
+                                aria-pressed={interested.has(ev.id)}
+                                onClick={() => toggleInterest(ev.id)}
+                                style={{ minWidth: 44, minHeight: 44, padding: 0 }}
+                            ><span aria-hidden="true">{interested.has(ev.id) ? '★' : '☆'}</span></button>
                         </div>
                     ))}
                 </div>
@@ -249,7 +280,10 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
 
             {/* Event Detail Panel */}
             {selectedEvent && (
-                <motion.div
+                <motion.section
+                    id={detailId}
+                    aria-labelledby={`${detailId}-title`}
+                    onKeyDown={(key) => { if (key.key === 'Escape') closeDetails(); }}
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     style={{
                         background: 'rgba(0,0,0,0.3)', border: `1px solid ${selectedEvent.color}30`,
@@ -258,44 +292,42 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                 >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                         <div>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: '#e2e8f0' }}>{selectedEvent.name}</div>
+                            <h3 id={`${detailId}-title`} ref={detailTitle} tabIndex={-1} style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#e2e8f0' }}>{selectedEvent.name}</h3>
                             <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{selectedEvent.series} • {selectedEvent.location}</div>
                         </div>
-                        <div style={{ fontSize: 22, fontWeight: 900, color: selectedEvent.color }}>${selectedEvent.buyIn.toLocaleString()}</div>
+                        <button type="button" className="sd-button" onClick={closeDetails} aria-label="Close Event Details">Close</button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 112px), 1fr))', gap: 12, marginBottom: 16 }}>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
-                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Start Date</div>
-                            <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0', marginTop: 4 }}>
-                                {new Date(selectedEvent.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-                            </div>
+                            <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800 }}>Buy-In</div>
+                            <strong>${selectedEvent.buyIn.toLocaleString()}</strong>
                         </div>
+                        {[['Start Date', selectedEvent.date], ['End Date', selectedEvent.endDate]].filter(([, date]) => date).map(([label, date]) => (
+                            <div key={label} style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
+                                <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800 }}>{label}</div>
+                                <time dateTime={date} style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0' }}>{formatDate(date, fullDate)}</time>
+                            </div>
+                        ))}
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
                             <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Prize Pool</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#4ade80', marginTop: 4 }}>{selectedEvent.prizePool}</div>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
                             <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>% Of Bankroll</div>
-                            <div style={{ fontSize: 13, fontWeight: 800, color: bankrollTotal > 0 && (selectedEvent.buyIn / bankrollTotal * 100) > 5 ? '#f87171' : '#e2e8f0', marginTop: 4 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: bankrollTotal > 0 && (selectedEvent.buyIn / bankrollTotal * 100) > 5 ? '#f45142' : '#e2e8f0', marginTop: 4 }}>
                                 {bankrollTotal > 0 ? (selectedEvent.buyIn / bankrollTotal * 100).toFixed(1) : '-'}%
                             </div>
                         </div>
                     </div>
-                    <button
-                        onClick={() => toggleInterest(selectedEvent.id)}
-                        style={{
-                            width: '100%', padding: '12px', borderRadius: 10,
-                            background: interested.has(selectedEvent.id) ? 'rgba(239,68,68,0.1)' : 'linear-gradient(135deg, #22c55e, #16a34a)',
-                            border: interested.has(selectedEvent.id) ? '1px solid rgba(239,68,68,0.2)' : 'none',
-                            color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer',
-                        }}
-                    >{interested.has(selectedEvent.id) ? '✕ Remove from Plan' : '★ Add to Bankroll Plan'}</button>
-                </motion.div>
+                    <button type="button" className="sd-button sd-primary" onClick={() => toggleInterest(selectedEvent.id)}>
+                        {interested.has(selectedEvent.id) ? 'Remove From Plan' : 'Add To Bankroll Plan'}
+                    </button>
+                </motion.section>
             )}
 
             {/* Event count summary */}
             <div style={{ textAlign: 'center', fontSize: 12, color: '#9aaec3' }}>
-                {monthEvents.length} Events In {MONTHS[currentMonth]} • {upcomingEvents.length} Total Upcoming
+                {monthEvents.length} Events In {formatDate(monthStart, { month: 'long' })} • {upcomingEvents.length} Total Upcoming
             </div>
         </div>
     );
