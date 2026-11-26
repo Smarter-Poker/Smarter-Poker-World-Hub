@@ -5,7 +5,7 @@ on:
       verification:
         description: Verification to run
         type: choice
-        options: [authority, catalog]
+        options: [authority, catalog, results-mobile, results-desktop]
         default: authority
       expected_sha:
         description: Exact protected-main and serving Git SHA

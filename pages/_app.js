@@ -1221,7 +1221,7 @@ export default function App({ Component, pageProps }) {
                                     }
                                   >
                                     {!trainingPageOwnsHeader && <UniversalHeader pageDepth={2} />}
-                                    <div className="sp-training-page-stage">
+                                    <div className="sp-training-page-stage smarterdesign">
                                       <Component {...pageProps} />
                                     </div>
                                   </div>

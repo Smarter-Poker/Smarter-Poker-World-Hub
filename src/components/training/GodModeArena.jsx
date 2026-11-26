@@ -1997,10 +1997,10 @@ function GodModeArenaInner({
         )}
         {/* REVIEW HEADER */}
         <div className="sp-arena-review__header" style={styles.reviewHeader}>
-          <button onClick={onExit} style={styles.reviewBackBtn}>
+          <button type="button" className="sd-button" onClick={onExit} style={styles.reviewBackBtn}>
             ← Back
           </button>
-          <div className="sp-arena-review__title" style={styles.reviewTitle}>Session Review</div>
+          <h1 className="sp-arena-review__title sd-section-title" style={{ ...styles.reviewTitle, margin: 0 }}>Session Results</h1>
           <div
             style={{
               fontSize: 12,
@@ -2225,7 +2225,7 @@ function GodModeArenaInner({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 22, color: '#fbbf24' }}>◆</span>
+                  <span style={{ fontSize: 22, color: 'var(--sd-ice)' }}>◆</span>
                   <div>
                     <div
                       style={{
@@ -2241,7 +2241,7 @@ function GodModeArenaInner({
                       style={{
                         fontSize: 18,
                         fontWeight: 900,
-                        color: '#fbbf24',
+                        color: 'var(--sd-ice)',
                         fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                       }}
                     >
@@ -2269,7 +2269,7 @@ function GodModeArenaInner({
                           border: '1px solid rgba(139, 92, 246, 0.3)',
                           fontSize: 12,
                           fontWeight: 700,
-                          color: '#a78bfa',
+                          color: 'var(--sd-ice)',
                         }}
                       >
                         {mult}x LEVEL BONUS
@@ -2316,6 +2316,7 @@ function GodModeArenaInner({
             )}
             <button
               type="button"
+              className={levelPassed ? 'sd-button' : 'sd-button sd-primary'}
               onClick={() => retryLevel()}
               style={{
                 flex: '1 1 140px',

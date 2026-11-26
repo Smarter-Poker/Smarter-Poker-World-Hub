@@ -462,8 +462,8 @@ export default function GTOQuestionCard({
                                         marginTop: 20,
                                         background: 'linear-gradient(180deg, #4c7387 0%, #173849 12%, #071722 56%, #02080d 100%)',
                                         boxShadow: 'inset 0 2px rgba(255,255,255,.35), inset 0 -6px rgba(0,0,0,.42), 0 9px 22px rgba(0,0,0,.5), 0 0 18px rgba(34,211,238,.18)',
-                                    }} onClick={onNextHand}>
-                                        Next Question →
+                                    }} className="sd-button sd-primary" data-training-next-decision onClick={onNextHand}>
+                                        {questionNumber >= totalQuestions ? 'See Results' : 'Next Question'}
                                     </button>
                                 )}
                                 <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>

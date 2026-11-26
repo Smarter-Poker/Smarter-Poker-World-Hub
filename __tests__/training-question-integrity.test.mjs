@@ -496,7 +496,7 @@ test('feedback remains until an explicit Next click', () => {
   assert.doesNotMatch(arena, /if\s*\(showFeedback\s*&&\s*e\.key\s*===\s*['"] ['"]\)/);
   assert.match(setup, /feedbackRule:\s*['"]every['"]/);
   assert.match(setup, /autoAdvanceUI:\s*['"]off['"]/);
-  assert.match(table, /Next Question →/);
+  assert.match(table, /data-training-next-decision[\s\S]*?onClick=\{onNextHand\}[\s\S]*?'See Results' : 'Next Question'/);
   assert.match(table, /Select Next When You Are Ready/);
 
   const manualDrills = [

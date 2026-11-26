@@ -432,14 +432,14 @@ export default function TrainingPage() {
           <PullToRefresh onRefresh={refreshDashboard}>
           <main id="main" className="sp-main">
 
-            <section aria-labelledby="hero-h" className="sp-hero" data-tutorial="hero">
+            <section aria-labelledby="hero-h" className="sp-hero sd-masthead" data-tutorial="hero">
               <div className="sp-hero-copy">
                 <h1 id="hero-h" className="sp-hero-title">Training Games</h1>
                 <p className="sp-hero-sub">Practice Poker Decisions And Get Feedback.</p>
 
                 <div className="sp-cta-row">
                   <button
-                    className="sp-cta sp-cta-primary"
+                    className="sp-cta sp-cta-primary sd-button sd-primary"
                     data-start-training-cta="true"
                     onClick={() => playGame(heroGame)}
                     disabled={!heroGame}
@@ -449,14 +449,14 @@ export default function TrainingPage() {
                   {continueTarget && (
                     <button
                       type="button"
-                      className="sp-cta sp-cta-secondary sp-cta-continue"
+                      className="sp-cta sp-cta-secondary sp-cta-continue sd-button"
                       data-continue-training-cta="true"
                       onClick={() => playGame(continueTarget.game, continueTarget.preset)}
                     >
                       <Play size={16} aria-hidden /> Continue Training ({continueTarget.gameName})
                     </button>
                   )}
-                  <button className="sp-cta sp-cta-secondary" onClick={browseTrainingLibrary}>
+                  <button className="sp-cta sp-cta-secondary sd-button" onClick={browseTrainingLibrary}>
                     <Shuffle size={18} aria-hidden /> Pick A Different Drill
                   </button>
                 </div>

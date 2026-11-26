@@ -11218,7 +11218,8 @@ function UniversalDynamicTable({
                         {onNextHand ? (
                             <>
                                 <motion.button
-                                    className="sp-training-next-button"
+                                    className="sp-training-next-button sd-button sd-primary"
+                                    data-training-next-decision
                                     data-next-hand-prefetched={String(nextHandPrefetched)}
                                     onClick={onNextHand}
                                     initial={{ opacity: 0, y: 5 }}
@@ -11235,7 +11236,7 @@ function UniversalDynamicTable({
                                         background: isMultiStreetActive
                                             ? 'linear-gradient(180deg, rgba(251, 146, 60, 0.25) 0%, rgba(251, 146, 60, 0.08) 100%)'
                                             : 'linear-gradient(180deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.06) 100%)',
-                                        color: isMultiStreetActive ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)',
+                                        color: 'var(--sd-text)',
                                         fontSize: 15, fontWeight: 800, cursor: 'pointer',
                                         letterSpacing: 0.8, fontFamily: "'Inter', -apple-system, sans-serif",
                                         boxShadow: isMultiStreetActive
@@ -11243,7 +11244,7 @@ function UniversalDynamicTable({
                                             : '0 0 10px rgba(34,197,94,0.12)',
                                     }}
                                 >
-                                    {isMultiStreetActive ? 'Next - Continue Hand →' : 'Next Question →'}
+                                    {isMultiStreetActive ? 'Continue Hand' : questionNumber >= totalQuestions ? 'See Results' : 'Next Question'}
                                 </motion.button>
                                 {!isMultiStreetActive && lastQuestionRef.current && (
                                     <motion.button
