@@ -12,7 +12,7 @@
  * Modal behaviour (Escape, backdrop tap, aria-modal, focus return, scroll lock) comes from the shared
  * paKit BottomSheet so there is exactly one dialog implementation across Personal Assistant.
  */
-import React, { useCallback, useDeferredValue, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { BottomSheet, PAStyles, Segmented } from '../sandbox/paKit';
 import { T, F, S, R, DISPLAY_FONT, btn, pill } from '../sandbox/paTokens';
@@ -29,6 +29,7 @@ export { buildLiveSpotHandHistory, detectExternalHandFormat };
 
 const AUDIT_ENDPOINT = '/api/training/audit-hand-history';
 const MAX_PASTE_CHARS = 800000;
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB safe limit
 const REQUEST_TIMEOUT_MS = 60000;
 
 const TAB_OPTIONS = [
@@ -83,8 +84,63 @@ const noteStyle = {
 
 function titleCase(value) {
   return String(value || '')
-    .replace(/_/g, ' ')
-    .replace(/[A-Za-z][A-Za-z0-9']*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/\b[a-z]/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
+/**
+ * Pure helper: splits multi-hand hand history text into individual hand blocks.
+ */
+const HAND_START_REGEX = /(?:^|\r?\n\r?\n+)(?=(?:PokerStars\s+(?:Zoom\s+)?(?:Hand|Game)\s+#|Poker\s+Hand\s+#|(?:ClubGG\s+)?(?:Poker\s+)?Hand\s*#|(?:Game\s+)?Hand\s*#|\*{5}\s*(?:888poker|Pacific\s+Poker|Hand\s+History)|Winamax\s+Poker|GAME\s*#))/i;
+
+export function splitHandHistoryHands(rawText) {
+  if (!rawText || typeof rawText !== 'string') return [];
+  const text = rawText.trim();
+  if (!text) return [];
+
+  const blocks = text.split(HAND_START_REGEX).map((b) => b.trim()).filter(Boolean);
+  if (blocks.length > 1) {
+    return blocks;
+  }
+
+  // Fallback: line-by-line boundary detection
+  const lines = text.split(/\r?\n/);
+  const isHeader = (line) =>
+    /^\s*(?:\*{5}\s*(?:888poker|Pacific|Hand\s+History)|(?:PokerStars\s+(?:Zoom\s+)?(?:Hand|Game)\s+#|Poker\s+Hand\s+#|(?:ClubGG\s+)?(?:Poker\s+)?Hand\s*#|(?:Game\s+)?Hand\s*#|Winamax\s+Poker|GAME\s*#))/i.test(line);
+
+  const collected = [];
+  let current = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (isHeader(line) && current.length > 0) {
+      collected.push(current.join('\n').trim());
+      current = [line];
+    } else {
+      current.push(line);
+    }
+  }
+  if (current.length > 0) {
+    const blk = current.join('\n').trim();
+    if (blk) collected.push(blk);
+  }
+
+  return collected.length > 0 ? collected : [text];
+}
+
+/**
+ * Pure helper: splits multi-hand file into chunks of maxHandsPerChunk hands (default 50).
+ */
+export function splitHandHistoryChunks(rawText, maxHandsPerChunk = 50) {
+  if (!rawText || typeof rawText !== 'string') return [];
+  const hands = splitHandHistoryHands(rawText);
+  if (hands.length === 0) return [];
+  const chunkSize = Math.max(1, maxHandsPerChunk);
+  const chunks = [];
+  for (let i = 0; i < hands.length; i += chunkSize) {
+    chunks.push(hands.slice(i, i + chunkSize).join('\n\n'));
+  }
+  return chunks;
 }
 
 function Field({ id, label, children }) {
@@ -133,6 +189,9 @@ function AuditResult({ result, onDismiss }) {
         </span>
         <span style={pill('neutral')}>{summary.unpricedCount} Unpriced</span>
         <span style={pill('neutral')}>{summary.handsParsed} Hand{summary.handsParsed === 1 ? '' : 's'} Read</span>
+        {summary.unsupportedCount > 0 && (
+          <span style={pill('warn')}>{summary.unsupportedCount} Unsupported</span>
+        )}
         <button type="button" onClick={onDismiss} style={{ ...btn('ghost'), marginLeft: 'auto', minHeight: 44 }} aria-label="Dismiss Audit Result">
           Dismiss
         </button>
@@ -142,7 +201,7 @@ function AuditResult({ result, onDismiss }) {
           No Verified Solver Spot Matched, So No Advice Is Shown. This Spot Is Saved As An Unpriced Coverage Gap Instead Of A Guess.
         </p>
       )}
-      {summary.decisions.length > 0 && (
+      {Array.isArray(summary.decisions) && summary.decisions.length > 0 && (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
           {summary.decisions.map((decision, index) => (
             <li
@@ -178,13 +237,35 @@ export default function LiveSpotQuickEntry({
   onAnalyzed,
 }) {
   const baseId = useId();
+  const triggerRef = useRef(null);
   const [tab, setTab] = useState(initialTab === 'paste' ? 'paste' : 'spot');
   const [spot, setSpot] = useState(DEFAULT_SPOT);
   const [showErrors, setShowErrors] = useState(false);
   const [pasted, setPasted] = useState('');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
+  const [statusAnnouncement, setStatusAnnouncement] = useState('');
+  const [bulkProgress, setBulkProgress] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const requestIdRef = useRef(0);
+  const bulkCancelRef = useRef(false);
+  const bulkAbortRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Focus preservation: remember previously focused element when opened
+  useEffect(() => {
+    if (open && typeof document !== 'undefined') {
+      triggerRef.current = document.activeElement;
+    }
+  }, [open]);
+
+  const handleClose = useCallback(() => {
+    onClose?.();
+    try {
+      triggerRef.current?.focus?.();
+    } catch (_) {}
+  }, [onClose]);
 
   const deferredPaste = useDeferredValue(pasted);
   const detected = useMemo(() => detectExternalHandFormat(deferredPaste), [deferredPaste]);
@@ -195,26 +276,27 @@ export default function LiveSpotQuickEntry({
     setResult(null);
   }, []);
 
-  const runAudit = useCallback(async (text) => {
+  const runAudit = useCallback(async (text, { evidenceScope = 'external_upload', externalSignal = null } = {}) => {
     const requestId = ++requestIdRef.current;
     setRunning(true);
     setResult(null);
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
+    const signal = externalSignal || controller?.signal;
     try {
       const token = await getFreshAccessToken();
       if (!token) {
         if (requestId === requestIdRef.current) setResult({ kind: 'signin' });
-        return;
+        return null;
       }
       const response = await fetch(AUDIT_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ handHistoryText: text }),
-        ...(controller ? { signal: controller.signal } : {}),
+        body: JSON.stringify({ handHistoryText: text, evidenceScope }),
+        ...(signal ? { signal } : {}),
       });
       const payload = await response.json().catch(() => null);
-      if (requestId !== requestIdRef.current) return;
+      if (requestId !== requestIdRef.current) return null;
       if (!response.ok || payload?.success === false) {
         const message = response.status === 422
           ? 'No Supported No-Limit Hold\u2019em Hands Could Be Read From This Text. Nothing Was Saved.'
@@ -224,17 +306,20 @@ export default function LiveSpotQuickEntry({
               ? 'This Hand History Is Too Large. Paste Fewer Hands.'
               : (typeof payload?.error === 'string' && payload.error) || `The Audit Could Not Finish (HTTP ${response.status}).`;
         setResult({ kind: 'error', title: response.status === 422 ? 'Not Supported Yet' : 'Could Not Analyze', message });
-        return;
+        setStatusAnnouncement('Could Not Analyze Hand History.');
+        return null;
       }
       const summary = summarizeLiveSpotAudit(payload);
       setResult({ kind: 'ok', summary });
+      setStatusAnnouncement(`Audit Complete. ${summary.handsParsed} Hand${summary.handsParsed === 1 ? '' : 's'} Read.`);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('pa-data-updated'));
         window.dispatchEvent(new Event('pa-sandbox-updated'));
       }
       onAnalyzed?.(payload, summary);
+      return { payload, summary };
     } catch (error) {
-      if (requestId !== requestIdRef.current) return;
+      if (requestId !== requestIdRef.current) return null;
       setResult({
         kind: 'error',
         title: 'Could Not Analyze',
@@ -242,6 +327,8 @@ export default function LiveSpotQuickEntry({
           ? 'The Audit Took Too Long. Your Connection May Be Slow, So Try Again.'
           : 'The Audit Request Failed. Check Your Connection And Try Again.',
       });
+      setStatusAnnouncement('The Audit Request Failed.');
+      return null;
     } finally {
       if (timer) clearTimeout(timer);
       if (requestId === requestIdRef.current) setRunning(false);
@@ -252,7 +339,8 @@ export default function LiveSpotQuickEntry({
     event?.preventDefault?.();
     setShowErrors(true);
     if (!built.ok || running) return;
-    runAudit(built.text);
+    setStatusAnnouncement('Analyzing Live Spot. Logged As Self-Reported Live Study.');
+    runAudit(built.text, { evidenceScope: 'self_reported_live' });
   };
 
   const submitPaste = (event) => {
@@ -262,7 +350,139 @@ export default function LiveSpotQuickEntry({
       setResult({ kind: 'error', title: 'Too Large', message: 'This Hand History Is Too Large. Paste Fewer Hands.' });
       return;
     }
-    runAudit(pasted);
+    setStatusAnnouncement('Analyzing Pasted Hand History.');
+    runAudit(pasted, { evidenceScope: 'external_upload' });
+  };
+
+  // Bulk .txt file upload handler
+  const processBulkFile = useCallback(async (file) => {
+    if (!file) return;
+    if (file.size > MAX_FILE_BYTES) {
+      setResult({
+        kind: 'error',
+        title: 'File Too Large',
+        message: 'This File Exceeds The 5MB Limit. Upload A Smaller Batch.',
+      });
+      setStatusAnnouncement('File Exceeds The 5MB Limit.');
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const chunks = splitHandHistoryChunks(text, 50);
+      if (chunks.length === 0) {
+        setResult({
+          kind: 'error',
+          title: 'No Hands Found',
+          message: 'No Valid Hand Histories Could Be Read From This File.',
+        });
+        setStatusAnnouncement('No Valid Hand Histories Found In File.');
+        return;
+      }
+
+      // Single chunk shortcut
+      if (chunks.length === 1) {
+        setPasted(text);
+        setStatusAnnouncement('File Loaded. Analyzing Hands.');
+        runAudit(chunks[0], { evidenceScope: 'external_upload' });
+        return;
+      }
+
+      // Sequential batch execution
+      bulkCancelRef.current = false;
+      const totalBatches = chunks.length;
+      setBulkProgress({
+        active: true,
+        currentBatch: 1,
+        totalBatches,
+      });
+
+      const combinedSummary = {
+        verifiedCount: 0,
+        unpricedCount: 0,
+        handsParsed: 0,
+        unsupportedCount: 0,
+        hasVerifiedAdvice: false,
+        decisions: [],
+      };
+
+      for (let i = 0; i < chunks.length; i++) {
+        if (bulkCancelRef.current) {
+          setStatusAnnouncement('Audit Cancelled By Player.');
+          setResult({
+            kind: 'error',
+            title: 'Audit Cancelled',
+            message: `Bulk Audit Cancelled After ${i} Of ${totalBatches} Batches.`,
+          });
+          break;
+        }
+
+        const batchNum = i + 1;
+        setBulkProgress({
+          active: true,
+          currentBatch: batchNum,
+          totalBatches,
+        });
+        setStatusAnnouncement(`Auditing Batch ${batchNum} Of ${totalBatches}`);
+
+        const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        bulkAbortRef.current = ctrl;
+
+        const outcome = await runAudit(chunks[i], {
+          evidenceScope: 'external_upload',
+          externalSignal: ctrl?.signal,
+        });
+
+        if (outcome?.summary) {
+          combinedSummary.verifiedCount += outcome.summary.verifiedCount || 0;
+          combinedSummary.unpricedCount += outcome.summary.unpricedCount || 0;
+          combinedSummary.handsParsed += outcome.summary.handsParsed || 0;
+          if (outcome.summary.hasVerifiedAdvice) combinedSummary.hasVerifiedAdvice = true;
+          if (Array.isArray(outcome.summary.decisions)) {
+            combinedSummary.decisions.push(...outcome.summary.decisions.slice(0, 4));
+          }
+        }
+      }
+
+      setBulkProgress(null);
+      if (!bulkCancelRef.current) {
+        setResult({ kind: 'ok', summary: combinedSummary });
+        setStatusAnnouncement(`Finished Auditing ${combinedSummary.handsParsed} Hands Across ${totalBatches} Batches.`);
+      }
+    } catch (err) {
+      setBulkProgress(null);
+      setResult({
+        kind: 'error',
+        title: 'Upload Failed',
+        message: 'Could Not Read Or Audit The Selected File.',
+      });
+      setStatusAnnouncement('Could Not Read File.');
+    }
+  }, [runAudit]);
+
+  const handleCancelBulk = useCallback(() => {
+    bulkCancelRef.current = true;
+    try {
+      bulkAbortRef.current?.abort();
+    } catch (_) {}
+    setBulkProgress(null);
+  }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processBulkFile(file);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processBulkFile(file);
+    }
   };
 
   const pasteBlocked = !pasted.trim() || detected.supported === false;
@@ -271,7 +491,7 @@ export default function LiveSpotQuickEntry({
   return (
     <BottomSheet
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Log A Live Spot"
       subtitle="Quick Spot Or Pasted Hand History"
       closeLabel="Close Live Spot Logger"
@@ -279,6 +499,25 @@ export default function LiveSpotQuickEntry({
       maxWidth={640}
     >
       <PAStyles />
+      {/* Live announcement region for screen readers */}
+      <div
+        role="status"
+        aria-live="polite"
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        {statusAnnouncement}
+      </div>
+
       <div style={{ display: 'grid', gap: 14 }} data-live-spot-quick-entry="true">
         <Segmented
           idPrefix="live-spot-tab"
@@ -379,12 +618,105 @@ export default function LiveSpotQuickEntry({
             <button type="submit" disabled={running} style={{ ...btn('primary', { block: true, disabled: running }), fontFamily: DISPLAY_FONT }}>
               {running ? 'Analyzing…' : 'Analyze Live Spot'}
             </button>
+            <p style={{ ...noteStyle, color: '#9eb4c8', fontSize: 12 }}>
+              Logged As Self-Reported Live Study · Kept Separate From Club Arena Live Verification
+            </p>
             <p style={noteStyle}>
               Only No-Limit Hold{'\u2019'}em Spots Are Checked. Anything Without A Verified Solver Match Is Saved As Unpriced, Never Guessed.
             </p>
           </form>
         ) : (
           <form onSubmit={submitPaste} noValidate style={{ display: 'grid', gap: 12 }} aria-label="Paste External Hand History">
+            {/* File Dropzone & Picker for Bulk Upload */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={handleDrop}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '16px 12px',
+                borderRadius: R.sm,
+                border: `2px dashed ${isDragOver ? '#56d8ff' : '#253e57'}`,
+                background: isDragOver ? 'rgba(8, 124, 250, 0.12)' : T.surface2,
+                textAlign: 'center',
+              }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.hh,.log"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+                id={id('file-input')}
+                aria-label="Upload Hand History File"
+              />
+              <span style={{ fontSize: F.bodySm, color: T.text, fontWeight: 700 }}>
+                Upload .Txt Hand History File
+              </span>
+              <span style={{ fontSize: F.caption, color: '#9eb4c8' }}>
+                Select Or Drop PokerStars, GGPoker, ACR, Or ClubGG .Txt Files (Up To 5MB)
+              </span>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={running || bulkProgress?.active}
+                style={{ ...btn('secondary'), minHeight: 44, padding: '8px 16px', cursor: 'pointer' }}
+              >
+                Choose .Txt File
+              </button>
+            </div>
+
+            {/* Live Progress Region During Multi-Batch Audit */}
+            {bulkProgress?.active && (
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  padding: 12,
+                  borderRadius: R.sm,
+                  background: '#07111c',
+                  border: '1px solid #56d8ff',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ color: '#83deff', fontSize: F.bodySm }}>
+                    Auditing Batch {bulkProgress.currentBatch} Of {bulkProgress.totalBatches}
+                  </strong>
+                  <button
+                    type="button"
+                    onClick={handleCancelBulk}
+                    style={{ ...btn('ghost'), minHeight: 44, color: T.danger }}
+                    aria-label="Cancel Bulk Audit"
+                  >
+                    Cancel Audit
+                  </button>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-valuenow={Math.round((bulkProgress.currentBatch / bulkProgress.totalBatches) * 100)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  style={{ width: '100%', height: 6, background: '#06111e', borderRadius: 3, overflow: 'hidden' }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.round((bulkProgress.currentBatch / bulkProgress.totalBatches) * 100)}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #087cfa, #56d8ff)',
+                      transition: 'width 0.2s ease',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <Field id={id('paste')} label="Hand History Text">
               <textarea
                 id={id('paste')}
@@ -418,7 +750,7 @@ export default function LiveSpotQuickEntry({
               </p>
             )}
 
-            <button type="submit" disabled={pasteBlocked || running} style={{ ...btn('primary', { block: true, disabled: pasteBlocked || running }), fontFamily: DISPLAY_FONT }}>
+            <button type="submit" disabled={pasteBlocked || running || bulkProgress?.active} style={{ ...btn('primary', { block: true, disabled: pasteBlocked || running || bulkProgress?.active }), fontFamily: DISPLAY_FONT }}>
               {running ? 'Analyzing…' : 'Analyze Hand History'}
             </button>
           </form>

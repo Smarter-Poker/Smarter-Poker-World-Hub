@@ -628,10 +628,10 @@ export default function QuickSpotDrill({
         setStreak(prev => (locked.correct ? prev + 1 : 0));
         if (!locked.correct) recordMiss(graded, locked.pick);
         setAnnouncement(locked.timedOut
-            ? `Time up. The solver prefers ${graded?.correct_answer || 'another line'}.`
+            ? `Time Expired · The Solver Prefers ${graded?.correct_answer || 'Another Line'}.`
             : locked.correct
-                ? 'Correct · this action is inside the solver range.'
-                : `Incorrect. You picked ${locked.pick}; the solver prefers ${graded?.correct_answer}.`);
+                ? 'Correct · This Action Is Inside The Solver Range.'
+                : `Incorrect · You Picked ${locked.pick}; The Solver Prefers ${graded?.correct_answer}.`);
         try { navigator.vibrate?.(locked.correct ? 10 : 30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         persistResult(graded, locked.timedOut ? 'timeout' : locked.pick, locked.correct);
     }, [persistResult, recordMiss]);
@@ -836,7 +836,7 @@ export default function QuickSpotDrill({
             ) : null}
         >
             <PAStyles />
-            <span className="pa-vh" role="status" aria-live="polite">{announcement}</span>
+            <span className="pa-vh" role="status" aria-live="polite" data-testid="drill-outcome-announcement">{announcement}</span>
 
             {practiceDisclosure && !loading && !loadError && (
                 <div

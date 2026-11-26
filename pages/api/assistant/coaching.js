@@ -94,6 +94,30 @@ async function readReviewsWithBaseline(supabase, userId) {
   return ownerRead(supabase, 'leak_review_state', legacySelect, userId, query => query.order('due_at', { ascending: true }).limit(500));
 }
 
+async function readHandAuditDecisions(supabase, userId) {
+  const modernSelect = 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at, stack_depth_bb, evidence_scope';
+  const legacySelect = 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at';
+  const res = await supabase
+    .from('hand_audit_decisions')
+    .select(modernSelect)
+    .eq('user_id', userId)
+    .like('solver_source', '%|hand-audit-v3')
+    .order('audited_at', { ascending: false })
+    .limit(DECISION_WINDOW_LIMIT);
+  if (!res.error) return res.data || [];
+  if (!isMissingSchema(res.error)) throw res.error;
+  return ownerRead(supabase, 'hand_audit_decisions', legacySelect, userId, query => query.like('solver_source', '%|hand-audit-v3').order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT));
+}
+
+async function readPreferences(supabase, userId) {
+  const modernSelect = 'saved_view, analysis_depth, panel_layout, retention_days, last_retention_run_at, weekly_digest_opt_in, updated_at';
+  const legacySelect = 'saved_view, analysis_depth, panel_layout, retention_days, last_retention_run_at, updated_at';
+  const res = await supabase.from('pa_coaching_preferences').select(modernSelect).eq('user_id', userId).maybeSingle();
+  if (!res.error) return res;
+  if (!isMissingSchema(res.error)) throw res.error;
+  return supabase.from('pa_coaching_preferences').select(legacySelect).eq('user_id', userId).maybeSingle();
+}
+
 
 async function readLiveTableState(supabase, userId) {
   try {
@@ -205,11 +229,11 @@ async function attachHandPlayTimes(supabase, decisions, { reviews, sessionWindow
 async function readWorkspace(supabase, userId) {
   const [leakRows, decisions, reviews, goals, feedback, preferenceResult, auditResult, activeAuditResult] = await Promise.all([
     ownerRead(supabase, 'user_leaks', '*', userId, query => query.order('updated_at', { ascending: false }).limit(500)),
-    ownerRead(supabase, 'hand_audit_decisions', 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at', userId, query => query.like('solver_source', '%|hand-audit-v3').order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT)),
+    readHandAuditDecisions(supabase, userId),
     readReviewsWithBaseline(supabase, userId),
     ownerRead(supabase, 'pa_coaching_goals', 'id, leak_id, title, metric, target_value, current_value, status, due_at, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(100)),
     ownerRead(supabase, 'pa_coach_feedback', 'id, leak_id, decision_key, feedback_type, note, status, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(50)),
-    supabase.from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout, retention_days, last_retention_run_at, updated_at').eq('user_id', userId).maybeSingle(),
+    readPreferences(supabase, userId),
     supabase.from('pa_leak_audit_jobs').select('id, status, progress, result, reconciliation, completed_at, created_at').eq('user_id', userId).eq('status', 'completed').order('completed_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('pa_leak_audit_jobs').select('id, status, progress, created_at').eq('user_id', userId).in('status', ['queued', 'running']).order('created_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
@@ -227,7 +251,7 @@ async function readWorkspace(supabase, userId) {
         ? `${activeAuditHands.toLocaleString()} hands scanned · ${activeAuditDecisions.toLocaleString()} decisions checked. You can safely leave and return later.`
         : 'Your hand audit is queued on the server. You can safely leave and return later.')
     : null;
-  const baseDecisions = decisions.map(row => ({ ...row, evidence_scope: 'club_arena' }));
+  const baseDecisions = decisions.map(row => ({ ...row, evidence_scope: row.evidence_scope || 'club_arena' }));
   const [liveTable, sessionWindow] = await Promise.all([
     readLiveTableState(supabase, userId),
     readLatestSessionWindow(supabase, userId),
@@ -258,9 +282,25 @@ async function readWorkspace(supabase, userId) {
   snapshot.coverage.windowLimited = ownedDecisions.length >= DECISION_WINDOW_LIMIT;
   snapshot.coverage.windowLimit = DECISION_WINDOW_LIMIT;
 
+  const rawPrefs = preferenceResult.data || null;
+  const preferences = {
+    saved_view: rawPrefs?.saved_view || 'coach',
+    analysis_depth: rawPrefs?.analysis_depth || 'guided',
+    panel_layout: rawPrefs?.panel_layout || {},
+    retention_days: rawPrefs?.retention_days ?? null,
+    last_retention_run_at: rawPrefs?.last_retention_run_at ?? null,
+    weekly_digest_opt_in: Boolean(rawPrefs?.weekly_digest_opt_in),
+    weeklyDigestOptIn: Boolean(rawPrefs?.weekly_digest_opt_in),
+    ...(rawPrefs?.updated_at ? { updated_at: rawPrefs.updated_at } : {}),
+  };
+
   return {
     snapshot: {
       ...snapshot,
+      preferences: {
+        ...preferences,
+        weeklyDigestOptIn: Boolean(rawPrefs?.weekly_digest_opt_in),
+      },
       activeAuditRunning,
       activeAuditProgressText,
       receipt: receiptFingerprint(snapshot),
@@ -269,7 +309,7 @@ async function readWorkspace(supabase, userId) {
     reviews,
     goals,
     feedback,
-    preferences: preferenceResult.data || { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {}, retention_days: null, last_retention_run_at: null },
+    preferences,
     latestAudit: audit,
     activeAudit,
   };
@@ -337,16 +377,35 @@ async function writePreferences(supabase, userId, body) {
   const panelLayout = body.panelLayout && typeof body.panelLayout === 'object' && !Array.isArray(body.panelLayout)
     ? body.panelLayout : {};
   if (JSON.stringify(panelLayout).length > 4000) throw new RangeError('Panel layout is too large');
-  const { data, error } = await supabase.from('pa_coaching_preferences').upsert({
+
+  const weeklyDigestOptIn = body.weeklyDigestOptIn !== undefined
+    ? Boolean(body.weeklyDigestOptIn)
+    : (body.weekly_digest_opt_in !== undefined ? Boolean(body.weekly_digest_opt_in) : undefined);
+
+  const payload = {
     user_id: userId,
     saved_view: savedView,
     analysis_depth: analysisDepth,
     panel_layout: panelLayout,
     updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' }).select('saved_view, analysis_depth, panel_layout, updated_at').maybeSingle();
-  if (error) throw error;
-  if (!data) throw new Error('Preferences were not saved');
-  return data;
+  };
+  if (weeklyDigestOptIn !== undefined) {
+    payload.weekly_digest_opt_in = weeklyDigestOptIn;
+  }
+
+  let query = supabase.from('pa_coaching_preferences').upsert(payload, { onConflict: 'user_id' });
+  let res = await query.select('saved_view, analysis_depth, panel_layout, weekly_digest_opt_in, updated_at').maybeSingle();
+  if (res.error && isMissingSchema(res.error)) {
+    delete payload.weekly_digest_opt_in;
+    res = await supabase.from('pa_coaching_preferences').upsert(payload, { onConflict: 'user_id' })
+      .select('saved_view, analysis_depth, panel_layout, updated_at').maybeSingle();
+  }
+  if (res.error) throw res.error;
+  if (!res.data) throw new Error('Preferences were not saved');
+  return {
+    ...res.data,
+    weeklyDigestOptIn: Boolean(res.data.weekly_digest_opt_in),
+  };
 }
 
 export default async function handler(req, res) {
