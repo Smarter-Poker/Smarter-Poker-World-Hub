@@ -101,13 +101,14 @@ export default function CategoryPage() {
 
                 <main>
                     <section className="sp-category-hero sd-masthead">
-                        <TrainingGameArt
-                            gameId={heroArtId}
-                            className="sp-category-hero-art"
-                            sizes="(max-width: 700px) 100vw, 1500px"
-                            loading="eager"
-                            fetchPriority="high"
-                        />
+                        <div className="sp-category-hero-art" aria-hidden="true">
+                            <TrainingGameArt
+                                gameId={heroArtId}
+                                sizes="(max-width: 700px) 100vw, 1500px"
+                                loading="eager"
+                                fetchPriority="high"
+                            />
+                        </div>
                         <div className="sp-category-hero-shade" aria-hidden="true" />
                         <button className="sp-category-back sd-button" type="button" onClick={() => router.push('/hub/training')}>
                             <ArrowLeft size={15} aria-hidden="true" /> Training Hub
@@ -211,7 +212,10 @@ export default function CategoryPage() {
                     background: #040d18;
                     box-shadow: inset 0 1px rgba(255,255,255,.13), 0 32px 70px rgba(0,0,0,.72);
                 }
-                .sp-category-hero-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.1) brightness(.8); }
+                .sp-category-hero-art { position: absolute; inset: 0; overflow: hidden; }
+                .sp-category-hero-art :global(picture),
+                .sp-category-hero-art :global(img) { display: block; width: 100%; height: 100%; }
+                .sp-category-hero-art :global(img) { object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.1) brightness(.8); }
                 .sp-category-hero-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(1,4,6,.98) 0%, rgba(1,5,8,.91) 32%, rgba(1,5,8,.42) 62%, rgba(1,4,6,.08) 100%), linear-gradient(0deg, rgba(0,3,5,.76), transparent 45%); }
                 .sp-category-back {
                     position: absolute;
@@ -258,7 +262,7 @@ export default function CategoryPage() {
                 @media (max-width: 768px) {
                     main { width: 100%; padding: 0 0 calc(74px + env(safe-area-inset-bottom, 0px)); }
                     .sp-category-hero { min-height: 0; }
-                    .sp-category-hero-art { height: 100%; object-position: 65% center; }
+                    .sp-category-hero-art :global(img) { object-position: 65% center; }
                     .sp-category-hero-shade { background: linear-gradient(90deg, rgba(4,13,24,.98), rgba(4,13,24,.7) 65%, rgba(4,13,24,.25)), linear-gradient(0deg, #040d18 12%, transparent 90%); }
                     .sp-category-back { top: 14px; left: 13px; }
                     .sp-category-copy { width: auto; padding: 62px 16px 24px; }

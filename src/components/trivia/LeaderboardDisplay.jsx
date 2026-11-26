@@ -84,11 +84,11 @@ export default function LeaderboardDisplay({
     const currentUserInList = rows.some(e => e?.user_id && e.user_id === currentUserId);
     const showPinnedUserRow = Boolean(currentUserId && currentUserEntry && !currentUserInList);
 
-    // Rank inks are the master's own: gold, silver, lit blue, then muted.
+    // Rank inks follow #SMARTERDESIGN: ice blue, silver, white, then muted.
     const getRankInk = (rank) => {
-        if (rank === 1) return 'tc-ink--gold';
+        if (rank === 1) return 'tc-ink--blue';
         if (rank === 2) return 'tc-ink--silver';
-        if (rank === 3) return 'tc-ink--blue';
+        if (rank === 3) return 'tc-ink--white';
         return 'tc-ink--muted';
     };
 
@@ -142,7 +142,7 @@ export default function LeaderboardDisplay({
                         {diamonds > 0 && (
                             <span className="trivia-lb-diamonds">
                                 <span className="trivia-lb-datum-label">Diamonds</span>
-                                <span className="tc-ink--gold">{formatTriviaDisplayNumber(diamonds)}</span>
+                                <span className="tc-ink--blue">{formatTriviaDisplayNumber(diamonds)}</span>
                             </span>
                         )}
                     </div>

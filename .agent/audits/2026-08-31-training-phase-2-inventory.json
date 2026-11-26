@@ -7524,6 +7524,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -7553,6 +7554,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -7587,6 +7589,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -7608,6 +7611,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -7637,6 +7641,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -7671,6 +7676,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -7684,6 +7690,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -7703,6 +7710,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -7711,6 +7719,7 @@
         }
       },
       "existingTests": [
+        "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
@@ -32514,7 +32523,7 @@
         {
           "element": "button",
           "name": "Training Hub",
-          "line": 112,
+          "line": 113,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32524,7 +32533,7 @@
         {
           "element": "button",
           "name": "Play Now",
-          "line": 145,
+          "line": 146,
           "handler": "() => playGame(featuredGame)",
           "destination": null,
           "type": "button",
@@ -82952,11 +82961,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:112:2",
+      "id": "pages/hub/training/category/[categoryId].js:113:2",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Training Hub",
-      "line": 112,
+      "line": 113,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -82965,11 +82974,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:145:3",
+      "id": "pages/hub/training/category/[categoryId].js:146:3",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Play Now",
-      "line": 145,
+      "line": 146,
       "handler": "() => playGame(featuredGame)",
       "destination": null,
       "type": "button",
@@ -94979,6 +94988,7 @@
         }
       ],
       "tests": [
+        "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",

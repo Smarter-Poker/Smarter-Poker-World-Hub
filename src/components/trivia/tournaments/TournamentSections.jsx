@@ -68,7 +68,6 @@ function stateLabel(state) {
 function valueInk(state) {
     if (['open', 'entered', 'advance', 'champion', 'paid', 'refunded'].includes(state)) return 'green';
     if (['cancelled', 'refund', 'eliminated'].includes(state)) return 'red';
-    if (['countdown', 'settling', 'waiting'].includes(state)) return 'gold';
     return 'blue';
 }
 
@@ -144,11 +143,11 @@ export function TournamentEventLedger({ tournament, summary, nowMs, onReminder, 
                 rows={[
                     { label: 'Official Start', value: formatOfficialStart(tournament), wrap: true },
                     { label: 'Your Local Time', value: formatLocalTime(tournament.startsAt), wrap: true },
-                    closesIn !== null && rulesState === 'open' ? { label: 'Registration Closes In', value: formatCountdown(closesIn), ink: 'gold' } : null,
-                    startsIn !== null && startsIn > 0 ? { label: 'Starts In', value: formatCountdown(startsIn), ink: 'gold' } : null,
+                    closesIn !== null && rulesState === 'open' ? { label: 'Registration Closes In', value: formatCountdown(closesIn), ink: 'blue' } : null,
+                    startsIn !== null && startsIn > 0 ? { label: 'Starts In', value: formatCountdown(startsIn), ink: 'blue' } : null,
                     { label: 'Entry', value: `${exactDiamonds(tournament.entryFee)} Diamonds` },
                     { label: 'Rake', value: `${exactDiamonds(tournament.rakePerEntry)} Diamond${Number(tournament.rakePerEntry) === 1 ? '' : 's'}` },
-                    { label: 'Estimated Prize Pool', value: `${exactDiamonds(tournament.estimatedPrizePool)} Diamonds`, ink: 'gold' },
+                    { label: 'Estimated Prize Pool', value: `${exactDiamonds(tournament.estimatedPrizePool)} Diamonds`, ink: 'blue' },
                     { label: 'Human Field', value: exactDiamonds(tournament.humansEntered) },
                     { label: 'Smarter Horses', value: `${exactDiamonds(tournament.horsesEntered)} / ${exactDiamonds(tournament.horseTarget)}`, ink: 'blue' },
                     { label: 'Capacity', value: exactDiamonds(tournament.bracketCapacity) },
@@ -219,7 +218,7 @@ export function TournamentMyRun({ tournament, myRun, receipt, currentMatch, nowM
                 <TournamentStateBanner
                     title="Run Refresh Delayed"
                     message="Your Entry Is Confirmed. The Tournament Desk Is Reconnecting To Your Server-Owned Run; No New Entry Can Be Created From This State."
-                    tone="gold"
+                    tone="blue"
                 />
             ) : (
                 <>
@@ -229,12 +228,12 @@ export function TournamentMyRun({ tournament, myRun, receipt, currentMatch, nowM
                         rows={[
                             { label: 'Player', value: participantLabel(myRun.entrant, 'You'), wrap: true },
                             myRun.entrant?.seed ? { label: 'Seed', value: exactDiamonds(myRun.entrant.seed) } : null,
-                            myRun.entrant?.rank ? { label: 'Rank', value: exactDiamonds(myRun.entrant.rank), ink: 'gold' } : null,
+                            myRun.entrant?.rank ? { label: 'Rank', value: exactDiamonds(myRun.entrant.rank), ink: 'blue' } : null,
                             current?.roundNumber ? { label: 'Round', value: exactDiamonds(current.roundNumber) } : null,
                             opponent ? { label: 'Opponent', value: participantLabel(opponent), wrap: true, ink: opponent.participantKind === 'horse' ? 'blue' : undefined } : null,
                             current?.seat ? { label: 'Answered', value: exactDiamonds(current.seat.answered) } : null,
-                            opens !== null && opens > 0 ? { label: 'Round Opens In', value: formatCountdown(opens), ink: 'gold' } : null,
-                            deadline !== null ? { label: 'Server Deadline', value: formatCountdown(deadline), ink: deadline <= 30 ? 'red' : 'gold' } : null,
+                            opens !== null && opens > 0 ? { label: 'Round Opens In', value: formatCountdown(opens), ink: 'blue' } : null,
+                            deadline !== null ? { label: 'Server Deadline', value: formatCountdown(deadline), ink: deadline <= 30 ? 'red' : 'blue' } : null,
                             currentMatchup?.decidedReason ? { label: 'Decision', value: toTitleCase(currentMatchup.decidedReason.replace(/_/g, ' ')), wrap: true } : null,
                             receipt?.payout ? { label: 'Payout', value: `${exactDiamonds(receipt.payout.amount)} Diamonds`, ink: 'green' } : null,
                             receipt?.refund ? { label: 'Refund', value: `${exactDiamonds(receipt.refund.amount)} Diamonds`, ink: 'green' } : null,
@@ -247,8 +246,8 @@ export function TournamentMyRun({ tournament, myRun, receipt, currentMatch, nowM
                         </div>
                     ) : null}
                     {viewState === 'advance' ? <p className="tt-run__notice tc-ink--green">Your Next Round Will Open From The Server Schedule.</p> : null}
-                    {viewState === 'waiting' ? <p className="tt-run__notice tc-ink--gold">Your Seat Is Recorded. The Server Is Waiting For The Opponent Or Round Decision.</p> : null}
-                    {viewState === 'settling' ? <p className="tt-run__notice tc-ink--gold">The Result Is Locked While The Settlement Receipt Is Prepared.</p> : null}
+                    {viewState === 'waiting' ? <p className="tt-run__notice tc-ink--blue">Your Seat Is Recorded. The Server Is Waiting For The Opponent Or Round Decision.</p> : null}
+                    {viewState === 'settling' ? <p className="tt-run__notice tc-ink--blue">The Result Is Locked While The Settlement Receipt Is Prepared.</p> : null}
                     {viewState === 'refund' ? <p className="tt-run__notice tc-ink--red">This Event Was Cancelled. Every Stored Entry Is Refunded Through The Original Tournament Ledger.</p> : null}
                     <RunHistory history={myRun.history} />
                 </>
@@ -309,7 +308,7 @@ export function TournamentBracketViewport({ bracket, summary, myRun, loading, er
                                 <Seat seat={matchup.seats?.[0]} winnerEntrantId={matchup.winnerEntrantId} />
                                 <span className="tt-matchup__versus">{matchup.isBye ? 'Bye' : 'Vs'}</span>
                                 <Seat seat={matchup.seats?.[1]} winnerEntrantId={matchup.winnerEntrantId} />
-                                <span className={`tt-matchup__status tc-ink--${matchup.status === 'resolved' ? 'green' : matchup.status === 'ready' ? 'gold' : 'muted'}`}>{pathIds.has(matchup.matchupId) ? 'Your Path: ' : ''}{toTitleCase(matchup.status)}</span>
+                                <span className={`tt-matchup__status tc-ink--${matchup.status === 'resolved' ? 'green' : matchup.status === 'ready' ? 'blue' : 'muted'}`}>{pathIds.has(matchup.matchupId) ? 'Your Path: ' : ''}{toTitleCase(matchup.status)}</span>
                             </li>
                         ))}
                     </ol>
@@ -348,7 +347,7 @@ export function TournamentFieldList({ field, loading, error, query, kind, onQuer
                             <li key={item.entrantId}>
                                 <span className={item.participantKind === 'horse' ? 'tc-ink--blue' : 'tc-ink--silver'}>{participantLabel(item)}</span>
                                 <span>{item.seed ? `Seed ${exactDiamonds(item.seed)}` : 'Awaiting Seed'}</span>
-                                <strong className={item.status === 'eliminated' ? 'tc-ink--red' : item.status === 'champion' ? 'tc-ink--gold' : 'tc-ink--green'}>{toTitleCase(item.status)}</strong>
+                                <strong className={item.status === 'eliminated' ? 'tc-ink--red' : item.status === 'champion' ? 'tc-ink--blue' : 'tc-ink--green'}>{toTitleCase(item.status)}</strong>
                             </li>
                         ))}
                     </ol>
@@ -368,7 +367,7 @@ export function TournamentResults({ results, summary, loading, error, onPage, on
     return (
         <section className="tt-results tt-section" aria-labelledby="tt-results-title">
             <h2 id="tt-results-title" className="tc-label">Official Results</h2>
-            {summary?.result?.champion ? <p className="tt-champion tc-ink--gold">Champion: {participantLabel(summary.result.champion)}</p> : null}
+            {summary?.result?.champion ? <p className="tt-champion tc-ink--blue">Champion: {participantLabel(summary.result.champion)}</p> : null}
             {loading ? <TournamentStateBanner title="Loading Results" tone="muted" /> : null}
             {error ? <TournamentStateBanner title="Results Unavailable" message={error} tone="red" role="alert" action={{ label: 'Retry Results', onClick: onRetry }} /> : null}
             {!loading && !error && (results?.items || []).length === 0 ? <TournamentStateBanner title="Results Not Final" message="Official Standings Post From The Settlement Engine." tone="muted" /> : null}
@@ -392,7 +391,7 @@ export function TournamentReceipt({ receipt, loading, error, signedIn, onSignIn,
             {signedIn && !loading && !error && !receipt ? <TournamentStateBanner title="No Entry Receipt" message="No Entry Was Recorded For This Account In This Event." tone="muted" /> : null}
             {signedIn && receipt ? (
                 <TournamentRows label="Tournament Transaction References" rows={[
-                    { label: 'Entry', value: `${exactDiamonds(receipt.entry?.amount)} Diamonds`, ink: 'gold' },
+                    { label: 'Entry', value: `${exactDiamonds(receipt.entry?.amount)} Diamonds`, ink: 'blue' },
                     { label: 'Entry Reference', value: receipt.entry?.reference, wrap: true, preserveCase: true },
                     { label: 'Funding Source', value: toTitleCase(String(receipt.entry?.fundingSource || '').replace(/_/g, ' ')), wrap: true },
                     { label: 'Journal', value: receipt.entry?.journalId, wrap: true, preserveCase: true },
@@ -445,7 +444,7 @@ export function TournamentQuestionStage({ session, question, secondsLeft, select
             <TournamentRows label="Round Progress" rows={[
                 { label: 'Question', value: `${exactDiamonds(question?.position)} / ${exactDiamonds(progress.total)}` },
                 { label: 'Recorded', value: `${exactDiamonds(progress.complete)} / ${exactDiamonds(progress.total)}` },
-                { label: 'Server Shot Clock', value: Number.isFinite(secondsLeft) ? `${secondsLeft} Seconds` : 'Awaiting Server', ink: secondsLeft <= 5 ? 'red' : 'gold' },
+                { label: 'Server Shot Clock', value: Number.isFinite(secondsLeft) ? `${secondsLeft} Seconds` : 'Awaiting Server', ink: secondsLeft <= 5 ? 'red' : 'blue' },
             ]} />
             {error ? <TournamentStateBanner title="Answer Not Recorded" message={error} tone="red" role="alert" action={{ label: 'Retry From Server', onClick: onRetry }} /> : null}
             <h2 id="tt-question-title" className="tt-question">{toTitleCase(question?.question || 'Opening Question')}</h2>

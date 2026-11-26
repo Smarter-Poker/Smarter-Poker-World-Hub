@@ -237,7 +237,7 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
             </ul>
           </section>
 
-          <FaqSection heading={`${category} Poker Strategy Questions`} items={faqs} />
+          <FaqSection title={`${category} Poker Strategy Questions`} faqs={faqs} />
 
           <section style={styles.section}>
             <h2 style={styles.h2}>Other Poker Strategy Topic Clusters</h2>
