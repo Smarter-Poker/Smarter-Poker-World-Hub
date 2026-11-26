@@ -271,17 +271,7 @@ export default function TrainingArenaPage() {
         router.replace(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
     }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // roadmap #47 — defensive unlock. This route is the SECOND mount point for
-    // GodModeArena (pages/hub/training.js renders it inline as the first), and
-    // it was the one with no safety valve at all: every guard written for the
-    // scroll-lock bug lived on the other page. An arena reached by URL that
-    // failed to release its lock therefore stranded the app with nothing on
-    // this route able to notice.
-    //
-    // Runs on unmount rather than mount: while this page is mounted the arena
-    // is entitled to hold the lock, and clearBodyScrollLockIfUnheld is a no-op
-    // whenever anybody still holds one, so this can only ever free a page that
-    // is genuinely stuck.
+    // Clear a stale body lock on exit when no arena owns it.
     useEffect(() => () => { clearBodyScrollLockIfUnheld(); }, []);
 
     // Resolve game name from TRAINING_LIBRARY
@@ -289,10 +279,21 @@ export default function TrainingArenaPage() {
         ? getGameById(gameId)
         : null;
     const gameName = game?.name || 'Training Game';
-    const startsWithPreset = Boolean(game && !customLaunch.config && !customLaunch.error);
-    const initialConfig = useMemo(() => (
-        customLaunch.config || (startsWithPreset ? resolvePresetForGame(game) : null)
-    ), [customLaunch.config, game, startsWithPreset]);
+    const homePreset = router.query.source === 'training-home'
+        && !['custom', 'pack', 'coopRoom', 'assignment', 'duelToken', 'duelRole', 'syncedHandId']
+            .some((key) => router.query[key] !== undefined);
+    const homeHands = homePreset && /^[1-9][0-9]?$/.test(router.query.hands)
+        ? Number(router.query.hands)
+        : null;
+    const startsWithPreset = Boolean(game && !customLaunch.error && (homePreset || !customLaunch.config));
+    const initialConfig = useMemo(() => {
+        if (!startsWithPreset) return customLaunch.config;
+        return {
+            ...resolvePresetForGame(game),
+            ...customLaunch.config,
+            ...(homeHands && homeHands <= 50 ? { questionsCount: homeHands } : {}),
+        };
+    }, [customLaunch.config, game, startsWithPreset, homeHands]);
     const level = parseInt(queryLevel, 10) || 1;
     useEffect(() => {
         if (!startsWithPreset || !userId || !resolvedSessionId) return;

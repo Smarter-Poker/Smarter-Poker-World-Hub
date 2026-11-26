@@ -49,9 +49,9 @@ test('the hub is built on the phase 0a foundation', () => {
   assert.match(src, /<HubPageShell className="training"/);
   assert.match(src, /<PullToRefresh onRefresh=\{refreshDashboard\}/);
   assert.match(src, /useLoadFailsafe\(dataLoading, setDataLoading\)/);
-  assert.match(src, /useModalHistory\(Boolean\(setupGame\), handleSetupClose\)/);
+  assert.doesNotMatch(src, /SessionSetupModal|GodModeArena/);
   assert.match(src, /const haptic = useHaptics\(\)/);
-  assert.match(src, /const startDrill = useCallback\(\(game\) => \{\s*if \(!game\) return;\s*if \(!requireOnline\(\)\) return;/,
+  assert.match(src, /const playGame = useCallback\(\(game, focus\) => \{\s*if \(!game \|\| !requireOnline\(\)\) return;/,
     'starting a drill checks requireOnline first');
 });
 

@@ -48,9 +48,8 @@ test('Training sessions keep one identity for the entire run', () => {
   const hub = read('pages/hub/training.js');
   const arenaRoute = read('pages/hub/training/arena/[gameId].js');
 
-  assert.match(hub, /const \[arenaSessionId, setArenaSessionId\] = useState\(null\)/);
-  assert.match(hub, /sessionId=\{arenaSessionId\}/);
-  assert.doesNotMatch(hub, /sessionId=\{`session-\$\{Date\.now\(\)\}`\}/);
+  assert.doesNotMatch(hub, /arenaSessionId|<GodModeArena/);
+  assert.match(hub, /pathname: '\/hub\/training\/arena\/\[gameId\]'/);
   assert.match(arenaRoute, /const \[resolvedSessionId, setResolvedSessionId\]/);
   assert.match(arenaRoute, /sessionId=\{resolvedSessionId\}/);
 });

@@ -607,7 +607,20 @@ function main() {
 
   const stateNames = ['loading', 'empty', 'error', 'retry', 'success', 'stale', 'offline', 'authExpiry'];
   const routeCoverage = routes.map((route) => {
-    const reachableFiles = closureFor(route.file, graph.edges);
+    const localFiles = closureFor(route.file, graph.edges);
+    // A dedicated catalog entry renders a single game link. The live arena
+    // owns the loading, authentication and error states after that click.
+    const entrySource = read(join(ROOT, route.file));
+    const gameHref = localFiles.includes('src/components/training/TrainingGameEntry.jsx')
+      ? entrySource.match(/gameHref="(\/hub\/training\/arena\/[^"?]+)\?[^"]+"/)?.[1]
+      : null;
+    const gameId = gameHref?.split('/').pop();
+    const arena = gameId && games.some(game => game.id === gameId)
+      ? routes.find(candidate => candidate.template === '/hub/training/arena/[gameId]')
+      : null;
+    const reachableFiles = arena
+      ? [...new Set([...localFiles, ...closureFor(arena.file, graph.edges)])].sort()
+      : localFiles;
     const reachableRows = reachableFiles.map((file) => sourceRows.find((row) => row.file === file)).filter(Boolean);
     const matchingTests = [...testText.entries()]
       .filter(([file, source]) => source.includes(route.template) || source.includes(route.sample.path.split('?')[0]) || source.includes(route.file) || source.includes(route.file.split('/').pop()))
@@ -628,6 +641,7 @@ function main() {
       file: route.file,
       sample: route.sample,
       reachableFiles,
+      ...(arena ? { gameplayDestination: gameHref } : {}),
       states,
       existingTests: matchingTests,
       uncoveredStates: stateNames.filter((state) => states[state].status === 'coverage-gap'),

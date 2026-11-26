@@ -17,9 +17,7 @@
  * Existing imports preserved so the page slots into the codebase 1:1:
  *   - TRAINING_LIBRARY                      (src/data/TRAINING_LIBRARY)
  *   - useTrainingProgress                    (src/hooks/useTrainingProgress)
- *   - useTrainingStore                       (src/stores/trainingStore)
  *   - LeakService                            (src/services/LeakService)
- *   - GodModeArena (lazy)                    (src/components/training/GodModeArena)
  *   - UniversalHeader                        (src/components/ui)
  *   - SEOHead, PageTransition                (existing)
  *
@@ -30,7 +28,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import dynamic from 'next/dynamic';
 import {
   Play, Shuffle, Target, Clock, Layers, Zap, AlertTriangle, Wrench,
   TrendingUp, Flame, Search, Trophy, DollarSign, Rocket, Brain, Atom,
@@ -56,32 +53,20 @@ import PullToRefresh from '../../src/components/ui/PullToRefresh';
 import { useLoadFailsafe } from '../../src/hooks/useLoadFailsafe';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
-import { useModalHistory } from '../../src/hooks/useModalHistory';
 import toast from '../../src/stores/toastStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
-import { useTrainingStore } from '../../src/stores/trainingStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
-import { normalizeTrainingSessionConfig } from '../../src/lib/training/sessionConfigContract.mjs';
 import {
   resolvePresetForGame,
-  loadTrainingPreferences,
-  saveTrainingPreferences,
-  saveResumableTrainingSession,
   loadResumableTrainingSession,
   buildThreeHandLeakReceipt,
 } from '../../src/lib/training/trainingPresets.mjs';
-import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
 import { analyzeVerifiedTrainingWeaknesses } from '../../src/lib/training/weaknessAnalysis.mjs';
 import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
-
-const GodModeArena = dynamic(() => import('../../src/components/training/GodModeArena'), {
-  ssr: false,
-  loading: () => <ArenaSkeleton />,
-});
 
 const CATEGORY_META = {
   MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#FB923C', glow: 'rgba(251,146,60,0.25)' },
@@ -146,11 +131,6 @@ export default function TrainingPage() {
     toast.error(OFFLINE_TOAST);
     return false;
   }, [online]);
-
-  const showArena    = useTrainingStore(s => s.showArena);
-  const activeGame   = useTrainingStore(s => s.activeGame);
-  const setShowArena = useTrainingStore(s => s.setShowArena);
-  const setActiveGame= useTrainingStore(s => s.setActiveGame);
 
   const { getGameProgress } = useTrainingProgress();
 
@@ -238,89 +218,25 @@ export default function TrainingPage() {
     return () => observer.disconnect();
   }, [moreGamesPending, filtered.length, visibleCardCount]);
 
-  // BUG FIX (TRAIN-SETUP-MODAL-1): originally startDrill mounted the arena
-  // directly. The May 8 training-overhaul handoff (issue #288) called for a
-  // Session Setup pop-up between the tile click and the arena so users can
-  // see their 30-day stats and pick difficulty / timer / training mode
-  // before committing. Setup state lives here in local component state;
-  // existing showArena / activeGame Zustand state is unchanged so the
-  // arena render path below still works identically.
-  const [setupGame, setSetupGame] = useState(null);
-  const [arenaConfig, setArenaConfig] = useState(null);
-  const [arenaSessionId, setArenaSessionId] = useState(null);
   const [resumableSession, setResumableSession] = useState(null);
 
   useEffect(() => {
     setResumableSession(loadResumableTrainingSession(authUser?.id));
-  }, [authUser?.id, showArena]);
+  }, [authUser?.id]);
 
-  const startDrill = useCallback((game) => {
-    if (!game) return;
-    if (!requireOnline()) return;
-    haptic('light');
-    setActiveGame(game);
-    setSetupGame(game);  // show modal; modal will call onStart to flip showArena
-  }, [setActiveGame, requireOnline, haptic]);
-
-  const quickStartDrill = useCallback((game, overrides = null) => {
-    if (!game) return;
-    if (!requireOnline()) return;
-    haptic('light');
-    if (!authUser?.id) {
-      setSetupGame(null);
-      router.push({
-        pathname: '/auth/login',
-        query: { redirect: '/hub/training' },
-      });
-      return;
-    }
-    const savedPrefs = loadTrainingPreferences(game.id, authUser?.id);
-    const mergedPrefs = overrides && typeof overrides === 'object'
-      ? { ...savedPrefs, ...overrides }
-      : savedPrefs;
-    const sessionConfig = normalizeTrainingSessionConfig(mergedPrefs);
-    saveTrainingPreferences(game.id, sessionConfig, authUser?.id);
-    saveResumableTrainingSession(
-      { gameId: game.id, gameName: game.name, ...sessionConfig },
-      authUser?.id,
-    );
-    setResumableSession(loadResumableTrainingSession(authUser?.id));
-
-    const tableCount = parseInt(sessionConfig.tables, 10);
-    if (Number.isFinite(tableCount) && tableCount > 1 && game.id) {
-      setSetupGame(null);
-      router.push({
-        pathname: '/hub/training/multi-table',
-        query: {
-          tables: String(tableCount),
-          game: game.id,
-          difficulty: sessionConfig.difficulty,
-          timer: sessionConfig.timer,
-          scope: sessionConfig.scope,
-          ...(sessionConfig.targetStreet ? { targetStreet: sessionConfig.targetStreet } : {}),
-          autoAdvance: '0',
-          handSelection: sessionConfig.handSelection,
-          speed: 'normal',
-          feedbackRule: 'every',
-        },
-      });
-      return;
-    }
-
-    setActiveGame(game);
-    setArenaConfig(sessionConfig);
-    setArenaSessionId(`session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
-    setSetupGame(null);
-    setShowArena(true);
-  }, [authUser?.id, haptic, requireOnline, router, setActiveGame, setShowArena]);
-
-  const playGame = useCallback((game) => {
+  const playGame = useCallback((game, focus) => {
     if (!game || !requireOnline()) return;
     haptic('light');
-    router.push({
-      pathname: '/hub/training/arena/[gameId]',
-      query: { gameId: game.id, start: '1', source: 'training-home' },
-    });
+    const query = { gameId: game.id, start: '1', source: 'training-home' };
+    if (focus?.variant) query.variant = focus.variant;
+    if (focus?.bettingStructure) query.bettingStructure = focus.bettingStructure;
+    if (focus?.format) query.format = focus.format;
+    if (focus?.targetStreet) query.targetStreet = focus.targetStreet;
+    if (focus?.heroPosition || focus?.targetPositions) {
+      query.position = focus.heroPosition || focus.targetPositions;
+    }
+    if (Number.isInteger(focus?.questionsCount)) query.hands = String(focus.questionsCount);
+    router.push({ pathname: '/hub/training/arena/[gameId]', query });
   }, [haptic, requireOnline, router]);
 
   const heroGame = jarvisPick || TRAINING_LIBRARY[0];
@@ -391,7 +307,7 @@ export default function TrainingPage() {
   // Leak Finder And Sandbox Both Deep-Link Into The Training Center. These
   // Query Parameters Previously Had No Consumer, So The Promised Focused Game
   // Opened An Unfiltered Lobby. Resolve Only Real Library Identifiers, Open The
-  // Existing Session Setup For An Exact Match, And Fall Back To A Visible
+  // Dedicated Arena For An Exact Match, And Fall Back To A Visible
   // Library Search When A Historical Recommendation No Longer Exists.
   useEffect(() => {
     if (!router.isReady) return;
@@ -432,11 +348,7 @@ export default function TrainingPage() {
         ...(['preflop', 'flop', 'turn', 'river'].includes(qStreet) ? { targetStreet: qStreet, scope: 'street' } : {}),
         ...(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(qPos) ? { heroPosition: qPos, targetPositions: qPos } : {}),
       };
-      if (Object.keys(queryOverrides).length > 0) {
-        quickStartDrill(game, queryOverrides);
-      } else {
-        startDrill(game);
-      }
+      playGame(game, queryOverrides);
       return;
     }
     if (game) {
@@ -451,12 +363,7 @@ export default function TrainingPage() {
       setQuery(readable);
       setDebouncedQuery(readable);
     }
-  }, [router.isReady, router.query.autoLaunch, router.query.focus, router.query.category, startDrill]);
-
-  const handleSetupClose = useCallback(() => {
-    setSetupGame(null);
-  }, []);
-  useModalHistory(Boolean(setupGame), handleSetupClose);
+  }, [router.isReady, router.query.autoLaunch, router.query.focus, router.query.category, playGame]);
 
   /* LOAD FAILSAFE (mobile phase 0a). The dashboard and progress hooks own
      their own loading flags; a request that never settles used to pin the
@@ -502,89 +409,9 @@ export default function TrainingPage() {
     setDebouncedQuery('');
   }, []);
 
-  // 2026-07-26 UX FIX: this discarded the prefs the user just picked, so the
-  // arena fell back to its own defaults AND showed a second identical setup
-  // screen (difficulty / timer / mode) before you could play.
-  // roadmap #47 · defensive unlock. The library page is the reported symptom:
-  // it will not scroll. GodModeArena locks body overflow while mounted, and any
-  // path that leaves that lock behind (an unmount whose cleanup did not run, a
-  // stale value restored by the pre-2026-07-26 capture-and-restore version, a
-  // crashed arena) strands this page permanently with no way back short of a
-  // reload. The arena's lock is now reference-counted, but this page is where
-  // the damage shows, so it also refuses to render locked: if no arena is
-  // mounted, no lock may be outstanding.
   useEffect(() => {
-    if (showArena) return;              // the arena is entitled to hold the lock
-    if (typeof window === 'undefined') return;
-    if (scrollLockCount() > 0) return;  // a live locker owns it
-    clearBodyScrollLockIfUnheld();
-  }, [showArena]);
-
-  const handleSetupStart = useCallback((prefs) => {
-    if (!authUser?.id) {
-      setSetupGame(null);
-      router.push({
-        pathname: '/auth/login',
-        query: { redirect: '/hub/training' },
-      });
-      return;
-    }
-    const sessionConfig = normalizeTrainingSessionConfig(prefs);
-    if (setupGame?.id) {
-      saveTrainingPreferences(setupGame.id, sessionConfig, authUser?.id);
-      saveResumableTrainingSession(
-        { gameId: setupGame.id, gameName: setupGame.name, ...sessionConfig },
-        authUser?.id,
-      );
-      setResumableSession(loadResumableTrainingSession(authUser?.id));
-    }
-    // GTOW parity #10. The setup modal offers up to 4 tables, and that choice
-    // used to be handed to GodModeArena's wrapper, which rendered N copies of
-    // the arena with IDENTICAL props · same drill, same userId, same sessionId.
-    // Every copy independently fetched questions, emitted its own SESSION_END
-    // and banked its own diamond reward, so a 4-table session paid out four
-    // times for what the player experienced as one. It also stacked four
-    // full-viewport confetti canvases and four global keydown listeners, so a
-    // single "1" keypress answered all four tables at once.
-    //
-    // /hub/training/multi-table is the real implementation: distinct drills per
-    // table, one combined session, one save. Route there instead of mounting
-    // the broken inline copy. The chosen game leads so the player still gets
-    // the drill they clicked.
-    const tableCount = parseInt(sessionConfig.tables, 10);
-    if (Number.isFinite(tableCount) && tableCount > 1 && setupGame?.id) {
-      setSetupGame(null);
-      router.push({
-        pathname: '/hub/training/multi-table',
-        query: {
-          tables: String(tableCount),
-          game: setupGame.id,
-          difficulty: sessionConfig.difficulty,
-          timer: sessionConfig.timer,
-          scope: sessionConfig.scope,
-          ...(sessionConfig.targetStreet ? { targetStreet: sessionConfig.targetStreet } : {}),
-          autoAdvance: '0',
-          handSelection: sessionConfig.handSelection,
-          // GTOW parity #9 / #6: the arena derives its Auto New Hand delay from
-          // `speed` and its pause behaviour from `feedbackRule`. The single-table
-          // branch below forwards both; this branch dropped them, so every
-          // multi-table session ran Normal speed and "On mistakes" no matter what
-          // the player chose one screen earlier.
-          speed: 'normal',
-          feedbackRule: 'every',
-        },
-      });
-      return;
-    }
-
-    setArenaConfig(sessionConfig);
-    // Session identity must be stable for the entire run. Rendering Date.now()
-    // directly as a prop regenerated it whenever the hub rerendered, which
-    // could split one player's answers and completion event across identities.
-    setArenaSessionId(`session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
-    setSetupGame(null);
-    setShowArena(true);
-  }, [setShowArena, setupGame, router, authUser?.id]);
+    if (scrollLockCount() === 0) clearBodyScrollLockIfUnheld();
+  }, []);
 
   return (
     <PageTransition disableInitialAnimation>
@@ -597,45 +424,13 @@ export default function TrainingPage() {
 
       <GlobalStyle />
 
-      {/* BUG FIX (TRAIN-SETUP-MODAL-1): Session Setup modal · shown between
-          tile click and arena mount. Reads training_dashboard_30day_stats
-          and training_dashboard_last_session RPCs for the YOUR PERFORMANCE
-          card. Persists difficulty / timer / mode in localStorage. */}
-      <SessionSetupModal
-        isOpen={Boolean(setupGame)}
-        game={setupGame}
-        userId={authUser?.id || null}
-        onClose={handleSetupClose}
-        onStart={handleSetupStart}
-      />
-
-      {showArena && activeGame && authUser?.id && (
-        <GodModeArena
-          userId={authUser.id}
-          gameId={activeGame.id}
-          gameName={activeGame.name}
-          level={1}
-          initialConfig={arenaConfig}
-          sessionId={arenaSessionId}
-          onComplete={() => {
-            setShowArena(false);
-            setArenaSessionId(null);
-          }}
-          onExit={() => {
-            setShowArena(false);
-            setArenaSessionId(null);
-          }}
-        />
-      )}
-
-      {!showArena && (
         <HubPageShell className="training" maxWidth={1180} header={<UniversalHeader />}>
           <a href="#main" className="sp-skip">Skip To Main Content</a>
 
           {/* Pull down at the top to re-read the dashboard. Off while the
               session setup sheet is open so a drag inside it cannot fire a
               reload underneath. */}
-          <PullToRefresh onRefresh={refreshDashboard} disabled={Boolean(setupGame)}>
+          <PullToRefresh onRefresh={refreshDashboard}>
           <main id="main" className="sp-main">
 
             <section aria-labelledby="hero-h" className="sp-hero" data-tutorial="hero">
@@ -657,7 +452,7 @@ export default function TrainingPage() {
                       type="button"
                       className="sp-cta sp-cta-secondary sp-cta-continue"
                       data-continue-training-cta="true"
-                      onClick={() => quickStartDrill(continueTarget.game, continueTarget.preset)}
+                      onClick={() => playGame(continueTarget.game, continueTarget.preset)}
                     >
                       <Play size={16} aria-hidden /> Continue Training ({continueTarget.gameName})
                     </button>
@@ -774,7 +569,7 @@ export default function TrainingPage() {
                         window.__spSpeculativePrefetchGameId = fiveMinuteLeakFix.game?.id || 'cash-002';
                       }
                     }}
-                    onClick={() => quickStartDrill(fiveMinuteLeakFix.game, fiveMinuteLeakFix.overrides)}
+                    onClick={() => playGame(fiveMinuteLeakFix.game, fiveMinuteLeakFix.overrides)}
                   >
                     <Zap size={16} aria-hidden /> Start 5-Minute Fix (10 Hands) →
                   </button>
@@ -821,7 +616,7 @@ export default function TrainingPage() {
                 {biggestLeak.recommendedGame ? (
                   <button
                     className="sp-cta sp-cta-secondary sp-cta-warn"
-                    onClick={() => startDrill(biggestLeak.recommendedGame)}
+                    onClick={() => playGame(biggestLeak.recommendedGame)}
                   >
                     <Wrench size={18} aria-hidden /> Train This Spot
                   </button>
@@ -917,7 +712,6 @@ export default function TrainingPage() {
           </PullToRefresh>
 
         </HubPageShell>
-      )}
     </PageTransition>
   );
 }
@@ -1121,17 +915,6 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
         <div className="sp-card-launch"><span>Enter Training Arena</span><ArrowRight size={14} aria-hidden /></div>
       </div>
     </button>
-  );
-}
-
-function ArenaSkeleton() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--sp-ink-2, #94a3b8)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div className="sp-spin" />
-        <div style={{ marginTop: 12 }}>Loading Arena…</div>
-      </div>
-    </div>
   );
 }
 

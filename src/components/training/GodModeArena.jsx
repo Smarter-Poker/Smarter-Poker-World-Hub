@@ -5768,8 +5768,7 @@ function GodModeArena(props) {
   // four tables at once.
   //
   // /hub/training/multi-table is the real implementation — distinct drills per
-  // table, one combined session, one save — and pages/hub/training.js now
-  // routes there when the setup modal's table count is greater than one. This
+  // table, one combined session, one save — and it has a dedicated launcher. This
   // wrapper renders exactly one arena, which is the only thing it was ever able
   // to do correctly.
   //

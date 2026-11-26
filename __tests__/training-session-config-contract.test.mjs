@@ -113,9 +113,9 @@ test('all setup and launch boundaries consume the shared contract', () => {
   assert.match(setup, /title="Target Street"/);
   assert.match(setup, /targetStreet,/);
 
-  assert.match(hub, /const sessionConfig = normalizeTrainingSessionConfig\(prefs\)/);
-  assert.match(hub, /scope: sessionConfig\.scope/);
-  assert.match(hub, /targetStreet: sessionConfig\.targetStreet/);
+  assert.doesNotMatch(hub, /SessionSetupModal|GodModeArena/);
+  assert.match(hub, /query.targetStreet = focus.targetStreet/);
+  assert.match(hub, /query.hands = String\(focus.questionsCount\)/);
   assert.match(multiTable, /normalizeTrainingSessionConfig\(\{/);
   assert.match(multiTable, /scope: router\.query\.scope/);
   assert.match(multiTable, /targetStreet: router\.query\.targetStreet/);

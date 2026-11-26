@@ -115,7 +115,7 @@ test('1-tap start flow, preset summary, and progressive disclosures are wired ac
   assert.ok(!hubPage.includes('data-training-preset-summary="true"'), 'Training Home must keep preset details out of the play entry point');
   assert.ok(hubPage.includes('data-start-training-cta="true"'), 'Training Home must provide a 1-tap Start Training CTA');
   assert.ok(!hubPage.includes('data-customize-preset-cta="true"'), 'Training Home must keep setup controls out of the play entry point');
-  assert.ok(hubPage.includes('quickStartDrill'), 'Training Home must support 1-click immediate start without a mandatory setup wall');
+  assert.ok(hubPage.includes('playGame'), 'Training Home must support 1-click immediate start without a mandatory setup wall');
 
   const setupModal = read('src/components/training/SessionSetupModal.jsx');
   assert.ok(setupModal.includes('data-preset-summary-card="true"'), 'SessionSetupModal must display the active preset summary card');
@@ -792,11 +792,11 @@ test('Phase 20 forensic root-cause hardening: Arena clubCoachAssignment hydratio
     'Arena route must accept 9max alongside cash/mtt/spins/hu in rawFormat validation',
   );
 
-  // 2. Training Home (?autoLaunch=) must forward query variant/structure/format/street/position into quickStartDrill
+  // 2. Training Home (?autoLaunch=) must forward query variant/structure/format/street/position into playGame
   const homeSrc = read('pages/hub/training.js');
   assert.ok(
-    homeSrc.includes('quickStartDrill(game, queryOverrides)'),
-    'Training Home ?autoLaunch= must forward queryOverrides (variant, bettingStructure, format, targetStreet, heroPosition) into quickStartDrill',
+    homeSrc.includes('playGame(game, queryOverrides)'),
+    'Training Home ?autoLaunch= must forward queryOverrides (variant, bettingStructure, format, targetStreet, heroPosition) into playGame',
   );
 
   // 3. useGTOTrainer createDeliveryFamilyKey must isolate bettingStructure and format, and allow 9max

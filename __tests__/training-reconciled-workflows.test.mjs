@@ -1476,6 +1476,10 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     'preflop-charts.js', 'quick-warmup.js', 'tournament-prep.js',
     'tilt-guard.js', 'tournament/[id].js',
     'table-wizard.js',
+    'nodelocking.js', 'player-profiles.js', 'villain-range.js', 'frequency-locking.js',
+    'gto-vs-exploitative.js', 'blind-defense.js', 'spr-trainer.js', 'ev-trainer.js',
+    'pot-geometry.js', 'three-way-postflop.js', 'multiway-postflop.js', 'bluff-catcher.js',
+    'range-advisor.js', 'preflop-advisor.js',
   ].map(file => `pages/hub/training/${file}`));
   const allTrainingPagePaths = walkTrainingPages(path.join(ROOT, 'pages/hub/training')).sort();
   let nonRedirectCount = 0;
