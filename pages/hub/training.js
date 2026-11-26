@@ -71,8 +71,6 @@ import {
   saveResumableTrainingSession,
   loadResumableTrainingSession,
   buildThreeHandLeakReceipt,
-  buildSpacedRepetitionDueQueue,
-  evaluateClubArenaStakeReadiness,
 } from '../../src/lib/training/trainingPresets.mjs';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
@@ -806,101 +804,6 @@ export default function TrainingPage() {
               </section>
             )}
 
-            {/* Phase 19: Spaced-Repetition Due Queue & Club Arena Stake-Readiness Passport Strip */}
-            {(() => {
-              const srsQueue = buildSpacedRepetitionDueQueue({
-                sessions: lifetimeSessions || [],
-                variant: fiveMinuteLeakFix?.overrides?.variant || 'nlh',
-              });
-              const stakePassport = evaluateClubArenaStakeReadiness({
-                accuracyPct: Number(stats?.accuracy_this_week_pct) || 82,
-                handsSampled: Number(stats?.hands_this_week) || 120,
-                variant: fiveMinuteLeakFix?.overrides?.variant || 'nlh',
-              });
-              return (
-                <section
-                  aria-label="Spaced Repetition And Stake Readiness"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                    gap: 14,
-                  }}
-                >
-                  <div
-                    data-srs-due-queue="true"
-                    data-srs-due-count={String(srsQueue.totalDueCount)}
-                    data-srs-pack-token={srsQueue.packToken}
-                    style={{
-                      padding: '14px 18px',
-                      borderRadius: 7,
-                      border: '1px solid #688299',
-                      borderTopColor: '#aec0d0',
-                      background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: 10,
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#83deff' }}>
-                        {`Spaced-Repetition Mastery Queue · ${srsQueue.totalDueCount} Spots Due Today`}
-                      </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#f4fbff', marginTop: 3 }}>
-                        {`Long-Term Retention Health: ${srsQueue.retentionHealthPct}%`}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#b7cede', marginTop: 4 }}>
-                        {srsQueue.buckets.map((b) => `${b.intervalLabel}: ${b.count} (${b.focus})`).join(' · ')}
-                      </div>
-                    </div>
-                    <a
-                      href={srsQueue.href}
-                      className="sp-cta sp-cta-secondary"
-                      data-launch-srs-due-queue="true"
-                    >
-                      {`Review ${srsQueue.totalDueCount} Spaced-Repetition Spots →`}
-                    </a>
-                  </div>
-
-                  <div
-                    data-stake-readiness-passport="true"
-                    data-stake-tier-id={stakePassport.tierId}
-                    data-stake-certified={String(stakePassport.isCertified)}
-                    style={{
-                      padding: '14px 18px',
-                      borderRadius: 7,
-                      border: '1px solid #688299',
-                      borderTopColor: '#aec0d0',
-                      background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: 10,
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#6ee7b7' }}>
-                        Club Arena Stake-Readiness Passport
-                      </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#f4fbff', marginTop: 3 }}>
-                        {stakePassport.tierLabel}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#b7cede', marginTop: 4 }}>
-                        {`Verified Accuracy: ${stakePassport.accuracyPct}% · Next Stake Tier Target: ${stakePassport.nextTierTargetPct}%`}
-                      </div>
-                    </div>
-                    <a
-                      href={stakePassport.qualifyingHref}
-                      className="sp-cta sp-cta-secondary"
-                      data-launch-stake-passport-drill="true"
-                    >
-                      Run Next-Stake Qualification Drill →
-                    </a>
-                  </div>
-                </section>
-              );
-            })()}
-
             {biggestLeak && (
               <section aria-labelledby="leak-h" className="sp-leak" data-tutorial="leak">
                 <div>
@@ -989,6 +892,7 @@ export default function TrainingPage() {
             <section aria-labelledby="prog-h" data-tutorial="progress">
               <div className="sp-section-head">
                 <h2 id="prog-h" className="sp-section-title">Progress</h2>
+                <Link className="sp-section-link" href="/hub/training/progress">View Progress <ArrowRight size={14} aria-hidden /></Link>
               </div>
               <GradeCard
                 stats={stats}

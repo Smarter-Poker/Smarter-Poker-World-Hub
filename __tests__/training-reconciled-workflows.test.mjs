@@ -977,7 +977,6 @@ test('Phase 7 Package A-J: Parallel API latency optimization, Runout What-If Exp
     'pages/hub/training/gto-reports.js',
     'pages/hub/training/reports.js',
     'pages/hub/training/study-group.js',
-    'pages/hub/training/progress.js',
     'pages/hub/training/leaderboard.js',
   ];
   for (const relPath of newlyWiredBrainPages) {
@@ -1473,7 +1472,7 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     'achievements.js', 'challenges.js', 'community-leaderboard.js', 'focus-timer.js',
     'gto-news.js', 'gto-preloader.js', 'milestones.js', 'play/[gameId].js',
     'session-notes.js', 'streaks.js', 'study-group-finder.js', 'tournaments.js',
-    'training-feed.js', 'autopilot.js', 'scenario-demo.js', 'session-warmup.js',
+    'training-feed.js', 'autopilot.js', 'scenario-demo.js', 'session-warmup.js', 'progress.js',
   ].map(file => `pages/hub/training/${file}`));
   const allTrainingPagePaths = walkTrainingPages(path.join(ROOT, 'pages/hub/training')).sort();
   let nonRedirectCount = 0;

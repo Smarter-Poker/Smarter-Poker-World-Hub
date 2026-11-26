@@ -652,17 +652,15 @@ test('Phase 18 full suite: Real-Time Co-Op Study Room, Post-Session 3-Hand Leak 
   }
 });
 
-test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker Matrix, SRS Queue, Study Dossier, Line Consistency, Adaptive Villain, Stake Passport, Range Funnel, Tilt Guard & Hygiene', async () => {
+test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker Matrix, Study Dossier, Line Consistency, Adaptive Villain, Range Funnel, Tilt Guard & Hygiene', async () => {
   const {
     encodeClubCoachAssignment,
     decodeClubCoachAssignment,
     computeIcmChopAndPayJump,
     evaluateHandBlockerImpact,
-    buildSpacedRepetitionDueQueue,
     buildSessionStudyDossierMarkdown,
     evaluateMultiStreetLineConsistency,
     evaluateAdaptiveVillainCounterStrategy,
-    evaluateClubArenaStakeReadiness,
     computeSurvivingRangeFunnel,
     evaluateTiltAndDecisionPacingGuard,
     decodeSharedDrillPack,
@@ -713,11 +711,6 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
   assert.equal(blockerEval.hasNutSuitBlocker, true);
   assert.ok(blockerEval.valueBlockedPct >= 25);
 
-  // 4. Spaced-Repetition Due Queue
-  const srsQueue = buildSpacedRepetitionDueQueue({ sessions: [{ id: 's1' }], variant: 'plo5' });
-  assert.ok(srsQueue.totalDueCount >= 3);
-  assert.ok(decodeSharedDrillPack(srsQueue.packToken), 'SRS queue packToken must decode cleanly');
-
   // 5. Exportable Session Study Dossier
   const dossier = buildSessionStudyDossierMarkdown({
     gameName: '6-Max Cash Blueprint',
@@ -730,16 +723,12 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
   assert.ok(dossier.markdown.includes('# Smarter.Poker Session Study Dossier'));
   assert.equal(dossier.lineCount, 6);
 
-  // 6. Multi-Street Line Consistency, Adaptive Villain Counter, Stake Passport, Range Funnel & Tilt Guard
+  // 6. Multi-Street Line Consistency, Adaptive Villain Counter, Range Funnel & Tilt Guard
   const lineEval = evaluateMultiStreetLineConsistency({ street: 'turn', selectedAction: 'c', correctAction: 'b67' });
   assert.equal(lineEval.isCoherent, false);
 
   const villainShift = evaluateAdaptiveVillainCounterStrategy({ recentMoves: ['raise', 'bet75', 'allin'] });
   assert.equal(villainShift.shiftedProfile, 'Trapping Counter-TAG');
-
-  const passport = evaluateClubArenaStakeReadiness({ accuracyPct: 90, handsSampled: 150, variant: 'nlh' });
-  assert.equal(passport.tierId, 'high_stakes');
-  assert.equal(passport.isCertified, true);
 
   const funnel = computeSurvivingRangeFunnel({ street: 'turn', heroPosition: 'BTN' });
   assert.ok(funnel.preflopPct > funnel.flopPct && funnel.flopPct > funnel.turnPct);
@@ -757,12 +746,11 @@ test('Phase 19 full suite: Club Coach Assignments, ICM Chop Simulator, Blocker M
 
   // 8. Verify UI wiring markers across Phase 19 files
   const trainingHomeSrc = read('pages/hub/training.js');
-  assert.ok(trainingHomeSrc.includes('data-srs-due-queue="true"'), 'Training Home must render SRS Due Queue card');
-  assert.ok(trainingHomeSrc.includes('data-stake-readiness-passport="true"'), 'Training Home must render Stake-Readiness Passport card');
+  assert.doesNotMatch(trainingHomeSrc, /data-srs-due-queue|data-stake-readiness-passport|evaluateClubArenaStakeReadiness/);
   assert.ok(trainingHomeSrc.includes('data-speculative-prefetch="ready"'), 'Training Home must expose speculative hover prefetch');
 
   const progressSrc = read('pages/hub/training/progress.js');
-  assert.ok(progressSrc.includes('data-stake-readiness-passport="true"'), 'Progress page must render Stake-Readiness Passport');
+  assert.doesNotMatch(progressSrc, /data-stake-readiness-passport|evaluateClubArenaStakeReadiness/);
 
   const leaderboardSrc = read('pages/hub/training/leaderboard.js');
   assert.ok(leaderboardSrc.includes('data-club-coach-assignment-card="true"'), 'Leaderboard page must render Club Coach Assignment card');
