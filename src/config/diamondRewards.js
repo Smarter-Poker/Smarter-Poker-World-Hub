@@ -245,6 +245,23 @@ export const REWARDS = {
     verifyNote: 'Requires a server-recorded study session of sufficient dwell time.',
   },
 
+  pa_leak_verified_fixed: {
+    key: 'pa_leak_verified_fixed',
+    label: 'Verified Live Leak Fix',
+    description:
+      'Fix a detected leak and verify improved play across post-drill Club Arena hands.',
+    diamonds: 25,
+    maxPerDay: 2,
+    category: 'training',
+    countsTowardDailyCap: true,
+    lifetime: false,
+    icon: 'Target',
+    gate: 'free',
+    serverOnly: true,
+    verifyNote:
+      'Awarded only by /api/assistant/leaks/claim-live-fix after buildCoachingSnapshot verifies confirmed_fixed_at_tables on caller-owned Club Arena decisions.',
+  },
+
   // ─────────────────────────────────────────────────────────────────────────
   // CONTENT
   // ─────────────────────────────────────────────────────────────────────────
