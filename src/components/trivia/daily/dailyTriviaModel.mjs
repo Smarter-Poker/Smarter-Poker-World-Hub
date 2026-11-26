@@ -82,7 +82,7 @@ export function projectDailyAttempt({ signedIn, online = true, status = 'loading
             key: 'recoverable',
             label: 'Run Ready To Resume',
             detail: 'Continue the server-verified run already attached to your account.',
-            ink: 'gold',
+            ink: 'cyan',
         };
     }
     if (completed) {

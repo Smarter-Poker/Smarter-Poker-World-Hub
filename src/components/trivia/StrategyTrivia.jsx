@@ -1002,7 +1002,7 @@ export default function StrategyTrivia({ mode }) {
         );
     }
 
-    const timerInk = hasAuthoritativeShotClock && timerSeconds != null && timerSeconds <= 10 ? 'red' : 'gold';
+    const timerInk = hasAuthoritativeShotClock && timerSeconds != null && timerSeconds <= 10 ? 'red' : 'cyan';
     const timerDisplay = showResult
         ? 'Locked'
         : hasAuthoritativeShotClock && timerSeconds != null
@@ -1039,7 +1039,7 @@ export default function StrategyTrivia({ mode }) {
                 <title>{config.title} - Smarter.Poker Trivia</title>
             </Head>
 
-            <div className="strategy-trivia" data-strategy-mode={mode} data-game-state={gameState}>
+            <div className="smarterdesign strategy-trivia" data-strategy-mode={mode} data-game-state={gameState}>
                 <UniversalHeader pageDepth={2} />
 
                 <TriviaConsoleDialog
@@ -1049,7 +1049,7 @@ export default function StrategyTrivia({ mode }) {
                     title="Not Enough Diamonds"
                     subtitle={`This Table Requires ${entryCost} Diamonds`}
                     pill="Balance"
-                    pillInk="gold"
+                    pillInk="blue"
                     secondaryAction={{ label: 'Close', onClick: () => setShowOutOfDiamonds(false) }}
                     primaryAction={{ label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }}
                 >
@@ -1079,7 +1079,7 @@ export default function StrategyTrivia({ mode }) {
                         pill={gameState === 'lobby' ? (isPreparing ? 'Dealing' : 'Ready') : gameState === 'playing' ? 'Live' : 'Results'}
                         pillInk={gameState === 'playing' ? 'green' : 'blue'}
                         titleAs="h1"
-                        secondaryAction={gameState === 'results'
+                        secondaryAction={(gameState === 'lobby' || gameState === 'results')
                             ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
                             : undefined}
                         primaryAction={primaryAction}
@@ -1090,7 +1090,7 @@ export default function StrategyTrivia({ mode }) {
                         </p>
                     )}
                     {!isOnline && (
-                        <p className="strategy-alert tc-ink--gold" role="status">
+                        <p className="strategy-alert tc-ink--cyan" role="status">
                             Offline. Your Current Run Identity Is Preserved. Reconnect To Continue.
                         </p>
                     )}
@@ -1112,7 +1112,7 @@ export default function StrategyTrivia({ mode }) {
                                 <p className="strategy-station tc-label">{config.station}</p>
                                 <p className="strategy-description">{config.description}</p>
                                 {serverRun.hasRecoverableSession && (
-                                    <p className="strategy-recovery tc-ink--gold" role="status">
+                                    <p className="strategy-recovery tc-ink--cyan" role="status">
                                         A Previous Run Is Ready To Resume. Its Locked Answers And Entry Receipt Stay Binding.
                                     </p>
                                 )}
@@ -1154,7 +1154,7 @@ export default function StrategyTrivia({ mode }) {
                                 {userId && (
                                     <li className="tc-row">
                                         <span className="tc-row__label">Your Balance</span>
-                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                        <span className="tc-row__value tc-ink--cyan">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
                                     </li>
                                 )}
                                 </ul>
@@ -1493,7 +1493,7 @@ export default function StrategyTrivia({ mode }) {
                                     </li>
                                     <li className="tc-row">
                                         <span className="tc-row__label">Diamonds Awarded</span>
-                                        <span className={`tc-row__value diamonds-earned tc-ink--${awarded == null ? 'red' : awarded > 0 ? 'gold' : 'muted'}`}>
+                                        <span className={`tc-row__value diamonds-earned tc-ink--${awarded == null ? 'red' : awarded > 0 ? 'green' : 'muted'}`}>
                                             {awarded == null ? 'Pending Authoritative Settlement' : `+${formatTriviaDisplayNumber(awarded)} Diamonds`}
                                         </span>
                                     </li>
@@ -1597,13 +1597,13 @@ export default function StrategyTrivia({ mode }) {
                                 )}
 
                                 {resultCapped && (
-                                    <p className="results-note tc-ink--gold">
+                                    <p className="results-note tc-ink--cyan">
                                         Daily Reward Cap Reached For {config.title}. Play For The Score, Come Back Tomorrow For More Diamonds.
                                     </p>
                                 )}
 
                                 {balanceRefreshDelayed && !settlementPending && (
-                                    <p className="results-note tc-ink--gold" role="status">
+                                    <p className="results-note tc-ink--cyan" role="status">
                                         Settlement Is Confirmed, But The Wallet Balance Refresh Is Delayed. The Transaction Receipt Above Remains Authoritative.
                                     </p>
                                 )}

@@ -203,7 +203,7 @@ export function buildStrategyQuestionContext(mode, question) {
             ...common,
             heading: 'Tournament Equity Readout',
             items: [
-                row('Decision Model', evModel, 'gold'),
+                row('Decision Model', evModel, 'cyan'),
                 row('Position', position),
                 row('Effective Stack', stack),
                 row('Blinds', blinds),
