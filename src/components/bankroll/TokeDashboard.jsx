@@ -6,8 +6,10 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import view from './toke/TokeWorkspace.module.css';
-import { memo, useState, useEffect, useMemo, useCallback } from 'react';
+import desk from './toke/DealerAnalytics.module.css';
+import { Activity, BarChart3, CalendarDays, ChevronDown, Clock3, Coins, Copy, Download, List, Trophy } from 'lucide-react';
+import { safeCopyToClipboard } from '../../lib/clipboard';
+import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import ResponsiveTable from '../ui/ResponsiveTable';
 import { getTokeAnalytics } from '../../lib/bankroll/tokeSelectors';
@@ -16,22 +18,24 @@ const TokeEarningsChart = dynamic(() => import('./toke/TokeEarningsChart'), { ss
 
 // ── Chart tab definitions ──────────────────────────────────────
 const CHART_TABS = [
-    { id: 'trend', label: 'Trend' },
-    { id: 'events', label: 'Per Event' },
-    { id: 'monthly', label: 'Monthly' },
-    { id: 'types', label: 'Down Types' },
+    { id: 'trend', label: 'Trend', title: 'Cumulative Tokes' },
+    { id: 'events', label: 'Per Event', title: 'Tokes Per Event' },
+    { id: 'monthly', label: 'Monthly', title: 'Monthly Earnings' },
+    { id: 'types', label: 'Down Types', title: 'Down Distribution' },
 ];
+
+function localDate(date) {
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
 
 const fmt = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 // ── KPI Tile ───────────────────────────────────────────────────
-function KpiTile({ label, value, sub, color }) {
-    return (
-        <div className={'sd-metric ' + view.metricText}>
-            <strong style={{ color }}>{value}</strong>
-            <span>{label}</span>
-            {sub && <small>{sub}</small>}
-        </div>
-    );
+function KpiTile({ label, value, sub, icon: Icon, primary }) {
+    return <div className={'sd-metric ' + (primary ? desk.primaryMetric : desk.metric)}>
+        <dt><Icon size={16} aria-hidden="true" />{label}</dt>
+        <dd>{value}</dd>
+        {sub && <dd className={desk.metricDetail}>{sub}</dd>}
+    </div>;
 }
 
 function ChartDataTable({ activeChart, trendData, monthlyData, donutData }) {
@@ -46,8 +50,8 @@ function ChartDataTable({ activeChart, trendData, monthlyData, donutData }) {
                 activeChart === 'events' ? { key: 'hours', label: 'Hours', align: 'right' }
                     : { key: 'cumulative', label: 'Cumulative', align: 'right', render: row => fmt(row.cumulative) }];
     return (
-        <details className={view.chartData}>
-            <summary>View Chart Data</summary>
+        <details className={desk.chartData}>
+            <summary><List size={16} aria-hidden="true" />View Chart Data<ChevronDown size={15} aria-hidden="true" /></summary>
             <ResponsiveTable columns={columns} rows={series} caption={CHART_TABS.find(t => t.id === activeChart).label + ' Data'} />
         </details>
     );
@@ -55,28 +59,41 @@ function ChartDataTable({ activeChart, trendData, monthlyData, donutData }) {
 
 // ── Main Component ─────────────────────────────────────────────
 function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
-    const [analytics, setAnalytics] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [snapshot, setSnapshot] = useState(null);
+    const [fetching, setFetching] = useState(true);
     const [activeChart, setActiveChart] = useState('trend');
     const [expanded, setExpanded] = useState(initiallyExpanded);
-    const [loadError, setLoadError] = useState(false);
+    const [errorScope, setErrorScope] = useState(null);
+    const [range, setRange] = useState(0);
+    const [feedback, setFeedback] = useState('');
+    const requestId = useRef(0);
+    const scope = userId + ':' + range;
+    const analytics = snapshot?.scope === scope ? snapshot.data : null;
+    const loadError = errorScope === scope;
+    const loading = !loadError && (fetching || !analytics);
+    const rangeName = range ? 'Last ' + range + ' Days' : 'Career';
+    const scopeTitle = range ? 'Period Tokes' : 'Career Tokes';
 
     const load = useCallback(async () => {
+        const request = ++requestId.current;
         if (!userId) return;
         try {
-            setLoading(true);
-            setLoadError(false);
-            const data = await getTokeAnalytics(userId);
-            setAnalytics(data);
+            setFetching(true);
+            setErrorScope(null);
+            const today = new Date();
+            const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - range + 1);
+            const data = await getTokeAnalytics(userId,
+                range ? localDate(start) : undefined, range ? localDate(today) : undefined);
+            if (request === requestId.current) setSnapshot({ scope, data });
         } catch (err) {
-            setLoadError(true);
+            if (request === requestId.current) setErrorScope(scope);
             console.warn('TokeDashboard analytics error:', err);
         } finally {
-            setLoading(false);
+            if (request === requestId.current) setFetching(false);
         }
-    }, [userId]);
+    }, [userId, range, scope]);
 
-    useEffect(() => { load(); }, [load, refreshTrigger]);
+    useEffect(() => { load(); return () => { ++requestId.current; }; }, [load, refreshTrigger]);
 
     // ── Bus listener: auto-refresh when toke data changes in other components ──
     useEffect(() => {
@@ -96,7 +113,7 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
         if (!analytics?.eventTrend) return [];
         return analytics.eventTrend.map(e => ({
             ...e,
-            date: new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            date: new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         }));
     }, [analytics]);
 
@@ -120,195 +137,149 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
 
     // ── Main render ──────────────────────────────────────────
     return (
-        <section className={"sd-panel " + view.panel}>
-            {/* Collapsible header */}
-            <button type="button" className={view.disclosure} aria-expanded={expanded} onClick={() => setExpanded(e => !e)}>
-                <div style={S.headerLeft}>
-                    <div>
-                        <div className="sd-section-title">Earnings Overview</div>
-                        <div style={S.headerSub}>
-                            {!userId ? 'Sign In To View Your Earnings' : loading ? 'Loading…' : loadError ? 'Earnings Unavailable' : hasData
-                                ? `${analytics.totalEvents} Events · ${fmt(analytics.careerTokes)} Career Tokes`
-                                : 'Complete Your First Event To See Analytics'}
-                        </div>
+        <section aria-label="Dealer Earnings" className={desk.earnings}>
+            <div className={'sd-panel ' + desk.overview}>
+                <header className={desk.overviewHead}>
+                    <h2><button type="button" className={desk.disclosure} aria-expanded={expanded}
+                        onClick={() => setExpanded(value => !value)}>
+                        <span className={desk.icon}><Activity size={23} aria-hidden="true" /></span>
+                        Earnings Overview
+                        <ChevronDown size={17} aria-hidden="true" />
+                    </button></h2>
+                    {expanded && userId &&
+                        <div className={desk.period} role="group" aria-label="Earnings Period">
+                            <CalendarDays size={16} aria-hidden="true" />
+                            {[30, 90, 0].map(days =>
+                                <button className="sd-button" type="button" key={days} aria-pressed={range === days}
+                                    onClick={() => { setRange(days); setFeedback(''); }}>
+                                    {days ? days + ' Days' : 'Career'}
+                                </button>)}
+                        </div>}
+                </header>
+                {expanded && (!userId ? <p className={desk.status}>Sign In To View Your Dealer Earnings.</p> : loading ? (
+                    <p role="status" className={desk.status}>Loading Earnings…</p>
+                ) : loadError ? (
+                    <div role="alert" className={desk.status}>Earnings Could Not Be Loaded.
+                        <button type="button" className="sd-button" onClick={load}>Retry</button>
                     </div>
-                </div>
-                <span style={{ ...S.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-            </button>
+                ) : (
+                    <dl className={desk.metrics}>
+                        <KpiTile primary label={scopeTitle} value={fmt(analytics?.careerTokes)} icon={Coins} />
+                        <KpiTile label="Total Events" value={analytics?.totalEvents || 0} icon={CalendarDays} />
+                        <KpiTile label="Hours Worked" value={`${analytics?.totalHours || 0}h`} icon={Clock3} />
+                        <KpiTile label="Avg / Down" value={fmt(analytics?.avgTokePerDown)} icon={BarChart3} />
+                        <KpiTile label="Best Event" value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '-'}
+                            sub={analytics?.bestEvent?.venueName} icon={Trophy} />
+                    </dl>
+                ))}
+            </div>
+            {expanded && userId && !loading && !loadError && (
+                <section aria-label="Earnings Breakdown" className={'sd-panel ' + desk.chart}>
+                    <header className={desk.chartHead}>
+                        <h2>{CHART_TABS.find(tab => tab.id === activeChart).title}</h2>
+                        <span>{rangeName}</span>
+                    </header>
+                    <div className={'sd-tabs ' + desk.modes} role="group" aria-label="Earnings Charts">
+                        {CHART_TABS.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveChart(tab.id)}
+                                type="button" className="sd-button" aria-pressed={activeChart === tab.id}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
 
-            {expanded && (
-                <div style={S.body}>
-                    {!userId ? <p className={view.status}>Sign In To View Your Dealer Earnings.</p> : loading ? (
-                        <div aria-label="Loading Earnings" role="status" style={S.loadingRow}>
-                            <div style={S.skeleton} />
-                            <div style={S.skeleton} />
-                            <div style={{ ...S.skeleton, height: 200, width: '100%' }} />
+                    <div className={desk.plot}>
+                        <TokeEarningsChart {...{ activeChart, trendData, monthlyData, donutData, totalDowns, fmt }} />
+                    </div>
+                    <ChartDataTable {...{ activeChart, trendData, monthlyData, donutData }} />
+
+                    {/* ── Export Buttons ── */}
+                    {hasData && (
+                        <div className={desk.exports}>
+                            <button
+                                className="sd-button"
+                                onClick={async () => {
+                                    const a = analytics;
+                                    const lines = [
+                                        `TOKE ANALYTICS SUMMARY`,
+                                        `Generated: ${new Date().toLocaleDateString()}`,
+                                        ``,
+                                        `${scopeTitle}:   ${fmt(a.careerTokes)}`,
+                                        `Total Events:   ${a.totalEvents}`,
+                                        `Hours Worked:   ${a.totalHours}h`,
+                                        `Avg Toke/Down:  ${fmt(a.avgTokePerDown)}`,
+                                        `Best Event:     ${a.bestEvent ? `${fmt(a.bestEvent.tokes)} at ${a.bestEvent.venueName}` : '-'}`,
+                                        ``,
+                                        `Down Distribution:`,
+                                        `  Cash:       ${a.downTypes?.cash || 0}`,
+                                        `  Tournament: ${a.downTypes?.tournament || 0}`,
+                                        `  Brush:      ${a.downTypes?.brush || 0}`,
+                                        `  Break:      ${a.downTypes?.break || 0}`,
+                                    ];
+                                    if (a.monthlyTrend?.length) {
+                                        lines.push(``, `Monthly Breakdown:`);
+                                        for (const m of a.monthlyTrend) {
+                                            if (m.events > 0) lines.push(`  ${m.month}: ${fmt(m.tokes)} (${m.events} event${m.events !== 1 ? 's' : ''})`);
+                                        }
+                                    }
+                                    const copied = await safeCopyToClipboard(lines.join('\n'));
+                                    setFeedback(copied ? 'Earnings Summary Copied.' : 'Clipboard Access Is Unavailable.');
+                                }}
+                            >
+                                <Copy size={15} aria-hidden/> Copy Summary
+                            </button>
+                            <button
+                                className="sd-button"
+                                onClick={() => {
+                                    const a = analytics;
+                                    const rows = [
+                                        ['Metric', 'Value'],
+                                        [scopeTitle, a.careerTokes || 0],
+                                        ['Total Events', a.totalEvents || 0],
+                                        ['Hours Worked', a.totalHours || 0],
+                                        ['Avg Toke/Down', a.avgTokePerDown || 0],
+                                        ['Best Event Tokes', a.bestEvent?.tokes || 0],
+                                        ['Best Event Venue', a.bestEvent?.venueName || ''],
+                                        ['Cash Downs', a.downTypes?.cash || 0],
+                                        ['Tournament Downs', a.downTypes?.tournament || 0],
+                                        ['Brush Downs', a.downTypes?.brush || 0],
+                                        ['Break Downs', a.downTypes?.break || 0],
+                                    ];
+                                    if (a.eventTrend?.length) {
+                                        rows.push([], ['Event Date', 'Venue', 'Tokes', 'Hours', 'Cumulative']);
+                                        for (const e of a.eventTrend) {
+                                            rows.push([e.date, e.venue, e.tokes, e.hours, e.cumulative]);
+                                        }
+                                    }
+                                    if (a.monthlyTrend?.length) {
+                                        rows.push([], ['Month', 'Tokes', 'Events']);
+                                        for (const m of a.monthlyTrend) {
+                                            rows.push([m.month, m.tokes, m.events]);
+                                        }
+                                    }
+                                    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                                    const blob = new Blob([csv], { type: 'text/csv' });
+                                    const url = URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = `toke-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+                                    link.click();
+                                    URL.revokeObjectURL(url);
+                                    setFeedback('Earnings CSV Download Requested.');
+                                }}
+                            >
+                                <Download size={15} aria-hidden/> Download CSV
+                            </button>
+                            <span role="status">{feedback}</span>
                         </div>
-                    ) : loadError ? (
-                        <div role="alert" className={view.status}>
-                            Earnings Could Not Be Loaded.
-                            <button type="button" className="sd-button" onClick={load}>Retry</button>
-                        </div>
-                    ) : (
-                        <>
-                            {/* ── KPI Strip ── */}
-                            <div className={view.metrics}>
-                                <KpiTile
-                                    label="Career Tokes"
-                                    value={fmt(analytics?.careerTokes || 0)}
-                                    color="#85d8fb"
-                                />
-                                <KpiTile
-                                    label="Total Events"
-                                    value={analytics?.totalEvents || 0}
-                                    color="#dce8f6"
-                                />
-                                <KpiTile
-                                    label="Hours Worked"
-                                    value={`${analytics?.totalHours || 0}h`}
-                                    color="#60a5fa"
-                                />
-                                <KpiTile
-                                    label="Avg / Down"
-                                    value={fmt(analytics?.avgTokePerDown || 0)}
-                                    color="#9ee5f3"
-                                />
-                                <KpiTile
-                                    label="Best Event"
-                                    value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '-'}
-                                    sub={analytics?.bestEvent?.venueName || null}
-                                    color="#bdd4ea"
-                                />
-                            </div>
-
-                            {/* ── Chart Tabs ── */}
-                            <div className={"sd-tabs " + view.chartChoices} role="group" aria-label="Earnings Charts">
-                                {CHART_TABS.map(tab => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveChart(tab.id)}
-                                        type="button" className="sd-button" aria-pressed={activeChart === tab.id}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* ── Chart Area ── */}
-                            <div style={S.chartArea}>
-                                <TokeEarningsChart {...{ activeChart, trendData, monthlyData, donutData, totalDowns, fmt }} />
-                                <ChartDataTable {...{ activeChart, trendData, monthlyData, donutData }} />
-                            </div>
-
-                            {/* ── Export Buttons ── */}
-                            {hasData && (
-                                <div style={S.exportRow}>
-                                    <button
-                                        className="sd-button"
-                                        onClick={() => {
-                                            const a = analytics;
-                                            const lines = [
-                                                `TOKE ANALYTICS SUMMARY`,
-                                                `Generated: ${new Date().toLocaleDateString()}`,
-                                                ``,
-                                                `Career Tokes:   ${fmt(a.careerTokes)}`,
-                                                `Total Events:   ${a.totalEvents}`,
-                                                `Hours Worked:   ${a.totalHours}h`,
-                                                `Avg Toke/Down:  ${fmt(a.avgTokePerDown)}`,
-                                                `Best Event:     ${a.bestEvent ? `${fmt(a.bestEvent.tokes)} at ${a.bestEvent.venueName}` : '-'}`,
-                                                ``,
-                                                `Down Distribution:`,
-                                                `  Cash:       ${a.downTypes?.cash || 0}`,
-                                                `  Tournament: ${a.downTypes?.tournament || 0}`,
-                                                `  Brush:      ${a.downTypes?.brush || 0}`,
-                                                `  Break:      ${a.downTypes?.break || 0}`,
-                                            ];
-                                            if (a.monthlyTrend?.length) {
-                                                lines.push(``, `Monthly Breakdown:`);
-                                                for (const m of a.monthlyTrend) {
-                                                    if (m.tokes > 0) lines.push(`  ${m.month}: ${fmt(m.tokes)} (${m.events} event${m.events !== 1 ? 's' : ''})`);
-                                                }
-                                            }
-                                            navigator.clipboard.writeText(lines.join('\n'))
-                                                .then(() => { /* silent success toast handled by parent */ })
-                                                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                                        }}
-                                    >
-                                        Copy Summary
-                                    </button>
-                                    <button
-                                        className="sd-button"
-                                        onClick={() => {
-                                            const a = analytics;
-                                            const rows = [
-                                                ['Metric', 'Value'],
-                                                ['Career Tokes', a.careerTokes || 0],
-                                                ['Total Events', a.totalEvents || 0],
-                                                ['Hours Worked', a.totalHours || 0],
-                                                ['Avg Toke/Down', a.avgTokePerDown || 0],
-                                                ['Best Event Tokes', a.bestEvent?.tokes || 0],
-                                                ['Best Event Venue', a.bestEvent?.venueName || ''],
-                                                ['Cash Downs', a.downTypes?.cash || 0],
-                                                ['Tournament Downs', a.downTypes?.tournament || 0],
-                                                ['Brush Downs', a.downTypes?.brush || 0],
-                                                ['Break Downs', a.downTypes?.break || 0],
-                                            ];
-                                            if (a.eventTrend?.length) {
-                                                rows.push([], ['Event Date', 'Venue', 'Tokes', 'Hours', 'Cumulative']);
-                                                for (const e of a.eventTrend) {
-                                                    rows.push([e.date, e.venue, e.tokes, e.hours, e.cumulative]);
-                                                }
-                                            }
-                                            if (a.monthlyTrend?.length) {
-                                                rows.push([], ['Month', 'Tokes', 'Events']);
-                                                for (const m of a.monthlyTrend) {
-                                                    rows.push([m.month, m.tokes, m.events]);
-                                                }
-                                            }
-                                            const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-                                            const blob = new Blob([csv], { type: 'text/csv' });
-                                            const url = URL.createObjectURL(blob);
-                                            const link = document.createElement('a');
-                                            link.href = url;
-                                            link.download = `toke-analytics-${new Date().toISOString().split('T')[0]}.csv`;
-                                            link.click();
-                                            URL.revokeObjectURL(url);
-                                        }}
-                                    >
-                                        Download CSV
-                                    </button>
-                                </div>
-                            )}
-                        </>
                     )}
-                </div>
+                </section>
             )}
         </section>
     );
 }
-// ── Styles ─────────────────────────────────────────────────────
-const S = {
-    headerLeft: { display: 'flex', alignItems: 'center', gap: 10 },
-    headerSub: { fontSize: 12, color: '#94a3b8', marginTop: 1 },
-    chevron: { fontSize: 18, color: '#85d8fb', transition: 'transform 0.2s', lineHeight: 1 },
-
-    body: { padding: '0 14px 16px', borderTop: '1px solid rgba(255,255,255,0.07)' },
-
-    loadingRow: { display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 14 },
-    skeleton: {
-        height: 72, borderRadius: 10,
-        background: 'linear-gradient(90deg,rgba(255,255,255,0.06),rgba(255,255,255,0.1),rgba(255,255,255,0.06))',
-        animation: 'pulse 1.5s infinite',
-    },
-
-    chartArea: {
-        minHeight: 200,
-    },
-    exportRow: {
-        display: 'flex', gap: 8, marginTop: 14,
-        borderTop: '1px solid rgba(255,255,255,0.07)',
-        paddingTop: 12,
-    },
-};
 
 export default memo(TokeDashboard);

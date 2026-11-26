@@ -7,9 +7,13 @@
  */
 
 import view from './toke/TokeWorkspace.module.css';
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
+import BankrollHeaderAdd from './BankrollHeaderAdd';
+import shift from './toke/ShiftConsole.module.css';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, CarFront, CircleCheck, Download, Pencil, PlusCircle, Receipt, Target, Trash2 } from 'lucide-react';
+import { Activity, Camera, CarFront, CircleCheck, Download, Pencil, PlusCircle, Receipt, Trash2 } from 'lucide-react';
 import ReceiptScanner from './ReceiptScanner';
 import DoubleDownPrompt from './toke/DoubleDownPrompt';
 import AddDownModal from './toke/AddDownModal';
@@ -17,6 +21,8 @@ import AddExpenseModal from './toke/AddExpenseModal';
 import CompletedEventsList from './toke/CompletedEventsList';
 import TokeCalendar from './TokeCalendar';
 import TokeDashboard from './TokeDashboard';
+import MonthlyIncomeGoal from './toke/MonthlyIncomeGoal';
+import DealerReference from './toke/DealerReference';
 import DealerVault from './DealerVault';
 import VenueIntelligence from './VenueIntelligence';
 import TaxSummaryModal from './TaxSummaryModal';
@@ -64,13 +70,6 @@ const DOWN_TYPE_LABELS = {
     tournament: 'Tournament',
     break: 'On Break',
     brush: 'Brush',
-};
-
-const DOWN_TYPE_COLORS = {
-    cash: '#3b82f6',
-    tournament: '#38bdf8',
-    break: '#8aa9cb',
-    brush: '#8cdeee',
 };
 
 // 35 minutes in milliseconds
@@ -164,43 +163,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const [showScanner, setShowScanner] = useState(false);
     const [viewingReceiptUrl, setViewingReceiptUrl] = useState(null);
 
-    // Jarvis Reference Panel state
-    const [jarvisQuery, setJarvisQuery] = useState('');
-    const [jarvisAnswer, setJarvisAnswer] = useState(null);
-    const [jarvisLoading, setJarvisLoading] = useState(false);
-    const [jarvisHistory, setJarvisHistory] = useState([]);
-    const [jarvisExpanded, setJarvisExpanded] = useState(true);
-
-    // Monthly Income Goal (localStorage)
-    const [monthlyGoal, setMonthlyGoal] = useState(() => {
-        try { return parseFloat(localStorage.getItem('toke_monthly_goal') || '0') || 0; }
-        catch { return 0; }
-    });
-    const [goalInput, setGoalInput] = useState('');
-    const [showGoalEdit, setShowGoalEdit] = useState(false);
-
-    const currentMonthTokes = useMemo(() => {
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = now.getMonth();
-        return completedGigs.reduce((sum, gig) => {
-            if (!gig.start_date) return sum;
-            const d = new Date(gig.start_date + 'T12:00:00');
-            if (d.getFullYear() !== y || d.getMonth() !== m) return sum;
-            return sum + (gig.days || []).reduce((s2, day) =>
-                s2 + (day.downs || []).reduce((s3, dn) => s3 + (dn.toke_amount || 0), 0), 0
-            );
-        }, 0);
-    }, [completedGigs]);
-
-    const saveGoal = () => {
-        const val = parseFloat(goalInput) || 0;
-        setMonthlyGoal(val);
-        try { localStorage.setItem('toke_monthly_goal', String(val)); } catch (e) { console.warn('[App] Handled exception:', e); }
-        setShowGoalEdit(false);
-        setGoalInput('');
-    };
-
     // Timer for 35-min down reminder
     const downTimerRef = useRef(null);
     const [timerActive, setTimerActive] = useState(false);
@@ -214,6 +176,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     // Toke-on-end flow
     const [endingDown, setEndingDown] = useState(null); // the down being ended
     const [endTokeValue, setEndTokeValue] = useState('');
+    const cancelEndDown = () => { setEndingDown(null); setEndTokeValue(''); };
+    const endDialog = useAccessibleDialog({ open: Boolean(endingDown), onClose: cancelEndDown });
 
     // Day-close notes
     const [closeDayNotes, setCloseDayNotes] = useState('');
@@ -960,35 +924,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         }
     };
 
-    // ── Jarvis Dealer Reference ──
-    const handleAskJarvis = async (query) => {
-        const q = (query || jarvisQuery).trim();
-        if (!q) return;
-        setJarvisLoading(true);
-        setJarvisAnswer(null);
-        try {
-            const res = await fetch('/api/jarvis/dealer-reference', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: q, history: jarvisHistory }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Jarvis error');
-            setJarvisAnswer(data.answer);
-            setJarvisHistory(prev => [
-                ...prev.slice(-4),
-                { question: q, answer: data.answer },
-            ]);
-            setJarvisQuery('');
-        } catch (err) {
-            toast.error(err.message || 'Jarvis unavailable - try again');
-        } finally {
-            setJarvisLoading(false);
-        }
-    };
-
-    // Jarvis chips removed — clean input only
-
     // ── Report View ──
     const handleViewReport = async (gigId) => {
         try {
@@ -1106,9 +1041,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     if (selectedReport) {
         const { gig, stats } = selectedReport;
         return (
-            <div style={styles.container}>
-                <button onClick={() => setSelectedReport(null)} style={styles.backBtn}>← Back To Events</button>
-                <div style={styles.reportCard}>
+            <div className={shift.workspace}>
+                <button onClick={() => setSelectedReport(null)} className="sd-button">← Back To Events</button>
+                <div className={"sd-panel " + shift.report}>
                     <h2 style={styles.reportTitle}>{gig.venue_name}</h2>
                     {gig.venue_address && <p style={styles.reportAddress}>{gig.venue_address}</p>}
                     <p style={styles.reportDates}>
@@ -1131,38 +1066,38 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         );
                     })()}
 
-                    <div style={styles.reportStatsGrid}>
-                        <div style={styles.reportStat}>
-                            <span style={styles.reportStatLabel}>Total Earnings</span>
-                            <span style={{ ...styles.reportStatValue, color: '#8cdeee' }}>{formatCurrency(stats.totalEarnings)}</span>
+                    <div className={shift.metrics}>
+                        <div className={"sd-metric " + shift.metric}>
+                            <span>Total Earnings</span>
+                            <span>{formatCurrency(stats.totalEarnings)}</span>
                         </div>
-                        <div style={styles.reportStat}>
-                            <span style={styles.reportStatLabel}>Total Tokes</span>
-                            <span style={{ ...styles.reportStatValue, color: '#38bdf8' }}>{formatCurrency(stats.totalTokes)}</span>
+                        <div className={"sd-metric " + shift.metric}>
+                            <span>Total Tokes</span>
+                            <span>{formatCurrency(stats.totalTokes)}</span>
                         </div>
-                        <div style={styles.reportStat}>
-                            <span style={styles.reportStatLabel}>Expenses</span>
-                            <span style={{ ...styles.reportStatValue, color: '#d5e5f3' }}>{formatCurrency(stats.totalExpenses || 0)}</span>
+                        <div className={"sd-metric " + shift.metric}>
+                            <span>Expenses</span>
+                            <span>{formatCurrency(stats.totalExpenses || 0)}</span>
                         </div>
-                        <div style={styles.reportStat}>
-                            <span style={styles.reportStatLabel}>Hourly Pay</span>
-                            <span style={styles.reportStatValue}>{formatCurrency(stats.hourlyPay)}</span>
+                        <div className={"sd-metric " + shift.metric}>
+                            <span>Hourly Pay</span>
+                            <span>{formatCurrency(stats.hourlyPay)}</span>
                         </div>
-                        <div style={styles.reportStat}>
-                            <span style={styles.reportStatLabel}>Hours Worked</span>
-                            <span style={styles.reportStatValue}>{stats.totalHoursWorked.toFixed(1)}h</span>
+                        <div className={"sd-metric " + shift.metric}>
+                            <span>Hours Worked</span>
+                            <span>{stats.totalHoursWorked.toFixed(1)}h</span>
                         </div>
-                        <div style={styles.reportStat}>
-                            <span style={styles.reportStatLabel}>Avg Toke/Down</span>
-                            <span style={styles.reportStatValue}>{formatCurrency(stats.avgTokePerDown)}</span>
+                        <div className={"sd-metric " + shift.metric}>
+                            <span>Avg Toke/Down</span>
+                            <span>{formatCurrency(stats.avgTokePerDown)}</span>
                         </div>
-                        <div style={styles.reportStat}>
-                            <span style={styles.reportStatLabel}>Mileage</span>
-                            <span style={styles.reportStatValue}>{gig.mileage || 0} Mi</span>
+                        <div className={"sd-metric " + shift.metric}>
+                            <span>Mileage</span>
+                            <span>{gig.mileage || 0} Mi</span>
                         </div>
-                        <div style={styles.reportStat}>
-                            <span style={styles.reportStatLabel}>Per Day</span>
-                            <span style={styles.reportStatValue}>{formatCurrency(stats.perDay)}</span>
+                        <div className={"sd-metric " + shift.metric}>
+                            <span>Per Day</span>
+                            <span>{formatCurrency(stats.perDay)}</span>
                         </div>
                     </div>
 
@@ -1220,13 +1155,13 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                         <button
                             onClick={handleCopyReport}
-                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.07)', border: '2px solid rgba(255,255,255,0.15)', color: '#eff5fc' }}
+                            className="sd-button"
                         >
                             Copy Summary
                         </button>
                         <button
                             onClick={handleDownloadCSV}
-                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(56,189,248,0.1)', border: '2px solid rgba(56,189,248,0.3)', color: '#38bdf8' }}
+                            className="sd-button"
                         >
                             <Download size={15} aria-hidden="true" /> Download CSV
                         </button>
@@ -1250,7 +1185,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const isDownActive = currentDown && !currentDown.ended_at;
 
     return (
-        <div className={view.shiftBody}>
+        <div className={shift.workspace}>
             <AnimatePresence>
                 {viewingReceiptUrl && (
                     <motion.div
@@ -1312,47 +1247,36 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="sd-panel"
+                    className={"sd-panel " + shift.event}
                 >
                     {/* ── LIVE EVENT HEADER ── */}
-                    <div style={styles.activeHeader}>
-                        <div style={styles.activeLed} />
-                        <span style={styles.activeLabel}>LIVE EVENT</span>
-
-                        {/* Event Admin Actions (Edit / Delete) */}
+                    <header className={shift.eventHeader}>
+                        <div className={shift.state}><strong><Activity size={17} aria-hidden="true" /> Live Event</strong>
+                            <span>Day {currentDayNumber} · {isDayOpen ? 'In Progress' : 'Closed'}</span>
+                        </div>
                         {!editMode && !confirmDelete && !confirmComplete && !confirmCloseDay && (
-                            <div style={{ display: 'flex', gap: 6, marginLeft: 16 }}>
-                                <button onClick={startEditing} style={styles.topActionBtn} title="Edit Event Details"><Pencil size={15} aria-hidden="true" /></button>
-                                <button onClick={() => setConfirmDelete(true)} style={{ ...styles.topActionBtn, color: '#d5e5f3' }} title="Delete Event"><Trash2 size={15} aria-hidden="true" /></button>
+                            <div className={shift.tools}>
+                                <button type="button" className="sd-button" onClick={startEditing} aria-label="Edit Event Details"><Pencil size={17} aria-hidden="true" /></button>
+                                <button type="button" className="sd-button" onClick={() => setConfirmDelete(true)} aria-label="Delete Event"><Trash2 size={17} aria-hidden="true" /></button>
                             </div>
                         )}
-
-                        <span style={{
-                            marginLeft: 'auto', fontSize: 13, fontWeight: 700,
-                            background: isDayOpen ? 'rgba(56,189,248,0.15)' : 'rgba(100,116,139,0.15)',
-                            color: isDayOpen ? '#38bdf8' : '#94a3b8',
-                            border: `2px solid ${isDayOpen ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`, boxShadow: `inset 0 0 0 1px ${isDayOpen ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                            borderRadius: 20, padding: '4px 12px',
-                        }}>
-                            {isDayOpen ? `Day ${currentDayNumber} - In Progress` : `Day ${currentDayNumber} - Closed`}
-                        </span>
-                    </div>
+                    </header>
 
                     {/* Gig Info (view vs edit) */}
                     {!editMode ? (
                         <>
-                            <h2 style={styles.activeGigName}>{activeGig.venue_name}</h2>
+                            <h2 className={shift.venue}>{activeGig.venue_name}</h2>
                             {activeGig.venue_address && (
-                                <p style={styles.activeGigAddress}>{activeGig.venue_address}</p>
+                                <p className={shift.sub}>{activeGig.venue_address}</p>
                             )}
-                            <p style={styles.activeGigMeta}>
+                            <p className={shift.sub}>
                                 Started {new Date(activeGig.start_date + 'T12:00:00').toLocaleDateString()}
                                 {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} Total
                                 {activeGig.hourly_rate > 0 && ` · $${activeGig.hourly_rate}/hr`}
                             </p>
                         </>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 16px', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)' }}>
+                        <div className={shift.editArea}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                 <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Edit Event</span>
                             </div>
@@ -1372,70 +1296,70 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             />
                             <div style={{ display: 'flex', gap: 10 }}>
                                 <div style={{ flex: 1 }}>
-                                    <label style={styles.formLabel}>Hourly Rate ($)</label>
+                                    <label htmlFor="toke-edit-hourly-rate" style={styles.formLabel}>Hourly Rate ($)</label>
                                     <input
-                                        type="number" value={editForm.hourly_rate}
+                                        type="number" id="toke-edit-hourly-rate" value={editForm.hourly_rate}
                                         onChange={e => setEditForm({ ...editForm, hourly_rate: e.target.value })}
                                         style={styles.formInput} step="0.01"
                                     />
                                 </div>
                             </div>
-                            <label style={styles.formLabel}>Notes</label>
-                            <textarea
+                            <label htmlFor="toke-edit-event-notes" style={styles.formLabel}>Notes</label>
+                            <textarea id="toke-edit-event-notes"
                                 value={editForm.notes}
                                 onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
                                 style={{ ...styles.formInput, minHeight: 80, resize: 'vertical' }}
                             />
                             <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                                <button onClick={handleSaveEdit} style={{ ...styles.completeBtn, flex: 1 }}>Save Changes</button>
-                                <button onClick={() => setEditMode(false)} style={{ ...styles.cancelEditBtn, flex: 1 }}>Cancel</button>
+                                <button onClick={handleSaveEdit} className="sd-button sd-primary">Save Changes</button>
+                                <button onClick={() => setEditMode(false)} className="sd-button">Cancel</button>
                             </div>
                         </div>
                     )}
 
                     {/* ── PRIMARY LOGGING ACTIONS (MASSIVE + TOP MOUNTED) ── */}
                     {!editMode && isDayOpen && !confirmCloseDay && !confirmComplete && !confirmDelete && (
-                        <div className={view.shiftActions}>
-                            <button type="button" className="sd-button sd-primary" onClick={() => setShowAddDown(true)}><PlusCircle size={20} aria-hidden="true" /> Add Down</button>
+                        <div className={shift.actions}>
+                            <BankrollHeaderAdd label="Down" onClick={() => setShowAddDown(true)}>
+                                <button type="button" className="sd-button sd-primary" onClick={() => setShowAddDown(true)}><PlusCircle size={20} aria-hidden="true" /> Add Down</button>
+                            </BankrollHeaderAdd>
                             <button type="button" className="sd-button" onClick={() => setShowAddExpense(true)}><Receipt size={18} aria-hidden="true" /> Expense</button>
                         </div>
                     )}
 
                     {/* Running Totals */}
                     {!editMode && (
-                        <div style={{ ...styles.runningStats, gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                            <div style={styles.runningStat}>
-                                <span style={styles.runningStatLabel}>Total Tokes</span>
-                                <span style={{ ...styles.runningStatValue, color: '#38bdf8' }}>
+                        <div className={shift.metrics}>
+                            <div className={"sd-metric " + shift.metric}>
+                                <span>Total Tokes</span>
+                                <span>
                                     {formatCurrency(activeGig.totalTokes || 0)}
                                 </span>
                             </div>
-                            <div style={styles.runningStat}>
-                                <span style={styles.runningStatLabel}>Downs</span>
-                                <span style={styles.runningStatValue}>{activeGig.totalDowns || 0}</span>
+                            <div className={"sd-metric " + shift.metric}>
+                                <span>Downs</span>
+                                <span>{activeGig.totalDowns || 0}</span>
                             </div>
-                            <div style={styles.runningStat}>
-                                <span style={styles.runningStatLabel}>Hours</span>
-                                <span style={styles.runningStatValue}>
+                            <div className={"sd-metric " + shift.metric}>
+                                <span>Hours</span>
+                                <span>
                                     {(activeGig.totalHoursWorked || 0).toFixed(1)}h
                                 </span>
                             </div>
-                            <div style={styles.runningStat}>
-                                <span style={styles.runningStatLabel}>Expenses</span>
-                                <span style={{ ...styles.runningStatValue, color: '#d5e5f3' }}>
+                            <div className={"sd-metric " + shift.metric}>
+                                <span>Expenses</span>
+                                <span>
                                     {formatCurrency(activeGig.totalExpenses || 0)}
                                 </span>
                             </div>
                         </div>
                     )}
 
-                    {/* ── RUNNING TOTALS STATS ── */}
-
                     {/* ── CLOSED DAYS SUMMARY ── */}
                     {!editMode && closedDays.length > 0 && closedDays.map(day => (
-                        <div key={day.id} style={styles.closedDayCard}>
+                        <div key={day.id} className={shift.daily}>
                             <button
-                                style={styles.closedDayHeader}
+                                aria-expanded={!collapsedDays[day.id]} className="sd-button"
                                 onClick={() => setCollapsedDays(prev => ({ ...prev, [day.id]: !prev[day.id] }))}
                             >
                                 <span style={styles.closedDayLabel}>Day {day.day_number} - {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
@@ -1451,14 +1375,14 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             {!collapsedDays[day.id] && day.downs && day.downs.length > 0 && (
                                 <div style={styles.closedDayDowns}>
                                     {day.downs.map(down => {
-                                        const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#a6bfd3';
+
                                         const duration = down.ended_at
                                             ? new Date(down.ended_at).getTime() - new Date(down.started_at).getTime()
                                             : 0;
                                         return (
-                                            <div key={down.id} style={{ ...styles.downRow, border: `2px solid ${typeColor}`, boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.1)`, opacity: 0.8 }}>
+                                            <div key={down.id} className={shift.ledgerRow}>
                                                 <div style={styles.downInfo}>
-                                                    <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `2px solid ${typeColor}44`, boxShadow: `inset 0 0 0 1px ${typeColor}44` }}>
+                                                    <span className={shift.kind}>
                                                         {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
                                                     </span>
                                                     {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
@@ -1477,9 +1401,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             {!collapsedDays[day.id] && day.expenses && day.expenses.length > 0 && (
                                 <div style={{ ...styles.closedDayDowns, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 6 }}>
                                     {day.expenses.map(exp => (
-                                        <div key={exp.id} style={{ ...styles.downRow, border: '2px solid rgba(91,133,176,0.4)', opacity: 0.8 }}>
+                                        <div key={exp.id} className={shift.ledgerRow}>
                                             <div style={styles.downInfo}>
-                                                <span style={{ ...styles.downTypeBadge, background: 'rgba(91,133,176,0.08)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.2)', fontSize: 12 }}>
+                                                <span className={shift.kind}>
                                                     {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                                 </span>
                                                 {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
@@ -1498,17 +1422,17 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     {!editMode && isDayOpen && currentDay && currentDay.downs && currentDay.downs.length > 0 && (
                         <div style={styles.downsSection}>
                             <h4 style={styles.downsSectionTitle}>Day {currentDayNumber} Downs ({currentDay.downs.length})</h4>
-                            <div style={styles.downsScroll} data-scrollable>
+                            <div className={shift.ledger} data-scrollable>
                                 {[...currentDay.downs].reverse().map(down => {
                                     const isOpen = !down.ended_at;
                                     const duration = isOpen
                                         ? Date.now() - new Date(down.started_at).getTime()
                                         : new Date(down.ended_at).getTime() - new Date(down.started_at).getTime();
-                                    const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#a6bfd3';
+
                                     return (
-                                        <div key={down.id} style={{ ...styles.downRow, border: `2px solid ${typeColor}` }}>
+                                        <div key={down.id} className={shift.ledgerRow}>
                                             <div style={styles.downInfo}>
-                                                <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `2px solid ${typeColor}44`, boxShadow: `inset 0 0 0 1px ${typeColor}44` }}>
+                                                <span className={shift.kind}>
                                                     {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
                                                 </span>
                                                 {editingDownId === down.id ? (
@@ -1547,11 +1471,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                 {(down.down_type === 'cash' || down.down_type === 'brush') && (
                                                     editingTokeId === down.id ? (
                                                         <div style={styles.tokeEditRow}>
-                                                            <input type="number" value={tokeEditValue} onChange={e => setTokeEditValue(e.target.value)} placeholder="$0" style={styles.tokeInput} autoFocus step="0.01" />
-                                                            <button onClick={() => handleSaveToke(down.id)} style={styles.tokeSaveBtn}>✓</button>
+                                                            <input type="number" aria-label="Toke Amount" value={tokeEditValue} onChange={e => setTokeEditValue(e.target.value)} placeholder="$0" style={styles.tokeInput} autoFocus step="0.01" />
+                                                            <button onClick={() => handleSaveToke(down.id)} aria-label="Save Toke" className={"sd-button sd-primary " + shift.inlineAction}>✓</button>
                                                         </div>
                                                     ) : (
-                                                        <button onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }} style={{ ...styles.tokeDisplay, color: (down.toke_amount || 0) > 0 ? '#38bdf8' : '#a6bfd3' }} title="Edit Toke">
+                                                        <button onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }} className={"sd-button " + shift.inlineAction} title="Edit Toke">
                                                             {(down.toke_amount || 0) > 0 ? formatCurrency(down.toke_amount) : '+ Toke'}
                                                         </button>
                                                     )
@@ -1559,30 +1483,30 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                 {down.down_type === 'tournament' && (
                                                     editingMultiplierId === down.id ? (
                                                         <div style={styles.tokeEditRow}>
-                                                            <select value={multiplierEditValue} onChange={e => setMultiplierEditValue(e.target.value)} style={{ ...styles.tokeInput, width: 70 }}>
+                                                            <select aria-label="Down Multiplier" value={multiplierEditValue} onChange={e => setMultiplierEditValue(e.target.value)} style={{ ...styles.tokeInput, width: 70 }}>
                                                                 <option value="1">1.0X</option>
                                                                 <option value="1.2">1.2X</option>
                                                                 <option value="1.5">1.5X</option>
                                                                 <option value="2">2.0X</option>
                                                             </select>
-                                                            <button onClick={() => handleSaveMultiplier(down.id)} style={styles.tokeSaveBtn}>✓</button>
+                                                            <button onClick={() => handleSaveMultiplier(down.id)} aria-label="Save Multiplier" className={"sd-button sd-primary " + shift.inlineAction}>✓</button>
                                                         </div>
                                                     ) : (
-                                                        <button onClick={() => { setEditingMultiplierId(down.id); setMultiplierEditValue(down.down_multiplier || 1); }} style={{ ...styles.tokeDisplay, color: (down.down_multiplier || 1) > 1 ? '#8aa9cb' : '#a6bfd3' }} title="Down Multiplier">
+                                                        <button onClick={() => { setEditingMultiplierId(down.id); setMultiplierEditValue(down.down_multiplier || 1); }} className={"sd-button " + shift.inlineAction} title="Down Multiplier">
                                                             {(down.down_multiplier || 1).toFixed(1)}x
                                                         </button>
                                                     )
                                                 )}
                                                 {editingDownId === down.id ? (
                                                     <>
-                                                        <button onClick={handleSaveDownEdit} style={{ ...styles.downDeleteBtn, background: 'rgba(76,172,200,0.15)', color: '#8cdeee', borderColor: 'rgba(76,172,200,0.3)' }} title="Save">✓</button>
-                                                        <button onClick={() => { setEditingDownId(null); setEditingDownForm(null); }} style={styles.downDeleteBtn} title="Cancel">✕</button>
-                                                        <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} style={{ ...styles.downDeleteBtn, color: '#d5e5f3', borderColor: 'rgba(91,133,176,0.3)' }} title="Delete Down"><Trash2 size={15} aria-hidden="true" /></button>
+                                                        <button onClick={handleSaveDownEdit} className={"sd-button sd-primary " + shift.inlineAction} title="Save">✓</button>
+                                                        <button onClick={() => { setEditingDownId(null); setEditingDownForm(null); }} className={"sd-button " + shift.inlineAction} title="Cancel">✕</button>
+                                                        <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} className={"sd-button " + shift.inlineAction} title="Delete Down"><Trash2 size={15} aria-hidden="true" /></button>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        {isOpen && <button onClick={() => handleEndDown(down.id)} style={styles.endDownSmallBtn}>End</button>}
-                                                        <button onClick={() => { setEditingDownId(down.id); setEditingDownForm(down); }} style={{ ...styles.downDeleteBtn, color: '#a6bfd3', borderColor: 'rgba(255,255,255,0.1)', background: 'transparent' }} title="Edit Down"><Pencil size={15} aria-hidden="true" /></button>
+                                                        {isOpen && <button onClick={() => handleEndDown(down.id)} className={"sd-button sd-primary " + shift.inlineAction}>End</button>}
+                                                        <button onClick={() => { setEditingDownId(down.id); setEditingDownForm(down); }} className={"sd-button " + shift.inlineAction} title="Edit Down"><Pencil size={15} aria-hidden="true" /></button>
                                                     </>
                                                 )}
                                             </div>
@@ -1599,17 +1523,17 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <h4 style={styles.downsSectionTitle}>Day {currentDayNumber} Expenses ({currentDay.expenses.length})</h4>
                             <div style={styles.downsScroll}>
                                 {currentDay.expenses.map(exp => (
-                                    <div key={exp.id} style={{ ...styles.downRow, border: '2px solid #d5e5f3' }}>
+                                    <div key={exp.id} className={shift.ledgerRow}>
                                         <div style={styles.downInfo}>
-                                            <span style={{ ...styles.downTypeBadge, background: 'rgba(91,133,176,0.12)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.3)' }}>
+                                            <span className={shift.kind}>
                                                 {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                             </span>
-                                            {exp.receipt_url && <button style={styles.receiptIconBtn} onClick={() => setViewingReceiptUrl(exp.receipt_url)} title="View Receipt"><Camera size={14} color="#d5e5f3" /></button>}
+                                            {exp.receipt_url && <button className={"sd-button " + shift.inlineAction} onClick={() => setViewingReceiptUrl(exp.receipt_url)} title="View Receipt"><Camera size={14} color="#d5e5f3" /></button>}
                                             {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
                                         </div>
                                         <div style={styles.downRight}>
                                             <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
-                                            <button onClick={() => handleDeleteExpense(exp.id)} style={styles.downDeleteBtn}>✕</button>
+                                            <button onClick={() => handleDeleteExpense(exp.id)} className={"sd-button " + shift.inlineAction} aria-label="Delete Expense">✕</button>
                                         </div>
                                     </div>
                                 ))}
@@ -1624,7 +1548,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 <span style={styles.confirmText}>Close Out Day {currentDayNumber}? Add A Note (Optional):</span>
                                 <input
                                     type="text"
-                                    value={closeDayNotes}
+                                    aria-label="Day Closing Notes" value={closeDayNotes}
                                     onChange={e => setCloseDayNotes(e.target.value)}
                                     placeholder="E.g. Short-Handed All Night, Big Tipped Table..."
                                     style={{ ...styles.formInput, width: '100%', padding: '12px 14px', fontSize: 14 }}
@@ -1632,17 +1556,17 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     onKeyDown={e => { if (e.key === 'Enter') handleCloseDay(); }}
                                 />
                                 <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 4 }}>
-                                    <button onClick={handleCloseDay} style={{ ...styles.confirmYes, flex: 1, padding: '12px' }}>✓ Close Day</button>
-                                    <button onClick={() => { setConfirmCloseDay(false); setCloseDayNotes(''); }} style={{ ...styles.confirmNo, flex: 1, padding: '12px' }}>Cancel</button>
+                                    <button onClick={handleCloseDay} className="sd-button sd-primary">✓ Close Day</button>
+                                    <button onClick={() => { setConfirmCloseDay(false); setCloseDayNotes(''); }} className="sd-button">Cancel</button>
                                 </div>
                             </div>
                         ) : null}
 
                         {!confirmCloseDay && !confirmComplete && !editMode ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                                {isDayOpen && <button onClick={() => setConfirmCloseDay(true)} style={{ ...styles.closeDayBtn, width: '100%' }}>✓ Close Day {currentDayNumber}</button>}
-                                {!isDayOpen && <button onClick={handleStartNewDay} style={{ ...styles.startDayBtn, width: '100%' }}>▶ Start Day {(activeGig?.days?.length || 0) + 1}</button>}
-                                {!isDayOpen && <button onClick={() => setConfirmComplete(true)} style={{ ...styles.completeBtn, width: '100%' }}>✓ Complete Final Event</button>}
+                                {isDayOpen && <button onClick={() => setConfirmCloseDay(true)} className={"sd-button " + shift.wide}>✓ Close Day {currentDayNumber}</button>}
+                                {!isDayOpen && <button onClick={handleStartNewDay} className={"sd-button sd-primary " + shift.wide}>▶ Start Day {(activeGig?.days?.length || 0) + 1}</button>}
+                                {!isDayOpen && <button onClick={() => setConfirmComplete(true)} className={"sd-button " + shift.wide}>✓ Complete Final Event</button>}
                             </div>
                         ) : null}
 
@@ -1652,14 +1576,14 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 <div style={{ display: 'flex', gap: 10, width: '100%', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <input
                                         type="number"
-                                        value={mileageInput}
+                                        aria-label="Total Event Mileage" value={mileageInput}
                                         onChange={e => setMileageInput(e.target.value)}
                                         placeholder="0 Miles"
                                         style={{ ...styles.formInput, width: 100, padding: '8px 12px' }}
                                     />
                                     {/* tax calculation logic moved strictly to Vault per Vault-Only compliance rule */}
-                                    <button onClick={() => handleCompleteGig(mileageInput)} style={styles.confirmYes}>Yes, Complete</button>
-                                    <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
+                                    <button onClick={() => handleCompleteGig(mileageInput)} className="sd-button sd-primary">Yes, Complete</button>
+                                    <button onClick={() => setConfirmComplete(false)} className="sd-button">Cancel</button>
                                 </div>
                             </div>
                         ) : null}
@@ -1667,12 +1591,12 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     {/* Delete Confirmation */}
                     <AnimatePresence>
                         {confirmDelete && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={styles.deleteOverlay}>
-                                <div style={styles.deletePopup}>
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={shift.confirm}>
+                                <div role="group" aria-label="Confirm Event Deletion">
                                     <p style={styles.deletePopupText}>Delete This Event And All Downs?</p>
                                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                                        <button onClick={handleDeleteGig} style={styles.deleteConfirmBtn}>Yes, Delete</button>
-                                        <button onClick={() => setConfirmDelete(false)} style={styles.deleteCancelBtn}>Cancel</button>
+                                        <button onClick={handleDeleteGig} className="sd-button">Yes, Delete</button>
+                                        <button onClick={() => setConfirmDelete(false)} className="sd-button">Cancel</button>
                                     </div>
                                 </div>
                             </motion.div>
@@ -1685,6 +1609,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             {/* ── CREATE EVENT ── */}
             {
                 !activeGig && !showCreateForm && (
+                    <BankrollHeaderAdd label="New Event" onClick={() => setShowCreateForm(true)}>
                     <motion.button
                         initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                         whileHover={{ y: -1 }}
@@ -1695,6 +1620,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         <PlusCircle size={25} aria-hidden="true" />
                         <span>New Event</span>
                     </motion.button>
+                    </BankrollHeaderAdd>
                 )
             }
 
@@ -1706,7 +1632,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         exit={{ opacity: 0, height: 0 }}
                         className="sd-panel"
                     >
-                        <h3 style={styles.formTitle}>New Event</h3>
+                        <h3 className="sd-section-title">New Event</h3>
 
                         <label style={styles.formLabel}>Venue / Location</label>
                         <VenueSelector
@@ -1749,9 +1675,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             placeholder="Any Notes..." style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                         />
 
-                        <div style={styles.formActions}>
+                        <div className={shift.actions}>
                             <button type="button" onClick={handleCreateGig} disabled={isCreating} className="sd-button sd-primary">{isCreating ? 'Creating...' : 'Start Event'}</button>
-                            <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
+                            <button type="button" onClick={() => setShowCreateForm(false)} className="sd-button">Cancel</button>
                         </div>
                         {createError && (
                             <div style={{ margin: '8px 0 0', padding: '10px 14px', background: 'rgba(91,133,176,0.15)', border: '2px solid rgba(91,133,176,0.4)', borderRadius: 8, color: '#e5f1fb', fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
@@ -1763,61 +1689,23 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             </AnimatePresence>
 
             {/* ── TOKE-ON-END MODAL ── */}
-            <AnimatePresence>
-                {endingDown && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        style={styles.modalOverlay}
-                        onClick={() => { setEndingDown(null); setEndTokeValue(''); }}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            style={{ ...styles.modalCard, maxWidth: 340, padding: '24px 20px' }}
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
-                                How Much Did You Toke?
-                            </h3>
-                            <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 16px' }}>
-                                {endingDown.game_type || endingDown.down_type}
-                                {endingDown.table_number ? ` · Table ${endingDown.table_number}` : ''}
-                            </p>
-                            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                                <span style={{ fontSize: 22, color: '#38bdf8', fontWeight: 800 }}>$</span>
-                                <input
-                                    type="number"
-                                    value={endTokeValue}
-                                    onChange={e => setEndTokeValue(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter') handleEndDownConfirm(); }}
-                                    placeholder="0.00"
-                                    step="0.01"
-                                    min="0"
-                                    autoFocus
-                                    style={{
-                                        flex: 1, padding: '12px 14px', background: 'rgba(0,0,0,0.4)',
-                                        border: '2px solid rgba(56,189,248,0.4)', borderRadius: 10,
-                                        color: '#fff', fontSize: 22, fontWeight: 700, outline: 'none',
-                                    }}
-                                />
-                            </div>
-                            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                                <button
-                                    onClick={handleEndDownConfirm}
-                                    style={{ ...styles.confirmYes, flex: 1, padding: '12px', fontSize: 15, fontWeight: 800 }}
-                                >
-                                    ✓ End Down
-                                </button>
-                                <button
-                                    onClick={() => { setEndingDown(null); setEndTokeValue(''); }}
-                                    style={styles.confirmNo}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {endingDown && createPortal(<div className={'smarterdesign ' + shift.overlay} onClick={event => {
+                if (event.target === event.currentTarget) cancelEndDown();
+            }}>
+                <section className={'sd-panel ' + shift.dialog} role="dialog" aria-modal="true" aria-label="End Down" ref={endDialog.dialogRef}>
+                    <h2 className={shift.dialogTitle}>How Much Did You Toke?</h2>
+                    <p className={shift.promptNote}>{endingDown.game_type || DOWN_TYPE_LABELS[endingDown.down_type]}
+                        {endingDown.table_number ? ' · Table ' + endingDown.table_number : ''}</p>
+                    <form className={shift.form} onSubmit={event => { event.preventDefault(); handleEndDownConfirm(); }}>
+                        <label>Tokes Received ($)<input type="number" min="0" step="0.01" placeholder="0.00"
+                            value={endTokeValue} ref={endDialog.initialFocusRef} onChange={e => setEndTokeValue(e.target.value)} /></label>
+                        <div className={shift.actions}>
+                            <button type="button" className="sd-button" onClick={cancelEndDown}>Cancel</button>
+                            <button type="submit" className="sd-button sd-primary">End Down</button>
+                        </div>
+                    </form>
+                </section>
+            </div>, document.body)}
 
             {/* ── ADD DOWN MODAL ── */}
             <AddDownModal
@@ -1826,7 +1714,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 setDownForm={setDownForm}
                 onSubmit={handleAddDown}
                 onClose={() => setShowAddDown(false)}
-                styles={styles}
             />
 
             {/* ── ADD EXPENSE MODAL ── */}
@@ -1840,7 +1727,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 setShowScanner={setShowScanner}
                 ReceiptScannerComponent={ReceiptScanner}
                 userId={userId}
-                styles={styles}
             />
 
             {/* ── DOUBLE DOWN PROMPT ── */}
@@ -1849,7 +1735,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 promptDown={promptDown}
                 onYes={handleDoubleDownYes}
                 onNo={handleDoubleDownNo}
-                styles={styles}
             />
 
             {/* ── COMPLETED EVENTS ── */}
@@ -1858,6 +1743,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 isLoading={isLoading}
                 loadError={loadError}
                 onViewReport={handleViewReport}
+                onRetry={loadData}
                 onSaveEdit={async (gigId, form) => {
                     if (!userId) { toast.error('You must be logged in'); throw new Error('Not logged in'); }
                     if (!form.venue_name.trim()) { toast.error('Venue name is required'); throw new Error('Venue required'); }
@@ -1867,132 +1753,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     window.dispatchEvent(new CustomEvent('toke-data-updated'));
                 }}
                 onDeleteGig={handleDeleteCompletedGig}
-                styles={styles}
             />
 
-            {/* ── MONTHLY INCOME GOAL (at bottom) ── */}
-            {
-                (monthlyGoal > 0 || showGoalEdit) && (
-                    <div style={styles.goalCard}>
-                        <div style={styles.goalHeader}>
-                            <span style={styles.goalTitle}>Monthly Goal</span>
-                            <button style={styles.goalEditBtn} onClick={() => { setGoalInput(String(monthlyGoal)); setShowGoalEdit(true); }}>Edit</button>
-                        </div>
-                        {showGoalEdit ? (
-                            <div style={styles.goalEditRow}>
-                                <input
-                                    type="number"
-                                    style={styles.goalInput}
-                                    placeholder="Monthly $ Goal"
-                                    value={goalInput}
-                                    onChange={e => setGoalInput(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && saveGoal()}
-                                    autoFocus
-                                />
-                                <button style={styles.goalSaveBtn} onClick={saveGoal}>Save</button>
-                                <button style={styles.goalCancelBtn} onClick={() => setShowGoalEdit(false)}>×</button>
-                            </div>
-                        ) : (() => {
-                            const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
-                            const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                            const daysLeft = daysInMonth - new Date().getDate();
-                            const barColor = pct >= 80 ? '#8cdeee' : pct >= 50 ? '#38bdf8' : '#e7effa';
-                            return (
-                                <>
-                                    <div style={styles.goalText}>
-                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) - {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
-                                    </div>
-                                    <div style={styles.goalBarBg}>
-                                        <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
-                                    </div>
-                                </>
-                            );
-                        })()}
-                    </div>
-                )
-            }
+            <MonthlyIncomeGoal key={userId || 'guest'} userId={userId} completedGigs={completedGigs} />
 
-            {/* ── JARVIS DEALER REFERENCE PANEL ── */}
-            <div style={styles.jarvisPanel}>
-                <button style={styles.jarvisPanelHeader} onClick={() => setJarvisExpanded(e => !e)}>
-                    <span style={styles.jarvisHeaderLeft}>
-                        <img src="/images/jarvis-avatar-circle.png" alt="Jarvis" style={styles.jarvisAvatarImg} />
-                        <div>
-                            <div style={styles.jarvisTitle}>Jarvis - Dealer Reference</div>
-                            <div style={styles.jarvisSub}>Ask For Rules, TDA Lookups & Game Refreshers</div>
-                        </div>
-                    </span>
-                    <span style={{ ...styles.jarvisChevron, transform: jarvisExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-                </button>
-
-                <AnimatePresence>
-                    {jarvisExpanded && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            style={{ overflow: 'hidden' }}
-                        >
-
-                            {/* Input row */}
-                            <div style={styles.jarvisInputRow}>
-                                <input
-                                    type="text"
-                                    value={jarvisQuery}
-                                    onChange={e => setJarvisQuery(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter') handleAskJarvis(); }}
-                                    placeholder="Ask Jarvis Anything About Dealing..."
-                                    style={styles.jarvisInput}
-                                    disabled={jarvisLoading}
-                                />
-                                <button
-                                    onClick={() => handleAskJarvis()}
-                                    style={styles.jarvisAskBtn}
-                                    disabled={jarvisLoading || !jarvisQuery.trim()}
-                                >
-                                    {jarvisLoading ? '...' : 'Ask'}
-                                </button>
-                            </div>
-
-                            {/* Answer area */}
-                            {jarvisLoading && (
-                                <div style={styles.jarvisLoading}>
-                                    <span style={styles.jarvisLoadingDot} />
-                                    Jarvis Is Thinking...
-                                </div>
-                            )}
-                            {jarvisAnswer && !jarvisLoading && (
-                                <div style={styles.jarvisAnswer}>
-                                    <div style={styles.jarvisAnswerLabel}><img src="/images/jarvis-avatar-circle.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }} />Jarvis</div>
-                                    <div style={styles.jarvisAnswerText}>{jarvisAnswer}</div>
-                                </div>
-                            )}
-
-                            {/* History (last 3 previous Q&As) */}
-                            {jarvisHistory.length > 0 && !jarvisAnswer && (
-                                <div style={styles.jarvisHistory}>
-                                    {jarvisHistory.slice(-3).reverse().map((item, i) => (
-                                        <div key={i} style={styles.jarvisHistoryItem}>
-                                            <div style={styles.jarvisHistoryQ}>Q: {item.question}</div>
-                                            <div style={styles.jarvisHistoryA}>{item.answer}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* ── SET MONTHLY GOAL (below Jarvis) ── */}
-            {
-                !monthlyGoal && !showGoalEdit && (
-                    <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>
-                        <Target size={18} aria-hidden="true" />
-                        Set Monthly Income Goal
-                    </button>
-                )
-            }
+            <DealerReference key={'reference-' + (userId || 'guest')} />
 
             {/* ── DEALER VAULT (hidden in standalone mode) ── */}
             {!standalone && <DealerVault userId={userId} completedGigs={completedGigs} />}
@@ -2022,7 +1787,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 // STYLES — SmarterPoker Dark (matches TripTracker)
 // ═══════════════════════════════════════════════════════════════
 const styles = {
-    container: { display: 'flex', flexDirection: 'column', gap: 20 },
 
     // Active Gig
     activeGigCard: {
@@ -2030,21 +1794,8 @@ const styles = {
         border: '2px solid #30485f',
         borderRadius: 12, padding: 20, position: 'relative',
     },
-    activeHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
-    activeLed: {
-        width: 8, height: 8, borderRadius: '50%', background: '#38bdf8',
-        boxShadow: '0 0 8px rgba(56, 189, 248, 0.6)', animation: 'pulse 2s infinite',
-    },
-    activeLabel: { fontSize: 14, fontWeight: 700, letterSpacing: 1.5, color: '#38bdf8', textTransform: 'uppercase' },
-    activeGigName: { fontSize: 22, fontWeight: 700, color: '#eff5fc', margin: '4px 0' },
-    activeGigAddress: { fontSize: 13, color: '#bfcee0', margin: '0 0 4px', fontStyle: 'italic' },
-    activeGigMeta: { fontSize: 14, color: '#bfcee0', margin: '0 0 16px' },
 
     // Running stats
-    runningStats: { display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
-    runningStat: { flex: '1 1 90px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#30485f', borderRadius: 8, padding: '10px 8px' },
-    runningStatLabel: { fontSize: 13, color: '#bfcee0', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, textAlign: 'center' },
-    runningStatValue: { fontSize: 18, fontWeight: 700, color: '#eff5fc' },
 
     // Timer
     timerBanner: {
@@ -2066,38 +1817,14 @@ const styles = {
     downsSection: { marginBottom: 16 },
     downsSectionTitle: { fontSize: 14, fontWeight: 600, color: '#94a3b8', marginBottom: 8, letterSpacing: 0.5 },
     downsScroll: { maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 },
-    downRow: {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-        background: '#30485f', borderRadius: 6, padding: '8px 10px', flexWrap: 'wrap',
-    },
     downInfo: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 100, flex: 1 },
-    downTypeBadge: { fontSize: 12, fontWeight: 700, borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' },
     downDetail: { fontSize: 12, color: '#bfcee0', wordBreak: 'break-word' },
     downTime: { fontSize: 12, color: '#bfcee0', whiteSpace: 'nowrap' },
     downRight: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 140 },
-    tokeDisplay: {
-        background: 'none', border: '2px solid rgba(255,255,255,0.08)', fontSize: 13,
-        fontWeight: 700, cursor: 'pointer', padding: '0 6px',
-        minWidth: 54, height: 26, display: 'inline-flex', alignItems: 'center',
-        justifyContent: 'center', borderRadius: 4, boxSizing: 'border-box',
-    },
     tokeEditRow: { display: 'flex', alignItems: 'center', gap: 4 },
     tokeInput: {
         width: 60, padding: '4px 6px', background: '#112338', border: '2px solid #30485f',
         borderRadius: 4, color: '#fff', fontSize: 13, textAlign: 'right',
-    },
-    tokeSaveBtn: {
-        background: 'rgba(76,172,200,0.15)', color: '#8cdeee', border: '2px solid rgba(76,172,200,0.3)',
-        borderRadius: 4, padding: '4px 8px', fontSize: 13, cursor: 'pointer', fontWeight: 700,
-    },
-    endDownSmallBtn: {
-        background: 'rgba(91,133,176,0.15)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.3)',
-        borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        whiteSpace: 'nowrap',
-    },
-    downDeleteBtn: {
-        background: 'rgba(91,133,176,0.15)', border: '2px solid rgba(91,133,176,0.3)',
-        borderRadius: 4, padding: '2px 6px', fontSize: 12, cursor: 'pointer', color: '#d5e5f3', lineHeight: 1,
     },
 
     // Actions
@@ -2115,46 +1842,11 @@ const styles = {
         background: 'rgba(91,133,176,0.15)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.3)',
         borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
     },
-    completeBtn: {
-        background: 'rgba(76,172,200,0.15)', color: '#8cdeee', border: '2px solid rgba(76,172,200,0.3)',
-        borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-    },
-    cancelEditBtn: {
-        background: 'transparent', color: '#94a3b8', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 8, padding: '10px 18px', fontSize: 14, cursor: 'pointer',
-    },
     confirmRow: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
     confirmText: { fontSize: 14, fontWeight: 600, color: '#eff5fc' },
-    confirmYes: {
-        background: '#124fa2', color: '#fff', border: '2px solid rgba(255,255,255,0.2)',
-        borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-    },
-    confirmNo: {
-        background: 'transparent', color: '#94a3b8', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer',
-    },
 
     // Delete
-    topActionBtn: {
-        background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.1)',
-        borderRadius: 8, padding: '4px 10px', color: '#94a3b8', fontSize: 14, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.2s ease'
-    },
-    deleteOverlay: {
-        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)',
-        borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
-    },
-    deletePopup: { textAlign: 'center', padding: 20 },
     deletePopupText: { fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 16 },
-    deleteConfirmBtn: {
-        background: '#20466b', color: '#fff', border: '2px solid rgba(255,255,255,0.2)',
-        borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-    },
-    deleteCancelBtn: {
-        background: 'transparent', color: '#94a3b8', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 8, padding: '10px 20px', fontSize: 14, cursor: 'pointer',
-    },
 
     // Create Gig
     createGigBtn: {
@@ -2178,33 +1870,11 @@ const styles = {
         background: '#112338', border: '2px solid #30485f',
         borderRadius: 12, padding: 20, overflow: 'hidden',
     },
-    formTitle: { fontSize: 18, fontWeight: 700, color: '#eff5fc', margin: '0 0 16px' },
     formLabel: { fontSize: 13, fontWeight: 600, color: '#bfcee0', marginBottom: 4, display: 'block', marginTop: 12 },
     formInput: {
         width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
         transition: 'border-color 0.2s ease',
-    },
-    attachedReceiptBox: {
-        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-        background: 'rgba(76,172,200,0.1)', border: '2px solid rgba(76,172,200,0.3)',
-        borderRadius: 8, width: '100%', boxSizing: 'border-box'
-    },
-    removeReceiptBtn: {
-        marginLeft: 'auto', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', color: '#8cdeee',
-        fontSize: 16, cursor: 'pointer', padding: 4
-    },
-    scanReceiptBtn: {
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        width: '100%', padding: '12px', background: 'transparent',
-        border: '2px dashed rgba(255,255,255,0.2)', borderRadius: 8,
-        color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 600,
-        cursor: 'pointer', transition: 'all 0.2s'
-    },
-    receiptIconBtn: {
-        background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', padding: 4, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginLeft: 8, opacity: 0.8, transition: 'opacity 0.2s'
     },
     lightboxOverlay: {
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 11000,
@@ -2224,14 +1894,6 @@ const styles = {
         maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain',
         borderRadius: 8, boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
     },
-    formSelect: {
-        width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
-        cursor: 'pointer', WebkitAppearance: 'none', appearance: 'none',
-        backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23ffffff\' d=\'M6 8L1 3h10z\'/%3E%3C/svg%3E")',
-        backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
-        transition: 'border-color 0.2s ease',
-    },
     checkboxRow: {
         display: 'flex', gap: 8, flexWrap: 'wrap',
     },
@@ -2240,39 +1902,14 @@ const styles = {
         borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
         transition: 'all 0.15s ease',
     },
-    formActions: { display: 'flex', gap: 10, marginTop: 16 },
     formSubmitBtn: {
         background: 'linear-gradient(135deg, #2374e1, #1a5fc9)', color: '#fff', border: '2px solid rgba(255,255,255,0.2)',
         borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', flex: 1,
     },
-    formCancelBtn: {
-        background: 'transparent', color: '#94a3b8', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 8, padding: '10px 24px', fontSize: 14, cursor: 'pointer',
-    },
 
     // Modal
-    modalOverlay: {
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-        paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
-        boxSizing: 'border-box',
-    },
-    modalCard: {
-        width: '100%', maxWidth: 450, maxHeight: 'calc(100dvh - 40px)', overflowY: 'auto',
-        boxSizing: 'border-box', padding: 20, background: '#0c1b2c', border: '1px solid #7891a9',
-        borderRadius: 8, color: '#e8f3ff',
-    },
 
     // Double down prompt
-    promptCard: {
-        background: '#112338', border: '2px solid rgba(56,189,248,0.4)', borderRadius: 16, padding: 28,
-        width: '100%', maxWidth: 380, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-    },
-    promptIcon: { fontSize: 48, marginBottom: 12 },
-    promptTitle: { fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 8px' },
-    promptSub: { fontSize: 14, color: '#94a3b8', margin: '0 0 20px' },
-    promptActions: { display: 'flex', flexDirection: 'column', gap: 10 },
     promptYesBtn: {
         background: 'rgba(56,189,248,0.15)', color: '#38bdf8', border: '2px solid rgba(56,189,248,0.4)',
         borderRadius: 10, padding: '12px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
@@ -2283,174 +1920,22 @@ const styles = {
     },
 
     // History
-    historySection: { marginTop: 8 },
-    historyTitle: { fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 12 },
-    loadingPlaceholder: { padding: 20, textAlign: 'center', color: '#a6bfd3', fontSize: 14 },
-    emptyState: { padding: 24, textAlign: 'center', color: '#a6bfd3', fontSize: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.06)' },
-    gigGrid: { display: 'flex', flexDirection: 'column', gap: 10 },
-    gigCard: {
-        background: 'rgba(16,35,52,0.8)', border: '2px solid rgba(255,255,255,0.08)',
-        borderRadius: 10, padding: '14px 16px', cursor: 'pointer', transition: 'border-color 0.15s',
-    },
-    gigCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    gigCardName: { fontSize: 16, fontWeight: 600, color: '#eff5fc', margin: 0 },
-    gigCardTokes: { fontSize: 16, fontWeight: 700 },
-    gigCardMeta: { fontSize: 13, color: '#a6bfd3', marginBottom: 6 },
-    gigCardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#a6bfd3' },
-    viewReportLink: { color: '#3b82f6', fontWeight: 600 },
 
     // Report
-    backBtn: {
-        background: 'none', border: '2px solid rgba(255,255,255,0.2)', color: '#3b82f6', fontSize: 14,
-        fontWeight: 600, cursor: 'pointer', padding: '4px 0', marginBottom: 8,
-    },
-    reportCard: {
-        background: 'rgba(16,35,52,0.95)', border: '2px solid rgba(255,255,255,0.1)',
-        borderRadius: 12, padding: 24,
-    },
     reportTitle: { fontSize: 24, fontWeight: 700, color: '#fff', margin: '0 0 4px' },
     reportAddress: { fontSize: 13, color: '#9fb2c7', margin: '0 0 4px', fontStyle: 'italic' },
     reportDates: { fontSize: 14, color: '#a6bfd3', margin: '0 0 20px' },
-    reportStatsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 },
-    reportStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '10px 8px' },
-    reportStatLabel: { fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-    reportStatValue: { fontSize: 18, fontWeight: 700, color: '#fff' },
     reportBreakdown: { background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 16 },
     reportBreakdownTitle: { fontSize: 14, fontWeight: 600, color: '#eff5fc', margin: '0 0 10px' },
     reportBreakdownGrid: { display: 'flex', flexWrap: 'wrap', gap: 8 },
     breakdownItem: { fontSize: 13, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 10px', color: '#94a3b8' },
 
-    // Jarvis Panel
-    jarvisPanel: {
-        background: '#112338', border: '2px solid rgba(35,116,225,0.25)',
-        borderRadius: 12, padding: '14px 16px', marginTop: 8,
-    },
-    jarvisPanelHeader: {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'none', border: '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', padding: 0, width: '100%',
-    },
-    jarvisHeaderLeft: { display: 'flex', alignItems: 'center', gap: 10 },
-    jarvisIcon: { fontSize: 26 },
-    jarvisAvatarImg: { width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
-    jarvisTitle: { fontSize: 16, fontWeight: 700, color: '#eff5fc', textAlign: 'left' },
-    jarvisSub: { fontSize: 12, color: '#a6bfd3', marginTop: 1, textAlign: 'left' },
-    jarvisChevron: { fontSize: 14, color: '#a6bfd3', transition: 'transform 0.2s', flexShrink: 0 },
-    jarvisChips: {
-        display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 12,
-    },
-    jarvisChip: {
-        fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 20, cursor: 'pointer',
-        background: 'rgba(56,189,248,0.08)', color: '#38bdf8',
-        border: '2px solid rgba(56,189,248,0.25)', transition: 'all 0.15s',
-    },
-    jarvisInputRow: { display: 'flex', gap: 8, marginBottom: 12 },
-    jarvisInput: {
-        flex: 1, padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
-        border: '2px solid rgba(255,255,255,0.12)', borderRadius: 8,
-        color: '#fff', fontSize: 14, outline: 'none',
-    },
-    jarvisAskBtn: {
-        background: '#2374e1', color: '#fff', border: '2px solid rgba(35,116,225,0.5)',
-        borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 700,
-        cursor: 'pointer', flexShrink: 0,
-        opacity: 1, transition: 'opacity 0.15s, background 0.15s',
-    },
-    jarvisLoading: {
-        display: 'flex', alignItems: 'center', gap: 8,
-        color: '#38bdf8', fontSize: 13, fontWeight: 600, padding: '10px 0',
-    },
-    jarvisLoadingDot: {
-        width: 8, height: 8, borderRadius: '50%', background: '#38bdf8',
-        animation: 'pulse 1s infinite',
-    },
-    jarvisAnswer: {
-        background: 'rgba(0,0,0,0.25)', borderRadius: 10,
-        padding: 14, border: '2px solid rgba(56,189,248,0.15)',
-    },
-    jarvisAnswerLabel: { fontSize: 12, fontWeight: 700, color: '#38bdf8', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
-    jarvisAnswerText: { fontSize: 13, color: '#eff5fc', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
-    jarvisHistory: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
-    jarvisHistoryItem: {
-        background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: '10px 12px',
-        border: '2px solid rgba(255,255,255,0.05)',
-    },
     taxSummaryBtn: {
         width: '100%', padding: '13px', background: 'rgba(54,187,106,0.08)',
         border: '1px dashed rgba(54,187,106,0.4)', borderRadius: 10,
         color: '#8cdeee', fontSize: 14, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
-    // Event action row (edit/delete for completed events)
-    eventActionRow: {
-        display: 'flex', gap: 8, padding: '6px 14px 10px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-    },
-    eventEditBtn: {
-        flex: 1, padding: '6px 0', background: 'rgba(74,144,217,0.1)',
-        border: '2px solid rgba(74,144,217,0.3)', borderRadius: 6,
-        color: '#8acbff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        textAlign: 'center',
-    },
-    eventDeleteBtn: {
-        flex: 1, padding: '6px 0', background: 'rgba(110,151,181,0.08)',
-        border: '2px solid rgba(110,151,181,0.3)', borderRadius: 6,
-        color: '#e7effa', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        textAlign: 'center',
-    },
-    eventSaveBtn: {
-        flex: 1, padding: '8px 0', background: 'rgba(54,187,106,0.15)',
-        border: '2px solid rgba(54,187,106,0.4)', borderRadius: 6,
-        color: '#8cdeee', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-    },
-    eventCancelBtn: {
-        padding: '8px 16px', background: 'rgba(255,255,255,0.06)',
-        border: '2px solid rgba(255,255,255,0.12)', borderRadius: 6,
-        color: '#bfcee0', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-    },
-    editInlineInput: {
-        width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.3)',
-        border: '2px solid rgba(255,255,255,0.15)', borderRadius: 6,
-        color: '#eff5fc', fontSize: 13, outline: 'none', boxSizing: 'border-box',
-    },
-    jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
-    jarvisHistoryA: { fontSize: 12, color: '#bfcee0', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
-
-    // Monthly Income Goal
-    goalCard: {
-        background: '#112338', border: '2px solid rgba(255,255,255,0.08)',
-        borderRadius: 12, padding: '16px 20px',
-    },
-    goalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-    goalTitle: { fontSize: 15, fontWeight: 700, color: '#eff5fc' },
-    goalEditBtn: {
-        padding: '4px 12px', background: 'rgba(74,144,217,0.15)', border: '2px solid #8acbff',
-        borderRadius: 6, color: '#8acbff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-    },
-    goalText: { fontSize: 14, color: '#bfcee0', marginBottom: 10, lineHeight: 1.5 },
-    goalBarBg: { height: 8, background: '#30485f', borderRadius: 4, overflow: 'hidden' },
-    goalBarFill: { height: '100%', borderRadius: 4, transition: 'width 0.4s ease' },
-    goalEditRow: { display: 'flex', gap: 8, alignItems: 'center' },
-    goalInput: {
-        flex: 1, padding: '10px 12px', background: '#07111e', border: '2px solid rgba(255,255,255,0.12)',
-        borderRadius: 8, color: '#eff5fc', fontSize: 14, outline: 'none',
-    },
-    goalSaveBtn: {
-        padding: '10px 16px', background: '#8acbff', border: '2px solid rgba(255,255,255,0.2)',
-        borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-    },
-    goalCancelBtn: {
-        padding: '10px 12px', background: '#30485f', border: '2px solid rgba(255,255,255,0.2)',
-        borderRadius: 8, color: '#bfcee0', fontSize: 16, cursor: 'pointer',
-    },
-    setGoalBtn: {
-        width: '100%', padding: '14px 20px', background: 'linear-gradient(135deg, rgba(35,116,225,0.12), rgba(35,116,225,0.06))',
-        border: '2px solid rgba(35,116,225,0.35)', borderRadius: 12,
-        color: '#60a5fa', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-        textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        transition: 'background 0.2s, border-color 0.2s', marginTop: 10,
-    },
-    goalBtnIcon: { fontSize: 16 },
-
     // Calendar wrapper
     calendarWrapper: {
         background: '#112338', border: '2px solid rgba(255,255,255,0.07)',
@@ -2458,36 +1943,9 @@ const styles = {
     },
 
     // Multi-day styles
-    closedDayCard: {
-        background: 'rgba(0,0,0,0.2)', border: '2px solid rgba(255,255,255,0.07)',
-        borderRadius: 8, marginBottom: 6, overflow: 'hidden',
-    },
-    closedDayHeader: {
-        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-        background: 'none', border: '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', width: '100%',
-    },
     closedDayLabel: { fontSize: 13, fontWeight: 700, color: '#bfcee0', flex: 1, textAlign: 'left' },
     closedDayStats: { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#a6bfd3' },
     closedDayDowns: { padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 4 },
-    closeDayBtn: {
-        background: 'rgba(76,172,200,0.12)', border: '2px solid rgba(76,172,200,0.35)',
-        color: '#8cdeee', borderRadius: 8, padding: '8px 14px', fontSize: 13,
-        fontWeight: 700, cursor: 'pointer',
-    },
-    startDayBtn: {
-        background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.35)',
-        color: '#3b82f6', borderRadius: 8, padding: '8px 14px', fontSize: 13,
-        fontWeight: 700, cursor: 'pointer',
-    },
-    confirmYes: {
-        background: '#124fa2', color: '#fff', border: '2px solid rgba(255,255,255,0.2)',
-        borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-    },
-    confirmNo: {
-        background: 'transparent', color: '#94a3b8',
-        border: '2px solid rgba(255,255,255,0.15)', borderRadius: 8,
-        padding: '8px 16px', fontSize: 13, cursor: 'pointer',
-    },
 };
 
 export default memo(TokeTracker);

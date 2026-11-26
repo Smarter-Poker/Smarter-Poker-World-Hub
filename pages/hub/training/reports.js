@@ -182,14 +182,13 @@ export default function VerifiedTrainingReports() {
         <meta name="description" content="Review sealed Training results and measured solver evidence without inferred or simulated player statistics." />
       </Head>
       <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', paddingBottom: 76, background: '#040d18', color: 'var(--sp-fg)' }}>
-        <header className="sp-intelligence-header" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid #688299', background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
+        <header className="sp-intelligence-header sd-masthead" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid #688299', background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button type="button" onClick={() => router.push('/hub/training')} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label="Return To Training Hub">
+            <button type="button" className="sd-button" onClick={() => router.push('/hub/training')} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label="Return To Training Hub">
               <BackArrowIcon />
               <span>Training</span>
             </button>
             <div>
-              <div style={{ color: '#75e9ff', fontSize: 12, letterSpacing: 2.1, textTransform: 'uppercase', fontWeight: 800 }}>Sealed Attempt Intelligence</div>
               <h1 style={{ margin: '3px 0 0', fontSize: 'clamp(21px, 4vw, 34px)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", color: '#f4fbff', textShadow: '0 2px 0 #000, 0 0 20px rgba(69,230,255,.35)' }}>
                 Verified Training Reports
               </h1>
@@ -200,7 +199,7 @@ export default function VerifiedTrainingReports() {
         <main className="sp-intelligence-main" style={{ width: 'min(1100px, calc(100% - 28px))', margin: '0 auto', paddingTop: 20 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
             {PERIOD_OPTIONS.map((option) => (
-              <button key={option.value} type="button" aria-pressed={period === option.value} onClick={() => setPeriod(option.value)} style={{ ...panelStyle(period === option.value ? 'rgba(69,230,255,.75)' : 'rgba(255,255,255,.13)'), color: period === option.value ? '#eaffff' : 'var(--sp-fg-muted)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }}>
+              <button key={option.value} type="button" className="sd-button" aria-pressed={period === option.value} onClick={() => setPeriod(option.value)} style={{ ...panelStyle(period === option.value ? 'rgba(69,230,255,.75)' : 'rgba(255,255,255,.13)'), color: period === option.value ? '#eaffff' : 'var(--sp-fg-muted)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }}>
                 {option.label}
               </button>
             ))}
@@ -245,7 +244,7 @@ export default function VerifiedTrainingReports() {
               </section>
 
               <aside style={{ ...panelStyle('rgba(255,202,92,.38)'), padding: 14, marginBottom: 14, color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.55 }}>
-                <strong style={{ color: '#ffdb83' }}>Evidence Boundary:</strong>{' '}
+                <strong style={{ color: 'var(--sd-ice)' }}>Evidence Boundary:</strong>{' '}
                 Accuracy And Classifications Come From Completed, Non-Practice Server Attempts. EV Appears Only For Solver-Verified Decisions With Measured Loss. Frequency-Based VPIP, PFR, Three-Bet, And “GTO Proximity” Scores Are Not Inferred From Quiz Accuracy.
               </aside>
 
@@ -283,8 +282,8 @@ export default function VerifiedTrainingReports() {
                         <strong style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{format.gameName}</strong>
                         <span style={{ color: 'var(--sp-fg-muted)', fontSize: 12 }}>{format.sessions} Sessions</span>
                         <span style={{ color: '#3ce78b', fontWeight: 800 }}>{formatMetric(format.accuracy, '%')}</span>
-                        <span style={{ color: '#c593ff', fontWeight: 800 }}>{formatMetric(format.verifiedScoreAverage)}</span>
-                        <span style={{ color: '#ffca5c', fontSize: 12 }}>{format.measuredEvDecisions > 0 ? formatEv(format.avgMeasuredEvLoss) : 'EV Unmeasured'}</span>
+                        <span style={{ color: 'var(--sd-ice)', fontWeight: 800 }}>{formatMetric(format.verifiedScoreAverage)}</span>
+                        <span style={{ color: 'var(--sd-silver)', fontSize: 12 }}>{format.measuredEvDecisions > 0 ? formatEv(format.avgMeasuredEvLoss) : 'EV Unmeasured'}</span>
                       </div>
                     ))}
                   </div>

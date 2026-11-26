@@ -2,6 +2,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth.js';
 import { createClient } from '../../../src/lib/supabaseServerClient.js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit.js';
 import { reportApiError } from '../../../src/lib/apiErrorHandler.js';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../src/lib/personal-assistant/contextAuthority.js';
 import { parseHandHistory } from '../../../src/engines/HandHistoryParser.js';
 import { auditParsedHands } from '../../../src/lib/training/handAuditEngine.js';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
@@ -177,12 +178,15 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
 }
 
 let _supabase = null;
+
 function getSupabase() {
   if (!_supabase) {
-    _supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-    );
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL are required');
+    }
+    _supabase = createClient(url, key);
   }
   return _supabase;
 }
@@ -291,15 +295,32 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('Vary', 'Authorization');
   try {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
     if (req.method !== 'POST' && req.method !== 'GET') {
+      res.setHeader('Allow', 'GET, POST');
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
 
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-    const { user, error: authError } = await getServerUserWithFallback(req, getSupabase());
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const { user, error: authError, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
+    if (authError || !user) {
+      return res.status(authStatus === 503 ? 503 : 401).json({
+        success: false,
+        error: authStatus === 503 ? 'Session verification unavailable' : 'Invalid token',
+      });
+    }
+
+    const contextAccess = await checkSandboxAccess(getSupabase(), user.id);
+    if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+      return res.status(403).json({
+        success: false,
+        blocked: true,
+        contextState: contextAccess?.contextState || 'session_active_unknown',
+        accessLevel: contextAccess?.accessLevel || 'hard_block',
+        error: contextAccess?.message || 'Hand history analysis is unavailable during live play or post-session cooldown.',
+      });
+    }
 
     if (req.method === 'GET') {
       const requestedHandId = typeof req.query?.handId === 'string' ? req.query.handId.trim() : '';

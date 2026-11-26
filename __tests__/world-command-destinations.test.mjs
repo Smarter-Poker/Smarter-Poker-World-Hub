@@ -91,9 +91,9 @@ test('query commands preserve authorization gates and meaningful empty states', 
   assert.match(tokeVault, /const closeTaxSummary = useCallback/);
   assert.match(tokeVault, /delete nextQuery\.tab/);
   assert.doesNotMatch(tokeVault, /router\.query\.tab === 'tax'\s*&&\s*completedGigs\.length/);
-  assert.match(taxModal, /role="dialog"/);
-  assert.match(taxModal, /aria-modal="true"/);
-  assert.match(taxModal, /event\.key === 'Escape'/);
+  assert.match(taxModal, /<dialog[\s\S]*?aria-labelledby="tax-summary-title"/);
+  assert.match(taxModal, /node\.showModal\(\)/);
+  assert.match(taxModal, /onCancel=\{event => \{ event\.preventDefault\(\); onClose\(\);/);
   assert.match(taxModal, /aria-label="Close Tax Summary"/);
 });
 

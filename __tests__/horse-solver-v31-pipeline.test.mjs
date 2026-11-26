@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import yaml from 'js-yaml';
 
@@ -225,3 +226,32 @@ test('sealed context fallback preserves independent JD and original candidate pr
   assert.match(result.stderr, /Ran 12 tests/);
   assert.match(result.stderr, /OK/);
 });
+
+for (const folder of ['pot-depth-repair', 'pot-repair136']) {
+test(`dormant ${folder} preserves admission and durable native failure contracts`, () => {
+  const python = process.env.V31_NUMERIC_PYTHON || process.env.PYTHON_BIN || 'python3';
+  for (const suite of ['test_source_contract.py', 'driver/test_native_telemetry.py']) {
+    const result = spawnSync(python, ['-I', '-B', 'scripts/horse-solver-v31/' + folder + '/' + suite], {
+      cwd: ROOT, encoding: 'utf8', timeout: 120_000,
+      env: { ...process.env, OMP_NUM_THREADS: '1', OPENBLAS_NUM_THREADS: '1', MKL_NUM_THREADS: '1' },
+    });
+    assert.equal(result.status, 0, `${suite}\n${result.stdout}\n${result.stderr}`);
+    assert.match(result.stderr, /Ran \d+ tests/);
+    assert.match(result.stderr, /OK/);
+    assert.doesNotMatch(result.stderr, /skipped=/);
+  }
+});
+
+test(`${folder} publication contains its exact maintained source and no private inputs`, () => {
+  const base = 'scripts/horse-solver-v31/' + folder + '/';
+  const manifest = JSON.parse(read(base + 'source-manifest.json'));
+  assert.equal(manifest.live_play, false);
+  assert.equal(manifest.private_inputs_included, false);
+  assert.ok(Object.keys(manifest.source_files).length > 0);
+  for (const [path, expected] of Object.entries(manifest.source_files)) {
+    assert.ok(!path.startsWith('/') && !path.split('/').includes('..'));
+    const actual = createHash('sha256').update(readFileSync(new URL(base + path, ROOT))).digest('hex');
+    assert.equal(actual, expected, `published source drift: ${path}`);
+  }
+});
+}

@@ -210,7 +210,7 @@ export default function CommunityLeaderboardPage() {
       >
         {/* Header */}
         <div
-          className="sp-intelligence-header"
+          className="sp-intelligence-header sd-masthead"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -258,7 +258,7 @@ export default function CommunityLeaderboardPage() {
                 borderRadius: 8,
                 border: '1px solid rgba(251, 191, 36, 0.4)',
                 background: 'rgba(251, 191, 36, 0.08)',
-                color: '#fde68a',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -386,7 +386,7 @@ export default function CommunityLeaderboardPage() {
                     >
                       {p.name}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>{p.score}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff' }}>{p.score}</div>
                   </motion.div>
                 );
               })}

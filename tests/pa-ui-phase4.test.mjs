@@ -374,7 +374,7 @@ test('LiveSpotQuickEntry is a zero-clutter sheet with two tabs, 44px controls an
   assert.match(paKit, /e\.key === 'Escape'/, 'BottomSheet must close on Escape');
   assert.match(src, /minHeight: 44/);
   assert.match(src, /fontSize: 16/);
-  assert.match(src, /<details className="pa-disclosure">/, 'Board entry is a native optional disclosure');
+  assert.match(src, /<details className="pa-disclosure"[^>]*>/, 'Board entry is a native optional disclosure');
   assert.match(src, /No Verified Solver Spot Matched/, 'Unverified spots report coverage, not advice');
   assert.match(src, /detected\.supported === false/, 'Non-NLHE paste must disable analysis');
   assert.doesNotMatch(src, /Math\.random|fabricat/i);

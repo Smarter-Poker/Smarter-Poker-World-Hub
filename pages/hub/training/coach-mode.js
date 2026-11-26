@@ -105,7 +105,7 @@ const LESSONS = [
     art: '/images/training/coach-mode/three-bet-pressure.webp',
     iconKind: 'bolt',
     icon: '',
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     desc: 'When and how to re-raise preflop',
     concepts: [
       'A 3-bet is the first re-raise before the flop. It builds a larger pot with strong hands and can deny equity to the original raiser\'s weakest hands.',
@@ -205,7 +205,7 @@ const LESSONS = [
     art: '/images/training/coach-mode/pot-odds-core.webp',
     iconKind: 'abacus',
     icon: '',
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
     desc: 'The math behind calling and defense decisions',
     concepts: [
       'Call break-even equity equals the call amount divided by the final pot after your call. If the pot is 100 and Villain bets 50, calling 50 contests a final pot of 200, so the break-even equity is 25%.',
@@ -689,12 +689,12 @@ export default function CoachModePage() {
 
           <section className="sp-coach-module-section" aria-labelledby="coach-study-room">
             <h2 id="coach-study-room">Study With A Partner</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div className="sp-coach-study-actions">
               <button type="button" data-launch-coop-study-room="true" data-coop-room-href={coopStudyRoomHref}
-                onClick={() => router.push(coopStudyRoomHref)} className="sp-coach-primary">
+                onClick={() => router.push(coopStudyRoomHref)} className="sd-button sd-primary">
                 Start A Study Room
               </button>
-              <button type="button" data-copy-coop-study-room="true" onClick={handleCopyCoopStudyRoom} className="sp-coach-back">
+              <button type="button" data-copy-coop-study-room="true" onClick={handleCopyCoopStudyRoom} className="sd-button">
                 Copy Study Room Link
               </button>
             </div>

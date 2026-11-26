@@ -6,7 +6,9 @@ import { runProductionDeliveryAttestation, validateDesignatedAuditAuthState, val
 
 export const AUDIT_UUID = '2d1cd6c3-5700-4af9-a271-d4863fdab20d';
 export function validateConfig(env) {
-  assert.ok(['authority', 'catalog'].includes(env.TRAINING_VERIFICATION || 'authority'), 'unknown verification');
+  assert.ok(['authority', 'catalog', 'results-mobile', 'results-desktop'].includes(env.TRAINING_VERIFICATION || 'authority'), 'unknown verification');
+  assert.ok(!env.TRAINING_GAME_IDS?.trim() || env.TRAINING_VERIFICATION?.startsWith('results-'),
+    'game filters only apply to results verification');
   assert.equal(env.GITHUB_REF, 'refs/heads/main', 'protected main required');
   assert.match(env.EXPECTED_SHA || '', /^[a-f0-9]{40}$/);
   assert.equal(env.GITHUB_SHA, env.EXPECTED_SHA, 'source identity mismatch');
@@ -28,7 +30,7 @@ export async function collectPublic(env = process.env, runtime = {}) {
     assert.equal(checked.data?.user?.id, AUDIT_UUID, 'designated audit identity mismatch');
     assert.equal(checked.data.user.email?.toLowerCase(), env.TEST_USER_EMAIL.toLowerCase(), 'configured email mismatch');
     const state = { cookies: [], origins: [{ origin: 'https://smarter.poker', localStorage: [{ name: 'smarter-poker-auth', value: JSON.stringify(login.data.session) }] }] };
-    if (env.TRAINING_VERIFICATION === 'catalog') {
+    if (env.TRAINING_VERIFICATION && env.TRAINING_VERIFICATION !== 'authority') {
       const { CATALOG_ORIGIN, verifyLiveTrainingCatalog } = await import('./training-catalog-live.mjs');
       const { storageState } = validateDesignatedAuditAuthState(state, CATALOG_ORIGIN, AUDIT_UUID);
       storageState.origins[0].localStorage.push({
@@ -41,6 +43,10 @@ export async function collectPublic(env = process.env, runtime = {}) {
         ...config,
         state: storageState,
         output: env.PUBLIC_EVIDENCE,
+        gameIds: env.TRAINING_GAME_IDS,
+        resultsViewport: env.TRAINING_VERIFICATION.startsWith('results-')
+          ? env.TRAINING_VERIFICATION.slice('results-'.length)
+          : undefined,
       });
     }
     const authState = join(privateDir, 'state.json');

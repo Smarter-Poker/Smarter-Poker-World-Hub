@@ -210,7 +210,7 @@ export default function QREExplorerPage() {
                   style={{
                     fontSize: 12,
                     fontWeight: 700,
-                    color: 'var(--sp-accent-purple)',
+                    color: '#86daff',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}
@@ -221,7 +221,7 @@ export default function QREExplorerPage() {
                   Lower = More Even → Higher = More Concentrated
                 </div>
               </div>
-              <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--sp-accent-purple)' }}>
+              <div style={{ fontSize: 32, fontWeight: 900, color: '#86daff' }}>
                 {(Number.isFinite(Number(lambda)) ? Number(lambda) : 0).toFixed(1)}
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function QREExplorerPage() {
                   padding: '3px 8px',
                   borderRadius: 4,
                   background: 'rgba(167,139,250,0.1)',
-                  color: 'var(--sp-accent-purple)',
+                  color: '#86daff',
                 }}
               >
                 {spotInfo.street}
@@ -388,10 +388,10 @@ export default function QREExplorerPage() {
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)', textAlign: 'center' }}>
                 AUTHORED
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-purple)', textAlign: 'center' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', textAlign: 'center' }}>
                 MODEL
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)', textAlign: 'center' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', textAlign: 'center' }}>
                 DELTA
               </div>
             </div>
@@ -426,7 +426,7 @@ export default function QREExplorerPage() {
                     </div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#86daff' }}>
                       {a.modelFreq}%
                     </div>
                   </div>
@@ -510,7 +510,7 @@ export default function QREExplorerPage() {
               }}
             >
               <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>Authored Reference</span>
-              <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700 }}>Toy Model</span>
+              <span style={{ color: '#86daff', fontWeight: 700 }}>Toy Model</span>
             </div>
           </div>
 
@@ -527,7 +527,7 @@ export default function QREExplorerPage() {
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: 'var(--sp-accent-amber)',
+                color: '#86daff',
                 textTransform: 'uppercase',
                 marginBottom: 8,
               }}

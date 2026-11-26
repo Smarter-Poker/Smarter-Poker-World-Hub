@@ -1,0 +1,13 @@
+# Dormant reduced-pot and depth repair
+
+This maintained offline successor adds reduced-pot TRAIN coverage, strict pot interpolation, and durable native failure reporting. It cannot register a dataset, bind a model, enable HV31, or activate live play. Existing historical plans and their failed or consumed outcomes remain unchanged.
+
+The finite protocol admits 163 distinct previously clean TRAIN games and five prospective 240bb TRAIN games. After all technical gates pass, one fixed `range_root` recipe fits eight model objects on 168 games. Sixteen previously exposed reduced-pot contexts are TRAIN regression checks. Only a passing TRAIN gate admits the sixteen prospective exact contexts at pot 555 or 585, with weights sealed before evaluation and one scoring claim. No consumed evaluation or protected holdout is an input.
+
+Pot interpolation binds the board, ranges, rake, stack and chip betting tree, requires training support on both sides, and excludes each evaluation game from fitting. Reduced-pot features come from the complete public 246-feature producer. The control transfers the prior sealed full-pot policy tables unchanged; it never asks an old model to extrapolate to unsupported pots.
+
+The ranges remain authored 80bb zero-rake proxies. The qualified depth-specific raked preflop source is unavailable, and range admission fails closed. Any passing result is restricted to the declared reduced-pot contexts with prior flop exposure. It does not certify unseen flops, universal historical freshness, realistic preflop ranges, the new candidate at full pot 600, other depths, the original global final, or live play. Reduced root pots are a robustness experiment, not a pure causal jackpot estimate or a revision of the rake standard.
+
+The native driver preserves the existing 600-second session deadline, upstream UPI parser and A2 storage rule. It records the actual imported UPI identity, bounded progress, command context and process metrics before closing a failed solver, persists the failed record before replacement startup, and exits unsuccessfully if any expected output is failed or incomplete. Operational fixes do not establish the cause of the earlier solver timeout.
+
+Private inputs, jobs, model weights, receipts and raw outputs stay on verified SSD2. `PLAN.md` and the source contracts describe the explicit preparation and gated execution route. Each cohort requires a fresh budget and host check, canonical output copies, mandatory A2 review, and an explicit owner launch. There are no automatic retries or gated chains. The existing `npm run test:horse-solver-v31` route executes the maintained software contracts without private data or native solving.

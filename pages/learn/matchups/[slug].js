@@ -282,6 +282,8 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
           <div style={styles.quickCrossLinks}>
             <Link
               href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(matchup.handA)}&hand2=${encodeURIComponent(matchup.handB)}`}
+              rel="nofollow"
+              prefetch={false}
               style={styles.crossBtnCyan}
             >
               Run This Matchup In Live Odds Calculator

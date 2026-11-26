@@ -553,6 +553,10 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   const sessionNotesUi = read('pages/hub/training/session-notes.js');
   assert.match(sessionNotesUi, /tool_id:\s*'session-notes'/);
   assert.match(sessionNotesUi, /tool_id=session-notes/);
+  assert.match(sessionNotesUi, /<h1[^>]*>Session Notes<\/h1>/);
+  assert.match(sessionNotesUi, /aria-label="Back To Training"/);
+  assert.match(sessionNotesUi, /renderNoteText\(note\.freeText\)/);
+  assert.doesNotMatch(sessionNotesUi, /dangerouslySetInnerHTML/);
 
   const glossaryUi = read('pages/hub/training/glossary.js');
   assert.match(glossaryUi, /tool_id:\s*'glossary'/);

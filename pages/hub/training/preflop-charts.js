@@ -238,7 +238,7 @@ export default function PreflopCharts() {
             <p>
               <strong style={{ color: 'var(--sp-accent-cyan)' }}>RFI</strong>
               Charts Show Your First-In Raising Range.
-              <strong style={{ color: 'var(--sp-accent-purple)' }}> Vs RFI</strong>
+              <strong style={{ color: '#86daff' }}> Vs RFI</strong>
               Charts Show How To Respond To An Opener.
               <strong style={{ color: 'var(--sp-accent-green)' }}> 3-Bet</strong>
               Charts Show 3-Bet Ranges When Facing An Open.
@@ -565,7 +565,7 @@ export default function PreflopCharts() {
                   <span
                     style={{
                       fontSize: 12,
-                      color: 'var(--sp-accent-purple)',
+                      color: '#86daff',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: 1,
@@ -695,7 +695,7 @@ export default function PreflopCharts() {
                     style={{
                       fontSize: 12,
                       fontWeight: 800,
-                      color: 'var(--sp-accent-purple)',
+                      color: '#86daff',
                       fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       marginBottom: 8,
                       padding: '4px 12px',

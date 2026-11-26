@@ -48,19 +48,26 @@ export default function TrainingPlayPage() {
 
     if (loading || !gameId) {
         return (
-            <div style={{
-                minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-                background: 'linear-gradient(180deg, #040d18 0%, #091727 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-            }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                    <p>Loading Level Selector...</p>
+            <>
+                <SEOHead
+                    title="Play Training Game"
+                    description="Interactive Smarter.Poker GTO Training Level Selector."
+                    noindex={true}
+                />
+                <div style={{
+                    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
+                    background: 'linear-gradient(180deg, #040d18 0%, #091727 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}></div>
+                        <p>Loading Level Selector...</p>
+                    </div>
                 </div>
-            </div>
+            </>
         );
     }
 

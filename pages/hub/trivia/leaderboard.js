@@ -167,7 +167,8 @@ function PvpEloRankDock({ currentUserId, viewerRating, onSignIn }) {
             </aside>
         );
     }
-    const tierInk = eloTierInk(viewerRating?.tier || 'Bronze');
+    const rawTierInk = eloTierInk(viewerRating?.tier || 'Bronze');
+    const tierInk = rawTierInk === 'gold' ? 'blue' : rawTierInk;
     return (
         <aside className="trivia-progress-rank-dock" aria-labelledby="trivia-your-pvp-elo">
             <h2 id="trivia-your-pvp-elo" className="trivia-progress-heading">Your PvP Elo</h2>
@@ -358,6 +359,13 @@ export default function TriviaLeaderboard() {
         setReloadKey((key) => key + 1);
     };
 
+    const handleSignIn = () => {
+        const target = typeof router.asPath === 'string' && router.asPath.startsWith('/hub/trivia/leaderboard')
+            ? router.asPath
+            : '/hub/trivia/leaderboard';
+        void router.push(`/auth/login?redirect=${encodeURIComponent(target)}`);
+    };
+
     return (
         <TriviaErrorBoundary pageName="Leaderboard">
             <>
@@ -367,7 +375,7 @@ export default function TriviaLeaderboard() {
                     canonical="/hub/trivia/leaderboard"
                 />
                 <PageTransition>
-                    <div className="trivia-progress-page trivia-progress-page--leaderboard" data-trivia-family="progress" data-trivia-surface="leaderboard">
+                    <div className="smarterdesign trivia-progress-page trivia-progress-page--leaderboard" data-trivia-family="progress" data-trivia-surface="leaderboard">
                         <UniversalHeader pageDepth={2} />
                         <main className="trivia-progress-shell" aria-labelledby="trivia-leaderboard-title">
                             <TriviaConsole
@@ -426,8 +434,8 @@ export default function TriviaLeaderboard() {
                                     {validBoard === TOURNAMENT_BOARD && tournament ? <p className="trivia-progress-intro">{tournament.name || 'Nightly Trivia Tournament'} · {formatEventDate(tournament)} · {validScope === 'human' ? 'Humans Only' : 'Humans And Smarter Horses'}</p> : null}
 
                                     <div className="trivia-progress-leaderboard-grid">
-                                        {validBoard === SOLO_BOARD ? <SoloRankDock currentUserId={currentUserId} ranked={rows} partial={partial} onSignIn={() => router.push('/auth/login?redirect=/hub/trivia/leaderboard')} /> : null}
-                                        {validBoard === PVP_ELO_BOARD ? <PvpEloRankDock currentUserId={currentUserId} viewerRating={pvpViewer} onSignIn={() => router.push('/auth/login?redirect=/hub/trivia/leaderboard')} /> : null}
+                                        {validBoard === SOLO_BOARD ? <SoloRankDock currentUserId={currentUserId} ranked={rows} partial={partial} onSignIn={handleSignIn} /> : null}
+                                        {validBoard === PVP_ELO_BOARD ? <PvpEloRankDock currentUserId={currentUserId} viewerRating={pvpViewer} onSignIn={handleSignIn} /> : null}
                                         <section className="trivia-progress-board" aria-labelledby="trivia-board-heading">
                                             <h2 id="trivia-board-heading" className="trivia-progress-heading">{validBoard === SOLO_BOARD ? 'Verified Rankings' : validBoard === PVP_ELO_BOARD ? 'PvP Elo Ratings' : 'Official Results'}</h2>
                                             {!hasMounted || authLoading || isLoading ? (
@@ -450,7 +458,7 @@ export default function TriviaLeaderboard() {
                                                                             <tr key={`${entry.userId || entry.displayName}-${entry.rank}-${index}`} data-rank-tier={rankTier(entry.rank)} data-current-player={isCurrent ? 'true' : 'false'}>
                                                                                 <td className="trivia-progress-table__rank" data-label="Rank">{rankLabel(entry.rank)}</td>
                                                                                 <th className="trivia-progress-table__player" scope="row" data-label="Player"><span>{titleName(entry.displayName)}{isCurrent ? <span className="trivia-progress-table__you">You</span> : null}</span></th>
-                                                                                <td className={`trivia-progress-table__entrant tc-ink--${eloTierInk(entry.tier)}`} data-label="Tier">{entry.tier}</td>
+                                                                                <td className={`trivia-progress-table__entrant tc-ink--${eloTierInk(entry.tier) === 'gold' ? 'blue' : eloTierInk(entry.tier)}`} data-label="Tier">{entry.tier}</td>
                                                                                 <td className="trivia-progress-table__score trivia-progress-table__num" data-label="Elo">{formatExactElo(entry.elo)}</td>
                                                                                 <td className="trivia-progress-table__accuracy trivia-progress-table__num" data-label="Record">{`${formatTriviaDisplayNumber(entry.wins)}W / ${formatTriviaDisplayNumber(entry.losses)}L / ${formatTriviaDisplayNumber(entry.ties)}T`}</td>
                                                                             </tr>

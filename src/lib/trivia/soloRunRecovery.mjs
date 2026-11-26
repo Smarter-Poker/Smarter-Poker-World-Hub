@@ -11,6 +11,11 @@
 export const SOLO_RUN_RECOVERY_VERSION = 1;
 export const SOLO_RUN_RECOVERY_PREFIX = 'sp.trivia.solo-recovery.v1';
 export const SOLO_RUN_RECOVERY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+export const SOLO_RUN_EXPIRY_SKEW_GRACE_MS = 5_000;
+
+export function soloRunExpiryGraceMs(mode) {
+    return cleanIdentity(mode) === 'time-attack' ? 0 : SOLO_RUN_EXPIRY_SKEW_GRACE_MS;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PHASES = new Set(['starting', 'active', 'settling']);
@@ -44,10 +49,11 @@ export function normalizeSoloRunRecovery(value, { mode, accountId, now = Date.no
     const expiresAt = typeof value.expiresAt === 'string' && Number.isFinite(Date.parse(value.expiresAt))
         ? value.expiresAt
         : null;
-    // The server remains authoritative, but an already-expired pointer is not
-    // offered as a recoverable run. A one-minute allowance prevents client
-    // clock skew from discarding a session that the server still accepts.
-    if (expiresAt && Date.parse(expiresAt) < now - 60_000) return null;
+    // The server remains authoritative, and an already-expired pointer must
+    // never be offered as a recoverable run. Time Attack (30s lifetime) uses
+    // zero grace; longer modes allow at most 5s of client clock skew.
+    const expiryGraceMs = soloRunExpiryGraceMs(cleanMode);
+    if (expiresAt && Date.parse(expiresAt) < now - expiryGraceMs) return null;
 
     const settlementRequestId = value.settlementRequestId == null
         ? null

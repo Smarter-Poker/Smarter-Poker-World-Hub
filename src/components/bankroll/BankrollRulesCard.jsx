@@ -1,3 +1,4 @@
+import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
  * BANKROLL RULES CARD
  * Displays pre-made + custom bankroll rules that users can toggle on/off
@@ -436,12 +437,14 @@ export default function BankrollRulesCard({ userId }) {
 
       {/* Add Custom Rule Button / Form */}
       {!showAddForm ? (
-        <button
-          onClick={() => setShowAddForm(true)}
-          style={styles.addRuleBtn}
-        >
-          + Add Custom Rule
-        </button>
+        <BankrollHeaderAdd label="Add Custom Rule" onClick={() => setShowAddForm(true)}>
+            <button
+              onClick={() => setShowAddForm(true)}
+              style={styles.addRuleBtn}
+            >
+              + Add Custom Rule
+            </button>
+        </BankrollHeaderAdd>
       ) : (
         <div style={styles.addForm}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

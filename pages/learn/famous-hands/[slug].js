@@ -192,6 +192,8 @@ export default function FamousHandDetailPage({ hand, peerHands = [] }) {
             <div style={styles.quickCrossLinks}>
               <Link
                 href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.heroHandCode)}&hand2=${encodeURIComponent(hand.villainHandCode)}`}
+                rel="nofollow"
+                prefetch={false}
                 style={styles.crossBtnCyan}
               >
                 Simulate {hand.heroHandCode} Vs {hand.villainHandCode} In Odds Calculator

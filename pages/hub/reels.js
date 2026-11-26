@@ -345,11 +345,12 @@ export async function getServerSideProps({ res, query = {} }) {
     }
   }
   feedListingCacheHeaders(res);
+  const isFilteredFeed = Boolean(query.category || query.feed || query.mode);
   const reelsListing = await readCanonicalCrawlerReels();
-  return { props: { reelsListing } };
+  return { props: { reelsListing, isFilteredFeed } };
 }
 
-export default function ReelsPage({ reelsListing = null, initialReel = null, reelsUnavailable = false }) {
+export default function ReelsPage({ reelsListing = null, initialReel = null, reelsUnavailable = false, isFilteredFeed = false }) {
   const [reels, setReels] = useState(() => initialReel ? [initialReel] : []);
   // The feed client also performs eager cleanup at module load, but Pages
   // Router hydration can reuse a server-evaluated module graph. Repeat the
@@ -2772,7 +2773,7 @@ export default function ReelsPage({ reelsListing = null, initialReel = null, ree
           title={`${routePresentation.title} - Short Video Content`}
           description={`Watch And Share Verified ${routePresentation.label} Video On Smarter.Poker Reels. Free To Watch With Source Attribution And Playable Media Checks.`}
           canonical="/hub/reels"
-          noindex={reelsUnavailable}
+          noindex={reelsUnavailable || isFilteredFeed}
         />
         {reelsNavigationHeader}
         {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
@@ -2914,7 +2915,7 @@ export default function ReelsPage({ reelsListing = null, initialReel = null, ree
 
   return (
     <>
-      <SEOHead title={watchMetadata.title} description={watchMetadata.description} canonical={watchMetadata.canonical} ogImage={watchMetadata.image || undefined} ogType={watchMetadata.schema ? 'video.other' : 'website'} />
+      <SEOHead title={watchMetadata.title} description={watchMetadata.description} canonical={watchMetadata.canonical} ogImage={watchMetadata.image || undefined} ogType={watchMetadata.schema ? 'video.other' : 'website'} noindex={isFilteredFeed && !watchMetadata.schema} />
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {watchMetadata.schema ? (

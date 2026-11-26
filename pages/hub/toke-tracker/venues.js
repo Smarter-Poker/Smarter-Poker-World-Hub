@@ -21,7 +21,9 @@ export default function VenueIntelPage() {
     const { user } = useAvatar();
     const userId = user?.id;
     const [mounted, setMounted] = useState(false);
-    const [completedGigs, setCompletedGigs] = useState([]);
+    const [venueData, setVenueData] = useState(null);
+    const venueRead = useRef(0);
+    const currentData = venueData?.owner === userId ? venueData : null;
     const [menuOpen, setMenuOpen] = useState(false);
     const [tokePrefs, setTokePrefs] = useState({});
 
@@ -36,16 +38,18 @@ export default function VenueIntelPage() {
 
     // Load completed gigs for VenueIntelligence
     const loadGigs = useCallback(async () => {
+        const read = ++venueRead.current;
         if (!userId) return;
         try {
             const gigs = await fetchGigs(userId);
-            setCompletedGigs(gigs.filter(g => g.status === 'completed'));
+            if (venueRead.current === read) setVenueData({owner:userId,gigs:gigs.filter(g => g.status === 'completed')});
         } catch (err) {
+            if (venueRead.current === read) setVenueData({owner:userId,error:true});
             console.warn('Error loading gigs:', err);
         }
     }, [userId]);
 
-    useEffect(() => { loadGigs(); }, [loadGigs]);
+    useEffect(() => { loadGigs(); return () => { venueRead.current++; }; }, [loadGigs]);
 
     useEffect(() => {
         window.addEventListener('toke-gig-completed', loadGigs);
@@ -148,12 +152,13 @@ export default function VenueIntelPage() {
                 <TokeWorkspace section="venues">
 
                     <HubErrorBoundary name="Venue Intelligence">
-                        <VenueIntelligence gigs={completedGigs} />
+                        <VenueIntelligence gigs={currentData?.gigs} signedIn={Boolean(userId)}
+                            loading={Boolean(userId && !currentData)} error={Boolean(currentData?.error)} onRetry={loadGigs} />
                     </HubErrorBoundary>
 
-                    <div style={{ marginTop: 24 }}>
+                    <div>
                         <HubErrorBoundary name="Shift Calendar">
-                            <TokeCalendar userId={userId} />
+                            <TokeCalendar key={userId || 'guest'} userId={userId} headerAction />
                         </HubErrorBoundary>
                     </div>
                 </TokeWorkspace>

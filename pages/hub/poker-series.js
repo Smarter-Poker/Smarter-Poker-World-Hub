@@ -770,11 +770,11 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
             <Head>
                 <title>Live Poker Series Directory | Smarter.Poker</title>
                 <meta name="description" content="Browse all live and upcoming poker tournament series. Filter by tour (WSOP, WPT, MSPT, RGPS), date, buy-in, and location." />
-                <link rel="canonical" href="https://smarter.poker/hub/poker-series" />
-                <link rel="alternate" type="text/markdown" title="Markdown" href="https://smarter.poker/hub/poker-series.md" />
-                <meta property="og:title" content="Poker Series Directory | Smarter.Poker" />
-                <meta property="og:description" content="Live and upcoming poker series tracked in real-time. Find your next big tournament." />
-                <meta property="og:url" content="https://smarter.poker/hub/poker-series" />
+                <link key="canonical" rel="canonical" href="https://smarter.poker/hub/poker-series" />
+                <link key="alternate-markdown" rel="alternate" type="text/markdown" title="Markdown" href="https://smarter.poker/hub/poker-series.md" />
+                <meta key="og-title" property="og:title" content="Poker Series Directory | Smarter.Poker" />
+                <meta key="og-description" property="og:description" content="Live and upcoming poker series tracked in real-time. Find your next big tournament." />
+                <meta key="og-url" property="og:url" content="https://smarter.poker/hub/poker-series" />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(directorySchema) }} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     '@context': 'https://schema.org',

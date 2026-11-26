@@ -1,3 +1,4 @@
+import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
  * TAX REPORT PANEL
  * SmarterPoker Dark UI - Generate IRS-ready reports with W2-G tracking
@@ -270,9 +271,8 @@ export default function TaxReportPanel({ userId }) {
             <div style={styles.header}>
                 <div style={styles.headerTitle}>
                     <FileText size={20} style={{ color: METAL.primary }} />
-                    <span>TAX REPORT GENERATOR</span>
+                    <h3 className="sd-section-title">Tax Documents</h3>
                 </div>
-                <span style={styles.headerHint}>IRS-Ready Logs With W-2G Tracking</span>
             </div>
 
             {/* Year Selector */}
@@ -286,10 +286,7 @@ export default function TaxReportPanel({ userId }) {
                         <button
                             key={year}
                             onClick={() => setSelectedYear(year)}
-                            style={{
-                                ...styles.yearBtn,
-                                ...(selectedYear === year ? styles.yearBtnActive : {}),
-                            }}
+                            className="sd-button" aria-pressed={selectedYear === year}
                         >
                             {year}
                         </button>
@@ -304,13 +301,17 @@ export default function TaxReportPanel({ userId }) {
                         <FileText size={18} style={{ color: METAL.primary }} />
                         <span>W-2G DOCUMENT VAULT</span>
                     </div>
-                    <button
-                        onClick={() => setShowUploadForm(!showUploadForm)}
-                        style={styles.addFormBtn}
-                    >
-                        {showUploadForm ? <X size={16} /> : <Plus size={16} />}
-                        {showUploadForm ? 'CANCEL' : 'UPLOAD W-2G'}
-                    </button>
+                    {showUploadForm ? (
+                        <button type="button" onClick={() => setShowUploadForm(false)} className="sd-button">
+                            <X size={16} /> Cancel
+                        </button>
+                    ) : (
+                        <BankrollHeaderAdd label="Upload W-2G" onClick={() => setShowUploadForm(true)}>
+                            <button type="button" onClick={() => setShowUploadForm(true)} className="sd-button">
+                                <Plus size={16} /> Upload W-2G
+                            </button>
+                        </BankrollHeaderAdd>
+                    )}
                 </div>
 
                 {/* Upload Form */}
@@ -329,7 +330,7 @@ export default function TaxReportPanel({ userId }) {
                             <div style={styles.w2gCaptureArea}>
                                 {/* Camera Scan Button */}
                                 <div
-                                    style={styles.w2gCameraBtn}
+                                    className="sd-button"
                                     onClick={() => setShowLiveCamera(true)}
                                 >
                                     <div style={styles.w2gCameraIcon}>
@@ -393,7 +394,7 @@ export default function TaxReportPanel({ userId }) {
                                 )}
                                 <button
                                     onClick={() => { setUploadFile(null); setImagePreview(null); }}
-                                    style={styles.w2gChangeBtn}
+                                    className="sd-button"
                                 >
                                     <RefreshCw size={12} />
                                     CHANGE
@@ -513,7 +514,7 @@ export default function TaxReportPanel({ userId }) {
                                     <div style={{ display: 'flex', gap: 6 }}>
                                         <button
                                             onClick={() => window.open(form.file_url, '_blank')}
-                                            style={styles.formActionBtn}
+                                            className="sd-button"
                                             title="View"
                                         >
                                             <Eye size={16} />
@@ -538,7 +539,7 @@ export default function TaxReportPanel({ userId }) {
                 <button
                     onClick={fetchPreview}
                     disabled={loading}
-                    style={styles.previewBtn}
+                    className="sd-button"
                 >
                     {loading ? (
                         <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> GENERATING...</>
@@ -678,7 +679,7 @@ export default function TaxReportPanel({ userId }) {
                     <button
                         onClick={downloadPDF}
                         disabled={downloading}
-                        style={styles.downloadBtn}
+                        className="sd-button sd-primary"
                     >
                         {downloading ? (
                             <><Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> GENERATING PDF...</>

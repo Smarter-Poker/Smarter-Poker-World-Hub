@@ -44,7 +44,7 @@ export function toJsonLdDocument(jsonLd) {
 export function normalizeCanonicalUrl(canonicalTarget) {
     if (!canonicalTarget || typeof canonicalTarget !== 'string') return undefined;
     const trimmed = canonicalTarget.trim();
-    if (!trimmed) return undefined;
+    if (!trimmed || /\[[^\]]+\]/.test(trimmed)) return undefined;
     const rawUrl = trimmed.startsWith('http')
         ? trimmed
         : `${SITE_URL}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
@@ -55,7 +55,7 @@ export function normalizeCanonicalUrl(canonicalTarget) {
     }
     const baseCanonical = withoutHashOrQuery.replace(/\/+$/, '');
     if (
-        (baseCanonical === `${SITE_URL}/hub/reels` || baseCanonical === `${SITE_URL}/hub/lives`) &&
+        (baseCanonical === `${SITE_URL}/hub/reels` || baseCanonical === `${SITE_URL}/hub/lives` || baseCanonical === `${SITE_URL}/hub/article`) &&
         withoutHash.includes('?')
     ) {
         const queryString = withoutHash.slice(withoutHash.indexOf('?') + 1);

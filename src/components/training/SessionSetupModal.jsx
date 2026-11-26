@@ -515,7 +515,7 @@ export default function SessionSetupModal({
                 <Stat label="Hands" value={loading ? null : hands} />
               </div>
               {statsError && (
-                <div role="status" className="sp-caption" style={{ marginTop: 4, color: 'var(--sp-accent-amber)' }}>
+                <div role="status" className="sp-caption" style={{ marginTop: 4, color: '#86daff' }}>
                   Performance History Unavailable · No Score Or Session Count Was Inferred.
                 </div>
               )}

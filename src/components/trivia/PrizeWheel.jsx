@@ -29,8 +29,8 @@ const PRIZES = [
     { id: 'diamond_5', label: '5', color: '#45adff', weight: 30, reward: { type: 'diamonds', amount: 5 } },
     { id: 'diamond_10', label: '10', color: '#45adff', weight: 25, reward: { type: 'diamonds', amount: 10 } },
     { id: 'diamond_25', label: '25', color: '#45adff', weight: 15, reward: { type: 'diamonds', amount: 25 } },
-    { id: 'diamond_50', label: '50', color: '#ffd700', weight: 10, reward: { type: 'diamonds', amount: 50 } },
-    { id: 'diamond_100', label: '100', color: '#ffd700', weight: 5, reward: { type: 'diamonds', amount: 100 } },
+    { id: 'diamond_50', label: '50', color: '#86daff', weight: 10, reward: { type: 'diamonds', amount: 50 } },
+    { id: 'diamond_100', label: '100', color: '#86daff', weight: 5, reward: { type: 'diamonds', amount: 100 } },
     { id: 'streak_shield', label: 'Shield', color: '#e4e7ec', weight: 8, reward: { type: 'streak_shield', amount: 1 } },
     { id: 'free_entry', label: 'Free Play', color: '#c8ffd2', weight: 5, reward: { type: 'arcade_ticket', amount: 1 } },
     { id: 'mystery', label: 'Mystery', color: '#f02849', weight: 2, reward: { type: 'diamonds', amount: 15 } },
@@ -40,7 +40,7 @@ const PRIZES = [
 // truth; this only picks the painted-console ink class that prints it).
 const INK_BY_PRIZE_COLOR = Object.freeze({
     '#45adff': 'blue',
-    '#ffd700': 'gold',
+    '#86daff': 'cyan',
     '#e4e7ec': 'silver',
     '#c8ffd2': 'green',
     '#f02849': 'red',
@@ -226,7 +226,7 @@ export default function PrizeWheel({
         : {
             label: claimError ? 'Retry Claim' : 'Claim Reward',
             onClick: handleClaim,
-            ink: claimError ? 'red' : 'gold',
+            ink: claimError ? 'red' : 'cyan',
         };
     const secondaryAction = onClose && !result
         ? {
@@ -259,7 +259,7 @@ export default function PrizeWheel({
                     </p>
 
                     {streakMultiplier > 1 && (
-                        <p className={`tc-ink--gold ${styles.notice}`}>
+                        <p className={`tc-ink--cyan ${styles.notice}`}>
                             {streakMultiplier}X Streak Bonus Active!
                         </p>
                     )}

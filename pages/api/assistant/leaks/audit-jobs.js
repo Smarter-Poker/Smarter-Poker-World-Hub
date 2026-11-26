@@ -8,6 +8,10 @@ export const config = { maxDuration: 15 };
 const LIMIT = { max: 30, windowMs: 60_000 };
 
 let client;
+export function _setSupabaseForTesting(mockClient) {
+  client = mockClient;
+}
+
 function db() {
   if (!client) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -240,7 +240,7 @@ const LevelCard: React.FC<{
                         </span>
                     )}
                     {diamondMultiplier && diamondMultiplier > 1.0 && (
-                        <span style={{ color: '#FBBF24', fontSize: 12, marginLeft: 12, fontWeight: 600 }}>
+                        <span style={{ color: '#86daff', fontSize: 12, marginLeft: 12, fontWeight: 600 }}>
                             {diamondMultiplier}x Diamonds
                         </span>
                     )}
@@ -254,7 +254,7 @@ const LevelCard: React.FC<{
                         {highScore !== null ? (
                             <div style={{
                                 ...styles.highScore,
-                                color: highScore >= passingGrade ? '#4CAF50' : '#FF6B35',
+                                color: highScore >= passingGrade ? '#4CAF50' : '#fca5a5',
                             }}>
                                 <span style={styles.highScoreLabel}>Best</span>
                                 <span style={styles.highScoreValue}>{highScore}%</span>

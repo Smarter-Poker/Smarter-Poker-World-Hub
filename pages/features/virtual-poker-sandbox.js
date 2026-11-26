@@ -16,8 +16,8 @@ export default function VirtualPokerSandboxPage() {
       description: 'Accurately Resolve Complex Multi-All-In Encounters With Automated Main Pot And Side Pot Segregation And True Equity Breakdown.',
     },
     {
-      title: 'Shareable Scenario URLs',
-      description: 'Generate Unique Permalinks Permitting Friends, Study Groups, And Coaching Students To Load And Test Custom Hand Scenarios Instantly.',
+      title: 'Stateless Hand Review & Leak Audit',
+      description: 'Connect Directly With Personal Assistant Leak Finder And Verified GTO Training To Audit Completed Hands With Anonymized Stateless Hand Review.',
     },
     {
       title: 'Zero Download Web GL Engine',
@@ -36,7 +36,7 @@ export default function VirtualPokerSandboxPage() {
       ['Pricing', '100% Free Forever', '$35 License / Free Tool', '$50 - $100+ / Year'],
       ['3D Visual Table', 'Interactive 3D Web Table', '2D Text Matrix Only', 'Basic 2D Canvas'],
       ['Multiway Side Pots', 'Automated Side Pot Engine', 'Manual Input Required', 'Limited Multiway Support'],
-      ['Shareable Web Links', 'Instant URL Sharing', 'File Export Only', 'Proprietary Files Only'],
+      ['Hand Review Workflow', 'Stateless Hand Review & Leak Audit', 'File Export Only', 'Proprietary Files Only'],
       ['Mobile Compatibility', 'iPhone, iPad, Android Web', 'Windows Desktop Only', 'Desktop Only'],
     ],
   };
@@ -63,11 +63,11 @@ export default function VirtualPokerSandboxPage() {
     },
     {
       question: 'Is The Virtual Table Sandbox Free?',
-      answer: 'Yes. Full Simulation, Runout Modeling, And Hand Sharing Features Are 100% Free With No Download Required.',
+      answer: 'Yes. Full Simulation, Runout Modeling, And Personal Assistant Hand Review Workflows Are 100% Free With No Download Required.',
     },
     {
-      question: 'Can I Share A Simulated Board With A Friend?',
-      answer: 'Yes. Simply Click Share Scenario To Generate A Permanent URL That Loads The Exact Table State In Any Web Browser.',
+      question: 'How Do I Review Hands With Personal Assistant?',
+      answer: 'Open Personal Assistant Leak Finder To Audit Completed Club Arena Hands Or Use Stateless Hand Review With Optional Villain Anonymization And Hole-Card Privacy.',
     },
   ];
 

@@ -1,83 +1,28 @@
-.mast {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin: 12px;
-  padding: 12px clamp(12px, 3vw, 26px);
-  min-height: 88px;
-}
-.walletMark {
-  width: clamp(46px, 9vw, 72px);
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 4px #020812);
-}
-.titleGroup {
-  flex: 1;
-  min-width: 0;
-}
-.mast .titleGroup h1 {
-  margin: 0;
-  font-family: var(--sd-type);
-  font-size: clamp(24px, 5.5vw, 38px);
-  font-weight: 700;
-  line-height: 1.05;
-  color: #f2f8ff;
-  overflow-wrap: anywhere;
-}
-.productName {
-  color: #96dfff;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .08em;
-}
+.mast { margin:10px 12px 14px; }
 .headerActions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.headerActions:empty { display: none; }
-.sidebar {
-  flex: 0 0 180px;
-  min-width: 0;
-  padding: 0 8px 12px 12px;
-  box-sizing: border-box;
-}
-.sidebar button { width: 100%; margin-bottom: 4px; }
-.content {
-  flex: 1;
-  width: 100%;
-  min-width: 0;
-  padding: 0 12px 16px;
-  box-sizing: border-box;
-}
-.panel, .dashboard { padding: clamp(12px, 2vw, 18px); }
-.dashboard { margin-bottom: 16px; }
-.metric { padding: 12px; min-width: 0; overflow-wrap: anywhere; }
-.export {
-  min-height: 100dvh;
-  background: #06101e;
-  font-family: var(--font-inter, Inter), system-ui, sans-serif;
-  color: #eff6ff;
-}
-.exportContent {
-  max-width: 768px;
-  margin-inline: auto;
-  padding: 16px 12px max(16px, env(safe-area-inset-bottom));
-}
-.exportContent .mast { margin: 0 0 12px; }
-.exportList { overflow: hidden; margin: 0; padding: 0; list-style: none; }
-.exportRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px 16px;
-  padding: 16px;
-}
-.exportRow + .exportRow { border-top: 1px solid #38516c; }
-.exportRow div { flex: 1 1 170px; min-width: 0; }
-.exportRow h2 { margin: 0 0 3px; font-size: 18px; }
-.exportRow p { margin: 0; color: #b6c9dd; font-size: 14px; }
-.exportRow button { min-width: 100px; }
-@media (max-width: 768px) {
-  .sidebar { flex-basis: auto; }
-  .mast { margin: 8px 12px 0; gap: 6px; }
-}
+.headerActions:empty { display:none; }
+.headerActions :is(a,button) { min-width: 78px; }
+.mast + :global(.bankroll-main-layout) { flex-direction:column; }
+.sidebar { width:100%; min-width:0; padding:0 12px 14px; box-sizing:border-box; }
+.sidebar > div { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(135px,100%),1fr)); gap:5px; }
+.sidebar button { width:100%; margin:0; }
+.content { flex:1; width:100%; min-width:0; padding:0 12px 20px; box-sizing:border-box; }
+.panel, .dashboard { padding:clamp(12px,2vw,20px); }
+.dashboard { margin-bottom:16px; }
+.metric { padding:12px; min-width:0; overflow-wrap:anywhere; }
+.analyticsGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(335px,100%),1fr)); gap:14px; align-items:start; }
+.analyticsCard { min-width:0; }
+.jarvisFooter { margin:20px 0 0; }
+.reportMetrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; margin:14px 0 20px; background:#35506a; border-block:1px solid #466584; }
+.reportMetric { display:grid; gap:7px; padding:clamp(12px,3vw,20px); background:linear-gradient(150deg,#192e45,#081522); color:#c4d7e7; }
+.reportMetric strong { color:#f0f8ff; font:700 clamp(23px,5vw,34px)/1.05 var(--sd-type,sans-serif); font-variant-numeric:tabular-nums; }
+.export { min-height:100dvh; background:#06101e; font-family:var(--font-inter,Inter),system-ui,sans-serif; color:#eff6ff; }
+.exportContent { max-width:850px; margin-inline:auto; padding:14px 12px max(16px,env(safe-area-inset-bottom)); }
+.exportContent .mast { margin:0 0 12px; }
+.exportList { margin:0; padding:0; list-style:none; }
+.exportRow { display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:12px; padding:13px 4px; }
+.exportRow + .exportRow { border-top:1px solid #36516c; }
+.exportRow svg { color:#9edbff; }
+.exportRow h2 { margin:0; font-size:20px; line-height:1.12; }
+.exportRow button { min-width:88px; }
+@media(max-width:600px){ .mast.mast { margin:8px 12px; } .analyticsGrid { grid-template-columns:minmax(0,1fr); } }

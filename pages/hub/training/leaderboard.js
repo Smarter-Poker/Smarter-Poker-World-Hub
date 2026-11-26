@@ -174,7 +174,7 @@ export default function TrainingLeaderboard({ seed = null }) {
                 borderRadius: 2,
                 border: '1px solid rgba(251, 191, 36, 0.4)',
                 background: 'rgba(251, 191, 36, 0.08)',
-                color: '#fde68a',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -223,13 +223,14 @@ export default function TrainingLeaderboard({ seed = null }) {
                 { id: 'mtt', label: 'MTT' },
                 { id: 'cash', label: 'Cash' },
                 { id: 'spins', label: 'Spins' },
-                { id: 'psychology', label: 'Psychology' },
-                { id: 'advanced', label: 'Advanced' },
+                { id: 'psychology', label: 'Mental Game' },
+                { id: 'advanced', label: 'Poker Strategy' },
               ].map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
-                  style={view === cat.id ? styles.categoryButtonActive : styles.categoryButton}
+                  className="sd-button"
+                  style={styles.categoryButton}
                   onClick={() => setView(cat.id)}
                   aria-label={`Show ${cat.label} category`}
                   aria-pressed={view === cat.id}
@@ -543,26 +544,7 @@ const styles = {
     fontWeight: 700,
   },
   categoryButton: {
-    minHeight: '38px',
     padding: '6px 14px',
-    background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    color: 'var(--sp-fg-dim)',
-    border: '1px solid #3c5260',
-    borderRadius: '2px',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  categoryButtonActive: {
-    minHeight: '38px',
-    padding: '6px 14px',
-    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
-    color: '#f2b84b',
-    border: '1px solid #f2b84b',
-    borderRadius: '2px',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer',
+    fontSize: 12,
   },
 };

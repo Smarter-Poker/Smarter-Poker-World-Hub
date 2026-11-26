@@ -68,12 +68,21 @@ import { analyzeVerifiedTrainingWeaknesses } from '../../src/lib/training/weakne
 import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
 
 const CATEGORY_META = {
-  MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#FB923C', glow: 'rgba(251,146,60,0.25)' },
+  MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#86daff', glow: 'rgba(134,218,255,0.22)' },
   CASH:       { label: 'Cash Games',   Icon: DollarSign, color: '#4ADE80', glow: 'rgba(74,222,128,0.22)' },
-  SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#FACC15', glow: 'rgba(250,204,21,0.22)' },
-  PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#C084FC', glow: 'rgba(192,132,252,0.22)' },
+  SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
+  PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
   ADVANCED:   { label: 'Poker Strategy',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
+
+const VARIANT_FILTERS = Object.freeze([
+  { id: 'all',  label: 'All' },
+  { id: 'nlh',  label: "Hold'em" },
+  { id: 'plo4', label: 'PLO4' },
+  { id: 'plo5', label: 'PLO5 (5-Card)' },
+  { id: 'plo6', label: 'PLO6 (6-Card)' },
+  { id: 'plo8', label: 'PLO8 (Hi-Lo)' },
+]);
 
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
 
@@ -136,6 +145,7 @@ export default function TrainingPage() {
   const [authUser, setAuthUser] = useState(null);
 
   const [activeCat, setActiveCat] = useState('ALL');
+  const [activeVariantFilter, setActiveVariantFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const libraryHeadingRef = useRef(null);
@@ -181,11 +191,19 @@ export default function TrainingPage() {
     const ql = debouncedQuery.trim().toLowerCase();
     return TRAINING_LIBRARY.filter(g => {
       if (activeCat !== 'ALL' && g.category !== activeCat) return false;
+      const isOmahaGame = ['cash-005', 'cash-015', 'mtt-018'].includes(g.id);
+      if (activeVariantFilter !== 'all') {
+        if (activeVariantFilter === 'nlh' && isOmahaGame) return false;
+        if (['plo4', 'plo5', 'plo6', 'plo8'].includes(activeVariantFilter) && !isOmahaGame && g.category !== 'CASH') return false;
+      }
       if (!ql) return true;
+      const omahaQueryMatch = isOmahaGame && (ql.includes('omaha') || ql.includes('plo') || ql.includes('5-card') || ql.includes('five-card') || ql.includes('6-card') || ql.includes('hi-lo'));
       return (g.name || '').toLowerCase().includes(ql)
-          || (CATEGORY_META[g.category]?.label || '').toLowerCase().includes(ql);
+          || (g.focus || '').toLowerCase().includes(ql)
+          || (CATEGORY_META[g.category]?.label || '').toLowerCase().includes(ql)
+          || omahaQueryMatch;
     });
-  }, [activeCat, debouncedQuery]);
+  }, [activeCat, activeVariantFilter, debouncedQuery]);
 
   // PROGRESSIVE GAME GRID (2026-10-12). The full library is 107 cards of ~49
   // elements each - 5,250 of the page's 5,600 elements - and every one of them
@@ -198,6 +216,7 @@ export default function TrainingPage() {
   // crawlable text.
   const [visibleCardCount, setVisibleCardCount] = useState(INITIAL_GAME_CARDS);
   useEffect(() => { setVisibleCardCount(INITIAL_GAME_CARDS); }, [activeCat, debouncedQuery]);
+  useEffect(() => { setVisibleCardCount(INITIAL_GAME_CARDS); }, [activeVariantFilter]);
   const visibleGames = filtered.slice(0, visibleCardCount);
   const moreGamesPending = visibleCardCount < filtered.length;
   const gridSentinelRef = useRef(null);
@@ -227,7 +246,13 @@ export default function TrainingPage() {
     if (!game || !requireOnline()) return;
     haptic('light');
     const query = { gameId: game.id, start: '1', source: 'training-home' };
-    if (focus?.variant) query.variant = focus.variant;
+    const effectiveVariant = focus?.variant || (activeVariantFilter !== 'all' ? activeVariantFilter : null);
+    if (effectiveVariant) {
+      query.variant = effectiveVariant;
+      if (!focus?.bettingStructure && effectiveVariant !== 'nlh') {
+        query.bettingStructure = 'pot_limit';
+      }
+    }
     if (focus?.bettingStructure) query.bettingStructure = focus.bettingStructure;
     if (focus?.format) query.format = focus.format;
     if (focus?.targetStreet) query.targetStreet = focus.targetStreet;
@@ -236,7 +261,7 @@ export default function TrainingPage() {
     }
     if (Number.isInteger(focus?.questionsCount)) query.hands = String(focus.questionsCount);
     router.push({ pathname: '/hub/training/arena/[gameId]', query });
-  }, [haptic, requireOnline, router]);
+  }, [activeVariantFilter, haptic, requireOnline, router]);
 
   const heroGame = jarvisPick || TRAINING_LIBRARY[0];
   const continueTarget = useMemo(() => {
@@ -388,6 +413,7 @@ export default function TrainingPage() {
 
   const browseTrainingLibrary = useCallback(() => {
     setActiveCat('ALL');
+    setActiveVariantFilter('all');
     setQuery('');
     setDebouncedQuery('');
     if (typeof window === 'undefined') return;
@@ -404,6 +430,7 @@ export default function TrainingPage() {
 
   const resetBrowseFilters = useCallback(() => {
     setActiveCat('ALL');
+    setActiveVariantFilter('all');
     setQuery('');
     setDebouncedQuery('');
   }, []);
@@ -432,14 +459,14 @@ export default function TrainingPage() {
           <PullToRefresh onRefresh={refreshDashboard}>
           <main id="main" className="sp-main">
 
-            <section aria-labelledby="hero-h" className="sp-hero" data-tutorial="hero">
+            <section aria-labelledby="hero-h" className="sp-hero sd-masthead" data-tutorial="hero">
               <div className="sp-hero-copy">
                 <h1 id="hero-h" className="sp-hero-title">Training Games</h1>
                 <p className="sp-hero-sub">Practice Poker Decisions And Get Feedback.</p>
 
                 <div className="sp-cta-row">
                   <button
-                    className="sp-cta sp-cta-primary"
+                    className="sp-cta sp-cta-primary sd-button sd-primary"
                     data-start-training-cta="true"
                     onClick={() => playGame(heroGame)}
                     disabled={!heroGame}
@@ -449,14 +476,14 @@ export default function TrainingPage() {
                   {continueTarget && (
                     <button
                       type="button"
-                      className="sp-cta sp-cta-secondary sp-cta-continue"
+                      className="sp-cta sp-cta-secondary sp-cta-continue sd-button"
                       data-continue-training-cta="true"
                       onClick={() => playGame(continueTarget.game, continueTarget.preset)}
                     >
                       <Play size={16} aria-hidden /> Continue Training ({continueTarget.gameName})
                     </button>
                   )}
-                  <button className="sp-cta sp-cta-secondary" onClick={browseTrainingLibrary}>
+                  <button className="sp-cta sp-cta-secondary sd-button" onClick={browseTrainingLibrary}>
                     <Shuffle size={18} aria-hidden /> Pick A Different Drill
                   </button>
                 </div>
@@ -464,7 +491,7 @@ export default function TrainingPage() {
 
             </section>
 
-            <section id="training-library" aria-labelledby="lib-h" data-tutorial="library">
+            <section id="training-library" className="sd-panel sp-training-section" aria-labelledby="lib-h" data-tutorial="library">
               <div className="sp-section-head">
                 <h2 ref={libraryHeadingRef} id="lib-h" className="sp-section-title" tabIndex={-1}>Browse Games</h2>
                 <span className="sp-section-link" aria-live="polite">
@@ -489,12 +516,47 @@ export default function TrainingPage() {
                 {CATEGORY_ORDER.map(category => {
                   const meta = CATEGORY_META[category];
                   return (
-                    <Link key={category} className="sp-cat-chip" href={`/hub/training/category/${category.toLowerCase()}`}>
+                    <Link key={category} className="sp-cat-chip sd-button" href={`/hub/training/category/${category.toLowerCase()}`}>
                       <meta.Icon size={14} aria-hidden style={{ color: meta.color }} /> {meta.label}
                     </Link>
                   );
                 })}
               </nav>
+
+              <div className="sp-cat-chips" role="group" aria-label="Filter or launch by poker variant" data-variant-filter-bar="true">
+                {VARIANT_FILTERS.map((vf) => {
+                  const isActive = activeVariantFilter === vf.id;
+                  return (
+                    <button
+                      key={vf.id}
+                      type="button"
+                      className="sp-cat-chip sd-button"
+                      data-variant-filter={vf.id}
+                      aria-pressed={isActive}
+                      onClick={() => setActiveVariantFilter(vf.id)}
+                    >
+                      {vf.label}
+                    </button>
+                  );
+                })}
+                {['plo4', 'plo5', 'plo6', 'plo8'].includes(activeVariantFilter) && (
+                  <button
+                    type="button"
+                    className="sp-cat-chip sd-button sd-primary"
+                    data-quick-launch-omaha={activeVariantFilter}
+                    onClick={() => {
+                      const omahaCashGame = TRAINING_LIBRARY.find((g) => g.id === 'cash-005') || TRAINING_LIBRARY[0];
+                      playGame(omahaCashGame, {
+                        variant: activeVariantFilter,
+                        bettingStructure: 'pot_limit',
+                        format: 'cash',
+                      });
+                    }}
+                  >
+                    <Play size={14} aria-hidden /> Play {activeVariantFilter.toUpperCase()} Cash Now
+                  </button>
+                )}
+              </div>
 
               {filtered.length > 0 ? (
                 <>
@@ -503,6 +565,8 @@ export default function TrainingPage() {
                       <GameCardNew
                         key={g.id}
                         game={g}
+                        isFirstCard={g.id === visibleGames[0]?.id}
+                        variantOverride={activeVariantFilter !== 'all' ? activeVariantFilter : null}
                         progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
                         isRecommended={g.id === jarvisPick?.id}
                         onStart={() => playGame(g)}
@@ -605,7 +669,7 @@ export default function TrainingPage() {
               </section>
             )}
 
-            <section aria-labelledby="stats-h" data-tutorial="stats">
+            <section className="sd-panel sp-training-section" aria-labelledby="stats-h" data-tutorial="stats">
               <div className="sp-section-head">
                 <h2 id="stats-h" className="sp-section-title">This Week</h2>
                 <a className="sp-section-link" href="/hub/session-history">See History <ArrowRight size={14} aria-hidden /></a>
@@ -661,7 +725,7 @@ export default function TrainingPage() {
               )}
             </section>
 
-            <section aria-labelledby="prog-h" data-tutorial="progress">
+            <section className="sd-panel sp-training-section" aria-labelledby="prog-h" data-tutorial="progress">
               <div className="sp-section-head">
                 <h2 id="prog-h" className="sp-section-title">Progress</h2>
                 <Link className="sp-section-link" href="/hub/training/progress">View Progress <ArrowRight size={14} aria-hidden /></Link>
@@ -827,9 +891,20 @@ function Sparkline({ data }) {
   );
 }
 
-function GameCardNew({ game, progress, isRecommended, onStart }) {
+function GameCardNew({ game, isFirstCard = false, variantOverride = null, progress, isRecommended, onStart }) {
+  void isFirstCard;
   const meta = CATEGORY_META[game.category] || CATEGORY_META.MTT;
   const Icon = meta.Icon;
+  const preset = resolvePresetForGame(
+    game,
+    variantOverride
+      ? {
+          variant: variantOverride,
+          bettingStructure: variantOverride === 'nlh' ? 'no_limit' : 'pot_limit',
+        }
+      : {}
+  );
+  const choiceSummary = `${preset.variant.toUpperCase()} · ${preset.format === 'mtt' ? 'MTT' : preset.format === 'spins' ? 'Spins' : preset.format === 'hu' ? 'Heads-Up' : 'Cash'} · ${preset.tableSize} · ${preset.stackDepthBb} BB`;
   const tag  = isRecommended ? 'recommended'
               : progress >= 100 ? 'mastered'
               : progress === 0  ? 'new'
@@ -838,9 +913,10 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
     <button
       className="sp-card"
       data-category={game.category.toLowerCase()}
+      data-training-game-card={game.id}
       style={{ '--cat-color': meta.color, '--cover-glow': meta.glow }}
       onClick={onStart}
-      aria-label={`${game.name}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
+      aria-label={`Play ${game.name}, ${choiceSummary}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
     >
       <div className="sp-card-cover">
         <TrainingGameArt
@@ -870,13 +946,9 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
           {game.locked           && <span className="sp-badge sp-badge-locked"><Lock size={11} aria-hidden /> Locked</span>}
           <span className="sp-cat-pill" aria-hidden><Icon size={12} /></span>
         </div>
-        <div className="sp-card-art-code" aria-hidden="true">
-          <span>{game.id.toUpperCase()}</span>
-          <span>Training Module</span>
-        </div>
       </div>
       <div className="sp-card-body">
-        <div className="sp-card-cat"><span className="sp-swatch" /> {meta.label}</div>
+        <div className="sp-card-cat" data-game-preset-summary="true"><span className="sp-swatch" /> {meta.label} · {choiceSummary} · Single-Decision Drill</div>
         <h3 className="sp-card-title">{game.name}</h3>
         <p className="sp-card-focus">{game.focus}</p>
         <div className="sp-card-meta">
@@ -889,7 +961,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
             <div className="sp-progress-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
-        <div className="sp-card-launch"><span>Enter Training Arena</span><ArrowRight size={14} aria-hidden /></div>
+        <div className="sp-card-launch sd-button sd-primary"><span>Play</span><ArrowRight size={14} aria-hidden /></div>
       </div>
     </button>
   );
@@ -1694,10 +1766,10 @@ function GlobalStyle() {
         background: linear-gradient(180deg, #18314d 0%, #0c1f35 42%, #040d18 100%);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 26px 48px rgba(0,0,0,.58), 0 0 28px rgba(8,124,250,.22);
       }
-      .sp-card[data-category="mtt"] { --sector-accent: #fb923c; }
+      .sp-card[data-category="mtt"] { --sector-accent: #86daff; }
       .sp-card[data-category="cash"] { --sector-accent: #4ade80; }
-      .sp-card[data-category="spins"] { --sector-accent: #facc15; }
-      .sp-card[data-category="psychology"] { --sector-accent: #c084fc; }
+      .sp-card[data-category="spins"] { --sector-accent: #86daff; }
+      .sp-card[data-category="psychology"] { --sector-accent: #86daff; }
       .sp-card[data-category="advanced"] { --sector-accent: #60a5fa; }
       .sp-card-cover {
         aspect-ratio: 16 / 10;
@@ -2054,11 +2126,21 @@ function GlobalStyle() {
       }
 
       .sp-main .sp-hero {
-        min-height: 240px;
+        min-height: 200px;
+        border: 5px solid transparent;
+        border-image: url("/images/smarterdesign/chrome-readout.webp") 21 / 8px stretch;
         grid-template-columns: 1fr;
         padding: clamp(20px, 4vw, 48px);
       }
       .sp-main .sp-hero-title { font-size: clamp(28px, 5vw, 48px); }
+      .sp-main .sp-hero-sub { color: var(--sd-silver); text-shadow: 0 1px 3px #040d18; }
+      .sp-training-section { margin-block: 14px; }
+      .sp-training-section .sp-section-head {
+        border: 0;
+        border-bottom: 1px solid var(--sd-line);
+        box-shadow: none;
+        background: transparent;
+      }
 
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }

@@ -104,7 +104,7 @@ const MENTAL_TIPS = [
     desc: 'Every mistake reveals a pattern to fix. More data = faster improvement.',
     iconKind: 'lightbulb',
     icon: '',
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
   },
   {
     title: 'Drink Water',

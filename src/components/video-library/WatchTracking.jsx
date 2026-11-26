@@ -8,7 +8,7 @@ export function watchSignInHref(returnPath) {
 }
 
 export default function WatchTracking({ tracking, ownerId, returnPath }) {
-    if (!ownerId) return <p className="vl-watch-tracking" data-watch-tracking="anonymous"><Link href={watchSignInHref(returnPath)}>Sign In To Save Watch Progress</Link></p>;
+    if (!ownerId) return <p className="vl-watch-tracking" data-watch-tracking="anonymous"><Link href={watchSignInHref(returnPath)} rel="nofollow" prefetch={false}>Sign In To Save Watch Progress</Link></p>;
     const labels = {
         loading: 'Loading Watch Progress', ready: 'Watch Progress Saves While You Watch',
         saving: 'Saving Watch Progress', saved: 'Watch Progress Saved',

@@ -324,58 +324,29 @@ export default function TrainingArenaPage() {
 
     if (router.isReady && gameId && (!game || customLaunch.error)) {
         return (
-            <main style={{
-                minHeight: '100dvh',
-                background: 'linear-gradient(180deg, #07111b 0%, #020609 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#cbd5e1', fontFamily: "'Inter', sans-serif", padding: 24,
-            }}>
-                <div role="alert" style={{
-                    width: 'min(100%, 520px)',
-                    border: '1px solid rgba(248,113,113,0.35)',
-                    borderRadius: 12,
-                    background: 'rgba(127,29,29,0.16)',
-                    padding: 22,
-                    textAlign: 'center',
-                }}>
-                    <h1 style={{ color: '#fca5a5', fontSize: 20, margin: '0 0 10px' }}>
-                        Training Launch Unavailable
-                    </h1>
-                    <p style={{ margin: '0 0 18px', lineHeight: 1.6 }}>
-                        {customLaunch.error || 'This Training Game Does Not Exist In The Canonical Library.'}
-                    </p>
+            <main className="sp-training-state">
+                <section className="sd-panel" role="alert">
+                    <h1 className="sd-section-title">Training Launch Unavailable</h1>
+                    <p>{customLaunch.error || 'This Training Game Could Not Be Found.'}</p>
                     <button
                         type="button"
+                        className="sd-button sd-primary"
                         onClick={() => router.replace('/hub/training')}
-                        style={{
-                            border: '1px solid rgba(103,232,249,0.55)', borderRadius: 8,
-                            background: 'linear-gradient(180deg, #67e8f9, #0891b2)',
-                            color: '#021018', padding: '10px 18px', fontWeight: 800, cursor: 'pointer',
-                        }}
                     >
                         Return To Training
                     </button>
-                </div>
+                </section>
             </main>
         );
     }
 
-    // Wait for router + user resolution
     if (!router.isReady || !gameId || !ready || !resolvedSessionId) {
         return (
-            <div style={{
-                minHeight: '100dvh',
-                background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: "'Inter', -apple-system, sans-serif",
-            }}>
-                <style>{`@keyframes arena-spin{to{transform:rotate(360deg)}}`}</style>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: 44, height: 44, border: '3px solid rgba(0,212,255,0.15)', borderTopColor: '#00d4ff', borderRadius: '50%', animation: 'arena-spin 0.8s linear infinite', margin: '0 auto 14px' }} />
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#00d4ff', letterSpacing: 1 }}>Loading Arena...</div>
-                    <div style={{ fontSize: 12, color: '#334155', marginTop: 6 }}>Preparing Your Training Session</div>
+            <main className="sp-training-state">
+                <div className="sd-panel" role="status">
+                    <p className="sd-section-title">Preparing Your Training Session…</p>
                 </div>
-            </div>
+            </main>
         );
     }
 
@@ -390,7 +361,7 @@ export default function TrainingArenaPage() {
         <>
             <Head>
                 <title>{gameName} - Level {level} | Smarter.Poker GTO Training</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             </Head>
             {syncedHandId && (
                 <div

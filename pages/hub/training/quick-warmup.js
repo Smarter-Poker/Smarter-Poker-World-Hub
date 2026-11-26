@@ -504,7 +504,7 @@ export default function QuickWarmupPage() {
                     border: '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
-                  <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-purple)' }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: '#86daff' }}>
                     {formatTime(results?.timeUsed || 0)}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>

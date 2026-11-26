@@ -65,6 +65,10 @@ test('pressed analysis filters are accessible and carry the cyan instrument stat
 });
 
 test('the unchanged global header remains outside the training page stage', () => {
-  assert.match(app, /\{!trainingPageOwnsHeader && <UniversalHeader pageDepth=\{2\} \/>\}[\s\S]*?<div className="sp-training-page-stage">/);
+  assert.match(app, /\{!trainingPageOwnsHeader && <UniversalHeader pageDepth=\{2\} \/>\}[\s\S]*?<div className="sp-training-page-stage smarterdesign">/);
   assert.doesNotMatch(trainingCss, /\.universal-header[^\n]*sp-training-tool--analysis/);
+});
+
+test('Training keyboard actions keep their focus ring while fields use the shared inset indicator', () => {
+  assert.match(trainingCss, /\.sp-training-page-stage :where\(button, a, summary, \[role='button'\], \[role='tab'\]\):focus-visible[^{}]*\{\s*outline: 2px solid var\(--sd-ice\) !important;/);
 });

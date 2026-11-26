@@ -89,6 +89,24 @@ const SERVABLE_SERIES_QUALITIES = new Set([
 ]);
 
 /**
+ * Reject known upstream scraper test fixtures (e.g. PokerAtlas "Series Test"
+ * at "TableCaptain Cloud") from sitemaps and public indexation.
+ */
+export function isSyntheticTestSeries(row) {
+  if (!row || typeof row !== 'object') return false;
+  const uid = String(row.series_uid ?? row.seriesUid ?? '').trim().toLowerCase();
+  const name = String(row.series_name ?? row.name ?? '').trim();
+  const venue = String(row.venue_name ?? row.venueName ?? row.venue ?? '').trim();
+  if (uid && (uid.startsWith('pa_series-test-') || uid.includes('tablecaptain-cloud'))) {
+    return true;
+  }
+  if (/^series\s+test$/i.test(name) || /\btablecaptain\s*cloud\b/i.test(venue)) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * A public parent must carry real source identity, not only a quality label.
  * Manual research uses an audit-note proof rather than an HTML SHA/batch; rows
  * written by automated scrapers require both of those machine provenance
@@ -96,6 +114,7 @@ const SERVABLE_SERIES_QUALITIES = new Set([
  */
 export function isServableSeriesParentEvidence(row, nowMs = Date.now()) {
   if (!row || row.is_suppressed === true
+    || isSyntheticTestSeries(row)
     || !SERVABLE_SERIES_QUALITIES.has(row.data_quality)) return false;
   if (!normalizedHttpUrl(row.source_url || row.scrape_url)) return false;
 

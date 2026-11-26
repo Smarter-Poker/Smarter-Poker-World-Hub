@@ -54,7 +54,7 @@ export default function VideoLibraryOwnerPanel() {
             <main className={styles.panel} data-video-library-owner-panel>
                 <nav className="vl-breadcrumbs" aria-label="Breadcrumb"><Link href="/hub/video-library">Video Library</Link><span aria-hidden="true">/</span><span aria-current="page">Control Panel</span></nav>
                 <h1>Control Panel</h1><p>Manage Video Sources, Editorial Review, Rights And Delivery.</p>
-                {!ownerId ? <p><Link className={styles.action} href="/auth/login?redirect=%2Fhub%2Fvideo-library%2Fowner">Sign In To Open The Control Panel</Link></p>
+                {!ownerId ? <p><Link className={styles.action} href="/auth/login?redirect=%2Fhub%2Fvideo-library%2Fowner" rel="nofollow" prefetch={false}>Sign In To Open The Control Panel</Link></p>
                     : current?.status === 'denied' ? <p role="alert">An Owner Or Admin Account Is Required To Open The Control Panel.</p>
                         : current?.status === 'error' ? <><p role="alert">{current.error}</p><button className={styles.action} type="button" onClick={() => setRevision(value => value + 1)}>Reload Control Panel</button></>
                             : current?.status === 'ready' ? <>

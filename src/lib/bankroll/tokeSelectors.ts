@@ -804,16 +804,19 @@ export interface TokeAnalytics {
  * Career-level analytics for the Toke Dashboard.
  * Uses the already-efficient bulk gig data to avoid extra queries.
  */
-export async function getTokeAnalytics(userId: string): Promise<TokeAnalytics> {
+export async function getTokeAnalytics(userId: string, startDate?: string, endDate?: string): Promise<TokeAnalytics> {
     return withRetry(async () => {
         // Fetch all non-deleted gigs
-        const { data: gigs, error: gigErr } = await supabase
+        let query = supabase
             .from('toke_gigs')
             .select('id, venue_name, start_date, end_date, hourly_rate, status')
             .eq('user_id', userId)
-            .neq('status', 'deleted')
+            .eq('status', 'completed')
             .order('start_date', { ascending: true });
 
+        if (startDate) query = query.gte('start_date', startDate);
+        if (endDate) query = query.lte('start_date', endDate);
+        const { data: gigs, error: gigErr } = await query;
         if (gigErr) throw gigErr;
         if (!gigs || gigs.length === 0) {
             return {
@@ -827,10 +830,13 @@ export async function getTokeAnalytics(userId: string): Promise<TokeAnalytics> {
         const gigIds = gigs.map(g => g.id);
 
         // Bulk fetch downs and expenses in parallel
-        const [{ data: downsRaw }, { data: expsRaw }] = await Promise.all([
+        const [{ data: downsRaw, error: downError }, { data: expsRaw, error: expenseError }] = await Promise.all([
             supabase.from('toke_downs').select('*').in('gig_id', gigIds),
             supabase.from('toke_expenses').select('gig_id, amount').in('gig_id', gigIds),
         ]);
+
+        if (downError) throw downError;
+        if (expenseError) throw expenseError;
 
         const allDowns = (downsRaw || []) as TokeDown[];
         const allExps = (expsRaw || []) as { gig_id: string; amount: number }[];
@@ -903,6 +909,7 @@ export async function getTokeAnalytics(userId: string): Promise<TokeAnalytics> {
         for (let i = 11; i >= 0; i--) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            if (startDate && key < startDate.slice(0, 7)) continue;
             const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
             const val = monthlyMap.get(key) || { tokes: 0, events: 0 };
             monthlyTrend.push({ month: label, ...val });

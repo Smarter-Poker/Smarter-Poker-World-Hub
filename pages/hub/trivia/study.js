@@ -179,7 +179,7 @@ export default function TriviaStudyDeck() {
                     noindex
                 />
                 <PageTransition>
-                    <div className="trivia-progress-page trivia-progress-page--study" data-trivia-family="progress" data-trivia-surface="study">
+                    <div className="smarterdesign trivia-progress-page trivia-progress-page--study" data-trivia-family="progress" data-trivia-surface="study">
                         <UniversalHeader pageDepth={2} />
                         <main className="trivia-progress-shell" aria-labelledby="trivia-study-title">
                             <TriviaConsole
@@ -196,7 +196,7 @@ export default function TriviaStudyDeck() {
                                         : signedOut
                                             ? 'Guest'
                                             : `${formatTriviaDisplayNumber(totalMissed)} ${totalMissed === 1 ? 'Miss' : 'Misses'}`}
-                                pillInk={loadError ? 'red' : totalMissed > 0 ? 'gold' : 'blue'}
+                                pillInk={loadError ? 'red' : 'blue'}
                                 secondaryAction={{ label: 'Back To Stats', onClick: () => router.push('/hub/trivia/stats') }}
                                 primaryAction={!isLoading && loadError
                                     ? { label: 'Retry', onClick: () => setReloadKey((k) => k + 1) }
@@ -206,8 +206,11 @@ export default function TriviaStudyDeck() {
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART.stats} priority />
 
+                                <div className="study-stage-container" style={{ minHeight: '460px' }}>
                                 {isLoading ? (
-                                    <p className="trivia-progress-state trivia-progress-state--loading" role="status">Loading Missed Questions</p>
+                                    <div className="trivia-progress-state trivia-progress-state--loading" role="status" style={{ minHeight: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <p>Loading Missed Questions</p>
+                                    </div>
                                 ) : loadError ? (
                                     <section className="trivia-progress-state trivia-progress-state--error" role="alert">
                                         <p>{loadError}</p>
@@ -374,6 +377,7 @@ export default function TriviaStudyDeck() {
                                         ) : null}
                                     </div>
                                 )}
+                                </div>
                             </TriviaConsole>
                         </main>
                     </div>
@@ -406,7 +410,7 @@ export default function TriviaStudyDeck() {
                     .study-session-bar__count {
                         font-size: 13px;
                         font-weight: 700;
-                        color: #f6c967;
+                        color: #86daff;
                     }
                     .study-session-bar__toggle {
                         display: inline-flex;
@@ -452,9 +456,9 @@ export default function TriviaStudyDeck() {
                         color: #82f0ae;
                     }
                     .study-badge--medium {
-                        background: rgba(246, 201, 103, 0.16);
-                        border: 1px solid rgba(246, 201, 103, 0.4);
-                        color: #f6c967;
+                        background: rgba(134, 218, 255, 0.16);
+                        border: 1px solid rgba(134, 218, 255, 0.42);
+                        color: #86daff;
                     }
                     .study-badge--hard {
                         background: rgba(239, 98, 98, 0.18);
@@ -536,7 +540,6 @@ export default function TriviaStudyDeck() {
                         font-size: 13px;
                         font-weight: 700;
                         color: #86efac;
-                        text-transform: uppercase;
                         letter-spacing: 0.04em;
                     }
                     .study-explanation__body {
@@ -554,6 +557,7 @@ export default function TriviaStudyDeck() {
                         display: inline-flex;
                         align-items: center;
                         justify-content: center;
+                        min-height: 44px;
                         padding: 10px 14px;
                         border-radius: 8px;
                         font-size: 13px;
@@ -579,14 +583,14 @@ export default function TriviaStudyDeck() {
                         color: #dcfce7;
                     }
                     .study-btn--train {
-                        background: linear-gradient(180deg, rgba(180, 122, 22, 0.88), rgba(134, 86, 12, 0.92));
-                        border-color: rgba(251, 207, 118, 0.58);
-                        color: #fff8e6;
+                        background: linear-gradient(180deg, #1981ec, #0c55c0);
+                        border-color: rgba(134, 218, 255, 0.58);
+                        color: #f2f7ff;
                     }
                     .study-card__specialty {
                         margin: 0;
                         font-size: 12px;
-                        color: rgba(246, 201, 103, 0.85);
+                        color: #86daff;
                     }
                     .study-nav {
                         display: flex;
@@ -597,6 +601,7 @@ export default function TriviaStudyDeck() {
                     }
                     .study-nav__btn {
                         flex: 1;
+                        min-height: 44px;
                         padding: 10px 12px;
                         border-radius: 8px;
                         background: rgba(255, 255, 255, 0.06);

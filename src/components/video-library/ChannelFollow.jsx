@@ -77,7 +77,7 @@ export default function ChannelFollow({ channelId, channelPath }) {
 
     useEffect(() => () => { if (pending.current) { pending.current.active = false; pending.current.controller.abort(); } }, [ownerId, channelId]);
 
-    if (!ownerId) return <div className="vl-channel-follow"><Link className="vl-pill-button is-primary" href={`/auth/login?redirect=${encodeURIComponent(channelPath)}`}>Sign In To Follow</Link><p>Follow Channels And Choose New Video Notifications.</p></div>;
+    if (!ownerId) return <div className="vl-channel-follow"><Link className="vl-pill-button is-primary" href={`/auth/login?redirect=${encodeURIComponent(channelPath)}`} rel="nofollow" prefetch={false}>Sign In To Follow</Link><p>Follow Channels And Choose New Video Notifications.</p></div>;
     return <div className="vl-channel-follow" aria-busy={!current || ['loading', 'saving'].includes(current.status)}>
         {current?.status === 'error' ? <><p role="alert">{current.error}</p><button type="button" className="vl-pill-button" onClick={() => setRevision(value => value + 1)}>Reload Follow Status</button></> : <>
             <button type="button" className="vl-pill-button is-primary" disabled={!current || current.status !== 'ready'} aria-pressed={Boolean(current?.following)} onClick={() => void update(!current.following, current.following ? false : current.notificationsEnabled)}>{current?.status === 'loading' || !current ? 'Loading Follow Status' : current.status === 'saving' ? 'Saving' : current.following ? 'Unfollow Channel' : 'Follow Channel'}</button>

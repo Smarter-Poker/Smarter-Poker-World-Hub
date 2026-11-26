@@ -193,10 +193,25 @@ export default function HubPage() {
         <>
             <SEOHead
                 title="Poker Hub: Training, Clubs And Live Games"
-                description="Access All Smarter.Poker Features From One Hub: GTO Training, Private Clubs In Poker Arena, Poker Near Me, Home Games, Bankroll Tracking, Trivia, News And Social. Free To Play, No Real-Money Gambling."
+                description="Smarter.Poker World Hub: Free GTO Training, Private Clubs In Poker Arena, Poker Near Me, Home Games, Bankroll Tracking, Trivia And Poker News."
                 canonical="/hub"
                 jsonLd={HUB_SCHEMA}
             />
+            <h1
+                style={{
+                    position: 'absolute',
+                    width: 1,
+                    height: 1,
+                    padding: 0,
+                    margin: -1,
+                    overflow: 'hidden',
+                    clip: 'rect(0, 0, 0, 0)',
+                    whiteSpace: 'nowrap',
+                    border: 0,
+                }}
+            >
+                Smarter.Poker World Hub: Free GTO Training, Private Poker Clubs, Live Venues And Tools
+            </h1>
             <Head>
                 {/* The hub's largest paint is the circuit-brain background that
                     WorldHub sets from JavaScript. Preloading it lets the fetch

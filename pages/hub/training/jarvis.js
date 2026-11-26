@@ -248,7 +248,7 @@ export default function JarvisDashboard() {
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); loadInsights(); }} />
           <div style={styles.header}>
             {/* TRAIN-JARVIS-A11Y-1: SVG brain replaces ◇ hero */}
-            <div style={{ ...styles.jarvisIcon, color: 'var(--sp-accent-purple)', display: 'inline-flex', justifyContent: 'center' }} aria-hidden>
+            <div style={{ ...styles.jarvisIcon, color: '#86daff', display: 'inline-flex', justifyContent: 'center' }} aria-hidden>
               <BrainIcon size={48} />
             </div>
             <h1 style={styles.title}>JARVIS Dashboard</h1>
@@ -271,7 +271,7 @@ export default function JarvisDashboard() {
             }}
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: '#fbbf24', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#86daff', textTransform: 'uppercase' }}>
                 #1 Priority Leak Curriculum: {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
               </div>
               <div style={{ fontSize: 12, fontWeight: 800, color: leakAnalysis.hasVerifiedLeak ? '#4ade80' : '#94a3b8' }}>
@@ -291,13 +291,13 @@ export default function JarvisDashboard() {
               onClick={() => router.push(topLeakDrillHref)}
               style={{
                 display: 'inline-flex',
-                minHeight: 40,
+                minHeight: 44,
                 alignItems: 'center',
                 padding: '0 16px',
                 borderRadius: 8,
                 border: '1px solid #fbbf24',
                 background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
-                color: '#fef3c7',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 900,
                 cursor: 'pointer',
@@ -743,7 +743,7 @@ const styles = {
     display: 'block',
     fontSize: '24px',
     fontWeight: 700,
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
   },
   weeklyLabel: {
     fontSize: '12px',

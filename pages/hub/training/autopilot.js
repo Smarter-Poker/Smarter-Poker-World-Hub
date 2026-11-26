@@ -137,7 +137,7 @@ const SPOT_DEFINITIONS = [
     name: 'Turn Pot Control',
     position: 'any',
     street: 'turn',
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     iconKind: 'rotate',
     icon: '↻',
     gameId: 'cash-024',
@@ -157,7 +157,7 @@ const SPOT_DEFINITIONS = [
     name: '3-Bet Pots',
     position: 'any',
     street: 'any',
-    color: '#ec4899',
+    color: '#86daff',
     iconKind: 'bolt',
     icon: '⌁',
     gameId: 'cash-007',
@@ -167,7 +167,7 @@ const SPOT_DEFINITIONS = [
     name: 'SB Strategy',
     position: 'SB',
     street: 'preflop',
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     iconKind: 'spade',
     icon: '♠',
     gameId: 'cash-018',
@@ -177,7 +177,7 @@ const SPOT_DEFINITIONS = [
     name: 'MTT Push/Fold',
     position: 'any',
     street: 'preflop',
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
     iconKind: 'trophy',
     icon: '★',
     gameId: 'mtt-001',
@@ -452,7 +452,7 @@ export default function AutopilotPage() {
               }}
             >
               {/* TRAIN-AUTOPILOT-A11Y-1: SVG celebration */}
-              <div style={{ fontSize: 32, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: 'var(--sp-accent-amber)' }} aria-hidden>
+              <div style={{ fontSize: 32, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: '#86daff' }} aria-hidden>
                 <CelebrateIcon size={32} />
               </div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)', marginBottom: 4 }}>
@@ -609,7 +609,7 @@ export default function AutopilotPage() {
                 <motion.div
                   animate={{ y: [0, -4, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: 'var(--sp-accent-purple)' }}
+                  style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: '#86daff' }}
                   aria-hidden
                 >
                   {/* TRAIN-AUTOPILOT-A11Y-1: SVG brain replaces ◇ */}

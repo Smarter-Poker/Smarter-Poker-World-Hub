@@ -10,7 +10,6 @@ import { supabase } from '../../../src/lib/supabase';
 import { authedFetch, getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import DiamondEngine from '../../../src/services/DiamondEngine';
-import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -406,21 +405,10 @@ export default function TriviaModePage() {
                         }
                     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-                    // Check arcade diamonds. VIPs and arcade_ticket holders play
-                    // free on the server (create_trivia_session_v2), so both skip
-                    // the client insufficient-diamond gate.
-                    if (mode === 'arcade' && !vipStatus && arcadeFreeEntryCount < 1) {
-                        const arcadeCost = modeConfig?.diamondCost || 0;
-                        if (arcadeCost > 0) {
-                            const diamonds = profile?.diamonds ?? (await getUserDiamonds(currentUserId));
-                            if (!isCurrent()) return;
-                            if (diamonds < arcadeCost) {
-                                setError(`Not Enough Diamonds. You Need ${arcadeCost} Diamonds To Play ${toTitleCase(modeConfig?.name || 'This Mode')}.`);
-                                setGameState('error');
-                                return;
-                            }
-                        }
-                    }
+                    // Do NOT fail-closed on initial load for arcade: VIPs,
+                    // arcade_ticket holders (even if inventory read errored),
+                    // and active recoverable paid sessions are all arbitrated
+                    // authoritatively by /api/trivia/session-start.
 
                 } else {
                     // Never leave a previous account's recovery scope, wallet,
@@ -1507,10 +1495,9 @@ export default function TriviaModePage() {
     const handlePlayAgain = async () => {
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
-        if (mode === 'arcade' && !isVIP && userDiamonds < (modeConfig?.diamondCost || 10)) {
-            router.push('/hub/trivia');
-            return;
-        }
+        // Never boot arcade_ticket holders (or active paid runs) back to
+        // /hub/trivia based on client balance; /api/trivia/session-start is
+        // the single authoritative billing/ticket gate.
         setResult(null);
         scoreIdRef.current = null;
         setWheelPrize(null);
@@ -1596,15 +1583,23 @@ export default function TriviaModePage() {
     const modeTag = toTitleCase(descriptionParts.length > 1 ? descriptionParts.slice(1).join(', ') : (descriptionParts[0] || ''));
     const modeTagFitsHead = modeTag.length > 0 && modeTag.length <= 28;
     const isPaidMode = (modeConfig.diamondCost || 0) > 0;
+    const hasArcadeFreeEntry = mode === 'arcade' && (arcadeInventory?.freeEntry || 0) >= 1;
+    const entryCostLabel = !isPaidMode
+        ? 'Free'
+        : hasArcadeFreeEntry
+            ? '1 Free Entry Ticket'
+            : isVIP
+                ? 'VIP Free'
+                : `${modeConfig.diamondCost} Diamonds`;
     const isPhase9KnowledgeMode = PHASE9_KNOWLEDGE_MODES.has(mode);
     const dailyCap = DAILY_DIAMOND_CAPS?.[mode];
     const needsDiamonds = typeof error === 'string' && /Diamonds/.test(error);
-    const backToTrivia = { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') };
+    const backToTrivia = { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') };
     const showPlayAgain = gameState === 'results' && result && (mode === 'arcade' || mode !== 'daily');
     const startLabel = isStarting
         ? 'Starting'
         : mode === 'arcade'
-            ? `Play ${modeConfig.diamondCost} Diamonds`
+            ? `Start (${entryCostLabel})`
             : mode === 'daily'
                 ? 'Start Daily'
                 : 'Start Quiz';
@@ -1631,7 +1626,7 @@ export default function TriviaModePage() {
     } else if (gameState === 'results' && result) {
         consoleSecondary = showPlayAgain ? backToTrivia : undefined;
         consolePrimary = showPlayAgain
-            ? { label: mode === 'arcade' ? `Play Again ${modeConfig.diamondCost || 10} Diamonds` : 'Play Again', onClick: handlePlayAgain }
+            ? { label: mode === 'arcade' ? `Play Again (${entryCostLabel})` : 'Play Again', onClick: handlePlayAgain }
             : backToTrivia;
     } else if (gameState === 'saving_error') {
         consolePrimary = { label: 'Retry Save', onClick: handleRetrySave };
@@ -1640,7 +1635,7 @@ export default function TriviaModePage() {
         consolePrimary = serverRun.hasRecoverableSession && isPhase9KnowledgeMode
             ? { label: 'Retry Resume', onClick: resumeDailyRun, disabled: isStarting || !isOnline }
             : needsDiamonds
-            ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store'), tone: 'gold' }
+            ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store'), tone: 'blue' }
             : mode === 'daily'
                 ? { label: 'Try Again', onClick: retryDailyLoad }
                 : { label: 'Try Again', onClick: () => window.location.reload() };
@@ -1655,11 +1650,8 @@ export default function TriviaModePage() {
                 noindex={true}
             />
 
-            <div className={`trivia-mode-page ${mode === 'daily' ? 'trivia-daily-casino' : ''}`} data-mode={mode}>
+            <div className={`smarterdesign trivia-mode-page ${mode === 'daily' ? 'trivia-daily-casino' : ''}`} data-mode={mode}>
                 <UniversalHeader pageDepth={2} />
-                {modeConfig && modeConfig.diamondCost > 0 && (
-                    <GameCostPopup userId={userId} featureKey={`trivia_${mode}`} isVip={isVIP} cost={modeConfig.diamondCost} />
-                )}
 
                 <TriviaConsoleDialog
                     open={showOutOfDiamonds}
@@ -1712,7 +1704,7 @@ export default function TriviaModePage() {
                     {gameState === 'error' && (
                         <div className="error-state trivia-console-state" role="alert">
                             {needsDiamonds
-                                ? <h2 className="tc-ink--gold">Diamonds Needed</h2>
+                                ? <h2 className="tc-ink--cyan">Diamonds Needed</h2>
                                 : <h2 className="tc-ink--red">Something Went Wrong</h2>}
                             <p>{error}</p>
                         </div>
@@ -1758,7 +1750,7 @@ export default function TriviaModePage() {
                                         </p>
                                     )}
                                     {isPhase9KnowledgeMode && userId && serverRun.hasRecoverableSession && (
-                                        <p className="trivia-console-copy tc-ink--gold" role="status">
+                                        <p className="trivia-console-copy tc-ink--cyan" role="status">
                                             An Account-Scoped Run Is Waiting. Resume It Without Paying Or Dealing Again.
                                         </p>
                                     )}
@@ -1782,8 +1774,8 @@ export default function TriviaModePage() {
                                         </li>
                                         <li className="tc-row">
                                             <span className="tc-row__label">Entry Cost</span>
-                                            <span className={`tc-row__value ${isPaidMode ? 'tc-ink--gold' : 'tc-ink--green'}`}>
-                                                {isPaidMode ? (isVIP ? 'Free For VIP' : `${modeConfig.diamondCost} Diamonds`) : 'Free'}
+                                            <span className={`tc-row__value ${isPaidMode && !hasArcadeFreeEntry && !isVIP ? 'tc-ink--cyan' : 'tc-ink--green'}`}>
+                                                {entryCostLabel}
                                             </span>
                                         </li>
                                         {Number.isFinite(dailyCap) && (
@@ -1795,7 +1787,7 @@ export default function TriviaModePage() {
                                         {userId && (
                                             <li className="tc-row">
                                                 <span className="tc-row__label">Your Diamonds</span>
-                                                <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)}</span>
+                                                <span className="tc-row__value tc-ink--cyan">{formatTriviaDisplayNumber(userDiamonds)}</span>
                                             </li>
                                         )}
                                         {personalBest != null && (
@@ -1825,9 +1817,13 @@ export default function TriviaModePage() {
                                     {isPhase9KnowledgeMode && <KnowledgeModeBrief mode={mode} />}
 
                                     <p className="trivia-console-copy mode-disclosure">
-                                        {isPaidMode
-                                            ? `Entry Is ${modeConfig.diamondCost} Diamonds, Charged Only When The Game Starts. VIP Members Play Free.`
-                                            : 'Free To Play. Answers Are Graded By The Server As You Go.'}
+                                        {hasArcadeFreeEntry
+                                            ? 'Your Free Entry Ticket Will Be Used When The Game Starts.'
+                                            : isPaidMode && isVIP
+                                                ? 'VIP Members Play Free. No Diamonds Are Charged When The Game Starts.'
+                                                : isPaidMode
+                                                    ? `Entry Is ${modeConfig.diamondCost} Diamonds, Charged Only When The Game Starts. VIP Members And Free Entry Ticket Holders Play Free.`
+                                                    : 'Free To Play. Answers Are Graded By The Server As You Go.'}
                                     </p>
                                     {isStarting && (
                                         <p className="trivia-console-copy tc-ink--blue" role="status">Dealing In</p>
@@ -1876,6 +1872,7 @@ export default function TriviaModePage() {
                             enableReport={Boolean(userId)}
                             reportToken={userId ? getAccessToken() : null}
                             reportSessionId={serverGraded ? serverRun.sessionId : null}
+                            reportAccountId={userId}
                             onQuestionReported={(report) => soloJourneyTrackerRef.current.track(mode, 'report', {
                                 surface: 'daily',
                                 report_outcome: report?.deduped === true ? 'deduped' : 'recorded',
@@ -1902,7 +1899,7 @@ export default function TriviaModePage() {
                     {gameState === 'results' && result && (
                         <div className="results-section">
                             {result.beatPersonalBest && (
-                                <p className="trivia-console-copy tc-ink--gold new-best-callout">New Personal Best!</p>
+                                <p className="trivia-console-copy tc-ink--green new-best-callout">New Personal Best!</p>
                             )}
                             {result.capReached && (
                                 <p className="trivia-console-copy tc-ink--muted cap-callout">
@@ -1917,7 +1914,7 @@ export default function TriviaModePage() {
                                 </p>
                             )}
                             {result.projectionWarning && (
-                                <p className="trivia-console-copy tc-ink--gold cap-callout" role="status">
+                                <p className="trivia-console-copy tc-ink--cyan cap-callout" role="status">
                                     {result.projectionWarning}
                                 </p>
                             )}

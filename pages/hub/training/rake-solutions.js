@@ -42,14 +42,14 @@ const RAKE_PRESETS = [
     desc: 'Illustrative $1 Cap',
     color: 'var(--sp-accent-blue)',
   },
-  { id: 'low-5-3', label: '5%/$3', pct: 5, cap: 3, desc: 'Illustrative $3 Cap', color: 'var(--sp-accent-purple)' },
+  { id: 'low-5-3', label: '5%/$3', pct: 5, cap: 3, desc: 'Illustrative $3 Cap', color: '#86daff' },
   {
     id: 'mid-5-5',
     label: 'Mid 5%/$5',
     pct: 5,
     cap: 5,
     desc: 'Illustrative $5 Cap',
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
   },
   {
     id: 'live-10-5',
@@ -65,7 +65,7 @@ const RAKE_PRESETS = [
     pct: 5,
     cap: 15,
     desc: 'Illustrative $15 Cap',
-    color: '#ec4899',
+    color: '#86daff',
   },
 ];
 
@@ -474,7 +474,7 @@ export default function RakeSolutionsPage() {
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: 'var(--sp-accent-amber)',
+                color: '#86daff',
                 textTransform: 'uppercase',
                 marginBottom: 8,
               }}

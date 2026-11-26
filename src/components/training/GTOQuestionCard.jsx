@@ -40,7 +40,7 @@ const styles = {
     levelBadge: {
         background: 'linear-gradient(180deg, rgba(245,158,11,0.22), rgba(180,83,9,0.28))',
         border: '1px solid rgba(251,191,36,0.55)',
-        color: '#fbbf24',
+        color: '#86daff',
         padding: '6px 16px',
         borderRadius: 999,
         fontSize: '13px',
@@ -442,15 +442,18 @@ export default function GTOQuestionCard({
                                     <div style={{ color: '#53f2a0', fontSize: 15, fontWeight: 850, marginTop: 4 }}>{correctText}</div>
                                 </div>
                             </div>
-                            {explanation && (
-                                <div style={{
+                            <div
+                                data-training-feedback="explanation"
+                                style={{
                                     ...styles.explanationText,
                                     padding: '13px 16px',
                                     background: 'rgba(0,0,0,.3)',
                                     border: '1px solid rgba(132,202,230,.32)',
                                     color: '#d8e6ed',
-                                }}>{explanation}</div>
-                            )}
+                                }}
+                            >
+                                {explanation || `${correctText} is the optimal GTO decision in this scenario.`}
+                            </div>
                             <div style={{ color: '#9db0bb', fontSize: 12, fontWeight: 700, marginTop: 13, textAlign: 'center' }}>
                                 This Result Will Stay Open Until You Click Next.
                             </div>
@@ -462,8 +465,24 @@ export default function GTOQuestionCard({
                                         marginTop: 20,
                                         background: 'linear-gradient(180deg, #4c7387 0%, #173849 12%, #071722 56%, #02080d 100%)',
                                         boxShadow: 'inset 0 2px rgba(255,255,255,.35), inset 0 -6px rgba(0,0,0,.42), 0 9px 22px rgba(0,0,0,.5), 0 0 18px rgba(34,211,238,.18)',
-                                    }} onClick={onNextHand}>
-                                        Next Question →
+                                    }} className="sd-button sd-primary" data-training-next-decision onClick={onNextHand}>
+                                        {questionNumber >= totalQuestions ? 'See Results' : 'Next Question'}
+                                    </button>
+                                )}
+                                {onNextHand && (
+                                    <button
+                                        type="button"
+                                        data-replay-current-hand="true"
+                                        className="sd-button"
+                                        onClick={() => onNextHand({ retry: true, retryQuestion: question })}
+                                        style={{
+                                            minHeight: 52,
+                                            marginTop: 20,
+                                            padding: '0 18px',
+                                            color: '#86daff',
+                                        }}
+                                    >
+                                        Practice Again
                                     </button>
                                 )}
                                 <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>

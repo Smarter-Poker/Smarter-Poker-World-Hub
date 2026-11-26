@@ -183,7 +183,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
   return (
     <>
       <SEOHead
-        title={`Poker Tournaments This Weekend (${weekendInfo.weekendRangeLabel}) - Smarter.Poker`}
+        title={`Poker Tournaments This Weekend (${weekendInfo.weekendRangeLabel})`}
         description={`Find live poker tournaments running this weekend (${weekendInfo.weekendRangeLabel}). Compare buy-ins, guarantees, schedules, and card room locations nationwide.`}
         canonical="/hub/tournaments/this-weekend"
       >

@@ -67,7 +67,7 @@ const FOCUS_AREAS = [
     name: 'Turn Play',
     positions: [],
     streets: ['turn'],
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     icon: '',
   },
   {
@@ -85,7 +85,7 @@ const FOCUS_AREAS = [
     name: '3-Bet Pots',
     positions: [],
     streets: ['flop'],
-    color: '#ec4899',
+    color: '#86daff',
     icon: '',
   },
   {
@@ -94,7 +94,7 @@ const FOCUS_AREAS = [
     name: 'MTT Push/Fold',
     positions: [],
     streets: ['preflop'],
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
     icon: '',
   },
   {
@@ -112,7 +112,7 @@ const FOCUS_AREAS = [
     name: 'SB Strategy',
     positions: ['SB'],
     streets: ['preflop'],
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     icon: '♠',
   },
   {
@@ -185,7 +185,7 @@ function generateStudyPlan(sessions) {
         id: 'challenge',
         gameId: 'quiz-gauntlet',
           name: 'Daily Challenge',
-          color: 'var(--sp-accent-amber)',
+          color: '#86daff',
           icon: '★',
           difficulty: 'hard',
           goal: 70,
@@ -740,7 +740,7 @@ export default function StudyPlanPage() {
             }}
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: '#fbbf24', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#86daff', textTransform: 'uppercase' }}>
                 #1 Priority Leak Curriculum: {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
               </div>
               <div style={{ fontSize: 12, fontWeight: 800, color: leakAnalysis.hasVerifiedLeak ? '#4ade80' : '#94a3b8' }}>
@@ -760,13 +760,13 @@ export default function StudyPlanPage() {
               onClick={() => router.push(topLeakDrillHref)}
               style={{
                 display: 'inline-flex',
-                minHeight: 40,
+                minHeight: 44,
                 alignItems: 'center',
                 padding: '0 16px',
                 borderRadius: 8,
                 border: '1px solid #fbbf24',
                 background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
-                color: '#fef3c7',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 900,
                 cursor: 'pointer',

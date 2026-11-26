@@ -1,3 +1,4 @@
+import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
  * STAKING TRACKER
  * SmarterPoker Dark UI — Manage backer arrangements and staking sessions
@@ -239,6 +240,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
 
     return (
         <div className="sd-panel" style={styles.container}>
+            {activeArrangement && <BankrollHeaderAdd label="New Staking Deal" onClick={handleAddNew} />}
             {/* Header */}
             <div style={styles.header}>
                 <h3 style={styles.headerTitle}>Staking Tracker</h3>
@@ -411,7 +413,9 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                 <div style={styles.emptyState}>
                     <p style={styles.emptyTitle}>No Active Staking Deal</p>
                     <p style={styles.emptyHint}>Track Backer Relationships, Profit Splits & Makeup</p>
-                    <button onClick={handleAddNew} style={styles.addBtn}>+ New Deal</button>
+                    <BankrollHeaderAdd label="New Staking Deal" onClick={handleAddNew}>
+                        <button onClick={handleAddNew} style={styles.addBtn}>+ New Deal</button>
+                    </BankrollHeaderAdd>
                 </div>
             )}
 

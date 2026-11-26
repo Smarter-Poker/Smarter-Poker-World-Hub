@@ -212,14 +212,14 @@ export default function PvPLobbyPage() {
                     <div style={{ marginTop: 4, color: '#f0f9ff', fontSize: 14, fontWeight: 900 }}>{duel.title}</div>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <a href={duel.href} style={{ display: 'inline-flex', minHeight: 36, alignItems: 'center', padding: '0 12px', border: '1px solid rgba(165,239,255,.45)', background: 'rgba(22,55,74,.55)', color: '#d8f6ff', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>
+                    <a href={duel.href} style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '0 12px', border: '1px solid rgba(165,239,255,.45)', background: 'rgba(22,55,74,.55)', color: '#d8f6ff', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>
                       Launch Format →
                     </a>
                     <button
                       type="button"
                       data-create-duel-format={duel.id}
                       onClick={() => handleCreateSignedDuel(duel.id)}
-                      style={{ minHeight: 36, padding: '0 12px', border: '1px solid rgba(119,242,180,.45)', background: 'rgba(16,185,129,.18)', color: '#77f2b4', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                      style={{ minHeight: 44, padding: '0 12px', border: '1px solid rgba(119,242,180,.45)', background: 'rgba(16,185,129,.18)', color: '#77f2b4', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
                     >
                       Mint Signed Duel
                     </button>
@@ -245,7 +245,7 @@ export default function PvPLobbyPage() {
                     data-duel-format-select="true"
                     value={selectedGameId}
                     onChange={(e) => setSelectedGameId(e.target.value)}
-                    style={{ minHeight: 38, padding: '0 10px', borderRadius: 6, border: '1px solid rgba(132,213,242,.35)', background: '#07131d', color: '#f0f9ff', fontSize: 12, fontWeight: 800 }}
+                    style={{ minHeight: 44, padding: '0 10px', borderRadius: 6, border: '1px solid rgba(132,213,242,.35)', background: '#07131d', color: '#f0f9ff', fontSize: 12, fontWeight: 800 }}
                   >
                     {duelArenas.map((d) => (
                       <option key={d.id} value={d.id}>{d.title} ({d.id})</option>
@@ -256,7 +256,7 @@ export default function PvPLobbyPage() {
                     data-duel-variant-select="true"
                     value={selectedVariant}
                     onChange={(e) => setSelectedVariant(e.target.value)}
-                    style={{ minHeight: 38, padding: '0 10px', borderRadius: 6, border: '1px solid rgba(132,213,242,.35)', background: '#07131d', color: '#f0f9ff', fontSize: 12, fontWeight: 800 }}
+                    style={{ minHeight: 44, padding: '0 10px', borderRadius: 6, border: '1px solid rgba(132,213,242,.35)', background: '#07131d', color: '#f0f9ff', fontSize: 12, fontWeight: 800 }}
                   >
                     <option value="nlh">NLHE (2 Cards)</option>
                     <option value="plo4">PLO4 (4 Cards)</option>
@@ -269,7 +269,7 @@ export default function PvPLobbyPage() {
                     data-create-duel-btn="true"
                     disabled={creatingDuel}
                     onClick={() => handleCreateSignedDuel(selectedGameId)}
-                    style={{ minHeight: 38, padding: '0 16px', borderRadius: 6, border: '1px solid #77f2b4', background: 'linear-gradient(180deg, rgba(16,185,129,.32), rgba(6,78,59,.55))', color: '#ecfdf5', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}
+                    style={{ minHeight: 44, padding: '0 16px', borderRadius: 6, border: '1px solid #77f2b4', background: 'linear-gradient(180deg, rgba(16,185,129,.32), rgba(6,78,59,.55))', color: '#ecfdf5', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}
                   >
                     {creatingDuel ? 'Minting Challenge...' : 'Create Signed Duel Challenge'}
                   </button>
@@ -296,14 +296,14 @@ export default function PvPLobbyPage() {
                     <a
                       href={buildDuelArenaHref(activeDuel, 'challenger')}
                       data-play-challenger-duel="true"
-                      style={{ display: 'inline-flex', minHeight: 36, alignItems: 'center', padding: '0 14px', borderRadius: 6, border: '1px solid #82e7ff', background: 'rgba(14,116,144,.38)', color: '#f0f9ff', fontSize: 12, fontWeight: 900, textDecoration: 'none' }}
+                      style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '0 14px', borderRadius: 6, border: '1px solid #82e7ff', background: 'rgba(14,116,144,.38)', color: '#f0f9ff', fontSize: 12, fontWeight: 900, textDecoration: 'none' }}
                     >
                       Play Challenger Hands →
                     </a>
                     <a
                       href={buildDuelArenaHref(activeDuel, 'opponent')}
                       data-play-opponent-duel="true"
-                      style={{ display: 'inline-flex', minHeight: 36, alignItems: 'center', padding: '0 14px', borderRadius: 6, border: '1px solid #fbbf24', background: 'rgba(180,83,9,.32)', color: '#fef3c7', fontSize: 12, fontWeight: 900, textDecoration: 'none' }}
+                      style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '0 14px', borderRadius: 6, border: '1px solid #fbbf24', background: 'rgba(180,83,9,.32)', color: '#86daff', fontSize: 12, fontWeight: 900, textDecoration: 'none' }}
                     >
                       Accept &amp; Play As Opponent →
                     </a>
@@ -318,14 +318,14 @@ export default function PvPLobbyPage() {
                   value={duelTokenInput}
                   onChange={(e) => setDuelTokenInput(e.target.value)}
                   placeholder="Paste Signed Duel Token To Inspect Two-Player Server Scoreboard"
-                  style={{ flex: '1 1 280px', minHeight: 38, padding: '0 12px', borderRadius: 6, border: '1px solid rgba(148,163,184,.32)', background: 'rgba(2,6,14,.85)', color: '#f8fafc', fontSize: 12 }}
+                  style={{ flex: '1 1 280px', minHeight: 44, padding: '0 12px', borderRadius: 6, border: '1px solid rgba(148,163,184,.32)', background: 'rgba(2,6,14,.85)', color: '#f8fafc', fontSize: 12 }}
                 />
                 <button
                   type="button"
                   data-load-duel-scoreboard="true"
                   disabled={loadingScoreboard}
                   onClick={() => loadScoreboard(duelTokenInput)}
-                  style={{ minHeight: 38, padding: '0 16px', borderRadius: 6, border: '1px solid rgba(130,231,255,.45)', background: 'rgba(30,58,138,.45)', color: '#e0f2fe', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                  style={{ minHeight: 44, padding: '0 16px', borderRadius: 6, border: '1px solid rgba(130,231,255,.45)', background: 'rgba(30,58,138,.45)', color: '#e0f2fe', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
                 >
                   {loadingScoreboard ? 'Verifying...' : 'Load Verified Scoreboard'}
                 </button>
@@ -351,7 +351,7 @@ export default function PvPLobbyPage() {
                           disabled={creatingDuel}
                           onClick={() => handleInstantRematch(scoreboard)}
                           style={{
-                            minHeight: 32,
+                            minHeight: 44,
                             padding: '0 12px',
                             borderRadius: 6,
                             border: '1px solid #82e7ff',
