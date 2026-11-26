@@ -113,7 +113,7 @@ export default function PokerStakesIndexPage() {
     <div style={styles.page}>
       <SEOHead
         title="Poker Stake Levels And Bankroll Rules Hub"
-        description="Complete Strategy, Bankroll, Rake, And Winrate Guide Across 7 Poker Stake Tiers: $1/$2-$1/$3 Live, $2/$5 Live, $5/$10+ High Stakes, Online Micros, Online Low-Mid, Live PLO, And Live MTTs."
+        description="Poker Stake Level And Move-Up Guides Across 7 Tiers: $1/$2-$1/$3 Live, $2/$5 Live, $5/$10+ High Stakes, Online Micros, Live PLO, And Circuit MTTs."
         canonical={STAKES_BASE_PATH}
         jsonLd={jsonLd}
       />

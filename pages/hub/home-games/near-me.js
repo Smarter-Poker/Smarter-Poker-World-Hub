@@ -334,7 +334,7 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
           home-games BreadcrumbList nominates as the "Home Games" node. */}
       <SEOHead
         title="Home Games Near Me"
-        description="Find Local Poker Home Games Near You On Smarter.Poker: Private Cash Games And Tournaments Hosted By Players In Your Area, With The Stakes And Schedule Each Host Publishes. Free To Find And Free To Host."
+        description="Find Local Poker Home Games Near You On Smarter.Poker: Public Cash Games And Tournaments By State And City With Host Schedules. Free To Browse And Host."
         canonical="/hub/home-games/near-me"
         jsonLd={NEAR_ME_SCHEMA}
       />

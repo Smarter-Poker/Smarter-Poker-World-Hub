@@ -93,7 +93,7 @@ export default function PokerRoadmapsIndexPage() {
     <div style={styles.page}>
       <SEOHead
         title="Poker Player Progression Roadmaps Guide"
-        description="5 Step-By-Step Poker Progression Roadmaps: 90-Day Beginner To $1/$3 Live Winner, $1/$3 Reg To $2/$5-$5/$10 Pro, Weekend MTT To Circuit Grinder, NLH To PLO Specialist, And Home Game Host To Club Director."
+        description="5 Step-By-Step 90-Day Poker Study Roadmaps For Live Cash Grinders, Circuit MTT Players, PLO Specialists, High-Stakes Move-Ups, And Home Game Hosts."
         canonical={ROADMAPS_BASE_PATH}
         jsonLd={jsonLd}
       />

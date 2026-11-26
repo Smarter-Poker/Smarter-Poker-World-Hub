@@ -45,6 +45,10 @@ export default function AuthorsIndexPage() {
       dateModified: AUTHORS_AS_OF,
       isPartOf: { '@id': 'https://smarter.poker/#website' },
       publisher: { '@id': 'https://smarter.poker/#organization' },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'main p:first-of-type'],
+      },
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: EDITORIAL_AUTHORS.length,
@@ -77,7 +81,7 @@ export default function AuthorsIndexPage() {
     <div style={styles.page}>
       <SEOHead
         title="Editorial And Solver Methodology Team"
-        description="Meet The 4 Smarter.Poker Research And Verification Desks: Quantitative Solver Desk, Live Venue Intelligence Team, Tournament & ICM Research Group, And AI & MCP Protocol Engineering."
+        description="Meet The 4 Smarter.Poker Research Desks: Quantitative Solver Desk, Live Venue Intelligence, Tournament & ICM Research, And AI & MCP Engineering."
         canonical={AUTHORS_BASE_PATH}
         jsonLd={jsonLd}
       />

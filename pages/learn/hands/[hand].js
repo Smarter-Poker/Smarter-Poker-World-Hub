@@ -38,6 +38,14 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   const hand = getStartingHand(params?.hand);
   if (!hand) return { notFound: true };
+  if (params?.hand && params.hand !== hand.slug) {
+    return {
+      redirect: {
+        destination: handPath(hand.slug),
+        permanent: true,
+      },
+    };
+  }
   return { props: { hand } };
 }
 

@@ -183,8 +183,8 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
   return (
     <>
       <SEOHead
-        title={`Poker Tournaments This Weekend (${weekendInfo.weekendRangeLabel})`}
-        description={`Find live poker tournaments running this weekend (${weekendInfo.weekendRangeLabel}). Compare buy-ins, guarantees, schedules, and card room locations nationwide.`}
+        title={`Weekend Poker Tournaments (${weekendInfo.weekendRangeLabel.replace(/,\s*\d{4}$/, '')})`}
+        description={`Find live poker tournaments running this weekend (${weekendInfo.weekendRangeLabel}). Compare buy-ins, guarantees, schedules, and card rooms nationwide.`}
         canonical="/hub/tournaments/this-weekend"
       >
         <script
@@ -197,6 +197,18 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             __html: serializePokerJsonLd({
               '@context': 'https://schema.org',
               '@graph': normalizeJsonLdGraph([
+                {
+                  '@type': 'WebPage',
+                  '@id': 'https://smarter.poker/hub/tournaments/this-weekend#webpage',
+                  url: 'https://smarter.poker/hub/tournaments/this-weekend',
+                  name: 'Weekend Poker Tournaments',
+                  inLanguage: 'en-US',
+                  isPartOf: { '@id': 'https://smarter.poker/#website' },
+                  speakable: {
+                    '@type': 'SpeakableSpecification',
+                    cssSelector: ['h1', '.faq-section'],
+                  },
+                },
                 datasetSchema({
                   path: '/hub/tournaments/this-weekend',
                   name: 'Smarter.Poker Weekend Poker Tournaments Directory (Friday, Saturday & Sunday)',

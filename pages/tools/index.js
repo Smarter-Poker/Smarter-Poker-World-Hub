@@ -596,7 +596,7 @@ export default function PokerToolsDirectoryPage() {
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
   const pageTitle = '52 Free Poker Calculators And Solvers';
   const pageDesc =
-    'Explore All 52 Free Browser-Native Smarter.Poker Tools (51 Interactive Calculators + Embeds & Streamer Bot API) Covering Equity, GTO Ranges, ICM, Bubble Factors, Mystery Bounties, River Bluff-Catching, Multi-Street Barrel EV, Heads-Up Nash, Blind-Vs-Blind, Shot-Taking, And Home Game Directing.';
+    'Explore 52 Free Browser-Native Poker Calculators And Solvers: Equity, GTO Preflop Ranges, ICM Chop, Pot Odds, Bankroll, W-2G Tax, And Push/Fold Charts.';
 
   const filteredTools = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();

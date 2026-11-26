@@ -970,8 +970,14 @@ export default function App({ Component, pageProps }) {
   // over its internal routes.
   const resolvedPath =
     (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  const isErrorRoute =
+    router.pathname === '/404' ||
+    router.pathname === '/500' ||
+    router.pathname === '/_error' ||
+    resolvedPath === '/404' ||
+    resolvedPath === '/500';
   const hasUnexpandedDynamicBracket = /\[[^\]]+\]/.test(resolvedPath);
-  const defaultCanonical = hasUnexpandedDynamicBracket
+  const defaultCanonical = hasUnexpandedDynamicBracket || isErrorRoute
     ? null
     : resolvedPath === '/'
       ? 'https://smarter.poker/'
@@ -1105,7 +1111,9 @@ export default function App({ Component, pageProps }) {
                 <meta key="og-site-name" property="og:site_name" content="Smarter.Poker" />
                 <meta key="og-type" property="og:type" content="website" />
                 <meta key="og-locale" property="og:locale" content="en_US" />
-                <meta key="og-url" property="og:url" content={defaultCanonical || 'https://smarter.poker/'} />
+                {!isErrorRoute && (
+                  <meta key="og-url" property="og:url" content={defaultCanonical || 'https://smarter.poker/'} />
+                )}
                 <meta key="og-title" property="og:title" content="Smarter.Poker: Free Poker Training, Clubs And Live Games" />
                 <meta key="og-description" property="og:description" content="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling." />
                 {/* og-card.jpg is the 1200x630 hero crop of og-default.png

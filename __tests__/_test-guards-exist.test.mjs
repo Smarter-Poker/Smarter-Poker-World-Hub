@@ -884,6 +884,7 @@ import './aeo-discovery-hardening.law.test.mjs';
 import './geo-generative-engine-optimization.law.test.mjs';
 import './gsc-audit-remediation-20261126.law.test.mjs';
 import './seo-aeo-geo-phase2-20261126.law.test.mjs';
+import './seo-aeo-geo-phase3-20261126.law.test.mjs';
 import './trivia-p11-deadlock-and-sim.test.mjs';
 import './trivia-integrity-elo-horse.test.mjs';
 import './trivia-study-pool-curation.test.mjs';
