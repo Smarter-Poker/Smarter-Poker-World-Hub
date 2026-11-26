@@ -237,7 +237,7 @@ export default function LiveHudSyncPage() {
                   data-refresh-synced-hands="true"
                   onClick={fetchParticipantHands}
                   style={{
-                    minHeight: 38,
+                    minHeight: 44,
                     padding: '0 14px',
                     border: '1px solid rgba(165,239,255,.45)',
                     background: 'rgba(22,55,74,.65)',
@@ -298,7 +298,7 @@ export default function LiveHudSyncPage() {
                     disabled={importing || !handInputText.trim()}
                     onClick={() => handleImportAndSync()}
                     style={{
-                      minHeight: 40,
+                      minHeight: 44,
                       padding: '0 18px',
                       border: '1px solid #a5efff',
                       background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
@@ -339,7 +339,7 @@ export default function LiveHudSyncPage() {
                     placeholder="Enter Hand ID (e.g. 994810241)"
                     style={{
                       flex: '1 1 220px',
-                      minHeight: 38,
+                      minHeight: 44,
                       padding: '0 12px',
                       background: 'rgba(2,8,14,.85)',
                       border: '1px solid rgba(132,213,242,.25)',
@@ -352,7 +352,7 @@ export default function LiveHudSyncPage() {
                     data-lookup-hand-btn="true"
                     onClick={handleLookupHandById}
                     style={{
-                      minHeight: 38,
+                      minHeight: 44,
                       padding: '0 16px',
                       border: '1px solid rgba(165,239,255,.45)',
                       background: 'rgba(22,55,74,.65)',
@@ -477,7 +477,7 @@ export default function LiveHudSyncPage() {
                         href={hand.drillHref || `/hub/training/arena/cash-002?level=1&syncedHandId=${encodeURIComponent(hand.id)}`}
                         style={{
                           display: 'inline-flex',
-                          minHeight: 38,
+                          minHeight: 44,
                           alignItems: 'center',
                           padding: '0 16px',
                           border: '1px solid #77f2b4',
@@ -511,7 +511,7 @@ export default function LiveHudSyncPage() {
                     <div style={{ color: '#e6f6ff', fontSize: 14, fontWeight: 900 }}>{item.title}</div>
                     <p style={{ margin: '6px 0 0', color: '#9bb4c4', fontSize: 12, lineHeight: 1.55 }}>{item.subtitle}</p>
                   </div>
-                  <a href={item.href} style={{ display: 'inline-flex', minHeight: 38, alignItems: 'center', padding: '0 14px', border: '1px solid rgba(165,239,255,.45)', background: 'rgba(22,55,74,.55)', color: '#d8f6ff', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>
+                  <a href={item.href} style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '0 14px', border: '1px solid rgba(165,239,255,.45)', background: 'rgba(22,55,74,.55)', color: '#d8f6ff', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>
                     {item.cta}
                   </a>
                 </div>
