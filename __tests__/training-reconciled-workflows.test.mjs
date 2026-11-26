@@ -1113,9 +1113,8 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
   assert.match(useGtoTrainerSrc, /enqueueFailedAnswerOutbox/, 'useGTOTrainer.js must enqueue network-failed answer submissions');
   assert.match(useGtoTrainerSrc, /flushFailedAnswerOutbox/, 'useGTOTrainer.js must flush queued answer submissions when online');
 
-  // 5. Root Cause #5: All 4 dynamic nested pages + pvp-lobby.js + 5 core tool pages must expose the canonical [data-specialty-brain-panel="true"] and [data-launch-club-arena-cta="true"] contract
+  // 5. Root Cause #5: The 3 specialized dynamic nested pages + pvp-lobby.js + 5 core tool pages must expose the canonical [data-specialty-brain-panel="true"] and [data-launch-club-arena-cta="true"] contract
   const phase9UnifiedContractPages = [
-    'pages/hub/training/category/[categoryId].js',
     'pages/hub/training/clinic/[clinicId].js',
     'pages/hub/training/play/[gameId].js',
     'pages/hub/training/tournament/[id].js',
@@ -1471,8 +1470,8 @@ test('Phase 11 Master 16-Point Package: Showdown Reveal, 100% 5-Variant PLO8 Hub
   );
 });
 
-test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: 100% non-redirect page contract across all 93 pages, end-to-end timeSpentMs & variant/bettingStructure/format persistence pipeline, Arena exit full query preservation & zero display:none, and SSG module-scope createClient guard', () => {
-  // 1. Law #1 (Root Causes #2 & #3): 100% of non-redirect pages in pages/hub/training/ (including nested directories) MUST expose data-specialty-brain-panel, data-launch-club-arena-cta, and plo8
+test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated category browsing and training tool contracts, end-to-end timeSpentMs & variant/bettingStructure/format persistence pipeline, Arena exit full query preservation & zero display:none, and SSG module-scope createClient guard', () => {
+  // Category pages open the selected drill directly. Other training tools retain their specialized launch controls.
   const walkTrainingPages = (dir) => {
     let out = [];
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -1493,6 +1492,11 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: 100% non-
     const src = fs.readFileSync(absPath, 'utf8');
     if (src.includes('CanonicalTrainingRedirect')) continue;
     nonRedirectCount += 1;
+    if (relPath === 'pages/hub/training/category/[categoryId].js') {
+      assert.doesNotMatch(src, /data-specialty-brain-panel|data-launch-club-arena-cta/);
+      assert.match(src, /onClick=\{playGame\}/);
+      continue;
+    }
     assert.ok(
       src.includes('data-specialty-brain-panel'),
       `Non-redirect training page ${relPath} is missing data-specialty-brain-panel`,

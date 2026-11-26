@@ -72,6 +72,7 @@ const PSYCHOLOGY_GAMES = [
 export default function GameUIRouter({
     gameId,
     gameName,
+    presetOnly = false,
     trainingSessionId = null,
     streak,
     question,
@@ -168,6 +169,7 @@ export default function GameUIRouter({
     // ALL poker games use GTO Wizard-style dynamic table
     return (
         <UniversalDynamicTable
+            presetOnly={presetOnly}
             gameId={gameId}
             question={question}
             level={level}

@@ -1680,6 +1680,7 @@ function InfoPanelShell({
 
 function UniversalDynamicTable({
     gameId = '',
+    presetOnly = false,
     question,
     questionNumber,
     totalQuestions,
@@ -5801,11 +5802,11 @@ function UniversalDynamicTable({
                             data-training-variant-selector="true"
                             data-variant-prefetch-cache="true"
                             data-prefetched-variants={prefetchedVariantsSummary}
-                            role="group"
-                            aria-label="Poker Variant Selector"
+                            role={presetOnly ? undefined : 'group'}
+                            aria-label={presetOnly ? undefined : 'Poker Variant Selector'}
                             style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}
                         >
-                            {[
+                            {presetOnly ? currentVariant.toUpperCase() : [
                                 { id: 'nlh', label: "Hold'em" },
                                 { id: 'plo4', label: 'PLO4' },
                                 { id: 'plo5', label: 'PLO5' },
@@ -5837,6 +5838,7 @@ function UniversalDynamicTable({
                             })}
 
                             {/* On-Table Betting Structure Switcher (No-Limit, Pot-Limit, Fixed-Limit) */}
+                            {!presetOnly && (
                             <div
                                 data-betting-structure-selector="true"
                                 data-active-betting-structure={activeBettingStructure}
@@ -5873,6 +5875,7 @@ function UniversalDynamicTable({
                                     );
                                 })}
                             </div>
+                            )}
 
                             {activeBettingStructure === 'fixed_limit' && (
                                 <span
@@ -5894,6 +5897,7 @@ function UniversalDynamicTable({
                             )}
 
                             {/* On-Table Game Format Switcher (Cash, MTT, Spins, HU, 9-Max Full Ring) */}
+                            {!presetOnly && (
                             <div
                                 data-game-format-selector="true"
                                 data-active-game-format={activeGameFormat}
@@ -5933,6 +5937,7 @@ function UniversalDynamicTable({
                                     );
                                 })}
                             </div>
+                            )}
 
                             {activeGameFormat === 'spins' && (
                                 <span
@@ -6015,7 +6020,7 @@ function UniversalDynamicTable({
                             </button>
                         </div>
 
-                        <details
+                        {!presetOnly && <details
                             className="sp-mtt-disclosure"
                             data-table-study-tools-disclosure="true"
                             style={{ width: '100%' }}
@@ -7420,7 +7425,7 @@ function UniversalDynamicTable({
                             </div>
                         </div>
                              </div>
-                         </details>
+                         </details>}
                     </div>
                 );
             })()}
@@ -9515,7 +9520,7 @@ function UniversalDynamicTable({
                                     Review The Coaching Below. This Screen Will Stay Open Until You Click Next.
                                 </div>
 
-                                <details
+                                {!presetOnly && <details
                                     className="sp-mtt-disclosure"
                                     data-posthand-simulators-disclosure="true"
                                     style={{ marginTop: 10, width: '100%' }}
@@ -9951,7 +9956,7 @@ function UniversalDynamicTable({
                                         })}
                                     </div>
                                 </div>
-                                </details>
+                                </details>}
                             </div>
                         );
                     })()}
