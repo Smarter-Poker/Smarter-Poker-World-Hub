@@ -286,6 +286,7 @@ export default function TrainingArenaPage() {
         return {
             ...resolvePresetForGame(game),
             ...customLaunch.config,
+            configType: 'catalog-preset',
             ...(homeHands && homeHands <= 50 ? { questionsCount: homeHands } : {}),
         };
     }, [customLaunch.config, game, startsWithPreset, homeHands]);
