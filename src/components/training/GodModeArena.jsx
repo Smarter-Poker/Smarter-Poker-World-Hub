@@ -1053,8 +1053,10 @@ function GodModeArenaInner({
     return bootstrapSessionConfig;
   });
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [tableConfigOverride, setTableConfigOverride] = useState(null);
 
   const handleConfigStart = useCallback((config) => {
+    setTableConfigOverride(null);
     setTrainerConfig((current) => normalizeTrainingSessionConfig(config, current));
     setShowConfigModal(false);
     // The hook rotates to a fresh server-attempt identity and clears every
@@ -1063,7 +1065,7 @@ function GodModeArenaInner({
 
   const handleTableConfigChange = useCallback((patch) => {
     if (!patch || typeof patch !== 'object') return;
-    setTrainerConfig((current) => normalizeTrainingSessionConfig({ ...(current || {}), ...patch }, current));
+    setTableConfigOverride((current) => ({ ...(current || {}), ...patch }));
   }, []);
 
   const {
@@ -1804,6 +1806,7 @@ function GodModeArenaInner({
   // are the same values, with stable identities.
   const resolvedTrainerConfig = useMemo(() => ({
     ...trainerConfig,
+    ...(tableConfigOverride || {}),
     // Merge GodModeArena timer settings if no custom config timer
     timerEnabled: trainerConfig?.timerEnabled ?? isTimerEnabled(timerMode),
     timerSeconds: trainerConfig?.timerSeconds ?? resolveTimerSeconds(timerMode),
@@ -1812,7 +1815,7 @@ function GodModeArenaInner({
     autoAdvanceDelayMs: 0,
     outboxPendingCount,
     nextHandPrefetched,
-  }), [trainerConfig, timerMode, outboxPendingCount, nextHandPrefetched]);
+  }), [trainerConfig, tableConfigOverride, timerMode, outboxPendingCount, nextHandPrefetched]);
   const handleConfigClick = useCallback(() => setShowConfigModal(true), []);
   const handleDefaultNextHand = useCallback((arg) => nextQuestion(arg), [nextQuestion]);
 
