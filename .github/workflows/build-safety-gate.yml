@@ -161,6 +161,13 @@ jobs:
       - name: A Worker Update Never Reloads The Page You Are On
         run: node --test __tests__/sw-update.test.mjs __tests__/messenger-calls-work.law.test.mjs __tests__/messenger-presence-is-live.law.test.mjs
 
+      # A page component never references a binding from a module that needs
+      # node:* or sharp (2026-11-25, #3010): that pulls the module into the
+      # browser bundle and the Vercel production build fails with
+      # UnhandledSchemeError. Needs no node_modules.
+      - name: A Page Component Never References A Server-Only Module
+        run: node --test __tests__/server-only-modules-stay-out-of-page-components.law.test.mjs
+
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache
         uses: actions/cache@v4
