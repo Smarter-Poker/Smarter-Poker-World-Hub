@@ -9,7 +9,7 @@
 // TRAIN-CSS-TOKENS-BATCH5-27 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-10 — hex sweep batch 6: extended palette literals routed
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -25,27 +25,12 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // TRAIN-WIRE-EMPTY-4a — adoption: shared empty-state primitive
 import { useSWRConfig } from 'swr';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
-import {
-  encodeClubCoachAssignment,
-  decodeClubCoachAssignment,
-} from '../../../src/lib/training/trainingPresets.mjs';
 import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
   fetchPublicTrainingLeaderboardSeed,
   requestOrigin,
 } from '../../../src/lib/training/publicLeaderboardSeed.mjs';
 
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
-
-const DEFAULT_BOARD_CARDS = ['8d', '5c', '2s'];
 
 // A Googlebot crawl measured this page at 130 words because the rankings
 // loaded only in the browser. The server now reads the same anonymous API a
@@ -100,7 +85,6 @@ export default function TrainingLeaderboard({ seed = null }) {
   const router = useRouter();
   useTrainingBus('training-leaderboard');
   const [user, setUser] = useState(null);
-  const [brainVariant, setBrainVariant] = useState('nlh');
   const [isOnline, setIsOnline] = useState(true);
   const { filters, setFilter } = usePersistedFilters('training-leaderboard', {
     timeframe: 'all-time',
@@ -126,55 +110,6 @@ export default function TrainingLeaderboard({ seed = null }) {
     };
   }, []);
 
-  const brainSpotInput = useMemo(
-    () => ({
-      gameId: brainVariant === 'nlh' ? 'cash-002' : 'cash-005',
-      variant: brainVariant,
-      street: 'flop',
-      position: 'BTN',
-      stackDepth: 100,
-    }),
-    [brainVariant]
-  );
-
-  const brainDecision = useMemo(() => {
-    const heroCards = HERO_CARDS_BY_VARIANT[brainVariant] || HERO_CARDS_BY_VARIANT.nlh;
-    const raw = evaluateTrainingSpotWithHorseBrain({
-      gameId: brainSpotInput.gameId,
-      variant: brainVariant,
-      street: 'flop',
-      heroCards,
-      boardCards: DEFAULT_BOARD_CARDS,
-      heroPosition: 'BTN',
-      villainPosition: 'BB',
-      pot: 6.5,
-      toCall: 2.2,
-      effectiveStackBb: 100,
-    });
-    const engineSource = raw.engineSource || raw.engineModule || 'holdem-brain.js';
-    const recommendedAction = raw.recommendedAction || raw.correctAnswerText || raw.correctAnswer || 'Call 2.2 BB';
-    const recommendedSizingBb =
-      raw.recommendedSizingBb ??
-      raw.potLimitSizing?.twoThirdsPotBetOrRaise ??
-      raw.brainEvaluation?.potLimitBounds?.twoThirdsPotBetOrRaise ??
-      4.5;
-    const equityPct = raw.equityPct ?? raw.handScore ?? 68;
-    const madeHandCategory = raw.madeHandCategory || raw.brainEvaluation?.madeHandCategory || 'postflop_hand';
-    const potLimitMaxBetBb =
-      raw.potLimitMaxBetBb ??
-      raw.brainEvaluation?.potLimitMaxBetBb ??
-      raw.potLimitSizing?.maxPotBetOrRaise ??
-      10.9;
-    return {
-      ...raw,
-      engineSource,
-      recommendedAction,
-      recommendedSizingBb,
-      equityPct,
-      madeHandCategory,
-      potLimitMaxBetBb,
-    };
-  }, [brainVariant, brainSpotInput]);
 
   // Bus listener: auto-refresh leaderboard when a training session completes
   const { mutate } = useSWRConfig();
@@ -248,192 +183,6 @@ export default function TrainingLeaderboard({ seed = null }) {
             </div>
           )}
 
-          {brainDecision && (
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainDecision.engineSource}
-              data-recommended-action={brainDecision.recommendedAction}
-              data-active-variant={brainVariant}
-              style={{
-                marginBottom: 24,
-                padding: 18,
-                borderRadius: 2,
-                border: '1px solid #25c8ff',
-                background: 'linear-gradient(180deg, #0c1820, #050c10)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 900, color: '#25c8ff', textTransform: 'uppercase' }}>
-                  Horse Brain Spot Preview &amp; 1:1 Club Arena Drill Launcher
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>
-                  Engine: {brainDecision.engineSource} | Action: {brainDecision.recommendedAction}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    data-variant-option={v}
-                    aria-pressed={brainVariant === v}
-                    onClick={() => setBrainVariant(v)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 2,
-                      border: brainVariant === v ? '1px solid #25c8ff' : '1px solid #4d6472',
-                      background:
-                        brainVariant === v
-                          ? 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)'
-                          : 'rgba(255,255,255,0.04)',
-                      color: brainVariant === v ? '#FFFFFF' : 'var(--sp-fg-muted)',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {v.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                  gap: 8,
-                  marginBottom: 12,
-                  fontSize: 12,
-                }}
-              >
-                <div style={{ padding: '8px 10px', background: '#050c10', border: '1px solid #3c5260' }}>
-                  <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Engine Source</div>
-                  <div style={{ color: '#f4f8fa', fontWeight: 800 }}>{brainDecision.engineSource}</div>
-                </div>
-                <div style={{ padding: '8px 10px', background: '#050c10', border: '1px solid #3c5260' }}>
-                  <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Recommended Action</div>
-                  <div style={{ color: '#4ade80', fontWeight: 800 }}>{brainDecision.recommendedAction}</div>
-                </div>
-                <div style={{ padding: '8px 10px', background: '#050c10', border: '1px solid #3c5260' }}>
-                  <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Sizing</div>
-                  <div style={{ color: '#25c8ff', fontWeight: 800 }}>{brainDecision.recommendedSizingBb} BB</div>
-                </div>
-                <div style={{ padding: '8px 10px', background: '#050c10', border: '1px solid #3c5260' }}>
-                  <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Equity</div>
-                  <div style={{ color: '#f2b84b', fontWeight: 800 }}>{brainDecision.equityPct}%</div>
-                </div>
-                <div style={{ padding: '8px 10px', background: '#050c10', border: '1px solid #3c5260' }}>
-                  <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Made Hand</div>
-                  <div style={{ color: '#f4f8fa', fontWeight: 800 }}>{brainDecision.madeHandCategory}</div>
-                </div>
-                {brainVariant.startsWith('plo') && (
-                  <div style={{ padding: '8px 10px', background: '#050c10', border: '1px solid #3c5260' }}>
-                    <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Pot-Limit Max Bet</div>
-                    <div style={{ color: '#25c8ff', fontWeight: 800 }}>{brainDecision.potLimitMaxBetBb} BB</div>
-                  </div>
-                )}
-              </div>
-
-              <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.55 }}>
-                {brainDecision.explanation}
-              </p>
-
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                onClick={() => router.push(buildCustomTrainingArenaHref(brainSpotInput, 'leaderboard'))}
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: 2,
-                  border: '1px solid #25c8ff',
-                  background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
-                  color: '#FFFFFF',
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                Launch Leaderboard Spot In Club Arena →
-              </button>
-
-              {/* Phase 19: Club Coach Curriculum Assignment & Club Leaderboard Challenge */}
-              {(() => {
-                const assignToken = encodeClubCoachAssignment({
-                  assignmentId: `club-assign-${brainVariant}-btn-flop`,
-                  clubName: 'Smarter.Poker Diamond Club',
-                  coachName: 'Head Club Coach',
-                  title: `${brainVariant.toUpperCase()} BTN C-Bet Weekly Club Assignment`,
-                  gameId: brainVariant === 'nlh' ? 'cash-002' : 'cash-005',
-                  variant: brainVariant,
-                  bettingStructure: brainVariant === 'nlh' ? 'no_limit' : 'pot_limit',
-                  format: 'cash',
-                  stackDepthBb: 100,
-                  heroPosition: 'BTN',
-                  targetStreet: 'flop',
-                  targetAccuracyPct: 84,
-                });
-                const assignObj = decodeClubCoachAssignment(assignToken);
-                return (
-                  <div
-                    data-club-coach-assignment-card="true"
-                    data-assignment-token={assignToken}
-                    data-assignment-target-accuracy={String(assignObj?.targetAccuracyPct || 84)}
-                    style={{
-                      marginTop: 14,
-                      padding: '12px 14px',
-                      borderRadius: 7,
-                      border: '1px solid #688299',
-                      borderTopColor: '#aec0d0',
-                      background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 10,
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#83deff' }}>
-                        {`Club Coach Weekly Assignment · ${assignObj?.clubName || 'Smarter.Poker Diamond Club'}`}
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#f4fbff', marginTop: 2 }}>
-                        {`${assignObj?.title || 'Weekly Club Assignment'} · Target Benchmark: ${assignObj?.targetAccuracyPct || 84}% Accuracy`}
-                      </div>
-                    </div>
-                    <a
-                      href={assignObj?.href || '/hub/training/arena/cash-002?level=1'}
-                      data-launch-club-coach-assignment="true"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        minHeight: 38,
-                        padding: '0 16px',
-                        borderRadius: 7,
-                        border: '1px solid #56d8ff',
-                        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                        color: '#f4fbff',
-                        fontSize: 12,
-                        fontWeight: 800,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      Start Club Coach Assignment →
-                    </a>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
 
           {/* Filters */}
           <div style={styles.filters}>

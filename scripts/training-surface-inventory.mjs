@@ -606,6 +606,13 @@ function main() {
     }));
 
   const stateNames = ['loading', 'empty', 'error', 'retry', 'success', 'stale', 'offline', 'authExpiry'];
+  const localStateExclusions = new Map([
+    ['/hub/training/custom-rake', 'Rake Results Are Derived Immediately From Local Controls'],
+    ['/hub/training/famous-finals', 'The Archive Notice And Its Navigation Links Are Static'],
+    ['/hub/training/multiway-preflop', 'The Preflop Examples Are Read-Only Authored References'],
+    ['/hub/training/qre-explorer', 'The Reference Curve Updates From Local Controls'],
+    ['/hub/training/rake-solutions', 'The Explicitly Authored Rake Curve Is Calculated Locally'],
+  ]);
   const routeCoverage = routes.map((route) => {
     const localFiles = closureFor(route.file, graph.edges);
     // A dedicated catalog entry renders a single game link. The live arena
@@ -617,12 +624,15 @@ function main() {
     const redirectHref = entrySource.match(
       /export async function getServerSideProps\(\) \{\s*return \{\s*redirect: \{\s*destination: ['"](\/hub\/training\/[^'"?]+)(?:\?[^'"]*)?['"]/,
     )?.[1];
+    const linkedDestination = entrySource.match(
+      /<Link\b[^>]*data-training-destination="true"[^>]*href="(\/hub\/training\/[^"?]+)"/,
+    )?.[1];
     const gameId = (gameHref || redirectHref)?.split('/').pop();
     const arena = (gameHref || redirectHref)?.startsWith('/hub/training/arena/')
       && games.some(game => game.id === gameId)
       ? routes.find(candidate => candidate.template === '/hub/training/arena/[gameId]')
       : null;
-    const destination = arena || routes.find(candidate => candidate.template === redirectHref && candidate.file !== route.file);
+    const destination = arena || routes.find(candidate => candidate.template === (redirectHref || linkedDestination) && candidate.file !== route.file);
     const reachableFiles = destination
       ? [...new Set([...localFiles, ...closureFor(destination.file, graph.edges)])].sort()
       : localFiles;
@@ -634,6 +644,14 @@ function main() {
       const evidence = state === 'success'
         ? [route.file, ...reachableRows.filter((row) => row.states.success).map((row) => row.file)]
         : reachableRows.filter((row) => row.states[state]).map((row) => row.file);
+      const localReason = !destination && route.apiReferences.length === 0
+        && !/\b(?:fetch|authedFetch)\s*\(/.test(entrySource)
+        && ['loading', 'error', 'retry', 'stale'].includes(state)
+        ? localStateExclusions.get(route.template)
+        : null;
+      if (!evidence.length && localReason) {
+        return [state, { status: 'not-applicable', evidence: [route.file], tests: matchingTests, rationale: localReason }];
+      }
       return [state, {
         status: evidence.length ? 'implemented-or-detected' : 'coverage-gap',
         evidence: [...new Set(evidence)].sort(),
@@ -648,6 +666,7 @@ function main() {
       reachableFiles,
       ...(arena ? { gameplayDestination: gameHref || redirectHref } : {}),
       ...(redirectHref && destination ? { redirectDestination: redirectHref } : {}),
+      ...(linkedDestination && destination ? { linkedDestination } : {}),
       states,
       existingTests: matchingTests,
       uncoveredStates: stateNames.filter((state) => states[state].status === 'coverage-gap'),

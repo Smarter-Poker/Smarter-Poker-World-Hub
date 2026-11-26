@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { validateConfig, AUDIT_UUID, collectPublic } from '../scripts/ci/training-phase6-public-certificate.mjs';
 import { mkdtemp, rm, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { orderCatalogGames } from '../scripts/ci/training-catalog-live.mjs';
 import { readDeploymentIdentity } from '../scripts/training-phase6-production-delivery-attestation.mjs';
 const base = { GITHUB_REF: 'refs/heads/main', GITHUB_SHA: 'a'.repeat(40), EXPECTED_SHA: 'a'.repeat(40), TEST_USER_EMAIL: 'configured', TEST_USER_PASSWORD: 'fixture', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'fixture', NEXT_PUBLIC_SUPABASE_URL: 'https://kuklfnapbkmacvwxktbh.supabase.co', RUNNER_TEMP: '/fixture', PUBLIC_EVIDENCE: '/fixture/public.json', DEPLOYMENT_URL: 'https://hub-vanguard-abc-smarter-poker.vercel.app' };
 test('fixed designated audit identity and refusal boundaries', () => {
@@ -58,6 +59,7 @@ test('catalog verification uses the designated browser session and never invokes
         assert.equal(expectedSha, base.EXPECTED_SHA);
         assert.equal(state.origins[0].origin, 'https://smarter.poker');
         assert.equal(JSON.parse(state.origins[0].localStorage[0].value).user.id, AUDIT_UUID);
+        assert.ok(state.origins[0].localStorage.some(item => item.name === `sp_firstrun_notif_v2_${AUDIT_UUID}`));
         return 'catalog';
       },
     });
@@ -86,4 +88,17 @@ test('public catalog identity requires the same expected deployment and source r
     expectedDeploymentOrigin,
     fetchFn: async () => Response.json({ ...health, deploymentUrl: 'hub-vanguard-different-smarter-poker.vercel.app' }),
   }), /different immutable deployment/);
+});
+
+test('catalog verifies one entry per category first and preserves the full remainder', () => {
+  const games = [
+    { id: 'mtt-001', category: 'MTT' },
+    { id: 'mtt-002', category: 'MTT' },
+    { id: 'cash-001', category: 'CASH' },
+    { id: 'psy-001', category: 'PSYCHOLOGY' },
+    { id: 'cash-002', category: 'CASH' },
+  ];
+  const { categoryStarters, gamesInOrder } = orderCatalogGames(games);
+  assert.deepEqual(categoryStarters.map(game => game.id), ['mtt-001', 'cash-001', 'psy-001']);
+  assert.deepEqual(gamesInOrder.map(game => game.id), ['mtt-001', 'cash-001', 'psy-001', 'mtt-002', 'cash-002']);
 });

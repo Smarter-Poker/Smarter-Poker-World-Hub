@@ -10,43 +10,14 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-50 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-40 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['Ad', 'Kd'],
-  plo4: ['Ad', 'Kd', 'Qs', 'Js'],
-  plo5: ['Ad', 'Kd', 'Qs', 'Js', 'Th'],
-  plo6: ['Ad', 'Kd', 'Qs', 'Js', 'Th', '9h'],
-  plo8: ['Ad', 'Kd', 'Qs', 'Js'],
-};
-
-const BOARD_BY_STREET = {
-  preflop: [],
-  flop: ['Qd', '8d', '3c'],
-  turn: ['Qd', '8d', '3c', '6s'],
-  river: ['Qd', '8d', '3c', '6s', '2h'],
-};
-
-const pillStyle = (active) => ({
-  padding: '6px 12px',
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 800,
-  cursor: 'pointer',
-  border: active ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
-  background: active
-    ? 'linear-gradient(180deg, rgba(8,145,178,0.75), rgba(3,50,74,0.92))'
-    : 'rgba(255,255,255,0.05)',
-  color: active ? '#e8fbff' : '#cbd5e1',
-});
 
 export default function RiskAnalyzerPage() {
   const router = useRouter();
@@ -58,40 +29,9 @@ export default function RiskAnalyzerPage() {
 
   const [riskOfRuin, setRiskOfRuin] = useState(null);
   const [chartData, setChartData] = useState([]);
-  const [simulating, setSimulating] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const [activeVariant, setActiveVariant] = useState('nlh');
-  const [street, setStreet] = useState('flop');
-  const [effectiveStackBb, setEffectiveStackBb] = useState(100);
-  const [pot, setPot] = useState(12);
-  const [toCall, setToCall] = useState(6);
-  const [rakeEnv, setRakeEnv] = useState('mid');
-
-  const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
-  const boardCards = BOARD_BY_STREET[street] || BOARD_BY_STREET.flop;
-
-  const brainEval = useMemo(
-    () =>
-      evaluateTrainingSpotWithHorseBrain({
-        variant: activeVariant,
-        street,
-        heroCards,
-        boardCards,
-        pot,
-        toCall,
-        effectiveStackBb,
-      }),
-    [activeVariant, street, heroCards, boardCards, pot, toCall, effectiveStackBb]
-  );
-
-  const arenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        { gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005', variant: activeVariant },
-        'risk-analyzer'
-      ),
-    [activeVariant]
-  );
 
   // Standard Normal variate using Box-Muller transform
   const gaussianRandom = (mean = 0, stdev = 1) => {
@@ -101,51 +41,58 @@ export default function RiskAnalyzerPage() {
     return z * stdev + mean;
   };
 
+  // Clear stale results on edits so they always describe the selected inputs.
   const runMonteCarlo = async () => {
-    setSimulating(true);
+    setLoading(true);
+    setError(null);
     setRiskOfRuin(null);
     setChartData([]);
 
     // Yield execution to allow UI to render the "Simulating..." state
     await new Promise((r) => setTimeout(r, 100));
 
-    const RUNS = 1000;
-    const HANDS_PER_RUN = 10000; // Simulated sample size per career
-    const CHUNKS = 100; // Check bankroll every 100 hands
-    const wrPerChunk = (parseFloat(winRate) / 100) * CHUNKS;
-    const sdPerChunk = parseFloat(stdDev) * Math.sqrt(CHUNKS / 100);
-    const startingBr = parseFloat(bankroll);
+    try {
+      const RUNS = 1000;
+      const HANDS_PER_RUN = 10000; // Simulated sample size per career
+      const CHUNKS = 100; // Check bankroll every 100 hands
+      const wrPerChunk = (parseFloat(winRate) / 100) * CHUNKS;
+      const sdPerChunk = parseFloat(stdDev) * Math.sqrt(CHUNKS / 100);
+      const startingBr = parseFloat(bankroll);
 
-    let bustCount = 0;
-    let paths = []; // Sample 20 paths for the visual chart
+      let bustCount = 0;
+      let paths = []; // Sample 20 paths for the visual chart
 
-    for (let i = 0; i < RUNS; i++) {
-      let currentBr = startingBr;
-      let path = [currentBr];
-      let busted = false;
+      for (let i = 0; i < RUNS; i++) {
+        let currentBr = startingBr;
+        let path = [currentBr];
+        let busted = false;
 
-      for (let j = 0; j < HANDS_PER_RUN / CHUNKS; j++) {
-        const chunkResult = gaussianRandom(wrPerChunk, sdPerChunk);
-        currentBr += chunkResult;
-        if (i < 20) path.push(currentBr); // Save for chart
+        for (let j = 0; j < HANDS_PER_RUN / CHUNKS; j++) {
+          const chunkResult = gaussianRandom(wrPerChunk, sdPerChunk);
+          currentBr += chunkResult;
+          if (i < 20) path.push(currentBr); // Save for chart
 
-        if (currentBr <= 0) {
-          busted = true;
-          // If busted, fill rest of path with 0s for the chart
-          if (i < 20) {
-            while (path.length <= HANDS_PER_RUN / CHUNKS) path.push(0);
+          if (currentBr <= 0) {
+            busted = true;
+            // If busted, fill rest of path with 0s for the chart
+            if (i < 20) {
+              while (path.length <= HANDS_PER_RUN / CHUNKS) path.push(0);
+            }
+            break;
           }
-          break;
         }
+        if (busted) bustCount++;
+        if (i < 20) paths.push({ id: i, data: path, busted });
       }
-      if (busted) bustCount++;
-      if (i < 20) paths.push({ id: i, data: path, busted });
-    }
 
-    const calculatedRisk = (bustCount / RUNS) * 100;
-    setRiskOfRuin(calculatedRisk);
-    setChartData(paths);
-    setSimulating(false);
+      const calculatedRisk = (bustCount / RUNS) * 100;
+      setRiskOfRuin(calculatedRisk);
+      setChartData(paths);
+    } catch (_) {
+      setError('Could Not Calculate The Estimate. Try Again.');
+    } finally {
+      setLoading(false);
+    }
 
     // Simulation output is an estimate, not a graded poker decision. It must
     // never create a perfect session or affect streak and leaderboard data.
@@ -236,7 +183,8 @@ export default function RiskAnalyzerPage() {
                 max="25"
                 step="0.5"
                 value={winRate}
-                onChange={(e) => setWinRate(e.target.value)}
+                disabled={loading}
+                onChange={(e) => { setWinRate(e.target.value); setRiskOfRuin(null); setError(null); }}
                 style={{ width: '100%', accentColor: 'var(--sp-accent-green)' }}
               />
             </div>
@@ -255,7 +203,8 @@ export default function RiskAnalyzerPage() {
                 max="180"
                 step="5"
                 value={stdDev}
-                onChange={(e) => setStdDev(e.target.value)}
+                disabled={loading}
+                onChange={(e) => { setStdDev(e.target.value); setRiskOfRuin(null); setError(null); }}
                 style={{ width: '100%', accentColor: 'var(--sp-accent-amber)' }}
               />
               <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
@@ -277,7 +226,8 @@ export default function RiskAnalyzerPage() {
                 max="10000"
                 step="100"
                 value={bankroll}
-                onChange={(e) => setBankroll(e.target.value)}
+                disabled={loading}
+                onChange={(e) => { setBankroll(e.target.value); setRiskOfRuin(null); setError(null); }}
                 style={{ width: '100%', accentColor: 'var(--sp-accent-cyan)' }}
               />
               <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
@@ -289,7 +239,7 @@ export default function RiskAnalyzerPage() {
               className="sp-analysis-primary-action"
               whileTap={{ scale: 0.96 }}
               onClick={runMonteCarlo}
-              disabled={simulating}
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '16px',
@@ -303,13 +253,14 @@ export default function RiskAnalyzerPage() {
                 boxShadow: '0 8px 24px rgba(59,130,246,0.3)',
               }}
             >
-              {simulating ? 'RUNNING 1,000 CAREERS...' : 'RUN MONTE CARLO SIMULATION'}
+              {loading ? 'Calculating…' : error ? 'Retry Estimate' : 'Calculate Risk'}
             </motion.button>
+            {error && <p role="alert">{error}</p>}
           </div>
 
           {/* Output & Chart */}
           <div className="sp-analysis-output-deck" style={{ flex: '2 1 450px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {riskOfRuin !== null && !simulating ? (
+            {riskOfRuin !== null && !loading ? (
               <AnimatePresence>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -469,13 +420,13 @@ export default function RiskAnalyzerPage() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  opacity: simulating ? 1 : 0.4,
+                  opacity: loading ? 1 : 0.4,
                   background: 'rgba(255,255,255,0.02)',
                   borderRadius: 24,
                   border: '1px solid rgba(255,255,255,0.05)',
                 }}
               >
-                {simulating ? (
+                {loading ? (
                   <>
                     <motion.div
                       animate={{ rotate: 360 }}
@@ -514,143 +465,6 @@ export default function RiskAnalyzerPage() {
               </div>
             )}
 
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainEval.engineModule}
-              data-recommended-action={brainEval.correctAnswer}
-              data-active-variant={activeVariant}
-              style={{
-                padding: 20,
-                borderRadius: 16,
-                border: '1px solid rgba(56,189,248,0.40)',
-                background: 'rgba(15,23,42,0.82)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
-                  Horse Brain Equilibrium &amp; EV Calibration Panel
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
-                  {`Engine: ${brainEval.engineModule} · Action: ${brainEval.correctAnswerText}`}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Variant</div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        data-variant-option={v}
-                        onClick={() => {
-                          setActiveVariant(v);
-                          setStdDev(v === 'nlh' ? 85 : v === 'plo8' ? 115 : v === 'plo4' ? 135 : v === 'plo5' ? 155 : 175);
-                        }}
-                        style={pillStyle(activeVariant === v)}
-                      >
-                        {v.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Street</div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['preflop', 'flop', 'turn', 'river'].map((st) => (
-                      <button key={st} type="button" data-street-option={st} onClick={() => setStreet(st)} style={pillStyle(street === st)}>
-                        {st.charAt(0).toUpperCase() + st.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Stack Depth</div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {[20, 50, 100, 200].map((stk) => (
-                      <button key={stk} type="button" data-stack-option={stk} onClick={() => setEffectiveStackBb(stk)} style={pillStyle(effectiveStackBb === stk)}>
-                        {stk} BB
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Pot Size</div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {[6, 12, 24].map((p) => (
-                      <button key={p} type="button" data-pot-option={p} onClick={() => setPot(p)} style={pillStyle(pot === p)}>
-                        {p} BB
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Facing Bet</div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {[0, 3, 6, 12].map((bet) => (
-                      <button key={bet} type="button" data-facing-bet-option={bet} onClick={() => setToCall(bet)} style={pillStyle(toCall === bet)}>
-                        {bet} BB
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Rake Environment</div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['low', 'mid', 'high'].map((rk) => (
-                      <button key={rk} type="button" data-rake-option={rk} onClick={() => setRakeEnv(rk)} style={pillStyle(rakeEnv === rk)}>
-                        {rk.charAt(0).toUpperCase() + rk.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 12 }}>
-                <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Hand Strength</div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: '#f8fafc' }}>{brainEval.handScore}/100</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Category</div>
-                  <div style={{ fontSize: 13, fontWeight: 900, color: '#38bdf8' }}>{brainEval.madeHandCategory}</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Recommended Action</div>
-                  <div style={{ fontSize: 13, fontWeight: 900, color: '#4ade80' }}>{brainEval.correctAnswerText}</div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>{brainEval.explanation}</div>
-
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                data-launch-href={arenaHref}
-                onClick={() => router.push(arenaHref)}
-                style={{
-                  display: 'inline-flex',
-                  minHeight: 44,
-                  alignItems: 'center',
-                  padding: '0 18px',
-                  borderRadius: 8,
-                  border: '1px solid #67e8f9',
-                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                  color: '#fff',
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-              >
-                Practice Equilibrium Spot In Club Arena →
-              </button>
-            </div>
           </div>
         </div>
       </div>

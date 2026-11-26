@@ -25,7 +25,7 @@ test('the complete analysis family adopts one dimensional tool shell', () => {
   for (const [route, source] of Object.entries(sources)) {
     const destination = {
       analyzer: '/hub/training/hand-history-upload?source=legacy-analyzer',
-      'ev-heatmap': '/hub/training/aggregate?source=ev-heatmap',
+      'ev-heatmap': '/hub/training/reports?source=ev-heatmap',
       'performance-heatmap': '/hub/training/gto-reports',
     }[route];
     if (destination) {

@@ -1,5 +1,5 @@
 // TRAIN-CSS-TOKENS-BATCH5-57 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
@@ -10,19 +10,8 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { authedFetch } from '../../../src/lib/authUtils';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 // TRAIN-WIRE-EMPTY-5f — adoption: shared empty-state primitive
 
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
-
-const DEFAULT_BOARD_CARDS = ['8d', '5c', '2s'];
 
 // BUG FIX (TRAIN-STUDYGROUP-A11Y-1): SVG icon components replacing the
 // study-group emoji set: crown admin marker, upload empty hand viewer, close,
@@ -67,24 +56,16 @@ export default function StudyGroupRoom() {
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
   const [inviteStatus, setInviteStatus] = useState(null);
-  const [brainVariant, setBrainVariant] = useState('nlh');
   const [isOnline, setIsOnline] = useState(true);
-  const [spotShareConfirmed, setSpotShareConfirmed] = useState(true);
-
-  const shareSpotHref = useMemo(
-    () => `/hub/training/arena/cash-002?level=1&source=study-group-share&variant=${brainVariant}&street=flop&position=BTN`,
-    [brainVariant],
-  );
+  const [practiceCopyStatus, setPracticeCopyStatus] = useState(null);
+  const shareSpotHref = '/hub/training/arena/cash-002?start=1&source=study-group-share';
 
   const handleShareSpotToGroup = async () => {
-    setSpotShareConfirmed(true);
     try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        await navigator.clipboard.writeText(`${origin}${shareSpotHref}`);
-      }
+      await navigator.clipboard.writeText(`${window.location.origin}${shareSpotHref}`);
+      setPracticeCopyStatus('copied');
     } catch {
-      // Clipboard write may be restricted in non-HTTPS contexts; keep confirmation active
+      setPracticeCopyStatus('failed');
     }
   };
 
@@ -99,56 +80,6 @@ export default function StudyGroupRoom() {
       window.removeEventListener('offline', onOffline);
     };
   }, []);
-
-  const brainSpotInput = useMemo(
-    () => ({
-      gameId: brainVariant === 'nlh' ? 'cash-002' : 'cash-005',
-      variant: brainVariant,
-      street: 'flop',
-      position: 'BTN',
-      stackDepth: 100,
-    }),
-    [brainVariant]
-  );
-
-  const brainDecision = useMemo(() => {
-    const heroCards = HERO_CARDS_BY_VARIANT[brainVariant] || HERO_CARDS_BY_VARIANT.nlh;
-    const raw = evaluateTrainingSpotWithHorseBrain({
-      gameId: brainSpotInput.gameId,
-      variant: brainVariant,
-      street: 'flop',
-      heroCards,
-      boardCards: DEFAULT_BOARD_CARDS,
-      heroPosition: 'BTN',
-      villainPosition: 'BB',
-      pot: 6.5,
-      toCall: 2.2,
-      effectiveStackBb: 100,
-    });
-    const engineSource = raw.engineSource || raw.engineModule || 'holdem-brain.js';
-    const recommendedAction = raw.recommendedAction || raw.correctAnswerText || raw.correctAnswer || 'Call 2.2 BB';
-    const recommendedSizingBb =
-      raw.recommendedSizingBb ??
-      raw.potLimitSizing?.twoThirdsPotBetOrRaise ??
-      raw.brainEvaluation?.potLimitBounds?.twoThirdsPotBetOrRaise ??
-      4.5;
-    const equityPct = raw.equityPct ?? raw.handScore ?? 68;
-    const madeHandCategory = raw.madeHandCategory || raw.brainEvaluation?.madeHandCategory || 'postflop_hand';
-    const potLimitMaxBetBb =
-      raw.potLimitMaxBetBb ??
-      raw.brainEvaluation?.potLimitMaxBetBb ??
-      raw.potLimitSizing?.maxPotBetOrRaise ??
-      10.9;
-    return {
-      ...raw,
-      engineSource,
-      recommendedAction,
-      recommendedSizingBb,
-      equityPct,
-      madeHandCategory,
-      potLimitMaxBetBb,
-    };
-  }, [brainVariant, brainSpotInput]);
 
   const loadRoom = useCallback(async ({ quiet = false } = {}) => {
     if (!roomId || roomRequestInFlightRef.current) return;
@@ -302,184 +233,19 @@ export default function StudyGroupRoom() {
           </div>
         )}
 
-        {brainDecision && (
-          <div
-            data-specialty-brain-panel="true"
-            data-brain-engine={brainDecision.engineSource}
-            data-recommended-action={brainDecision.recommendedAction}
-            data-active-variant={brainVariant}
-            style={{
-              marginBottom: 24,
-              padding: 18,
-              borderRadius: 14,
-              border: '1px solid rgba(59, 130, 246, 0.38)',
-              background: 'rgba(10, 15, 30, 0.78)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 8,
-                marginBottom: 12,
-              }}
-            >
-              <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--sp-accent-blue)', textTransform: 'uppercase' }}>
-                Horse Brain Spot Preview &amp; 1:1 Club Arena Drill Launcher
-              </span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
-                Engine: {brainDecision.engineSource} | Action: {brainDecision.recommendedAction}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-              {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  data-variant-option={v}
-                  aria-pressed={brainVariant === v}
-                  onClick={() => setBrainVariant(v)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 6,
-                    border: brainVariant === v ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.16)',
-                    background: brainVariant === v ? 'rgba(59, 130, 246, 0.22)' : 'rgba(255,255,255,0.04)',
-                    color: brainVariant === v ? '#e8fbff' : '#cbd5e1',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {v.toUpperCase()}
-                </button>
-              ))}
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                gap: 8,
-                marginBottom: 12,
-                fontSize: 12,
-              }}
-            >
-              <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
-                <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Engine Source</div>
-                <div style={{ color: '#fff', fontWeight: 800 }}>{brainDecision.engineSource}</div>
-              </div>
-              <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
-                <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Recommended Action</div>
-                <div style={{ color: 'var(--sp-accent-green)', fontWeight: 800 }}>{brainDecision.recommendedAction}</div>
-              </div>
-              <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
-                <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Sizing</div>
-                <div style={{ color: 'var(--sp-accent-blue)', fontWeight: 800 }}>{brainDecision.recommendedSizingBb} BB</div>
-              </div>
-              <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
-                <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Equity</div>
-                <div style={{ color: 'var(--sp-accent-amber)', fontWeight: 800 }}>{brainDecision.equityPct}%</div>
-              </div>
-              <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
-                <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Made Hand</div>
-                <div style={{ color: '#fff', fontWeight: 800 }}>{brainDecision.madeHandCategory}</div>
-              </div>
-              {brainVariant.startsWith('plo') && (
-                <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
-                  <div style={{ color: 'var(--sp-fg-muted)', fontWeight: 700 }}>Pot-Limit Max Bet</div>
-                  <div style={{ color: 'var(--sp-accent-blue)', fontWeight: 800 }}>{brainDecision.potLimitMaxBetBb} BB</div>
-                </div>
-              )}
-            </div>
-
-            <p style={{ margin: '0 0 12px', fontSize: 12, color: '#cbd5e1', lineHeight: 1.55 }}>
-              {brainDecision.explanation}
-            </p>
-
-            <button
-              type="button"
-              data-launch-club-arena-cta="true"
-              onClick={() => router.push(buildCustomTrainingArenaHref(brainSpotInput, 'study-group'))}
-              style={{
-                padding: '10px 16px',
-                borderRadius: 8,
-                border: '1px solid #3b82f6',
-                background: 'rgba(59, 130, 246, 0.22)',
-                color: '#fff',
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >
-              Launch Study Room Spot In Club Arena →
+        <section data-study-group-spot-share="true" data-share-spot-href={shareSpotHref} aria-labelledby="group-practice-title">
+          <h2 id="group-practice-title">Practice With Your Group</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            <a className="sp-mtt-primary-cta" href={shareSpotHref}>Play Study Drill</a>
+            <button type="button" data-share-training-spot="true" onClick={handleShareSpotToGroup} className="sp-mtt-primary-cta">
+              Copy Practice Link
             </button>
-
-            <div
-              data-study-group-spot-share="true"
-              data-share-spot-href={shareSpotHref}
-              style={{
-                marginTop: 14,
-                padding: 14,
-                borderRadius: 10,
-                border: '1px solid rgba(52, 211, 153, 0.38)',
-                background: 'rgba(6, 78, 59, 0.22)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 10,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 900, color: '#6ee7b7', textTransform: 'uppercase' }}>
-                  Share Spot To Study Group / Copy 1:1 Arena Challenge Link
-                </div>
-                <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
-                  Challenge URL: {shareSpotHref}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  data-share-training-spot="true"
-                  data-share-spot-href={shareSpotHref}
-                  onClick={handleShareSpotToGroup}
-                  style={{
-                    padding: '9px 14px',
-                    borderRadius: 8,
-                    border: '1px solid #34d399',
-                    background: 'rgba(16, 185, 129, 0.24)',
-                    color: '#ecfdf5',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Copy 1:1 Arena Challenge Link →
-                </button>
-                {spotShareConfirmed && (
-                  <span
-                    data-share-spot-confirmed="true"
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: 6,
-                      border: '1px solid rgba(52, 211, 153, 0.5)',
-                      background: 'rgba(16, 185, 129, 0.16)',
-                      color: '#6ee7b7',
-                      fontSize: 12,
-                      fontWeight: 800,
-                    }}
-                  >
-                    1:1 Challenge Link Ready ({brainVariant.toUpperCase()} · FLOP · BTN)
-                  </span>
-                )}
-              </div>
-            </div>
           </div>
-        )}
+          {practiceCopyStatus === 'copied' && <p data-share-spot-confirmed="true" role="status">Link Copied.</p>}
+          {practiceCopyStatus === 'failed' && (
+            <label>Copy This Link <input readOnly value={`${window.location.origin}${shareSpotHref}`} onFocus={(event) => event.target.select()} /></label>
+          )}
+        </section>
 
         {!roomId ? (
           <motion.div

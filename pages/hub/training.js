@@ -61,7 +61,6 @@ import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import {
   resolvePresetForGame,
   loadResumableTrainingSession,
-  buildThreeHandLeakReceipt,
 } from '../../src/lib/training/trainingPresets.mjs';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
@@ -573,28 +572,6 @@ export default function TrainingPage() {
                   >
                     <Zap size={16} aria-hidden /> Start 5-Minute Fix (10 Hands) →
                   </button>
-                  {(() => {
-                    const homeLeakReceipt = buildThreeHandLeakReceipt({
-                      gameId: fiveMinuteLeakFix.game?.id || 'cash-002',
-                      title: `${fiveMinuteLeakFix.game?.name || 'Daily'} 3-Hand Leak Receipt`,
-                      variant: fiveMinuteLeakFix.overrides?.variant || 'nlh',
-                      bettingStructure: fiveMinuteLeakFix.overrides?.bettingStructure || 'no_limit',
-                      format: fiveMinuteLeakFix.overrides?.format || 'cash',
-                      heroPosition: fiveMinuteLeakFix.overrides?.heroPosition || 'BTN',
-                      targetStreet: fiveMinuteLeakFix.overrides?.targetStreet || 'flop',
-                    });
-                    return (
-                      <a
-                        href={homeLeakReceipt.href}
-                        className="sp-cta sp-cta-secondary"
-                        data-three-hand-leak-receipt="true"
-                        data-launch-three-hand-leak-receipt="true"
-                        data-leak-receipt-pack-token={homeLeakReceipt.packToken}
-                      >
-                        Practice 3-Hand Leak Receipt (+{homeLeakReceipt.totalEvLossBb} BB) →
-                      </a>
-                    );
-                  })()}
                 </div>
               </section>
             )}

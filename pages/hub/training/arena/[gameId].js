@@ -275,13 +275,12 @@ export default function TrainingArenaPage() {
         ? getGameById(gameId)
         : null;
     const gameName = game?.name || 'Training Game';
-    const homePreset = router.query.source === 'training-home'
-        && !['custom', 'pack', 'coopRoom', 'assignment', 'duelToken', 'duelRole', 'syncedHandId']
+    const presetLaunch = !['custom', 'pack', 'coopRoom', 'assignment', 'duelToken', 'duelRole', 'syncedHandId']
             .some((key) => router.query[key] !== undefined);
-    const homeHands = homePreset && /^[1-9][0-9]?$/.test(router.query.hands)
+    const homeHands = presetLaunch && router.query.source === 'training-home' && /^[1-9][0-9]?$/.test(router.query.hands)
         ? Number(router.query.hands)
         : null;
-    const startsWithPreset = Boolean(game && !customLaunch.error && (homePreset || !customLaunch.config));
+    const startsWithPreset = Boolean(game && !customLaunch.error && (presetLaunch || !customLaunch.config));
     const initialConfig = useMemo(() => {
         if (!startsWithPreset) return customLaunch.config;
         return {
