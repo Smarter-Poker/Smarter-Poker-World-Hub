@@ -58,7 +58,7 @@ test('Arena revalidates custom query values and fails closed for noncanonical ga
   const source = read('pages/hub/training/arena/[gameId].js');
   assert.match(source, /customTrainingConfigFromQuery\(router\.query\)/);
   assert.match(source, /isCanonicalTrainingGameId\(gameId\)/);
-  assert.match(source, /This Training Game Does Not Exist In The Canonical Library/);
+  assert.match(source, /This Training Game Could Not Be Found/);
   assert.match(source, /if \(!startsWithPreset\) return customLaunch\.config/);
   assert.match(source, /\.\.\.resolvePresetForGame\(game\),\s*\.\.\.customLaunch\.config/);
   assert.match(source, /homeHands && homeHands <= 50/);

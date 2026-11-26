@@ -72,6 +72,8 @@ export default function ErrorBanner({ message, onRetry, style }) {
       </div>
       {onRetry && (
         <button
+          type="button"
+          className="sd-button"
           onClick={onRetry}
           aria-label="Retry loading data"
           style={{
@@ -84,7 +86,7 @@ export default function ErrorBanner({ message, onRetry, style }) {
             fontWeight: 600,
             cursor: 'pointer',
             flexShrink: 0,
-            minHeight: 32,
+            minHeight: 44,
             outlineOffset: 2,
           }}
         >

@@ -38,7 +38,8 @@ function PvpEloHeaderBadge({ rating, loading, realtimeActive = false, realtimeCo
         );
     }
     if (!rating) return null;
-    const tierInk = eloTierInk(rating.tier);
+    const rawTierInk = eloTierInk(rating.tier);
+    const tierInk = rawTierInk === 'gold' ? 'blue' : rawTierInk;
     const recordLabel = rating.gamesPlayed > 0
         ? `${formatTriviaDisplayNumber(rating.wins)}W / ${formatTriviaDisplayNumber(rating.losses)}L / ${formatTriviaDisplayNumber(rating.ties)}T`
         : 'Unrated';
@@ -60,7 +61,7 @@ function PvpEloHeaderBadge({ rating, loading, realtimeActive = false, realtimeCo
                     </span>
                 ) : null}
             </div>
-            <Link href="/hub/trivia/leaderboard" className="tc-word">
+            <Link href="/hub/trivia/leaderboard" className="tc-word trivia-pvp-elo-link">
                 PvP Elo Leaderboard
             </Link>
         </section>
@@ -214,9 +215,11 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
     }, []);
 
     const handleChallengeSignIn = useCallback(() => {
-        const target = challengeCode
-            ? `/hub/trivia/pvp?challenge=${encodeURIComponent(challengeCode)}`
-            : '/hub/trivia/pvp';
+        const target = typeof router.asPath === 'string' && router.asPath.startsWith('/hub/trivia/pvp')
+            ? router.asPath
+            : (challengeCode
+                ? `/hub/trivia/pvp?challenge=${encodeURIComponent(challengeCode)}`
+                : '/hub/trivia/pvp');
         void router.push(`/auth/login?redirect=${encodeURIComponent(target)}`);
     }, [challengeCode, router]);
 
@@ -278,7 +281,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                 canonical="/hub/trivia/pvp"
             />
             <div
-                className="trivia-console-standalone trivia-pvp-page"
+                className="smarterdesign trivia-console-standalone trivia-pvp-page"
                 data-trivia-surface="pvp"
             >
                 <UniversalHeader pageDepth={2} />
@@ -292,7 +295,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         />
                     ) : null}
                     {challengeCode && !matchActive ? (
-                        <div className="trivia-pvp-challenge-dock" data-challenge-priority="incoming">
+                        <div className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="incoming">
                             <FriendChallengePanel
                                 signedIn={Boolean(user?.id)}
                                 onSignIn={handleChallengeSignIn}
@@ -319,34 +322,38 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         pairedMatchId={pairedMatchId}
                         settledSessionId={settledSessionId}
                         settledMatch={settledMatch}
+                        friendChallengeSlot={!challengeCode && !matchActive ? (
+                            <div className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="standard">
+                                <FriendChallengePanel
+                                    signedIn={Boolean(user?.id)}
+                                    onSignIn={handleChallengeSignIn}
+                                    initialCode={challengeCode}
+                                    shareBasePath="/hub/trivia/pvp"
+                                    onChallengeLoaded={handleChallengeLoaded}
+                                    onChallengeAccepted={handleChallengeAccepted}
+                                />
+                            </div>
+                        ) : null}
                     />
-                    {!challengeCode && !matchActive ? (
-                        <div className="trivia-pvp-challenge-dock" data-challenge-priority="standard">
-                            <FriendChallengePanel
-                                signedIn={Boolean(user?.id)}
-                                onSignIn={handleChallengeSignIn}
-                                initialCode={challengeCode}
-                                shareBasePath="/hub/trivia/pvp"
-                                onChallengeLoaded={handleChallengeLoaded}
-                                onChallengeAccepted={handleChallengeAccepted}
-                            />
-                        </div>
-                    ) : null}
                 </main>
                 <HubPageSummary page="trivia-pvp" />
             </div>
             <style jsx>{`
+                .trivia-pvp-shell {
+                    min-height: 540px;
+                }
                 .trivia-pvp-elo-banner {
                     display: flex;
                     flex-wrap: wrap;
                     align-items: center;
                     justify-content: space-between;
                     gap: 12px;
+                    min-height: 54px;
                     margin-bottom: 14px;
                     padding: 12px 16px;
                     border-radius: 12px;
-                    border: 1px solid var(--tc-bevel);
-                    background: var(--tc-chassis-black);
+                    border: 1px solid var(--sd-line, var(--tc-bevel));
+                    background: var(--sd-surface, var(--tc-chassis-black));
                 }
                 .trivia-pvp-elo-banner__meta {
                     display: flex;
@@ -363,22 +370,24 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                     font-size: 0.78rem;
                     font-weight: 700;
                     letter-spacing: 0.04em;
-                    text-transform: uppercase;
                 }
                 .trivia-pvp-elo-banner__score {
                     font-size: 1rem;
-                    color: var(--tc-ink-white);
+                    color: var(--sd-text, var(--tc-ink-white));
                 }
                 .trivia-pvp-elo-banner__detail {
                     font-size: 0.85rem;
-                    color: var(--tc-ink-silver);
+                    color: var(--sd-silver, var(--tc-ink-silver));
+                }
+                .trivia-pvp-elo-link {
+                    display: inline-flex;
+                    align-items: center;
+                    min-height: 44px;
                 }
                 .trivia-pvp-challenge-dock {
                     margin: 14px 0;
                     padding: 14px 16px;
                     border-radius: 12px;
-                    border: 1px solid var(--tc-bevel);
-                    background: var(--tc-chassis-black);
                 }
             `}</style>
         </TriviaErrorBoundary>

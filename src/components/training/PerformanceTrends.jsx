@@ -430,7 +430,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                             {[
                                 { key: 'best', color: '#3b82f6', label: 'Best' },
                                 { key: 'correct', color: '#22c55e', label: 'Correct' },
-                                { key: 'inaccuracy', color: '#fbbf24', label: 'Inacc' },
+                                { key: 'inaccuracy', color: '#86daff', label: 'Inacc' },
                                 { key: 'wrong', color: '#f97316', label: 'Wrong' },
                                 { key: 'blunder', color: '#ef4444', label: 'Blunder' },
                             ].map(item => (

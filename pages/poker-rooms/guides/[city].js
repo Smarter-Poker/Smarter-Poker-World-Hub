@@ -97,7 +97,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
       '@id': `${canonicalUrl}#breadcrumb`,
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Smarter.Poker', item: `${SITE_URL}/` },
-        { '@type': 'ListItem', position: 2, name: 'Poker Near Me', item: `${SITE_URL}/hub/poker-near-me` },
+        { '@type': 'ListItem', position: 2, name: 'Poker Near Me', item: `${SITE_URL}/hub/poker-near-me/lobby` },
         { '@type': 'ListItem', position: 3, name: 'US Regional Poker Market Guides', item: `${SITE_URL}/poker-rooms/guides` },
         { '@type': 'ListItem', position: 4, name: guide.regionName, item: canonicalUrl },
       ],

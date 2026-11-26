@@ -1,3 +1,4 @@
+import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
  * BANKROLL GOALS COMPONENT
  * Set and track profit targets with progress visualization
@@ -237,9 +238,11 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
             {!isLoading && !activeGoal && !showAddGoal && (
                 <div style={styles.emptyState}>
                     <span style={{ opacity: 0.5 }}>No Active Goal</span>
-                    <button onClick={() => setShowAddGoal(true)} style={styles.setGoalBtn}>
-                        Set A Profit Target
-                    </button>
+                    <BankrollHeaderAdd label="Set A Profit Target" onClick={() => setShowAddGoal(true)}>
+                        <button onClick={() => setShowAddGoal(true)} style={styles.setGoalBtn}>
+                            Set A Profit Target
+                        </button>
+                    </BankrollHeaderAdd>
                 </div>
             )}
         </div>

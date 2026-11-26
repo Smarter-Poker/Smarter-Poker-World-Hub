@@ -1,15 +1,8 @@
-/**
- * ADD EXPENSE MODAL
- * ═══════════════════════════════════════════════════════════════
- * Expense form with category, amount, description, and receipt scanner.
- * Extracted from TokeTracker.jsx for maintainability.
- * ═══════════════════════════════════════════════════════════════
- */
-
 import React, { memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import useAccessibleDialog from '../../../hooks/useAccessibleDialog';
-import { Camera, Image as ImageIcon } from 'lucide-react';
+import { Camera, FileCheck, Receipt, X } from 'lucide-react';
+import shift from './ShiftConsole.module.css';
 
 const EXPENSE_CATEGORIES = [
     { id: 'food', label: 'Food & Beverage' },
@@ -22,99 +15,37 @@ const EXPENSE_CATEGORIES = [
     { id: 'tip_out', label: 'Tip Out' },
 ];
 
-function AddExpenseModal({
-    show,
-    expenseForm,
-    setExpenseForm,
-    onSubmit,
-    onClose,
-    showScanner,
-    setShowScanner,
-    ReceiptScannerComponent,
-    userId,
-    styles,
-}) {
+function AddExpenseModal({ show, expenseForm, setExpenseForm, onSubmit, onClose, showScanner, setShowScanner, ReceiptScannerComponent, userId }) {
     const { dialogRef, initialFocusRef } = useAccessibleDialog({ open: show && !showScanner, onClose });
     if (!show) return null;
-
-    return (
-        <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                style={styles.modalOverlay}
-                onClick={() => { onClose(); setShowScanner(false); }}
-            >
-                {showScanner ? (
-                    <div style={{ width: '100%', maxWidth: 450 }} onClick={e => e.stopPropagation()}>
-                        <ReceiptScannerComponent
-                            userId={userId}
-                            onScanComplete={({ imageUrl }) => {
-                                setExpenseForm({ ...expenseForm, receipt_url: imageUrl });
-                                setShowScanner(false);
-                            }}
-                        />
-                        <button type="button" onClick={() => setShowScanner(false)} style={{ ...styles.formCancelBtn, width: '100%', marginTop: 12 }}>Cancel Scan</button>
-                    </div>
-                ) : (
-                    <motion.form
-                        initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                        ref={dialogRef} role="dialog" aria-modal="true" aria-label="Add Expense" style={{ ...styles.promptCard, border: '2px solid rgba(91,133,176,0.4)' }}
-                        onClick={e => e.stopPropagation()}
-                        onSubmit={onSubmit}
-                    >
-                        <h3 style={{ fontSize: 20, fontWeight: 700, color: '#eff5fc', margin: '0 0 16px' }}>Add Expense</h3>
-
-                        <label htmlFor="toke-expense-category" style={styles.formLabel}>Category</label>
-                        <select
-                            id="toke-expense-category" value={expenseForm.category}
-                            onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                            style={styles.formSelect}
-                        >
-                            {EXPENSE_CATEGORIES.map(c => (
-                                <option key={c.id} value={c.id}>{c.label}</option>
-                            ))}
-                        </select>
-
-                        <label htmlFor="toke-expense-amount" style={{ ...styles.formLabel, marginTop: 12 }}>Amount ($)</label>
-                        <input
-                            type="number"
-                            ref={initialFocusRef} id="toke-expense-amount" value={expenseForm.amount}
-                            onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                            style={styles.formInput}
-                            step="0.01"
-                        />
-
-                        <label htmlFor="toke-expense-description" style={{ ...styles.formLabel, marginTop: 12 }}>Description (Optional)</label>
-                        <input
-                            type="text"
-                            id="toke-expense-description" value={expenseForm.description}
-                            onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                            style={styles.formInput}
-                        />
-
-                        <div style={{ marginTop: 16 }}>
-                            {expenseForm.receipt_url ? (
-                                <div style={styles.attachedReceiptBox}>
-                                    <ImageIcon size={16} color="#8cdeee" />
-                                    <span style={{ fontSize: 13, color: '#8cdeee', fontWeight: 600 }}>Receipt Attached</span>
-                                    <button type="button" onClick={() => setExpenseForm({ ...expenseForm, receipt_url: null })} aria-label="Remove Receipt" style={styles.removeReceiptBtn}>✕</button>
-                                </div>
-                            ) : (
-                                <button type="button" onClick={() => setShowScanner(true)} style={styles.scanReceiptBtn}>
-                                    <Camera size={16} /> Scan Receipt
-                                </button>
-                            )}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                            <button type="submit" className="sd-button sd-primary">Add Expense</button>
-                            <button type="button" onClick={onClose} className="sd-button">Cancel</button>
-                        </div>
-                    </motion.form>
-                )}
-            </motion.div>
-        </AnimatePresence>
-    );
+    return createPortal(<div className={'smarterdesign ' + shift.overlay} onClick={event => {
+        if (event.currentTarget === event.target) { onClose(); setShowScanner(false); }
+    }}>
+        {showScanner ? <div className={shift.scanner}>
+            <ReceiptScannerComponent userId={userId} onScanComplete={({ imageUrl }) => {
+                setExpenseForm({ ...expenseForm, receipt_url: imageUrl });
+                setShowScanner(false);
+            }} />
+            <button type="button" onClick={() => setShowScanner(false)} className="sd-button">Cancel Scan</button>
+        </div> : <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="toke-expense-heading" className={'sd-panel ' + shift.dialog}>
+            <h2 className={shift.dialogTitle} id="toke-expense-heading"><Receipt size={24} aria-hidden="true" />Add Expense</h2>
+            <form className={shift.form} onSubmit={onSubmit}>
+                <label>Amount ($)<input type="number" ref={initialFocusRef} value={expenseForm.amount} step="0.01"
+                    onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })} /></label>
+                <label>Category<select value={expenseForm.category} onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}>
+                    {EXPENSE_CATEGORIES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+                </select></label>
+                <label>Description (Optional)<input value={expenseForm.description}
+                    onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })} /></label>
+                {expenseForm.receipt_url ? <div className={shift.state}><FileCheck size={18} aria-hidden="true" />Receipt Attached
+                    <button type="button" className="sd-button" aria-label="Remove Receipt" onClick={() => setExpenseForm({ ...expenseForm, receipt_url: null })}><X size={16} /></button>
+                </div> : <button type="button" onClick={() => setShowScanner(true)} className={'sd-button ' + shift.scanButton}><Camera size={17} aria-hidden="true" /> Scan Receipt</button>}
+                <div className={shift.actions}>
+                    <button type="button" className="sd-button" onClick={onClose}>Cancel</button>
+                    <button type="submit" className="sd-button sd-primary">Add Expense</button>
+                </div>
+            </form>
+        </section>}
+    </div>, document.body);
 }
-
 export default memo(AddExpenseModal);

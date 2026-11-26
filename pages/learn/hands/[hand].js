@@ -194,6 +194,8 @@ export default function StartingHandDetailPage({ hand }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <Link
               href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)}`}
+              rel="nofollow"
+              prefetch={false}
               style={{
                 padding: '9px 14px',
                 borderRadius: 8,
@@ -401,6 +403,8 @@ export default function StartingHandDetailPage({ hand }) {
                   <td style={{ padding: '10px 14px' }}>
                     <Link
                       href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)}&hand2=${encodeURIComponent(m.villainCode)}`}
+                      rel="nofollow"
+                      prefetch={false}
                       style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}
                     >
                       Simulate {hand.code} Vs {m.villainCode}
@@ -450,6 +454,8 @@ export default function StartingHandDetailPage({ hand }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             <Link
               href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)}`}
+              rel="nofollow"
+              prefetch={false}
               style={{ padding: '10px 16px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
             >
               Simulate {hand.code} In Odds Calculator

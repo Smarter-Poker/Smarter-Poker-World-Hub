@@ -318,9 +318,11 @@ test('About publishes the visible company identity, not identities of its softwa
   let jsonLd;
   const link = { __esModule: true, default: ({ href, children, ...props }) => React.createElement('a', { href, ...props }, children) };
   const products = compiled('src/components/landing/LandingProductSummary.js', () => link);
+  const faqSection = compiled('src/components/seo/FaqSection.js', () => { throw new Error('Unexpected FaqSection import'); });
   const page = compiled('pages/about.js', (name) => {
     if (name === 'next/link') return link;
     if (name.endsWith('LandingProductSummary')) return products;
+    if (name.endsWith('FaqSection')) return faqSection;
     if (name.endsWith('SEOHead')) return {
       __esModule: true, schemas, FOUNDER: siteSeo.FOUNDER,
       default: props => { jsonLd = props.jsonLd; return null; },
@@ -328,6 +330,8 @@ test('About publishes the visible company identity, not identities of its softwa
     throw new Error(`Unexpected About import: ${name}`);
   });
   const html = renderToStaticMarkup(React.createElement(page.default));
+  assert.match(html, /class="faq-section"/, 'About renders its visible FaqSection');
+  assert.match(html, /What Is Smarter\.Poker\?/, 'About renders visible FAQ questions matching FAQPage schema');
   const doc = assertValid('about', jsonLd);
   const org = doc['@graph'].find(node => node['@type'] === 'Organization');
   const about = doc['@graph'].find(node => node['@type'] === 'AboutPage');

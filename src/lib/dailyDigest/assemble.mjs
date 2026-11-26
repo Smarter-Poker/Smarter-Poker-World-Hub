@@ -369,6 +369,20 @@ export function tourSourcesStaleTitle(h) {
     return `${n} tour schedule source${n === 1 ? ' has' : 's have'} not scraped successfully in over ${h.stale_days || TOUR_STALE_DAYS} days (${names.join('; ')}${n > 6 ? '; more in the card' : ''})`;
 }
 
+/** Append a Needs Your Attention item and keep attention_status counts synchronized. */
+export function pushAttention(digest, item) {
+    if (!digest || !item) return;
+    digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
+    digest.attention.push(item);
+    if (!digest.attention_status || typeof digest.attention_status !== 'object') {
+        digest.attention_status = { fixed: 0, in_progress: 0, not_picked_up: 0, tracked: 0 };
+    }
+    const bucket = ['fixed', 'in_progress', 'not_picked_up', 'tracked'].includes(item.status)
+        ? item.status
+        : 'not_picked_up';
+    digest.attention_status[bucket] = Number(digest.attention_status[bucket] || 0) + 1;
+}
+
 /** Adds the tour source item to Needs Your Attention, counted like the others. */
 export function addTourSourceAttention(digest, health) {
     if (!digest) return;
@@ -383,11 +397,7 @@ export function addTourSourceAttention(digest, health) {
             title: tourSourcesStaleTitle(health), detail: { stale: health.stale }, dispatch: false };
     }
     if (!item) return;
-    digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
-    digest.attention.push(item);
-    if (digest.attention_status && typeof digest.attention_status === 'object') {
-        digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
-    }
+    pushAttention(digest, item);
 }
 
 /** Time the report loads may keep retrying, out of the route's 300 s. */
@@ -420,29 +430,20 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     // Promo rule violations (Dan 2026-11-14): the database refuses them, so one
     // here means a guard was bypassed; it leads the email, not the card.
     if (digest && promoChips && !promoChips.error && Number(promoChips.violation_count) > 0) {
-        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
-        digest.attention.push({ rule: 'promo_rule_violation', severity: 'critical', status: 'not_picked_up',
+        pushAttention(digest, { rule: 'promo_rule_violation', severity: 'critical', status: 'not_picked_up',
             title: promoViolationTitle(promoChips), detail: promoChips.violations, dispatch: false });
-        if (digest.attention_status && typeof digest.attention_status === 'object') {
-            digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
-        }
     }
     if (digest && (dailyResults?.error || dailyResults?.reconciliation?.status !== 'balanced')) {
-        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
-        digest.attention.push({ rule: 'daily_chip_reconciliation', severity: 'critical', status: 'not_picked_up',
+        pushAttention(digest, { rule: 'daily_chip_reconciliation', severity: 'critical', status: 'not_picked_up',
             title: !dailyResults?.error && dailyResults?.reconciliation?.status === 'discrepancy'
                 ? 'Daily chip reconciliation has discrepancies; see Daily Update'
                 : 'Daily chip reconciliation could not be verified', dispatch: false });
-        if (digest.attention_status && typeof digest.attention_status === 'object') {
-            digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
-        }
     }
     // The Free Buy funding watch already raised a Production Alert for each
     // event; this is the same fact in the morning email, so it is not sent again.
     if (digest && freeBuyFunding && !freeBuyFunding.error
         && (Number(freeBuyFunding.over) || 0) + (Number(freeBuyFunding.under) || 0) > 0) {
-        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
-        digest.attention.push({
+        pushAttention(digest, {
             rule: 'free_buy_funding_off',
             severity: 'critical',
             status: 'tracked',
@@ -450,17 +451,13 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
             detail: { over: freeBuyFunding.over, under: freeBuyFunding.under, off: freeBuyFunding.off },
             dispatch: false,
         });
-        if (digest.attention_status && typeof digest.attention_status === 'object') {
-            digest.attention_status.tracked = Number(digest.attention_status.tracked || 0) + 1;
-        }
     }
     // The Midway Union promo wallet funds the welcome-back chips. At or under
     // the owner's line (sp_digest_settings promo_wallet_low_chips) it is a
     // Needs Your Attention item, not a number buried in a card.
     const pw = signups && !signups.error && signups.promo_wallet;
     if (digest && pw && pw.low) {
-        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
-        digest.attention.push({
+        pushAttention(digest, {
             rule: 'promo_wallet_low',
             severity: 'warning',
             status: 'not_picked_up',
@@ -468,11 +465,6 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
             detail: pw,
             dispatch: false,
         });
-        // The header count and the "not yet picked up" line both read
-        // attention_status, so the added item is counted there too.
-        if (digest.attention_status && typeof digest.attention_status === 'object') {
-            digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
-        }
     }
     await loadAlertFixes(sb, digest);
     if (digest && !digest.week) {
@@ -481,8 +473,7 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     const undelivered = await loadUndeliveredTexts(sb, day);
     if (digest) digest.undelivered_texts = undelivered;
     if (digest && undelivered && !undelivered.error && undelivered.total > 0) {
-        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
-        digest.attention.push({
+        pushAttention(digest, {
             rule: 'texts_not_delivered',
             severity: 'warning',
             status: 'not_picked_up',
@@ -490,9 +481,6 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
             detail: undelivered,
             dispatch: false,
         });
-        if (digest.attention_status && typeof digest.attention_status === 'object') {
-            digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
-        }
     }
     if (digest) addTourSourceAttention(digest, await loadTourSourceHealth(sb));
     const costs = withCosts ? await providerSpend(day).catch(() => null) : null;

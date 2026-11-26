@@ -1,0 +1,524 @@
+.trend,
+.card,
+.profile {
+  color: #e6f1ff;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+.trend {
+  background: radial-gradient(ellipse at 80% 0, #183453 0, transparent 64%), #091727;
+  border: 1px solid #3c5870;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.trendHead,
+.profileHead,
+.calendarHead,
+.pair,
+.tooltip span,
+.lines > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.trendHead {
+  padding: 16px;
+  border-bottom: 1px solid #344c64;
+  flex-wrap: wrap;
+}
+.trendHead h3,
+.card h3,
+.privacy h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 700 1.07rem/1.18 var(--sd-type, sans-serif);
+  color: #f1f7ff;
+}
+.trendHead h3 svg,
+.card h3 svg,
+.privacy h3 svg {
+  color: #8ddcff;
+  flex: none;
+}
+.trendHead p,
+.foot,
+.privacy p,
+.status,
+.profile small,
+.card small,
+.heroMetric span {
+  color: #b6c9dc;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  margin: 0;
+}
+.trendHead p {
+  margin-top: 4px;
+}
+.trendHead > strong {
+  font: 700 clamp(1.35rem, 4vw, 2.1rem)/1.15 var(--sd-type, sans-serif);
+}
+.plot,
+.donut {
+  width: 100%;
+  min-width: 0;
+  height: clamp(205px, 28vw, 285px);
+  margin-block: 8px;
+}
+.donut {
+  position: relative;
+}
+.donutValue {
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.donutValue small {
+  font-size: 0.75rem;
+  color: #c4d9ec;
+}
+.donutValue strong {
+  font: 700 1.3rem var(--sd-type, sans-serif);
+}
+.tooltip {
+  max-width: 230px;
+  padding: 8px 11px;
+  background: #071420f7;
+  border: 1px solid #7393ad;
+  border-radius: 5px;
+  box-shadow: 0 4px 16px #0008;
+  color: #f5f9ff;
+  font-size: 0.77rem;
+}
+.tooltip > strong {
+  display: block;
+  padding-bottom: 4px;
+}
+.tooltip b {
+  color: #c9e9ff;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 15px;
+  list-style: none;
+  margin: 0 10px 12px;
+  padding: 0;
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  color: #c3d5e8;
+}
+.legend i {
+  height: 9px;
+  width: 9px;
+  border-radius: 2px;
+}
+.foot {
+  margin: 8px 0 0;
+}
+.trend > .foot {
+  text-align: center;
+  padding-inline: 10px;
+}
+.strip,
+.profileNumbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 12px 0 0;
+  border-top: 1px solid #304a63;
+}
+.measure,
+.profileNumbers > div {
+  min-width: 0;
+  padding: 10px clamp(8px, 2vw, 17px);
+}
+.measure + .measure {
+  border-left: 1px solid #304a63;
+}
+.measure dt,
+.profileNumbers dt,
+.lines dt {
+  margin: 0;
+  color: #bacfe0;
+  font-size: 0.78rem;
+}
+.measure dd,
+.profileNumbers dd {
+  font: 700 clamp(1.03rem, 3vw, 1.5rem)/1.15 var(--sd-type, sans-serif);
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.gain {
+  color: #79e5b7 !important;
+}
+.loss {
+  color: #ff9598 !important;
+}
+.neutral {
+  color: #e3eff9;
+}
+.data {
+  border-top: 1px solid #304a63;
+}
+.data > summary,
+.link {
+  min-height: 38px;
+  align-content: center;
+  color: #96dfff;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.data > summary {
+  padding: 4px 14px;
+}
+.data > div {
+  overflow: auto;
+  max-height: 260px;
+  padding-inline: 10px;
+}
+.data table,
+.compare {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.78rem;
+  color: #e0ecf8;
+}
+.data :is(td, th),
+.compare :is(td, th) {
+  text-align: right;
+  padding: 7px 6px;
+  border-bottom: 1px solid #2d455e;
+  white-space: nowrap;
+}
+.data th:first-child,
+.compare th:first-child {
+  text-align: left;
+}
+.data thead th,
+.compare thead th {
+  font-weight: 700;
+  color: #9edaff;
+}
+.card {
+  background: linear-gradient(143deg, #142a40, #0c1a2a 67%, #091624);
+  border: 1px solid #415d76;
+  border-radius: 8px;
+  padding: 14px;
+  height: 100%;
+  box-sizing: border-box;
+}
+.card h3 {
+  margin-bottom: 11px;
+}
+.tabs,
+.choices,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tabs button,
+.choices button,
+.iconButton,
+.calendar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 6px 12px;
+  border: 1px solid #526c84;
+  border-radius: 5px;
+  background: #102336;
+  color: #d5e4f3;
+  font-weight: 650;
+  cursor: pointer;
+}
+.tabs button[aria-pressed='true'],
+.choices button[aria-pressed='true'],
+.calendar button[aria-pressed='true'] {
+  background: linear-gradient(#1860a7, #0f3a68);
+  border-color: #8acfff;
+  color: #fff;
+}
+.card button:focus-visible,
+.trend :is(button, summary, [tabindex]):focus-visible,
+.profile button:focus-visible {
+  outline: 2px solid #83ddff;
+  outline-offset: 2px;
+}
+.venues {
+  list-style: none;
+  margin: 9px 0 0;
+  padding: 0;
+}
+.venues li {
+  padding: 8px 0;
+  border-top: 1px solid #2c4459;
+}
+.pair {
+  align-items: baseline;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+}
+.pair strong {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.pair b {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.track,
+.diverging {
+  position: relative;
+  height: 6px;
+  background: #07131f;
+  border-radius: 2px;
+  margin: 6px 0 4px;
+}
+.track i,
+.diverging i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: #56b2f4;
+  max-width: 100%;
+  border-radius: 2px;
+}
+.diverging::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: #91abc0;
+}
+.link {
+  border: 0;
+  background: none;
+  padding: 3px 0;
+  font-weight: 650;
+}
+.heroMetric {
+  border-left: 3px solid #69c8ff;
+  padding-left: 10px;
+  margin: 12px 0;
+}
+.heroMetric strong {
+  display: block;
+  font: 700 1.75rem var(--sd-type, sans-serif);
+  color: #d2edff;
+}
+.lines {
+  margin: 10px 0;
+}
+.lines > div {
+  border-top: 1px solid #30475e;
+  padding: 6px 0;
+  flex-wrap: wrap;
+}
+.lines dd {
+  font-weight: 650;
+  font-size: 0.87rem;
+  margin: 0 0 0 auto;
+}
+.compare {
+  margin-block: 8px;
+}
+.compare :is(td, th) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding-inline: 3px;
+}
+.compare tbody th {
+  color: #c8d8e7;
+  font-weight: 500;
+}
+.empty {
+  color: #c0d1df;
+  margin: 0;
+  padding: 18px 10px;
+  line-height: 1.5;
+  font-size: 0.86rem;
+}
+.calendar {
+  max-width: 470px;
+  margin: 12px auto;
+  padding-inline: 10px;
+}
+.calendarHead {
+  padding-bottom: 8px;
+}
+.calendarHead button,
+.iconButton {
+  padding: 0;
+  min-width: 40px;
+  min-height: 40px;
+}
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+.days button {
+  min-height: 34px;
+  min-width: 0;
+  padding: 3px 0;
+  background: var(--day-fill, #102031);
+  font-size: 0.78rem;
+}
+.days small {
+  text-align: center;
+  color: #adc5da;
+  font-size: 0.73rem;
+}
+.calendar button:disabled,
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.profile {
+  max-width: 900px;
+}
+.profileHead {
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #405b73;
+}
+.identity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+}
+.identity > span,
+.identity > img {
+  display: grid;
+  place-items: center;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid #7ca9c8;
+  object-fit: cover;
+  background: radial-gradient(circle at 35% 15%, #3b719f, #122b43 80%);
+  color: #e9f8ff;
+  font: 700 1.4rem var(--sd-type, sans-serif);
+}
+.identity h2 {
+  margin: 1px 0 0;
+  color: #f4f9ff;
+  font: 700 clamp(1.45rem, 4vw, 2.1rem)/1.14 var(--sd-type, sans-serif);
+  overflow-wrap: anywhere;
+}
+.profileNumbers {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
+  border: 0;
+  margin-block: 10px;
+}
+.profileNumbers > div {
+  padding: 8px 12px;
+  border-left: 2px solid #365573;
+}
+.profileChart {
+  background: linear-gradient(145deg, #112c45, #09192a);
+  border: 1px solid #3b5a72;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-block: 12px;
+}
+.profileChart > div {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.profileChart svg {
+  width: 100%;
+  height: 65px;
+  display: block;
+  margin-top: 8px;
+}
+.privacy {
+  border-block: 1px solid #35516a;
+  margin-block: 16px;
+  padding-block: 14px;
+}
+.privacy p {
+  margin: 6px 0 10px;
+}
+.choices button {
+  min-height: 39px;
+}
+.check {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  border: 1px solid #7d9ab2;
+}
+.actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.status:empty {
+  display: none;
+}
+.status {
+  margin-top: 10px;
+}
+@media (max-width: 480px) {
+  .profileNumbers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  }
+  .trendHead {
+    padding: 12px;
+  }
+  .card {
+    padding: 12px;
+  }
+  .tabs button,
+  .choices button,
+  .calendarHead button,
+  .actions button {
+    min-height: 44px;
+  }
+}
+
+.trend,
+.card {
+  border: 1px solid transparent;
+  background:
+    radial-gradient(ellipse at 75% 0, #17324e, transparent 68%),
+    linear-gradient(#0b1a2b, #081523) padding-box,
+    linear-gradient(130deg, #bad0e0 0%, #45627b 8%, #263b50 30%, #7291a8 68%, #2a4057 86%, #9db4c9 100%)
+      border-box;
+  background-origin: padding-box, padding-box, border-box;
+  background-clip: padding-box, padding-box, border-box;
+}
+.data :global(.sp-rtable-card),
+.compare :global(.sp-rtable-card) {
+  border-radius: 4px;
+  padding: 8px 12px;
+  background: #0e2236;
+}

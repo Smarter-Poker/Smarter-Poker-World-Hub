@@ -406,7 +406,7 @@ export default function TournamentPrepPlanner() {
                     }}
                   >
                     <h4 style={{ color: '#fff', margin: '0 0 8px 0' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--sp-accent-amber)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#86daff' }}>
                         <TppLightbulbIcon size={14} />
                         Strategy Tip (Level {currentLevel})
                       </span>

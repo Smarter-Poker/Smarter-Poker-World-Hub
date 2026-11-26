@@ -146,7 +146,7 @@ function Status({ ok, good = 'Healthy', bad = 'Needs attention' }) {
 
 function Metric({ label, value, detail }) {
     return (
-        <div className={consoleStyles.metric} style={S.metric}>
+        <div className={`sd-metric ${consoleStyles.metric}`} style={S.metric}>
             <div style={S.metricLabel}>{label}</div>
             <div style={S.metricValue}>{fmt(value)}</div>
             {detail ? <div style={S.detail}>{detail}</div> : null}
@@ -156,7 +156,7 @@ function Metric({ label, value, detail }) {
 
 function Panel({ title, children }) {
     return (
-        <section className={consoleStyles.panel} style={S.panel}>
+        <section className={`sd-panel ${consoleStyles.panel}`} style={S.panel}>
             <div style={S.panelHead}>
                 <h2 style={S.h2}>{title}</h2>
             </div>
@@ -388,10 +388,10 @@ export default function TriviaOperationsPage() {
     }
 
     if (state.loading) {
-        return <main className={consoleStyles.surface} style={S.page}><div className={consoleStyles.state} role="status">Loading Trivia Operations...</div></main>;
+        return <main className={`smarterdesign ${consoleStyles.surface}`} style={S.page}><div className={consoleStyles.state} role="status">Loading Trivia Operations...</div></main>;
     }
     if (state.error) {
-        return <main className={consoleStyles.surface} style={S.page}><div className={consoleStyles.state} style={S.error} role="alert">{state.error}</div></main>;
+        return <main className={`smarterdesign ${consoleStyles.surface}`} style={S.page}><div className={consoleStyles.state} style={S.error} role="alert">{state.error}</div></main>;
     }
 
     const data = state.snapshot;
@@ -431,7 +431,7 @@ export default function TriviaOperationsPage() {
     const playerFunnel = data.player_funnel || {};
 
     return (
-        <main className={consoleStyles.surface} style={S.page}>
+        <main className={`smarterdesign ${consoleStyles.surface}`} style={S.page}>
             <header style={S.header}>
                 <div>
                     <p style={S.eyebrow}>Restricted Operator Authority</p>
@@ -1091,7 +1091,7 @@ export default function TriviaOperationsPage() {
                                         <td style={S.td}>{fmt(row.display_name)}</td>
                                         <td style={S.td}>{fmt(row.mode)}</td>
                                         <td style={S.td}>
-                                            <span style={{ ...S.badge, minHeight: 24, padding: '2px 10px', background: Number(row.risk_score) >= 50 ? '#7f1d1d' : '#78350f' }}>
+                                            <span style={{ ...S.badge, minHeight: 24, padding: '2px 10px', background: Number(row.risk_score) >= 50 ? '#7f1d1d' : '#0c55c0' }}>
                                                 {fmt(row.risk_score)}
                                             </span>
                                         </td>
@@ -1164,18 +1164,18 @@ const S = {
     page: { minHeight: '100vh', maxWidth: 1440, margin: '0 auto', padding: 'clamp(16px, 3vw, 36px)', background: '#070b10', color: '#eef3f8', fontFamily: 'system-ui, sans-serif' },
     header: { display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, marginBottom: 28 },
     headerState: { display: 'grid', justifyItems: 'end', gap: 8 },
-    eyebrow: { margin: '0 0 8px', color: '#8dbbe0', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' },
+    eyebrow: { margin: '0 0 8px', color: '#86daff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em' },
     h1: { margin: '0 0 8px', fontSize: 'clamp(30px, 5vw, 48px)', lineHeight: 1 },
     h2: { margin: 0, fontSize: 18 },
-    panel: { marginBottom: 20, padding: 'clamp(16px, 2vw, 24px)', background: '#0d141d', border: '1px solid #283746', borderRadius: 10 },
+    panel: { marginBottom: 20, padding: 'clamp(16px, 2vw, 24px)', background: '#0a1829', border: '1px solid #445e77', borderRadius: 10 },
     panelHead: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 16 },
     issuePanel: { marginBottom: 20, padding: 20, background: '#2b1115', border: '1px solid #9f303b', borderRadius: 10 },
-    mfaPanel: { marginBottom: 20, padding: 20, background: '#291e0b', border: '1px solid #d97706', borderRadius: 10 },
+    mfaPanel: { marginBottom: 20, padding: 20, background: '#0a1f36', border: '1px solid #86daff', borderRadius: 10 },
     resultPanel: { marginBottom: 20, padding: 20, background: '#0d261c', border: '1px solid #2d8b60', borderRadius: 10 },
-    mfaLink: { display: 'inline-flex', alignItems: 'center', minHeight: 42, padding: '9px 15px', border: '1px solid #f59e0b', borderRadius: 6, background: '#78350f', color: '#fffbeb', fontWeight: 750, textDecoration: 'none' },
+    mfaLink: { display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '9px 15px', border: '1px solid #86daff', borderRadius: 6, background: '#0c55c0', color: '#f2f7ff', fontWeight: 750, textDecoration: 'none' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(210px, 100%), 1fr))', gap: 12 },
-    metric: { minWidth: 0, padding: 14, background: '#111d29', border: '1px solid #2a3c4d', borderRadius: 8 },
-    metricLabel: { color: '#a9bac9', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' },
+    metric: { minWidth: 0, padding: 14, background: '#0b1c2c', border: '1px solid #445e77', borderRadius: 8 },
+    metricLabel: { color: '#bdd0e2', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' },
     metricValue: { marginTop: 6, color: '#fff', fontSize: 22, fontWeight: 750, overflowWrap: 'anywhere' },
     badge: { display: 'inline-flex', minHeight: 32, alignItems: 'center', padding: '5px 12px', borderRadius: 999, color: '#fff', fontSize: 13, fontWeight: 750 },
     neutralBadge: { background: '#263646', border: '1px solid #475d72' },
@@ -1195,10 +1195,10 @@ const S = {
     error: { padding: 18, background: '#2b1115', border: '1px solid #9f303b', borderRadius: 8, color: '#fecaca' },
     formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 12, marginBottom: 14 },
     label: { display: 'grid', gap: 6, color: '#b9c8d5', fontSize: 12, fontWeight: 700 },
-    input: { width: '100%', minHeight: 42, boxSizing: 'border-box', padding: '9px 11px', border: '1px solid #3a4c5e', borderRadius: 6, background: '#09111a', color: '#f7fbff' },
+    input: { width: '100%', minHeight: 44, boxSizing: 'border-box', padding: '9px 11px', border: '1px solid #3a4c5e', borderRadius: 6, background: '#09111a', color: '#f7fbff' },
     textarea: { width: '100%', minHeight: 82, boxSizing: 'border-box', padding: '9px 11px', border: '1px solid #3a4c5e', borderRadius: 6, resize: 'vertical', background: '#09111a', color: '#f7fbff' },
     actions: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 14 },
-    button: { minHeight: 42, padding: '9px 15px', border: '1px solid #4b8ec6', borderRadius: 6, background: '#123c5e', color: '#f5fbff', fontWeight: 750, cursor: 'pointer' },
+    button: { minHeight: 44, padding: '9px 15px', border: '1px solid #86daff', borderRadius: 6, background: '#0c55c0', color: '#f2f7ff', fontWeight: 750, cursor: 'pointer' },
     dangerButton: { borderColor: '#c8505c', background: '#671b24' },
     pre: { marginTop: 14, padding: 14, overflowX: 'auto', border: '1px solid #283746', borderRadius: 6, background: '#071019', color: '#cfe4f5', fontSize: 12, whiteSpace: 'pre-wrap' },
 };

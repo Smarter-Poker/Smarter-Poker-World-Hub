@@ -515,7 +515,7 @@ export default function MyPlaybookPage() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin replaces ● marker */}
-                      {p.pinned && <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-label="Pinned"><PinIcon size={12} filled /></span>}
+                      {p.pinned && <span style={{ display: 'inline-flex', color: '#86daff' }} aria-label="Pinned"><PinIcon size={12} filled /></span>}
                       <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{p.title}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>

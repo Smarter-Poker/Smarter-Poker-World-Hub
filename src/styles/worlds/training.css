@@ -2366,7 +2366,7 @@ body.world-training {
 
     /* Semantic verdict colors */
     --sp-verdict-correct:   var(--sp-accent-green);
-    --sp-verdict-mixed:     var(--sp-accent-amber);
+    --sp-verdict-mixed:     #86daff;
     --sp-verdict-incorrect: var(--sp-accent-red);
 
     /* Spacing scale already covered by --sp-space-* tokens elsewhere; not
@@ -2597,32 +2597,26 @@ body.world-training .sp-training-route-shell {
     isolation: isolate;
     min-height: 100dvh;
     overflow-x: clip;
-    color: #eaf8ff;
-    background:
-        linear-gradient(90deg, rgba(35, 215, 255, 0.04) 1px, transparent 1px) 0 0 / 72px 72px,
-        linear-gradient(rgba(35, 215, 255, 0.035) 1px, transparent 1px) 0 0 / 72px 72px,
-        radial-gradient(circle at 50% -10%, rgba(0, 111, 255, 0.28), transparent 42%),
-        linear-gradient(180deg, #07141f 0%, #020910 44%, #01060b 100%);
-}
-
-body.world-training .sp-training-route-shell::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    opacity: 0.28;
-    background:
-        linear-gradient(90deg, transparent 0 49.8%, rgba(35, 215, 255, 0.1) 50%, transparent 50.2%),
-        url('/circuit-brain-bg.webp') center top / cover fixed;
-    mix-blend-mode: screen;
+    background: #040d18;
 }
 
 body.world-training .sp-training-page-stage {
     position: relative;
     min-height: calc(100dvh - 59px);
-    color: #eaf8ff;
-    text-transform: capitalize;
+    background: linear-gradient(155deg, #13273c, #040d18 46%);
+}
+
+.sp-training-state {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    min-height: calc(100dvh - 59px);
+    padding: 24px;
+    text-align: center;
+}
+
+.sp-training-state > .sd-panel {
+    width: min(100%, 32rem);
 }
 
 /* Every catalog game's secondary surfaces inherit its own rendered scene.
@@ -2650,10 +2644,10 @@ body.world-training .sp-training-page-stage :where(input, textarea, select, code
 }
 
 body.world-training .sp-training-page-stage :where(h1, h2, h3):not(.universal-header *) {
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif !important;
-    color: #f4fbff !important;
-    letter-spacing: 0.035em;
-    text-shadow: 0 2px 0 #000, 0 0 22px rgba(35, 215, 255, 0.26);
+    font-family: var(--sd-type) !important;
+    color: var(--sd-text) !important;
+    letter-spacing: .015em;
+    text-shadow: 0 2px 0 #040d18;
 }
 
 body.world-training .sp-training-page-stage :where(p, label, legend):not(.universal-header *) {
@@ -2680,19 +2674,6 @@ body.world-training .sp-training-page-stage :where(.sp-card, .sp-card-sm, .sp-ca
     box-shadow: var(--sp-console-shadow) !important;
 }
 
-/* Convert the common inline card recipes used by legacy trainers into the
-   same straight-railed metal panels without touching circular avatars. */
-body.world-training .sp-training-page-stage div[style*='border-radius: 8px'][style*='border'],
-body.world-training .sp-training-page-stage div[style*='border-radius: 10px'][style*='border'],
-body.world-training .sp-training-page-stage div[style*='border-radius: 12px'][style*='border'],
-body.world-training .sp-training-page-stage div[style*='border-radius: 16px'][style*='border'] {
-    border-radius: 0 !important;
-    clip-path: none !important;
-    border-color: rgba(139, 234, 255, 0.38) !important;
-    background-image: linear-gradient(145deg, rgba(28, 52, 67, 0.88), rgba(3, 13, 22, 0.96) 48%, rgba(10, 29, 41, 0.92)) !important;
-    box-shadow: var(--sp-console-shadow) !important;
-}
-
 body.world-training .sp-training-page-stage :where(input, textarea, select):not(.universal-header *) {
     border-radius: 0 !important;
     border: 1px solid rgba(139, 234, 255, 0.42) !important;
@@ -2705,13 +2686,30 @@ body.world-training .sp-training-page-stage :where(input, textarea)::placeholder
     color: #7893a3 !important;
 }
 
-body.world-training .sp-training-route-shell:not([data-training-route='/hub/training']):not([data-training-route='/hub/training/arena/[gameId]']) .sp-training-page-stage > div:first-child {
-    border-left: 1px solid rgba(139, 234, 255, 0.2);
-    border-right: 1px solid rgba(139, 234, 255, 0.2);
-    background:
-        linear-gradient(90deg, rgba(255,255,255,0.025), transparent 18%, transparent 82%, rgba(255,255,255,0.025)),
-        rgba(2, 9, 15, 0.34) !important;
-    box-shadow: 0 0 70px rgba(0, 0, 0, 0.52), inset 0 0 48px rgba(35, 215, 255, 0.025);
+body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], .sd-button):not(.universal-header *, .approved-global-header__button) {
+    min-block-size: 44px;
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
+    touch-action: manipulation;
+}
+
+body.world-training .sp-training-page-stage :where(button, a, input, textarea, select, summary, [tabindex]):focus-visible:not(.universal-header *) {
+    outline: 2px solid var(--sd-ice);
+    outline-offset: 2px;
+}
+
+body.world-training .sp-training-page-stage :is(.sd-button, .sp-training-next-button) {
+    background: var(--sd-control) !important;
+    box-shadow: none;
+}
+
+body.world-training .sp-training-page-stage .sd-button:is(.sd-primary, [aria-current='page'], [aria-pressed='true'], [aria-selected='true']) {
+    background: var(--sd-cobalt) !important;
+}
+
+body.world-training .sp-training-page-stage :where(button, [role='button']):is(:disabled, [aria-disabled='true']):not(.universal-header *) {
+    color: var(--sd-silver) !important;
+    cursor: default;
 }
 
 /* These match the SERIALIZED inline style of arena descendants, so the unit in
@@ -3590,7 +3588,7 @@ body.world-training .sp-intelligence-header {
         0 15px 34px rgba(0,0,0,0.4);
 }
 
-body.world-training .sp-intelligence-header::after,
+body.world-training .sp-intelligence-header:not(.sd-masthead)::after,
 body.world-training .sp-training-intelligence--leaderboard::before {
     content: "";
     position: absolute;
@@ -3615,6 +3613,21 @@ body.world-training .sp-training-intelligence--leaderboard > h1 {
     letter-spacing: 0.018em !important;
     text-align: left !important;
     text-shadow: 0 2px 0 #000, 0 0 22px rgba(54, 213, 255, 0.3) !important;
+}
+
+body.world-training .sp-intelligence-header.sd-masthead {
+    margin: 8px auto 0;
+    width: min(calc(100% - 16px), 1080px);
+    padding: clamp(12px, 3vw, 26px) !important;
+    background: var(--sd-navy) !important;
+    border: 5px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+    box-shadow: none;
+}
+
+body.world-training .sp-intelligence-header.sd-masthead :is(h1, h2) {
+    font-family: var(--sd-type) !important;
+    text-shadow: none !important;
 }
 
 body.world-training .sp-intelligence-header p,
@@ -3705,7 +3718,7 @@ body.world-training .sp-training-intelligence--leaderboard a[style] {
     text-shadow: 0 1px 1px #000;
 }
 
-body.world-training .sp-training-intelligence button[aria-pressed="true"] {
+body.world-training .sp-training-intelligence button[aria-pressed="true"]:not(.sd-button) {
     color: #031018 !important;
     border-color: #c5f8ff !important;
     background: linear-gradient(180deg, #e9fcff 0%, #8feaff 45%, #25b8e4 52%, #86e8ff 100%) !important;
@@ -4016,6 +4029,8 @@ body.world-training .sp-training-command--coach .sp-coach-hero-copy > p {
     line-height: 1.55;
     text-shadow: 0 2px 7px #000;
 }
+
+.sp-coach-study-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 body.world-training .sp-training-command--coach .sp-coach-hero-actions {
     display: flex;

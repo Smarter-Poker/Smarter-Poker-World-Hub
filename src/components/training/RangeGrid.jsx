@@ -420,7 +420,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
                     </span>
                     {isMixed && (
                         <span style={{
-                            fontSize: 12, color: 'var(--sp-accent-amber)',
+                            fontSize: 12, color: '#86daff',
                             background: 'rgba(251, 191, 36, 0.15)',
                             padding: '2px 8px', borderRadius: 20, fontWeight: 600,
                         }}>
@@ -471,7 +471,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
                     display: 'flex', alignItems: 'center', gap: 6,
                     marginBottom: 8, fontSize: 12, color: 'var(--sp-fg-muted)',
                 }}>
-                    <span style={{ color: 'var(--sp-accent-amber)' }}>★</span>
+                    <span style={{ color: '#86daff' }}>★</span>
                     <span>Best:</span>
                     <span style={{ color: bestDisplay.color, fontWeight: 700 }}>
                         {bestDisplay.label} ({bestAction[1].toFixed(1)}%)
@@ -677,6 +677,9 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                 }}>
                     {/* "All" filter */}
                     <button
+                        type="button"
+                        className="sd-button"
+                        aria-pressed={!actionFilter}
                         onClick={() => setActionFilter(null)}
                         style={{
                             display: 'flex', alignItems: 'center', gap: 4,
@@ -694,6 +697,9 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                         return (
                             <button
                                 key={a.code}
+                                type="button"
+                                className="sd-button"
+                                aria-pressed={isActive}
                                 onClick={() => setActionFilter(isActive ? null : a.code)}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: 4,
@@ -707,7 +713,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                                     width: 10, height: 10, borderRadius: 2,
                                     backgroundColor: a.color, opacity: 0.85,
                                 }} />
-                                <span style={{ fontSize: 12, color: isActive ? a.color : 'var(--sp-fg-muted)', fontWeight: 600 }}>
+                                <span style={{ fontSize: 12, color: isActive ? 'var(--sd-text, #f2f7ff)' : 'var(--sp-fg-muted)', fontWeight: 600 }}>
                                     {a.label}{pct ? ` ${pct}%` : ''}
                                 </span>
                             </button>

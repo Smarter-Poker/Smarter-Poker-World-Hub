@@ -1,3 +1,4 @@
+import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
  * CATEGORY OVERVIEW
  * Filtered view of ledger entries by category (Cash Games, Tournaments, etc.)
@@ -21,7 +22,7 @@ const CATEGORY_META = {
     expense: { label: 'Expenses', icon: '💸', color: '#6b7280' },
 };
 
-export default function CategoryOverview({ userId, categoryFilter, onBack }) {
+export default function CategoryOverview({ userId, categoryFilter }) {
     const [entries, setEntries] = useState([]);
     const [locations, setLocations] = useState([]);
     const [trips, setTrips] = useState([]);
@@ -85,6 +86,11 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
     };
 
     // Summary stats
+    const openAddEntry = () => {
+        setEditEntry(null);
+        setShowLogModal(true);
+    };
+
     const totalSessions = entries.length;
     const totalPL = entries.reduce((sum, e) => {
         if (e.category === 'expense') return sum - Math.abs(e.gross_in || 0);
@@ -98,20 +104,14 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
         <div className="sd-panel">
             {/* Header */}
             <div style={styles.header}>
-                <div style={styles.headerLeft}>
-                    <button style={styles.backButton} onClick={onBack}>
-                        ← All
+                <BankrollHeaderAdd label="Log Category Entry" onClick={openAddEntry}>
+                    <button
+                        style={styles.addButton}
+                        onClick={openAddEntry}
+                    >
+                        + Add Entry
                     </button>
-                </div>
-                <button
-                    style={styles.addButton}
-                    onClick={() => {
-                        setEditEntry(null);
-                        setShowLogModal(true);
-                    }}
-                >
-                    + Add Entry
-                </button>
+                </BankrollHeaderAdd>
             </div>
 
             {/* Summary Stats */}
@@ -196,22 +196,6 @@ const styles = {
         marginBottom: 24,
         flexWrap: 'wrap',
         gap: 12,
-    },
-    headerLeft: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-    },
-    backButton: {
-        background: GRADIENTS.metalButton,
-        border: `1px solid ${METAL.highlight}`,
-        borderRadius: 8,
-        color: '#edf6ff',
-        padding: '8px 14px',
-        cursor: 'pointer',
-        fontSize: 14,
-        fontWeight: 500,
-        transition: 'all 0.2s',
     },
     addButton: {
         background: GRADIENTS.cyanAction,

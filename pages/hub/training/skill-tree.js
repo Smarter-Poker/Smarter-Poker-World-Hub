@@ -149,7 +149,7 @@ const SKILL_BRANCHES = [
   {
     id: 'advanced',
     name: 'Advanced Theory',
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     icon: '',
     nodes: [
       {
@@ -184,7 +184,7 @@ const SKILL_BRANCHES = [
   {
     id: 'mastery',
     name: 'GTO Mastery',
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
     icon: '',
     nodes: [
       { id: 'icm-mastery', name: 'ICM Mastery', threshold: 70, gameId: 'mtt-002' },
@@ -519,7 +519,7 @@ export default function SkillTreePage() {
               border: '1px solid rgba(251,191,36,0.2)',
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#86daff', fontVariantNumeric: 'tabular-nums' }}>
               {stats ? `${masteredCount}/${totalNodes}` : '-'}
             </span>
             <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginLeft: 4 }}>

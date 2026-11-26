@@ -10,8 +10,8 @@ const QUIZ_CATEGORIES = [
   { id: 'preflop', label: 'Preflop Ranges', icon: '◇', color: '#3b82f6' },
   { id: 'cbet', label: 'C-Bet Strategy', icon: '●', color: '#22c55e' },
   { id: 'barrel', label: 'Multi-Street Barrels', icon: '▲', color: '#ef4444' },
-  { id: 'bluffcatch', label: 'Bluff Catching', icon: '◇', color: '#f59e0b' },
-  { id: 'sizing', label: 'Bet Sizing', icon: '■', color: '#8b5cf6' },
+  { id: 'bluffcatch', label: 'Bluff Catching', icon: '◇', color: '#86daff' },
+  { id: 'sizing', label: 'Bet Sizing', icon: '■', color: '#86daff' },
 ];
 
 const DAILY_QUESTIONS = [

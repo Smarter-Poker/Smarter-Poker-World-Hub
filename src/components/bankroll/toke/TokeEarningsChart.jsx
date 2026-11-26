@@ -1,5 +1,5 @@
 import {
-    Area, AreaChart, Bar, BarChart, Cell, Pie, PieChart, ReferenceLine,
+    Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ReferenceLine,
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 
@@ -41,7 +41,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
     const renderTrend = () => {
         if (!trendData.length) return <EmptyChart msg="Complete Your First Event To See The Trend" />;
         return (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={236}>
                 <AreaChart accessibilityLayer title="Cumulative Dealer Earnings" data={trendData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
                     <defs>
                         <linearGradient id="tokeTrendGrad" x1="0" y1="0" x2="0" y2="1">
@@ -54,10 +54,11 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                             <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
                         </filter>
                     </defs>
+                    <CartesianGrid vertical={false} stroke="#304860" strokeDasharray="3 5" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false}
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         interval="equidistantPreserveStart" />
-                    <YAxis axisLine={false} tickLine={false} width={58}
+                    <YAxis axisLine={false} tickLine={false} width="auto"
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
@@ -75,10 +76,10 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                             </TT>
                         );
                     }} />
-                    <Area type="monotone" dataKey="cumulative" stroke="#85d8fb" strokeWidth={2.5}
-                        fill="url(#tokeTrendGrad)" dot={false}
+                    <Area type="linear" dataKey="cumulative" stroke="#85d8fb" strokeWidth={2.5}
+                        fill="url(#tokeTrendGrad)" dot={trendData.length===1?{r:4}:false}
                         activeDot={{ r: 5, fill: '#85d8fb', strokeWidth: 2, stroke: 'rgba(255,255,255,0.3)' }}
-                        filter="url(#tokeGlow)" />
+                        isAnimationActive={false} />
                 </AreaChart>
             </ResponsiveContainer>
         );
@@ -87,7 +88,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
     const renderEvents = () => {
         if (!trendData.length) return <EmptyChart msg="No Completed Events Yet" />;
         return (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={236}>
                 <BarChart accessibilityLayer title="Tokes Per Event" data={trendData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
                     <defs>
                         <linearGradient id="tokeBarGrad" x1="0" y1="0" x2="0" y2="1">
@@ -95,10 +96,11 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                             <stop offset="100%" stopColor="#2265b0" stopOpacity={0.8} />
                         </linearGradient>
                     </defs>
+                    <CartesianGrid vertical={false} stroke="#304860" strokeDasharray="3 5" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false}
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         interval="equidistantPreserveStart" />
-                    <YAxis axisLine={false} tickLine={false} width={58}
+                    <YAxis axisLine={false} tickLine={false} width="auto"
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <Tooltip content={({ active, payload }) => {
@@ -120,10 +122,10 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
     };
 
     const renderMonthly = () => {
-        const hasMonthlyData = monthlyData.some(m => m.tokes > 0);
+        const hasMonthlyData = monthlyData.some(m => m.events > 0);
         if (!hasMonthlyData) return <EmptyChart msg="No Monthly Data Yet" />;
         return (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={236}>
                 <BarChart accessibilityLayer title="Monthly Tokes" data={monthlyData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
                     <defs>
                         <linearGradient id="monthGrad" x1="0" y1="0" x2="0" y2="1">
@@ -131,10 +133,11 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                             <stop offset="100%" stopColor="#317da5" stopOpacity={0.8} />
                         </linearGradient>
                     </defs>
+                    <CartesianGrid vertical={false} stroke="#304860" strokeDasharray="3 5" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false}
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
-                        interval={0} />
-                    <YAxis axisLine={false} tickLine={false} width={58}
+                        interval="preserveStartEnd" minTickGap={12} />
+                    <YAxis axisLine={false} tickLine={false} width="auto"
                         tick={{ fill: '#bad2e6', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <Tooltip content={({ active, payload }) => {
@@ -162,7 +165,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
         if (!donutData.length) return <EmptyChart msg="Log Some Downs To See Distribution" />;
         return (
             <div style={{ position: 'relative' }}>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={236}>
                     <PieChart accessibilityLayer title="Downs By Type">
                         <defs>
                             {donutData.map((d, i) => (
@@ -197,7 +200,7 @@ export default function TokeEarningsChart({ activeChart, trendData, monthlyData,
                     </PieChart>
                 </ResponsiveContainer>
                 {/* Center label */}
-                <div style={{ position: 'absolute', top: 100, left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', top: 118, left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', pointerEvents: 'none' }}>
                     <div style={{ fontSize: 12, color: '#b7c9db', letterSpacing: 1, textTransform: 'uppercase' }}>Total</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: '#85d8fb', letterSpacing: '-0.5px' }}>{totalDowns}</div>
                     <div style={{ fontSize: 12, color: '#b7c9db' }}>Downs</div>

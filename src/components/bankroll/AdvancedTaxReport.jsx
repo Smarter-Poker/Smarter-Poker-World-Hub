@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import styles from './BankrollForms.module.css';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // US STATE TAX DATA
@@ -73,7 +73,7 @@ function calcFederalTax(income) {
 export default function AdvancedTaxReport({ entries = [], userId }) {
     const [selectedState, setSelectedState] = useState('FED');
     const [deductions, setDeductions] = useState({});
-    const [showDeductionForm, setShowDeductionForm] = useState(false);
+    const [copyMessage, setCopyMessage] = useState('');
     const [year, setYear] = useState(new Date().getFullYear());
 
     const stateInfo = US_STATES.find(s => s.code === selectedState) || US_STATES[0];
@@ -138,185 +138,44 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
         URL.revokeObjectURL(url);
     };
 
-    return (
-        <div className="sd-panel">
-            {/* Header Bar */}
-            <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                marginBottom: 24, flexWrap: 'wrap', gap: 12,
-            }}>
-                <div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>State Tax Report</div>
-                    <div style={{ fontSize: 12, color: '#9aaec3' }}>IRS-Ready P/L Summary With State-Specific Calculations</div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <select
-                        value={year}
-                        onChange={e => setYear(parseInt(e.target.value))}
-                        style={{
-                            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 8, padding: '8px 12px', color: '#e2e8f0', fontSize: 13,
-                        }}
-                    >
-                        {[2026, 2025, 2024].map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                    <select
-                        value={selectedState}
-                        onChange={e => setSelectedState(e.target.value)}
-                        style={{
-                            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 8, padding: '8px 12px', color: '#e2e8f0', fontSize: 13,
-                        }}
-                    >
-                        {US_STATES.map(s => <option key={s.code} value={s.code}>{s.name} ({s.rate}%)</option>)}
-                    </select>
-                </div>
-            </div>
-
-            {/* Tax Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
-                {[
-                    { label: 'GROSS WINNINGS', value: `$${totalIncome.toLocaleString()}`, color: '#4ade80' },
-                    { label: 'TOTAL LOSSES', value: `-$${totalLosses.toLocaleString()}`, color: '#f87171' },
-                    { label: 'DEDUCTIONS', value: `-$${totalDeductions.toLocaleString()}`, color: '#94e7ff' },
-                    { label: 'NET TAXABLE', value: `$${netTaxableIncome.toLocaleString()}`, color: '#e2e8f0' },
-                    { label: 'FEDERAL TAX', value: `$${Math.round(federalTax).toLocaleString()}`, color: '#60a5fa' },
-                    { label: `${stateInfo.code} STATE TAX`, value: `$${Math.round(stateTax).toLocaleString()}`, color: '#a8ccf1' },
-                ].map((card, i) => (
-                    <div key={i} style={{
-                        background: 'var(--sd-surface)', border: '1px solid var(--sd-line)',
-                        borderRadius: 12, padding: '14px 16px',
-                    }}>
-                        <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{card.label}</div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: card.color }}>{card.value}</div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Effective Rate Highlight */}
-            <div style={{
-                background: 'linear-gradient(135deg, rgba(71, 149, 243,0.08), rgba(0,0,0,0.2))',
-                border: '1px solid rgba(71, 149, 243,0.2)', borderRadius: 16, padding: '20px 24px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24,
-            }}>
-                <div>
-                    <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Combined Effective Tax Rate</div>
-                    <div style={{ fontSize: 12, color: '#9aaec3', marginTop: 2 }}>Federal + {stateInfo.name}</div>
-                </div>
-                <div style={{ fontSize: 32, fontWeight: 900, color: '#fff' }}>{effectiveRate}%</div>
-            </div>
-
-            {/* Quarterly Breakdown */}
-            <div style={{
-                background: 'var(--sd-surface)', border: '1px solid var(--sd-line)',
-                borderRadius: 16, padding: 20, marginBottom: 24,
-            }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0', marginBottom: 16, letterSpacing: 0.3 }}>
-                    Quarterly P/L Breakdown - {year}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 115px), 1fr))', gap: 12 }}>
-                    {quarterlyData.map((q, i) => {
-                        const net = q.income - q.losses;
-                        return (
-                            <div key={i} style={{
-                                background: 'rgba(0,0,0,0.2)', borderRadius: 12, padding: 14, textAlign: 'center',
-                                border: `1px solid ${net >= 0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`,
-                            }}>
-                                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 8 }}>{q.label}</div>
-                                <div style={{ fontSize: 16, fontWeight: 900, color: net >= 0 ? '#4ade80' : '#f87171' }}>
-                                    {net >= 0 ? '+' : '−'}${Math.abs(net).toLocaleString()}
-                                </div>
-                                <div style={{ fontSize: 12, color: '#9aaec3', marginTop: 4 }}>
-                                    W: ${q.income.toLocaleString()} / L: ${q.losses.toLocaleString()}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Itemized Deductions */}
-            <div style={{
-                background: 'var(--sd-surface)', border: '1px solid var(--sd-line)',
-                borderRadius: 16, padding: 20, marginBottom: 24,
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0', letterSpacing: 0.3 }}>Itemized Deductions</div>
-                    <button
-                        onClick={() => setShowDeductionForm(!showDeductionForm)}
-                        style={{
-                            background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)',
-                            color: '#00d4ff', fontSize: 12, fontWeight: 700, padding: '6px 12px',
-                            borderRadius: 8, cursor: 'pointer',
-                        }}
-                    >{showDeductionForm ? 'Hide ▲' : 'Edit Deductions ▼'}</button>
-                </div>
-
-                <AnimatePresence>
-                    {showDeductionForm && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                            style={{ overflow: 'hidden' }}
-                        >
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
-                                {DEDUCTION_CATEGORIES.map(cat => (
-                                    <div key={cat.id} style={{
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                        background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: 10,
-                                    }}>
-                                        <span style={{ fontSize: 16 }}>{cat.icon}</span>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{cat.label}</div>
-                                            <input
-                                                type="number"
-                                                placeholder="$0"
-                                                value={deductions[cat.id] || ''}
-                                                onChange={e => updateDeduction(cat.id, e.target.value)}
-                                                style={{
-                                                    width: '100%', background: 'transparent', border: 'none',
-                                                    color: '#fff', fontSize: 14, fontWeight: 800, outline: 'none',
-                                                    padding: '4px 0',
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {!showDeductionForm && totalDeductions > 0 && (
-                    <div style={{ fontSize: 13, color: '#94e7ff', fontWeight: 700 }}>
-                        Total Deductions: ${totalDeductions.toLocaleString()}
-                    </div>
-                )}
-            </div>
-
-            {/* Export Controls */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <button
-                    onClick={downloadTaxSummary}
-                    style={{
-                        flex: 1, minWidth: 160, padding: '14px', borderRadius: 12,
-                        background: 'linear-gradient(135deg, #4795f3, #2563a8)',
-                        border: 'none', color: '#fff', fontSize: 14, fontWeight: 800,
-                        cursor: 'pointer', letterSpacing: 0.5,
-                    }}
-                >📄 Export Tax Report</button>
-                <button
-                    onClick={() => {
-                        navigator.clipboard.writeText(
-                            `Poker Tax Summary ${year}\nState: ${stateInfo.name}\nNet Income: $${netTaxableIncome.toLocaleString()}\nFederal: $${Math.round(federalTax).toLocaleString()}\nState: $${Math.round(stateTax).toLocaleString()}\nTotal Tax: $${Math.round(totalTax).toLocaleString()}\nEffective Rate: ${effectiveRate}%`
-                        );
-                    }}
-                    style={{
-                        flex: 1, minWidth: 160, padding: '14px', borderRadius: 12,
-                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#e2e8f0', fontSize: 14, fontWeight: 800, cursor: 'pointer',
-                    }}
-                >📋 Copy Summary</button>
-            </div>
+    const money = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(v);
+    const years = Array.from(new Set([year, ...entries.map(e => Number(String(e.entry_date || '').slice(0, 4))).filter(y => y > 1900), ...Array.from({length: 3}, (_, i) => new Date().getFullYear() - i)])).sort((a, b) => b - a);
+    const figures = [
+        ['Gross Winnings', totalIncome], ['Total Losses', -totalLosses], ['Deductions', -totalDeductions],
+        ['Net Taxable', netTaxableIncome], ['Federal Estimate', federalTax], ['State Estimate', stateTax],
+    ];
+    async function copy() {
+        try {
+            await navigator.clipboard.writeText([
+                'Poker Tax Summary ' + year, stateInfo.name, ...figures.map(([label, amount]) => label + ' ' + money(amount || 0)),
+                'Total Estimated Tax ' + money(totalTax), 'Effective Rate ' + effectiveRate + '%',
+            ].join('\n'));
+            setCopyMessage('Summary Copied');
+        } catch { setCopyMessage('Copy Unavailable. Use Export Tax Report.'); }
+    }
+    return <section className={'sd-panel ' + styles.tax} aria-label="State Tax Report">
+        <div className={styles.heading}><h2>State Tax Report</h2></div>
+        <div className={styles.filters}>
+            <label className={styles.field}>Tax Year<select value={year} onChange={e => { setYear(Number(e.target.value)); setCopyMessage(''); }}>
+                {years.map(y => <option key={y}>{y}</option>)}</select></label>
+            <label className={styles.field}>Jurisdiction<select value={selectedState} onChange={e => { setSelectedState(e.target.value); setCopyMessage(''); }}>
+                {US_STATES.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></label>
         </div>
-    );
+        <div className={styles.readout}><span>Total Estimated Tax</span><strong>{money(totalTax)}</strong></div>
+        <dl className={styles.figures}>{figures.map(([label, amount]) => <div key={label}><dt>{label}</dt><dd>{money(amount || 0)}</dd></div>)}</dl>
+        <div className={styles.heading}><span>Combined Effective Rate</span><strong>{effectiveRate}%</strong></div>
+        <section aria-label="Quarterly Profit And Loss">
+            <h3>Quarterly Results · {year}</h3>
+            <div role="table" aria-label={'Quarterly Results ' + year}>
+                <div role="row" className={styles.quarterHeader}>{['Quarter','Winnings','Losses','Net'].map(label => <span role="columnheader" key={label}>{label}</span>)}</div>
+                {quarterlyData.map(q => <div key={q.label} role="row" className={styles.quarter}>
+                    <strong role="rowheader" title={q.label}>{q.label.slice(0,2)}</strong><span role="cell">{money(q.income)}</span><span role="cell">{money(-q.losses || 0)}</span><strong role="cell">{money(q.income-q.losses)}</strong>
+                </div>)}
+            </div>
+        </section>
+        <details><summary>Itemized Deductions</summary><div className={styles.deductions}>{DEDUCTION_CATEGORIES.map(cat =>
+            <label className={styles.field} key={cat.id}>{cat.label}<input min="0" type="number" step="0.01" inputMode="decimal" placeholder="0.00" value={deductions[cat.id] || ''} onChange={e => { if (Number(e.target.value) >= 0) updateDeduction(cat.id, e.target.value); setCopyMessage(''); }} /></label>)}</div></details>
+        <div className={styles.actions}><button type="button" className="sd-button sd-primary" onClick={downloadTaxSummary}>Export Tax Report</button><button type="button" className="sd-button" onClick={copy}>Copy Summary</button></div>
+        {copyMessage && <span role="status">{copyMessage}</span>}
+    </section>;
 }

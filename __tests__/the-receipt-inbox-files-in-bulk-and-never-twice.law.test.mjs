@@ -167,9 +167,10 @@ test('the page files each one and marks it, and a failure leaves the rest waitin
 
 test('an unknown view is the dashboard, not a blank page', () => {
     const src = code(PAGE);
-    assert.match(src, /SIDEBAR_SECTIONS\.some\(\(s\) => s\.id === requestedView && !s\.action\)/);
-    const block = src.slice(src.indexOf("if (requestedView === 'log-session')"), src.indexOf('if (router.query.type)'));
-    assert.equal((block.match(/setActiveSection\('dashboard'\)/g) || []).length, 2, 'log-session and anything unknown both land on the dashboard');
+    const resolver = src.slice(src.indexOf('function resolveBankrollView('), src.indexOf('const ACCOUNTING_CATEGORIES'));
+    assert.match(resolver, /SIDEBAR_SECTIONS\.find\(item => item\.id === requestedView\)/);
+    assert.match(resolver, /Object\.hasOwn\(MENU_SECTION_TITLES, requestedView\) \? requestedView : 'dashboard'/);
+    assert.match(src, /if \(requestedView === 'log-session'\) \{\s*void handleLogClick\(\)/);
 });
 
 test('Saved Receipts is reachable from the sidebar, and waiting receipts are visible from it', () => {

@@ -1025,7 +1025,10 @@ function TournamentPageExperience({ user, authLoading }) {
     }, [activeQuestion?.id]);
 
     const signIn = useCallback(() => {
-        void router.push(`/auth/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
+        const target = typeof router.asPath === 'string' && router.asPath.startsWith(PAGE_PATH)
+            ? router.asPath
+            : PAGE_PATH;
+        void router.push(`/auth/login?redirect=${encodeURIComponent(target)}`);
     }, [router]);
 
     const selectRound = useCallback(round => {
@@ -1097,7 +1100,7 @@ function TournamentPageExperience({ user, authLoading }) {
                     description="The Smarter.Poker Nightly Trivia Tournament Starts At 8 PM Central With Server-Timed Rounds, Disclosed Smarter Horses, Exact Diamond Terms, And Verifiable Settlement Receipts."
                     canonical={PAGE_PATH}
                 />
-                <div className="trivia-console-standalone trivia-tournaments-page" data-trivia-surface="tournaments" data-game-state={activeQuestion ? 'playing' : viewState}>
+                <div className="smarterdesign trivia-console-standalone trivia-tournaments-page" data-trivia-surface="tournaments" data-game-state={activeQuestion ? 'playing' : viewState}>
                     <UniversalHeader pageDepth={2} />
                     <main className="tt-shell" aria-labelledby="trivia-tournaments-title">
                         {pageState === 'loading' ? (
@@ -1147,7 +1150,7 @@ function TournamentPageExperience({ user, authLoading }) {
                                 titleId="trivia-tournaments-title"
                                 subtitle={`Question ${activeQuestion.position} Of ${session?.questionCount || tournament.format?.questionsPerRound || ''}`}
                                 pill={Number.isFinite(questionSeconds) ? `${questionSeconds} Sec` : 'Server Time'}
-                                pillInk={Number.isFinite(questionSeconds) && questionSeconds <= 5 ? 'red' : 'gold'}
+                                pillInk={Number.isFinite(questionSeconds) && questionSeconds <= 5 ? 'red' : 'blue'}
                             >
                                 {!online ? <TournamentStateBanner title="Connection Lost" message="Your Answer State Remains On The Server. Reconnect And Resume Before Sending Another Action." tone="red" role="alert" /> : null}
                                 <TournamentQuestionStage
@@ -1173,7 +1176,7 @@ function TournamentPageExperience({ user, authLoading }) {
                                 titleId="trivia-tournaments-title"
                                 subtitle="Server-Timed Single Elimination"
                                 pill={viewState.replace(/-/g, ' ')}
-                                pillInk={['open', 'entered', 'advance', 'champion', 'paid', 'refunded'].includes(viewState) ? 'green' : ['cancelled', 'refund', 'eliminated'].includes(viewState) ? 'red' : ['countdown', 'waiting', 'settling'].includes(viewState) ? 'gold' : 'blue'}
+                                pillInk={['open', 'entered', 'advance', 'champion', 'paid', 'refunded'].includes(viewState) ? 'green' : ['cancelled', 'refund', 'eliminated'].includes(viewState) ? 'red' : 'blue'}
                             >
                                 {!myRun?.entered && !tournament.viewer?.entered ? <ResponsiveModeArt art={TRIVIA_INTRO_ART_TOURNAMENTS} priority /> : null}
                                 <NightlySpectatorBanner
@@ -1227,7 +1230,7 @@ function TournamentPageExperience({ user, authLoading }) {
                                         {canShareResult ? (
                                             <TriviaGlassAction
                                                 label="Share Result Card"
-                                                ink="gold"
+                                                ink="blue"
                                                 onClick={() => setShareCardOpen(true)}
                                             />
                                         ) : null}

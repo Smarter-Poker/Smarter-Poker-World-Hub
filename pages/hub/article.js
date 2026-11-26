@@ -126,28 +126,44 @@ function buildNewsArticleJsonLd(article) {
     if (!article?.id || !article?.title) return null;
 
     const url = `${SITE_ORIGIN}/hub/article?id=${encodeURIComponent(article.id)}`;
-    const jsonLd = {
-        '@context': 'https://schema.org',
+    const articleNode = {
         '@type': 'NewsArticle',
+        '@id': `${url}#article`,
         headline: String(article.title),
         url,
-        mainEntityOfPage: { '@type': 'WebPage', '@id': url }
+        mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+        inLanguage: 'en-US',
+        speakable: {
+            '@type': 'SpeakableSpecification',
+            cssSelector: ['h1', '.article-content p:first-of-type'],
+        },
     };
 
-    const description = (article.content || '').replace(/\s+/g, ' ').trim();
-    if (description) jsonLd.description = description.slice(0, 300);
-    if (article.image_url) jsonLd.image = [article.image_url];
-    if (article.published_at) jsonLd.datePublished = article.published_at;
-    if (article.updated_at) jsonLd.dateModified = article.updated_at;
-    if (article.category) jsonLd.articleSection = String(article.category);
+    const description = (article.summary || article.excerpt || article.content || '').replace(/\s+/g, ' ').trim();
+    if (description) articleNode.description = description.slice(0, 300);
+    if (article.image_url) articleNode.image = [article.image_url];
+    if (article.published_at) articleNode.datePublished = article.published_at;
+    if (article.updated_at) articleNode.dateModified = article.updated_at;
+    if (article.category) articleNode.articleSection = String(article.category);
     if (article.source_name) {
-        jsonLd.author = { '@type': 'Organization', name: String(article.source_name) };
+        articleNode.author = { '@type': 'Organization', name: String(article.source_name) };
     }
-    // The publisher is this site — a fact about where the page is served, not
-    // article metadata, so it is always safe to state.
-    jsonLd.publisher = { '@type': 'Organization', name: 'Smarter.Poker', url: SITE_ORIGIN };
+    articleNode.publisher = { '@type': 'Organization', '@id': `${SITE_ORIGIN}/#organization`, name: 'Smarter.Poker', url: SITE_ORIGIN };
 
-    return jsonLd;
+    const breadcrumbNode = {
+        '@type': 'BreadcrumbList',
+        '@id': `${url}#breadcrumb`,
+        itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Smarter.Poker', item: `${SITE_ORIGIN}/` },
+            { '@type': 'ListItem', position: 2, name: 'Poker News', item: `${SITE_ORIGIN}/hub/news` },
+            { '@type': 'ListItem', position: 3, name: String(article.title).slice(0, 80), item: url },
+        ],
+    };
+
+    return {
+        '@context': 'https://schema.org',
+        '@graph': [articleNode, breadcrumbNode],
+    };
 }
 
 // Escape '<' so the serialized JSON can never terminate the <script> block it
@@ -207,15 +223,72 @@ function formatDate(dateStr) {
     });
 }
 
-export default function ArticlePage() {
+export async function getServerSideProps({ query = {}, res }) {
+    const id = firstQueryValue(query.id);
+    const slug = firstQueryValue(query.slug);
+
+    if (!id && !slug) {
+        res.setHeader('Cache-Control', 'public, s-maxage=60');
+        return { props: { initialArticle: null, initialRelated: [] } };
+    }
+    if (id && !ARTICLE_UUID_RE.test(id)) {
+        res.statusCode = 404;
+        res.setHeader('Cache-Control', 'public, s-maxage=60');
+        return { props: { initialArticle: null, initialRelated: [] } };
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+        return { props: { initialArticle: null, initialRelated: [] } };
+    }
+
+    try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const db = createClient(supabaseUrl, supabaseKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+        });
+        let q = db.from('poker_news').select('*').eq('is_published', true);
+        q = id ? q.eq('id', id) : q.eq('slug', slug);
+        const { data, error } = await q.order('published_at', { ascending: false }).limit(1).maybeSingle();
+        if (error) {
+            return { props: { initialArticle: null, initialRelated: [] } };
+        }
+        if (!data) {
+            res.statusCode = 404;
+            res.setHeader('Cache-Control', 'public, s-maxage=60');
+            return { props: { initialArticle: null, initialRelated: [] } };
+        }
+
+        let initialRelated = [];
+        if (data.category) {
+            const { data: rel } = await db
+                .from('poker_news')
+                .select('id, title, image_url, slug')
+                .eq('category', data.category)
+                .eq('is_published', true)
+                .neq('id', data.id)
+                .order('published_at', { ascending: false })
+                .limit(3);
+            if (Array.isArray(rel)) initialRelated = rel;
+        }
+
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
+        return { props: { initialArticle: data, initialRelated } };
+    } catch {
+        return { props: { initialArticle: null, initialRelated: [] } };
+    }
+}
+
+export default function ArticlePage({ initialArticle = null, initialRelated = [] }) {
     const router = useRouter();
     const id = firstQueryValue(router.query.id);
     const slug = firstQueryValue(router.query.slug);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [article, setArticle] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [article, setArticle] = useState(initialArticle);
+    const [loading, setLoading] = useState(!initialArticle && Boolean(id || slug));
     const [error, setError] = useState(null);
-    const [related, setRelated] = useState([]);
+    const [related, setRelated] = useState(initialRelated);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [isReadLater, setIsReadLater] = useState(false);
     const [userId, setUserId] = useState(null);
@@ -315,6 +388,12 @@ export default function ArticlePage() {
 
     useEffect(() => {
         if (!router.isReady) return;
+        if (initialArticle && ((id && initialArticle.id === id) || (!id && slug && initialArticle.slug === slug))) {
+            setArticle(initialArticle);
+            setRelated(initialRelated);
+            setLoading(false);
+            return;
+        }
         if (id || slug) {
             fetchArticle();
         } else {
@@ -324,7 +403,7 @@ export default function ArticlePage() {
             setArticle(null);
             setLoading(false);
         }
-    }, [router.isReady, id, slug, fetchArticle]);
+    }, [router.isReady, id, slug, fetchArticle, initialArticle, initialRelated]);
 
     useEffect(() => {
         if (!article?.id) return;
@@ -498,7 +577,13 @@ export default function ArticlePage() {
 
     if (loading) {
         return (
-            <div style={{ minHeight: '100vh', background: '#0a0a12', paddingBottom: 70 }}>
+            <>
+                <SEOHead
+                    title="Poker News Article"
+                    description="Read poker news, tournament coverage, and strategy articles on Smarter.Poker."
+                    noindex={true}
+                />
+                <div style={{ minHeight: '100vh', background: '#0a0a12', paddingBottom: 70 }}>
                 <style jsx>{`
                     @keyframes art-shimmer {
                         0% {
@@ -536,12 +621,19 @@ export default function ArticlePage() {
                     ))}
                 </div>
             </div>
+            </>
         );
     }
 
     if (error) {
         return (
-            <div className="article-page error-state">
+            <>
+                <SEOHead
+                    title="Article Temporarily Unavailable"
+                    description="This poker news article could not load right now."
+                    noindex={true}
+                />
+                <div className="article-page error-state">
                 <h1>Something Went Wrong</h1>
                 <p>We Could Not Load This Article. Check Your Connection And Try Again.</p>
                 <button type="button" onClick={fetchArticle}>Try Again</button>
@@ -584,12 +676,19 @@ export default function ArticlePage() {
                     }
                 `}</style>
             </div>
+            </>
         );
     }
 
     if (!article) {
         return (
-            <div className="article-page not-found">
+            <>
+                <SEOHead
+                    title="Article Not Found"
+                    description="This poker news article is no longer available. Browse the latest poker news on Smarter.Poker."
+                    noindex={true}
+                />
+                <div className="article-page not-found">
                 <h1>Article Not Found</h1>
                 <Link href="/hub/news">← Back To News</Link>
                 <style jsx>{`
@@ -612,6 +711,7 @@ export default function ArticlePage() {
                     }
                 `}</style>
             </div>
+            </>
         );
     }
 
@@ -638,6 +738,13 @@ export default function ArticlePage() {
                 dynamic(..., { ssr: false }), so anything inside it is absent from the
                 server-rendered HTML — and JSON-LD that is not in the SSR payload is
                 invisible to crawlers, which defeats the point of emitting it. */}
+            <SEOHead
+                title={article.title || 'Poker Article'}
+                description={articleDescription}
+                canonical={`/hub/article?id=${article.id}`}
+                ogImage={article.image_url || undefined}
+                ogType="article"
+            />
             {newsArticleJsonLd && (
                 <Head>
                     <script
@@ -649,12 +756,6 @@ export default function ArticlePage() {
             )}
 
         <PageTransition>
-            <SEOHead
-                title={article.title || 'Poker Article'}
-                description={articleDescription}
-                canonical={`/hub/article?id=${article.id}`}
-                ogImage={article.image_url || undefined}
-            />
 
             <div className="article-page">
                 {/* UniversalHeader */}

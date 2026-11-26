@@ -33,6 +33,7 @@ import {
   canonicalSeriesRouteId,
   isPokerSeriesRouteId,
   isServableSeriesParentEvidence,
+  isSyntheticTestSeries,
   toPokerSeriesRouteId,
   tournamentSeriesIdFromPointerUid,
 } from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
@@ -364,6 +365,11 @@ export async function getServerSideProps({ params, req, res }) {
   }
 
   const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req));
+  if (seoSeries && isSyntheticTestSeries(seoSeries)) {
+    res.statusCode = 410;
+    res.setHeader('Cache-Control', 'public, s-maxage=3600');
+    return { props: { seoSeries: null } };
+  }
   if (seoSeries) {
     const primary = await primarySeriesRouteId(seoSeries);
     if (primary && primary !== String(seoSeries.id)) seoSeries.canonicalId = primary;
@@ -468,10 +474,16 @@ function SeriesSummary({ series }) {
   const range = formatRange(series.startDate, series.endDate);
   const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
   const events = Array.isArray(series.events) ? series.events : [];
+  const factKernel = buildSeriesFactKernel(series, place, range);
+  const paaQuestions = buildSeriesPaaQuestions(series, place, range);
+  const stateCode = typeof series.state === 'string' && /^[A-Za-z]{2}$/.test(series.state.trim())
+    ? series.state.trim().toLowerCase()
+    : null;
   return (
     <section className="series-summary" aria-label="Series Summary">
       <h1>{series.name}</h1>
-      <dl>
+      {factKernel && <p className="series-aeo-kernel">{factKernel}</p>}
+      <dl className="stats-grid-dl">
         {place && (
           <div>
             <dt>Where</dt>
@@ -550,9 +562,29 @@ function SeriesSummary({ series }) {
         <p>
           The Schedule For {series.name} Has Not Been Published Yet. Buy Ins, Start Times And
           Results Are Added Here As The Venue Releases Them. Browse Every Tournament Series On{' '}
-          <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
-          <a href="/hub/poker-near-me/lobby">Poker Near Me</a>.
+          <a href="/hub/poker-series">Poker Series</a>, Check Upcoming Stops On{' '}
+          <a href="/hub/events-calendar">Poker Events Calendar</a>, Or Find A Room Near You With{' '}
+          <a href="/hub/poker-near-me/lobby">Poker Near Me</a>
+          {stateCode ? (
+            <>
+              {' '}And Our <a href={`/hub/poker-near-me/in/${stateCode}`}>{series.state.toUpperCase()} Poker Rooms Directory</a>
+            </>
+          ) : null}
+          .
         </p>
+      )}
+      {paaQuestions.length > 0 && (
+        <section className="series-summary-faq" aria-label="Frequently Asked Questions">
+          <h2>Frequently Asked Questions About {series.name}</h2>
+          <dl>
+            {paaQuestions.map((item) => (
+              <div key={item.question}>
+                <dt>{item.question}</dt>
+                <dd>{item.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
       )}
     </section>
   );

@@ -473,7 +473,7 @@ export default function PositionMasteryPage() {
                   {[
                     { color: 'var(--sp-accent-red)', label: '0-30%' },
                     { color: 'var(--sp-accent-orange)', label: '30-45%' },
-                    { color: 'var(--sp-accent-amber)', label: '45-60%' },
+                    { color: '#86daff', label: '45-60%' },
                     { color: '#84cc16', label: '60-75%' },
                     { color: 'var(--sp-accent-green)', label: '75%+' },
                   ].map((l) => (
@@ -695,7 +695,7 @@ export default function PositionMasteryPage() {
                         <span>{data.drills || 0} Drills</span>
                         <span>{data.totalQ || 0} Hands</span>
                         {data.streak > 0 && (
-                          <span style={{ color: 'var(--sp-accent-purple)' }}>{data.streak} Streak</span>
+                          <span style={{ color: '#86daff' }}>{data.streak} Streak</span>
                         )}
                       </div>
                       <div

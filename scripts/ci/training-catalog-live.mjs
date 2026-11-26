@@ -1,16 +1,22 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY.js';
-import { readDeploymentIdentity } from '../training-phase6-production-delivery-attestation.mjs';
+import { createSlidingWindowRequestPacer, readDeploymentIdentity } from '../training-phase6-production-delivery-attestation.mjs';
 
 export const CATALOG_ORIGIN = 'https://smarter.poker';
 const ANSWER_TIMEOUT = 20_000;
+export const RESULTS_VIEWPORTS = {
+  mobile: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
+  desktop: { viewport: { width: 1440, height: 900 } },
+};
 
 const TRAINING_REQUEST_PATHS = new Set([
   '/api/training/batch-preload',
   '/api/training/get-question',
   '/api/training/custom-train',
   '/api/training/record-question',
+  '/api/training/save-progress',
+  '/api/training/save-session',
 ]);
 
 export function orderCatalogGames(games) {
@@ -18,6 +24,16 @@ export function orderCatalogGames(games) {
     .map(category => games.find(game => game.category === category));
   const remaining = games.filter(game => !categoryStarters.includes(game));
   return { categoryStarters, gamesInOrder: [...categoryStarters, ...remaining] };
+}
+
+export function selectCatalogGames(games, selection) {
+  if (!selection?.trim()) return games;
+  const requested = selection.split(',').map(id => id.trim());
+  const ids = new Set(requested);
+  assert.equal(ids.size, requested.length, 'duplicate Training game in requested selection');
+  const selected = games.filter(game => ids.has(game.id));
+  assert.equal(selected.length, requested.length, 'unknown Training game in requested selection');
+  return selected;
 }
 
 function traceArenaRequests(page) {
@@ -59,63 +75,129 @@ async function verifyBrowserSession(context) {
   }
 }
 
-async function verifyGame(page, origin, game, entry) {
+async function verifyGame(page, origin, game, entry, throughResults, recordPacer) {
   entry.stage = 'open';
   const url = new URL('/hub/training/arena/' + encodeURIComponent(game.id), origin);
   url.searchParams.set('start', '1');
-  const opened = await page.goto(url.href, { waitUntil: 'domcontentloaded' });
-  assert.ok(opened?.ok(), 'arena did not load');
+  const entryUrl = throughResults
+    ? new URL('/hub/training/category/' + game.category.toLowerCase(), origin)
+    : url;
+  const opened = await page.goto(entryUrl.href, { waitUntil: 'domcontentloaded' });
+  assert.ok(opened?.ok(), 'game entry did not load');
+  if (throughResults) {
+    entry.stage = 'play';
+    const play = page.locator('[data-training-play-game="' + game.id + '"]');
+    await Promise.all([
+      page.waitForURL(candidate => candidate.origin === origin && candidate.pathname === url.pathname
+        && candidate.searchParams.get('start') === '1', { timeout: ANSWER_TIMEOUT }),
+      play.click({ timeout: ANSWER_TIMEOUT }),
+    ]);
+  }
 
-  entry.stage = 'first-decision';
   const surface = page.locator('[data-training-game-id="' + game.id + '"]');
   const decision = surface.locator(
     '.sp-club-gto-actions button[data-action]:enabled:visible, button[data-training-answer-option]:enabled:visible',
   ).first();
-  await decision.waitFor({ timeout: ANSWER_TIMEOUT });
+  const results = page.locator('[data-training-visual-state="completion"]:visible');
+  const completionResponses = [];
+  page.on('response', response => {
+    const target = new URL(response.url());
+    if (target.origin === origin && ['/api/training/save-progress', '/api/training/save-session'].includes(target.pathname)) {
+      completionResponses.push(response);
+    }
+  });
+  let attemptId;
+  let sessionId;
+  const seen = new Set();
+  for (let step = 0; step < (throughResults ? 250 : 1); step++) {
+    entry.stage = step === 0 ? 'first-decision' : 'decision-or-results';
+    await decision.or(results).first().waitFor({ timeout: ANSWER_TIMEOUT });
+    if (await results.isVisible()) {
+      assert.ok(throughResults && seen.size > 1, 'results appeared before completing a session');
+      entry.stage = 'completion-receipts';
+      for (const endpoint of ['/api/training/save-progress', '/api/training/save-session']) {
+        const response = completionResponses.find(candidate => new URL(candidate.url()).pathname === endpoint
+          && candidate.request().postDataJSON()?.attemptId === attemptId);
+        assert.ok(response?.ok(), 'missing successful completion response');
+        const receipt = await response.json();
+        assert.equal(receipt.success, true);
+        assert.equal(receipt.attemptId, attemptId);
+      }
+      entry.stage = 'results';
+      await results.getByText('Session Results', { exact: true }).waitFor({ timeout: ANSWER_TIMEOUT });
+      assert.ok(await results.getByRole('button', { name: 'Play Again', exact: true }).isEnabled());
+      entry.recordedDecisions = seen.size;
+      return;
+    }
 
-  const [response] = await Promise.all([
-    page.waitForResponse(candidate => {
-      const target = new URL(candidate.url());
-      return target.origin === origin
-        && target.pathname === '/api/training/record-question'
-        && candidate.request().method() === 'POST'
-        && candidate.request().postDataJSON()?.gameId === game.id;
-    }, { timeout: ANSWER_TIMEOUT }),
-    decision.click({ timeout: ANSWER_TIMEOUT }),
-  ]);
+    if (recordPacer) await recordPacer.waitForSlot();
+    const [response] = await Promise.all([
+      page.waitForResponse(candidate => {
+        const target = new URL(candidate.url());
+        return target.origin === origin
+          && target.pathname === '/api/training/record-question'
+          && candidate.request().method() === 'POST'
+          && candidate.request().postDataJSON()?.gameId === game.id;
+      }, { timeout: ANSWER_TIMEOUT }),
+      decision.click({ timeout: ANSWER_TIMEOUT }),
+    ]);
 
-  entry.stage = 'receipt';
-  assert.ok(response.ok(), 'grading request failed with HTTP ' + response.status());
-  const request = response.request().postDataJSON();
-  const receipt = await response.json();
-  assert.equal(receipt.success, true, 'server did not confirm the decision');
-  assert.ok(request.submissionId && request.attemptId, 'decision identity missing');
-  assert.equal(receipt.submissionId, request.submissionId);
-  assert.equal(receipt.attemptId, request.attemptId);
-  assert.equal(receipt.sessionId, request.sessionId);
-  assert.equal(receipt.handOrdinal, 1);
-  assert.equal(receipt.decisionOrdinal, 1);
-  entry.stage = 'verdict';
-  await surface.locator('[data-training-feedback="verdict"]').waitFor({ timeout: ANSWER_TIMEOUT });
+    entry.stage = 'receipt';
+    assert.ok(response.ok(), 'grading request failed with HTTP ' + response.status());
+    const request = response.request().postDataJSON();
+    const receipt = await response.json();
+    assert.equal(receipt.success, true, 'server did not confirm the decision');
+    assert.ok(request.submissionId && request.attemptId, 'decision identity missing');
+    assert.equal(receipt.submissionId, request.submissionId);
+    assert.equal(receipt.attemptId, request.attemptId);
+    assert.equal(receipt.sessionId, request.sessionId);
+    if (step === 0) {
+      attemptId = receipt.attemptId;
+      sessionId = receipt.sessionId;
+      assert.equal(receipt.handOrdinal, 1);
+      assert.equal(receipt.decisionOrdinal, 1);
+    }
+    assert.equal(receipt.attemptId, attemptId);
+    assert.equal(receipt.sessionId, sessionId);
+    assert.ok(!seen.has(receipt.submissionId), 'decision was already counted');
+    seen.add(receipt.submissionId);
+    entry.stage = 'verdict';
+    await surface.locator('[data-training-feedback="verdict"]').waitFor({ timeout: ANSWER_TIMEOUT });
+    if (!throughResults) return;
+    entry.stage = 'advance';
+    const next = page.locator('[data-training-next-decision]:visible').first();
+    await next.or(results).first().waitFor({ timeout: ANSWER_TIMEOUT });
+    if (!(await results.isVisible())) await next.click({ timeout: ANSWER_TIMEOUT });
+  }
+  throw new Error('Session exceeded the bounded decision count');
 }
 
-export async function verifyLiveTrainingCatalog({ origin: expectedDeploymentOrigin, expectedSha, state, output }) {
+export async function verifyLiveTrainingCatalog({ origin: expectedDeploymentOrigin, expectedSha, state, output, resultsViewport, gameIds }) {
+  const games = selectCatalogGames(TRAINING_LIBRARY, gameIds);
+  const recordPacer = resultsViewport ? createSlidingWindowRequestPacer() : null;
   const options = { expectedDeploymentOrigin };
   const identity = await readDeploymentIdentity(CATALOG_ORIGIN, expectedSha, options);
   console.log('TRAINING_CATALOG_SERVING_DEPLOYMENT_CONFIRMED');
   const { chromium } = await import('playwright');
   const browser = await chromium.launch();
   const results = [];
+  const saveEvidence = () => writeFile(output, JSON.stringify({
+    expectedSha,
+    deployment: identity,
+    viewport: resultsViewport,
+    requestedGames: games.map(game => game.id),
+    results,
+  }, null, 2));
   try {
-    const context = await browser.newContext({ storageState: state });
+    const context = await browser.newContext({ storageState: state, ...RESULTS_VIEWPORTS[resultsViewport], reducedMotion: 'reduce' });
     await verifyBrowserSession(context);
-    const { categoryStarters, gamesInOrder } = orderCatalogGames(TRAINING_LIBRARY);
+    const { categoryStarters, gamesInOrder } = orderCatalogGames(games);
     for (const game of gamesInOrder) {
       const page = await context.newPage();
       const entry = { gameId: game.id, status: 'failed' };
       const trace = traceArenaRequests(page);
       try {
-        await verifyGame(page, CATALOG_ORIGIN, game, entry);
+        await verifyGame(page, CATALOG_ORIGIN, game, entry, Boolean(resultsViewport), recordPacer);
         entry.status = 'passed';
         delete entry.stage;
       } catch (error) {
@@ -134,17 +216,24 @@ export async function verifyLiveTrainingCatalog({ origin: expectedDeploymentOrig
       } finally {
         await page.close();
       }
+      if (recordPacer && entry.status === 'passed') {
+        // Preserve exact-build evidence for each completed game, even if a
+        // later production release supersedes this long-running certificate.
+        const serving = await readDeploymentIdentity(CATALOG_ORIGIN, expectedSha, options);
+        assert.deepEqual(serving, identity, 'serving deployment changed during the game');
+      }
       results.push(entry);
       console.log(JSON.stringify(entry));
+      if (recordPacer) await saveEvidence();
       if (results.length === categoryStarters.length && !results.some(gameResult => gameResult.status === 'passed')) {
         throw new Error('No Training category reached a verified decision. Inspect the bounded browser diagnostics.');
       }
     }
   } finally {
     await browser.close();
-    await writeFile(output, JSON.stringify({ expectedSha, deployment: identity, results }, null, 2));
+    await saveEvidence();
   }
   const finalIdentity = await readDeploymentIdentity(CATALOG_ORIGIN, expectedSha, options);
   assert.deepEqual(finalIdentity, identity, 'serving deployment changed during the catalog run');
-  assert.ok(results.length === TRAINING_LIBRARY.length && results.every(result => result.status === 'passed'), 'catalog verification incomplete');
+  assert.ok(results.length === games.length && results.every(result => result.status === 'passed'), 'catalog verification incomplete');
 }

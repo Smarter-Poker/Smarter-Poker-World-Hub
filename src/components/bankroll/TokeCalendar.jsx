@@ -7,6 +7,9 @@
  */
 
 import view from './toke/TokeWorkspace.module.css';
+import desk from './toke/DealerAnalytics.module.css';
+import BankrollHeaderAdd from './BankrollHeaderAdd';
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -34,7 +37,7 @@ function getCalendarDays(year, month) {
     return days;
 }
 
-function TokeCalendar({ userId }) {
+function TokeCalendar({ userId, headerAction = false }) {
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [readError, setReadError] = useState(false);
@@ -84,9 +87,9 @@ function TokeCalendar({ userId }) {
         if (!userId) return;
         const channel = supabase
             .channel(`toke-calendar-${userId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_calendar_events', filter: `user_id=eq.${userId}` }, debouncedLoadEvents)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'dealer_calendar_events', filter: `user_id=eq.${userId}` }, debouncedLoadEvents)
             .subscribe();
-        return () => { supabase.removeChannel(channel); };
+        return () => { clearTimeout(realtimeTimerRef.current); supabase.removeChannel(channel); };
     }, [userId, debouncedLoadEvents]);
 
     useEffect(() => {
@@ -106,7 +109,13 @@ function TokeCalendar({ userId }) {
     });
 
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = [today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+    const upcoming = events.filter(ev=>ev.event_date.startsWith(String(currentYear)+'-') && ev.event_date>=todayStr);
+    function openNewEvent(date) {
+        setSelectedDate(date);
+        setAddForm({ title:'', venue_name:'', notes:'', alert_enabled:true });
+        setShowAddModal(true);
+    }
 
     const handleDateClick = (year, month, day) => {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -120,16 +129,14 @@ function TokeCalendar({ userId }) {
                 toast.error('Cannot add events to past dates');
                 return;
             }
-            setSelectedDate(dateStr);
-            setAddForm({ title: '', venue_name: '', notes: '', alert_enabled: true });
-            setShowAddModal(true);
+            openNewEvent(dateStr);
         }
     };
 
     const handleAddEvent = async (e) => {
         e.preventDefault();
         if (!addForm.title.trim()) { toast.error('Event title is required'); return; }
-        if (!selectedDate) return;
+        if (!selectedDate || selectedDate < todayStr) { toast.error('Choose Today Or A Future Date.'); return; }
         setSaving(true);
         try {
             await createCalendarEvent(userId, {
@@ -185,38 +192,26 @@ function TokeCalendar({ userId }) {
                 await navigator.clipboard.writeText(text);
                 toast.success('Copied to clipboard!');
             }
-        } catch {
-            // Silently ignore user abort
+        } catch (error) {
+            if (error?.name !== 'AbortError') toast.error('Unable To Share This Calendar Event.');
         }
     };
 
     const monthsInYear = Array.from({ length: 12 }, (_, i) => i);
 
     return (
-        <div className={"sd-panel " + view.panel}>
-            {/* Header */}
-            <div style={calStyles.header}>
-                <div style={calStyles.headerLeft}>
-
-                    <div>
-                        <div className="sd-section-title">Event Calendar</div>
-                        <div style={calStyles.subtitle}>Schedule Future Gigs & Get Alerts</div>
-                    </div>
-                </div>
-                <div style={calStyles.yearNav}>
-                    <button type="button" aria-label="Previous Year" onClick={() => setCurrentYear(y => y - 1)} style={calStyles.navBtn}>‹</button>
-                    <span style={calStyles.yearLabel}>{currentYear}</span>
-                    <button type="button" aria-label="Next Year" onClick={() => setCurrentYear(y => y + 1)} style={calStyles.navBtn}>›</button>
+        <section className={'sd-panel ' + desk.planner} aria-label="Event Calendar">
+            {userId && headerAction && <BankrollHeaderAdd label="New Calendar Event" onClick={()=>openNewEvent(todayStr)} />}
+            <div className={desk.plannerHead}>
+                <div><CalendarDays size={22} aria-hidden/><h2 className="sd-section-title">Event Calendar</h2></div>
+                <div className={desk.monthControls}>
+                    <button type="button" className="sd-button" aria-label="Previous Year" onClick={()=>{setCurrentYear(y=>y-1);setExpandedMonth(null);}}><ChevronLeft size={16}/></button>
+                    <strong className={desk.year} aria-live="polite">{currentYear}</strong>
+                    <button type="button" className="sd-button" aria-label="Next Year" onClick={()=>{setCurrentYear(y=>y+1);setExpandedMonth(null);}}><ChevronRight size={16}/></button>
+                    <button type="button" className="sd-button" onClick={()=>{setCurrentYear(today.getFullYear());setExpandedMonth(today.getMonth());}}>Today</button>
                 </div>
             </div>
-
-            {/* Events count badge */}
-            {events.length > 0 && (
-                <div style={calStyles.eventsBadge}>
-                    {events.filter(e => e.event_date >= todayStr).length} Upcoming event{events.filter(e => e.event_date >= todayStr).length !== 1 ? 's' : ''} This Year
-                </div>
-            )}
-
+            {userId && !isLoading && !readError && <p className={desk.caption}>{upcoming.length} Upcoming {upcoming.length===1?'Event':'Events'} In {currentYear}</p>}
             {!userId ? <p className={view.status}>Sign In To View Your Shift Calendar.</p> : isLoading ? (
                 <p role="status" className={view.status}>Loading Calendar…</p>
             ) : readError ? (
@@ -225,7 +220,7 @@ function TokeCalendar({ userId }) {
                 </div>
             ) : (
                 /* 12-Month Year Grid */
-                <div className={view.calendarGrid}>
+                <div className={desk.yearGrid}>
                     {monthsInYear.map(monthIdx => {
                         const days = getCalendarDays(currentYear, monthIdx);
                         const isExpanded = expandedMonth === monthIdx;
@@ -238,7 +233,7 @@ function TokeCalendar({ userId }) {
                         const hasEvents = monthEvents.length > 0;
 
                         return (
-                            <div key={monthIdx} style={{ ...calStyles.monthCard, ...(isExpanded ? calStyles.monthCardExpanded : {}) }}>
+                            <div key={monthIdx} className={desk.month + (isExpanded ? ' ' + desk.expandedMonth : '')}>
                                 {/* Month header */}
                                 <button
                                     type="button" aria-expanded={isExpanded} style={calStyles.monthHeader}
@@ -341,7 +336,7 @@ function TokeCalendar({ userId }) {
 
             {/* ── ADD EVENT MODAL ── */}
             <AnimatePresence>
-                {showAddModal && selectedDate && (
+                {showAddModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         style={calStyles.overlay}
@@ -356,10 +351,9 @@ function TokeCalendar({ userId }) {
                             onSubmit={handleAddEvent}
                         >
                             <h3 id="toke-calendar-create-title" style={calStyles.modalTitle}>New Calendar Event</h3>
-                            <div style={calStyles.modalDate}>
-                                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                            </div>
-
+                            <label htmlFor="toke-event-date" style={calStyles.label}>Event Date</label>
+                            <input id="toke-event-date" type="date" required min={todayStr} value={selectedDate || ''}
+                                onChange={event=>setSelectedDate(event.target.value)} style={calStyles.input}/>
                             <label htmlFor="toke-event-title" style={calStyles.label}>Event Title *</label>
                             <input
                                 type="text"
@@ -456,7 +450,7 @@ function TokeCalendar({ userId }) {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </section>
     );
 }
 

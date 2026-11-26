@@ -1054,7 +1054,7 @@ export default function EquityCalculatorPage() {
             <span
               style={{
                 fontSize: 12,
-                color: 'var(--sp-accent-purple)',
+                color: '#86daff',
                 background: 'rgba(168,85,247,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -1287,7 +1287,7 @@ export default function EquityCalculatorPage() {
               }}
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <strong style={{ color: '#fbbf24', textTransform: 'uppercase' }}>
+                <strong style={{ color: '#86daff', textTransform: 'uppercase' }}>
                   Offline Horse Brain Evaluation Mode Active
                 </strong>
                 <button
@@ -1389,7 +1389,7 @@ export default function EquityCalculatorPage() {
                   style={{
                     fontSize: 12,
                     fontWeight: 800,
-                    color: 'var(--sp-accent-purple)',
+                    color: '#86daff',
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',
@@ -1425,7 +1425,7 @@ export default function EquityCalculatorPage() {
                         </span>
                       )}
                       {horseBrainAnalysis.potLimitMaxBetBb && (
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>
                           {`Pot-Limit Max Bet: ${horseBrainAnalysis.potLimitMaxBetBb} BB`}
                         </span>
                       )}
