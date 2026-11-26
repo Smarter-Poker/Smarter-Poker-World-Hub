@@ -4,7 +4,7 @@ const CATEGORY_NAMES = {
   poker_cash: 'Cash Games', poker_mtt: 'Tournaments', casino_table: 'Casino Tables',
   slots: 'Slots', sports: 'Sports',
 };
-export const INSIGHT_CATEGORIES = Object.keys(CATEGORY_NAMES);
+export const INSIGHT_CATEGORIES = Object.freeze(Object.keys(CATEGORY_NAMES));
 const MIN_COMPARISON_SESSIONS = 5;
 const money = cents => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
@@ -104,7 +104,9 @@ export async function readSessionInsights(db, ownerId, window) {
   do {
     let page = db.from('bankroll_ledger')
       .select('id,category,entry_date,net_result,start_time,end_time', lastId ? {} : { count: 'exact' })
-      .eq('user_id', ownerId).eq('is_revision', false).in('category', INSIGHT_CATEGORIES)
+      .eq('user_id', ownerId).eq('is_revision', false)
+      // in-list: bounded by the five built-in session categories, independent of ledger size.
+      .in('category', INSIGHT_CATEGORIES)
       .gte('entry_date', window.previousStart).lte('entry_date', window.end)
       .order('id', { ascending: true }).limit(500);
     if (lastId) page = page.gt('id', lastId);
