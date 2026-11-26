@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { defaultTheme } from './MessengerTheme';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
-import { resolveUploadMedia } from '../../lib/messenger/messageMedia.mjs';
+import { resolveUploadMedia, selectVoiceRecordingMime } from '../../lib/messenger/messageMedia.mjs';
 
 export function MessageInput({ 
     onSend, 
@@ -181,18 +181,21 @@ export function MessageInput({
         setUploading(true);
         setUploadProgress(0);
         setShowEmoji(false);
-        clearPendingMedia();
-        if (caption) {
-            if (onDraftChange) onDraftChange('');
-            else setLocalText(current => current === submitted ? '' : current);
-            if (inputRef.current) inputRef.current.style.height = 'auto';
-        }
+        setMediaError('');
         try {
-            await onMediaUpload(mediaToSend.file, {
+            const result = await onMediaUpload(mediaToSend.file, {
                 caption,
                 signal: controller?.signal,
                 onProgress: (pct) => setUploadProgress(pct),
             });
+            if (result?.ok !== false) {
+                clearPendingMedia();
+                if (caption) {
+                    if (onDraftChange) onDraftChange('');
+                    else setLocalText(current => current === submitted ? '' : current);
+                    if (inputRef.current) inputRef.current.style.height = 'auto';
+                }
+            }
         } finally {
             if (uploadAbortRef.current === controller) uploadAbortRef.current = null;
             setUploading(false);
@@ -314,9 +317,14 @@ export function MessageInput({
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm',
-            });
+            const preferredMime = selectVoiceRecordingMime(
+                typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function'
+                    ? (t) => MediaRecorder.isTypeSupported(t)
+                    : null,
+            );
+            const mediaRecorder = preferredMime
+                ? new MediaRecorder(stream, { mimeType: preferredMime })
+                : new MediaRecorder(stream);
             audioChunksRef.current = [];
             mediaRecorderRef.current = mediaRecorder;
 
@@ -328,7 +336,8 @@ export function MessageInput({
 
             mediaRecorder.onstop = () => {
                 stream.getTracks().forEach(t => t.stop());
-                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const recordedMime = mediaRecorder.mimeType || preferredMime || 'audio/webm';
+                const blob = new Blob(audioChunksRef.current, { type: recordedMime });
                 const realDuration = Math.floor((Date.now() - recordingStartTime) / 1000);
                 if (blob.size > 500 && onVoiceSend) {
                     onVoiceSend(blob, realDuration);

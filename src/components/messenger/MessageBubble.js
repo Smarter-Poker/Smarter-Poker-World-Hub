@@ -368,6 +368,7 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
     const [progress, setProgress] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(durationProp || 0);
+    const [scrubberFocused, setScrubberFocused] = useState(false);
     const animFrameRef = useRef(null);
 
     useEffect(() => {
@@ -492,7 +493,16 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
                 )}
             </button>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 1, height: 24 }}>
+                <div style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    height: 24,
+                    borderRadius: 6,
+                    outline: scrubberFocused ? `2px solid ${isOwn ? '#FFFFFF' : C.blue}` : 'none',
+                    outlineOffset: 3,
+                }}>
                     {bars.current.map((h, i) => {
                         const filled = i / bars.current.length <= progress;
                         return (
@@ -519,6 +529,8 @@ export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = de
                         step={1}
                         value={sliderValue}
                         onChange={handleSeek}
+                        onFocus={() => setScrubberFocused(true)}
+                        onBlur={() => setScrubberFocused(false)}
                         onClick={e => e.stopPropagation()}
                         aria-label="Voice Message Progress"
                         aria-valuetext={`${formatDur(currentTime)} Of ${formatDur(duration)}`}
@@ -740,11 +752,13 @@ export function MessageBubble({
         const onKeyDown = (event) => { if (event.key === 'Escape') dismiss(); };
         const t = setTimeout(() => {
             document.addEventListener('click', dismiss);
+            document.addEventListener('contextmenu', dismiss);
             document.addEventListener('keydown', onKeyDown);
         }, 50);
         return () => {
             clearTimeout(t);
             document.removeEventListener('click', dismiss);
+            document.removeEventListener('contextmenu', dismiss);
             document.removeEventListener('keydown', onKeyDown);
         };
     }, [showReactions, showMenu]);
@@ -841,8 +855,8 @@ export function MessageBubble({
                 position: 'relative',
                 WebkitTouchCallout: 'none',
             }}
-            onMouseEnter={() => setRowHovered(true)}
-            onMouseLeave={() => setRowHovered(false)}
+            onPointerEnter={(e) => { if (e.pointerType !== 'touch') setRowHovered(true); }}
+            onPointerLeave={() => setRowHovered(false)}
             onContextMenu={handleContextMenu}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
