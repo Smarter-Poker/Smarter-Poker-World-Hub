@@ -183,7 +183,7 @@ export function reconcileAnswerKey(q) {
     // Every frequency key must map onto a served option id
     const options = Array.isArray(q.options) ? q.options : [];
     const optionIds = new Set(options.map((o, i) => (o && o.id) || String.fromCharCode(97 + i)));
-    if (!entries.every(([k]) => optionIds.has(k))) return q;
+    if (entries.length !== optionIds.size || !entries.every(([k]) => optionIds.has(k))) return q;
 
     // Argmax = the GTO-correct grading key
     const best = entries.reduce((a, b) => (b[1] > a[1] ? b : a));
@@ -198,17 +198,9 @@ export function reconcileAnswerKey(q) {
 
     // Rebuild the displayed frequency bars from the solver distribution.
     // Normalize by the summed mass so bars always total exactly 100.
-    const pct = {};
-    let acc = 0;
-    entries.forEach(([k, v], i) => {
-        if (i === entries.length - 1) {
-            pct[k] = Math.max(0, 100 - acc);
-        } else {
-            const p = Math.max(0, Math.min(Math.round((v / total) * 100), 100 - acc));
-            pct[k] = p;
-            acc += p;
-        }
-    });
+    const pct = Object.fromEntries(entries.map(([id, value]) => [
+        id, Number(((value / total) * 100).toFixed(6)),
+    ]));
     q.gtoFrequencies = pct;
 
     // ═══ 2026-07-19 (E2E defect D8): if reconciliation materially changed the

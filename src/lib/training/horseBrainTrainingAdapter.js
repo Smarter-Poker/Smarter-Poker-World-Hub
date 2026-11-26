@@ -1092,7 +1092,7 @@ export function evaluateTrainingSpotWithHorseBrain({
       icmAdjustment ? `ICM / Payout Pressure (tournament-brain.js): ${icmAdjustment.payoutPressure} tightens continuation threshold by ${icmAdjustment.tightenPercent}%.` : null,
       pkoBountyAdjustment ? `PKO Bounty Math: ${pkoBountyAdjustment.bountyBb} BB bounty adds +${pkoBountyAdjustment.bountyChipEquivalenceBb} BB chip equivalence (-${pkoBountyAdjustment.effectivePotOddsDiscountPct}% required equity).` : null,
       hudExploitAdjustment ? `Exploit Telemetry: ${hudExploitAdjustment.note}` : null,
-      `Optimal play: ${options[bestIdx].text} (${gtoFrequencies[correctAnswer]}% frequency, ${actionEVs[correctAnswer] >= 0 ? '+' : ''}${actionEVs[correctAnswer]} BB EV).`,
+      `Training model recommendation: ${options[bestIdx].text}.`,
     ].filter(Boolean);
 
     const explanation = contextNotes.join(' ');
@@ -1124,7 +1124,7 @@ export function evaluateTrainingSpotWithHorseBrain({
     };
 
     const structuredExplanation = {
-      verdict: `${options[bestIdx].text} is the highest-EV action (${gtoFrequencies[correctAnswer]}% frequency, ${actionEVs[correctAnswer] >= 0 ? '+' : ''}${actionEVs[correctAnswer]} BB).`,
+      verdict: `Training model recommendation: ${options[bestIdx].text}.`,
       why: [omahaRuleSummary, plo8SummaryNote].filter(Boolean).join(' '),
       keyFactors: [
         `Engine Authority: ${engineModule} (${normVariant.toUpperCase()} ${normStreet.toUpperCase()} · ${legalBounds.bettingStructure.toUpperCase()} · ${normFormat.toUpperCase()})`,

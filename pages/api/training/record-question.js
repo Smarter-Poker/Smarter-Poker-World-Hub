@@ -1,3 +1,4 @@
+import { coachingForServedAnswer, measuredActionFrequencies } from '../../../src/lib/training/decisionCoaching.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/training/record-question
@@ -197,6 +198,7 @@ function buildRecordedAnswerResponse({
     return fallback;
   };
 
+  const measuredMix = measuredActionFrequencies(servedQuestion, verified);
   const resolvedIsCorrect = Boolean(storedOr('is_correct', 'canonicalSolverIsCorrect', canonicalGrade.isCorrect));
 
   return {
@@ -239,11 +241,7 @@ function buildRecordedAnswerResponse({
     },
     feedback: {
       correctAnswer: servedQuestion.correctAnswer,
-      correctAnswerText: servedQuestion.correctAnswerText
-        || servedQuestion.options?.find((option) => String(option?.id) === String(servedQuestion.correctAnswer))?.text
-        || String(servedQuestion.correctAnswer || ''),
-      explanation: servedQuestion.explanation || '',
-      structuredExplanation: servedQuestion.structuredExplanation || canonicalQuestion?.structuredExplanation || null,
+      ...coachingForServedAnswer(servedQuestion, verified, measuredMix),
       brainEvaluation: canonicalScenario.brainEvaluation || servedQuestion.scenario?.brainEvaluation || null,
       plo8LowEvaluation:
         canonicalScenario.plo8LowEvaluation
@@ -252,7 +250,7 @@ function buildRecordedAnswerResponse({
         || servedQuestion?.scenario?.plo8LowEvaluation
         || canonicalScenario.brainEvaluation?.plo8LowEvaluation
         || null,
-      gtoFrequencies: verified ? (servedQuestion.gtoFrequencies || null) : null,
+      gtoFrequencies: measuredMix,
       frequencies: verified ? (servedQuestion.frequencies || null) : null,
       rawFrequencies: verified ? (servedQuestion.rawFrequencies || null) : null,
       evData: verified ? (servedQuestion.evData || null) : null,

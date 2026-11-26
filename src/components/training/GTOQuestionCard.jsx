@@ -400,6 +400,8 @@ export default function GTOQuestionCard({
                             key="feedback"
                             role="status"
                             data-training-feedback="verdict"
+                            data-correct-action={question.correctAnswer}
+                            data-selected-action={selectedId}
                             aria-live="assertive"
                             aria-atomic="true"
                             initial={reduceMotion ? false : { opacity: 0, scale: .96 }}
@@ -452,7 +454,7 @@ export default function GTOQuestionCard({
                                     color: '#d8e6ed',
                                 }}
                             >
-                                {explanation || `${correctText} is the optimal GTO decision in this scenario.`}
+                                {question.explanation || explanation || `The answer for this drill is ${correctText}.`}
                             </div>
                             <div style={{ color: '#9db0bb', fontSize: 12, fontWeight: 700, marginTop: 13, textAlign: 'center' }}>
                                 This Result Will Stay Open Until You Click Next.
