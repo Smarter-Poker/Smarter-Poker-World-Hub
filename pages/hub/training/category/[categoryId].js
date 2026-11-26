@@ -205,9 +205,8 @@ export default function CategoryPage() {
                     position: relative;
                     min-height: 340px;
                     overflow: hidden;
-                    border: 1px solid #688299;
-                    border-top-color: #aec0d0;
-                    border-bottom: 2px solid color-mix(in srgb, var(--category-accent) 78%, #091727);
+                    border: 5px solid transparent;
+                    border-image: url("/images/smarterdesign/chrome-readout.webp") 21 / 8px stretch;
                     border-radius: 0;
                     background: #040d18;
                     box-shadow: inset 0 1px rgba(255,255,255,.13), 0 32px 70px rgba(0,0,0,.72);

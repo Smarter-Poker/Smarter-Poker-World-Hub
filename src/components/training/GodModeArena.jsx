@@ -2350,7 +2350,7 @@ function GodModeArenaInner({
                   border: '1px solid #688299',
                   borderTopColor: '#aec0d0',
                   background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
-                  color: '#fbbf24',
+                  color: '#86daff',
                   cursor: 'pointer',
                 }}
               >
@@ -2406,7 +2406,7 @@ function GodModeArenaInner({
               <div style={styles.summaryLabel}>Measured EV Loss (BB)</div>
             </div>
             <div style={styles.summaryItem}>
-              <div style={{ ...styles.summaryValue, color: '#fbbf24' }}>{sessionMistakes}</div>
+              <div style={{ ...styles.summaryValue, color: '#86daff' }}>{sessionMistakes}</div>
               <div style={styles.summaryLabel}>Mistakes</div>
             </div>
             <div style={styles.summaryItem}>
@@ -2445,7 +2445,7 @@ function GodModeArenaInner({
             const segments = [
               { key: 'best', label: 'Best', color: '#22c55e', count: classificationCounts.best || 0 },
               { key: 'correct', label: 'Correct', color: '#00d4ff', count: classificationCounts.correct || 0 },
-              { key: 'inaccuracy', label: 'Inaccuracy', color: '#fbbf24', count: classificationCounts.inaccuracy || 0 },
+              { key: 'inaccuracy', label: 'Inaccuracy', color: '#86daff', count: classificationCounts.inaccuracy || 0 },
               { key: 'wrong', label: 'Wrong', color: '#f97316', count: classificationCounts.wrong || 0 },
               { key: 'blunder', label: 'Blunder', color: '#ef4444', count: classificationCounts.blunder || 0 },
             ];
@@ -2706,7 +2706,7 @@ function GodModeArenaInner({
                             style={{
                               fontSize: 12,
                               fontWeight: 700,
-                              color: '#fbbf24',
+                              color: '#86daff',
                               textTransform: 'uppercase',
                               letterSpacing: 1,
                               marginBottom: 4,
@@ -2747,7 +2747,7 @@ function GodModeArenaInner({
                       }}
                     >
                       <div
-                        style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa', marginBottom: 6 }}
+                        style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 6 }}
                       >
                         {ssc.title}
                       </div>
@@ -3139,7 +3139,7 @@ function GodModeArenaInner({
                         text:
                           leak.tip ||
                           `Watch for ${leak.type.replace(/_/g, ' ')} patterns (${leak.count}x).`,
-                        color: '#fbbf24',
+                        color: '#86daff',
                       });
                     });
                   }
@@ -3179,7 +3179,7 @@ function GodModeArenaInner({
                         tips.push({
                           priority: 3,
                           text: `${st.charAt(0).toUpperCase() + st.slice(1)} accuracy is ${Math.round(acc)}% - review board texture analysis for this street.`,
-                          color: '#fbbf24',
+                          color: '#86daff',
                         });
                     });
                   }
@@ -3207,7 +3207,7 @@ function GodModeArenaInner({
                     tips.push({
                       priority: 3,
                       text: `Your ${measuredEVPerDecision.toFixed(2)}bb/decision measured EV loss is moderate. Refine marginal spots to push into the green zone.`,
-                      color: '#fbbf24',
+                      color: '#86daff',
                     });
                   }
 
@@ -3222,7 +3222,7 @@ function GodModeArenaInner({
                         style={{
                           fontSize: 12,
                           fontWeight: 700,
-                          color: '#a78bfa',
+                          color: '#86daff',
                           textTransform: 'uppercase',
                           letterSpacing: 0.5,
                           marginBottom: 4,
@@ -3345,7 +3345,7 @@ function GodModeArenaInner({
                     style={{
                       fontSize: 12,
                       fontWeight: 700,
-                      color: '#a78bfa',
+                      color: '#86daff',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 8,
@@ -3548,7 +3548,7 @@ function GodModeArenaInner({
                     style={{
                       fontSize: 12,
                       fontWeight: 'bold',
-                      color: '#f59e0b',
+                      color: '#86daff',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
@@ -3895,7 +3895,7 @@ function GodModeArenaInner({
                       borderRadius: 8,
                       border: '1px solid rgba(139, 92, 246, 0.3)',
                       background: 'rgba(139, 92, 246, 0.1)',
-                      color: '#a78bfa',
+                      color: '#86daff',
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -4558,7 +4558,7 @@ function GodModeArenaInner({
       }}
     >
       <div>
-        <div style={{ color: '#fbbf24', fontSize: 13, fontWeight: 900, letterSpacing: '.06em' }}>
+        <div style={{ color: '#86daff', fontSize: 13, fontWeight: 900, letterSpacing: '.06em' }}>
           {transitionTitle}
         </div>
         <div style={{ marginTop: 3, fontSize: 12, lineHeight: 1.45 }}>
@@ -4918,8 +4918,8 @@ function GodModeArenaInner({
                       <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--four">
                         {[
                           { key: 'relaxed', label: 'Relaxed', desc: 'No timer', color: '#22c55e' },
-                          { key: 'standard', label: 'Standard', desc: '25s', color: '#fbbf24' },
-                          { key: 'quick', label: 'Quick', desc: '15s', color: '#f59e0b' },
+                          { key: 'standard', label: 'Standard', desc: '25s', color: '#86daff' },
+                          { key: 'quick', label: 'Quick', desc: '15s', color: '#86daff' },
                           { key: 'blitz', label: 'Blitz', desc: '7s', color: '#ef4444' },
                         ].map((t) => (
                           <button
@@ -5253,7 +5253,7 @@ function GodModeArenaInner({
         </div>
         <div style={styles.footerStat}>
           <span style={{ color: '#94a3b8' }}>Mistakes:</span>
-          <span style={{ color: '#fbbf24', fontWeight: 'bold', marginLeft: 6 }}>
+          <span style={{ color: '#86daff', fontWeight: 'bold', marginLeft: 6 }}>
             {sessionMistakes}
           </span>
         </div>

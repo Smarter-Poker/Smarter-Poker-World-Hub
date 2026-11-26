@@ -229,7 +229,7 @@ const styles = {
         lineHeight: 1.5,
     },
     errorText: {
-        color: '#fbbf24',
+        color: '#86daff',
         fontSize: 13,
         fontWeight: 700,
         marginBottom: 4,

@@ -70,8 +70,8 @@ import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scro
 const CATEGORY_META = {
   MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#FB923C', glow: 'rgba(251,146,60,0.25)' },
   CASH:       { label: 'Cash Games',   Icon: DollarSign, color: '#4ADE80', glow: 'rgba(74,222,128,0.22)' },
-  SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#FACC15', glow: 'rgba(250,204,21,0.22)' },
-  PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#C084FC', glow: 'rgba(192,132,252,0.22)' },
+  SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
+  PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
   ADVANCED:   { label: 'Poker Strategy',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
 
@@ -464,7 +464,7 @@ export default function TrainingPage() {
 
             </section>
 
-            <section id="training-library" aria-labelledby="lib-h" data-tutorial="library">
+            <section id="training-library" className="sd-panel sp-training-section" aria-labelledby="lib-h" data-tutorial="library">
               <div className="sp-section-head">
                 <h2 ref={libraryHeadingRef} id="lib-h" className="sp-section-title" tabIndex={-1}>Browse Games</h2>
                 <span className="sp-section-link" aria-live="polite">
@@ -489,7 +489,7 @@ export default function TrainingPage() {
                 {CATEGORY_ORDER.map(category => {
                   const meta = CATEGORY_META[category];
                   return (
-                    <Link key={category} className="sp-cat-chip" href={`/hub/training/category/${category.toLowerCase()}`}>
+                    <Link key={category} className="sp-cat-chip sd-button" href={`/hub/training/category/${category.toLowerCase()}`}>
                       <meta.Icon size={14} aria-hidden style={{ color: meta.color }} /> {meta.label}
                     </Link>
                   );
@@ -605,7 +605,7 @@ export default function TrainingPage() {
               </section>
             )}
 
-            <section aria-labelledby="stats-h" data-tutorial="stats">
+            <section className="sd-panel sp-training-section" aria-labelledby="stats-h" data-tutorial="stats">
               <div className="sp-section-head">
                 <h2 id="stats-h" className="sp-section-title">This Week</h2>
                 <a className="sp-section-link" href="/hub/session-history">See History <ArrowRight size={14} aria-hidden /></a>
@@ -661,7 +661,7 @@ export default function TrainingPage() {
               )}
             </section>
 
-            <section aria-labelledby="prog-h" data-tutorial="progress">
+            <section className="sd-panel sp-training-section" aria-labelledby="prog-h" data-tutorial="progress">
               <div className="sp-section-head">
                 <h2 id="prog-h" className="sp-section-title">Progress</h2>
                 <Link className="sp-section-link" href="/hub/training/progress">View Progress <ArrowRight size={14} aria-hidden /></Link>
@@ -840,7 +840,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
       data-category={game.category.toLowerCase()}
       style={{ '--cat-color': meta.color, '--cover-glow': meta.glow }}
       onClick={onStart}
-      aria-label={`${game.name}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
+      aria-label={`Play ${game.name}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
     >
       <div className="sp-card-cover">
         <TrainingGameArt
@@ -870,10 +870,6 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
           {game.locked           && <span className="sp-badge sp-badge-locked"><Lock size={11} aria-hidden /> Locked</span>}
           <span className="sp-cat-pill" aria-hidden><Icon size={12} /></span>
         </div>
-        <div className="sp-card-art-code" aria-hidden="true">
-          <span>{game.id.toUpperCase()}</span>
-          <span>Training Module</span>
-        </div>
       </div>
       <div className="sp-card-body">
         <div className="sp-card-cat"><span className="sp-swatch" /> {meta.label}</div>
@@ -889,7 +885,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
             <div className="sp-progress-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
-        <div className="sp-card-launch"><span>Enter Training Arena</span><ArrowRight size={14} aria-hidden /></div>
+        <div className="sp-card-launch sd-button sd-primary"><span>Play</span><ArrowRight size={14} aria-hidden /></div>
       </div>
     </button>
   );
@@ -2054,11 +2050,21 @@ function GlobalStyle() {
       }
 
       .sp-main .sp-hero {
-        min-height: 240px;
+        min-height: 200px;
+        border: 5px solid transparent;
+        border-image: url("/images/smarterdesign/chrome-readout.webp") 21 / 8px stretch;
         grid-template-columns: 1fr;
         padding: clamp(20px, 4vw, 48px);
       }
       .sp-main .sp-hero-title { font-size: clamp(28px, 5vw, 48px); }
+      .sp-main .sp-hero-sub { color: var(--sd-silver); text-shadow: 0 1px 3px #040d18; }
+      .sp-training-section { margin-block: 14px; }
+      .sp-training-section .sp-section-head {
+        border: 0;
+        border-bottom: 1px solid var(--sd-line);
+        box-shadow: none;
+        background: transparent;
+      }
 
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }

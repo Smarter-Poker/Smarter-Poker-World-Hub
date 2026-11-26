@@ -2366,7 +2366,7 @@ body.world-training {
 
     /* Semantic verdict colors */
     --sp-verdict-correct:   var(--sp-accent-green);
-    --sp-verdict-mixed:     var(--sp-accent-amber);
+    --sp-verdict-mixed:     #86daff;
     --sp-verdict-incorrect: var(--sp-accent-red);
 
     /* Spacing scale already covered by --sp-space-* tokens elsewhere; not
@@ -2686,8 +2686,16 @@ body.world-training .sp-training-page-stage :where(input, textarea)::placeholder
     color: #7893a3 !important;
 }
 
-body.world-training .sp-training-page-stage :where(button, [role='button'], .sd-button):not(.universal-header *, .approved-global-header__button) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], .sd-button):not(.universal-header *, .approved-global-header__button) {
+    min-block-size: 44px;
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
     touch-action: manipulation;
+}
+
+body.world-training .sp-training-page-stage :where(button, a, input, textarea, select, summary, [tabindex]):focus-visible:not(.universal-header *) {
+    outline: 2px solid var(--sd-ice);
+    outline-offset: 2px;
 }
 
 body.world-training .sp-training-page-stage :is(.sd-button, .sp-training-next-button) {
@@ -4021,6 +4029,8 @@ body.world-training .sp-training-command--coach .sp-coach-hero-copy > p {
     line-height: 1.55;
     text-shadow: 0 2px 7px #000;
 }
+
+.sp-coach-study-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 body.world-training .sp-training-command--coach .sp-coach-hero-actions {
     display: flex;

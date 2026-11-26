@@ -40,7 +40,7 @@ const styles = {
     levelBadge: {
         background: 'linear-gradient(180deg, rgba(245,158,11,0.22), rgba(180,83,9,0.28))',
         border: '1px solid rgba(251,191,36,0.55)',
-        color: '#fbbf24',
+        color: '#86daff',
         padding: '6px 16px',
         borderRadius: 999,
         fontSize: '13px',
