@@ -7,6 +7,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import view from './toke/DealerVault.module.css';
 import ResponsiveTable from '../ui/ResponsiveTable';
 
 const IRS_MILEAGE_RATES = { 2026: 0.67, 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
@@ -46,22 +48,17 @@ function computeGigExpenses(gig) {
 
 export default function TaxSummaryModal({ completedGigs = [], onClose }) {
     const closeRef = useRef(null);
-
+    const dialogRef = useRef(null);
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
     useEffect(() => {
+        if (!mounted) return;
         const returnFocus = document.activeElement;
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+        const node = dialogRef.current;
+        node.showModal();
         closeRef.current?.focus();
-        const handleKeyDown = (event) => {
-            if (event.key === 'Escape') onClose();
-        };
-        document.addEventListener('keydown', handleKeyDown);
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-            document.body.style.overflow = previousOverflow;
-            returnFocus?.focus?.();
-        };
-    }, [onClose]);
+        return () => { node.close(); returnFocus?.focus?.({ preventScroll: true }); };
+    }, [mounted]);
 
     const availableYears = useMemo(() => {
         const years = new Set();
@@ -122,40 +119,33 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
 
     const fmt = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    return (
+    if (!mounted) return null;
+    return createPortal(
         <>
             {/* Print styles injected globally */}
             <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
-                    body > *:not(#tax-summary-print-root) { display: none !important; }
+                    body:has(#tax-summary-print-root) > *:not(#tax-summary-print-root) { display: none !important; }
                     #tax-summary-print-root {
-                        position: fixed !important; top: 0; left: 0;
+                        position: static !important; margin: 0; max-height: none !important; overflow: visible !important; border: 0 !important;
                         width: 100vw; height: auto; z-index: 99999;
                         background: #fff !important; color: #000 !important;
                         padding: 32px; font-family: 'Arial', sans-serif;
                     }
+                    #tax-summary-print-root::backdrop { display: none; }
+                    #tax-summary-print-root * { color: #101923 !important; background: transparent !important; text-shadow: none !important; }
                     .no-print { display: none !important; }
                     .print-section { page-break-inside: avoid; }
                     .print-footer-row { display: block !important; }
                 }
             ` }} />
 
-            {/* Overlay backdrop */}
-            <div style={s.backdrop} onClick={onClose} aria-hidden="true" />
-
-            {/* Modal */}
-            <div
-                id="tax-summary-print-root"
-                style={s.modal}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="tax-summary-title"
-            >
+            <dialog ref={dialogRef} id="tax-summary-print-root" className={'smarterdesign sd-panel ' + view.statement}
+                aria-labelledby="tax-summary-title" onCancel={event => { event.preventDefault(); onClose(); }}>
                 {/* Header */}
-                <div style={s.header}>
+                <div className={view.statementHeader}>
                     <div>
-                        <div id="tax-summary-title" style={s.title}>Annual Tax Summary</div>
-                        <div style={s.subtitle}>Toke Tracker · Smarter.Poker</div>
+                        <h2 id="tax-summary-title">Annual Tax Summary</h2>
                     </div>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                         <select
@@ -168,16 +158,16 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                             {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                         <button
-                            style={s.printBtn}
+
                             onClick={() => window.print()}
-                            className="no-print"
+                            className="no-print sd-button sd-primary"
                             aria-label="Print Or Save Tax Summary As PDF"
                         >Print / PDF</button>
                         <button
                             ref={closeRef}
-                            style={s.closeBtn}
+
                             onClick={onClose}
-                            className="no-print sp-icon-btn"
+                            className={'no-print sp-icon-btn ' + view.deleteButton}
                             aria-label="Close Tax Summary"
                         >✕</button>
                     </div>
@@ -186,7 +176,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                 {yearGigs.length === 0 ? (
                     <div style={s.empty}>No Completed Events In {selectedYear}</div>
                 ) : (
-                    <div style={s.body}>
+                    <div className={view.statementBody}>
 
                         {/* ── Summary Stats ── */}
                         <div style={s.statsGrid} className="print-section">
@@ -196,7 +186,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                                 { label: `Mileage Deduction (${totalMiles.toLocaleString()} mi × $${irsRate}/mi)`, value: `-${fmt(mileageDeduction)}`, color: METAL.warn },
                                 { label: 'Net Taxable Tips', value: fmt(netTaxableIncome), color: METAL.primary },
                             ].map(stat => (
-                                <div key={stat.label} style={s.statBox}>
+                                <div key={stat.label} className={view.statBox}>
                                     <div style={s.statLabel}>{stat.label}</div>
                                     <div style={{ ...s.statValue, color: stat.color }}>{stat.value}</div>
                                 </div>
@@ -256,8 +246,8 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                         </div>
                     </div>
                 )}
-            </div>
-        </>
+            </dialog>
+        </>, document.body
     );
 }
 

@@ -153,7 +153,7 @@ export default function VenueIntelPage() {
 
                     <div style={{ marginTop: 24 }}>
                         <HubErrorBoundary name="Shift Calendar">
-                            <TokeCalendar userId={userId} />
+                            <TokeCalendar userId={userId} headerAction />
                         </HubErrorBoundary>
                     </div>
                 </TokeWorkspace>

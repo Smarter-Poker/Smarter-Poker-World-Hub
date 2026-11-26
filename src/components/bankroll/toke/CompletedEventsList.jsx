@@ -1,125 +1,64 @@
-/**
- * COMPLETED EVENTS LIST
- * ═══════════════════════════════════════════════════════════════
- * Renders the completed gig cards with edit/delete/view report actions.
- * Extracted from TokeTracker.jsx for maintainability.
- * ═══════════════════════════════════════════════════════════════
- */
-
 import React, { memo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Pencil, Trash2 } from 'lucide-react';
+import { ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import shift from './ShiftConsole.module.css';
 
-const formatCurrency = (amount) =>
-    `$${(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const money = value => (value || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const date = value => new Date(value + 'T12:00:00').toLocaleDateString();
 
-function CompletedEventsList({
-    completedGigs,
-    isLoading,
-    loadError,
-    onViewReport,
-    onSaveEdit,
-    onDeleteGig,
-    styles,
-}) {
-    const [editingCompletedGig, setEditingCompletedGig] = useState(null);
-    const [completedEditForm, setCompletedEditForm] = useState({ venue_name: '', hourly_rate: '', notes: '' });
+function CompletedEventsList({ completedGigs, isLoading, loadError, onRetry, onViewReport, onSaveEdit, onDeleteGig }) {
+    const [editing, setEditing] = useState(null);
+    const [form, setForm] = useState({});
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
 
-    const handleEditClick = (e, gig) => {
-        e.stopPropagation();
-        setEditingCompletedGig(gig.id);
-        setCompletedEditForm({
-            venue_name: gig.venue_name || '',
-            hourly_rate: gig.hourly_rate || '',
-            notes: gig.notes || '',
-        });
-    };
-
-    const handleSave = async (gigId) => {
+    function edit(gig) {
+        setForm({ venue_name: gig.venue_name || '', hourly_rate: gig.hourly_rate ?? '', notes: gig.notes || '' });
+        setSaveError('');
+        setEditing(gig.id);
+    }
+    async function save(event, gigId) {
+        event.preventDefault();
+        if (saving) return;
+        setSaving(true);
+        setSaveError('');
         try {
-            await onSaveEdit(gigId, completedEditForm);
-            setEditingCompletedGig(null);
-        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
-    };
+            await onSaveEdit(gigId, form);
+            setEditing(null);
+        } catch (error) {
+            setSaveError(error.message || 'Could not save this event.');
+        } finally {
+            setSaving(false);
+        }
+    }
 
-    return (
-        <div style={styles.historySection}>
-            <h3 style={styles.historyTitle}>Completed Events</h3>
-            {isLoading ? (
-                <div style={styles.loadingPlaceholder}>Loading Events...</div>
-            ) : loadError ? (
-                <div style={{ ...styles.emptyState, color: '#d5e5f3' }}>Error: {loadError}</div>
-            ) : completedGigs.length === 0 ? (
-                <div style={styles.emptyState}>No Completed Events Yet. Start Your First Event Above!</div>
-            ) : (
-                <div style={styles.gigGrid}>
-                    {completedGigs.map(gig => (
-                        <motion.div
-                            key={gig.id}
-                            whileHover={{ scale: 1.02 }}
-                            style={styles.gigCard}
-                        >
-                            {editingCompletedGig === gig.id ? (
-                                <div style={{ padding: '12px 14px' }}>
-                                    <input
-                                        type="text"
-                                        value={completedEditForm.venue_name}
-                                        onChange={e => setCompletedEditForm(f => ({ ...f, venue_name: e.target.value }))}
-                                        placeholder="Venue Name"
-                                        style={styles.editInlineInput}
-                                        autoFocus
-                                    />
-                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                        <input
-                                            type="number"
-                                            value={completedEditForm.hourly_rate}
-                                            onChange={e => setCompletedEditForm(f => ({ ...f, hourly_rate: e.target.value }))}
-                                            placeholder="Hourly Rate"
-                                            style={{ ...styles.editInlineInput, flex: 1 }}
-                                        />
-                                        <input
-                                            type="text"
-                                            value={completedEditForm.notes}
-                                            onChange={e => setCompletedEditForm(f => ({ ...f, notes: e.target.value }))}
-                                            placeholder="Notes"
-                                            style={{ ...styles.editInlineInput, flex: 2 }}
-                                        />
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                                        <button onClick={() => handleSave(gig.id)} style={styles.eventSaveBtn}>Save</button>
-                                        <button onClick={() => setEditingCompletedGig(null)} style={styles.eventCancelBtn}>Cancel</button>
-                                        <button onClick={(e) => { e.stopPropagation(); onDeleteGig(e, gig.id); }} style={{ ...styles.eventDeleteBtn, padding: '10px 14px', flex: 0 }} title="Delete Event"><Trash2 aria-hidden="true" size={15} /></button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div onClick={() => onViewReport(gig.id)} style={{ cursor: 'pointer' }}>
-                                    <div style={styles.gigCardHeader}>
-                                        <h4 style={styles.gigCardName}>{gig.venue_name}</h4>
-                                        <span style={{ ...styles.gigCardTokes, color: '#38bdf8' }}>
-                                            {formatCurrency(gig.totalTokes || 0)}
-                                        </span>
-                                    </div>
-                                    <div style={styles.gigCardMeta}>
-                                        <span>{new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}</span>
-                                        {gig.end_date && <span> - {new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}</span>}
-                                    </div>
-                                    <div style={styles.gigCardFooter}>
-                                        <span>{gig.totalDowns || 0} Downs · {(gig.totalHoursWorked || 0).toFixed(1)}h</span>
-                                        <span style={styles.viewReportLink}>View Report →</span>
-                                    </div>
-                                </div>
-                            )}
-                            {editingCompletedGig !== gig.id && (
-                                <div style={styles.eventActionRow}>
-                                    <button onClick={(e) => handleEditClick(e, gig)} style={styles.eventEditBtn} title="Edit Settings"><Pencil aria-hidden="true" size={13} /> Edit</button>
-                                </div>
-                            )}
-                        </motion.div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
+    return <section className="sd-panel" aria-labelledby="toke-completed-heading">
+        <h2 className="sd-section-title" id="toke-completed-heading">Completed Events</h2>
+        {isLoading ? <p className={shift.status} role="status">Loading Events…</p>
+            : loadError ? <div role="alert"><p>{loadError}</p><button className="sd-button" onClick={onRetry}>Retry</button></div>
+            : !completedGigs.length ? <p className={shift.status}>No Completed Events Yet.</p>
+            : <ul className={shift.history}>{completedGigs.map(gig => <li key={gig.id}>
+                {editing === gig.id ? <form className={shift.form} aria-label="Edit Completed Event" onSubmit={event => save(event, gig.id)}>
+                    <label>Venue Name<input autoFocus required value={form.venue_name} onChange={e => setForm({ ...form, venue_name: e.target.value })} /></label>
+                    <div className={shift.pair}>
+                        <label>Hourly Rate ($)<input type="number" step="0.01" value={form.hourly_rate} onChange={e => setForm({ ...form, hourly_rate: e.target.value })} /></label>
+                        <label>Notes<input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></label>
+                    </div>
+                    {saveError && <p role="alert">{saveError}</p>}
+                    <div className={shift.actions}>
+                        <button type="submit" className="sd-button sd-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        <button type="button" className="sd-button" disabled={saving} onClick={() => setEditing(null)}>Cancel</button>
+                        <button type="button" className="sd-button" aria-label="Delete Event" disabled={saving} onClick={event => onDeleteGig(event, gig.id)}><Trash2 aria-hidden="true" size={16} /></button>
+                    </div>
+                </form> : <div className={shift.historyRow}>
+                    <button type="button" className={shift.historyOpen} onClick={() => onViewReport(gig.id)} aria-label={'View Report For ' + gig.venue_name}>
+                        <span><strong>{gig.venue_name}</strong>
+                            <small>{date(gig.start_date)}{gig.end_date && gig.end_date !== gig.start_date ? ' To ' + date(gig.end_date) : ''}</small>
+                            <small>{gig.totalDowns || 0} Downs · {(gig.totalHoursWorked || 0).toFixed(1)}h</small></span>
+                        <b>{money(gig.totalTokes)}</b><ChevronRight aria-hidden="true" size={15} />
+                    </button>
+                    <button type="button" className="sd-button" aria-label={'Edit ' + gig.venue_name} onClick={() => edit(gig)}><Pencil aria-hidden="true" size={16} /></button>
+                </div>}
+            </li>)}</ul>}
+    </section>;
 }
-
 export default memo(CompletedEventsList);

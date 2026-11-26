@@ -1,3 +1,4 @@
+import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
  * SERIES TRACKER COMPONENT
  * ---------------------------------------------------------------
@@ -233,6 +234,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
 
     return (
         <div className="sd-panel" style={styles.container}>
+            {activeSeries && onOpenLog && <BankrollHeaderAdd label="Add Series Entry" onClick={onOpenLog} />}
             {/* --- ACTIVE SERIES BANNER --- */}
             {activeSeries && (
                 <motion.div
@@ -445,18 +447,20 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
 
             {/* --- CREATE SERIES --- */}
             {!activeSeries && !showCreateForm && (
-                <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    onClick={() => setShowCreateForm(true)}
-                    style={styles.createBtn}
-                >
-                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Series</span>
-                    <div>
-                        <div style={styles.createTitle}>Start A New Series</div>
-                        <div style={styles.createSub}>Track Multi-Day Tournament Series, WSOP Runs, And Events</div>
-                    </div>
-                </motion.button>
+                <BankrollHeaderAdd label="Start A New Series" onClick={() => setShowCreateForm(true)}>
+                    <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        onClick={() => setShowCreateForm(true)}
+                        style={styles.createBtn}
+                    >
+                        <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Series</span>
+                        <div>
+                            <div style={styles.createTitle}>Start A New Series</div>
+                            <div style={styles.createSub}>Track Multi-Day Tournament Series, WSOP Runs, And Events</div>
+                        </div>
+                    </motion.button>
+                </BankrollHeaderAdd>
             )}
 
             <AnimatePresence>

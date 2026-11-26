@@ -147,6 +147,8 @@ import './horses-tournament-intent-storage.test.mjs';
 // process.exit() on import, which would truncate this whole run.
 import './api-routes-exist.test.mjs';
 import './bankroll-export-download.test.mjs';
+import './bankroll-analytics-view.test.mjs';
+import './bankroll-jarvis-session-insights.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
 // 2026-09-22: the same route schedules only its periodic steps. Runs the real

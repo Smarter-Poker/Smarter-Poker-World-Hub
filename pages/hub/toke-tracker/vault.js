@@ -175,7 +175,7 @@ export default function DealerVaultPage() {
                     {/* Tax Summary Button */}
                     {completedGigs.length > 0 && (
                         <button className="sd-button" onClick={() => setShowTaxSummary(true)}>
-                            📄 Annual Tax Summary & PDF Export
+                            Annual Tax Summary &amp; PDF Export
                         </button>
                     )}
 
