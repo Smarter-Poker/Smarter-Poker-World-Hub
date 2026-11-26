@@ -1777,6 +1777,7 @@ export default function useGTOTrainer(
         const currentQuestion = {
           ...publicQuestion,
           ...feedback,
+          selectedAnswer: submission.selectedAnswer,
           scenario: revealedScenario,
           _gradingContext: publicQuestion._gradingContext,
         };

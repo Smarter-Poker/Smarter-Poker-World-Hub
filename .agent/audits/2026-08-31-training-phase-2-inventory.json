@@ -47387,7 +47387,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 375,
+          "line": 376,
           "handler": "() => handleSelect(option.id)",
           "destination": null,
           "type": null,
@@ -47397,7 +47397,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 464,
+          "line": 465,
           "handler": "onNextHand",
           "destination": null,
           "type": null,
@@ -47407,7 +47407,7 @@
         {
           "element": "button",
           "name": "Practice Again",
-          "line": 475,
+          "line": 476,
           "handler": "() => onNextHand({ retry: true, retryQuestion: question })",
           "destination": null,
           "type": "button",
@@ -47455,7 +47455,7 @@
         },
         {
           "name": "rng",
-          "line": 254,
+          "line": 255,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -47463,7 +47463,7 @@
         },
         {
           "name": "playCardSound",
-          "line": 262,
+          "line": 263,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -47471,7 +47471,7 @@
         },
         {
           "name": "handleSelect",
-          "line": 306,
+          "line": 307,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -47479,7 +47479,7 @@
         },
         {
           "name": "getButtonStyle",
-          "line": 313,
+          "line": 314,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -47492,7 +47492,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 334,
+          "line": 335,
           "excerpt": "// But keep as fallback for safety",
           "disposition": "training-data-provenance-fallback",
           "review": "accepted",
@@ -58458,7 +58458,7 @@
         },
         {
           "name": "postAttempt",
-          "line": 2697,
+          "line": 2698,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -58466,7 +58466,7 @@
         },
         {
           "name": "handleOnlineFlush",
-          "line": 3343,
+          "line": 3344,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -58529,7 +58529,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2845,
+          "line": 2846,
           "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
           "disposition": "runtime-resilience-fallback",
           "review": "accepted",
@@ -58538,7 +58538,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2934,
+          "line": 2935,
           "excerpt": "// Fallback to single-question mode",
           "disposition": "training-data-provenance-fallback",
           "review": "accepted",
@@ -58547,7 +58547,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 3834,
+          "line": 3835,
           "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -88957,11 +88957,11 @@
       "effectRef": "src/components/training/ErrorBanner.js"
     },
     {
-      "id": "src/components/training/GTOQuestionCard.jsx:375:1",
+      "id": "src/components/training/GTOQuestionCard.jsx:376:1",
       "file": "src/components/training/GTOQuestionCard.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 375,
+      "line": 376,
       "handler": "() => handleSelect(option.id)",
       "destination": null,
       "type": null,
@@ -88970,11 +88970,11 @@
       "effectRef": "src/components/training/GTOQuestionCard.jsx"
     },
     {
-      "id": "src/components/training/GTOQuestionCard.jsx:464:2",
+      "id": "src/components/training/GTOQuestionCard.jsx:465:2",
       "file": "src/components/training/GTOQuestionCard.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 464,
+      "line": 465,
       "handler": "onNextHand",
       "destination": null,
       "type": null,
@@ -88983,11 +88983,11 @@
       "effectRef": "src/components/training/GTOQuestionCard.jsx"
     },
     {
-      "id": "src/components/training/GTOQuestionCard.jsx:475:3",
+      "id": "src/components/training/GTOQuestionCard.jsx:476:3",
       "file": "src/components/training/GTOQuestionCard.jsx",
       "element": "button",
       "name": "Practice Again",
-      "line": 475,
+      "line": 476,
       "handler": "() => onNextHand({ retry: true, retryQuestion: question })",
       "destination": null,
       "type": "button",
@@ -107640,6 +107640,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-arena-client-answer-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ]
     },
@@ -116099,7 +116100,7 @@
       {
         "file": "src/components/training/GTOQuestionCard.jsx",
         "kind": "FALLBACK",
-        "line": 334,
+        "line": 335,
         "excerpt": "// But keep as fallback for safety",
         "disposition": "training-data-provenance-fallback",
         "review": "accepted",
@@ -117220,7 +117221,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2845,
+        "line": 2846,
         "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -117230,7 +117231,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2934,
+        "line": 2935,
         "excerpt": "// Fallback to single-question mode",
         "disposition": "training-data-provenance-fallback",
         "review": "accepted",
@@ -117240,7 +117241,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "SIMULATION",
-        "line": 3834,
+        "line": 3835,
         "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -127134,7 +127135,7 @@
       {
         "file": "src/components/training/GTOQuestionCard.jsx",
         "kind": "FALLBACK",
-        "line": 334,
+        "line": 335,
         "excerpt": "// But keep as fallback for safety",
         "disposition": "training-data-provenance-fallback",
         "review": "accepted",
@@ -128255,7 +128256,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2845,
+        "line": 2846,
         "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -128265,7 +128266,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2934,
+        "line": 2935,
         "excerpt": "// Fallback to single-question mode",
         "disposition": "training-data-provenance-fallback",
         "review": "accepted",
@@ -128275,7 +128276,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "SIMULATION",
-        "line": 3834,
+        "line": 3835,
         "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
         "disposition": "domain-simulation",
         "review": "accepted",
