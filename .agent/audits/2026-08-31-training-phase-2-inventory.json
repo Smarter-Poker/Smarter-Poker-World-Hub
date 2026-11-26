@@ -119297,6 +119297,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/bankroll/AdjustBankrollModal.jsx",
+          "src/components/bankroll/BankrollExportFormats.jsx",
           "src/components/bankroll/LogEntryModal.jsx",
           "src/components/bankroll/ManageVenuesModal.jsx",
           "src/components/bankroll/StartingBankrollModal.jsx",
@@ -130001,6 +130002,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/bankroll/AdjustBankrollModal.jsx",
+          "src/components/bankroll/BankrollExportFormats.jsx",
           "src/components/bankroll/LogEntryModal.jsx",
           "src/components/bankroll/ManageVenuesModal.jsx",
           "src/components/bankroll/StartingBankrollModal.jsx",

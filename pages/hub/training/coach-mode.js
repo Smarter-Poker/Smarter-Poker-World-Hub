@@ -689,7 +689,7 @@ export default function CoachModePage() {
 
           <section className="sp-coach-module-section" aria-labelledby="coach-study-room">
             <h2 id="coach-study-room">Study With A Partner</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div className="sp-coach-study-actions">
               <button type="button" data-launch-coop-study-room="true" data-coop-room-href={coopStudyRoomHref}
                 onClick={() => router.push(coopStudyRoomHref)} className="sp-coach-primary">
                 Start A Study Room

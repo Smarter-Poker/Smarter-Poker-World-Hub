@@ -4017,6 +4017,12 @@ body.world-training .sp-training-command--coach .sp-coach-hero-copy > p {
     text-shadow: 0 2px 7px #000;
 }
 
+body.world-training .sp-training-command--coach .sp-coach-study-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 body.world-training .sp-training-command--coach .sp-coach-hero-actions {
     display: flex;
     align-items: stretch;
