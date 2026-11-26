@@ -200,12 +200,12 @@ export default function TrainingArenaPage() {
                 config: {
                     ...(baseConfig || {}),
                     ...(sharedDrillPack ? {
-                        stackDepth: sharedDrillPack.stackDepthBb,
+                        stackDepthBb: sharedDrillPack.stackDepthBb,
                         questionsCount: sharedDrillPack.questionsCount,
                         sharedPackTitle: sharedDrillPack.title,
                     } : {}),
                     ...(coopStudyRoom ? {
-                        stackDepth: coopStudyRoom.stackDepthBb,
+                        stackDepthBb: coopStudyRoom.stackDepthBb,
                         coopRoomId: coopStudyRoom.roomId,
                         coopCoachName: coopStudyRoom.coachName,
                         coopRoomTitle: coopStudyRoom.title,

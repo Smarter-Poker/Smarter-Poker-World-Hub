@@ -612,8 +612,27 @@ test('Phase 18 full suite: Real-Time Co-Op Study Room, Post-Session 3-Hand Leak 
   assert.equal(perfectEval.gradeLabel, 'Elite Range Read');
 
   // 4. Verify UI wiring markers across Phase 18 files
+  const { isCustomTrainerConfig } = await import('../src/lib/training/trainerConfigMode.mjs');
   const arenaRouteSrc = read('pages/hub/training/arena/[gameId].js');
   assert.ok(arenaRouteSrc.includes('data-coop-study-room-banner="true"'), 'Arena route must render Co-Op Study Room banner when ?coopRoom= is active');
+  assert.ok(
+    !arenaRouteSrc.includes('stackDepth: sharedDrillPack.stackDepthBb') &&
+    !arenaRouteSrc.includes('stackDepth: coopStudyRoom.stackDepthBb'),
+    'Arena route must pass stackDepthBb (not stackDepth) for sharedDrillPack and coopStudyRoom so isCustomTrainerConfig does not misroute catalog drills to /api/training/custom-train',
+  );
+  assert.equal(
+    isCustomTrainerConfig({
+      stackDepthBb: 100,
+      variant: 'nlh',
+      bettingStructure: 'no_limit',
+      format: 'cash',
+      targetStreet: 'flop',
+      gameMode: 'street',
+      targetPositions: 'BTN',
+    }),
+    false,
+    'Shared Drill Pack and Co-Op Study Room configs must use standard batch-preload pipeline',
+  );
 
   const coachModeSrc = read('pages/hub/training/coach-mode.js');
   assert.ok(coachModeSrc.includes('data-launch-coop-study-room="true"'), 'Coach Mode must render Host Live Co-Op Study Room CTA');
