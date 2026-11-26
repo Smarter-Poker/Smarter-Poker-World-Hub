@@ -44,10 +44,10 @@ test('Table Dynamics uses the straight metallic Training design system', () => {
 });
 
 test('Training Hub categories and progress indicators expose valid accessible semantics', () => {
-  const source = read('pages/hub/training.js');
+  const source = `${read('pages/hub/training.js')}\n${read('src/components/training/lobby/TrainingLobbyControls.jsx')}`;
 
-  assert.match(source, /className="sp-cat-chips" aria-label="Training game categories"/);
-  assert.doesNotMatch(source, /className="sp-cat-chip" role="tab" aria-pressed/);
+  assert.match(source, /className="sp-cat-chips[^"]*"[\s\S]*?aria-label="Training [Gg]ame [Cc]ategories"/);
+  assert.doesNotMatch(source, /className="sp-cat-chip[^"]*" role="tab" aria-pressed/);
   assert.match(source, /aria-label="Thirty Day GTO Accuracy"/);
   assert.match(source, /aria-label=\{`\$\{game\.name\} Training Calibration`\}/);
 });
@@ -55,8 +55,8 @@ test('Training Hub categories and progress indicators expose valid accessible se
 test('Training Hub browse recovery and mobile library title remain fully visible', () => {
   const source = read('pages/hub/training.js');
 
-  assert.match(source, /const resetBrowseFilters = useCallback\(\(\) => \{[\s\S]*?setActiveCat\('ALL'\);[\s\S]*?setQuery\(''\);[\s\S]*?setDebouncedQuery\(''\);/);
-  assert.match(source, /className="sp-empty" role="status"[\s\S]*?Reset Browse Filters/);
+  assert.match(source, /const resetBrowseFilters = useCallback\(\(\) => \{[\s\S]*?setFilters\(DEFAULT_LOBBY_FILTERS\);[\s\S]*?setDebouncedQuery\(''\);/);
+  assert.match(source, /className="sp-arena-empty" role="status"[\s\S]*?Reset All Filters/);
   assert.match(source, /#training-library \.sp-section-title \{[\s\S]*?overflow:\s*visible;[\s\S]*?text-overflow:\s*clip;[\s\S]*?white-space:\s*normal;/);
 });
 

@@ -1,0 +1,1335 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAINING GAMES — POKER ARENA LOBBY DESIGN SYSTEM
+   ───────────────────────────────────────────────────────────────────────────
+   High-density metallic carbon-fiber game browser modeled on Club Arena's
+   Game Lobby (PremiumMttRows + LobbyGameSections + StickyLobbyFilters) while
+   strictly complying with #SMARTERDESIGN & Mobile Phase 5 laws:
+     - Ink-navy canvas (#040d18), brushed steel edges (#688299 / #aec0d0),
+       cobalt active states (#087cfa -> #002b68), ice-blue emphasis (#45adff / #86daff)
+     - ZERO forbidden text colors (no yellow/gold/amber/purple/pink/magenta text)
+     - ZERO fonts below 12px
+     - ZERO display: none outside @media print
+     - ZERO hidden-scrollbar horizontal rails
+     - Sanctioned breakpoints only: 900px, 768px, 600px
+     - Touch target floor >= 44px on every interactive control
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-training .sp-arena-lobby-shell {
+  max-width: 1000px;
+  margin-inline: auto;
+  padding: 12px 12px calc(108px + env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(60% 35% at 50% 0%, rgba(23, 157, 255, 0.14), transparent 60%),
+    #040d18;
+  color: #f2f7ff;
+  font-family: var(--font-inter, 'Inter'), system-ui, -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Preserve real poker acronyms (GTO, ICM, MTT, PLO8, 15BB) instead of blanket capitalize */
+body.world-training .sp-arena-lobby-shell :where(h1, h2, h3, p, span, a, button, input) {
+  text-transform: none;
+}
+
+/* ─── ZONE A: COMPACT COMMAND MASTHEAD ───────────────────────────────────── */
+
+body.world-training .sp-arena-masthead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #688299;
+  border-top: 2px solid #aec0d0;
+  border-radius: 6px;
+  background:
+    radial-gradient(ellipse at 50% -20%, rgba(69, 173, 255, 0.2), transparent 58%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 6px),
+    linear-gradient(180deg, #0d1d2f 0%, #050d17 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 24px rgba(0, 0, 0, 0.55);
+}
+
+body.world-training .sp-arena-masthead__title-bar {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+body.world-training .sp-arena-masthead__eyebrow {
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #bdd0e2;
+}
+
+body.world-training .sp-arena-masthead__title {
+  margin: 0;
+  font-family: var(--font-orbitron, 'Orbitron'), var(--font-rajdhani, sans-serif);
+  font-size: clamp(22px, 5vw, 32px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f2f7ff;
+  text-shadow: 0 2px 0 #040911, 0 0 16px rgba(69, 173, 255, 0.28);
+}
+
+body.world-training .sp-arena-masthead__plaques {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body.world-training .sp-arena-plaque {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #59748d;
+  border-top-color: #a7bccf;
+  border-radius: 5px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 8px),
+    linear-gradient(180deg, #102032 0%, #050c15 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+body.world-training .sp-arena-plaque__copy,
+body.world-training .sp-arena-plaque__telemetry-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+body.world-training .sp-arena-plaque__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #86daff;
+}
+
+body.world-training .sp-arena-plaque__name,
+body.world-training .sp-arena-plaque__value {
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #f2f7ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.world-training .sp-arena-plaque__sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.25;
+  color: #bdd0e2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.world-training .sp-arena-plaque__play {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body.world-training .sp-arena-plaque__grade-grid {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+body.world-training .sp-arena-plaque__grade-badge {
+  flex: 0 0 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #45adff;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #102a46 0%, #051120 100%);
+  color: #86daff;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+body.world-training .sp-arena-plaque__telemetry-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+body.world-training .sp-arena-plaque__retry {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Slim 5-Min Leak Fix Bar */
+body.world-training .sp-arena-quickbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid #45adff;
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgba(12, 85, 192, 0.28) 0%, rgba(5, 14, 24, 0.94) 65%);
+}
+
+body.world-training .sp-arena-quickbar__copy {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+body.world-training .sp-arena-quickbar__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid #56d8ff;
+  border-radius: 4px;
+  background: rgba(8, 124, 250, 0.22);
+  color: #86daff;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.world-training .sp-arena-quickbar__text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2f7ff;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.world-training .sp-arena-quickbar__cta {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ─── ZONE B: "FIND YOUR GAME" 3-TIER SELECTOR DECK ──────────────────────── */
+
+body.world-training .sp-arena-lobby-section {
+  margin-top: 12px;
+}
+
+body.world-training .sp-arena-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px 12px 10px;
+  border: 1px solid #556f87;
+  border-top: 2px solid #9db4c8;
+  border-radius: 6px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(23, 157, 255, 0.14), transparent 55%),
+    linear-gradient(180deg, #0b1826 0%, #040a12 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 26px rgba(0, 0, 0, 0.5);
+}
+
+body.world-training .sp-arena-deck__heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body.world-training .sp-arena-deck__heading {
+  margin: 0;
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f2f7ff;
+  text-shadow: 0 1px 2px #000;
+}
+
+body.world-training .sp-arena-deck__count {
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #86daff;
+}
+
+/* Tier 1: Primary Beveled Leather-Quilt Mode Plates */
+body.world-training .sp-arena-primary-plates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body.world-training .sp-arena-plate {
+  position: relative;
+  min-height: 62px;
+  padding: 8px 12px;
+  border: 2px solid #7d96ad;
+  border-top-color: #d6e2ec;
+  border-bottom-color: #3a5064;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(69, 173, 255, 0.25) 0 4px, transparent 4px calc(100% - 4px), rgba(69, 173, 255, 0.25) calc(100% - 4px)),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, #1b2d40 0%, #0a1522 52%, #050b13 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.65),
+    0 4px 12px rgba(0, 0, 0, 0.55);
+  color: #f2f7ff;
+  cursor: pointer;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.1s ease;
+}
+
+body.world-training .sp-arena-plate:hover {
+  border-color: #9ed9ff;
+}
+
+body.world-training .sp-arena-plate[aria-pressed='true'] {
+  border-color: #56d8ff;
+  border-top-color: #dcf7ff;
+  background:
+    linear-gradient(90deg, #45adff 0 4px, transparent 4px calc(100% - 4px), #45adff calc(100% - 4px)),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, #156ad1 0%, #093d8a 54%, #052254 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 0 18px rgba(69, 173, 255, 0.34);
+  color: #ffffff;
+}
+
+body.world-training .sp-arena-plate__well {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+body.world-training .sp-arena-plate__title {
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: clamp(16px, 4.2vw, 21px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px #000;
+}
+
+body.world-training .sp-arena-plate[aria-pressed='true'] .sp-arena-plate__title {
+  color: #ffffff;
+}
+
+body.world-training .sp-arena-plate__meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: #bdd0e2;
+  letter-spacing: 0.03em;
+}
+
+body.world-training .sp-arena-plate[aria-pressed='true'] .sp-arena-plate__meta {
+  color: #d7f2ff;
+}
+
+/* Centered Favorites Plate */
+body.world-training .sp-arena-favorites-row {
+  display: flex;
+  justify-content: center;
+}
+
+body.world-training .sp-arena-favorites-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 168px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #7590a9;
+  border-top-color: #c5d6e6;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #1b2f44 0%, #091522 65%, #050c14 100%);
+  color: #f2f7ff;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.world-training .sp-arena-favorites-btn[aria-pressed='true'] {
+  border-color: #56d8ff;
+  background: linear-gradient(180deg, #0d72e8 0%, #073f8f 60%, #042559 100%);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(69, 173, 255, 0.34);
+}
+
+/* Tier 2: Sub-Category Tabs (flex-wrap keeps every category visible, zero hidden rail) */
+body.world-training .sp-cat-chips.sp-arena-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+}
+
+body.world-training .sp-cat-chip.sp-arena-subtab {
+  flex: 1 1 112px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid #5c7690;
+  border-top-color: #a9bdd0;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #16283b 0%, #08121f 70%);
+  color: #e6f0fa;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.world-training .sp-cat-chip.sp-arena-subtab .sp-cat-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #86daff;
+}
+
+body.world-training .sp-cat-chip.sp-arena-subtab[aria-pressed='true'] .sp-cat-count {
+  color: #dff6ff;
+}
+
+/* Tier 3: 2x3 Quick-Filter Pills */
+body.world-training .sp-arena-quick-pills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+body.world-training .sp-arena-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid #526c85;
+  border-top-color: #9ab2c7;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #132334 0%, #07101b 70%);
+  color: #dce9f5;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.world-training .sp-arena-pill[aria-pressed='true'],
+body.world-training .sp-arena-pill.active {
+  border-color: #56d8ff;
+  border-top-color: #ccf3ff;
+  background: linear-gradient(180deg, #0b78f2 0%, #064296 62%, #03265c 100%);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(69, 173, 255, 0.28);
+}
+
+/* Inline Search Row */
+body.world-training .sp-arena-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+body.world-training .sp-arena-search {
+  position: relative;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+body.world-training .sp-arena-search > svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #86daff;
+  pointer-events: none;
+}
+
+body.world-training .sp-arena-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 42px 8px 36px;
+  border: 1px solid #556f87;
+  border-top-color: #8fa6bc;
+  border-radius: 5px;
+  background: #040b14;
+  color: #f2f7ff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+body.world-training .sp-arena-search input::placeholder {
+  color: #93abc2;
+}
+
+body.world-training .sp-arena-search input:focus-visible {
+  outline: 2px solid #86daff;
+  outline-offset: 1px;
+  border-color: #86daff;
+}
+
+body.world-training .sp-arena-search__clear {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #bdd0e2;
+  cursor: pointer;
+}
+
+body.world-training .sp-arena-reset-btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* ─── ZONE C: STICKY QUICK RAIL & SORTABLE COLUMN BAR ────────────────────── */
+
+body.world-training .sp-arena-sticky-dock {
+  position: sticky;
+  top: calc(var(--universal-header-height, 56px) + env(safe-area-inset-top, 0px));
+  z-index: 25;
+  margin-top: 10px;
+  background: #040d18;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.72);
+}
+
+body.world-training .sp-arena-sticky-rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid #56718a;
+  border-bottom: 0;
+  background: linear-gradient(180deg, #0d1d2f 0%, #06101c 100%);
+}
+
+body.world-training .sp-arena-sticky-rail__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.world-training .sp-arena-sortbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.15fr);
+  border: 1px solid #5a748e;
+  border-top-color: #a6bbd0;
+  border-bottom: 2px solid #000000;
+  background: linear-gradient(180deg, #161d26 0%, #0b1016 100%);
+}
+
+body.world-training .sp-arena-sortbar__col {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #dce6f0;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+body.world-training .sp-arena-sortbar__col:last-child {
+  border-right: 0;
+}
+
+body.world-training .sp-arena-sortbar__col--name {
+  justify-content: flex-start;
+  padding-left: 12px;
+}
+
+body.world-training .sp-arena-sortbar__col.is-sorted {
+  color: #45adff;
+  background: rgba(69, 173, 255, 0.1);
+}
+
+/* ─── ZONE D: GROUPED METALLIC SECTION DIVIDERS ──────────────────────────── */
+
+body.world-training .sp-arena-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+body.world-training .sp-arena-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+body.world-training .sp-arena-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px solid #567088;
+  border-top-color: #9cb3c8;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, rgba(69, 173, 255, 0.22) 0, transparent 22%, transparent 78%, rgba(69, 173, 255, 0.22) 100%),
+    linear-gradient(180deg, #132232 0%, #07101a 100%);
+}
+
+body.world-training .sp-arena-divider__label {
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #86daff;
+}
+
+body.world-training .sp-arena-divider__count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #bdd0e2;
+}
+
+/* ─── ZONE E: ULTRA-DENSE METALLIC ARENA ROW CARDS (~114px TALL) ─────────── */
+
+body.world-training .sp-arena-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+body.world-training .sp-arena-row {
+  position: relative;
+  border: 2px solid #6b849c;
+  border-top-color: #c7d5e3;
+  border-bottom-color: #2f4356;
+  border-radius: 7px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 8px),
+    linear-gradient(180deg, #13202e 0%, #08111b 52%, #040911 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 4px 0 0 var(--row-led, #45adff),
+    0 6px 16px rgba(0, 0, 0, 0.52);
+  overflow: clip;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.12s ease;
+}
+
+/* Below-the-fold rendering deferral (modern-web-guidance: defer-rendering-heavy-content) */
+body.world-training .sp-arena-row--deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 116px;
+}
+
+body.world-training .sp-arena-row--led-ice { --row-led: #45adff; }
+body.world-training .sp-arena-row--led-cobalt { --row-led: #1981ec; }
+body.world-training .sp-arena-row--led-emerald { --row-led: #22c55e; }
+body.world-training .sp-arena-row--led-steel { --row-led: #94aec6; }
+body.world-training .sp-arena-row--led-crimson { --row-led: #ef4444; }
+
+body.world-training .sp-arena-row.is-featured {
+  border-color: #7eb8e6;
+  border-top-color: #e2f1ff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 4px 0 0 var(--row-led, #45adff),
+    inset -4px 0 0 var(--row-led, #45adff),
+    0 8px 20px rgba(0, 0, 0, 0.58);
+}
+
+body.world-training .sp-arena-row:hover {
+  border-color: #86daff;
+  transform: translateY(-1px);
+}
+
+body.world-training .sp-arena-row__head-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  border-bottom: 1px solid rgba(154, 184, 212, 0.24);
+}
+
+/* Upper Half: Emblem + Title/Focus + Format Plaque */
+body.world-training .sp-arena-row__head {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 8px 8px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+body.world-training .sp-arena-row__head:focus-visible {
+  outline: 2px solid #86daff;
+  outline-offset: -2px;
+}
+
+body.world-training .sp-arena-row__emblem {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #7d98b2;
+  border-radius: 5px;
+  background: #06101b;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+body.world-training .sp-arena-row__emblem-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+body.world-training .sp-arena-row__identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body.world-training .sp-arena-row__title-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+body.world-training .sp-arena-row__title {
+  margin: 0;
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: #f2f7ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 1px #000;
+}
+
+body.world-training .sp-arena-row__vip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border: 1px solid #86daff;
+  border-radius: 3px;
+  background: rgba(69, 173, 255, 0.16);
+  color: #86daff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body.world-training .sp-arena-row__focus {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  color: #bdd0e2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right Recessed Metallic Plaque (mirrors "20,000 Guarantee") */
+body.world-training .sp-arena-row__plaque {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 3px 9px;
+  border: 1px solid #7f97ae;
+  border-top-color: #c8d7e6;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #0d1825 0%, #03080f 100%);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.85);
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f2f7ff;
+  white-space: nowrap;
+}
+
+/* Bottom Telemetry Strip (Exact 3-track grid: [Style|Level|Length] | [★ 46px] | [Status]) */
+body.world-training .sp-arena-row__telemetry {
+  display: grid;
+  grid-template-columns: minmax(0, 2.95fr) 46px minmax(0, 1.25fr);
+  align-items: stretch;
+  min-height: 50px;
+  padding-left: 4px;
+  background: linear-gradient(180deg, rgba(6, 14, 24, 0.72) 0%, rgba(2, 6, 12, 0.94) 100%);
+}
+
+body.world-training .sp-arena-row__telemetry-left {
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr 0.85fr;
+  align-items: stretch;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+body.world-training .sp-arena-row__status-btn {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+body.world-training .sp-arena-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 4px;
+  border-right: 1px solid rgba(134, 168, 200, 0.18);
+  min-width: 0;
+}
+
+body.world-training .sp-arena-cell:last-child {
+  border-right: 0;
+}
+
+body.world-training .sp-arena-cell__label {
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9bb3c9;
+}
+
+body.world-training .sp-arena-cell__value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #f2f7ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+body.world-training .sp-arena-cell--recommended .sp-arena-cell__value,
+body.world-training .sp-arena-cell--resume .sp-arena-cell__value,
+body.world-training .sp-arena-cell--ready .sp-arena-cell__value {
+  color: #86daff;
+}
+
+body.world-training .sp-arena-cell--mastered .sp-arena-cell__value {
+  color: #4ade80;
+}
+
+body.world-training .sp-arena-cell--leak .sp-arena-cell__value {
+  color: #f87171;
+}
+
+/* Difficulty Pips */
+body.world-training .sp-arena-pips {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: 1px;
+}
+
+body.world-training .sp-arena-pip {
+  width: 7px;
+  height: 3px;
+  border-radius: 1px;
+  background: rgba(155, 179, 201, 0.26);
+}
+
+body.world-training .sp-arena-pip.is-filled {
+  background: #45adff;
+}
+
+/* Micro Progress Bar under Status */
+body.world-training .sp-arena-row__meter {
+  width: 82%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(134, 168, 200, 0.22);
+  overflow: hidden;
+  margin-top: 1px;
+}
+
+body.world-training .sp-arena-row__meter-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #1981ec, #86daff);
+}
+
+/* Dedicated Grid-Aligned Star & Options Controls (>= 44x44 touch targets) */
+body.world-training .sp-arena-row__star {
+  width: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid rgba(134, 168, 200, 0.18);
+  background: transparent;
+  color: #9bb3c9;
+  cursor: pointer;
+}
+
+body.world-training .sp-arena-row__star.is-starred {
+  color: #45adff;
+}
+
+body.world-training .sp-arena-row__star:focus-visible,
+body.world-training .sp-arena-row__options:focus-visible {
+  outline: 2px solid #86daff;
+  outline-offset: -2px;
+}
+
+body.world-training .sp-arena-row__options {
+  width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid rgba(134, 168, 200, 0.18);
+  background: rgba(8, 18, 31, 0.55);
+  color: #bdd0e2;
+  cursor: pointer;
+}
+
+body.world-training .sp-arena-row__options:hover {
+  background: rgba(69, 173, 255, 0.14);
+  color: #ffffff;
+}
+
+/* ─── ZONE F: NATIVE <dialog> SHEETS (FILTERS & PREVIEW) ─────────────────── */
+/* Scope display strictly to dialog[open] so closed state is never overridden */
+dialog.sp-arena-sheet {
+  width: min(560px, calc(100vw - 16px));
+  max-height: min(88dvh, 760px);
+  margin: auto;
+  padding: 0;
+  border: 2px solid #7590a9;
+  border-top-color: #c8d7e6;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #0d1c2d 0%, #050d17 100%);
+  color: #f2f7ff;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.82);
+  overflow: hidden;
+}
+
+dialog.sp-arena-sheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.sp-arena-sheet:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.sp-arena-sheet::backdrop {
+  background: rgba(2, 7, 14, 0.76);
+  backdrop-filter: blur(3px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.sp-arena-sheet__chrome {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+  min-height: 0;
+}
+
+.sp-arena-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #496279;
+  background: linear-gradient(180deg, #132539 0%, #091522 100%);
+}
+
+.sp-arena-sheet__title {
+  margin: 0;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f2f7ff;
+}
+
+.sp-arena-sheet__close {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.sp-arena-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sp-arena-sheet__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sp-arena-sheet__label {
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #86daff;
+}
+
+.sp-arena-sheet__search {
+  position: relative;
+}
+
+.sp-arena-sheet__search > svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #86daff;
+}
+
+.sp-arena-sheet__search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid #59748d;
+  border-radius: 5px;
+  background: #040b14;
+  color: #f2f7ff;
+  font-size: 14px;
+}
+
+.sp-arena-sheet__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sp-arena-sheet__pill {
+  flex: 0 1 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sp-arena-sheet__foot {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #496279;
+  background: #07111d;
+}
+
+.sp-arena-sheet__reset,
+.sp-arena-sheet__apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Preview Sheet Banner */
+.sp-arena-preview__cat {
+  display: block;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #86daff;
+}
+
+.sp-arena-preview__banner {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border: 1px solid #688299;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #040b14;
+}
+
+.sp-arena-preview__art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sp-arena-preview__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(4, 13, 24, 0.1) 35%, rgba(4, 13, 24, 0.92) 100%);
+  pointer-events: none;
+}
+
+.sp-arena-preview__meta-bar {
+  position: absolute;
+  inset: auto 10px 10px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f2f7ff;
+}
+
+.sp-arena-preview__meta-bar > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sp-arena-preview__focus {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #f2f7ff;
+}
+
+.sp-arena-preview__preset {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #445e77;
+  border-radius: 5px;
+  background: rgba(8, 18, 31, 0.8);
+  font-size: 13px;
+  color: #bdd0e2;
+}
+
+/* Secondary Dashboard Disclosure (keeps stats & progress accessible below browse) */
+body.world-training .sp-arena-secondary-stack {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+body.world-training .sp-arena-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 16px;
+  border: 1px dashed #556f87;
+  border-radius: 6px;
+  background: rgba(7, 16, 28, 0.72);
+  text-align: center;
+  color: #bdd0e2;
+  font-size: 14px;
+}
+
+body.world-training .sp-arena-empty p {
+  margin: 0;
+}
+
+/* ─── RESPONSIVE BREAKPOINTS (SANCTIONED: 900px, 768px, 600px ONLY) ──────── */
+
+@media (max-width: 900px) {
+  body.world-training .sp-arena-lobby-shell {
+    padding: 8px 8px calc(104px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 768px) {
+  body.world-training .sp-arena-masthead__plaques {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  dialog.sp-arena-sheet {
+    width: 100vw;
+    max-width: 100vw;
+    margin: auto 0 0 0;
+    border-radius: 10px 10px 0 0;
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  body.world-training .sp-arena-masthead {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  body.world-training .sp-arena-deck {
+    padding: 10px 8px 8px;
+    gap: 7px;
+  }
+
+  body.world-training .sp-arena-plate {
+    min-height: 56px;
+    padding: 6px 8px;
+  }
+
+  body.world-training .sp-arena-row__head {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 7px 6px 7px 10px;
+  }
+
+  body.world-training .sp-arena-row__emblem {
+    width: 38px;
+    height: 38px;
+  }
+
+  body.world-training .sp-arena-row__title {
+    font-size: 15px;
+  }
+
+  body.world-training .sp-arena-row__plaque {
+    padding: 2px 7px;
+    font-size: 12px;
+  }
+
+  body.world-training .sp-arena-row__telemetry {
+    grid-template-columns: minmax(0, 2.75fr) 44px minmax(0, 1.25fr);
+  }
+
+  body.world-training .sp-arena-row__telemetry-left {
+    grid-template-columns: 1.05fr 0.9fr 0.8fr;
+  }
+}

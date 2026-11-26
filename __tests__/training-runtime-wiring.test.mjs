@@ -915,15 +915,18 @@ test('runtime uses canonical auth and fails closed on progress API errors', () =
 
 test('training hub keeps its signed-out primary action live and uses canonical login routing', () => {
   const hub = fs.readFileSync(path.join(ROOT, 'pages/hub/training.js'), 'utf8');
+  const header = fs.readFileSync(path.join(ROOT, 'src/components/training/lobby/TrainingLobbyHeader.jsx'), 'utf8');
+  const surface = `${hub}\n${header}`;
 
-  assert.doesNotMatch(hub, /pathname: '\/login'|query: \{ next: '\/hub\/training' \}/);
-  assert.match(hub, /onClick=\{\(\) => playGame\(heroGame\)\}/);
+  assert.doesNotMatch(surface, /pathname: '\/login'|query: \{ next: '\/hub\/training' \}/);
+  assert.match(header, /onClick=\{\(\) => onPlayGame\(primaryGame/);
+  assert.match(hub, /onPlayGame=\{playGame\}/);
   assert.match(hub, /const heroGame = jarvisPick \|\| TRAINING_LIBRARY\[0\]/);
   const arena = fs.readFileSync(path.join(ROOT, 'pages/hub/training/arena/[gameId].js'), 'utf8');
   assert.match(hub, /pathname: '\/hub\/training\/arena\/\[gameId\]'/);
   assert.match(arena, /router\.replace\(`\/auth\/login\?redirect=\$\{encodeURIComponent\(router\.asPath\)\}`\)/);
-  assert.doesNotMatch(hub, /disabled=\{!jarvisPick\}/);
-  assert.match(hub, /<h1[^>]*>Training Games<\/h1>/);
+  assert.doesNotMatch(surface, /disabled=\{!jarvisPick\}/);
+  assert.match(surface, /<h1[^>]*>Training Games<\/h1>/);
   assert.match(hub, /label: 'Cash Games'/);
   assert.match(hub, /label: 'Mental Game'/);
 });

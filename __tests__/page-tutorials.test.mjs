@@ -53,7 +53,16 @@ const LANDED = [
       'pages/hub/personal-assistant/sandbox.js',
     ],
   },
-  { phase: 5, route: '/hub/training', page: 'pages/hub/training.js', tutorial: 'src/tutorials/training.js' },
+  {
+    phase: 5,
+    route: '/hub/training',
+    page: 'pages/hub/training.js',
+    tutorial: 'src/tutorials/training.js',
+    also: [
+      'src/components/training/lobby/TrainingLobbyHeader.jsx',
+      'src/components/training/lobby/TrainingLobbyControls.jsx',
+    ],
+  },
 ];
 
 test('the tutorial system is built and mounted once', () => {
