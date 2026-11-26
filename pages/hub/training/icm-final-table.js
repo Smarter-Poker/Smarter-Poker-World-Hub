@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import { computeIcmChopAndPayJump } from '../../../src/lib/training/trainingPresets.mjs';
 
 export default function IcmFinalTablePage() {
   const router = useRouter();
@@ -278,6 +279,42 @@ export default function IcmFinalTablePage() {
                 <p style={{ margin: '0 0 16px', fontSize: 12, color: '#b7c9d7', lineHeight: 1.55 }}>
                   {brainEval.explanation}
                 </p>
+
+                {/* Phase 19: Tournament Final-Table ICM Chop & Payout Jump Calculator */}
+                {(() => {
+                  const icmSim = computeIcmChopAndPayJump({
+                    heroStackBb,
+                    avgStackBb: 30,
+                    playersRemaining: 6,
+                    prizePoolUnits: 10000,
+                    toCallBb,
+                    potSizeBb: Math.max(2.5, toCallBb + 2.5),
+                  });
+                  return (
+                    <div
+                      data-icm-chop-simulator="true"
+                      data-icm-chop-value={String(icmSim.icmChopValue)}
+                      data-icm-required-equity={String(icmSim.icmRequiredEquityPct)}
+                      style={{
+                        marginBottom: 16,
+                        padding: '12px 14px',
+                        borderRadius: 7,
+                        border: '1px solid #688299',
+                        borderTopColor: '#aec0d0',
+                        background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                        fontSize: 12,
+                        color: '#e6f3ff',
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, color: '#83deff', marginBottom: 4 }}>
+                        {`Final-Table ICM Chop & Payout Jump Simulator · ICM Deal Equity: $${icmSim.icmChopValue.toLocaleString()} (Chip-Chop: $${icmSim.chipChopValue.toLocaleString()})`}
+                      </div>
+                      <div style={{ color: '#b7cede' }}>
+                        {`Next Pay Jump: +$${icmSim.nextPayJumpValue.toLocaleString()} · Chip-EV Pot Odds: ${icmSim.chipEvPotOddsPct}% · ICM Required Equity: ${icmSim.icmRequiredEquityPct}% (+${icmSim.riskPremiumPct}% Risk Premium)`}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <button
                   type="button"

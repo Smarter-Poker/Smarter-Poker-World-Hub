@@ -34,6 +34,7 @@ import {
 import {
   resolvePresetForGame,
   buildThreeHandLeakReceipt,
+  buildSessionStudyDossierMarkdown,
 } from '../../lib/training/trainingPresets.mjs';
 // ●●● PHASE 18: Leaderboard ●●●
 import LeaderboardPanel from './LeaderboardPanel';
@@ -2229,6 +2230,48 @@ function GodModeArenaInner({
                 >
                   Practice 3-Hand Leak Receipt Pack Now →
                 </a>
+                {(() => {
+                  const studyDossier = buildSessionStudyDossierMarkdown({
+                    gameName: gameName || practicedPreset.title || 'Training Session',
+                    variant: practicedPreset.variant,
+                    format: practicedPreset.format,
+                    accuracyPct: accuracy,
+                    gtowScore,
+                    handsPlayed: totalQuestions,
+                    topStrength: `${practicedPreset.heroPosition || 'BTN'} ${practicedPreset.targetStreet?.toUpperCase() || 'FLOP'} Execution`,
+                    primaryLeak: weakestPosition ? `${weakestPosition} Decision Node` : 'Turn / River Polarity Sizing',
+                    leakReceiptHref: leakReceipt.href,
+                  });
+                  return (
+                    <button
+                      type="button"
+                      data-export-session-study-dossier="true"
+                      data-dossier-line-count={String(studyDossier.lineCount)}
+                      onClick={() => {
+                        try {
+                          if (typeof window !== 'undefined' && navigator?.clipboard?.writeText) {
+                            navigator.clipboard.writeText(studyDossier.markdown).catch(() => {});
+                          }
+                        } catch (_) {}
+                      }}
+                      style={{
+                        marginTop: 8,
+                        width: '100%',
+                        minHeight: 38,
+                        padding: '8px 14px',
+                        borderRadius: 7,
+                        border: '1px solid #688299',
+                        background: '#091727',
+                        color: '#83deff',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Copy Exportable Session Study Dossier (Markdown) →
+                    </button>
+                  );
+                })()}
               </div>
             );
           })()}
