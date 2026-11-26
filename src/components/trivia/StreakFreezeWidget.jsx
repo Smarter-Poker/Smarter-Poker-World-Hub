@@ -408,7 +408,7 @@ export default function StreakFreezeWidget({
                     <dl className={styles.metrics}>
                         <div className={styles.metricItem}>
                             <dt>Current Streak</dt>
-                            <dd className="tc-ink--gold">{formatTriviaDisplayNumber(resolvedStreak)} {resolvedStreak === 1 ? 'Day' : 'Days'}</dd>
+                            <dd className="tc-ink--blue">{formatTriviaDisplayNumber(resolvedStreak)} {resolvedStreak === 1 ? 'Day' : 'Days'}</dd>
                         </div>
                         <div className={styles.metricItem}>
                             <dt>Streak Freezes</dt>
@@ -441,7 +441,7 @@ export default function StreakFreezeWidget({
                                     ? 'All Streak Milestones Reached (100+ Days)'
                                     : `Next Milestone: ${formatTriviaDisplayNumber(milestone.nextMilestone)} Days`}
                             </span>
-                            <span className={milestone.allMilestonesReached ? 'tc-ink--green' : 'tc-ink--gold'}>
+                            <span className={milestone.allMilestonesReached ? 'tc-ink--green' : 'tc-ink--blue'}>
                                 {milestone.allMilestonesReached
                                     ? '100% Complete'
                                     : `${formatTriviaDisplayNumber(milestone.daysRemaining)} ${milestone.daysRemaining === 1 ? 'Day' : 'Days'} Left (${milestone.progressPct}%)`}
@@ -527,7 +527,7 @@ export default function StreakFreezeWidget({
                             <dl className={styles.receiptRows}>
                                 <div>
                                     <dt>Reward Credited</dt>
-                                    <dd className="tc-ink--gold">+{formatTriviaDisplayNumber(claimReceipt.rewardDiamonds)} Diamonds</dd>
+                                    <dd className="tc-ink--green">+{formatTriviaDisplayNumber(claimReceipt.rewardDiamonds)} Diamonds</dd>
                                 </div>
                                 {claimReceipt.referenceId ? (
                                     <div>
@@ -593,7 +593,7 @@ export default function StreakFreezeWidget({
                                 ) : null}
                                 <div>
                                     <dt>Charged</dt>
-                                    <dd className="tc-ink--gold">{formatTriviaDisplayNumber(receipt.diamondsCharged)} Diamonds</dd>
+                                    <dd className="tc-ink--blue">{formatTriviaDisplayNumber(receipt.diamondsCharged)} Diamonds</dd>
                                 </div>
                                 {receipt.balance != null ? (
                                     <div>
@@ -642,7 +642,7 @@ export default function StreakFreezeWidget({
                                     : `Buy Streak Freeze (${resolvedCost} Diamonds)`}
                             </button>
                             {!online ? (
-                                <span className="tc-ink--gold">Connect To Buy</span>
+                                <span className="tc-ink--blue">Connect To Buy</span>
                             ) : knownInsufficientBalance && !atMaxCapacity ? (
                                 <span className="tc-ink--red">Need {formatTriviaDisplayNumber(resolvedCost)} Diamonds</span>
                             ) : (

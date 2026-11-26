@@ -100,7 +100,7 @@ function AchievementItem({ item, claimState, claimError, online, onClaim }) {
 
             {renderedState === 'credited' ? (
                 <dl className="trivia-progress-receipt">
-                    <div><dt>Settled Award</dt><dd className="tc-ink--gold">{formatTriviaDisplayNumber(item.settledDiamonds)} Diamonds</dd></div>
+                    <div><dt>Settled Award</dt><dd className="tc-ink--green">{formatTriviaDisplayNumber(item.settledDiamonds)} Diamonds</dd></div>
                     <div><dt>Awarded At</dt><dd>{item.awardedAt ? new Date(item.awardedAt).toLocaleString() : 'Time Not Available'}</dd></div>
                     <div><dt>Receipt</dt><dd>{item.receiptId}</dd></div>
                     <div><dt>Journal</dt><dd>{item.journalId}</dd></div>
@@ -112,7 +112,7 @@ function AchievementItem({ item, claimState, claimError, online, onClaim }) {
             {item.state === 'eligible' ? (
                 <div className="trivia-progress-achievement-actions">
                     <button type="button" className="tc-word" disabled={pending || !online} onClick={() => onClaim(item.id)}>{pending ? 'Claim Pending' : claimState === 'error' ? 'Retry Same Claim' : 'Claim Verified Award'}</button>
-                    {!online ? <span className="tc-ink--gold">Connect To Claim</span> : null}
+                    {!online ? <span className="tc-ink--cyan">Connect To Claim</span> : null}
                 </div>
             ) : null}
         </li>
@@ -313,7 +313,7 @@ export default function TriviaAchievements() {
             <>
                 <SEOHead title="Trivia Achievements - Verified Awards" description="Track Server-Verified Poker Trivia Achievements And Settled Award Receipts." canonical="/hub/trivia/achievements" noindex />
                 <PageTransition>
-                    <div className="trivia-progress-page trivia-progress-page--achievements" data-trivia-family="progress" data-trivia-surface="achievements">
+                    <div className="smarterdesign trivia-progress-page trivia-progress-page--achievements" data-trivia-family="progress" data-trivia-surface="achievements">
                         <UniversalHeader pageDepth={2} />
                         <main className="trivia-progress-shell" aria-labelledby="trivia-achievements-title">
                             <TriviaConsole
@@ -342,7 +342,7 @@ export default function TriviaAchievements() {
                                                 <li className="tc-row"><span className="tc-row__label">Definitions</span><span className="tc-row__value">{formatTriviaDisplayNumber(items.length)}</span></li>
                                                 <li className="tc-row"><span className="tc-row__label">Eligible</span><span className="tc-row__value tc-ink--blue">{formatTriviaDisplayNumber(summary.eligible)}</span></li>
                                                 <li className="tc-row"><span className="tc-row__label">Credited</span><span className="tc-row__value tc-ink--green">{formatTriviaDisplayNumber(summary.credited)}</span></li>
-                                                <li className="tc-row"><span className="tc-row__label">Settled Diamonds</span><span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(summary.settledDiamonds)}</span></li>
+                                                <li className="tc-row"><span className="tc-row__label">Settled Diamonds</span><span className="tc-row__value tc-ink--cyan">{formatTriviaDisplayNumber(summary.settledDiamonds)}</span></li>
                                             </ul>
                                         </section>
                                         <StreakFreezeWidget

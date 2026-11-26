@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import TriviaConsole from '../console/TriviaConsole';
-import ResponsiveModeArt from '../console/ResponsiveModeArt';
-import {
-    TRIVIA_INTRO_ART_PVP,
-    TRIVIA_INTRO_ART_TOURNAMENTS,
-} from '../../../config/triviaIntroArt.mjs';
 import {
     deriveCompetitiveLobbyState,
     getRegistrationLabel,
@@ -23,6 +18,39 @@ import styles from './CompetitiveLobbyBriefing.module.css';
 
 const disabledResource = () => ({ status: 'disabled', data: null, error: null, receivedAt: null });
 const waitingResource = () => ({ status: 'loading', data: null, error: null, receivedAt: null });
+
+// Deduplicate concurrent / StrictMode schedule reads across mounts (15s TTL).
+const SCHEDULE_CACHE_TTL_MS = 15_000;
+const scheduleFetchCache = new Map();
+
+function readDeduplicatedSchedule(url, cacheKey, requestImpl, forceRefresh) {
+    const now = Date.now();
+    if (!forceRefresh) {
+        const cached = scheduleFetchCache.get(cacheKey);
+        if (cached && cached.promise) return cached.promise;
+        if (cached && cached.data && (now - cached.receivedAt) < SCHEDULE_CACHE_TTL_MS) {
+            return Promise.resolve(cached.data);
+        }
+    }
+    const promise = requestImpl(url, {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+    })
+        .then(async (response) => {
+            if (!response.ok) throw responseError(response.status);
+            const json = await response.json();
+            scheduleFetchCache.set(cacheKey, { data: json, receivedAt: Date.now(), promise: null });
+            return json;
+        })
+        .catch((err) => {
+            scheduleFetchCache.delete(cacheKey);
+            throw err;
+        });
+    scheduleFetchCache.set(cacheKey, { data: null, receivedAt: now, promise });
+    return promise;
+}
 
 function responseError(status) {
     const error = new Error('competitive_briefing_request_failed');
@@ -236,7 +264,8 @@ export default function CompetitiveLobbyBriefing({
             error: null,
         }));
         const requestImpl = authState === 'authenticated' ? authedFetch : fetch;
-        readJson(requestPlan.schedule, controller.signal, requestImpl)
+        const scheduleCacheKey = `${requestPlan.schedule}|${authState}|${accountKey || 'anon'}`;
+        readDeduplicatedSchedule(requestPlan.schedule, scheduleCacheKey, requestImpl, refreshVersion > 0)
             .then((raw) => {
                 if (!scheduleRequestIsCurrent()) return;
                 const data = sanitizeNightlySchedule(raw);
@@ -432,21 +461,8 @@ export default function CompetitiveLobbyBriefing({
                     titleId="competitive-tournament-title"
                     subtitle="America/Chicago / Official Nightly"
                     pill={registrationLabel}
-                    pillInk={registrationLabel === 'Registration Open' || registrationLabel.startsWith('Registered') ? 'green' : 'gold'}
+                    pillInk={registrationLabel === 'Registration Open' || registrationLabel.startsWith('Registered') ? 'green' : 'blue'}
                 >
-                    {/* MOBILE LCP (2026-10-16). On a phone this art is the
-                        largest thing in the first viewport, so it was the
-                        lobby's Largest Contentful Paint. As a deferred image it
-                        could only start after hydration and an
-                        IntersectionObserver callback: 3.3-3.9s on the 3.5s
-                        budget (Global Footer E2E 38960460754). It is the
-                        visible hero, so it loads with the HTML. */}
-                    <ResponsiveModeArt
-                        art={TRIVIA_INTRO_ART_TOURNAMENTS}
-                        className={styles.featureArt}
-                        sizes="(min-width: 701px) 560px, 100vw"
-                        priority
-                    />
                     <div className={styles.featureCopy} aria-labelledby="competitive-tournament-title">
                         <div className={styles.countdownRail}>
                             <div>
@@ -526,11 +542,6 @@ export default function CompetitiveLobbyBriefing({
                     pill={pvpPill(pvpResource, authState, pvpEnabled)}
                     pillInk={showResume ? 'green' : ['error', 'offline'].includes(overall.key) ? 'red' : 'blue'}
                 >
-                    <ResponsiveModeArt
-                        art={TRIVIA_INTRO_ART_PVP}
-                        className={styles.featureArt}
-                        sizes="(min-width: 701px) 400px, 100vw"
-                    />
                     <div className={styles.featureCopy} aria-labelledby="competitive-pvp-title">
                         <h3 className={styles.pvpHeadline}>{pvpHeadline(pvpResource, authState, pvpEnabled)}</h3>
                         <p className={styles.zoneDetail}>{pvpDetail(pvpResource, authState, pvpEnabled)}</p>

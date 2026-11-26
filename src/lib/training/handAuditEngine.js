@@ -17,7 +17,10 @@ const FORCED_ACTIONS = new Set([
 ]);
 const BLIND_POST_ACTIONS = new Set([
   'ante', 'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'straddle', 'killblind', 'bombante',
-  'post', 'posts',
+  'post', 'posts', 'postsb', 'postbb',
+]);
+const ACTUAL_BLIND_POST_ACTIONS = new Set([
+  'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'killblind', 'post', 'posts', 'postsb', 'postbb',
 ]);
 const HOLDEM_VARIANTS = new Set([
   'nl', 'nlh', 'nlhe', 'holdem', 'holdemnl', 'texasholdem', 'nolimit', 'nolimitholdem',
@@ -49,6 +52,18 @@ function isSupportedHoldemVariant(value) {
   return HOLDEM_VARIANTS.has(normalized);
 }
 
+function hasUnsupportedBettingStructure(row, summary = {}) {
+  const raw = String(
+    row?.betting_structure
+    ?? row?.bettingStructure
+    ?? summary?.bettingStructure
+    ?? summary?.betting_structure
+    ?? ''
+  ).trim().toLowerCase().replace(/[^a-z]/g, '');
+  if (!raw) return false;
+  return raw !== 'nl' && raw !== 'nolimit';
+}
+
 function isTruthySpecialFlag(value) {
   if (value === null || value === undefined || value === false || value === 0) return false;
   if (value === true || value === 1) return true;
@@ -68,33 +83,113 @@ function isMultiBoardRit(value) {
   return Number.isFinite(num) && num > 1;
 }
 
+function detectSpecialFormatKind(row, summary = {}) {
+  const actions = Array.isArray(row?.actions) ? row.actions : [];
+  const hasBombAction = actions.some(a => normalizedRawAction(a) === 'bombante');
+  const hasKillAction = actions.some(a => normalizedRawAction(a) === 'killblind');
+  const hasRitAction = actions.some(a => /^ritboard\d+/.test(normalizedRawAction(a)));
+
+  if (isTruthySpecialFlag(row?.bomb_pot) || isTruthySpecialFlag(summary?.bombPot) || isTruthySpecialFlag(summary?.bomb_pot) || hasBombAction) {
+    return 'bomb_pot';
+  }
+  if (isTruthySpecialFlag(row?.kill_pot) || isTruthySpecialFlag(summary?.killPot) || isTruthySpecialFlag(summary?.kill_pot) || hasKillAction) {
+    return 'kill_pot';
+  }
+  if (
+    isMultiBoardRit(row?.rit_boards)
+    || isMultiBoardRit(summary?.ritBoards)
+    || isMultiBoardRit(summary?.rit_boards)
+    || Number(row?.run_it_count ?? summary?.runItCount ?? summary?.run_it_count ?? 1) > 1
+    || (Array.isArray(row?.community_cards2) && row.community_cards2.length > 0)
+    || (Array.isArray(row?.community_cards3) && row.community_cards3.length > 0)
+    || (Array.isArray(summary?.communityCards2) && summary.communityCards2.length > 0)
+    || (Array.isArray(summary?.communityCards3) && summary.communityCards3.length > 0)
+    || hasRitAction
+  ) {
+    return 'multiple_runouts';
+  }
+  return null;
+}
+
 function isUnsupportedSpecialFormat(row) {
-  if (isTruthySpecialFlag(row?.bomb_pot)) return true;
-  if (isTruthySpecialFlag(row?.kill_pot)) return true;
-  if (isMultiBoardRit(row?.rit_boards)) return true;
-  if (Array.isArray(row?.community_cards2) && row.community_cards2.length > 0) return true;
-  if (Array.isArray(row?.community_cards3) && row.community_cards3.length > 0) return true;
-  return false;
+  const summary = parseJson(row?.summary) || {};
+  return detectSpecialFormatKind(row, summary) !== null;
 }
 
 export function clubArenaHandRejectionReason(row, userId) {
   const summary = parseJson(row?.summary) || {};
   const gameType = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
-  if (!isSupportedHoldemVariant(gameType)) return 'unsupported_variant';
+  if (!isSupportedHoldemVariant(gameType) || hasUnsupportedBettingStructure(row, summary)) {
+    return 'unsupported_variant';
+  }
   if (isUnsupportedSpecialFormat(row)) return 'unsupported_special_format';
   const rawPlayers = Array.isArray(summary.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(row?.players) ? row.players : []);
   const heroRaw = rawPlayers.find(player => String(playerId(player)) === String(userId));
   if (!heroRaw) return 'missing_hero_identity';
-  const heroCards = [
+  const candidateCardLists = [
     row?.hero_private_cards,
     heroRaw.holeCards,
     heroRaw.heroCards,
     heroRaw.cards,
     row?.hole_cards?.[userId],
-  ].map(cards).find(candidate => candidate.length >= 2) || [];
-  return heroCards.length >= 2 ? null : 'missing_private_cards';
+  ].map(cards).filter(candidate => candidate.length > 0);
+  if (candidateCardLists.some(candidate => candidate.length > 2)) {
+    return 'unsupported_variant';
+  }
+  const heroCards = candidateCardLists.find(candidate => candidate.length === 2) || [];
+  return heroCards.length === 2 ? null : 'missing_private_cards';
+}
+
+export function describeClubArenaHandSupport(row, userId) {
+  const summary = parseJson(row?.summary) || {};
+  const rawVariant = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
+  const specialFormat = detectSpecialFormatKind(row, summary);
+  const rejectionReason = clubArenaHandRejectionReason(row, userId);
+  const rawBetting = String(
+    row?.betting_structure ?? row?.bettingStructure ?? summary?.bettingStructure ?? summary?.betting_structure ?? ''
+  ).trim().toLowerCase();
+  const bettingStructure = /pot[\s_-]*limit|^pl$/i.test(rawBetting) || /plo/i.test(rawVariant)
+    ? 'PL'
+    : (/fixed[\s_-]*limit|^limit$|^fl$/i.test(rawBetting) || /^(?:fl|flh|flhe|limit|fixed_limit)/i.test(rawVariant)
+      ? 'FL'
+      : 'NL');
+
+  let declineReason = null;
+  if (rejectionReason === 'unsupported_variant') {
+    if (/plo|omaha/i.test(rawVariant)) {
+      declineReason = `Omaha (${rawVariant.toUpperCase()}) Hands Are Importable And Replayable In Hand History, But Automated Strategy And Leak Grading Supports Single-Board No-Limit Hold'em Only.`;
+    } else if (bettingStructure === 'FL') {
+      declineReason = "Fixed-Limit Hold'em Hands Are Importable And Replayable In Hand History, But Automated Strategy And Leak Grading Supports No-Limit Hold'em Only.";
+    } else {
+      declineReason = `Automated Solver And NLH Leak Analysis Supports Standard Single-Board No-Limit Hold'em Only (${rawVariant || 'Unknown Variant'} Is Explicitly Unmeasured).`;
+    }
+  } else if (rejectionReason === 'unsupported_special_format') {
+    if (specialFormat === 'bomb_pot') {
+      declineReason = "Bomb Pot Hands Are Importable And Replayable In Hand History, But Forced-Ante Bomb Pots Are Excluded From Standard Single-Board No-Limit Hold'em Strategy Grading.";
+    } else if (specialFormat === 'kill_pot') {
+      declineReason = "Kill Pot Hands Are Importable And Replayable In Hand History, But Modified Kill-Blind Structures Are Excluded From Standard Single-Board No-Limit Hold'em Strategy Grading.";
+    } else {
+      declineReason = "Multiple-Runout (Run-It-Twice / Multi-Board) Hands Are Importable And Replayable In Hand History, But Excluded From Single-Board No-Limit Hold'em Strategy Grading.";
+    }
+  } else if (rejectionReason === 'missing_private_cards') {
+    declineReason = 'Hero Hole Cards Are Not Retained For This Hand Under Club Arena Card-Retention Rules, So Solver Decisions Remain Explicitly Unmeasured.';
+  } else if (rejectionReason === 'missing_hero_identity') {
+    declineReason = 'Hero Seat Identity Is Not Present In This Hand Record.';
+  }
+
+  return {
+    importable: Boolean(row?.id || row?.hand_number || summary?.id),
+    replayable: Boolean(row?.id || row?.hand_number || summary?.id),
+    strategySupported: rejectionReason === null,
+    supported: rejectionReason === null || rejectionReason === 'missing_private_cards',
+    rejectionReason,
+    specialFormat,
+    variant: rawVariant || 'unknown',
+    bettingStructure,
+    declineReason,
+  };
 }
 
 export function cardCode(card) {
@@ -147,20 +242,30 @@ function actionName(action) {
 }
 
 function positionedPlayers(rawPlayers, buttonSeat, bigBlind) {
-  const players = (rawPlayers || []).map((player, index) => ({
-    id: playerId(player),
-    name: player.displayName || player.username || player.name || `Seat ${index + 1}`,
-    seat: Number(player.seatIndex ?? player.seat ?? index),
-    stack: Number.isFinite(Number(player.stackBB)) && Number(player.stackBB) > 0
+  const players = (rawPlayers || []).map((player, index) => {
+    const rawStartChips = player.startStack ?? player.startingStack ?? player.start_stack ?? player.stack ?? player.chips;
+    const explicitStartChips = player.startStack ?? player.startingStack ?? player.start_stack;
+    const hasExplicitStart = explicitStartChips !== null && explicitStartChips !== undefined && Number.isFinite(Number(explicitStartChips)) && Number(explicitStartChips) > 0;
+    const startChips = Number.isFinite(Number(rawStartChips)) && Number(rawStartChips) > 0
+      ? Number(rawStartChips)
+      : null;
+    const stackBb = Number.isFinite(Number(player.stackBB)) && Number(player.stackBB) > 0
       ? Number(player.stackBB)
-      : (Number.isFinite(Number(player.startStack ?? player.stack ?? player.chips))
-          && Number(player.startStack ?? player.stack ?? player.chips) > 0
-          && Number.isFinite(Number(bigBlind)) && Number(bigBlind) > 0
-        ? Number(player.startStack ?? player.stack ?? player.chips) / Number(bigBlind)
-        : null),
-    position: '',
-    holeCards: cards(player.holeCards || player.heroCards || player.cards),
-  }));
+      : (startChips !== null && Number.isFinite(Number(bigBlind)) && Number(bigBlind) > 0
+        ? startChips / Number(bigBlind)
+        : null);
+    return {
+      id: playerId(player),
+      name: player.displayName || player.username || player.name || `Seat ${index + 1}`,
+      seat: Number(player.seatIndex ?? player.seat ?? index),
+      stack: stackBb,
+      startStackChips: hasExplicitStart ? Number(explicitStartChips) : startChips,
+      hasExplicitStart,
+      rawSettledStack: Number.isFinite(Number(player.endStack ?? player.stack)) ? Number(player.endStack ?? player.stack) : null,
+      position: String(player.position || '').trim().toUpperCase(),
+      holeCards: cards(player.holeCards || player.heroCards || player.cards),
+    };
+  });
   const labels = POSITION_MAP[players.length] || POSITION_MAP[9];
   const ordered = [...players].sort((a, b) => a.seat - b.seat);
   const btnSeatNum = Number(buttonSeat);
@@ -182,11 +287,14 @@ function positionedPlayers(rawPlayers, buttonSeat, bigBlind) {
 /** Convert a persisted Club Arena hand into the parser's canonical hand shape. */
 export function normalizeClubArenaHand(row, userId) {
   const summary = parseJson(row?.summary) || {};
+  if (row?.corrupted === true || summary?.corrupted === true) return null;
   const gameType = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
-  // Missing/unsupported variants or special formats (bomb pots, kill pots,
-  // multi-board hands) must never be silently priced with single-board NLHE
-  // ranges. A false solver match is worse than leaving a hand unpriced.
-  if (!isSupportedHoldemVariant(gameType) || isUnsupportedSpecialFormat(row)) return null;
+  // Missing/unsupported variants, non-NL betting structures, or special formats
+  // (bomb pots, kill pots, multi-board hands) must never be silently priced
+  // with single-board NLHE ranges.
+  if (!isSupportedHoldemVariant(gameType) || hasUnsupportedBettingStructure(row, summary) || isUnsupportedSpecialFormat(row)) {
+    return null;
+  }
   const rawPlayers = Array.isArray(summary.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(row?.players) ? row.players : []);
@@ -195,6 +303,7 @@ export function normalizeClubArenaHand(row, userId) {
 
   const bigBlind = Number(summary.bigBlind ?? summary.big_blind ?? row?.big_blind);
   const smallBlind = Number(summary.smallBlind ?? summary.small_blind ?? row?.small_blind);
+  if (Number.isFinite(bigBlind) && bigBlind <= 0) return null;
   const players = positionedPlayers(
     rawPlayers,
     summary.buttonSeat ?? summary.button_seat ?? row?.button_seat,
@@ -205,14 +314,16 @@ export function normalizeClubArenaHand(row, userId) {
   // top-level hole_cards map, while older/API-engine rows put them on the
   // player or summary. Pick the first candidate that actually contains two
   // valid cards; masked `cards: [null, null]` must not hide a valid map entry.
-  const heroCards = [
+  const candidateCardLists = [
     row?.hero_private_cards,
     heroRaw.holeCards,
     heroRaw.heroCards,
     heroRaw.cards,
     row?.hole_cards?.[userId],
-  ].map(cards).find(candidate => candidate.length >= 2) || [];
-  if (heroCards.length < 2) return null;
+  ].map(cards).filter(candidate => candidate.length > 0);
+  if (candidateCardLists.some(candidate => candidate.length > 2)) return null;
+  const heroCards = candidateCardLists.find(candidate => candidate.length === 2) || [];
+  if (heroCards.length !== 2 || heroCards[0] === heroCards[1]) return null;
 
   const summaryStreets = summary.streets || {};
   const topLevelActions = Array.isArray(row?.actions) ? row.actions : [];
@@ -223,6 +334,16 @@ export function normalizeClubArenaHand(row, userId) {
     const summaryActions = summaryStreets?.[street]?.actions;
     if (Array.isArray(summaryActions) && summaryActions.length > 0) return summaryActions;
     return topLevelActions.filter(action => String(action?.street || action?.stage || 'preflop').toLowerCase() === street);
+  };
+
+  const actorKeyForPlayer = (player) => {
+    if (player?.id !== null && player?.id !== undefined && String(player.id) !== '') {
+      return `id:${String(player.id)}`;
+    }
+    if (player?.seat !== null && player?.seat !== undefined && Number.isFinite(Number(player.seat))) {
+      return `seat:${Number(player.seat)}`;
+    }
+    return `name:${String(player?.name || '').trim().toLowerCase()}`;
   };
 
   const resolveActor = (action) => {
@@ -256,29 +377,116 @@ export function normalizeClubArenaHand(row, userId) {
     };
   };
 
-  // Reconstruct deterministic running pot/street contributions from blinds and
-  // actions so real Hetzner rows (which omit per-action potBefore/sizingPct)
-  // carry exact potBeforeBB and sizingPct into solver matching.
+  // Reconstruct deterministic running pot/street contributions from blinds,
+  // antes, and actions so real Hetzner rows carry exact potBeforeBB, sizingPct,
+  // amountAdded vs totalBet, uncalled bet returns, and stackAtDecision into solver matching.
   const preflopRaw = rawActionsForStreet('preflop');
+  // IMPORTANT: An ante or straddle in the log does NOT mean SB/BB were explicitly
+  // recorded as action rows. Check only actual blind post verbs.
   const hasExplicitBlindPosts = preflopRaw.some(action => {
     const raw = normalizedRawAction(action);
-    return BLIND_POST_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle/.test(raw);
+    return ACTUAL_BLIND_POST_ACTIONS.has(raw) || /^(?:post)?(?:small|big)?blind$|^post[sb]b$|^killblind$/.test(raw);
+  });
+  const hasExplicitAntePosts = preflopRaw.some(action => {
+    const raw = normalizedRawAction(action);
+    return raw === 'ante' || raw === 'bombante' || /^ante/.test(raw);
   });
   const hasKnownBlinds = Number.isFinite(bigBlind) && bigBlind > 0;
+  const resolvedSmallBlind = Number.isFinite(smallBlind) && smallBlind > 0
+    ? smallBlind
+    : (hasKnownBlinds ? bigBlind / 2 : null);
+  const declaredAnteRaw = Number(
+    summary.ante ?? summary.ante_amount ?? summary.anteAmount ?? row?.ante ?? row?.ante_amount
+  );
+  const declaredAnte = Number.isFinite(declaredAnteRaw) && declaredAnteRaw > 0 ? declaredAnteRaw : 0;
+
   let runningPot = 0;
-  let hasTrackablePot = hasExplicitBlindPosts || hasKnownBlinds;
+  let hasTrackablePot = hasExplicitBlindPosts || hasExplicitAntePosts || hasKnownBlinds || declaredAnte > 0;
   const preflopContrib = new Map();
+  const totalCommittedByActor = new Map();
+  const forcedPosts = [];
+  const uncalledReturns = [];
+  const foldedActorKeys = new Set();
+  const foldedPlayerIds = new Set();
+  let explicitAnteTotal = 0;
   let preflopCurrentBet = 0;
+
   if (!hasExplicitBlindPosts && hasKnownBlinds) {
-    const sbAmount = Number.isFinite(smallBlind) && smallBlind > 0 ? smallBlind : (bigBlind / 2);
-    runningPot = sbAmount + bigBlind;
+    const sbAmount = resolvedSmallBlind;
+    runningPot += sbAmount + bigBlind;
     preflopCurrentBet = bigBlind;
     const sbPosition = players.length === 2 ? 'BTN' : 'SB';
     const sbPlayer = players.find(player => player.position === sbPosition);
     const bbPlayer = players.find(player => player.position === 'BB');
-    if (sbPlayer?.id !== null && sbPlayer?.id !== undefined) preflopContrib.set(`id:${String(sbPlayer.id)}`, sbAmount);
-    if (bbPlayer?.id !== null && bbPlayer?.id !== undefined) preflopContrib.set(`id:${String(bbPlayer.id)}`, bigBlind);
+    if (sbPlayer) {
+      const sbKey = actorKeyForPlayer(sbPlayer);
+      preflopContrib.set(sbKey, sbAmount);
+      totalCommittedByActor.set(sbKey, (totalCommittedByActor.get(sbKey) || 0) + sbAmount);
+      forcedPosts.push({
+        street: 'preflop',
+        player: sbPlayer.name,
+        playerId: sbPlayer.id,
+        position: sbPlayer.position,
+        type: 'sb',
+        amount: sbAmount,
+        amountBB: sbAmount / bigBlind,
+        dead: false,
+        isHero: String(sbPlayer.id) === String(userId),
+      });
+    }
+    if (bbPlayer) {
+      const bbKey = actorKeyForPlayer(bbPlayer);
+      preflopContrib.set(bbKey, bigBlind);
+      totalCommittedByActor.set(bbKey, (totalCommittedByActor.get(bbKey) || 0) + bigBlind);
+      forcedPosts.push({
+        street: 'preflop',
+        player: bbPlayer.name,
+        playerId: bbPlayer.id,
+        position: bbPlayer.position,
+        type: 'bb',
+        amount: bigBlind,
+        amountBB: 1,
+        dead: false,
+        isHero: String(bbPlayer.id) === String(userId),
+      });
+    }
   }
+
+  let synthesizedAnteTotal = 0;
+  if (!hasExplicitAntePosts && declaredAnte > 0) {
+    const isBigBlindAnte = summary.bigBlindAnte === true || row?.big_blind_ante === true;
+    const explicitTotal = Number(summary.anteTotal ?? row?.ante_total);
+    if (Number.isFinite(explicitTotal) && explicitTotal > 0) {
+      synthesizedAnteTotal = explicitTotal;
+    } else if (isBigBlindAnte) {
+      synthesizedAnteTotal = declaredAnte;
+      const bbPlayer = players.find(player => player.position === 'BB');
+      if (bbPlayer) {
+        const bbKey = actorKeyForPlayer(bbPlayer);
+        totalCommittedByActor.set(bbKey, (totalCommittedByActor.get(bbKey) || 0) + declaredAnte);
+      }
+    } else {
+      synthesizedAnteTotal = declaredAnte * Math.max(1, players.length);
+      for (const p of players) {
+        const pKey = actorKeyForPlayer(p);
+        totalCommittedByActor.set(pKey, (totalCommittedByActor.get(pKey) || 0) + declaredAnte);
+        forcedPosts.push({
+          street: 'preflop',
+          player: p.name,
+          playerId: p.id,
+          position: p.position,
+          type: 'ante',
+          amount: declaredAnte,
+          amountBB: hasKnownBlinds ? declaredAnte / bigBlind : null,
+          dead: true,
+          isHero: String(p.id) === String(userId),
+        });
+      }
+    }
+    runningPot += synthesizedAnteTotal;
+  }
+
+  const allNormalizedActions = [];
 
   const normalizeStreet = (street) => {
     const summaryActions = summaryStreets?.[street]?.actions;
@@ -287,16 +495,39 @@ export function normalizeClubArenaHand(row, userId) {
       ? summaryActions
       : topLevelActions.filter(action => String(action?.street || action?.stage || 'preflop').toLowerCase() === street);
     const streetContrib = street === 'preflop' ? preflopContrib : new Map();
+    const streetActors = new Map();
     let currentBet = street === 'preflop' ? preflopCurrentBet : 0;
+    let lastRaiseIncrement = street === 'preflop' && hasKnownBlinds ? bigBlind : 0;
+    let streetHasExplicitReturn = false;
+    let hadShortAllInCallOnStreet = false;
     const normalized = [];
 
     for (const action of source) {
       const amount = Number(action?.amount) || 0;
       const raw = normalizedRawAction(action);
       const { playerId: actionPlayerId, playerName: actionPlayer, position, isHero, actorKey } = resolveActor(action);
+      streetActors.set(actorKey, { playerId: actionPlayerId, playerName: actionPlayer, position, isHero });
 
       if (action?.historyEvent === 'uncalled_bet_returned' || raw === 'return' || raw === 'returnedbet' || raw === 'refund') {
-        if (amount > 0 && runningPot >= amount) runningPot -= amount;
+        streetHasExplicitReturn = true;
+        if (amount > 0) {
+          if (runningPot >= amount) runningPot -= amount;
+          if (streetContrib.has(actorKey)) {
+            streetContrib.set(actorKey, Math.max(0, (streetContrib.get(actorKey) || 0) - amount));
+          }
+          if (totalCommittedByActor.has(actorKey)) {
+            totalCommittedByActor.set(actorKey, Math.max(0, (totalCommittedByActor.get(actorKey) || 0) - amount));
+          }
+          uncalledReturns.push({
+            street,
+            player: actionPlayer,
+            playerId: actionPlayerId,
+            position,
+            amount,
+            amountBB: hasKnownBlinds ? amount / bigBlind : null,
+            isHero,
+          });
+        }
         continue;
       }
 
@@ -304,17 +535,41 @@ export function normalizeClubArenaHand(row, userId) {
         if (amount > 0 && (BLIND_POST_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle/.test(raw))) {
           runningPot += amount;
           hasTrackablePot = true;
-          if (!action?.dead && raw !== 'ante') {
+          const isDead = Boolean(action?.dead || raw === 'ante' || raw === 'bombante');
+          if (raw === 'ante' || raw === 'bombante') {
+            explicitAnteTotal += amount;
+          }
+          totalCommittedByActor.set(actorKey, (totalCommittedByActor.get(actorKey) || 0) + amount);
+          if (!isDead) {
             const nextContrib = (streetContrib.get(actorKey) || 0) + amount;
             streetContrib.set(actorKey, nextContrib);
             if (nextContrib > currentBet) currentBet = nextContrib;
           }
+          forcedPosts.push({
+            street,
+            player: actionPlayer,
+            playerId: actionPlayerId,
+            position,
+            type: raw === 'smallblind' || raw === 'postsb' ? 'sb'
+              : (raw === 'bigblind' || raw === 'postbb' || raw === 'blind' ? 'bb' : raw),
+            amount,
+            amountBB: hasKnownBlinds ? amount / bigBlind : null,
+            dead: isDead,
+            isHero,
+          });
         }
         continue;
       }
 
       const normalizedAction = actionName(action);
       if (!normalizedAction) continue;
+
+      if (normalizedAction === 'fold') {
+        foldedActorKeys.add(actorKey);
+        if (actionPlayerId !== null && actionPlayerId !== undefined && String(actionPlayerId) !== '') {
+          foldedPlayerIds.add(String(actionPlayerId));
+        }
+      }
 
       const explicitPotBefore = [
         action.potBefore, action.pot_before, action.potSizeBefore, action.pot_size_before,
@@ -331,9 +586,11 @@ export function normalizeClubArenaHand(row, userId) {
       const potBefore = explicitPotBefore ?? (hasTrackablePot ? runningPot : null);
       const currentBetBefore = explicitCurrentBetBefore ?? currentBet;
       const prevContrib = streetContrib.get(actorKey) || 0;
+      const committedBeforeHand = totalCommittedByActor.get(actorKey) || 0;
 
       let raiseTo = explicitRaiseTo;
       let delta = 0;
+      let isShortAllIn = Boolean(action?.isShortAllIn || action?.shortAllIn);
       if (normalizedAction === 'bet') {
         delta = Math.max(0, amount);
         raiseTo = raiseTo ?? (prevContrib + delta);
@@ -341,16 +598,39 @@ export function normalizeClubArenaHand(row, userId) {
         raiseTo = raiseTo ?? (amount > prevContrib && amount >= currentBetBefore ? amount : prevContrib + amount);
         delta = Math.max(0, raiseTo - prevContrib);
       } else if (normalizedAction === 'call') {
-        delta = Math.max(0, amount);
+        const callNeeded = currentBetBefore > prevContrib ? currentBetBefore - prevContrib : amount;
+        delta = (prevContrib > 0 && currentBetBefore > prevContrib && amount === currentBetBefore)
+          ? Math.max(0, callNeeded)
+          : Math.max(0, amount);
       } else if (normalizedAction === 'allin') {
-        if (amount > currentBetBefore) {
+        if (action?.amountAdded !== undefined && Number.isFinite(Number(action.amountAdded))) {
+          delta = Math.max(0, Number(action.amountAdded));
+          raiseTo = raiseTo ?? (prevContrib + delta);
+        } else if (amount > currentBetBefore) {
           raiseTo = raiseTo ?? amount;
           delta = Math.max(0, raiseTo - prevContrib);
         } else {
           // Hetzner records all_in.amount as total street commitment (stack + bet),
           // so subtract prevContrib to avoid double-counting blinds/prior bets.
-          delta = Math.max(0, amount - prevContrib);
+          delta = Math.max(0, amount > prevContrib ? amount - prevContrib : amount);
+          raiseTo = raiseTo ?? (prevContrib + delta);
         }
+        const totalStreetBet = prevContrib + delta;
+        if (totalStreetBet < currentBetBefore) {
+          isShortAllIn = true;
+          hadShortAllInCallOnStreet = true;
+        } else if (totalStreetBet > currentBetBefore) {
+          const raiseDiff = totalStreetBet - currentBetBefore;
+          const minRaise = Math.max(hasKnownBlinds ? bigBlind : 0, lastRaiseIncrement);
+          if (minRaise > 0 && raiseDiff < minRaise) {
+            isShortAllIn = true;
+          }
+        }
+      }
+
+      const totalBet = prevContrib + delta;
+      if (totalBet > currentBetBefore) {
+        lastRaiseIncrement = totalBet - currentBetBefore;
       }
 
       let computedSizing = null;
@@ -372,29 +652,77 @@ export function normalizeClubArenaHand(row, userId) {
         }
       }
 
-      normalized.push({
+      const potAfter = potBefore !== null ? potBefore + delta : null;
+      const entry = {
         player: actionPlayer,
         playerId: actionPlayerId,
         position,
         action: normalizedAction,
         amount,
-        amountBB: Number.isFinite(bigBlind) && bigBlind > 0 ? amount / bigBlind : null,
+        amountBB: hasKnownBlinds ? amount / bigBlind : null,
+        amountAdded: delta,
+        amountAddedBB: hasKnownBlinds ? delta / bigBlind : null,
+        totalBet,
+        totalBetBB: hasKnownBlinds ? totalBet / bigBlind : null,
         potBefore,
-        potBeforeBB: potBefore !== null && Number.isFinite(bigBlind) && bigBlind > 0
+        potBeforeBB: potBefore !== null && hasKnownBlinds
           ? potBefore / bigBlind
+          : null,
+        potAfter,
+        potAfterBB: potAfter !== null && hasKnownBlinds
+          ? potAfter / bigBlind
           : null,
         sizingPct: explicitSizing ?? computedSizing,
         currentBetBefore,
         raiseTo,
+        isShortAllIn,
         isHero,
-      });
+        _actorKey: actorKey,
+        _committedBefore: committedBeforeHand,
+      };
+      normalized.push(entry);
+      allNormalizedActions.push(entry);
 
       if (delta > 0) {
         const basePot = explicitPotBefore !== undefined ? explicitPotBefore : runningPot;
         runningPot = basePot + delta;
         const nextContrib = prevContrib + delta;
         streetContrib.set(actorKey, nextContrib);
+        totalCommittedByActor.set(actorKey, committedBeforeHand + delta);
         if (nextContrib > currentBet) currentBet = nextContrib;
+      }
+    }
+
+    // Reconcile uncalled excess at end of street when no explicit return row was logged
+    // and either a short all-in call occurred or stored pot_size proves the uncalled return.
+    if (!streetHasExplicitReturn && streetContrib.size >= 1) {
+      const sortedContribs = [...streetContrib.entries()]
+        .filter(([, val]) => val > 0)
+        .sort((a, b) => b[1] - a[1]);
+      if (sortedContribs.length >= 1) {
+        const [topKey, topVal] = sortedContribs[0];
+        const secondVal = sortedContribs[1]?.[1] ?? 0;
+        const excess = +(topVal - secondVal).toFixed(4);
+        const storedPot = Number(row?.pot_size ?? summary?.potSize ?? summary?.pot_size);
+        const storedPotMatchesReturn = Number.isFinite(storedPot) && storedPot > 0
+          && Math.abs((runningPot - excess) - storedPot) < 0.05
+          && Math.abs(runningPot - storedPot) >= 0.05;
+        if (excess > 0 && (hadShortAllInCallOnStreet || storedPotMatchesReturn)) {
+          runningPot = Math.max(0, +(runningPot - excess).toFixed(4));
+          streetContrib.set(topKey, Math.max(0, +(topVal - excess).toFixed(4)));
+          totalCommittedByActor.set(topKey, Math.max(0, +((totalCommittedByActor.get(topKey) || 0) - excess).toFixed(4)));
+          const meta = streetActors.get(topKey) || {};
+          uncalledReturns.push({
+            street,
+            player: meta.playerName || '',
+            playerId: meta.playerId ?? null,
+            position: meta.position || '',
+            amount: excess,
+            amountBB: hasKnownBlinds ? excess / bigBlind : null,
+            isHero: meta.isHero === true,
+            inferred: true,
+          });
+        }
       }
     }
 
@@ -411,9 +739,214 @@ export function normalizeClubArenaHand(row, userId) {
   const finalFlop = flop.length >= 3 ? flop.slice(0, 3) : fallbackBoard.slice(0, 3);
   const turn = turnCards[0] || fallbackBoard[3] || '';
   const river = riverCards[0] || fallbackBoard[4] || '';
+
+  // Validate deck card uniqueness across hero hole cards and dealt board cards.
+  const dealtBoardCards = [
+    ...finalFlop,
+    ...(turn ? [turn] : []),
+    ...(river ? [river] : []),
+  ];
+  const uniqueCardSet = new Set([...heroCards, ...dealtBoardCards]);
+  if (uniqueCardSet.size !== heroCards.length + dealtBoardCards.length) {
+    return null;
+  }
+
   const flopActions = finalFlop.length >= 3 ? normalizeStreet('flop') : [];
   const turnActions = turn ? normalizeStreet('turn') : [];
   const riverActions = river ? normalizeStreet('river') : [];
+
+  // Recover starting stacks when raw hand_history stores post-settlement stacks + winners
+  const rawWinners = Array.isArray(row?.winners) && row.winners.length > 0
+    ? row.winners
+    : (Array.isArray(summary?.winners) ? summary.winners : []);
+  const wonByPlayerId = new Map();
+  for (const w of rawWinners) {
+    const wId = w?.userId ?? w?.user_id ?? w?.playerId;
+    if (wId !== null && wId !== undefined && String(wId) !== '') {
+      wonByPlayerId.set(String(wId), (wonByPlayerId.get(String(wId)) || 0) + (Number(w.amount) || 0));
+    }
+  }
+  const storedPotSize = Number(row?.pot_size ?? summary?.potSize ?? summary?.pot_size);
+  const potReconciles = Number.isFinite(storedPotSize) && storedPotSize > 0
+    ? Math.abs(runningPot - storedPotSize) < 0.05
+    : true;
+
+  const startStackChipsByActor = new Map();
+  for (const p of players) {
+    const pKey = actorKeyForPlayer(p);
+    const netInvested = totalCommittedByActor.get(pKey) || 0;
+    let startChips = p.startStackChips;
+    if (!p.hasExplicitStart && rawWinners.length > 0 && p.rawSettledStack !== null && potReconciles) {
+      const grossWon = p.id !== null && p.id !== undefined ? (wonByPlayerId.get(String(p.id)) || 0) : 0;
+      const recovered = +(p.rawSettledStack - grossWon + netInvested).toFixed(4);
+      if (recovered > 0) {
+        startChips = recovered;
+        if (hasKnownBlinds) p.stack = +(recovered / bigBlind).toFixed(4);
+      }
+    } else if (startChips === null && netInvested > 0) {
+      startChips = netInvested;
+      if (hasKnownBlinds) p.stack = +(netInvested / bigBlind).toFixed(4);
+    }
+    if (String(p.id) === String(userId) && Number.isFinite(Number(row?.hero_effective_stack_bb ?? row?.effective_stack_bb_at_deal)) && Number(row?.hero_effective_stack_bb ?? row?.effective_stack_bb_at_deal) > 0 && hasKnownBlinds && startChips === null) {
+      startChips = Number(row?.hero_effective_stack_bb ?? row?.effective_stack_bb_at_deal) * bigBlind;
+    }
+    if (startChips !== null && startChips > 0) {
+      startStackChipsByActor.set(pKey, startChips);
+      p.startStackChips = startChips;
+    }
+    delete p.hasExplicitStart;
+    delete p.rawSettledStack;
+  }
+
+  // Stamp stackAtDecision / stackAtDecisionBB / stackAfter / stackAfterBB on every normalized action
+  for (const act of allNormalizedActions) {
+    const startChips = startStackChipsByActor.get(act._actorKey) ?? null;
+    const committedBefore = act._committedBefore || 0;
+    if (startChips !== null && startChips > 0) {
+      const beforeChips = Math.max(0, +(startChips - committedBefore).toFixed(4));
+      const afterChips = Math.max(0, +(beforeChips - (act.amountAdded || 0)).toFixed(4));
+      act.stackAtDecision = beforeChips;
+      act.stackAtDecisionBB = hasKnownBlinds ? +(beforeChips / bigBlind).toFixed(4) : null;
+      act.stackAfter = afterChips;
+      act.stackAfterBB = hasKnownBlinds ? +(afterChips / bigBlind).toFixed(4) : null;
+    } else {
+      act.stackAtDecision = null;
+      act.stackAtDecisionBB = null;
+      act.stackAfter = null;
+      act.stackAfterBB = null;
+    }
+    delete act._actorKey;
+    delete act._committedBefore;
+  }
+
+  // Showdown & opponent hole-card privacy enforcement:
+  // Opponent hole cards that were mucked or folded MUST remain strictly unavailable ([]).
+  const rawShowdown = Array.isArray(row?.showdown)
+    ? row.showdown
+    : (Array.isArray(summary?.showdown) ? summary.showdown : []);
+  const muckedPlayerIds = new Set();
+  const revealedShowdownIds = new Set();
+  for (const entry of rawShowdown) {
+    const sId = entry?.user_id ?? entry?.userId ?? entry?.playerId;
+    if (sId === null || sId === undefined || String(sId) === '') continue;
+    if (entry.mucked === true) {
+      muckedPlayerIds.add(String(sId));
+    } else {
+      revealedShowdownIds.add(String(sId));
+    }
+  }
+  for (const rawP of rawPlayers) {
+    const pId = playerId(rawP);
+    if (pId === null || pId === undefined || String(pId) === '') continue;
+    if (rawP?.mucked === true || rawP?.showdown_reveal?.mucked === true || rawP?.showed === false || rawP?.showedCards === false) {
+      muckedPlayerIds.add(String(pId));
+    } else if (rawP?.showed === true || rawP?.showedCards === true || (rawP?.showdown_reveal && rawP.showdown_reveal.mucked === false)) {
+      revealedShowdownIds.add(String(pId));
+    }
+  }
+
+  const showdownPlayers = [];
+  for (const p of players) {
+    const pIdStr = p.id !== null && p.id !== undefined ? String(p.id) : '';
+    const pKey = actorKeyForPlayer(p);
+    const isHeroPlayer = pIdStr === String(userId);
+    const didFold = foldedPlayerIds.has(pIdStr) || foldedActorKeys.has(pKey);
+    const didMuck = muckedPlayerIds.has(pIdStr);
+    if (isHeroPlayer) {
+      p.holeCards = heroCards;
+      p.holeCardsAvailable = true;
+      p.mucked = didMuck;
+    } else {
+      const publicRevealed = cards(row?.hole_cards?.[pIdStr]);
+      const playerCards = p.holeCards || [];
+      const candidateRevealed = publicRevealed.length === 2 ? publicRevealed : (playerCards.length === 2 ? playerCards : []);
+      const canReveal = !didFold && !didMuck && (
+        publicRevealed.length === 2
+        || revealedShowdownIds.has(pIdStr)
+        || (rawShowdown.length === 0 && candidateRevealed.length === 2)
+      );
+      p.holeCards = canReveal ? candidateRevealed : [];
+      p.holeCardsAvailable = p.holeCards.length === 2;
+      p.mucked = didMuck || (!didFold && !p.holeCardsAvailable);
+    }
+    if (!didFold) {
+      showdownPlayers.push({
+        playerId: p.id,
+        name: p.name,
+        position: p.position,
+        mucked: Boolean(p.mucked),
+        holeCards: p.holeCards,
+        holeCardsAvailable: p.holeCardsAvailable,
+      });
+    }
+  }
+
+  // Side-pot and main-pot normalization
+  const rawPots = Array.isArray(row?.pots) && row.pots.length > 0
+    ? row.pots
+    : (Array.isArray(summary?.pots) && summary.pots.length > 0 ? summary.pots : null);
+  let normalizedPots = [];
+  if (rawPots) {
+    normalizedPots = rawPots.map((potEntry, idx) => {
+      const amt = Number(potEntry?.amount ?? potEntry) || 0;
+      const potIdx = Number.isFinite(Number(potEntry?.index)) ? Number(potEntry.index) : idx;
+      return {
+        index: potIdx,
+        type: potIdx === 0 ? 'main' : 'side',
+        amount: amt,
+        amountBB: hasKnownBlinds ? +(amt / bigBlind).toFixed(4) : null,
+      };
+    }).filter(p => p.amount > 0);
+  } else {
+    // Derive main pot and side pots from player commitments when distinct non-folded commitment tiers exist
+    const nonFoldedLevels = [...new Set(
+      players
+        .filter(p => {
+          const pIdStr = p.id !== null && p.id !== undefined ? String(p.id) : '';
+          return !foldedPlayerIds.has(pIdStr) && !foldedActorKeys.has(actorKeyForPlayer(p));
+        })
+        .map(p => +(totalCommittedByActor.get(actorKeyForPlayer(p)) || 0).toFixed(4))
+        .filter(v => v > 0)
+    )].sort((a, b) => a - b);
+
+    if (nonFoldedLevels.length > 1) {
+      let prevLevel = 0;
+      nonFoldedLevels.forEach((level, idx) => {
+        const sliceDiff = level - prevLevel;
+        if (sliceDiff <= 0) return;
+        let potSlice = 0;
+        const eligiblePlayerIds = [];
+        for (const p of players) {
+          const pKey = actorKeyForPlayer(p);
+          const committed = totalCommittedByActor.get(pKey) || 0;
+          if (committed > prevLevel) {
+            potSlice += Math.min(committed, level) - prevLevel;
+          }
+          const pIdStr = p.id !== null && p.id !== undefined ? String(p.id) : '';
+          if (committed >= level && !foldedPlayerIds.has(pIdStr) && !foldedActorKeys.has(pKey)) {
+            eligiblePlayerIds.push(p.id);
+          }
+        }
+        if (potSlice > 0) {
+          normalizedPots.push({
+            index: idx,
+            type: idx === 0 ? 'main' : 'side',
+            amount: +potSlice.toFixed(4),
+            amountBB: hasKnownBlinds ? +(potSlice / bigBlind).toFixed(4) : null,
+            eligiblePlayerIds,
+          });
+        }
+        prevLevel = level;
+      });
+    } else if (runningPot > 0) {
+      normalizedPots = [{
+        index: 0,
+        type: 'main',
+        amount: +runningPot.toFixed(4),
+        amountBB: hasKnownBlinds ? +(runningPot / bigBlind).toFixed(4) : null,
+      }];
+    }
+  }
 
   const rawFormat = String(summary.format || row?.format || '').trim().toLowerCase();
   const hasTournamentId = row?.tournament_id !== null
@@ -443,13 +976,25 @@ export function normalizeClubArenaHand(row, userId) {
       : heroStackBb;
   }
 
+  const totalAnteChips = explicitAnteTotal > 0 ? explicitAnteTotal : synthesizedAnteTotal;
+  const perPlayerAnteChips = declaredAnte > 0
+    ? declaredAnte
+    : (explicitAnteTotal > 0 && players.length > 0 ? +(explicitAnteTotal / players.length).toFixed(4) : 0);
+
   return {
     id: `club-arena:${row.id || summary.id || summary.handId || row.hand_number}`,
     site: 'smarter-poker-club-arena',
     format,
     gameType: ['nlh', 'nlhe'].includes(gameType) ? 'nlhe' : 'no-limit-holdem',
+    bettingStructure: 'NL',
     tableSize: players.length,
-    bigBlind: Number.isFinite(bigBlind) && bigBlind > 0 ? bigBlind : null,
+    smallBlind: resolvedSmallBlind,
+    bigBlind: hasKnownBlinds ? bigBlind : null,
+    blindLevel: hasKnownBlinds && resolvedSmallBlind !== null ? `${resolvedSmallBlind}/${bigBlind}` : null,
+    ante: perPlayerAnteChips,
+    anteBB: hasKnownBlinds && perPlayerAnteChips > 0 ? +(perPlayerAnteChips / bigBlind).toFixed(4) : 0,
+    anteTotal: totalAnteChips,
+    anteTotalBB: hasKnownBlinds && totalAnteChips > 0 ? +(totalAnteChips / bigBlind).toFixed(4) : 0,
     stackUnit: 'bb',
     buttonSeat: summary.buttonSeat ?? summary.button_seat ?? row?.button_seat ?? null,
     players,
@@ -465,6 +1010,24 @@ export function normalizeClubArenaHand(row, userId) {
       effectiveStackBb: computedEffectiveStackBb,
     },
     effectiveStackBb: computedEffectiveStackBb,
+    forcedPosts,
+    uncalledReturns,
+    finalPot: +runningPot.toFixed(4),
+    finalPotBB: hasKnownBlinds ? +(runningPot / bigBlind).toFixed(4) : null,
+    mainPot: normalizedPots[0]?.amount ?? +runningPot.toFixed(4),
+    sidePots: normalizedPots.slice(1).map(p => p.amount),
+    pots: normalizedPots,
+    showdown: {
+      wentToShowdown: rawShowdown.length > 0 || Boolean(summary.wentToShowdown || summary.showdown) || (Boolean(river) && showdownPlayers.length >= 2),
+      players: showdownPlayers,
+      winners: rawWinners.map((w, idx) => ({
+        playerId: w?.userId ?? w?.user_id ?? w?.playerId ?? null,
+        amount: Number(w?.amount) || 0,
+        amountBB: hasKnownBlinds ? +((Number(w?.amount) || 0) / bigBlind).toFixed(4) : null,
+        potIndex: Number.isFinite(Number(w?.potIndex ?? w?.pot_index)) ? Number(w?.potIndex ?? w?.pot_index) : idx,
+        handName: w?.hand?.name ?? w?.hand_name ?? w?.handDescription ?? null,
+      })),
+    },
     streets: {
       preflop: { actions: preflopActions },
       flop: finalFlop.length >= 3 ? { board: finalFlop, actions: flopActions } : null,
@@ -1175,6 +1738,74 @@ function auditRowTime(row) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function emptyIntervalReconciliation() {
+  return {
+    inScopeSourceHands: 0,
+    handsConverted: 0,
+    exclusionsByReason: {
+      unsupported_variant: 0,
+      unsupported_special_format: 0,
+      missing_hero_identity: 0,
+      missing_private_cards: 0,
+      no_hero_decisions: 0,
+    },
+    excludedBeforeConversion: 0,
+    unresolvedConversionErrors: 0,
+    handsEligible: 0,
+    handsWithNoHeroDecisions: 0,
+    handsAudited: 0,
+    handsAuditedEligible: 0,
+    handsAlreadyCurrent: 0,
+    handsQueuedForRetry: 0,
+    eligibleDecisionsTotal: 0,
+    decisionsAlreadyCurrent: 0,
+    decisionsAnalyzed: 0,
+    solverVerified: 0,
+    unpriced: 0,
+    solverLookupFailures: 0,
+    obsoleteDecisionsRemoved: 0,
+    pagesCompleted: 0,
+  };
+}
+
+function addReconciliationCounts(prior, page) {
+  const base = prior || emptyIntervalReconciliation();
+  const next = {
+    inScopeSourceHands: (base.inScopeSourceHands || 0) + (page.inScopeSourceHands || 0),
+    handsConverted: (base.handsConverted || 0) + (page.handsConverted || 0),
+    exclusionsByReason: {
+      unsupported_variant: (base.exclusionsByReason?.unsupported_variant || 0) + (page.exclusionsByReason?.unsupported_variant || 0),
+      unsupported_special_format: (base.exclusionsByReason?.unsupported_special_format || 0) + (page.exclusionsByReason?.unsupported_special_format || 0),
+      missing_hero_identity: (base.exclusionsByReason?.missing_hero_identity || 0) + (page.exclusionsByReason?.missing_hero_identity || 0),
+      missing_private_cards: (base.exclusionsByReason?.missing_private_cards || 0) + (page.exclusionsByReason?.missing_private_cards || 0),
+      no_hero_decisions: (base.exclusionsByReason?.no_hero_decisions || 0) + (page.exclusionsByReason?.no_hero_decisions || 0),
+    },
+    excludedBeforeConversion: (base.excludedBeforeConversion || 0) + (page.excludedBeforeConversion || 0),
+    unresolvedConversionErrors: (base.unresolvedConversionErrors || 0) + (page.unresolvedConversionErrors || 0),
+    handsEligible: (base.handsEligible || 0) + (page.handsEligible || 0),
+    handsWithNoHeroDecisions: (base.handsWithNoHeroDecisions || 0) + (page.handsWithNoHeroDecisions || 0),
+    handsAudited: (base.handsAudited || 0) + (page.handsAudited || 0),
+    handsAuditedEligible: (base.handsAuditedEligible || 0) + (page.handsAuditedEligible || 0),
+    handsAlreadyCurrent: (base.handsAlreadyCurrent || 0) + (page.handsAlreadyCurrent || 0),
+    handsQueuedForRetry: (base.handsQueuedForRetry || 0) + (page.handsQueuedForRetry || 0),
+    eligibleDecisionsTotal: (base.eligibleDecisionsTotal || 0) + (page.eligibleDecisionsTotal || 0),
+    decisionsAlreadyCurrent: (base.decisionsAlreadyCurrent || 0) + (page.decisionsAlreadyCurrent || 0),
+    decisionsAnalyzed: (base.decisionsAnalyzed || 0) + (page.decisionsAnalyzed || 0),
+    solverVerified: (base.solverVerified || 0) + (page.solverVerified || 0),
+    unpriced: (base.unpriced || 0) + (page.unpriced || 0),
+    solverLookupFailures: (base.solverLookupFailures || 0) + (page.solverLookupFailures || 0),
+    obsoleteDecisionsRemoved: (base.obsoleteDecisionsRemoved || 0) + (page.obsoleteDecisionsRemoved || 0),
+    pagesCompleted: (base.pagesCompleted || 0) + 1,
+  };
+  next.handsReconciled = next.inScopeSourceHands === (
+    next.handsConverted + next.excludedBeforeConversion + next.unresolvedConversionErrors
+  ) && next.handsConverted === (next.handsEligible + next.handsWithNoHeroDecisions);
+  next.decisionsReconciled = next.eligibleDecisionsTotal === (
+    next.decisionsAlreadyCurrent + next.decisionsAnalyzed
+  ) && next.decisionsAnalyzed === (next.solverVerified + next.unpriced);
+  return next;
+}
+
 /** Idempotently audit recent Club Arena hands before Leak Finder aggregates them. */
 export async function syncClubArenaHandsForAudit(db, userId, {
   limit = 100,
@@ -1191,6 +1822,9 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   const effectiveSinceBoundary = effectiveFullRescan
     ? null
     : (sinceBoundary || (!legacyCursor ? (cursor?.sinceBoundary || null) : null));
+  const priorReconciliation = (!legacyCursor && cursor?.cumulativeReconciliation)
+    ? cursor.cumulativeReconciliation
+    : emptyIntervalReconciliation();
   const requestedCursor = {
     version: 2,
     snapshotAt,
@@ -1199,6 +1833,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     latestHandWatermark: legacyCursor ? null : (cursor?.latestHandWatermark || null),
     sinceBoundary: effectiveSinceBoundary,
     fullRescan: effectiveFullRescan,
+    cumulativeReconciliation: priorReconciliation,
   };
   const [modern, legacy] = await Promise.all([
     fetchClubHandsForKey(db, userId, 'userId', {
@@ -1215,6 +1850,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       available: false,
       handsFound: 0,
       cumulativeHandsFound: requestedCursor.cumulativeHandsFound,
+      handsConverted: 0,
       handsEligible: 0,
       handsAudited: 0,
       decisionsAnalyzed: 0,
@@ -1265,6 +1901,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     latestHandWatermark,
     sinceBoundary: effectiveSinceBoundary,
     fullRescan: effectiveFullRescan,
+    cumulativeReconciliation: priorReconciliation,
   };
   const privateFacts = await fetchPrivateHeroCards(db, userId, handRows);
   let privateCardsRecovered = 0;
@@ -1282,10 +1919,45 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       ...(dealtStackBB !== null ? { hero_effective_stack_bb: dealtStackBB } : {}),
     };
   });
-  const rejectionReasons = rowsWithPrivateCards.map(row => clubArenaHandRejectionReason(row, userId));
-  const normalized = rowsWithPrivateCards.map(row => normalizeClubArenaHand(row, userId)).filter(Boolean);
-  const handsMissingPrivateCards = rejectionReasons.filter(reason => reason === 'missing_private_cards').length;
-  const handsRejectedBeforeAudit = rejectionReasons.filter(reason => reason && reason !== 'missing_private_cards').length;
+
+  const exclusionsByReason = {
+    unsupported_variant: 0,
+    unsupported_special_format: 0,
+    missing_hero_identity: 0,
+    missing_private_cards: 0,
+    no_hero_decisions: 0,
+  };
+  let unresolvedConversionErrors = 0;
+  const normalized = [];
+  const rejectionReasons = [];
+  for (const row of rowsWithPrivateCards) {
+    const reason = clubArenaHandRejectionReason(row, userId);
+    rejectionReasons.push(reason);
+    if (reason !== null) {
+      if (Object.prototype.hasOwnProperty.call(exclusionsByReason, reason)) {
+        exclusionsByReason[reason] += 1;
+      }
+      continue;
+    }
+    let converted = null;
+    try {
+      converted = normalizeClubArenaHand(row, userId);
+    } catch (_) {
+      converted = null;
+    }
+    if (converted) {
+      normalized.push(converted);
+    } else {
+      unresolvedConversionErrors += 1;
+    }
+  }
+
+  const handsMissingPrivateCards = exclusionsByReason.missing_private_cards;
+  const handsRejectedBeforeAudit = exclusionsByReason.unsupported_variant
+    + exclusionsByReason.unsupported_special_format
+    + exclusionsByReason.missing_hero_identity;
+  const excludedBeforeConversion = handsMissingPrivateCards + handsRejectedBeforeAudit;
+
   if (!privateFacts.available && handsMissingPrivateCards > 0) {
     return {
       available: false,
@@ -1293,7 +1965,10 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       privateCardsRecovered,
       handsMissingPrivateCards,
       handsRejectedBeforeAudit,
+      exclusionsByReason,
+      unresolvedConversionErrors,
       handsFound: handRows.length,
+      handsConverted: normalized.length,
       cumulativeHandsFound: requestedCursor.cumulativeHandsFound,
       handsEligible: normalized.length,
       handsAudited: 0,
@@ -1305,18 +1980,51 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     };
   }
   if (normalized.length === 0) {
+    const emptyPageRecon = {
+      inScopeSourceHands: handRows.length,
+      handsConverted: 0,
+      exclusionsByReason,
+      excludedBeforeConversion,
+      unresolvedConversionErrors,
+      handsEligible: 0,
+      handsWithNoHeroDecisions: 0,
+      handsAudited: 0,
+      handsAuditedEligible: 0,
+      handsAlreadyCurrent: 0,
+      handsQueuedForRetry: 0,
+      eligibleDecisionsTotal: 0,
+      decisionsAlreadyCurrent: 0,
+      decisionsAnalyzed: 0,
+      solverVerified: 0,
+      unpriced: 0,
+      solverLookupFailures: 0,
+      obsoleteDecisionsRemoved: 0,
+      pageHandIds: handRows.map(r => String(r.id)),
+      handsReconciled: handRows.length === (excludedBeforeConversion + unresolvedConversionErrors),
+      decisionsReconciled: true,
+    };
+    const nextCumulative = errors.length === 0
+      ? addReconciliationCounts(priorReconciliation, emptyPageRecon)
+      : priorReconciliation;
+    advancedCursor.cumulativeReconciliation = nextCumulative;
     return {
       available: true,
       partial: errors.length > 0,
       handsFound: handRows.length,
+      handsConverted: 0,
       cumulativeHandsFound: errors.length === 0
         ? advancedCursor.cumulativeHandsFound
         : requestedCursor.cumulativeHandsFound,
       handsEligible: 0,
+      exclusionsByReason,
+      unresolvedConversionErrors,
+      eligibleDecisionsTotal: 0,
+      decisionsAlreadyCurrent: 0,
       privateFactsAvailable: privateFacts.available,
       privateCardsRecovered,
       handsMissingPrivateCards,
       handsRejectedBeforeAudit,
+      handsSkippedNoHeroDecisions: 0,
       handsAudited: 0,
       handsAlreadyCurrent: 0,
       handsQueuedForRetry: 0,
@@ -1330,6 +2038,11 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       truncated: sourceIncomplete,
       incrementalStop: reachedWatermark,
       latestHandWatermark,
+      reconciliation: {
+        page: emptyPageRecon,
+        cumulative: nextCumulative,
+        invariantsHold: emptyPageRecon.handsReconciled && emptyPageRecon.decisionsReconciled,
+      },
       continuation: errors.length === 0 && sourceIncomplete ? advancedCursor : (errors.length > 0 ? requestedCursor : null),
     };
   }
@@ -1350,11 +2063,14 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   let handsQueuedForRetry = 0;
   let handsAlreadyCurrent = 0;
   let handsSkippedNoHeroDecisions = 0;
+  let handsWithNoHeroDecisions = 0;
+  let decisionsAlreadyCurrent = 0;
   const decisionCounts = new Map(normalized.map(hand => [
     String(hand.id),
     Math.min(MAX_DECISIONS_PER_HAND, getHeroDecisionPoints(hand).length),
   ]));
   const handsEligible = [...decisionCounts.values()].filter(count => count > 0).length;
+  const eligibleDecisionsTotal = [...decisionCounts.values()].reduce((sum, count) => sum + count, 0);
   const retryCutoff = nowMs - Math.max(0, Number(retryUnpricedAfterMs) || 0);
   const pending = normalized.filter(hand => {
     const rows = rowsByHand.get(String(hand.id)) || [];
@@ -1366,6 +2082,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     // hand that still has old decision rows: audit it once so the atomic
     // replacement RPC removes that obsolete evidence.
     if (expectedDecisions === 0) {
+      handsWithNoHeroDecisions += 1;
       if (rows.length > 0) {
         handsQueuedForRetry += 1;
         return true;
@@ -1389,24 +2106,65 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       return true;
     }
     handsAlreadyCurrent += 1;
+    decisionsAlreadyCurrent += expectedDecisions;
     return false;
   });
+  exclusionsByReason.no_hero_decisions = handsWithNoHeroDecisions;
+
   const result = await auditParsedHands(db, userId, pending, { maxDecisions, persist: true, evidenceScope: 'club_arena' });
+  const handsAuditedEligible = (result.analyses || []).filter(a => (decisionCounts.get(String(a.handId)) || 0) > 0).length;
   const pageSucceeded = errors.length === 0 && result.complete;
+  const pageReconciliation = {
+    inScopeSourceHands: handRows.length,
+    handsConverted: normalized.length,
+    exclusionsByReason,
+    excludedBeforeConversion,
+    unresolvedConversionErrors,
+    handsEligible,
+    handsWithNoHeroDecisions,
+    handsAudited: result.handsParsed,
+    handsAuditedEligible,
+    handsAlreadyCurrent,
+    handsQueuedForRetry,
+    eligibleDecisionsTotal,
+    decisionsAlreadyCurrent,
+    decisionsAnalyzed: result.decisionsAnalyzed,
+    solverVerified: result.solverVerified,
+    unpriced: result.unpriced,
+    solverLookupFailures: result.solverLookupFailures,
+    obsoleteDecisionsRemoved: result.obsoleteDecisionsRemoved,
+    pageHandIds: handRows.map(r => String(r.id)),
+    handsReconciled: handRows.length === (normalized.length + excludedBeforeConversion + unresolvedConversionErrors)
+      && normalized.length === (handsEligible + handsWithNoHeroDecisions)
+      && (!pageSucceeded || handsEligible === (handsAuditedEligible + handsAlreadyCurrent)),
+    decisionsReconciled: (!pageSucceeded || eligibleDecisionsTotal === (decisionsAlreadyCurrent + result.decisionsAnalyzed))
+      && result.decisionsAnalyzed === (result.solverVerified + result.unpriced),
+  };
+  const nextCumulative = pageSucceeded
+    ? addReconciliationCounts(priorReconciliation, pageReconciliation)
+    : priorReconciliation;
+  advancedCursor.cumulativeReconciliation = nextCumulative;
+
   return {
     available: true,
     partial: errors.length > 0,
     handsFound: handRows.length,
+    handsConverted: normalized.length,
     cumulativeHandsFound: pageSucceeded
       ? advancedCursor.cumulativeHandsFound
       : requestedCursor.cumulativeHandsFound,
     handsEligible,
+    exclusionsByReason,
+    unresolvedConversionErrors,
+    eligibleDecisionsTotal,
+    decisionsAlreadyCurrent,
     privateFactsAvailable: privateFacts.available,
     privateCardsRecovered,
     handsMissingPrivateCards,
     handsRejectedBeforeAudit,
     handsSkippedNoHeroDecisions,
     handsAudited: result.handsParsed,
+    handsAuditedEligible,
     handsAlreadyCurrent,
     handsQueuedForRetry,
     decisionsAnalyzed: result.decisionsAnalyzed,
@@ -1420,6 +2178,11 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     truncated: result.truncated || sourceIncomplete,
     incrementalStop: reachedWatermark,
     latestHandWatermark,
+    reconciliation: {
+      page: pageReconciliation,
+      cumulative: nextCumulative,
+      invariantsHold: pageReconciliation.handsReconciled && pageReconciliation.decisionsReconciled,
+    },
     // Advance the snapshot cursor only after every hand in this page was
     // reconciled. A truncated/failed audit retries the same bounded page.
     continuation: pageSucceeded && sourceIncomplete

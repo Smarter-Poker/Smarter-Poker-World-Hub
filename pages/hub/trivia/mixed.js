@@ -17,7 +17,6 @@ import { TRIVIA_INTRO_ART_MIXED } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
-import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
@@ -662,6 +661,7 @@ export default function MixedModePage() {
         results: `${formatTriviaDisplayNumber(totalCorrect)} Of ${formatTriviaDisplayNumber(questions.length)}`,
     }[gameState] || balanceLabel);
 
+    const mixedCostLabel = isVip ? 'VIP Free' : `${formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds`;
     const primaryAction = showOutOfDiamonds
         ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
         : gameState === 'ready'
@@ -669,7 +669,7 @@ export default function MixedModePage() {
                 ? { label: 'Sign In To Play', onClick: () => router.push('/auth/login?redirect=/hub/trivia/mixed') }
                 : serverRun.hasRecoverableSession
                     ? { label: 'Resume Mixed Run', onClick: resumeServerRun }
-                    : { label: 'Start Mixed Trivia', onClick: startGame }
+                    : { label: `Start Mixed (${mixedCostLabel})`, onClick: startGame }
             : gameState === 'error'
                 ? serverRun.hasRecoverableSession
                     ? { label: 'Retry Resume', onClick: resumeServerRun }
@@ -677,13 +677,13 @@ export default function MixedModePage() {
                 : gameState === 'saving_error'
                     ? { label: 'Retry Save', onClick: handleRetrySave }
                     : gameState === 'results'
-                        ? { label: 'Play Again', onClick: playAgain }
+                        ? { label: `Play Again (${mixedCostLabel})`, onClick: playAgain }
                         : null;
 
     const secondaryAction = showOutOfDiamonds
         ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
-        : (gameState === 'error' || gameState === 'results')
-            ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
+        : (gameState === 'ready' || gameState === 'error' || gameState === 'results')
+            ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
             : null;
 
     return (
@@ -696,16 +696,12 @@ export default function MixedModePage() {
                 />
 
                 <div
-                    className="trivia-challenge-page trivia-challenge-page--mixed"
+                    className="smarterdesign trivia-challenge-page trivia-challenge-page--mixed"
                     data-trivia-family="challenge"
                     data-trivia-surface="mixed"
                     data-game-state={gameState}
                 >
                     <UniversalHeader pageDepth={2} />
-
-                    {userId && !isVip && (
-                        <GameCostPopup userId={userId} featureKey="trivia_mixed" isVip={isVip} cost={GAME_ENTRY_COST} />
-                    )}
 
                     <main className="trivia-challenge-shell" aria-labelledby="mixed-trivia-title">
                         <TriviaConsole
@@ -786,18 +782,18 @@ export default function MixedModePage() {
                                         </div>
                                         <div className="trivia-challenge-stat">
                                             <dt>Entry</dt>
-                                            <dd>{isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds`}</dd>
+                                            <dd>{mixedCostLabel}</dd>
                                         </div>
                                         <div className="trivia-challenge-stat">
                                             <dt>Daily Reward Cap</dt>
                                             <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
                                         </div>
                                     </dl>
-                                    {userId && !isVip && (
+                                    {userId && (
                                         <ul className="tc-rows" aria-label="Your Balance">
                                             <li className="tc-row">
                                                 <span className="tc-row__label">Your Balance</span>
-                                                <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                                <span className="tc-row__value tc-ink--cyan">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
                                             </li>
                                         </ul>
                                     )}

@@ -37,6 +37,16 @@ Apply the treatment to every control and display in a workflow, including the wo
 
 In Bankroll Manager, open the dashboard on a normal entry. Show the launcher there and place Jarvis Insights at the bottom. Each destination has a Back To Dashboard control. A header Add + opens the existing entry flow wherever the user can create records. Place contextual descriptions, FAQs and tutorials behind the upper-right question mark on the product header. Keep required field labels, form feedback and units visible.
 
+## Interior review on every design change
+
+**Full click-through coverage.** Start at each real entry point in the assigned product. List every mode, tab, linked subpage, drill-down, evidence view, editor, popup, chart, filter, and expanded section it exposes. Follow each path until it reaches its final usable screen. Apply #SMARTERDESIGN to the contents, controls, data, empty states, and return path at every level. Track each destination against an observed interaction and visible result. For role-specific paths, check the authorized experience and record any remaining access or data gap.
+
+Open each affected page, expanded panel and dialog through its normal controls. Review the inside of the workflow as carefully as its header. In a calendar form, group the event details together, give the reminder its own row, and place Save and Cancel together in a reachable footer. In analytics, give period controls, figures, chart, and breakdowns distinct spaces. In a reference tool such as Jarvis, keep the question, submit action, answer, and earlier questions identifiable.
+
+Use a continuous steel rim around each intended surface. Separate information within the surface with headings, consistent gutters and alignment. Fit the frame to its contents. Reserve space for icons and actions, align comparable numbers and units, and let long names or values wrap without covering adjacent content. Use purpose-made, recognizable artwork at a size where its subject is clear. Replace weak, stretched or repeated imagery at the source.
+
+Check the actual page at a narrow phone width and at desktop width. Open the dialog, enter a value, change a filter, expand a section and dismiss it using the available controls. Check applicable populated, empty, loading, error and disabled states. Inspect focus, scrolling, readable chart labels, complete frame edges and the last action above the footer. When an issue recurs in another affected view, fix the owning component or shared layout, then exercise both views. Finish with a review of the rendered interior and its working controls.
+
 ## Applying the style in World Hub
 
 Use the source classes in `styles/smarterdesign.css` for mastheads, sections, metrics, tabs and actions. Product components own the layout of their data. The native layout and authentication, financial calculations, persistence, entitlements and navigation remain the source of truth.

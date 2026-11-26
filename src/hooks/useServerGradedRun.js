@@ -372,6 +372,60 @@ export default function useServerGradedRun(mode, opts = {}) {
         return invalidateLifecycle;
     }, [accountId, clearActiveRun, mode, operationIdentity]);
 
+    // Live expiration reconciliation: an open pregame tab must automatically
+    // clear expired recovery pointers when expiresAt passes (or on tab resume)
+    // instead of keeping a stale "Resume" CTA on screen indefinitely.
+    useEffect(() => {
+        if (mode === 'pvp' || !accountId || !recoverableSession?.expiresAt) return undefined;
+        const expiresAtMs = Date.parse(recoverableSession.expiresAt);
+        if (!Number.isFinite(expiresAtMs)) return undefined;
+        const graceMs = mode === 'time-attack' ? 0 : 5_000;
+        const deadlineMs = expiresAtMs + graceMs;
+        const trackedSessionId = recoverableSession.sessionId;
+
+        const reconcileExpiredRecovery = () => {
+            const latest = readSoloRunRecovery(browserStorage(), mode, accountId);
+            if (!latest && recoveryRef.current?.sessionId === trackedSessionId) {
+                recoveryRef.current = null;
+                if (pendingStartNonceRef.current === trackedSessionId) {
+                    pendingStartNonceRef.current = null;
+                }
+                if (!sessionRef.current) {
+                    settlementRequestIdRef.current = null;
+                }
+                setRecoverableSession(null);
+            }
+        };
+
+        const remainingMs = deadlineMs - Date.now();
+        if (remainingMs <= 0) {
+            reconcileExpiredRecovery();
+            return undefined;
+        }
+
+        // Clamp timeout delay below 32-bit signed max (2^31 - 1) to avoid immediate firing
+        const MAX_TIMEOUT_MS = 2_147_483_000;
+        const timeoutId = remainingMs <= MAX_TIMEOUT_MS
+            ? setTimeout(reconcileExpiredRecovery, remainingMs + 25)
+            : null;
+
+        const handleVisibilityChange = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                reconcileExpiredRecovery();
+            }
+        };
+        if (typeof document !== 'undefined' && document.addEventListener) {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        return () => {
+            if (timeoutId !== null) clearTimeout(timeoutId);
+            if (typeof document !== 'undefined' && document.removeEventListener) {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }
+        };
+    }, [accountId, mode, recoverableSession]);
+
     const openSession = useCallback(async ({ count, category, difficulty, matchId, parentSessionId } = {}, requireRecovery = false) => {
         if (!isEnabled) throw new Error('server_grading_disabled');
         if (startingRef.current) return null;

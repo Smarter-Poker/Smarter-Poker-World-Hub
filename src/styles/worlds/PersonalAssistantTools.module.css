@@ -1,9 +1,9 @@
 /*
  * Personal Assistant Tools (Leak Finder) · Approved MTT Lobby Design System
  *
- * Mirrors club-arena MttSurfaces.css / ArenaWorkspace.css:
- * - Canvas: #040d18 obsidian navy (no background grid noise)
- * - Compact border-only metallic chrome (#688299 with #aec0d0 top rim, 7px radius)
+ * Mirrors club-arena MttSurfaces.css / ArenaWorkspacePages.module.css:
+ * - Canvas: #05080c–#020407 dark console (#040d18 obsidian navy token baseline)
+ * - Crisp 1px solid rgba(140, 161, 180, 0.24) outer hairlines & 0.16 flat dividers
  * - Primary CTA immediately above the fold on phone (390x844) and desktop
  * - Breakpoints strictly limited to 768px; no font below 12px; no display: none.
  */
@@ -11,9 +11,11 @@
   --machine-cyan: #56d8ff;
   --machine-blue: #087cfa;
   --machine-gold: #ffc66d;
-  --machine-steel: #688299;
+  --machine-steel: rgba(140, 161, 180, 0.24);
+  --machine-hairline: rgba(140, 161, 180, 0.16);
+  --machine-canvas: #040d18;
   min-height: 100dvh;
-  background: #040d18 !important;
+  background: linear-gradient(180deg, #05080c 0%, #040d18 48%, #020407 100%) !important;
   text-transform: capitalize;
 }
 
@@ -24,12 +26,12 @@
   overflow: hidden;
   margin: 0 0 10px;
   padding: 0;
-  border: 1px solid #688299;
-  border-top-color: #aec0d0;
-  border-radius: 7px;
+  border: 1px solid rgba(140, 161, 180, 0.24);
+  border-top-color: rgba(174, 192, 208, 0.42);
+  border-radius: 8px;
   background:
-    radial-gradient(ellipse at 14% 113%, #113e79, transparent 54%),
-    linear-gradient(115deg, #06111e, #0a192b 42%, #02101f 74%, #101c2a);
+    radial-gradient(ellipse at 14% 113%, rgba(17, 62, 121, 0.38), transparent 54%),
+    linear-gradient(180deg, #080d14 0%, #05080c 100%);
 }
 
 .machineHeroInner {
@@ -53,7 +55,7 @@
   align-items: center;
   gap: 6px;
   color: #83deff;
-  font: 700 12px / 1.25 'Arial Narrow', Arial, sans-serif;
+  font: 700 12px / 1.25 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -61,7 +63,7 @@
 .machineTitle {
   margin: 4px 0 4px;
   color: #f1f5fc;
-  font: 800 clamp(22px, 5vw, 28px) / 1.08 'Arial Narrow', Arial, sans-serif;
+  font: 800 clamp(22px, 5vw, 28px) / 1.08 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   letter-spacing: -0.01em;
 }
 
@@ -75,8 +77,8 @@
 .machineTelemetry {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid #253e57;
-  background: #060e18;
+  border-top: 1px solid rgba(140, 161, 180, 0.16);
+  background: #05080c;
 }
 
 .telemetryCell {
@@ -84,7 +86,7 @@
   min-width: 0;
   min-height: 50px;
   padding: 8px 10px;
-  border-right: 1px solid #253e57;
+  border-right: 1px solid rgba(140, 161, 180, 0.16);
   flex-direction: column;
   justify-content: center;
 }
@@ -92,8 +94,8 @@
 .telemetryCell:last-child { border-right: 0; }
 
 .telemetryLabel {
-  color: #9aabba;
-  font: 700 12px / 1.2 'Arial Narrow', Arial, sans-serif;
+  color: #9eb4c8;
+  font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   text-transform: uppercase;
 }
 
@@ -101,7 +103,7 @@
   margin-top: 2px;
   overflow: hidden;
   color: #f1f5fc;
-  font: 700 14px 'Arial Narrow', Arial, sans-serif;
+  font: 700 14px 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -112,13 +114,10 @@
 .instrumentPanel {
   position: relative;
   overflow: hidden;
-  padding: 12px !important;
-  border: 1px solid #688299 !important;
-  border-top-color: #aec0d0 !important;
-  border-radius: 7px !important;
-  background:
-    radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.45), transparent 63%),
-    linear-gradient(145deg, #091727, #030b14 74%) !important;
+  padding: 12px 14px !important;
+  border: 1px solid rgba(140, 161, 180, 0.24) !important;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, #080d14 0%, #05080c 100%) !important;
   box-shadow: none !important;
 }
 
@@ -128,7 +127,7 @@
   margin: 8px 0;
   padding: 0 3px 5px;
   border: 0;
-  border-bottom: 1px solid #253e57;
+  border-bottom: 1px solid rgba(140, 161, 180, 0.16);
   align-items: center;
   justify-content: space-between;
   background: transparent;
@@ -136,11 +135,11 @@
 
 .sectionRail strong {
   color: #f1f5fc;
-  font: 800 18px 'Arial Narrow', Arial, sans-serif;
+  font: 800 18px 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
 .sectionRail span {
-  color: #9aabba;
+  color: #9eb4c8;
   font: 700 12px / 1.2 Arial, sans-serif;
 }
 
@@ -149,20 +148,18 @@
   overflow: hidden;
   margin-bottom: 10px;
   padding: 0;
-  border: 1px solid #688299;
-  border-top-color: #aec0d0;
-  border-radius: 7px;
-  background:
-    radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.48), transparent 63%),
-    linear-gradient(145deg, #091727, #030b14 74%);
+  border: 1px solid rgba(140, 161, 180, 0.24);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #080d14 0%, #05080c 100%);
 }
 
 .scanDeckInner {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 12px 14px;
-  align-items: center;
 }
 
 .scanDeckCopy {
@@ -170,35 +167,95 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   align-items: center;
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
 .scanDisc {
   display: grid;
   width: 38px;
   height: 38px;
-  border: 1px solid #688299;
-  border-top-color: #aec0d0;
+  border: 1px solid rgba(140, 161, 180, 0.24);
   border-radius: 7px;
   place-items: center;
   color: #83deff;
-  background: linear-gradient(155deg, #12273b, #07111c 70%);
+  background: #08111c;
 }
 
 .scanText strong {
   display: block;
   color: #f1f5fc;
-  font: 800 18px / 1.1 'Arial Narrow', Arial, sans-serif;
+  font: 800 17px / 1.15 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
 .scanText span {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   color: #b6c8d6;
   font-size: 12px;
   line-height: 1.4;
 }
 
 .scanButton { width: 100%; min-width: 0; }
+
+/* Horizontal single-row filter chip strip */
+.filterStripWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filterChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+}
+
+.filterChip {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px !important;
+  border: 1px solid rgba(140, 161, 180, 0.24);
+  background: #070c12;
+  color: #dce5ef;
+  font: 700 13px / 1 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.filterChip[aria-pressed='true'] {
+  border-color: #56d8ff;
+  background: linear-gradient(180deg, #087cfa 0%, #0044ac 60%, #002b68 100%);
+  color: #ffffff;
+}
+
+.filterMoreBtn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px !important;
+  border: 1px solid rgba(140, 161, 180, 0.28);
+  background: #0b131d;
+  color: #83deff;
+  font: 700 13px / 1 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
 
 .auditReceipt {
   position: relative;
@@ -211,7 +268,7 @@
 .auditReceiptHeader {
   display: flex;
   padding: 8px 0 10px;
-  border-bottom: 1px solid #253e57;
+  border-bottom: 1px solid rgba(140, 161, 180, 0.16);
   align-items: center;
   gap: 10px;
 }
@@ -222,7 +279,7 @@
 
 .auditReceiptHeader strong {
   color: #f1f5fc;
-  font: 800 16px 'Arial Narrow', Arial, sans-serif;
+  font: 800 16px 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
 .auditReceiptHeader span span {
@@ -237,7 +294,7 @@
   width: 34px;
   height: 34px;
   flex: 0 0 34px;
-  border: 1px solid #688299;
+  border: 1px solid rgba(140, 161, 180, 0.24);
   border-radius: 6px;
   place-items: center;
   color: #83deff;
@@ -248,24 +305,24 @@
   display: grid;
   margin: 8px 0 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border: 1px solid #253e57;
+  border: 1px solid rgba(140, 161, 180, 0.16);
   border-radius: 6px;
-  background: #060e18;
+  background: #05080c;
 }
 
 .auditReceiptCell {
   min-width: 0;
   padding: 8px 10px;
-  border-right: 1px solid #253e57;
-  border-bottom: 1px solid #253e57;
+  border-right: 1px solid rgba(140, 161, 180, 0.16);
+  border-bottom: 1px solid rgba(140, 161, 180, 0.16);
 }
 
 .auditReceiptCell:nth-child(2n) { border-right: 0; }
 .auditReceiptCell:nth-last-child(-n + 2) { border-bottom: 0; }
 
 .auditReceiptCell dt {
-  color: #9aabba;
-  font: 700 12px / 1.25 'Arial Narrow', Arial, sans-serif;
+  color: #9eb4c8;
+  font: 700 12px / 1.25 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
 .auditReceiptCell dd {
@@ -285,10 +342,10 @@
 .auditSourceRail span {
   overflow: hidden;
   padding: 6px 8px;
-  border: 1px solid #35566a;
+  border: 1px solid rgba(140, 161, 180, 0.24);
   border-radius: 6px;
-  color: #9aabba;
-  font: 700 12px / 1.2 'Arial Narrow', Arial, sans-serif;
+  color: #9eb4c8;
+  font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -323,19 +380,18 @@
 
 .toolPage :global(.sandbox-table-wrap) {
   padding: 6px;
-  border: 1px solid #688299;
-  border-top-color: #aec0d0;
+  border: 1px solid rgba(140, 161, 180, 0.24);
   border-radius: 7px;
   background: #040d18;
 }
 
 .toolPage :global(.sandbox-table-wrap > *) {
-  border: 1px solid #253e57;
+  border: 1px solid rgba(140, 161, 180, 0.16);
 }
 
 .toolPage :global(.sandbox-command-bar) {
   border-radius: 7px !important;
-  background: linear-gradient(145deg, #091727, #030b14 74%) !important;
+  background: linear-gradient(180deg, #080d14, #030b14 74%) !important;
   box-shadow: none !important;
 }
 
@@ -346,10 +402,9 @@
 .toolPage :global(.leak-stat-grid) > div {
   position: relative;
   overflow: hidden;
-  border: 1px solid #688299 !important;
-  border-top-color: #aec0d0 !important;
+  border: 1px solid rgba(140, 161, 180, 0.2) !important;
   border-radius: 7px !important;
-  background: linear-gradient(155deg, #12273b, #07111c 70%) !important;
+  background: #060a10 !important;
   box-shadow: none !important;
 }
 
@@ -360,6 +415,14 @@
   .telemetryCell { padding: 7px 8px; }
   .telemetryLabel { font-size: 12px; white-space: normal; }
   .telemetryValue { font-size: 13px; }
-  .instrumentPanel { padding: 10px !important; }
+  .instrumentPanel {
+    padding: 12px 10px !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid rgba(140, 161, 180, 0.16) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
   .scanDeckInner { padding: 10px 12px; }
 }

@@ -19,6 +19,7 @@ import { randomUUID } from 'node:crypto';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { MIN_VERIFIED_QUESTIONS, sealDrillBatch } from '../../../../src/lib/personal-assistant/drillTelemetry';
 import { leakToDrill } from '../../../../src/lib/sandbox/leakReview';
 import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, solverDecisionGroupKey } from '../../../../src/lib/training/solverDecisionEvidence';
@@ -30,6 +31,10 @@ import {
 } from '../../../../src/lib/training/cacheTruthPersistence.mjs';
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+    _supabase = client;
+}
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -210,6 +215,8 @@ function mapCacheRow(row) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
       if (req.method !== 'GET') {
           res.setHeader('Allow', 'GET');
@@ -223,14 +230,31 @@ export default async function handler(req, res) {
           const { street, position, game, limit } = req.query;
           const rawLeakId = Array.isArray(req.query.leak) ? req.query.leak[0] : req.query.leak;
           const leakId = typeof rawLeakId === 'string' ? rawLeakId.trim() : '';
+          const hasAuthHeader = Boolean(req.headers?.authorization && String(req.headers.authorization).trim());
+          let authedUser = null;
           let drillUserId = null;
           let ownedDrillParams = null;
           if (leakId) {
               if (!LEAK_ID_RE.test(leakId)) return res.status(400).json({ success: false, error: 'Invalid leak id' });
+          }
+          if (leakId || hasAuthHeader) {
               const { user, error: authError, status: authStatus } = await getServerUserWithFallback(req, supabase);
               if (authStatus === 503) return res.status(503).json({ success: false, error: 'Session verification unavailable' });
               if (authError || !user) return res.status(401).json({ success: false, error: 'Authentication required' });
-              const ownedLeak = await loadOwnedLeak(supabase, user.id, leakId);
+              authedUser = user;
+              const contextAccess = await checkSandboxAccess(supabase, user.id);
+              if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+                  return res.status(403).json({
+                      success: false,
+                      blocked: true,
+                      contextState: contextAccess?.contextState || 'session_active_unknown',
+                      accessLevel: contextAccess?.accessLevel || 'hard_block',
+                      error: contextAccess?.message || 'Practice drills are unavailable during live play or post-session cooldown.',
+                  });
+              }
+          }
+          if (leakId && authedUser) {
+              const ownedLeak = await loadOwnedLeak(supabase, authedUser.id, leakId);
               if (!ownedLeak) {
                   return res.status(404).json({ success: false, error: 'Leak not found' });
               }
@@ -238,7 +262,7 @@ export default async function handler(req, res) {
               if (!ownedDrillParams) {
                   return res.status(422).json({ success: false, error: 'This leak has no deterministic drill mapping' });
               }
-              drillUserId = user.id;
+              drillUserId = authedUser.id;
               ownedDrillParams.rewardEligible = isRewardEligibleLeak(ownedLeak);
               ownedDrillParams.leak = ownedLeak.drill;
           }

@@ -13,14 +13,14 @@
 .page {
   --pa-cyan: #56d8ff;
   --pa-cyan-bright: #83deff;
-  --pa-line: #688299;
+  --pa-line: rgba(140, 161, 180, 0.24);
   --pa-line-hi: #aec0d0;
-  --pa-panel: radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.48), transparent 63%), linear-gradient(145deg, #091727, #030b14 74%);
-  --pa-row: linear-gradient(108deg, #13253a, #060e18 72%);
-  --pa-tile: linear-gradient(155deg, #12273b, #07111c 70%);
+  --pa-panel: radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.42), transparent 63%), linear-gradient(145deg, #091727, #05080c 74%);
+  --pa-row: linear-gradient(108deg, #102033, #05080c 72%);
+  --pa-tile: linear-gradient(155deg, #102235, #05080c 70%);
   min-height: 100dvh;
   overflow-x: clip;
-  background: #040d18;
+  background: linear-gradient(180deg, #05080c 0%, #040d18 48%, #020407 100%);
   color: #f1f5fc;
   font-family: Arial, Inter, -apple-system, sans-serif;
   text-transform: capitalize;
@@ -129,18 +129,18 @@
 .main {
   width: min(600px, calc(100% - 12px));
   margin: 0 auto;
-  padding-bottom: 18px;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
 }
 
 /* Compact MTT lobby title plaque */
 .frame {
-  border: 1px solid var(--pa-line);
+  border: 1px solid rgba(140, 161, 180, 0.24);
   border-top-color: var(--pa-line-hi);
   border-radius: 7px;
   background: var(--pa-panel);
 }
 
-.hero { margin-bottom: 10px; }
+.hero { margin-bottom: 8px; }
 
 .heroInner {
   position: relative;
@@ -148,37 +148,45 @@
   border-radius: 6px;
   background:
     radial-gradient(ellipse at 14% 113%, #113e79, transparent 54%),
-    linear-gradient(115deg, #06111e, #0a192b 42%, #02101f 74%, #101c2a);
+    linear-gradient(115deg, #05080c, #0a192b 42%, #020407 74%, #0d1622);
 }
 
 .heroCopy {
   position: relative;
   z-index: 1;
-  padding: 14px 16px;
+  padding: 10px 12px;
+}
+
+.heroTopRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .eyebrow,
 .systemEyebrow,
 .dailyEyebrow {
   color: var(--pa-cyan-bright);
-  font: 700 12px / 1.25 'Arial Narrow', Arial, sans-serif;
+  font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .heroCopy h1 {
-  margin: 4px 0 6px;
+  margin: 2px 0 0;
   color: #f1f5fc;
-  font: 800 clamp(22px, 5vw, 28px) / 1.08 'Arial Narrow', Arial, sans-serif;
+  font: 800 clamp(18px, 4.4vw, 22px) / 1.08 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   letter-spacing: -0.01em;
   text-wrap: balance;
 }
 
 .heroCopy p {
-  margin: 0;
+  margin: 4px 0 0;
   color: #b6c8d6;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.35;
   text-wrap: pretty;
 }
 
@@ -188,7 +196,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .statusBadge {
@@ -269,7 +277,7 @@
 }
 
 .section {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .sectionBar {
@@ -277,17 +285,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 34px;
-  margin: 0 0 8px;
-  padding: 0 3px 5px;
-  border-bottom: 1px solid #253e57;
+  min-height: 28px;
+  margin: 0 0 6px;
+  padding: 0 3px 4px;
+  border-bottom: 1px solid rgba(140, 161, 180, 0.24);
 }
 
 .sectionBar h2 {
   margin: 0;
   color: #f1f5fc;
-  font: 800 18px / 1.08 'Arial Narrow', Arial, sans-serif;
-  letter-spacing: -0.01em;
+  font: 800 15px / 1.08 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .sectionBar span {
@@ -296,7 +305,7 @@
 }
 
 .missionFrame {
-  border: 1px solid var(--pa-line);
+  border: 1px solid rgba(140, 161, 180, 0.24);
   border-top-color: var(--pa-line-hi);
   border-radius: 7px;
   background: var(--pa-panel);
@@ -306,22 +315,36 @@
 .missionPrimary {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-  padding: 14px;
+  gap: 8px;
+  padding: 12px;
 }
 
 .missionPrimary + .missionPrimary {
-  border-top: 1px solid #253e57;
+  border-top: 1px solid rgba(140, 161, 180, 0.24);
+}
+
+.quietSecondaryLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--pa-cyan-bright);
+  font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  letter-spacing: 0.03em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Last Session Recap: one compact strip inside the mission frame, secondary weight only */
 .recapStrip {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-  padding: 12px 14px;
-  border-top: 1px solid #253e57;
-  background: #060e18;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(140, 161, 180, 0.24);
+  background: #05080c;
 }
 
 .recapStrip .secondaryButton { width: 100%; }
@@ -412,8 +435,10 @@
 .decisionLoop {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid #253e57;
-  background: #060e18;
+  border: 1px solid rgba(140, 161, 180, 0.24);
+  border-radius: 7px;
+  background: #05080c;
+  overflow: clip;
 }
 
 .loopLabel {
@@ -421,11 +446,11 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 6px 12px;
-  border-bottom: 1px solid #253e57;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-bottom: 1px solid rgba(140, 161, 180, 0.24);
   color: #9aabba;
-  font: 700 12px / 1.2 'Arial Narrow', Arial, sans-serif;
+  font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   text-transform: uppercase;
 }
 
@@ -434,15 +459,16 @@
 .loopStep {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px;
+  gap: 5px;
   align-items: center;
-  min-height: 50px;
-  padding: 8px 10px;
+  min-height: 44px;
+  padding: 6px 8px;
   border: 0;
-  border-right: 1px solid #253e57;
+  border-right: 1px solid rgba(140, 161, 180, 0.24);
   background: transparent;
   color: #dce5ef;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -564,23 +590,25 @@
   line-height: 1.4;
 }
 
-/* Compact MTT lobby 4-meter row */
+/* Compact MTT lobby 3-tile stat strip */
 .statGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
 .statCard {
   display: block;
   width: 100%;
+  min-height: 44px;
   padding: 0;
-  border: 1px solid var(--pa-line);
+  border: 1px solid rgba(140, 161, 180, 0.24);
   border-top-color: var(--pa-line-hi);
   border-radius: 7px;
   background: var(--pa-tile);
   color: inherit;
   text-align: center;
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -591,8 +619,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 76px;
-  padding: 8px 6px;
+  min-height: 62px;
+  padding: 6px 4px;
 }
 
 .statTopline {
@@ -601,22 +629,23 @@
   justify-content: center;
   gap: 4px;
   color: #b6c8d6;
-  font: 700 12px / 1.2 'Arial Narrow', Arial, sans-serif;
+  font: 700 12px / 1.15 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  text-transform: uppercase;
 }
 
 .statTopline svg { color: var(--pa-cyan); flex: 0 0 auto; }
 
 .statCard strong {
-  margin: 4px 0 2px;
+  margin: 2px 0 1px;
   color: #f1f5fc;
-  font: 800 20px / 1.1 Arial, sans-serif;
+  font: 800 17px / 1.1 Arial, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
 .statLabel {
   color: #9aabba;
   font-size: 12px;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .statAction {
@@ -951,7 +980,7 @@
   .syncAlert { grid-template-columns: auto minmax(0, 1fr); }
   .syncAlert .secondaryButton { grid-column: 1 / -1; width: 100%; }
 
-  .statGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .statGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .systemCopy { grid-template-columns: 1fr; }
   .systemCopy :is(.primaryButton, .secondaryButton) { width: 100%; }
   .activityGrid { grid-template-columns: 1fr; }
@@ -968,7 +997,6 @@
 }
 
 @media (max-width: 600px) {
-  .decisionLoop { grid-template-columns: 1fr; }
-  .loopStep { border-right: 0; border-bottom: 1px solid #253e57; }
-  .loopStep:last-child { border-bottom: 0; }
+  .decisionLoop { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .loopStep { padding: 6px; }
 }

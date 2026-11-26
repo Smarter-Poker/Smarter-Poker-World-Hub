@@ -7,10 +7,10 @@
     gap: 12px;
     min-width: 0;
     padding: 14px;
-    background: #050607;
-    border: 1px solid #6d747c;
+    background: #0a1829;
+    border: 1px solid #445e77;
     box-shadow: inset 0 1px 0 rgb(228 231 236 / 18%);
-    color: #e4e7ec;
+    color: #bdd0e2;
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
     font-variant-numeric: tabular-nums lining-nums;
 }
@@ -22,7 +22,7 @@
     justify-content: space-between;
     gap: 6px 12px;
     padding-bottom: 8px;
-    border-bottom: 1px solid #6d747c;
+    border-bottom: 1px solid #445e77;
 }
 
 .headingGroup {
@@ -32,16 +32,15 @@
 }
 
 .eyebrow {
-    color: #9aa5b3;
+    color: #9ab0c7;
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.12em;
-    text-transform: uppercase;
 }
 
 .title {
     margin: 0;
-    color: #f4f7fb;
+    color: #f2f7ff;
     font-size: 18px;
     font-weight: 800;
     line-height: 1.15;
@@ -49,11 +48,10 @@
 }
 
 .inventoryBadge {
-    color: #45adff;
+    color: #86daff;
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
 }
 
 .metrics {
@@ -72,16 +70,15 @@
 }
 
 .metricItem dt {
-    color: #9aa5b3;
+    color: #9ab0c7;
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
 }
 
 .metricItem dd {
     margin: 0;
-    color: #f4f7fb;
+    color: #f2f7ff;
     font-size: 15px;
     font-weight: 800;
     overflow-wrap: anywhere;
@@ -106,19 +103,19 @@
 .progressTrack {
     width: 100%;
     height: 10px;
-    background: #000000;
-    border: 1px solid #6d747c;
+    background: #040d18;
+    border: 1px solid #445e77;
     overflow: hidden;
 }
 
 .progressFill {
     height: 100%;
-    background: #ffd700;
+    background: #86daff;
 }
 
 .progressFillComplete {
     height: 100%;
-    background: #35d95a;
+    background: #4ade80;
 }
 
 .milestoneList {
@@ -137,20 +134,19 @@
     justify-content: center;
     gap: 2px;
     padding: 5px 4px;
-    border: 1px solid #6d747c;
-    background: #000000;
-    color: #9aa5b3;
+    border: 1px solid #445e77;
+    background: #040d18;
+    color: #9ab0c7;
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.06em;
-    text-transform: uppercase;
     text-align: center;
 }
 
 .milestoneRewardTag {
     font-size: 10px;
     font-weight: 700;
-    color: #ffd700;
+    color: #86daff;
 }
 
 .claimBar {
@@ -162,37 +158,36 @@
 .claimButton {
     min-height: 44px;
     padding: 8px 14px;
-    border: 1px solid #35d95a;
-    background: #000000;
-    color: #35d95a;
+    border: 1px solid #4ade80;
+    background: #040d18;
+    color: #4ade80;
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
     cursor: pointer;
     touch-action: manipulation;
 }
 
 .claimButton:disabled {
-    border-color: #6d747c;
-    color: #9aa5b3;
+    border-color: #445e77;
+    color: #9ab0c7;
     cursor: not-allowed;
 }
 
 .claimButton:focus-visible {
-    outline: 3px solid #45adff;
+    outline: 3px solid #86daff;
     outline-offset: 2px;
 }
 
 .milestoneNodeReached {
-    border-color: #35d95a;
-    color: #35d95a;
+    border-color: #4ade80;
+    color: #4ade80;
 }
 
 .milestoneNodeNext {
-    border-color: #ffd700;
-    color: #ffd700;
+    border-color: #86daff;
+    color: #86daff;
 }
 
 .actions {
@@ -202,34 +197,33 @@
     justify-content: space-between;
     gap: 8px 12px;
     padding-top: 8px;
-    border-top: 1px solid #6d747c;
+    border-top: 1px solid #445e77;
 }
 
 .actionButton {
     min-height: 44px;
     padding: 8px 14px;
-    border: 1px solid #ffd700;
-    background: #000000;
-    color: #ffd700;
+    border: 1px solid #86daff;
+    background: #040d18;
+    color: #86daff;
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
     cursor: pointer;
     touch-action: manipulation;
 }
 
 .actionButton:disabled {
-    border-color: #6d747c;
-    color: #9aa5b3;
+    border-color: #445e77;
+    color: #9ab0c7;
     cursor: not-allowed;
 }
 
 .actionButton:focus-visible,
 .confirmButton:focus-visible,
 .cancelButton:focus-visible {
-    outline: 3px solid #45adff;
+    outline: 3px solid #86daff;
     outline-offset: 2px;
 }
 
@@ -237,13 +231,13 @@
     display: grid;
     gap: 10px;
     padding: 12px;
-    border: 1px solid #ffd700;
-    background: #000000;
+    border: 1px solid #86daff;
+    background: #040d18;
 }
 
 .confirmCopy {
     margin: 0;
-    color: #e4e7ec;
+    color: #bdd0e2;
     font-family: Inter, system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.45;
@@ -259,42 +253,40 @@
 .confirmButton {
     min-height: 44px;
     padding: 8px 14px;
-    border: 1px solid #35d95a;
-    background: #050607;
-    color: #35d95a;
+    border: 1px solid #4ade80;
+    background: #0a1829;
+    color: #4ade80;
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
     cursor: pointer;
     touch-action: manipulation;
 }
 
 .confirmButton:disabled {
-    border-color: #6d747c;
-    color: #9aa5b3;
+    border-color: #445e77;
+    color: #9ab0c7;
     cursor: not-allowed;
 }
 
 .cancelButton {
     min-height: 44px;
     padding: 8px 12px;
-    border: 1px solid #6d747c;
-    background: #050607;
-    color: #e4e7ec;
+    border: 1px solid #445e77;
+    background: #0a1829;
+    color: #bdd0e2;
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
     cursor: pointer;
     touch-action: manipulation;
 }
 
 .notice {
     margin: 0;
-    color: #9aa5b3;
+    color: #9ab0c7;
     font-family: Inter, system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.45;
@@ -304,8 +296,8 @@
     display: grid;
     gap: 8px;
     padding: 10px 12px;
-    border-left: 4px solid #f02849;
-    background: #000000;
+    border-left: 4px solid #ef4444;
+    background: #040d18;
 }
 
 .errorCopy {
@@ -320,16 +312,15 @@
     display: grid;
     gap: 6px;
     padding: 10px 12px;
-    border-left: 4px solid #35d95a;
-    background: #000000;
+    border-left: 4px solid #4ade80;
+    background: #040d18;
 }
 
 .receiptHead {
-    color: #35d95a;
+    color: #4ade80;
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
 }
 
 .receiptRows {
@@ -347,15 +338,14 @@
 }
 
 .receiptRows dt {
-    color: #9aa5b3;
+    color: #9ab0c7;
     font-weight: 700;
     letter-spacing: 0.06em;
-    text-transform: uppercase;
 }
 
 .receiptRows dd {
     margin: 0;
-    color: #e4e7ec;
+    color: #bdd0e2;
     overflow-wrap: anywhere;
     text-align: right;
 }

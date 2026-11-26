@@ -96,7 +96,7 @@ export default function PostSettlementReviewDrawer({
             title={title}
             subtitle={review ? `${review.correctCount ?? 0} Of ${review.totalQuestions ?? items.length} Correct` : 'Available After Settlement'}
             pill={loading ? 'Loading' : lockedMessage ? 'Locked' : items.length > 0 ? `${items.length} Questions` : 'Review'}
-            pillInk={lockedMessage ? 'gold' : error ? 'red' : 'blue'}
+            pillInk={lockedMessage ? 'blue' : error ? 'red' : 'blue'}
             secondaryAction={{ label: 'Close Review', onClick: onClose }}
             primaryAction={error ? { label: 'Retry', onClick: () => triggerLoadReview() } : undefined}
         >
@@ -106,8 +106,8 @@ export default function PostSettlementReviewDrawer({
                 ) : null}
 
                 {lockedMessage ? (
-                    <div role="status" style={{ padding: '12px', border: '1px solid #ffd700', background: '#050607' }}>
-                        <strong className="tc-ink--gold">Review Locked Until Settlement</strong>
+                    <div role="status" style={{ padding: '12px', border: '1px solid #86daff', background: '#050607' }}>
+                        <strong className="tc-ink--cyan">Review Locked Until Settlement</strong>
                         <p className="trivia-console-copy tc-ink--silver">{lockedMessage}</p>
                     </div>
                 ) : null}

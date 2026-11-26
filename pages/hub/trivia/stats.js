@@ -263,7 +263,7 @@ export default function TriviaStats() {
                     noindex
                 />
                 <PageTransition>
-                    <div className="trivia-progress-page trivia-progress-page--stats" data-trivia-family="progress" data-trivia-surface="stats">
+                    <div className="smarterdesign trivia-progress-page trivia-progress-page--stats" data-trivia-family="progress" data-trivia-surface="stats">
                         <UniversalHeader pageDepth={2} />
                         <main className="trivia-progress-shell" aria-labelledby="trivia-stats-title">
                             <TriviaConsole
@@ -339,7 +339,7 @@ export default function TriviaStats() {
                                                         <StatRow label="Accuracy" value={summary.accuracy === null ? 'Not Available' : `${summary.accuracy}%`} ink="tc-ink--green" />
                                                         <StatRow label="Current Daily Streak" value={formatTriviaDisplayNumber(currentStreak)} ink="tc-ink--blue" />
                                                         <StatRow label="Best Daily Streak" value={formatTriviaDisplayNumber(Math.max(0, Number(streak?.best_streak) || 0))} ink="tc-ink--blue" />
-                                                        <StatRow label="Settled Run Diamonds" value={formatTriviaDisplayNumber(summary.diamondsEarned)} ink="tc-ink--gold" />
+                                                        <StatRow label="Settled Run Diamonds" value={formatTriviaDisplayNumber(summary.diamondsEarned)} ink="tc-ink--cyan" />
                                                     </ul>
                                                 </section>
 

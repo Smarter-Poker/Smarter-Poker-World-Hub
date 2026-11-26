@@ -15,6 +15,10 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { readLeakStatsAggregate } from '../../../src/lib/personal-assistant/leakStats';
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+    _supabase = client;
+}
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,6 +29,88 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+/**
+ * Canonical Postflop Aggression Factor (AF) = (bets + raises) / calls.
+ * Checks and folds are excluded from the denominator.
+ * Returns explicit { value: null, available: false, reason } when calls === 0,
+ * total postflop bet/raise/call actions === 0, or inputs are non-finite/negative,
+ * never emitting NaN, Infinity, or a fabricated 0 when 0 calls occurred.
+ */
+export function computeAggressionFactor(betRaiseActions, callActions) {
+    const parseCount = (v) => {
+        if (v === null || v === undefined || typeof v === 'boolean') return null;
+        if (typeof v === 'string' && v.trim() === '') return null;
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 0 ? n : null;
+    };
+    const betsAndRaises = parseCount(betRaiseActions);
+    const calls = parseCount(callActions);
+    if (betsAndRaises === null || calls === null) {
+        return {
+            value: null,
+            available: false,
+            reason: 'unmeasured',
+            betsAndRaises,
+            calls,
+            totalActions: null,
+        };
+    }
+    const totalActions = betsAndRaises + calls;
+    if (totalActions === 0) {
+        return {
+            value: null,
+            available: false,
+            reason: 'zero_sample',
+            betsAndRaises: 0,
+            calls: 0,
+            totalActions: 0,
+        };
+    }
+    if (calls === 0) {
+        return {
+            value: null,
+            available: false,
+            reason: 'zero_calls',
+            betsAndRaises,
+            calls: 0,
+            totalActions,
+        };
+    }
+    return {
+        value: +(betsAndRaises / calls).toFixed(2),
+        available: true,
+        reason: null,
+        betsAndRaises,
+        calls,
+        totalActions,
+    };
+}
+
+async function readClubArenaFormatCounts(supabase, userId) {
+    try {
+        const cashQuery = supabase
+            .from('ca_hand_facts')
+            .select('hand_id', { count: 'exact', head: true })
+            .eq('user_id', userId);
+        const mttQuery = supabase
+            .from('ca_hand_facts')
+            .select('hand_id', { count: 'exact', head: true })
+            .eq('user_id', userId);
+        if (typeof cashQuery?.is !== 'function' || typeof mttQuery?.not !== 'function') {
+            return { cashHands: null, tournamentHands: null };
+        }
+        const [cashRes, mttRes] = await Promise.all([
+            cashQuery.is('tournament_id', null),
+            mttQuery.not('tournament_id', 'is', null),
+        ]);
+        const cashHands = !cashRes?.error && typeof cashRes?.count === 'number' ? cashRes.count : null;
+        const tournamentHands = !mttRes?.error && typeof mttRes?.count === 'number' ? mttRes.count : null;
+        return { cashHands, tournamentHands };
+    } catch (_) {
+        return { cashHands: null, tournamentHands: null };
+    }
 }
 
 export default async function handler(req, res) {
@@ -60,7 +146,7 @@ export default async function handler(req, res) {
       // Always count the owned session rows and active leaks live; retain the
       // stored hand total only for Club Arena scans, whose unique-hand count is
       // deliberately persisted by the deterministic audit endpoint.
-      const [storedRes, sandboxRes, leakStats, clubHandsRes] = await Promise.all([
+      const [storedRes, sandboxRes, leakStats, clubHandsRes, formatCounts] = await Promise.all([
         getSupabase()
           .from('user_assistant_stats')
           .select('sandbox_sessions_count, total_sessions_reviewed, total_hands_analyzed')
@@ -75,6 +161,7 @@ export default async function handler(req, res) {
           .from('ca_hand_facts')
           .select('hand_id', { count: 'exact', head: true })
           .eq('user_id', userId),
+        readClubArenaFormatCounts(getSupabase(), userId),
       ]);
 
       const stored = storedRes?.data || null;
@@ -95,6 +182,13 @@ export default async function handler(req, res) {
       const availableClubArenaHands = !clubHandsRes?.error && typeof clubHandsRes?.count === 'number'
         ? clubHandsRes.count
         : null;
+      const cashHands = formatCounts?.cashHands ?? null;
+      const tournamentHands = formatCounts?.tournamentHands ?? null;
+      const formatScope = cashHands !== null && tournamentHands !== null
+        ? (cashHands > 0 && tournamentHands > 0
+            ? 'cash_and_tournament'
+            : (tournamentHands > 0 ? 'tournament_only' : (cashHands > 0 ? 'cash_only' : 'no_hands')))
+        : 'combined_or_unavailable';
 
       return res.status(200).json({
         success: true,
@@ -102,6 +196,13 @@ export default async function handler(req, res) {
           sessionsReviewed: sandboxCount,
           handsAnalyzed,
           availableClubArenaHands,
+          cashHands,
+          tournamentHands,
+          formatBreakdown: {
+            cashHands,
+            tournamentHands,
+            scope: formatScope,
+          },
           leaksFound: leakStats.activeLeaks,
           resolvedLeaks: leakStats.resolvedLeaks,
           sandboxSessions: sandboxCount,

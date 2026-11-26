@@ -84,19 +84,36 @@ export function detectSite(text) {
  */
 export function classifyGameVariant(headerText, holeCount = 0, options = {}) {
     const t = String(headerText || '');
+    const fullText = options?.bodyText ? `${t}\n${String(options.bodyText)}` : t;
     const cards = Number.isFinite(Number(holeCount)) ? Number(holeCount) : 0;
     const shortDeck = /short[\s-]*deck|6\s*\+|six[\s-]*plus/i.test(t);
     const omahaText = /omaha/i.test(t);
     const holdemText = /hold'?\s*em/i.test(t);
     const hiLo = /\bhi[\s\/-]*lo\b|\bhilo\b|\bh\/l\b|8[\s-]*or[\s-]*better/i.test(t);
+    const bombPot = /\bbomb[\s_-]*pot\b|posts?\s+(?:a\s+)?bomb[\s_-]*(?:pot\s+)?ante/i.test(fullText);
+    const killPot = /\bkill[\s_-]*pot\b|posts?\s+(?:a\s+)?kill[\s_-]*blind/i.test(fullText);
+    const multipleRunouts = /\brun[\s_-]*it[\s_-]*(?:twice|three\s+times|multiple)\b|\*\*\*\s*(?:FIRST|SECOND|THIRD)\s+(?:FLOP|TURN|RIVER|BOARD)\s*\*\*\*|\bBoard\s+2\s*\[|\bHAND\s+RUNOUT\s+2\b/i.test(fullText);
     const betting = /no[\s-]*limit/i.test(t) ? 'NL'
         : /pot[\s-]*limit/i.test(t) ? 'PL'
         : /fixed[\s-]*limit|\blimit\b/i.test(t) ? 'FL'
         : (options?.defaultBetting || null);
-    const base = { bettingStructure: betting };
+    const base = {
+        bettingStructure: betting,
+        importable: true,
+        replayable: true,
+        specialFormat: null,
+    };
 
     if (shortDeck) {
-        return { ...base, variant: 'short_deck', gameVariant: 'short_deck', supported: false, unsupportedReason: 'short_deck_is_not_nlhe' };
+        return {
+            ...base,
+            variant: 'short_deck',
+            gameVariant: 'short_deck',
+            supported: false,
+            strategySupported: false,
+            unsupportedReason: 'short_deck_is_not_nlhe',
+            declineReason: "Short Deck (6+) Hands Are Importable And Replayable, But Automated Strategy Grading Supports Standard Single-Board No-Limit Hold'em Only.",
+        };
     }
     if (omahaText || cards >= 4) {
         // A Hold'em header over a 4-6 card hand is a mislabelled pot-limit Omaha table.
@@ -109,16 +126,87 @@ export function classifyGameVariant(headerText, holeCount = 0, options = {}) {
             variant: 'omaha',
             gameVariant,
             supported: false,
+            strategySupported: false,
             unsupportedReason: hiLo ? 'omaha_hilo_is_not_nlhe' : 'omaha_family_is_not_nlhe',
+            declineReason: `Omaha (${gameVariant.toUpperCase()}) Hands Are Importable And Replayable, But Automated Strategy Grading Supports Standard Single-Board No-Limit Hold'em Only.`,
+        };
+    }
+    if (bombPot || killPot || multipleRunouts) {
+        const specialFormat = bombPot ? 'bomb_pot' : killPot ? 'kill_pot' : 'multiple_runouts';
+        const unsupportedReason = bombPot
+            ? 'bomb_pot_is_not_standard_nlhe'
+            : killPot
+                ? 'kill_pot_is_not_standard_nlhe'
+                : 'multiple_runouts_not_supported';
+        const declineReason = bombPot
+            ? "Bomb Pot Hands Are Importable And Replayable, But Forced-Ante Bomb Pots Are Excluded From Standard Single-Board No-Limit Hold'em Strategy Grading."
+            : killPot
+                ? "Kill Pot Hands Are Importable And Replayable, But Modified Kill-Blind Structures Are Excluded From Standard Single-Board No-Limit Hold'em Strategy Grading."
+                : "Multiple-Runout (Run-It-Twice / Multi-Board) Hands Are Importable And Replayable, But Excluded From Single-Board No-Limit Hold'em Strategy Grading.";
+        return {
+            ...base,
+            variant: holdemText ? 'holdem' : 'special_format',
+            gameVariant: specialFormat,
+            specialFormat,
+            supported: false,
+            strategySupported: false,
+            unsupportedReason,
+            declineReason,
         };
     }
     if (holdemText) {
-        if (betting === 'NL') return { ...base, variant: 'holdem', gameVariant: 'nlhe', supported: true, unsupportedReason: null };
-        if (betting === 'PL') return { ...base, variant: 'pot_limit_holdem', gameVariant: 'pot_limit_holdem', supported: false, unsupportedReason: 'pot_limit_holdem_is_not_nlhe' };
-        if (betting === 'FL') return { ...base, variant: 'limit_holdem', gameVariant: 'limit_holdem', supported: false, unsupportedReason: 'limit_holdem_is_not_nlhe' };
-        return { ...base, variant: 'holdem_unknown_structure', gameVariant: 'unknown', supported: false, unsupportedReason: 'betting_structure_unknown' };
+        if (betting === 'NL') {
+            return {
+                ...base,
+                variant: 'holdem',
+                gameVariant: 'nlhe',
+                supported: true,
+                strategySupported: true,
+                unsupportedReason: null,
+                declineReason: null,
+            };
+        }
+        if (betting === 'PL') {
+            return {
+                ...base,
+                variant: 'pot_limit_holdem',
+                gameVariant: 'pot_limit_holdem',
+                supported: false,
+                strategySupported: false,
+                unsupportedReason: 'pot_limit_holdem_is_not_nlhe',
+                declineReason: "Pot-Limit Hold'em Hands Are Importable And Replayable, But Automated Strategy Grading Supports No-Limit Hold'em Only.",
+            };
+        }
+        if (betting === 'FL') {
+            return {
+                ...base,
+                variant: 'limit_holdem',
+                gameVariant: 'limit_holdem',
+                supported: false,
+                strategySupported: false,
+                unsupportedReason: 'limit_holdem_is_not_nlhe',
+                declineReason: "Fixed-Limit Hold'em Hands Are Importable And Replayable, But Automated Strategy Grading Supports No-Limit Hold'em Only.",
+            };
+        }
+        return {
+            ...base,
+            variant: 'holdem_unknown_structure',
+            gameVariant: 'unknown',
+            supported: false,
+            strategySupported: false,
+            unsupportedReason: 'betting_structure_unknown',
+            declineReason: "Hold'em Hands Without An Explicit No-Limit Betting Structure Are Excluded From Automated Strategy Grading.",
+        };
     }
-    return { ...base, variant: 'unknown', gameVariant: 'unknown', supported: false, unsupportedReason: 'unrecognized_game_variant' };
+    return {
+        ...base,
+        variant: 'unknown',
+        gameVariant: 'unknown',
+        supported: false,
+        strategySupported: false,
+        unsupportedReason: 'unrecognized_game_variant',
+        declineReason: "Unrecognized Game Variant. Automated Strategy Grading Supports Standard Single-Board No-Limit Hold'em Only.",
+    };
 }
 
 const _BETTING_TO_GAME_TYPE = { NL: 'NL', PL: 'PL', FL: 'FL' };
@@ -128,8 +216,13 @@ function _applyVariantInfo(hand, headerText, options = {}) {
     hand.variant = info.variant;
     hand.gameVariant = info.gameVariant;
     hand.bettingStructure = info.bettingStructure;
+    hand.specialFormat = info.specialFormat || null;
+    hand.importable = info.importable;
+    hand.replayable = info.replayable;
+    hand.strategySupported = info.strategySupported;
     hand.supported = info.supported;
     hand.unsupportedReason = info.unsupportedReason;
+    hand.declineReason = info.declineReason || null;
     if (info.bettingStructure && _BETTING_TO_GAME_TYPE[info.bettingStructure]) {
         hand.gameType = _BETTING_TO_GAME_TYPE[info.bettingStructure];
     }
@@ -333,8 +426,8 @@ function _parsePSHand(block, heroName, opts = {}) {
 
     hand.tableSize = hand.players.length;
     _assignPositions(hand);
-    // Variant honesty needs the hero card count, so it is settled last.
-    _applyVariantInfo(hand, headerText);
+    // Variant honesty needs the hero card count and body text (bomb/kill/RIT), so it is settled last.
+    _applyVariantInfo(hand, headerText, { bodyText: block });
 
     return hand;
 }
@@ -553,7 +646,7 @@ function _parse888Hand(block, heroName) {
     _assignPositions(hand);
     // 888 prints "No Limit Holdem" / "Pot Limit Omaha" in the table header; absent
     // an explicit structure the legacy 888 default (No Limit) is kept.
-    _applyVariantInfo(hand, block.slice(0, 600), { defaultBetting: 'NL' });
+    _applyVariantInfo(hand, block.slice(0, 600), { defaultBetting: 'NL', bodyText: block });
     return hand;
 }
 
@@ -623,12 +716,26 @@ function _assignPositions(hand) {
         const heroPlayer = hand.players.find(p => p.name === hand.hero.name);
         if (heroPlayer) hand.hero.position = heroPlayer.position;
     }
+
+    // Backfill player position onto parsed street actions so decision points carry villain positions.
+    const posByName = new Map(hand.players.map(p => [String(p.name || '').trim(), p.position || '']));
+    for (const streetKey of ['preflop', 'flop', 'turn', 'river']) {
+        const streetData = hand.streets?.[streetKey];
+        if (!streetData || !Array.isArray(streetData.actions)) continue;
+        for (const act of streetData.actions) {
+            if (!act.position && act.player) {
+                const pos = posByName.get(String(act.player).trim());
+                if (pos) act.position = pos;
+            }
+        }
+    }
 }
 
 /**
  * Get the complete board at each street from a parsed hand.
  */
 export function getBoardAtStreet(hand, street) {
+    if (street === 'preflop') return [];
     const board = [];
     if (hand.streets.flop) board.push(...hand.streets.flop.board);
     if (street === 'flop') return board;
@@ -644,8 +751,9 @@ export function getBoardAtStreet(hand, street) {
 export function getHeroDecisionPoints(hand) {
     if (!hand.hero) return [];
     // Variant honesty: a hand explicitly tagged unsupported (PLO, Omaha Hi-Lo,
-    // Short Deck, limit/pot-limit Hold'em) has no No-Limit Hold'em decision
-    // points. Returning none keeps the audit from grading it against NLHE data.
+    // Short Deck, limit/pot-limit Hold'em, bomb/kill/multi-runout) has no
+    // No-Limit Hold'em decision points. Returning none keeps the audit from
+    // grading it against NLHE data.
     if (hand.supported === false) return [];
 
     const points = [];
@@ -686,6 +794,9 @@ export function getHeroDecisionPoints(hand) {
                 const key = playerKey(action);
                 if (key) foldedKeys.add(key);
                 if (action.position) foldedKeys.add(`pos:${String(action.position).toUpperCase()}`);
+                if (action.player || action.name) {
+                    foldedKeys.add(`name:${String(action.player || action.name).trim().toLowerCase()}`);
+                }
                 continue;
             }
             if (action.isHero) {
@@ -722,6 +833,10 @@ export function getHeroDecisionPoints(hand) {
                         ? 'hero_faces_bet'
                         : 'hero_bets_or_checks';
                 }
+                const activePlayerPositions = [
+                    hand.hero.position,
+                    ...activeOpponents.map(o => o.position),
+                ].filter(Boolean);
                 points.push({
                     street: streetName,
                     board: getBoardAtStreet(hand, streetName),
@@ -729,7 +844,19 @@ export function getHeroDecisionPoints(hand) {
                     action: action.action,
                     amount: action.amount,
                     amountBB: action.amountBB,
+                    amountAdded: action.amountAdded ?? action.amount,
+                    amountAddedBB: action.amountAddedBB ?? action.amountBB,
+                    totalBet: action.totalBet ?? action.raiseTo ?? action.amount,
+                    totalBetBB: action.totalBetBB ?? action.amountBB,
+                    potBefore: action.potBefore ?? null,
                     potBeforeBB: action.potBeforeBB,
+                    potAfter: action.potAfter ?? null,
+                    potAfterBB: action.potAfterBB ?? null,
+                    stackAtDecision: action.stackAtDecision ?? null,
+                    stackAtDecisionBB: action.stackAtDecisionBB ?? null,
+                    stackAfter: action.stackAfter ?? null,
+                    stackAfterBB: action.stackAfterBB ?? null,
+                    isShortAllIn: action.isShortAllIn === true,
                     sizingPct: action.sizingPct,
                     position: hand.hero.position,
                     nodeClass,
@@ -737,6 +864,10 @@ export function getHeroDecisionPoints(hand) {
                         .find(a => !a.isHero && isAggro(a))?.position
                         || (activeOpponents.length === 1 ? activeOpponents[0].position : '')
                         || '',
+                    activePlayerCount: 1 + activeOpponents.length,
+                    activeOpponentsCount: activeOpponents.length,
+                    activePlayerPositions,
+                    opponentHoleCardsAvailable: false,
                     priorActions: [...completedActions, ...prior].map(priorAction => ({
                         street: priorAction.street || streetName,
                         position: priorAction.position,

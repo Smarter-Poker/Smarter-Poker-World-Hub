@@ -3,6 +3,7 @@ import styles from './BankrollImageHeader.module.css';
 
 export default function BankrollImageHeader({
   art,
+  artwork,
   title,
   parent,
   children,
@@ -16,9 +17,9 @@ export default function BankrollImageHeader({
   const asset = '/images/smarterdesign/headers/' + art;
   return (
     <header className={'sd-masthead ' + styles.header + ' ' + className} data-header-art={art}>
-      <img className={styles.scene} src={asset + '-scene.webp'} alt="" aria-hidden="true" />
+      <img className={styles.scene} src={artwork?.scene || asset + '-scene.webp'} alt="" aria-hidden="true" />
       <span className={styles.seal} aria-hidden="true">
-        <img src={asset + '-seal.webp'} alt="" width="176" height="176" />
+        <img src={artwork?.seal || asset + '-seal.webp'} alt="" width="176" height="176" />
       </span>
       <div className={styles.copy}>
         {parent && <div className={styles.parent}>{parent}</div>}

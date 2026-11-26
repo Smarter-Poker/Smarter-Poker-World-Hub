@@ -204,7 +204,12 @@ export default function TriviaSettings() {
             setMessage('');
             setMessageTone('');
             setMessageKey('');
-            applyGameSettings(cached);
+            // Never overwrite localStorage['trivia_settings'] with local defaults
+            // before an online signed-in cloud read settles; apply only when signed
+            // out or offline (cloud read / catch fallback applies once settled).
+            if (!resolvedUserId || !online) {
+                applyGameSettings(cached);
+            }
         }
         setSyncStatus('loading');
         try {
@@ -381,7 +386,7 @@ export default function TriviaSettings() {
 
     const restoreDefaults = () => persist('restore', { ...DEFAULT_TRIVIA_PREFERENCES });
     const statusMessage = message ? (
-        <p className={`trivia-progress-status tc-ink--${messageTone === 'error' ? 'red' : messageTone === 'warning' ? 'gold' : 'green'}`} role={messageTone === 'error' ? 'alert' : 'status'}>{message}</p>
+        <p className={`trivia-progress-status tc-ink--${messageTone === 'error' ? 'red' : messageTone === 'warning' ? 'blue' : 'green'}`} role={messageTone === 'error' ? 'alert' : 'status'}>{message}</p>
     ) : null;
     const syncLabel = accountBoundaryPending ? 'Loading' : ({
         loading: 'Loading', local: 'Local', cloud: 'Cloud', stale: 'Offline Copy', pending: 'Sync Pending', conflict: 'Conflict', saving: 'Saving', error: 'Retry Needed',
@@ -392,7 +397,7 @@ export default function TriviaSettings() {
             <>
                 <SEOHead title="Trivia Settings" description="Control Gameplay, Feedback, Accessibility, Privacy, Notifications, And Sync For Poker Trivia." canonical="/hub/trivia/settings" noindex />
                 <PageTransition>
-                    <div className="trivia-progress-page trivia-progress-page--settings" data-trivia-family="progress" data-trivia-surface="settings">
+                    <div className="smarterdesign trivia-progress-page trivia-progress-page--settings" data-trivia-family="progress" data-trivia-surface="settings">
                         <UniversalHeader pageDepth={2} />
                         <main className="trivia-progress-shell" aria-labelledby="trivia-settings-title">
                             <TriviaConsole
@@ -403,7 +408,7 @@ export default function TriviaSettings() {
                                 titleId="trivia-settings-title"
                                 subtitle="Accessible Local And Cloud Controls"
                                 pill={syncLabel}
-                                pillInk={!accountBoundaryPending && ['conflict', 'error'].includes(syncStatus) ? 'red' : !accountBoundaryPending && (syncStatus === 'pending' || syncStatus === 'stale') ? 'gold' : !accountBoundaryPending && syncStatus === 'cloud' ? 'green' : 'blue'}
+                                pillInk={!accountBoundaryPending && ['conflict', 'error'].includes(syncStatus) ? 'red' : !accountBoundaryPending && (syncStatus === 'pending' || syncStatus === 'stale') ? 'blue' : !accountBoundaryPending && syncStatus === 'cloud' ? 'green' : 'blue'}
                                 secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART.settings} priority />
