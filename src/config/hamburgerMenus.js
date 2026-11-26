@@ -1487,6 +1487,17 @@ export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
 
 export function getMenuConfigForPath(path, user, state = {}, handlers = {}) {
     const world = resolveWorldMenu(path);
-    if (!world) return getMenuConfig('hub-home', user, state, handlers);
+    if (!world) {
+        const clean = String(path || '').split(/[?#]/, 1)[0].replace(/\/+$/, '');
+        if (
+            clean === '/hub/magazine' ||
+            clean.startsWith('/hub/magazine/') ||
+            clean === '/hub/wire' ||
+            clean.startsWith('/hub/wire/')
+        ) {
+            return getMenuConfig('news', user, state, handlers);
+        }
+        return getMenuConfig('hub-home', user, state, handlers);
+    }
     return getMenuConfig(world.menuKey, user, state, handlers);
 }

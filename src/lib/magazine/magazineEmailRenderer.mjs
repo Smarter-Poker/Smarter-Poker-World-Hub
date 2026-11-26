@@ -9,6 +9,8 @@
  *   - Zero yellow and zero purple hex codes
  *   - Zero em/en dashes (`stripMagazineDashes`) and zero `$` on Chips
  *   - `appendNewsletterUtm` (`utm_source: 'monthly_magazine'`) on all Smarter.Poker links
+ *   - Signed first-party `/api/news/email-image` proxy for Supabase Storage cover JPEGs
+ *   - Curated 6-section TOC spanning the full 44-page issue
  *   - CAN-SPAM postal address (`PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453`),
  *     Email Preferences link, and one-click Unsubscribe footer
  */
@@ -18,7 +20,6 @@ import {
     MAGAZINE_MASTHEAD,
     MAGAZINE_POSTAL_ADDRESS,
     MAGAZINE_SITE_URL,
-    MAGAZINE_STORAGE_BUCKET,
     formatPeriodLabel,
     normalizeIssueManifest,
     stripMagazineDashes,
@@ -51,12 +52,6 @@ function resolveEmailSafeCoverUrl(rawCoverUrl, siteOrigin) {
         if (isSmarter && parsed.pathname === '/api/news/email-image') {
             return parsed.toString();
         }
-        if (
-            (host.endsWith('.supabase.co') || isSmarter) &&
-            parsed.pathname.includes(`/storage/v1/object/public/${MAGAZINE_STORAGE_BUCKET}/`)
-        ) {
-            return parsed.toString();
-        }
         return buildSignedEmailImageUrl(parsed.toString(), { siteUrl: siteOrigin, mode: 'hero' });
     } catch {
         return `${siteOrigin}/api/news/email-image?fallback=1&m=hero`;
@@ -72,6 +67,72 @@ export function withMagazineUtm(rawUrl, issueNumber, contentTag = '') {
         campaign: `mag_issue_${num}`,
         content: contentTag ? String(contentTag) : '',
     });
+}
+
+function selectCuratedEmailToc(norm) {
+    const fallbackToc = [
+        { pageNumber: 12, title: norm.coverHeadline, subtitle: '4-Page Cover Story Investigation' },
+        { pageNumber: 20, title: 'Global Player Of The Year Top 25', subtitle: 'Official Standings & Movers' },
+        { pageNumber: 24, title: 'Kings Club 25450 Monthly Champions', subtitle: 'Completed Majors In Chips' },
+        { pageNumber: 26, title: 'The Strategy Lab: NLH, ICM & PLO', subtitle: 'Solver Verdicts & Community Votes' },
+        { pageNumber: 34, title: 'The Smarter.Poker Test', subtitle: '4-Question Poker IQ Challenge' },
+        { pageNumber: 38, title: '60-Day Live Series & Room Radar', subtitle: 'Coast-To-Coast Stops Across America' },
+    ];
+
+    if (!Array.isArray(norm.toc) || norm.toc.length === 0) {
+        return fallbackToc;
+    }
+    if (norm.toc.length <= 6) {
+        return norm.toc;
+    }
+
+    const picked = [];
+    const seenPages = new Set();
+    const pickMatching = (predicate) => {
+        const hit = norm.toc.find(
+            (entry) => entry && !seenPages.has(Number(entry.pageNumber)) && predicate(entry)
+        );
+        if (hit) {
+            seenPages.add(Number(hit.pageNumber));
+            picked.push(hit);
+        }
+    };
+
+    // 1. Cover Story (p. 12)
+    pickMatching((e) => Number(e.pageNumber) === 12 || e.kind === 'cover_feature');
+    // 2. POY Top 25 (p. 20)
+    pickMatching((e) => Number(e.pageNumber) === 20 || e.kind === 'poy_standings');
+    // 3. Kings Club 25450 (p. 24)
+    pickMatching((e) => Number(e.pageNumber) === 24 || e.kind === 'kings_club_champions');
+    // 4. Strategy Lab (p. 26)
+    pickMatching(
+        (e) =>
+            Number(e.pageNumber) === 26 ||
+            e.kind === 'strategy_nlh' ||
+            e.kind === 'strategy_icm' ||
+            e.kind === 'strategy_plo'
+    );
+    // 5. The Test (p. 34)
+    pickMatching((e) => Number(e.pageNumber) === 34 || e.kind === 'the_test_quiz');
+    // 6. Live Series / Cardrooms (p. 38 or p. 40)
+    pickMatching(
+        (e) =>
+            Number(e.pageNumber) === 38 ||
+            Number(e.pageNumber) === 40 ||
+            e.kind === 'live_series_radar' ||
+            e.kind === 'poker_rooms_directory'
+    );
+
+    for (const entry of norm.toc) {
+        if (picked.length >= 6) break;
+        const pNum = Number(entry?.pageNumber);
+        if (!seenPages.has(pNum)) {
+            seenPages.add(pNum);
+            picked.push(entry);
+        }
+    }
+
+    return picked.slice(0, 6);
 }
 
 /**
@@ -114,32 +175,31 @@ export function renderMonthlyMagazineCoverEmail({
         `Flip open all ${norm.pageCount} pages of Vol. ${volNum}, Issue #${issueNum} (${periodLabel}): ${norm.coverSubheadline}`
     );
 
-    const rawToc = Array.isArray(norm.toc) && norm.toc.length > 0
-        ? norm.toc.slice(0, 6)
-        : [
-              { pageNumber: 12, title: norm.coverHeadline, subtitle: '4-Page Cover Story Investigation' },
-              { pageNumber: 20, title: 'Global Player Of The Year Top 25', subtitle: 'Official Standings & Movers' },
-              { pageNumber: 24, title: 'Kings Club 25450 Monthly Champions', subtitle: 'Completed Majors In Chips' },
-              { pageNumber: 26, title: 'The Strategy Lab: NLH, ICM & PLO', subtitle: 'Solver Verdicts & Community Votes' },
-              { pageNumber: 34, title: 'The Smarter.Poker Test', subtitle: '4-Question Poker IQ Challenge' },
-              { pageNumber: 38, title: '60-Day Live Series & Room Radar', subtitle: 'Coast-To-Coast Stops Across America' },
-          ];
+    const rawToc = selectCuratedEmailToc(norm);
+    const curatedTocWithLinks = rawToc.map((item, idx) => {
+        const pNum = Math.max(1, Number(item.pageNumber || 1));
+        const targetLink = withMagazineUtm(`${rawIssueUrl}?page=${pNum}`, issueNum, `toc_${idx + 1}`);
+        return {
+            pageNumber: pNum,
+            title: item.title || item.headline || 'Featured Spread',
+            subtitle: item.subtitle || item.subheadline || '',
+            targetLink,
+        };
+    });
 
-    const tocRowsHtml = rawToc
-        .map((item, idx) => {
-            const pNum = Math.max(1, Number(item.pageNumber || 1));
-            const targetLink = withMagazineUtm(`${rawIssueUrl}?page=${pNum}`, issueNum, `toc_${idx + 1}`);
-            const itemTitle = escapeHtml(item.title || 'Featured Spread');
-            const itemSub = escapeHtml(item.subtitle || '');
+    const tocRowsHtml = curatedTocWithLinks
+        .map((item) => {
+            const itemTitle = escapeHtml(item.title);
+            const itemSub = escapeHtml(item.subtitle);
             return `<tr>
   <td style="padding:10px 0;border-bottom:1px solid #0b1520;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td width="54" valign="top" style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:12px;font-weight:700;color:#4fc1b3;padding-top:2px;">
-          P. ${pNum}
+          P. ${item.pageNumber}
         </td>
         <td valign="top" style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">
-          <a href="${escapeHtml(targetLink)}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;line-height:1.35;display:block;">${itemTitle}</a>
+          <a href="${escapeHtml(item.targetLink)}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;line-height:1.35;display:block;">${itemTitle}</a>
           ${itemSub ? `<div style="color:#9fb3c8;font-size:13px;line-height:1.45;margin-top:2px;">${itemSub}</div>` : ''}
         </td>
       </tr>
@@ -277,8 +337,8 @@ export function renderMonthlyMagazineCoverEmail({
 </body>
 </html>`;
 
-    const tocPlainLines = rawToc
-        .map((item) => `  - p. ${Math.max(1, Number(item.pageNumber || 1))}: ${stripMagazineDashes(item.title)}`)
+    const tocPlainLines = curatedTocWithLinks
+        .map((item) => `  - p. ${item.pageNumber}: ${stripMagazineDashes(item.title)} (${item.targetLink})`)
         .join('\n');
 
     const text = [
@@ -294,6 +354,7 @@ export function renderMonthlyMagazineCoverEmail({
         tocPlainLines,
         '',
         `Cardroom Print Bundles: ${cardroomBundleUrl}`,
+        `Magazine Archive: ${mastheadLinkUrl}`,
         '',
         `${MAGAZINE_MASTHEAD} | ${safePostal}`,
         `Email Preferences: ${safePrefs}`,

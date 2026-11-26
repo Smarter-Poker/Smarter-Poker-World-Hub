@@ -6,6 +6,7 @@
  * and must render for a signed-out user without crashing.
  */
 import Head from 'next/head';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -91,8 +92,8 @@ function WeeklyWireCadenceCard() {
     };
 
     const MODES = [
-        { key: 'all', label: 'All Updates And Rewards', desc: 'Receive All Weekly Wire Editions And Special Promotions' },
-        { key: 'wire_only', label: 'Weekly Wire Only', desc: 'Receive Only The Sunday Weekly Wire Digest' },
+        { key: 'all', label: 'All Updates And Rewards', desc: 'Receive Tuesday Weekly Wire Editions, Monthly Magazine Issues, And Special Promotions' },
+        { key: 'wire_only', label: 'Weekly Wire Only', desc: 'Receive Only The Tuesday Weekly Wire Digest' },
         { key: 'snooze_30d', label: 'Pause For 30 Days', desc: 'Temporarily Pause Email Delivery For One Month' },
         { key: 'unsubscribe', label: 'Unsubscribe From Email', desc: 'Opt Out Of All Email Communications' },
     ];
@@ -110,7 +111,7 @@ function WeeklyWireCadenceCard() {
                 <div>
                     <h2 className="text-lg font-bold text-white">Weekly Wire And Email Cadence</h2>
                     <p className="mt-1 text-sm text-gray-400">
-                        Choose How Often You Receive News, GTO Analysis And Tournament Alerts.
+                        Choose How Often You Receive Tuesday Weekly Wire Digests, Monthly Magazine Issues, And Tournament Alerts.
                     </p>
                 </div>
                 {feedback && (
@@ -152,6 +153,15 @@ function WeeklyWireCadenceCard() {
                     })}
                 </div>
             )}
+
+            <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-white/10 pt-3 text-xs font-semibold">
+                <Link href="/hub/magazine" className="text-[#4fc1b3] hover:underline">
+                    Monthly Magazine
+                </Link>
+                <Link href="/hub/wire" className="text-[#60a5fa] hover:underline">
+                    Weekly Wire Archive
+                </Link>
+            </div>
         </div>
     );
 }

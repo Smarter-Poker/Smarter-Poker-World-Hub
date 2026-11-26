@@ -11,27 +11,25 @@
  *   - `action: 'harvest'`                -> Harvests current/target `issuePeriod` vault
  *   - `action: 'compile'`                -> Compiles 44-page Card Player manifest into `review`
  *   - `action: 'publish'`                -> Publishes online, pings IndexNow, inserts Bell notifications,
- *                                           and optionally dispatches Cover-Reveal email once idempotently
+ *                                           and optionally dispatches Cover-Reveal email once atomically
  *   - `action: 'monthly_publish'`        -> Harvests + compiles `previousIssuePeriod()` + publishes
  *   - `action: 'pin_item'` / `'exclude_item'` -> Editorial vault item controls
  *   - `action: 'test_email'`             -> Dispatches `[TEST]` Cover-Reveal email & returns `htmlPreview`
  */
 import crypto from 'node:crypto';
 import { Resend } from 'resend';
-import { createClient } from '../../../src/lib/supabaseServerClient.js';
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth.js';
+import { reportApiError } from '../../../src/lib/apiErrorHandler.js';
 import { resendApiKey, resendFrom } from '../../../src/lib/email/resendAccount.mjs';
 import { sendEmail as sendSingleDigestEmail } from '../../../src/lib/dailyDigest/delivery.mjs';
 import {
+    makeUnsubscribeToken,
     normalizeExplicitTestEmail,
     verifyOperatorTestSignature,
 } from '../../../src/lib/promoCampaigns/dispatch.mjs';
 import { resolveWeeklyWireRecipients } from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import { mergeFinalCampaignErrorSummary } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
 import { submitToIndexNow } from '../../../src/lib/seo/indexingService.mjs';
-import { makeUnsubscribeToken } from './subscribe.js';
 import {
     MAGAZINE_POSTAL_ADDRESS,
     MAGAZINE_SITE_URL,
@@ -54,41 +52,87 @@ const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 const DEFAULT_MAGAZINE_FROM = 'Smarter.Poker Magazine <news@smarter.poker>';
 const SEND_BATCH_SIZE = 100;
 const MAX_MAGAZINE_RECIPIENTS = 5000;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SYNTHETIC_USERNAME_RE = /^(?:deleted-|crest_cert_|postdeploy|reels_qa|trivia_canary|codex-)/i;
 
 const ISSUE_SUMMARY_COLUMNS =
     'id, issue_number, volume_number, issue_period, slug, title, cover_headline, cover_subheadline, editor_note, cover_image_url, status, page_count, published_at, email_campaign_id, updated_at';
 
 let _supabase = null;
-function getSupabase() {
-    if (!_supabase) _supabase = createClient();
+async function getSupabase(req = null) {
+    if (req?._supabase) return req._supabase;
+    if (req?._supabaseClient) return req._supabaseClient;
+    if (!_supabase) {
+        const { createClient } = await import('../../../src/lib/supabaseServerClient.js');
+        _supabase = createClient();
+    }
     return _supabase;
+}
+
+const _fallbackRateMap = new Map();
+async function checkMagazineRateLimit(req, res, mode = 'read') {
+    if (typeof req?._rateLimitFn === 'function') {
+        return req._rateLimitFn(req, res, mode);
+    }
+    try {
+        const { applyRateLimit, LIMITS } = await import('../../../src/lib/apiRateLimit.js');
+        return applyRateLimit(req, res, mode === 'write' ? LIMITS.write : LIMITS.read);
+    } catch (err) {
+        if (err?.code !== 'ERR_MODULE_NOT_FOUND') throw err;
+        const ip = String(req?.headers?.['x-real-ip'] || req?.socket?.remoteAddress || 'local');
+        const key = `mag:${mode}:${ip}`;
+        const now = Date.now();
+        const max = mode === 'write' ? 30 : 120;
+        const entry = _fallbackRateMap.get(key);
+        if (!entry || now > entry.resetAt) {
+            _fallbackRateMap.set(key, { count: 1, resetAt: now + 60_000 });
+            return true;
+        }
+        entry.count += 1;
+        if (entry.count > max) {
+            res.status(429).json({ success: false, error: 'Too Many Requests' });
+            return false;
+        }
+        return true;
+    }
 }
 
 const safeQ = (v) => (Array.isArray(v) ? String(v[0]) : v == null ? '' : String(v));
 
-function verifyMagazineTestHmac(req, testEmail = '') {
-    const bodyAction = String(req.body?.action || '').trim();
-    const confirmSend = String(req.body?.confirmSend || '').trim();
-    const allowOnlinePublishOnly =
-        bodyAction === 'publish' && req.body?.sendEmail === false && confirmSend === 'PUBLISH_MAGAZINE_ONLINE';
+export function isAllowedOperatorMagazineAction(body = {}) {
+    const action = String(body?.action || '').trim();
     if (
-        bodyAction !== 'test_email' &&
-        bodyAction !== 'test' &&
-        bodyAction !== 'compile' &&
-        bodyAction !== 'harvest' &&
-        !allowOnlinePublishOnly
+        action === 'test_email' ||
+        action === 'test' ||
+        action === 'compile' ||
+        action === 'harvest'
     ) {
-        return false;
+        return true;
     }
+    if (
+        action === 'publish' &&
+        body?.sendEmail === false &&
+        String(body?.confirmSend || '').trim() === 'PUBLISH_MAGAZINE_ONLINE'
+    ) {
+        return true;
+    }
+    return false;
+}
 
-    const tsHeader = String(req.headers['x-operator-timestamp'] || '').trim();
-    const sigHeader = String(req.headers['x-operator-signature'] || '').trim().toLowerCase();
+function verifyRawOperatorHmacEnvelope(req, testEmail = '') {
+    const tsHeader = String(req?.headers?.['x-operator-timestamp'] || '').trim();
+    const sigHeader = String(req?.headers?.['x-operator-signature'] || '').trim().toLowerCase();
+    if (!tsHeader || !sigHeader) return false;
+
+    const bodyAction = String(req?.body?.action || '').trim();
+    const confirmSend = String(req?.body?.confirmSend || '').trim();
+    const cleanTestEmail = String(testEmail || '').trim().toLowerCase();
 
     if (
         (bodyAction === 'test_email' || bodyAction === 'test' || bodyAction === 'compile') &&
         verifyOperatorTestSignature({
             action: bodyAction === 'compile' ? 'preview' : 'test',
-            testEmail,
+            testEmail: cleanTestEmail,
             testPhone: '',
             timestampHeader: tsHeader,
             signatureHeader: sigHeader,
@@ -103,16 +147,31 @@ function verifyMagazineTestHmac(req, testEmail = '') {
     const nowSec = Math.floor(Date.now() / 1000);
     if (!Number.isFinite(tsSec) || Math.abs(nowSec - tsSec) > 90) return false;
 
-    const msg = allowOnlinePublishOnly
-        ? `${tsHeader}:publish:${String(testEmail || '').trim().toLowerCase()}::${confirmSend}`
-        : `${tsHeader}:${bodyAction}:${String(testEmail || '').trim().toLowerCase()}:`;
-    const expected = crypto.createHmac('sha256', secret).update(msg).digest('hex');
-    const a = Buffer.from(sigHeader, 'hex');
-    const b = Buffer.from(expected, 'hex');
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
+    const candidates = [
+        `${tsHeader}:${bodyAction}:${cleanTestEmail}:`,
+        ...(confirmSend ? [`${tsHeader}:${bodyAction}:${cleanTestEmail}::${confirmSend}`] : []),
+    ];
+
+    const actualBuf = Buffer.from(sigHeader, 'hex');
+    for (const msg of candidates) {
+        const expected = crypto.createHmac('sha256', secret).update(msg).digest('hex');
+        const expectedBuf = Buffer.from(expected, 'hex');
+        if (actualBuf.length === expectedBuf.length && crypto.timingSafeEqual(actualBuf, expectedBuf)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
-async function authorizeAdminOrCron(req) {
+export function verifyMagazineTestHmac(req, testEmail = '') {
+    if (!isAllowedOperatorMagazineAction(req?.body)) {
+        return false;
+    }
+    return verifyRawOperatorHmacEnvelope(req, testEmail);
+}
+
+async function authorizeAdminOrCron(req, sbClient = null) {
     const cronSecret = (process.env.CRON_SECRET || '').trim();
     if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) {
         return { kind: 'cron', userId: null };
@@ -126,9 +185,12 @@ async function authorizeAdminOrCron(req) {
         if (verifyMagazineTestHmac(req, req.body.testEmail || '')) {
             return { kind: 'operator_test', userId: null };
         }
+        if (verifyRawOperatorHmacEnvelope(req, req.body.testEmail || '')) {
+            return { kind: 'operator_test', userId: null };
+        }
     }
 
-    const sb = getSupabase();
+    const sb = sbClient || (await getSupabase(req));
     try {
         const authRes = await getServerUserWithFallback(req, sb);
         const user = authRes?.user ?? authRes;
@@ -268,12 +330,35 @@ async function dispatchCoverRevealBroadcast(sb, { issue, manifest, siteUrl, crea
     const campaignId = Array.isArray(campRows) ? campRows[0]?.id : campRows?.id;
     if (!campaignId) throw new Error('Unable to create magazine email audit campaign');
 
-    // Stamp `email_campaign_id` immediately before batching so concurrent retries cannot double-send
+    // Atomic compare-and-swap on `email_campaign_id IS NULL` so concurrent retries cannot double-send
     if (issue?.id) {
-        await sb
+        const claimTimestamp = new Date().toISOString();
+        const { data: claimedRows, error: claimErr } = await sb
             .from('magazine_issues')
-            .update({ email_campaign_id: campaignId, updated_at: new Date().toISOString() })
-            .eq('id', issue.id);
+            .update({ email_campaign_id: campaignId, updated_at: claimTimestamp })
+            .eq('id', issue.id)
+            .is('email_campaign_id', null)
+            .select('id');
+
+        if (claimErr) throw claimErr;
+        const claimed = Array.isArray(claimedRows) ? claimedRows[0] : claimedRows;
+        if (!claimed?.id) {
+            await sb
+                .from('newsletter_campaigns')
+                .update({
+                    status: 'cancelled',
+                    error_summary: 'Superseded by concurrent Cover-Reveal email claim',
+                    completed_at: claimTimestamp,
+                    updated_at: claimTimestamp,
+                })
+                .eq('id', campaignId);
+            return {
+                alreadyEmailed: true,
+                emailCampaignId: null,
+                sent: 0,
+                failed: 0,
+            };
+        }
     }
 
     const resend = new Resend(apiKey);
@@ -329,6 +414,7 @@ async function dispatchCoverRevealBroadcast(sb, { issue, manifest, siteUrl, crea
         /* ignore */
     }
 
+    const finalNow = new Date().toISOString();
     const finalStatus = failed === 0 ? 'sent' : sent > 0 ? 'partial' : 'failed';
     await sb
         .from('newsletter_campaigns')
@@ -337,10 +423,26 @@ async function dispatchCoverRevealBroadcast(sb, { issue, manifest, siteUrl, crea
             sent_count: sent,
             failed_count: failed,
             error_summary: mergeFinalCampaignErrorSummary(existingSummary, errors),
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            completed_at: finalNow,
+            updated_at: finalNow,
         })
         .eq('id', campaignId);
+
+    // If 0 emails were delivered and failures occurred, release email_campaign_id so retry can succeed
+    if (sent === 0 && failed > 0 && issue?.id) {
+        await sb
+            .from('magazine_issues')
+            .update({ email_campaign_id: null, updated_at: finalNow })
+            .eq('id', issue.id)
+            .eq('email_campaign_id', campaignId);
+        return {
+            alreadyEmailed: false,
+            emailCampaignId: null,
+            sent,
+            failed,
+            errors,
+        };
+    }
 
     return {
         alreadyEmailed: false,
@@ -398,7 +500,7 @@ async function publishCompiledIssue(sb, { issuePeriod, sendEmail = false, siteUr
         if (Array.isArray(updatedRows) && updatedRows[0]) {
             issue = updatedRows[0];
         } else {
-            issue = { ...issue, status: 'published', published_at: publishedAt };
+            issue = { ...issue, status: 'published', published_at: publishedAt, updated_at: nowIso };
         }
     }
 
@@ -416,13 +518,21 @@ async function publishCompiledIssue(sb, { issuePeriod, sendEmail = false, siteUr
     // Insert Bell notifications once on initial publication with `_push: 'none'` (in-app bell only, zero mobile push spam)
     if (!wasAlreadyPublished) {
         try {
-            const { data: profRows } = await sb
-                .from('profiles')
-                .select('id, is_horse')
-                .order('last_active', { ascending: false })
+            let profQuery = sb.from('profiles').select('id, username, is_horse');
+            if (typeof profQuery.not === 'function') {
+                profQuery = profQuery.not('last_active', 'is', null);
+            }
+            const { data: profRows } = await profQuery
+                .order('last_active', { ascending: false, nullsFirst: false })
                 .limit(1200);
             const memberIds = (profRows || [])
-                .filter((p) => p?.id && p.is_horse !== true && !String(p.id).startsWith('00000000-0000-0000-0000-'))
+                .filter(
+                    (p) =>
+                        p?.id &&
+                        p.is_horse !== true &&
+                        !String(p.id).startsWith('00000000-0000-0000-0000-') &&
+                        !SYNTHETIC_USERNAME_RE.test(String(p.username || ''))
+                )
                 .map((p) => String(p.id))
                 .slice(0, 1000);
 
@@ -486,26 +596,31 @@ async function publishCompiledIssue(sb, { issuePeriod, sendEmail = false, siteUr
 export default async function handler(req, res) {
     if (!['GET', 'POST'].includes(req.method)) {
         res.setHeader('Allow', 'GET, POST');
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method Not Allowed' });
     }
 
     const queryAction = safeQ(req.query?.action).trim();
     const isActionGet = req.method === 'GET' && Boolean(queryAction);
 
-    if (!applyRateLimit(req, res, req.method === 'POST' || isActionGet ? LIMITS.write : LIMITS.read)) {
+    if (!(await checkMagazineRateLimit(req, res, req.method === 'POST' || isActionGet ? 'write' : 'read'))) {
         return;
     }
 
-    const sb = getSupabase();
+    const sb = await getSupabase(req);
     const siteUrl = String(process.env.NEXT_PUBLIC_SITE_URL || MAGAZINE_SITE_URL).replace(/\/+$/, '');
 
     try {
         // ── 1. Public / Admin GET (unless GET carries a cron action like `?action=monthly_publish`) ──
         if (req.method === 'GET' && !isActionGet) {
             const wantsReview = ['1', 'true', 'yes'].includes(safeQ(req.query?.includeReview).toLowerCase());
-            const auth = wantsReview ? await authorizeAdminOrCron(req) : null;
+            const auth = wantsReview ? await authorizeAdminOrCron(req, sb) : null;
             if (wantsReview && !auth) {
-                return res.status(401).json({ success: false, error: 'Administrator access required for review issues' });
+                return res.status(401).json({ success: false, error: 'Administrator Access Required For Review Issues' });
+            }
+
+            const rawQueryPeriod = safeQ(req.query?.issuePeriod).trim();
+            if (rawQueryPeriod && !isValidIssuePeriod(rawQueryPeriod)) {
+                return res.status(400).json({ success: false, error: 'Invalid Issue Period Format. Expected YYYY-MM.' });
             }
 
             res.setHeader(
@@ -528,7 +643,7 @@ export default async function handler(req, res) {
 
                 if (error) throw error;
                 const vaultSummary = wantsReview
-                    ? await loadVaultSummary(sb, isValidIssuePeriod(safeQ(req.query?.issuePeriod)) ? safeQ(req.query?.issuePeriod) : currentIssuePeriod())
+                    ? await loadVaultSummary(sb, rawQueryPeriod || currentIssuePeriod())
                     : undefined;
 
                 return res.status(200).json({
@@ -548,18 +663,22 @@ export default async function handler(req, res) {
             if (selector === 'latest') {
                 issueQuery = issueQuery.order('issue_number', { ascending: false }).limit(1);
             } else if (/^\d+$/.test(selector)) {
-                issueQuery = issueQuery.eq('issue_number', Number(selector)).limit(1);
+                const parsedIssueNum = Number(selector);
+                if (!Number.isSafeInteger(parsedIssueNum) || parsedIssueNum < 1 || parsedIssueNum > 100000) {
+                    return res.status(404).json({ success: false, error: 'Magazine Issue Not Found' });
+                }
+                issueQuery = issueQuery.eq('issue_number', parsedIssueNum).limit(1);
             } else if (isValidIssuePeriod(selector)) {
                 issueQuery = issueQuery.eq('issue_period', selector).limit(1);
             } else {
-                issueQuery = issueQuery.eq('slug', selector).limit(1);
+                issueQuery = issueQuery.eq('slug', selector.toLowerCase()).limit(1);
             }
 
             const { data: foundRows, error: findErr } = await issueQuery;
             if (findErr) throw findErr;
             const row = Array.isArray(foundRows) ? foundRows[0] : null;
             if (!row) {
-                return res.status(404).json({ success: false, error: 'Magazine issue not found' });
+                return res.status(404).json({ success: false, error: 'Magazine Issue Not Found' });
             }
 
             const manifest = normalizeIssueManifest(row.manifest_json || {}, row);
@@ -575,7 +694,7 @@ export default async function handler(req, res) {
 
         // ── 2. Authorized Admin / Cron Actions (`POST` or `GET ?action=monthly_publish`) ──
         res.setHeader('Cache-Control', 'private, no-store');
-        const auth = await authorizeAdminOrCron(req);
+        const auth = await authorizeAdminOrCron(req, sb);
         if (!auth) {
             return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
@@ -584,12 +703,22 @@ export default async function handler(req, res) {
         const action = String(body.action || queryAction || '').trim();
         const rawPeriod = String(body.issuePeriod || safeQ(req.query?.issuePeriod) || '').trim();
 
-        if (auth.kind === 'operator_test' && action !== 'test_email' && action !== 'test') {
-            return res.status(403).json({ success: false, error: 'Operator test signature restricted to test_email' });
+        if (auth.kind === 'operator_test' && !isAllowedOperatorMagazineAction({ ...body, action })) {
+            return res.status(403).json({
+                success: false,
+                error: 'Operator Test Signature Restricted To Approved Non-Broadcast Magazine Actions',
+            });
+        }
+
+        if (rawPeriod && !isValidIssuePeriod(rawPeriod)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid Issue Period Format. Expected YYYY-MM.',
+            });
         }
 
         if (action === 'harvest') {
-            const period = isValidIssuePeriod(rawPeriod) ? rawPeriod : currentIssuePeriod();
+            const period = rawPeriod || currentIssuePeriod();
             const harvestRes = await harvestMonthlyMagazineVault(sb, {
                 issuePeriod: period,
                 externalBudgetMs: 20_000,
@@ -598,15 +727,17 @@ export default async function handler(req, res) {
             return res.status(200).json({
                 success: true,
                 action: 'harvest',
-                ...harvestRes,
+                issuePeriod: harvestRes.issuePeriod,
+                harvestedCount: harvestRes.harvestedCount,
+                countsBySection: harvestRes.countsBySection,
                 vaultSummary,
             });
         }
 
         if (action === 'pin_item' || action === 'exclude_item') {
             const targetId = String(body.itemId || body.vaultItemId || body.id || '').trim();
-            if (!targetId) {
-                return res.status(400).json({ success: false, error: 'Vault item id is required' });
+            if (!targetId || !UUID_RE.test(targetId)) {
+                return res.status(400).json({ success: false, error: 'Valid Vault Item UUID Is Required' });
             }
             const { data: existingRows, error: readErr } = await sb
                 .from('magazine_vault_items')
@@ -616,15 +747,16 @@ export default async function handler(req, res) {
             if (readErr) throw readErr;
             const current = Array.isArray(existingRows) ? existingRows[0] : null;
             if (!current) {
-                return res.status(404).json({ success: false, error: 'Vault item not found' });
+                return res.status(404).json({ success: false, error: 'Vault Item Not Found' });
             }
 
+            const nowStamp = new Date().toISOString();
             if (action === 'pin_item') {
                 const nextPinned = typeof body.pinned === 'boolean' ? body.pinned : !current.is_pinned;
                 if (nextPinned && current.issue_period) {
                     await sb
                         .from('magazine_vault_items')
-                        .update({ is_pinned: false })
+                        .update({ is_pinned: false, updated_at: nowStamp })
                         .eq('issue_period', current.issue_period)
                         .neq('id', targetId);
                 }
@@ -633,6 +765,7 @@ export default async function handler(req, res) {
                     .update({
                         is_pinned: nextPinned,
                         ...(nextPinned ? { is_excluded: false } : {}),
+                        updated_at: nowStamp,
                     })
                     .eq('id', targetId)
                     .select('*')
@@ -650,6 +783,7 @@ export default async function handler(req, res) {
                 .update({
                     is_excluded: nextExcluded,
                     ...(nextExcluded ? { is_pinned: false } : {}),
+                    updated_at: nowStamp,
                 })
                 .eq('id', targetId)
                 .select('*')
@@ -662,7 +796,7 @@ export default async function handler(req, res) {
         }
 
         if (action === 'compile') {
-            const period = isValidIssuePeriod(rawPeriod) ? rawPeriod : currentIssuePeriod();
+            const period = rawPeriod || currentIssuePeriod();
             if (body.harvestFirst === true) {
                 await harvestMonthlyMagazineVault(sb, {
                     issuePeriod: period,
@@ -671,14 +805,19 @@ export default async function handler(req, res) {
             }
             if (body.pinnedVaultItemId) {
                 const pinId = String(body.pinnedVaultItemId).trim();
+                if (!UUID_RE.test(pinId)) {
+                    return res.status(400).json({ success: false, error: 'Valid Pinned Vault Item UUID Is Required' });
+                }
+                const pinStamp = new Date().toISOString();
                 await sb
                     .from('magazine_vault_items')
-                    .update({ is_pinned: false })
+                    .update({ is_pinned: false, updated_at: pinStamp })
                     .eq('issue_period', period);
                 await sb
                     .from('magazine_vault_items')
-                    .update({ is_pinned: true, is_excluded: false })
-                    .eq('id', pinId);
+                    .update({ is_pinned: true, is_excluded: false, updated_at: pinStamp })
+                    .eq('id', pinId)
+                    .eq('issue_period', period);
             }
 
             const compiled = await compileMonthlyMagazineIssue(sb, {
@@ -708,7 +847,7 @@ export default async function handler(req, res) {
         }
 
         if (action === 'publish') {
-            const period = isValidIssuePeriod(rawPeriod) ? rawPeriod : currentIssuePeriod();
+            const period = rawPeriod || currentIssuePeriod();
             const sendEmail = body.sendEmail === true;
             const published = await publishCompiledIssue(sb, {
                 issuePeriod: period,
@@ -728,7 +867,7 @@ export default async function handler(req, res) {
         }
 
         if (action === 'monthly_publish') {
-            const period = isValidIssuePeriod(rawPeriod) ? rawPeriod : previousIssuePeriod();
+            const period = rawPeriod || previousIssuePeriod();
             await harvestMonthlyMagazineVault(sb, {
                 issuePeriod: period,
                 externalBudgetMs: 18_000,
@@ -763,11 +902,11 @@ export default async function handler(req, res) {
         }
 
         if (action === 'test_email' || action === 'test') {
-            const period = isValidIssuePeriod(rawPeriod) ? rawPeriod : currentIssuePeriod();
+            const period = rawPeriod || currentIssuePeriod();
             const rawTargetEmail = String(body.testEmail || safeQ(req.query?.testEmail) || '').trim();
             const targetEmail = rawTargetEmail ? normalizeExplicitTestEmail(rawTargetEmail) : null;
             if (rawTargetEmail && !targetEmail) {
-                return res.status(400).json({ success: false, error: 'Enter a valid test email address' });
+                return res.status(400).json({ success: false, error: 'Enter A Valid Test Email Address' });
             }
 
             let issueRow = null;
@@ -839,7 +978,7 @@ export default async function handler(req, res) {
             if (!resendApiKey()) {
                 return res.status(503).json({
                     success: false,
-                    error: 'Email provider is not configured',
+                    error: 'Email Provider Is Not Configured',
                     htmlPreview: rendered.html,
                 });
             }
@@ -859,7 +998,7 @@ export default async function handler(req, res) {
             if (!sendRes?.ok) {
                 return res.status(502).json({
                     success: false,
-                    error: sendRes?.error || 'Unable to send test Cover-Reveal email',
+                    error: sendRes?.error || 'Unable To Send Test Cover-Reveal Email',
                     htmlPreview: rendered.html,
                 });
             }
@@ -877,7 +1016,7 @@ export default async function handler(req, res) {
 
         return res.status(400).json({
             success: false,
-            error: 'Unsupported action. Expected harvest, compile, publish, monthly_publish, pin_item, exclude_item, or test_email.',
+            error: 'Unsupported Action. Expected harvest, compile, publish, monthly_publish, pin_item, exclude_item, Or test_email.',
         });
     } catch (error) {
         try {
@@ -887,7 +1026,7 @@ export default async function handler(req, res) {
         }
         return res.status(500).json({
             success: false,
-            error: error?.message || 'Magazine API operation failed',
+            error: 'Magazine API Operation Failed',
         });
     }
 }

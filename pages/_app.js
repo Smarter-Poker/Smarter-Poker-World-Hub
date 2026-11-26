@@ -1002,11 +1002,14 @@ export default function App({ Component, pageProps }) {
     resolvedPath === '/hub/poker-near-me' || resolvedPath.startsWith('/hub/poker-near-me/');
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
   const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
+  const isPrintProofRoute =
+    router.pathname === '/hub/magazine/print/[issue]' ||
+    resolvedPath.startsWith('/hub/magazine/print/');
   const suppressWorldFooterOnMarketplaceStore =
     MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(resolvedPath) ||
     MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(router.pathname);
   const bottomNavRouteConfig =
-    isClubArenaRoute || suppressWorldFooterOnMarketplaceStore
+    isClubArenaRoute || suppressWorldFooterOnMarketplaceStore || isPrintProofRoute
       ? null
       : bottomNavRoutes[router.pathname] || null;
   // All five Marketplace storefronts own an in-flow commerce footer instead of
@@ -1048,7 +1051,7 @@ export default function App({ Component, pageProps }) {
   }, []);
 
   const showBottomNav = Boolean(
-    bottomNavConfig && !(bottomNavRouteConfig?.hideInIframe && isEmbedded)
+    !isPrintProofRoute && bottomNavConfig && !(bottomNavRouteConfig?.hideInIframe && isEmbedded)
   );
 
   // Do NOT capitalize specific poker/trainer tool screens where exact statistical/range string casing (e.g., AQs, cbet, EV) is mathematically critical
@@ -1262,9 +1265,9 @@ export default function App({ Component, pageProps }) {
                                   </>
                                 )}
                               </PageErrorBoundary>
-                              {!isClubArenaRoute && <WorldCommandDock />}
-                              {!isEmbedded && !isClubArenaRoute && path.startsWith('/hub') && automaticPlayerWrites && <ActivePokerSeatLink />}
-                              {!isEmbedded && !isClubArenaRoute && path !== '/hub/messenger' && !path.startsWith('/auth/') && automaticPlayerWrites && <MessengerDockHost />}
+                              {!isPrintProofRoute && !isClubArenaRoute && <WorldCommandDock />}
+                              {!isEmbedded && !isClubArenaRoute && !isPrintProofRoute && path.startsWith('/hub') && automaticPlayerWrites && <ActivePokerSeatLink />}
+                              {!isEmbedded && !isClubArenaRoute && !isPrintProofRoute && path !== '/hub/messenger' && !path.startsWith('/auth/') && automaticPlayerWrites && <MessengerDockHost />}
                               {showBottomNav && (
                                 <BottomNavSpacer
                                   config={bottomNavConfig}
@@ -1285,14 +1288,14 @@ export default function App({ Component, pageProps }) {
                                 <OfflineBar />
                               </HubErrorBoundary>
                               <HubErrorBoundary name="Newsletter Capture" fallback={<></>}>
-                                {!isEmbedded && <NewsletterCaptureBar />}
+                                {!isEmbedded && !isPrintProofRoute && <NewsletterCaptureBar />}
                               </HubErrorBoundary>
                               {/* Page tutorials (Dan 2026-09-03): one provider for
                                   every route; the prompt, the tour and the
                                   hamburger "Page Tutorial" row all read from
                                   src/tutorials/index.js. */}
                               <HubErrorBoundary name="Page Tutorial" fallback={<></>}>
-                                <TutorialProvider />
+                                {!isPrintProofRoute && <TutorialProvider />}
                               </HubErrorBoundary>
                               <HubErrorBoundary name="Celebrations" fallback={<></>}>
                                 <CelebrationManager />
@@ -1317,12 +1320,16 @@ export default function App({ Component, pageProps }) {
                                 <GlobalPageOverlay />
                               </HubErrorBoundary>
                               <ToastProvider>
-                                <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
-                                  {automaticPlayerWrites && <GlobalNotificationPrompt />}
-                                </HubErrorBoundary>
+                                {!isPrintProofRoute && (
+                                  <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
+                                    {automaticPlayerWrites && <GlobalNotificationPrompt />}
+                                  </HubErrorBoundary>
+                                )}
                                 <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
                                   <ServiceWorkerUpdater />
-                                  {automaticPlayerWrites && <PWAInstallPrompt />}
+                                  {!isPrintProofRoute && (
+                                    <>{automaticPlayerWrites && <PWAInstallPrompt />}</>
+                                  )}
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Proactive Help" fallback={<></>}>
                                   <ProactiveHelp
@@ -1351,7 +1358,7 @@ export default function App({ Component, pageProps }) {
                                   <ChunkLoadRecovery />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Welcome Modal" fallback={<></>}>
-                                  <WelcomeModalGate />
+                                  {!isPrintProofRoute && <WelcomeModalGate />}
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Easter Egg Watcher" fallback={<></>}>
                                   {automaticPlayerWrites && <EasterEggWatcher />}
