@@ -37,6 +37,10 @@ Apply the treatment to every control and display in a workflow, including the wo
 
 In Bankroll Manager, open the dashboard on a normal entry. Show the launcher there and place Jarvis Insights at the bottom. Each destination has a Back To Dashboard control. A header Add + opens the existing entry flow wherever the user can create records. Place contextual descriptions, FAQs and tutorials behind the upper-right question mark on the product header. Keep required field labels, form feedback and units visible.
 
+Size each data table to the space inside its frame. For short statistics such as Position, Hands, VPIP and PFR, show the row label and every value together on first view. Let the content determine column widths, reduce unused cell padding and allow headings to wrap. For dense records on narrow screens, use a stacked layout that keeps each value paired with its heading. Preserve all fields, readable type, touch targets and the relationship between the row and its values. Reserve sideways scrolling for content whose meaning depends on a wider surface and genuinely cannot reflow.
+
+Check populated tables inside their actual containers at phone, tablet and desktop widths. Confirm that the first and last columns, their labels and representative long values are visible together. Inspect the table’s own scroll area as well as the page. Apply this check to equivalent tables in alternate modes and linked subpages.
+
 ## Interior review on every design change
 
 **Full click-through coverage.** Start at each real entry point in the assigned product. List every mode, tab, linked subpage, drill-down, evidence view, editor, popup, chart, filter, and expanded section it exposes. Follow each path until it reaches its final usable screen. Apply #SMARTERDESIGN to the contents, controls, data, empty states, and return path at every level. Track each destination against an observed interaction and visible result. For role-specific paths, check the authorized experience and record any remaining access or data gap.

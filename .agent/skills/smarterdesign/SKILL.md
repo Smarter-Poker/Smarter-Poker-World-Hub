@@ -21,4 +21,6 @@ description: Apply the approved Smarter.Poker chrome and cobalt console style to
 
 11. Walk every branch in the assigned page or product. Inventory its modes, tabs, links, evidence views, chart and table controls, editors, dialogs, filters and role-specific destinations. Open each reachable child through the interface, complete its #SMARTERDESIGN treatment, and verify the result and return path. Record each checked destination and disclose missing access or data. Apply this requirement to future fixes and redesigns.
 
+12. Fit tables to the space inside the frame. Keep every short metric visible with its row label, trim redundant column widths and padding, and wrap long headings. Reflow dense records into labeled rows on phones. Preserve every value, font legibility and keyboard and touch access. At phone, tablet and desktop widths, check the actual inner scroll container and both outermost columns with populated records. Review equivalent tables across modes and subpages.
+
 In World Hub, read `docs/SMARTERDESIGN.md` for the canonical design standard.

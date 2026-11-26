@@ -4,7 +4,7 @@
  */
 
 import { GRADIENTS, METAL } from './metalStyles';
-import { memo,  useState, useEffect, useRef } from 'react';
+import { memo, useState, useEffect, useRef, useId } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion } from 'framer-motion';
@@ -46,7 +46,53 @@ const SPORTS = ['baseball', 'basketball', 'football', 'hockey', 'boxing_mma'];
 const BET_TYPES = ['moneyline', 'spread', 'over_under', 'parlay', 'prop', 'live'];
 const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed', 'revenge'];
 
+// Use one settlement for the live totals, rule checks and saved tournament row.
+function tournamentAmounts(form, previouslyRecordedBounties) {
+  const buyIn = Number(form.buy_in_amount) || 0;
+  const rebuys = parseInt(form.reentry_count, 10) || 0;
+  const addOn = Number(form.add_on_amount) || 0;
+  const bounties = Number(form.bounties_collected) || 0;
+  const cashOut = Number(form.gross_out) || 0;
+  const expense = Math.max(0, Number(form.inline_expense_amount) || 0);
+  const swap = Number(form.swap_amount) || 0;
+  const staking = Number(form.staker_amount) || 0;
+  const sold = Number(form.action_amount) || 0;
+  // An edited cash-out already includes the bounty paid on the original row.
+  const afterExpense = expense > 0 ? Math.max(0, cashOut - expense) : cashOut;
+  const proceeds = afterExpense + bounties - (Number(previouslyRecordedBounties) || 0);
+  const payout = swap > 0 || staking > 0 || sold > 0
+    ? Math.max(0, proceeds - swap - staking - sold)
+    : proceeds;
+  return { buyIn, rebuys, addOn, bounties, swap, staking, sold, stake: buyIn * (1 + rebuys) + addOn, payout };
+}
+
+function tournamentSummary(stake, rebuys, addOn, bounties) {
+  const parts = [];
+  if (rebuys > 0) parts.push(`Rebuys: ${rebuys} (Total Buy-In: $${Number(stake).toLocaleString()})`);
+  if (addOn > 0) parts.push(`Add-On: $${addOn}`);
+  if (bounties > 0) parts.push(`Bounties: $${bounties}`);
+  return parts.join(' | ');
+}
+
+function withTournamentSummary(notes, original, summary) {
+  const lines = notes ? notes.split('\n') : [];
+  if (original) {
+    const previous = tournamentSummary(original.gross_in, original.reentry_count, original.add_on_amount, original.bounties_collected);
+    if (previous && (original.notes || '').split('\n').includes(previous)) {
+      const index = lines.lastIndexOf(previous);
+      if (index >= 0) {
+        lines.splice(index, 1, ...(summary ? [summary] : []));
+        return lines.join('\n') || null;
+      }
+    }
+  }
+  if (summary) lines.push(summary);
+  return lines.join('\n') || null;
+}
+
 function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, onClose, onSubmit }) {
+  const formId = useId();
+  const fieldId = (name) => `${formId}-${name}`;
   const isEditMode = !!editEntry;
   // Phone back gesture closes the sheet instead of leaving the page (mobile
   // phase 0a). The modal is mounted only while open, so isOpen is constant;
@@ -128,7 +174,12 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         inline_expense_type: '',
         tournament_name: e.tournament_name || '',
         tournament_type: e.tournament_type || '',
-        buy_in_amount: e.buy_in_amount?.toString() || '',
+        // Older tournament rows may carry only total stake, rebuys and the add-on.
+        buy_in_amount: e.buy_in_amount != null
+          ? String(e.buy_in_amount)
+          : e.category === 'poker_mtt' && e.gross_in != null
+            ? String((e.gross_in - (e.add_on_amount || 0)) / (1 + (Number(e.reentry_count) || 0)))
+            : '',
         finish_position: e.finish_position?.toString() || '',
         field_size: e.field_size?.toString() || '',
         reentry_count: e.reentry_count?.toString() || '0',
@@ -348,13 +399,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
   const calculateNetResult = () => {
     const grossOut = parseFloat(formData.gross_out) || 0;
-    // For tournaments, compute total buy-in including rebuys + add-ons
     if (category === 'poker_mtt') {
-      const buyIn = parseFloat(formData.buy_in_amount) || 0;
-      const rebuys = parseInt(formData.reentry_count) || 0;
-      const addOn = parseFloat(formData.add_on_amount) || 0;
-      const totalBuyIn = buyIn * (1 + rebuys) + addOn;
-      return grossOut - totalBuyIn;
+      const { stake, payout } = tournamentAmounts(formData, editEntry?.bounties_collected);
+      return payout - stake;
     }
     const grossIn = parseFloat(formData.gross_in) || 0;
     return grossOut - grossIn;
@@ -427,38 +474,22 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       } else if (category === 'poker_mtt') {
         entry.tournament_name = formData.tournament_name || null;
         entry.tournament_type = formData.tournament_type || null;
-        entry.buy_in_amount = parseFloat(formData.buy_in_amount) || null;
+        entry.buy_in_amount = formData.buy_in_amount === '' ? null : Number(formData.buy_in_amount);
         entry.finish_position = parseInt(formData.finish_position) || null;
         entry.field_size = parseInt(formData.field_size) || null;
         entry.reentry_count = parseInt(formData.reentry_count) || 0;
         entry.add_on_amount = parseFloat(formData.add_on_amount) || null;
         entry.bounties_collected = parseFloat(formData.bounties_collected) || null;
-        // Calculate total buy-in: buyIn × (1 + rebuys) + addOn
-        const buyIn = parseFloat(formData.buy_in_amount) || 0;
-        const rebuyCount = parseInt(formData.reentry_count) || 0;
-        const addOnAmt = parseFloat(formData.add_on_amount) || 0;
-        const totalBuyIn = buyIn * (1 + rebuyCount) + addOnAmt;
+        const {
+          stake: totalBuyIn, payout, rebuys: rebuyCount, addOn: addOnAmt,
+          bounties, swap: swapAmt, staking: stakerAmt, sold: actionAmt,
+        } = tournamentAmounts(formData, editEntry?.bounties_collected);
         entry.gross_in = totalBuyIn;
-        // Add bounties to gross_out (bounties are money received)
-        const bounties = parseFloat(formData.bounties_collected) || 0;
-        if (bounties > 0) {
-          entry.gross_out = (entry.gross_out || 0) + bounties;
-        }
-        // Add rebuys, add-on, and bounties to notes if present
-        if (rebuyCount > 0 || addOnAmt > 0 || bounties > 0) {
-          const reParts = [];
-          if (rebuyCount > 0) reParts.push(`Rebuys: ${rebuyCount} (Total Buy-In: $${totalBuyIn.toLocaleString()})`);
-          if (addOnAmt > 0) reParts.push(`Add-On: $${addOnAmt}`);
-          if (bounties > 0) reParts.push(`Bounties: $${bounties}`);
-          const reExtra = reParts.join(' | ');
-          entry.notes = entry.notes ? `${entry.notes}\n${reExtra}` : reExtra;
-        }
-        // Subtract swap, staking, and sold action amounts from gross_out
-        const swapAmt = parseFloat(formData.swap_amount) || 0;
-        const stakerAmt = parseFloat(formData.staker_amount) || 0;
-        const actionAmt = parseFloat(formData.action_amount) || 0;
+        entry.gross_out = payout;
+        entry.notes = withTournamentSummary(
+          entry.notes, editEntry, tournamentSummary(totalBuyIn, rebuyCount, addOnAmt, bounties)
+        );
         if (swapAmt > 0 || stakerAmt > 0 || actionAmt > 0) {
-          entry.gross_out = Math.max(0, (entry.gross_out || 0) - swapAmt - stakerAmt - actionAmt);
           // Append swap/staking/action details to notes
           const parts = [];
           if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} - $${swapAmt}`);
@@ -613,6 +644,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   const renderDetailsForm = () => {
     const netResult = calculateNetResult();
     const isExpense = category === 'expense';
+    const buyInField = category === 'poker_mtt' ? 'buy_in_amount' : 'gross_in';
 
     return (
       <form onSubmit={handleSubmit} style={styles.form}>
@@ -620,8 +652,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         <div style={styles.amountSection}>
           {isExpense ? (
             <div style={styles.formGroup}>
-              <label style={styles.label}>Amount ($)</label>
+              <label htmlFor={fieldId('amount')} style={styles.label}>Amount ($)</label>
               <input
+                id={fieldId('amount')}
                 type="number"
                 inputMode="decimal"
                 step="0.01"
@@ -636,13 +669,14 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           ) : (
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Buy-In ($)</label>
+                <label htmlFor={fieldId('buy-in')} style={styles.label}>Buy-In ($)</label>
                 <input
+                  id={fieldId('buy-in')}
                   type="number"
                 inputMode="decimal"
                   step="0.01"
-                  value={formData.gross_in}
-                  onChange={(e) => handleInputChange('gross_in', e.target.value)}
+                  value={formData[buyInField]}
+                  onChange={(e) => handleInputChange(buyInField, e.target.value)}
                   placeholder="0.00"
                   style={styles.input}
                   required
@@ -650,8 +684,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 />
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Cash-Out ($)</label>
+                <label htmlFor={fieldId('cash-out')} style={styles.label}>Cash-Out ($)</label>
                 <input
+                  id={fieldId('cash-out')}
                   type="number"
                 inputMode="decimal"
                   step="0.01"
@@ -667,7 +702,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           )}
 
           {/* Net Result Display */}
-          {!isExpense && (formData.gross_in || formData.gross_out) && (
+          {!isExpense && (formData[buyInField] || formData.gross_out) && (
             <div
               style={{
                 ...styles.netResult,
@@ -741,8 +776,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         {category === 'poker_mtt' && (
           <>
             <div style={styles.formGroup}>
-              <label style={styles.label}>Tournament Name</label>
+              <label htmlFor={fieldId('tournament-name')} style={styles.label}>Tournament Name</label>
               <input
+                id={fieldId('tournament-name')}
                 type="text"
                 value={formData.tournament_name}
                 onChange={(e) => handleInputChange('tournament_name', e.target.value)}
@@ -752,8 +788,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
             {/* Tournament Type Dropdown */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Tournament Type</label>
+              <label htmlFor={fieldId('tournament-type')} style={styles.label}>Tournament Type</label>
               <select
+                id={fieldId('tournament-type')}
                 value={formData.tournament_type}
                 onChange={(e) => handleInputChange('tournament_type', e.target.value)}
                 style={styles.select}
@@ -771,8 +808,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             {/* Bounties Collected - only for bounty types */}
             {['bounty', 'mystery_bounty', 'pko'].includes(formData.tournament_type) && (
               <div style={styles.formGroup}>
-                <label style={{ ...styles.label, color: '#22c55e' }}>Bounties Collected ($)</label>
+                <label htmlFor={fieldId('bounties')} style={{ ...styles.label, color: '#22c55e' }}>Bounties Collected ($)</label>
                 <input
+                  id={fieldId('bounties')}
                   type="number"
                 inputMode="decimal"
                   step="0.01"
@@ -786,8 +824,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Finish Position</label>
+                <label htmlFor={fieldId('finish')} style={styles.label}>Finish Position</label>
                 <input
+                  id={fieldId('finish')}
                   type="number"
                 inputMode="decimal"
                   value={formData.finish_position}
@@ -796,8 +835,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 />
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Field Size</label>
+                <label htmlFor={fieldId('field-size')} style={styles.label}>Field Size</label>
                 <input
+                  id={fieldId('field-size')}
                   type="number"
                 inputMode="decimal"
                   value={formData.field_size}
@@ -810,9 +850,10 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             {/* Rebuys & Add-On Row */}
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Rebuys</label>
+                <label htmlFor={fieldId('rebuys')} style={styles.label}>Rebuys</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
                   <button
+                    aria-label="Decrease Rebuys"
                     type="button"
                     onClick={() => {
                       const cur = parseInt(formData.reentry_count) || 0;
@@ -821,6 +862,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                     style={{ ...styles.input, flex: 'none', width: 40, textAlign: 'center', cursor: 'pointer', padding: '12px 0', borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none', fontSize: 18, fontWeight: 700 }}
                   >-</button>
                   <input
+                    id={fieldId('rebuys')}
                     type="number"
                 inputMode="decimal"
                     min="0"
@@ -829,6 +871,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                     style={{ ...styles.input, flex: 1, textAlign: 'center', borderRadius: 0, borderLeft: 'none', borderRight: 'none' }}
                   />
                   <button
+                    aria-label="Increase Rebuys"
                     type="button"
                     onClick={() => {
                       const cur = parseInt(formData.reentry_count) || 0;
@@ -839,8 +882,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 </div>
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Add-On ($)</label>
+                <label htmlFor={fieldId('add-on')} style={styles.label}>Add-On ($)</label>
                 <input
+                  id={fieldId('add-on')}
                   type="number"
                 inputMode="decimal"
                   step="0.01"
@@ -855,10 +899,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
             {/* Total Buy-In Display */}
             {(() => {
-              const buyIn = parseFloat(formData.buy_in_amount) || 0;
-              const rebuys = parseInt(formData.reentry_count) || 0;
-              const addOn = parseFloat(formData.add_on_amount) || 0;
-              const totalBuyIn = buyIn * (1 + rebuys) + addOn;
+              const { buyIn, rebuys, addOn, stake: totalBuyIn } = tournamentAmounts(formData, editEntry?.bounties_collected);
               if (buyIn > 0 && (rebuys > 0 || addOn > 0)) {
                 return (
                   <div style={{ padding: '8px 12px', background: 'rgba(55, 127, 194,0.1)', border: '1px solid rgba(55, 127, 194,0.3)', borderRadius: 8, fontSize: 13, color: '#377fc2', textAlign: 'center', marginBottom: 8 }}>
@@ -875,19 +916,21 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
+                aria-expanded={showSwaps}
                 onClick={() => setShowSwaps(!showSwaps)}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b6c9dd', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Swap Deductions</span>
-                <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSwaps ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                <span aria-hidden="true" style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSwaps ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               {showSwaps && (
                 <div style={{ padding: '0 12px 12px' }}>
                   <div style={styles.amountRow}>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Player Name</label>
+                      <label htmlFor={fieldId('swap-player')} style={styles.label}>Player Name</label>
                       {savedSwapNames.length > 0 && !customSwapName ? (
                         <select
+                          id={fieldId('swap-player')}
                           value={formData.swap_player}
                           onChange={(e) => {
                             if (e.target.value === '__custom__') {
@@ -908,6 +951,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       ) : (
                         <div style={{ display: 'flex', gap: 6 }}>
                           <input
+                            id={fieldId('swap-player')}
                             type="text"
                             value={formData.swap_player}
                             onChange={(e) => handleInputChange('swap_player', e.target.value)}
@@ -916,6 +960,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                           {savedSwapNames.length > 0 && (
                             <button
                               type="button"
+                              aria-label="Choose A Saved Player"
                               onClick={() => setCustomSwapName(false)}
                               style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
                             >↩</button>
@@ -924,8 +969,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       )}
                     </div>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Swap Amount ($)</label>
+                      <label htmlFor={fieldId('swap-amount')} style={styles.label}>Swap Amount ($)</label>
                       <input
+                        id={fieldId('swap-amount')}
                         type="number"
                 inputMode="decimal"
                         step="0.01"
@@ -945,19 +991,21 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
+                aria-expanded={showStaking}
                 onClick={() => setShowStaking(!showStaking)}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b6c9dd', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Staking Deductions</span>
-                <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showStaking ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                <span aria-hidden="true" style={{ fontSize: 14, transition: 'transform 0.2s', transform: showStaking ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               {showStaking && (
                 <div style={{ padding: '0 12px 12px' }}>
                   <div style={styles.amountRow}>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Staker Name</label>
+                      <label htmlFor={fieldId('staker')} style={styles.label}>Staker Name</label>
                       {savedStakerNames.length > 0 && !customStakerName ? (
                         <select
+                          id={fieldId('staker')}
                           value={formData.staker_name}
                           onChange={(e) => {
                             if (e.target.value === '__custom__') {
@@ -978,6 +1026,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       ) : (
                         <div style={{ display: 'flex', gap: 6 }}>
                           <input
+                            id={fieldId('staker')}
                             type="text"
                             value={formData.staker_name}
                             onChange={(e) => handleInputChange('staker_name', e.target.value)}
@@ -986,6 +1035,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                           {savedStakerNames.length > 0 && (
                             <button
                               type="button"
+                              aria-label="Choose A Saved Staker"
                               onClick={() => setCustomStakerName(false)}
                               style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
                             >↩</button>
@@ -994,8 +1044,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       )}
                     </div>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Amount Paid ($)</label>
+                      <label htmlFor={fieldId('staker-amount')} style={styles.label}>Amount Paid ($)</label>
                       <input
+                        id={fieldId('staker-amount')}
                         type="number"
                 inputMode="decimal"
                         step="0.01"
@@ -1015,18 +1066,20 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
+                aria-expanded={showSoldAction}
                 onClick={() => setShowSoldAction(!showSoldAction)}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b6c9dd', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Sold Action</span>
-                <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSoldAction ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                <span aria-hidden="true" style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSoldAction ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               {showSoldAction && (
                 <div style={{ padding: '0 12px 12px' }}>
                   <div style={styles.amountRow}>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Buyer Name</label>
+                      <label htmlFor={fieldId('buyer')} style={styles.label}>Buyer Name</label>
                       <input
+                        id={fieldId('buyer')}
                         type="text"
                         value={formData.action_buyer}
                         onChange={(e) => handleInputChange('action_buyer', e.target.value)}
@@ -1034,8 +1087,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       />
                     </div>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>% Sold</label>
+                      <label htmlFor={fieldId('sold')} style={styles.label}>% Sold</label>
                       <input
+                        id={fieldId('sold')}
                         type="number"
                 inputMode="decimal"
                         step="1"
@@ -1047,8 +1101,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                   </div>
                   <div style={{ ...styles.amountRow, marginTop: 8 }}>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Markup %</label>
+                      <label htmlFor={fieldId('markup')} style={styles.label}>Markup %</label>
                       <input
+                        id={fieldId('markup')}
                         type="number"
                 inputMode="decimal"
                         step="1"
@@ -1058,8 +1113,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       />
                     </div>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Amount Received ($)</label>
+                      <label htmlFor={fieldId('action-amount')} style={styles.label}>Amount Received ($)</label>
                       <input
+                        id={fieldId('action-amount')}
                         type="number"
                 inputMode="decimal"
                         step="0.01"
@@ -1225,8 +1281,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
         {/* Location / Venue */}
         <div style={styles.formGroup}>
-          <label style={styles.label}>Location / Venue</label>
+          <label htmlFor={fieldId('venue')} style={styles.label}>Location / Venue</label>
           <VenueSelector
+            inputId={fieldId('venue')}
             value={formData.location_name}
             venueType={formData.venue_type}
             userId={userId}
@@ -1246,8 +1303,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
         <div style={{ marginTop: 16 }}>
           <div style={styles.formGroup}>
-            <label style={styles.label}>Date</label>
+            <label htmlFor={fieldId('date')} style={styles.label}>Date</label>
             <input
+              id={fieldId('date')}
               type="date"
               value={formData.entry_date}
               onChange={(e) => handleInputChange('entry_date', e.target.value)}
@@ -1273,8 +1331,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             null
           ) : trips.length > 0 && (
             <div style={styles.formGroup}>
-              <label style={styles.label}>Trip</label>
+              <label htmlFor={fieldId('trip')} style={styles.label}>Trip</label>
               <select
+                id={fieldId('trip')}
                 value={formData.trip_id}
                 onChange={(e) => {
                   if (e.target.value === '__new__') {
@@ -1300,9 +1359,10 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         {!isExpense && (
           <div style={styles.amountRow}>
             <div style={styles.formGroup}>
-              <label style={styles.label}>Start Time</label>
+              <label htmlFor={fieldId('start-time')} style={styles.label}>Start Time</label>
               <div style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
                 <input
+                  id={fieldId('start-time')}
                   type="text"
                   inputMode="numeric"
                   value={formData.start_time_text}
@@ -1315,6 +1375,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                   style={{ ...styles.input, flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' }}
                 />
                 <select
+                  aria-label="Start Time Period"
                   value={formData.start_period}
                   onChange={(e) => handleInputChange('start_period', e.target.value)}
                   style={{ ...styles.input, width: 70, flex: 'none', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
@@ -1325,9 +1386,10 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               </div>
             </div>
             <div style={styles.formGroup}>
-              <label style={styles.label}>End Time</label>
+              <label htmlFor={fieldId('end-time')} style={styles.label}>End Time</label>
               <div style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
                 <input
+                  id={fieldId('end-time')}
                   type="text"
                   inputMode="numeric"
                   value={formData.end_time_text}
@@ -1340,6 +1402,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                   style={{ ...styles.input, flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' }}
                 />
                 <select
+                  aria-label="End Time Period"
                   value={formData.end_period}
                   onChange={(e) => handleInputChange('end_period', e.target.value)}
                   style={{ ...styles.input, width: 70, flex: 'none', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
@@ -1353,8 +1416,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         )}
 
         <div style={styles.formGroup}>
-          <label style={styles.label}>Emotional State</label>
+          <label htmlFor={fieldId('emotion')} style={styles.label}>Emotional State</label>
           <select
+            id={fieldId('emotion')}
             value={formData.emotional_tag}
             onChange={(e) => handleInputChange('emotional_tag', e.target.value)}
             style={styles.select}
@@ -1370,12 +1434,13 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
         {/* Inline Expense - available on all non-expense categories */}
         {!isExpense && (
-          <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
-            <label style={{ ...styles.label, fontSize: 14, color: '#b6c9dd', marginBottom: 8 }}>Session Expense (Optional)</label>
+          <div role="group" aria-labelledby={fieldId('expense-group')} style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
+            <div id={fieldId('expense-group')} style={{ ...styles.label, fontSize: 14, color: '#b6c9dd', marginBottom: 8 }}>Session Expense (Optional)</div>
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Type</label>
+                <label htmlFor={fieldId('expense-type')} style={styles.label}>Type</label>
                 <select
+                  id={fieldId('expense-type')}
                   value={formData.inline_expense_type}
                   onChange={(e) => handleInputChange('inline_expense_type', e.target.value)}
                   style={styles.select}
@@ -1389,8 +1454,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 </select>
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Amount ($)</label>
+                <label htmlFor={fieldId('expense-amount')} style={styles.label}>Amount ($)</label>
                 <input
+                  id={fieldId('expense-amount')}
                   type="number"
                 inputMode="decimal"
                   step="0.01"
@@ -1405,8 +1471,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         )}
 
         <div style={styles.formGroup}>
-          <label style={styles.label}>Session Notes</label>
+          <label htmlFor={fieldId('notes')} style={styles.label}>Session Notes</label>
           <textarea
+            id={fieldId('notes')}
             value={formData.notes}
             onChange={(e) => handleInputChange('notes', e.target.value)}
             placeholder="Key Hands, Table Dynamics, Reads On Players, Mental State, Lessons Learned..."
@@ -1416,7 +1483,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
         {/* IMAGE UPLOAD */}
         <div style={{ ...styles.formGroup, textAlign: 'center' }}>
-          <label style={styles.label}>Session Photos</label>
+          <label htmlFor={fieldId('photos')} style={styles.label}>Session Photos</label>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10, justifyContent: 'center' }}>
             {mediaFiles.map((url, index) => (
@@ -1453,7 +1520,9 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           </div>
 
           <input
+            id={fieldId('photos')}
             ref={fileInputRef}
+            disabled={uploading}
             type="file"
             accept="image/*"
             multiple
@@ -1531,6 +1600,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         className="bankroll-modal"
         role="dialog"
         aria-modal="true"
+        aria-labelledby={fieldId('title')}
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
@@ -1539,7 +1609,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       >
         <div className="bankroll-sheet-handle" aria-hidden="true" />
         <div className="bankroll-modal-header" style={styles.header}>
-          <h2 style={styles.title}>
+          <h2 id={fieldId('title')} style={styles.title}>
             {isEditMode
               ? `Edit ${CATEGORIES.find((c) => c.id === category)?.label || 'Entry'}`
               : step === 'category'
