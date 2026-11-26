@@ -383,10 +383,10 @@ export default function PotOddsCalculatorPage({
             <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               13x13 GTO Preflop Ranges
             </Link>
-            <Link href="/learn/pot-odds-and-required-equity" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/pot-odds" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Lesson: Pot Odds &amp; Required Equity
             </Link>
-            <Link href="/learn/minimum-defense-frequency-explained" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/minimum-defense-frequency" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Lesson: Minimum Defense Frequency
             </Link>
           </div>

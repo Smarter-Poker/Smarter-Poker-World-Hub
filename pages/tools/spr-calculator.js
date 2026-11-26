@@ -446,11 +446,11 @@ export default function SprCalculatorPage({
             <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               13x13 GTO Preflop Ranges
             </Link>
-            <Link href="/learn/stack-to-pot-ratio-explained" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/stack-to-pot-ratio" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Lesson: SPR Strategy Guide
             </Link>
-            <Link href="/research/river-overbet-polarization-mdf-efficiency" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              Study: River Overbet Polarization
+            <Link href="/research/gto-vs-population-preflop-and-postflop-leak-study" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Study: GTO Vs. Population Postflop Leak Benchmark
             </Link>
           </div>
         </section>

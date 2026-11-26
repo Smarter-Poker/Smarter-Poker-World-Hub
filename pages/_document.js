@@ -91,8 +91,7 @@ export default class MyDocument extends Document {
                     {/* Theme color for mobile browsers */}
                     <meta name="theme-color" content="#0a0a15" />
 
-                    {/* OpenSearch Browser Omnibox Plugin */}
-                    <link rel="search" type="application/opensearchdescription+xml" title="Smarter.Poker Search" href="/opensearch.xml" />
+                    {/* OpenSearch Browser Omnibox link is owned by SEOHead (next/head dedupe) to prevent duplicate rel="search" tags. */}
 
                     {/* Speculation Rules API: prefetches public SEO & tool routes on hover/pointerdown
                         (eagerness: moderate) for near-0ms LCP/INP in Chrome CrUX Core Web Vitals. */}

@@ -34,6 +34,7 @@
 
 const CATEGORY_ALIASES = {
   referral_visits: 'referral_visits',
+  ai_referral_visits: 'ai_referral_visits',
   widget_loads: 'widget_loads',
   widget_embeds: 'widget_embeds',
   oembed_requests: 'oembed_requests',
@@ -59,6 +60,7 @@ function createInitialStore() {
     total_events: 0,
     by_category: {
       referral_visits: 0,
+      ai_referral_visits: 0,
       widget_loads: 0,
       widget_embeds: 0,
       oembed_requests: 0,
@@ -70,6 +72,7 @@ function createInitialStore() {
       solved_spot_shares: 0,
       conversions: 0,
     },
+    by_ai_engine: {},
     actor_breakdown: {
       human_or_browser: 0,
       crawler_or_bot: 0,
@@ -97,6 +100,7 @@ function getStore() {
   }
   if (!s.verified_partner_referrers) s.verified_partner_referrers = {};
   if (!s.unverified_partner_params) s.unverified_partner_params = {};
+  if (!s.by_ai_engine) s.by_ai_engine = {};
   return s;
 }
 
@@ -199,17 +203,24 @@ export function recordSeoTelemetryEvent({
   item = 'unknown',
   partner = '',
   source = 'api',
+  engine = '',
   req = null,
 } = {}) {
   const store = getStore();
   const normalizedCategory = CATEGORY_ALIASES[category] || 'widget_loads';
   const normalizedItem = sanitizeTelemetryToken(item || 'default', 80) || 'default';
   const normalizedSource = sanitizeTelemetryToken(source || 'api', 32) || 'api';
+  const normalizedEngine = sanitizeTelemetryToken(engine || '', 32);
 
   const classification = classifyTelemetryRequest(req, { partner });
 
   store.total_events += 1;
   store.by_category[normalizedCategory] = (store.by_category[normalizedCategory] || 0) + 1;
+
+  if (normalizedCategory === 'ai_referral_visits') {
+    const engineKey = normalizedEngine || normalizedItem.split(':')[0] || 'unknown';
+    incrementBoundedMap(store.by_ai_engine, engineKey, 32);
+  }
 
   // Keep dual aliases synchronized so both legacy and separated consumers agree
   if (normalizedCategory === 'widget_embeds') {
@@ -340,6 +351,7 @@ export function getSeoTelemetrySnapshot({ includeRecent = false } = {}) {
       instance_started_at: store.started_at,
       total_events: store.total_events,
       by_category: { ...store.by_category },
+      by_ai_engine: { ...store.by_ai_engine },
       actor_breakdown: { ...store.actor_breakdown },
       command_verification: { ...store.command_verification },
       by_item: { ...store.by_item },
@@ -371,8 +383,9 @@ export default function handler(req, res) {
     const item = body.item || req.query?.item || 'odds-calculator';
     const partner = body.partner || req.query?.partner || '';
     const source = body.source || req.query?.source || (req.method === 'POST' ? 'sdk-beacon' : 'query-beacon');
+    const engine = body.engine || req.query?.engine || '';
 
-    const recorded = recordSeoTelemetryEvent({ category, item, partner, source, req });
+    const recorded = recordSeoTelemetryEvent({ category, item, partner, source, engine, req });
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({
       ok: true,
