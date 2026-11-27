@@ -85,10 +85,12 @@ async function once(browserType, name, i) {
     const b = await snapshot(page, 'scrolled');
     const pwBox = await page.locator('[data-world-menu-trigger="approved-header"]').boundingBox();
     const shot1 = strip(await page.screenshot());
-    const hit1 = await page.evaluate(() => { const t = document.querySelector('[data-world-menu-trigger="approved-header"]'); const r = t.getBoundingClientRect(); const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { hitIsTrigger: el === t || t.contains(el), hit: el ? el.tagName + '.' + String(el.className).slice(0, 40) : null, scrollY: Math.round(scrollY), docH: document.documentElement.scrollHeight }; });
+    const probeHit = () => page.evaluate(() => { const t = document.querySelector('[data-world-menu-trigger="approved-header"]'); const r = t.getBoundingClientRect(); const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); const desc = (n) => { if (!n || n.nodeType !== 1) return null; const cs = getComputedStyle(n); const b = n.getBoundingClientRect(); return `${n.tagName.toLowerCase()}${n.id ? '#' + n.id : ''}.${String(n.className).trim().split(/\s+/).slice(0, 3).join('.')} pos=${cs.position} z=${cs.zIndex} rect=${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.width)}x${Math.round(b.height)}`; }; const chain = []; for (let n = el; n && n !== document.body && chain.length < 8; n = n.parentElement) chain.push(desc(n)); return { hitIsTrigger: el === t || t.contains(el), chain, scrollY: Math.round(scrollY), docH: document.documentElement.scrollHeight }; });
+    const hit1 = await probeHit();
     const series = [];
     for (let t = 0; t < 12; t++) { const bb = await page.locator('[data-world-menu-trigger="approved-header"]').boundingBox(); const sy = await page.evaluate(() => [Math.round(scrollY), document.documentElement.scrollHeight]); series.push(`${t * 200}ms:y=${bb && Math.round(bb.y)} sY=${sy[0]} dH=${sy[1]}`); await page.waitForTimeout(200); }
     const shot2 = strip(await page.screenshot());
+    console.log('HITLATE ' + name + ' #' + i + ' ' + JSON.stringify(await probeHit()));
     console.log('SHOT ' + name + ' #' + i + ' at-measure: ' + shot1);
     console.log('SHOT ' + name + ' #' + i + ' settled:    ' + shot2);
     console.log('HIT ' + name + ' #' + i + ' ' + JSON.stringify(hit1));
@@ -108,6 +110,6 @@ async function once(browserType, name, i) {
 (async () => {
   for (let i = 0; i < RUNS; i++) {
     await once(webkit, 'webkit', i);
-    if (i % 6 === 0) await once(chromium, 'chromium', i);
+    if (i % 2 === 0) await once(chromium, 'chromium', i);
   }
 })();
