@@ -38,6 +38,7 @@ export const VIEWPORTS = Object.freeze([
 
 export const ROUTES = Object.freeze([
   '/hub/personal-assistant',
+  '/hub/personal-assistant/review',
   '/hub/personal-assistant/leaks',
   '/hub/personal-assistant/leaks?format=tournament',
   '/hub/personal-assistant/leaks?tab=coaching',

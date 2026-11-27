@@ -153,14 +153,15 @@ test('honesty boundary: zero retired analyze calls, zero GodModePanel, zero fabr
   assert.match(src, /\/hub\/personal-assistant\/leaks\?source=personal-assistant-sandbox/);
 });
 
-test('all 3 disclosed limits are visibly rendered in the workspace', () => {
+test('all 3 honest disclosed boundaries and strict ungraded authority are visibly rendered in the workspace', () => {
   const src = read('pages/hub/personal-assistant/sandbox.js');
-  assert.match(src, /Multiway Equity Is Available\./);
-  assert.match(src, /The Original Action Builder Is Heads-Up\./);
-  assert.match(src, /Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes\./);
+  assert.match(src, /data-training-authority="authored-sandbox-ungraded"/);
+  assert.match(src, /Multiway Equity And Multiway Action Builder \(2-6 Seats\) Are Supported\./);
+  assert.match(src, /Exact Historical Wager Sizes Are Parsed For Supported PokerStars, GGPoker, And Club Arena Formats \(Malformed Or Unrecognized Formats Fall Back To Estimates\)\./);
+  assert.match(src, /Authored Scenarios Remain Strictly Ungraded And Never Produce GTO Grades, Solver EV, Accuracy Scores, Streaks, Or Training Progress\./);
   assert.match(
     read('src/components/sandbox/ImportHHModal.jsx'),
-    /Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes\./,
+    /Exact Historical Wager Sizes Are Parsed For Supported PokerStars, GGPoker, And Club Arena Formats/,
   );
 });
 

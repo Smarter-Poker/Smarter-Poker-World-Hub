@@ -22,6 +22,8 @@ import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-
 import { isRangeGridNavigationKey, nextRangeGridIndex } from '../../lib/personal-assistant/rangeGridNavigation.mjs';
 import { gradeAction, parseActionLabel, sizeBucketFromPercent } from '../../lib/sandbox/actionGrading';
 export { gradeAction, parseActionLabel, sizeBucketFromPercent } from '../../lib/sandbox/actionGrading';
+import { ACTION_CATALOG, computeHandState, legalActionsFor, potFromActions } from './actionEngine.mjs';
+export { ACTION_CATALOG, computeHandState, legalActionsFor, potFromActions } from './actionEngine.mjs';
 // react-hot-toast matches the <Toaster> host the sandbox page mounts. The old
 // `../../stores/toastStore` import rendered nowhere on this page.
 import toast from 'react-hot-toast';
@@ -162,171 +164,6 @@ const BET_ACTIONS = [
 // correct against "Bet Pot". Buckets: small <=40%, medium 41-75%, large 76-99%,
 // pot >=100%.
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════
-// LEGAL-ACTION ENGINE + POT MATH
-// A tiny two-player state machine over actionHistory. It knows whose turn it
-// is, what is legal, the amount to call, pot odds, MDF, per-player investment,
-// remaining stacks, SPR and terminal states. Shared by the action builder, the
-// coach picker, the felt readouts and the page's pot calculation so all four
-// agree instead of each rolling its own (buggy) maths.
-// ═══════════════════════════════════════════════════════════════════════════
-export const ACTION_CATALOG = [
-    { id: 'fold', label: 'Fold', tone: 'danger' },
-    { id: 'check', label: 'Check', tone: 'neutral' },
-    { id: 'call', label: 'Call', tone: 'warn' },
-    { id: 'bet_33', label: 'Bet 33%', tone: 'success' },
-    { id: 'bet_50', label: 'Bet 50%', tone: 'success' },
-    { id: 'bet_66', label: 'Bet 66%', tone: 'success' },
-    { id: 'bet_75', label: 'Bet 75%', tone: 'success' },
-    { id: 'bet_100', label: 'Bet Pot', tone: 'success' },
-    { id: 'bet_150', label: 'Bet 150%', tone: 'success' },
-    { id: 'raise', label: 'Raise', tone: 'accent' },
-    { id: 'allin', label: 'All-In', tone: 'warn' },
-];
-
-const STREET_ORDER = ['preflop', 'flop', 'turn', 'river'];
-
-function actorOf(entry, heroPosition) {
-    if (!entry) return 'hero';
-    if (entry.isVillain === true) return 'villain';
-    if (entry.isHero === true) return 'hero';
-    if (entry.position && heroPosition) return entry.position === heroPosition ? 'hero' : 'villain';
-    return 'hero';
-}
-
-function betPctOf(actionId) {
-    const m = String(actionId || '').match(/^bet_(\d+(?:\.\d+)?)$/);
-    if (!m) return null;
-    const pct = parseFloat(m[1]);
-    return Number.isFinite(pct) && pct > 0 ? pct : null;
-}
-
-/**
- * Replay an action line and return the full hand state.
- *
- * @param {object} o
- * @param {number} o.basePot       starting pot in BB (blinds / manual entry)
- * @param {object[]} o.actions     action history entries
- * @param {string} o.heroPosition
- * @param {number} o.heroStack     starting stack, BB
- * @param {number} o.villainStack  starting stack, BB
- * @param {string} o.street        the street currently being built
- */
-export function computeHandState({
-    basePot = 1.5, actions = [], heroPosition = 'BTN',
-    heroStack = 100, villainStack = 100, street = 'preflop',
-} = {}) {
-    const startStacks = {
-        hero: Math.max(0, Number(heroStack) || 0),
-        villain: Math.max(0, Number(villainStack) || 0),
-    };
-    const effective = Math.min(startStacks.hero, startStacks.villain);
-    const invested = { hero: 0, villain: 0 };
-    let committed = Math.max(0, Number(basePot) || 0); // chips already in the middle from closed streets
-    let streetIn = { hero: 0, villain: 0 };
-    let currentStreet = STREET_ORDER.includes(String(actions?.[0]?.street || '')) ? actions[0].street : 'preflop';
-    let terminal = null;   // 'fold' | 'allin' | null
-    let winner = null;
-    let lastActor = null;
-    let streetClosed = false;
-    let actorsThisStreet = 0;
-
-    const remainingOf = (who) => Math.max(0, effective - invested[who]);
-
-    const closeStreet = () => {
-        committed += streetIn.hero + streetIn.villain;
-        streetIn = { hero: 0, villain: 0 };
-        actorsThisStreet = 0;
-        lastActor = null;
-        streetClosed = false;
-    };
-
-    (actions || []).forEach((entry) => {
-        if (terminal) return;
-        const who = actorOf(entry, heroPosition);
-        const other = who === 'hero' ? 'villain' : 'hero';
-        const entryStreet = STREET_ORDER.includes(String(entry?.street || '')) ? entry.street : currentStreet;
-        if (entryStreet !== currentStreet) { closeStreet(); currentStreet = entryStreet; }
-
-        const potNow = committed + streetIn.hero + streetIn.villain;
-        const toCall = Math.max(0, streetIn[other] - streetIn[who]);
-        const id = String(entry?.action || '').toLowerCase();
-        const add = (amt) => {
-            const capped = Math.max(0, Math.min(amt, remainingOf(who)));
-            streetIn[who] += capped;
-            invested[who] += capped;
-            return capped;
-        };
-
-        if (id === 'fold') {
-            terminal = 'fold'; winner = other;
-        } else if (id === 'check') {
-            if (actorsThisStreet >= 1 && toCall === 0) streetClosed = true;
-        } else if (id === 'call') {
-            // A "call" with nothing to call is a check behind · it must NOT
-            // invent chips (the old code added 50% of the pot).
-            if (toCall > 0) { add(toCall); streetClosed = true; }
-            else if (actorsThisStreet >= 1) streetClosed = true;
-        } else if (id === 'raise') {
-            // Raise-to = 3x the outstanding bet (2.5x if there is none to raise,
-            // i.e. an open-raise off the blind), never a flat 1.5x pot.
-            const target = toCall > 0 ? streetIn[other] * 3 : Math.max(potNow * 0.75, 2.5);
-            add(Math.max(target - streetIn[who], toCall));
-        } else if (id === 'allin') {
-            add(remainingOf(who));
-            if (remainingOf(who) <= 0 && remainingOf(other) <= 0) terminal = 'allin';
-        } else {
-            const pct = betPctOf(id);
-            if (pct != null) add(potNow * (pct / 100));
-        }
-
-        if (remainingOf('hero') <= 0 && remainingOf('villain') <= 0 && !terminal) terminal = 'allin';
-        lastActor = who;
-        actorsThisStreet += 1;
-    });
-
-    const pot = Math.round((committed + streetIn.hero + streetIn.villain) * 10) / 10;
-    const toActRaw = terminal ? null : (streetClosed ? null : (lastActor ? (lastActor === 'hero' ? 'villain' : 'hero') : 'hero'));
-    const toAct = toActRaw;
-    const who = toAct || 'hero';
-    const other = who === 'hero' ? 'villain' : 'hero';
-    const toCall = Math.max(0, Math.round((streetIn[other] - streetIn[who]) * 10) / 10);
-    const facingBet = toCall > 0;
-    const potOdds = facingBet && pot + toCall > 0 ? Math.round((toCall / (pot + toCall)) * 1000) / 10 : null;
-    const mdf = facingBet && pot > 0 ? Math.round((pot / (pot + toCall)) * 1000) / 10 : null;
-    const remaining = { hero: remainingOf('hero'), villain: remainingOf('villain') };
-    const spr = pot > 0 ? Math.round((Math.min(remaining.hero, remaining.villain) / pot) * 10) / 10 : null;
-
-    // Legal action ids for whoever is to act
-    let legal;
-    if (terminal) legal = [];
-    else if (facingBet) legal = ['fold', 'call', 'raise', 'allin'];
-    else legal = ['check', 'bet_33', 'bet_50', 'bet_66', 'bet_75', 'bet_100', 'bet_150', 'allin'];
-
-    return {
-        pot, toAct, toCall, facingBet, potOdds, mdf, spr,
-        invested, remaining, effective, terminal, winner,
-        streetClosed, legal, street: currentStreet || street,
-        streetIn: { ...streetIn },
-    };
-}
-
-/** Legal action ids for a specific actor given the current street contributions. */
-export function legalActionsFor(handState, who = 'hero') {
-    if (!handState || handState.terminal) return [];
-    const other = who === 'hero' ? 'villain' : 'hero';
-    const streetIn = handState.streetIn || { hero: 0, villain: 0 };
-    const toCall = Math.max(0, (streetIn[other] || 0) - (streetIn[who] || 0));
-    return toCall > 0
-        ? ['fold', 'call', 'raise', 'allin']
-        : ['check', 'bet_33', 'bet_50', 'bet_66', 'bet_75', 'bet_100', 'bet_150', 'allin'];
-}
-
-/** Convenience wrapper used for the page's pot readout. */
-export function potFromActions(basePot, actions, opts = {}) {
-    return computeHandState({ basePot, actions, ...opts }).pot;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // FREQUENCY BAR · supports a "ghost" GTO baseline behind the solid exploit bar
 // ═══════════════════════════════════════════════════════════════════════════
@@ -610,74 +447,143 @@ export function classifyBoardTexture(board) {
 const STREET_TITLE = { preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River' };
 
 /**
- * Action-line builder.
- * - One tap per action (preset strip) instead of select → select → OK.
- * - Only LEGAL actions are offered (no Check facing a bet, no Call with
- *   nothing to call), so the analyze API never receives an impossible line.
- * - Hero/Villain toggle replaces the position dropdown that used to default to
- *   BTN regardless of the hero's actual seat.
+ * Multiway & Heads-Up Action-line builder (2-6 players).
+ * - One tap per action (preset strip) instead of select -> select -> OK.
+ * - Only LEGAL actions are offered for the selected seat.
+ * - Supports Hero + 1 to 5 Villains (2-6 seats), tracking running pot,
+ *   effective stack, remaining stacks, and active players per street.
  * - Chips grouped per street; delete is a 44x44 labelled button.
  */
 export function ActionHistoryBuilder({
-    actions = [], onAdd, onRemove, potSize,
-    heroPosition = 'BTN', villainPosition = 'BB', street = 'preflop',
-    handState = null, disabled = false,
+    actions = [],
+    onAdd, onAddAction,
+    onRemove, onRemoveAction,
+    onClear, onClearActions,
+    potSize,
+    heroPosition = 'BTN',
+    villainPosition = 'BB',
+    heroStack = 100,
+    villainStack = 100,
+    villains = null,
+    street, currentStreet,
+    handState = null,
+    disabled = false,
 }) {
+    const addHandler = onAdd || onAddAction;
+    const removeHandler = onRemove || onRemoveAction;
+    const clearHandler = onClear || onClearActions;
+    const resolvedStreet = street || currentStreet || 'preflop';
+
     const [actor, setActor] = useState(null); // null => follow whose turn it is
     const [customOpen, setCustomOpen] = useState(false);
     const [customPct, setCustomPct] = useState(75);
+    const [customBb, setCustomBb] = useState('');
 
-    const state = handState || computeHandState({ basePot: potSize, actions, heroPosition, street });
-    const turn = state.toAct || 'hero';
-    const who = actor || turn;
+    const state = handState || computeHandState({
+        basePot: potSize,
+        actions,
+        heroPosition,
+        villainPosition,
+        heroStack,
+        villainStack,
+        villains,
+        street: resolvedStreet,
+    });
+    const seats = Array.isArray(state.players) && state.players.length > 0
+        ? state.players
+        : [
+            { key: 'hero', seatIndex: 0, isHero: true, isVillain: false, label: `Hero (${heroPosition})`, position: heroPosition, remaining: heroStack, folded: false, allIn: false },
+            { key: 'villain', seatIndex: 1, isHero: false, isVillain: true, label: `Villain (${villainPosition})`, position: villainPosition, remaining: villainStack, folded: false, allIn: false },
+        ];
+
+    const turn = state.toAct || seats.find((s) => !s.folded && !s.allIn)?.key || 'hero';
+    const selectedSeat = (actor && seats.find((s) => s.key === actor && !s.folded && !s.allIn))
+        ? seats.find((s) => s.key === actor)
+        : (seats.find((s) => s.key === turn) || seats[0]);
+    const who = selectedSeat.key;
     const legal = legalActionsFor(state, who);
     const outOfTurn = !!state.toAct && who !== state.toAct;
+    const turnSeat = seats.find((s) => s.key === turn);
 
     const grouped = useMemo(() => {
         const out = [];
         (actions || []).forEach((a, i) => {
-            const st = STREET_TITLE[String(a?.street || '').toLowerCase()] || STREET_TITLE[street] || 'Line';
+            const stKey = String(a?.street || '').toLowerCase();
+            const st = STREET_TITLE[stKey] || STREET_TITLE[resolvedStreet] || 'Line';
             const bucket = out[out.length - 1];
             if (bucket && bucket.street === st) bucket.items.push({ a, i });
-            else out.push({ street: st, items: [{ a, i }] });
+            else out.push({ street: st, streetKey: stKey || resolvedStreet, items: [{ a, i }] });
         });
         return out;
-    }, [actions, street]);
+    }, [actions, resolvedStreet]);
 
-    const emit = (id, label) => {
+    const emit = (id, label, extra = {}) => {
         if (disabled) return;
         try { navigator.vibrate?.(8); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        onAdd?.({
-            position: who === 'hero' ? heroPosition : villainPosition,
+        addHandler?.({
+            actor: selectedSeat.isHero ? 'hero' : selectedSeat.key,
+            actorKey: selectedSeat.key,
+            seatIndex: selectedSeat.seatIndex,
+            villainIndex: selectedSeat.villainIndex,
+            player: selectedSeat.name || selectedSeat.label,
+            position: selectedSeat.position,
             action: id,
             label,
-            street,
-            isHero: who === 'hero',
-            isVillain: who === 'villain',
+            street: resolvedStreet,
+            isHero: !!selectedSeat.isHero,
+            isVillain: !selectedSeat.isHero,
+            ...extra,
         });
+        setActor(null);
     };
 
-    const actorBtn = (key, label) => (
-        <button type="button" className="pa-btn" onClick={() => setActor(key)} aria-pressed={who === key}
-            style={{
-                ...btn(who === key ? 'primary' : 'secondary'), flex: 1, minWidth: 0, padding: '0 10px',
-                fontSize: F.label,
-            }}>
-            {label}
-        </button>
-    );
+    const emitCustomBb = () => {
+        const val = Number(customBb);
+        if (!Number.isFinite(val) || val <= 0) return;
+        const cleanVal = Math.round(val * 100) / 100;
+        const isFacing = legal.includes('raise');
+        if (isFacing) {
+            emit('raise', `Raise ${cleanVal} BB`, { raiseTo: cleanVal, amount: cleanVal });
+        } else {
+            emit('bet', `Bet ${cleanVal} BB`, { amount: cleanVal });
+        }
+        setCustomBb('');
+        setCustomOpen(false);
+    };
 
     return (
         <div style={{ ...card, padding: S.md }}>
             <div style={sectionHeader}>
                 <p style={sectionTitle}>Action Line</p>
-                <span style={{ ...pill(state.facingBet ? 'warn' : 'success'), ...NUM }}>
-                    Pot {(Number(state.pot) || 0).toFixed(1)} BB
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
+                    <span style={{ ...pill(state.facingBet ? 'warn' : 'success'), ...NUM }}>
+                        Pot {(Number(state.pot) || 0).toFixed(1)} BB
+                    </span>
+                    {clearHandler && actions.length > 0 && (
+                        <button
+                            type="button"
+                            className="pa-btn"
+                            disabled={disabled}
+                            onClick={() => { setActor(null); clearHandler(); }}
+                            aria-label="Clear Action Line"
+                            style={{ ...btn('ghost', { disabled }), minHeight: 36, padding: '0 10px', fontSize: F.caption, color: T.textMuted }}
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
             </div>
 
-            {/* Live node maths · pot odds and MDF are the whole point of the builder */}
+            {/* Live node maths: multiway active seats, effective stack, pot odds, MDF, SPR */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm, marginBottom: S.md }}>
+                <span style={{ ...pill('neutral'), ...NUM }}>
+                    {state.activePlayerCount ?? seats.filter((s) => !s.folded).length}/{state.totalPlayers ?? seats.length} Active
+                </span>
+                {Number.isFinite(Number(state.effectiveRemaining)) && (
+                    <span style={{ ...pill('neutral'), ...NUM }}>
+                        Eff {Number(state.effectiveRemaining).toFixed(1)} BB
+                    </span>
+                )}
                 {state.facingBet && <span style={{ ...pill('warn'), ...NUM }}>To Call {state.toCall} BB</span>}
                 {state.potOdds != null && <span style={{ ...pill('neutral'), ...NUM }}>Pot Odds {state.potOdds}%</span>}
                 {state.mdf != null && <span style={{ ...pill('neutral'), ...NUM }}>MDF {state.mdf}%</span>}
@@ -686,50 +592,99 @@ export function ActionHistoryBuilder({
 
             {grouped.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md, marginBottom: S.md }}>
-                    {grouped.map(group => (
-                        <div key={group.street}>
-                            <div style={{ fontSize: F.caption, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
-                                {group.street}
+                    {grouped.map(group => {
+                        const streetActiveCount = state.perStreetActiveCounts?.[group.streetKey];
+                        return (
+                            <div key={group.street}>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm,
+                                    fontSize: F.caption, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6,
+                                }}>
+                                    <span>{group.street}</span>
+                                    {Number.isFinite(streetActiveCount) && seats.length > 2 && (
+                                        <span style={{ ...NUM }}>{streetActiveCount} Active</span>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
+                                    {group.items.map(({ a, i }) => {
+                                        const tag = a.isHero
+                                            ? `Hero ${a.position || heroPosition}`
+                                            : (seats.length > 2 && a.player ? `${a.player} (${a.position || 'V'})` : (a.position || 'Villain'));
+                                        const actionText = a.label || a.action || '';
+                                        return (
+                                            <span key={i} style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: 2, paddingLeft: 10,
+                                                borderRadius: R.pill, background: T.surface2, border: `1px solid ${T.borderHi}`,
+                                                color: T.text, fontSize: F.label, fontWeight: 600, minHeight: 44,
+                                            }}>
+                                                <span style={{ fontWeight: 700, color: a.isVillain ? T.warn : T.accent, marginRight: 4 }}>{tag}</span>
+                                                <span>{actionText}</span>
+                                                <button type="button" className="pa-btn" onClick={() => removeHandler?.(i)}
+                                                    aria-label={`Remove ${tag} ${actionText}`}
+                                                    style={{ ...iconBtn({ transparent: true, color: T.danger }), width: 44, height: 44 }}>
+                                                    <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+                                                </button>
+                                            </span>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
-                                {group.items.map(({ a, i }) => (
-                                    <span key={i} style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: 2, paddingLeft: 10,
-                                        borderRadius: R.pill, background: T.surface2, border: `1px solid ${T.borderHi}`,
-                                        color: T.text, fontSize: F.label, fontWeight: 600, minHeight: 44,
-                                    }}>
-                                        <span style={{ fontWeight: 700, color: a.isVillain ? T.warn : T.accent, marginRight: 4 }}>{a.position}</span>
-                                        {a.label}
-                                        <button type="button" className="pa-btn" onClick={() => onRemove?.(i)}
-                                            aria-label={`Remove ${a.position} ${a.label}`}
-                                            style={{ ...iconBtn({ transparent: true, color: T.danger }), width: 44, height: 44 }}>
-                                            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
-                                        </button>
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 <p style={{ color: T.textMuted, fontSize: F.bodySm, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>
-                    No Actions Yet · Tap An Action Below To Build The Betting Line.
+                    No Actions Yet · Select A Seat And Tap An Action Below To Build The Betting Line.
                 </p>
             )}
 
             {state.terminal ? (
                 <div style={{ ...pill(state.terminal === 'fold' ? 'danger' : 'warn'), width: '100%', justifyContent: 'center', minHeight: 44 }}>
-                    {state.terminal === 'fold' ? 'Hand over · someone folded' : 'All-in · no more actions'}
+                    {state.terminal === 'fold' ? 'Hand Over · Last Player Standing' : 'All-In · No Further Actions'}
                 </div>
             ) : (
                 <>
-                    <div style={{ display: 'flex', gap: S.sm, marginBottom: S.sm }}>
-                        {actorBtn('hero', `Hero (${heroPosition})`)}
-                        {actorBtn('villain', `Villain (${villainPosition})`)}
+                    <div
+                        role="group"
+                        aria-label="Acting Seat Selector"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: seats.length > 2 ? 'repeat(auto-fit, minmax(112px, 1fr))' : 'repeat(2, minmax(0, 1fr))',
+                            gap: S.xs,
+                            marginBottom: S.sm,
+                        }}
+                    >
+                        {seats.map((seat) => {
+                            const isSelected = who === seat.key;
+                            const seatDisabled = seat.folded || seat.allIn || seat.remaining <= 0;
+                            const statusSuffix = seat.folded
+                                ? ' · Folded'
+                                : seat.allIn
+                                    ? ' · All-In'
+                                    : ` · ${Math.round(seat.remaining)} BB`;
+                            return (
+                                <button
+                                    key={seat.key}
+                                    type="button"
+                                    className="pa-btn"
+                                    disabled={seatDisabled}
+                                    onClick={() => setActor(seat.key)}
+                                    aria-pressed={isSelected}
+                                    style={{
+                                        ...btn(isSelected ? 'primary' : 'secondary', { disabled: seatDisabled }),
+                                        minWidth: 0, padding: '0 10px', minHeight: 40,
+                                        fontSize: F.caption,
+                                        opacity: seatDisabled ? 0.5 : 1,
+                                    }}
+                                >
+                                    <span>{seat.label}{statusSuffix}</span>
+                                </button>
+                            );
+                        })}
                     </div>
-                    {outOfTurn && (
+                    {outOfTurn && turnSeat && (
                         <p style={{ fontSize: F.caption, color: T.warn, margin: `0 0 ${S.sm}px` }}>
-                            It Is {turn === 'hero' ? 'the hero' : 'the villain'}&apos;S Turn · Adding Out Of Turn.
+                            Turn Belongs To {turnSeat.label} · Adding Action Out Of Turn.
                         </p>
                     )}
                     <div
@@ -748,7 +703,7 @@ export function ActionHistoryBuilder({
                                 {a.label}
                             </button>
                         ))}
-                        {legal.some(id => id.startsWith('bet_')) && (
+                        {(legal.some(id => id.startsWith('bet_')) || legal.includes('raise')) && (
                             <button type="button" className="pa-btn" onClick={() => setCustomOpen(o => !o)}
                                 aria-expanded={customOpen}
                                 style={{ ...btn('secondary'), scrollSnapAlign: 'start', flexShrink: 0, padding: '0 14px', fontSize: F.label }}>
@@ -758,14 +713,45 @@ export function ActionHistoryBuilder({
                         )}
                     </div>
                     {customOpen && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: S.md, marginTop: S.sm }}>
-                            <input type="range" min="10" max="200" step="5" value={customPct}
-                                aria-label="Custom bet size, percent of pot"
-                                onChange={e => setCustomPct(Number(e.target.value))}
-                                style={{ flex: 1, minWidth: 0, accentColor: T.purple, height: 44 }} />
-                            <span style={{ color: T.purple, fontSize: F.body, fontWeight: 700, minWidth: 52, ...NUM }}>{customPct}%</span>
-                            <button type="button" className="pa-btn" onClick={() => { emit(`bet_${customPct}`, `Bet ${customPct}%`); setCustomOpen(false); }}
-                                style={{ ...btn('primary'), padding: '0 14px' }}>Add</button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm, marginTop: S.sm }}>
+                            {legal.some(id => id.startsWith('bet_')) && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: S.md }}>
+                                    <input type="range" min="10" max="200" step="5" value={customPct}
+                                        aria-label="Custom bet size, percent of pot"
+                                        onChange={e => setCustomPct(Number(e.target.value))}
+                                        style={{ flex: 1, minWidth: 0, accentColor: T.purple, height: 44 }} />
+                                    <span style={{ color: T.purple, fontSize: F.body, fontWeight: 700, minWidth: 52, ...NUM }}>{customPct}%</span>
+                                    <button type="button" className="pa-btn" onClick={() => { emit(`bet_${customPct}`, `Bet ${customPct}%`); setCustomOpen(false); }}
+                                        style={{ ...btn('primary'), padding: '0 14px' }}>Add %</button>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
+                                <label htmlFor="pa-custom-bb-size" className="pa-vh">Exact Wager Size In BB</label>
+                                <input
+                                    id="pa-custom-bb-size"
+                                    type="number"
+                                    min="0.5"
+                                    max="1000"
+                                    step="0.5"
+                                    placeholder={legal.includes('raise') ? 'Raise To (BB)' : 'Bet Size (BB)'}
+                                    value={customBb}
+                                    onChange={(e) => setCustomBb(e.target.value)}
+                                    style={{
+                                        flex: 1, minHeight: 44, padding: '0 12px', boxSizing: 'border-box',
+                                        background: T.surface2, border: `1px solid ${T.borderHi}`, borderRadius: R.sm,
+                                        color: T.text, fontSize: F.input, ...NUM,
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    className="pa-btn"
+                                    disabled={!customBb || Number(customBb) <= 0}
+                                    onClick={emitCustomBb}
+                                    style={{ ...btn('primary', { disabled: !customBb || Number(customBb) <= 0 }), padding: '0 14px' }}
+                                >
+                                    {legal.includes('raise') ? 'Raise BB' : 'Bet BB'}
+                                </button>
+                            </div>
                         </div>
                     )}
                 </>

@@ -167,9 +167,10 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
-  // Honor ?redirect= (or ?next=) param from useRequireAuth() or SEO CTAs — send user back to the page they came from
+  // Honor ?redirect= (or ?next=) param from useRequireAuth() or SEO CTAs,
+  // preserving internal query strings such as ?hand=<uuid>.
   const getRedirectUrl = useCallback(() => {
-    const raw = router.query.redirect || router.query.next;
+    const raw = router.query.redirect ?? router.query.next;
     const r = Array.isArray(raw) ? raw[0] : raw;
     // Only allow internal redirects (prevent open redirect attacks).
     // '//evil.com' is protocol-relative and WOULD leave the site — block it.
@@ -214,7 +215,7 @@ export default function LoginPage() {
     async function checkSession() {
       const user = await getAuthUser();
       if (user) {
-        // ONLY auto-redirect if user was bounced FROM a protected page (?redirect= param)
+        // ONLY auto-redirect if user was bounced FROM a protected page (?redirect= or ?next= param)
         // If they explicitly navigated to /auth/login, let them see the form
         if (router.query.redirect || router.query.next) {
           sessionStorage.setItem('just_authenticated', 'true');
@@ -330,7 +331,10 @@ export default function LoginPage() {
       if (await needsMfaChallenge(data?.session?.access_token)) {
         const dest = getRedirectUrl();
         await opening;
-        navigateWithFreshAuth(`/auth/mfa?redirect=${encodeURIComponent(dest)}`, router);
+        navigateWithFreshAuth(
+          `/auth/mfa?next=${encodeURIComponent(dest)}&redirect=${encodeURIComponent(dest)}`,
+          router
+        );
         return;
       }
 
