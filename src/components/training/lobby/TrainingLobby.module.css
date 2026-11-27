@@ -14,10 +14,6 @@
 @media (max-width: 600px) {
   .shell.shell.shell.shell { padding-inline: 10px; padding-top: 10px; }
 }
-@media (max-width: 360px) {
-  .sortBar.sortBar { grid-template-columns: minmax(0, 1fr) auto; }
-  .sortSelect.sortSelect { grid-column: 1 / -1; grid-row: 2; }
-}
 
 /* Page-interior styles only. Global Smarter.Poker header and footer are untouched. */
 .lobbyHeader,
@@ -164,8 +160,8 @@
 .shelfLine { display: block; flex: 1 1 24px; height: 2px; min-width: 8px; background: linear-gradient(90deg, #3bd7ff, #0d81b1 55%, transparent); box-shadow: 0 1px 9px #19acfc35; }
 .shell.shell.shell .viewAllButton,
 .viewAllButton { flex: 0 0 auto; min-height: 44px; padding: 7px 12px; border-radius: 24px; font-size: 17px; }
-.shelfTrack { display: grid; grid-auto-flow: column; grid-auto-columns: calc(92% - 8px); align-items: stretch; gap: 14px; width: 100%; max-width: 100%; margin: 0; padding: 3px 3px 12px; overflow-x: auto; overflow-y: hidden; list-style: none; scroll-snap-type: x mandatory; scroll-padding-inline: 3px; overscroll-behavior-inline: contain; scrollbar-width: thin; scrollbar-color: #43859f #07141b; }
-.shelfSlot { min-width: 0; padding: 0; scroll-snap-align: start; list-style: none; }
+.shelfTrack { display: grid; grid-auto-flow: column; grid-auto-columns: calc(92% - 8px); align-items: stretch; gap: 14px; width: 100%; max-width: 100%; margin: 0; padding: 3px 3px 12px; overflow-x: auto; overflow-y: hidden; list-style: none; overscroll-behavior-inline: contain; scrollbar-width: thin; scrollbar-color: #43859f #07141b; }
+.shelfSlot { min-width: 0; padding: 0; list-style: none; }
 .shelfNavigation { display: flex; align-items: center; justify-content: center; min-height: 44px; gap: 10px; margin-top: -4px; }
 .shell.shell.shell .shelfArrow,
 .shelfArrow { min-height: 44px; width: 44px; padding: 4px; border-width: 1px; border-radius: 18px; }
@@ -243,50 +239,7 @@
 .notice p { margin: 0 0 12px; color: #d2e3ee; font-size: 17px; }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 
-@media (min-width: 600px) {
-  .shelfTrack { grid-auto-columns: calc((100% - 24px) / 2.08); gap: 18px; }
-  .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .filterOptions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .gameCardList { grid-template-columns: minmax(180px, 30%) minmax(0, 1fr); }
-  .gameCardList .cardArtButton { aspect-ratio: 1.4; }
-  .gameCardList .cardBody { padding: 16px; }
-  .gameCardList .cardCopy .cardTitle { font-size: 28px; }
-  .shell.shell.shell .gameCardList .cardActions .chromeButton,
-  .gameCardList .cardActions .chromeButton { font-size: 20px; }
-}
-
-@media (min-width: 1000px) {
-  .titleBar { min-height: 82px; padding: 12px 22px; }
-  .launchActions { grid-template-columns: 1fr 1fr; }
-  .shell.shell.shell .quickPlay,
-  .quickPlay, .assistantAction { min-height: 80px; }
-  .assistantAction { justify-content: center; }
-  .assistantCopy { flex: 0 1 auto; padding-inline: 18px; }
-  .jarvisPortrait { width: 58px; height: 68px; }
-  .categoryGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .shell.shell.shell .categoryGrid .chromeButton,
-  .categoryGrid .chromeButton { min-height: 52px; font-size: 21px; }
-  .shell.shell.shell .modeGrid .chromeButton,
-  .modeGrid .chromeButton { min-height: 50px; }
-  .searchWell { min-height: 60px; }
-  .shell.shell.shell .searchWell input,
-  .searchWell input { font-size: 21px; }
-  .shell.shell.shell .filtersButton,
-  .filtersButton { min-width: 145px; font-size: 23px; }
-  .sortBar { grid-template-columns: minmax(0, 1fr) minmax(200px, 400px) auto; padding: 9px 16px; }
-  .shell.shell.shell .sortSelect select,
-  .sortSelect select { font-size: 20px; }
-  .shelfTrack { grid-auto-columns: calc((100% - 42px) / 3.12); gap: 20px; }
-  .shelf { margin-bottom: 24px; }
-  .cardGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .gameCard .cardCopy .cardTitle { font-size: 28px; }
-  .gameCardList { grid-template-columns: 260px minmax(0, 1fr); }
-  .gameCardList .cardArtButton { aspect-ratio: 1.5; }
-  .gameCardList .cardActions { max-width: 500px; }
-  .gameCardList .cardCopy .cardTitle { font-size: 32px; }
-}
-
-@media (max-width: 420px) {
+@media (max-width: 600px) {
   .titleBar { min-height: 62px; padding: 9px 11px; gap: 8px; }
   .titleBar h1 { font-size: 32px; }
   .shell.shell.shell .helpButton,
@@ -342,6 +295,49 @@
   .dialogHeader { padding: 12px; gap: 10px; }
   .dialogHeader h2 { font-size: 23px; }
   .dialogBody { padding: 14px; }
+}
+
+@media (min-width: 600px) {
+  .shelfTrack { grid-auto-columns: calc((100% - 24px) / 2.08); gap: 18px; }
+  .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filterOptions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .gameCardList { grid-template-columns: minmax(180px, 30%) minmax(0, 1fr); }
+  .gameCardList .cardArtButton { aspect-ratio: 1.4; }
+  .gameCardList .cardBody { padding: 16px; }
+  .gameCardList .cardCopy .cardTitle { font-size: 28px; }
+  .shell.shell.shell .gameCardList .cardActions .chromeButton,
+  .gameCardList .cardActions .chromeButton { font-size: 20px; }
+}
+
+@media (min-width: 1000px) {
+  .titleBar { min-height: 82px; padding: 12px 22px; }
+  .launchActions { grid-template-columns: 1fr 1fr; }
+  .shell.shell.shell .quickPlay,
+  .quickPlay, .assistantAction { min-height: 80px; }
+  .assistantAction { justify-content: center; }
+  .assistantCopy { flex: 0 1 auto; padding-inline: 18px; }
+  .jarvisPortrait { width: 58px; height: 68px; }
+  .categoryGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .shell.shell.shell .categoryGrid .chromeButton,
+  .categoryGrid .chromeButton { min-height: 52px; font-size: 21px; }
+  .shell.shell.shell .modeGrid .chromeButton,
+  .modeGrid .chromeButton { min-height: 50px; }
+  .searchWell { min-height: 60px; }
+  .shell.shell.shell .searchWell input,
+  .searchWell input { font-size: 21px; }
+  .shell.shell.shell .filtersButton,
+  .filtersButton { min-width: 145px; font-size: 23px; }
+  .sortBar { grid-template-columns: minmax(0, 1fr) minmax(200px, 400px) auto; padding: 9px 16px; }
+  .shell.shell.shell .sortSelect select,
+  .sortSelect select { font-size: 20px; }
+  .shelfTrack { grid-auto-columns: calc((100% - 42px) / 3.12); gap: 20px; }
+  .shelf { margin-bottom: 24px; }
+  .cardGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .gameCard .cardCopy .cardTitle { font-size: 28px; }
+  .gameCardList { grid-template-columns: 260px minmax(0, 1fr); }
+  .gameCardList .cardArtButton { aspect-ratio: 1.5; }
+  .gameCardList .cardActions { max-width: 500px; }
+  .gameCardList .cardCopy .cardTitle { font-size: 32px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
