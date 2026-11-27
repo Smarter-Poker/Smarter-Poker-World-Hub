@@ -31,7 +31,15 @@ export { usePrefersReducedMotion };
 
 /* ═══════════════════════════════════════════════════════════════════════
    safeStorage · localStorage throws in Safari private mode / iframes.
+   Throttles console.warn to at most once per session to avoid log spam.
    ═══════════════════════════════════════════════════════════════════════ */
+let safeStorageWarned = false;
+function warnSafeStorageOnce(action, err) {
+    if (safeStorageWarned) return;
+    safeStorageWarned = true;
+    console.warn(`[safeStorage] ${action} blocked:`, err?.message || err);
+}
+
 export const safeStorage = {
     get(key, fallback = null) {
         try {
@@ -39,7 +47,7 @@ export const safeStorage = {
             const v = window.localStorage.getItem(key);
             return v == null ? fallback : v;
         } catch (e) {
-            console.warn('[safeStorage] read blocked:', e?.message || e);
+            warnSafeStorageOnce('read', e);
             return fallback;
         }
     },
@@ -49,7 +57,7 @@ export const safeStorage = {
             window.localStorage.setItem(key, String(value));
             return true;
         } catch (e) {
-            console.warn('[safeStorage] write blocked:', e?.message || e);
+            warnSafeStorageOnce('write', e);
             return false;
         }
     },
@@ -59,9 +67,12 @@ export const safeStorage = {
             window.localStorage.removeItem(key);
             return true;
         } catch (e) {
-            console.warn('[safeStorage] remove blocked:', e?.message || e);
+            warnSafeStorageOnce('remove', e);
             return false;
         }
+    },
+    resetWarn() {
+        safeStorageWarned = false;
     },
 };
 
@@ -108,6 +119,22 @@ export function PAStyles() {
             .pa-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; position: relative; }
             .pa-btn:active:not(:disabled) { filter: brightness(1.08); }
             .pa-btn:focus-visible { outline: 2px solid #83DEFF; outline-offset: 2px; }
+            .pa-replay-tab {
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                transition: background .14s ease, border-color .14s ease, color .14s ease, transform .12s ease;
+            }
+            .pa-replay-tab:hover:not(:disabled):not([aria-selected="true"]) {
+                background: rgba(19, 37, 58, 0.72) !important;
+                color: #F1F5FC !important;
+            }
+            .pa-replay-tab:active:not(:disabled) { filter: brightness(1.08); }
+            .pa-replay-tab:focus-visible { outline: 2px solid #83deff; outline-offset: 2px; }
+            .pa-progress-fill {
+                transform-origin: left center;
+                will-change: transform;
+                transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s ease;
+            }
             .pa-seg-btn[aria-pressed="true"]::after,
             .pa-seg-btn[aria-selected="true"]::after {
                 content: '';
@@ -135,12 +162,32 @@ export function PAStyles() {
                 font: 700 13px/1.2 'Arial Narrow', Arial, sans-serif;
                 list-style: none;
                 user-select: none;
+                transition: background .14s ease, color .14s ease;
+            }
+            .pa-disclosure > summary:hover {
+                background: rgba(19, 37, 58, 0.55);
+                color: #F1F5FC;
             }
             .pa-disclosure > summary::-webkit-details-marker { color: transparent; width: 0; }
             .pa-disclosure > summary:focus-visible { outline: 2px solid #83DEFF; outline-offset: -2px; }
+            .pa-disclosure > summary::after {
+                content: '▾';
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 13px;
+                line-height: 1;
+                color: #83DEFF;
+                flex-shrink: 0;
+                transform: rotate(0deg);
+                transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+            }
             .pa-disclosure[open] > summary {
                 border-bottom: 1px solid #253E57;
                 color: #F1F5FC;
+            }
+            .pa-disclosure[open] > summary::after {
+                transform: rotate(180deg);
             }
             .pa-disclosure-body {
                 padding: 12px 14px;
@@ -207,10 +254,25 @@ export function PAStyles() {
             @media (prefers-reduced-motion: no-preference) {
                 .pa-skel { animation: paSkel 1.4s ease-in-out infinite; }
                 .pa-spin { animation: paSpin 1s linear infinite; }
-                .pa-btn:active:not(:disabled) { transform: scale(0.98); }
+                .pa-btn:active:not(:disabled),
+                .pa-replay-tab:active:not(:disabled) { transform: scale(0.98); }
+                .pa-disclosure[open] > .pa-disclosure-body {
+                    animation: paDisclosureFade 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+                }
+                .pa-feedback-reveal {
+                    animation: paFeedbackReveal 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+                }
             }
             @keyframes paSkel { 0%, 100% { opacity: .35 } 50% { opacity: .7 } }
             @keyframes paSpin { to { transform: rotate(360deg) } }
+            @keyframes paDisclosureFade {
+                from { opacity: 0; transform: translateY(-2px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes paFeedbackReveal {
+                from { opacity: 0; transform: translateY(4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
             .pa-sheet-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
             .pa-vh {
                 position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -235,6 +297,16 @@ export function PAStyles() {
             }
             @media (prefers-reduced-motion: reduce) {
                 .pa-range-grid-scroll { scroll-behavior: auto; }
+                .pa-btn,
+                .pa-disclosure > summary,
+                .pa-disclosure > summary::after,
+                .pa-disclosure-body,
+                .pa-progress-fill,
+                .pa-replay-tab,
+                .pa-feedback-reveal {
+                    transition: none !important;
+                    animation: none !important;
+                }
             }
         ` }} />
     );
@@ -351,11 +423,11 @@ export function BottomSheet({
     const motionProps = reduce
         ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0 } }
         : {
-            // Never mount an actionable sheet outside the viewport. Browsers
-            // can throttle entrance animation frames in background tabs,
-            // leaving a visible footer unreachable. Exit motion is safe.
-            initial: false, animate: { y: 0 }, exit: { y: '100%' },
-            transition: { type: 'spring', stiffness: 320, damping: 34 },
+            // Gentle in-viewport entrance animation so sheets enter smoothly without sliding off-screen.
+            initial: { opacity: 0, scale: 0.985 },
+            animate: { opacity: 1, scale: 1 },
+            exit: { opacity: 0, scale: 0.985 },
+            transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
         };
 
     const dragProps = (reduce || !dismissOnBackdrop) ? {} : {
@@ -419,7 +491,7 @@ export function BottomSheet({
                                     aria-label={closeLabel}
                                     style={iconBtn({ color: T.textMuted })}
                                 >
-                                    <X size={18} strokeWidth={2} />
+                                    <X size={18} strokeWidth={2} aria-hidden="true" />
                                 </button>
                             )}
                         </div>
@@ -465,7 +537,7 @@ export function SkeletonCard({ rows = 3, title = true }) {
 export function EmptyState({ icon, title, body, action, compact = false }) {
     return (
         <div style={{ ...emptyWrap, padding: compact ? `${S.lg}px ${S.md}px` : `${S.xl}px ${S.lg}px` }}>
-            <div style={emptyIcon}>{icon || <Inbox size={22} strokeWidth={2} />}</div>
+            <div style={emptyIcon}>{icon || <Inbox size={22} strokeWidth={2} aria-hidden="true" />}</div>
             <h4 style={emptyTitle}>{title}</h4>
             {body && <p style={emptyBody}>{body}</p>}
             {action}
@@ -477,13 +549,13 @@ export function ErrorState({ title = 'Something went wrong', body, onRetry, retr
     return (
         <div style={errorWrap} role="alert">
             <p style={errorTitle}>
-                <AlertTriangle size={18} strokeWidth={2} />
+                <AlertTriangle size={18} strokeWidth={2} aria-hidden="true" />
                 {title}
             </p>
             {body && <p style={errorBody}>{body}</p>}
             {onRetry && (
                 <button type="button" className="pa-btn" onClick={onRetry} style={btn('secondary')}>
-                    <RefreshCw size={18} strokeWidth={2} />
+                    <RefreshCw size={18} strokeWidth={2} aria-hidden="true" />
                     {retryLabel}
                 </button>
             )}
@@ -500,7 +572,7 @@ export function SignInState({
     return (
         <EmptyState
             compact={compact}
-            icon={<LogIn size={22} strokeWidth={2} />}
+            icon={<LogIn size={22} strokeWidth={2} aria-hidden="true" />}
             title={title}
             body={body}
             action={<a className="pa-btn" href={href} style={{ ...btn('primary'), textDecoration: 'none' }}>Sign In</a>}

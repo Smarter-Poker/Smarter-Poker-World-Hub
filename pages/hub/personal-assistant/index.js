@@ -267,8 +267,8 @@ export default function PersonalAssistantPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const handleAssistantUpdate = () => {
-      try { refetchSessions?.(); } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
-      try { refetchStats?.(); } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
+      try { refetchSessions?.(); } catch (error) { console.warn('[Personal Assistant] Session refresh error:', error?.message || error); }
+      try { refetchStats?.(); } catch (error) { console.warn('[Personal Assistant] Stats refresh error:', error?.message || error); }
       setTrainingPlanReloadKey((n) => n + 1);
     };
     window.addEventListener('pa-sandbox-updated', handleAssistantUpdate);
@@ -615,10 +615,12 @@ export default function PersonalAssistantPage() {
   ];
 
   const formatCard = (card) => {
-    const match = String(card || '').match(/^([2-9TJQKA])([shdc])$/i);
+    const match = String(card || '').match(/^(10|[2-9TJQKA])([shdc])$/i);
     if (!match) return { rank: String(card || '?'), suit: '', red: false };
     const suitMap = { s: '♠', h: '♥', d: '♦', c: '♣' };
-    return { rank: match[1].toUpperCase(), suit: suitMap[match[2].toLowerCase()], red: /[hd]/i.test(match[2]) };
+    const rawRank = match[1].toUpperCase();
+    const rank = rawRank === 'T' ? '10' : rawRank;
+    return { rank, suit: suitMap[match[2].toLowerCase()], red: /[hd]/i.test(match[2]) };
   };
 
   const heroCards = (normalizeHeroHand(dailyHand?.heroHand)?.match(/.{2}/g) || []).map(formatCard);

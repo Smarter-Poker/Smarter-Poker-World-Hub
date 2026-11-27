@@ -311,10 +311,18 @@ export default function VerifiedEvidenceSandboxBoundary() {
           background: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%);
         }
 
+        .destination:hover,
+        .sandbox-command-bar :global(a.destination:hover) {
+          border-color: #56d8ff;
+          filter: brightness(1.08);
+          box-shadow: 0 6px 18px rgba(8, 124, 250, 0.22);
+        }
+
         .destination:focus-visible,
         .sandbox-command-bar :global(a.destination:focus-visible),
         .back-link:focus-visible,
-        .boundary-console :global(a.back-link:focus-visible) {
+        .boundary-console :global(a.back-link:focus-visible),
+        .summary-disclosure > summary:focus-visible {
           outline: 2px solid #83deff;
           outline-offset: 2px;
         }
@@ -377,14 +385,50 @@ export default function VerifiedEvidenceSandboxBoundary() {
           user-select: none;
         }
 
+        .summary-disclosure > summary:hover {
+          background: rgba(19, 37, 58, 0.58);
+          color: #ffffff;
+        }
+
         .summary-disclosure > summary::-webkit-details-marker {
           color: transparent;
           width: 0;
         }
 
+        .summary-disclosure > summary::after {
+          content: '';
+          display: inline-block;
+          width: 7px;
+          height: 7px;
+          flex: 0 0 7px;
+          border-right: 2px solid #83deff;
+          border-bottom: 2px solid #83deff;
+          transform: rotate(45deg);
+        }
+
+        .summary-disclosure[open] > summary::after {
+          transform: rotate(225deg);
+        }
+
         .summary-disclosure > summary small {
+          margin-left: auto;
           color: #9aabba;
           font: 600 12px / 1.2 Arial, sans-serif;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+          .destination,
+          .sandbox-command-bar :global(a.destination),
+          .summary-disclosure > summary,
+          .summary-disclosure > summary::after {
+            transition: transform 0.15s ease, filter 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+          }
+
+          .destination:active,
+          .sandbox-command-bar :global(a.destination:active),
+          .summary-disclosure > summary:active {
+            transform: scale(0.985);
+          }
         }
 
         .summary-disclosure-body {

@@ -160,6 +160,64 @@ function fmtCards(cards) {
   return 'Not Available';
 }
 
+const MINI_CARD_SUIT_COLORS = {
+  c: '#4DE0A5',
+  d: '#56D8FF',
+  h: '#FF6B7A',
+  s: '#F1F5FC',
+};
+
+const MINI_CARD_SUIT_SYMBOLS = {
+  c: '♣',
+  d: '♦',
+  h: '♥',
+  s: '♠',
+};
+
+function parseMiniCards(cards) {
+  const rawTokens = Array.isArray(cards)
+    ? cards.map(cardText).filter(Boolean)
+    : typeof cards === 'string' && cards.trim()
+      ? cards.trim().split(/[\s,]+/).map(cardText).filter(Boolean)
+      : [];
+  const parsed = [];
+  for (const token of rawTokens) {
+    const m = /^([2-9TJQKA])([cdhs])$/i.exec(String(token).trim());
+    if (!m) continue;
+    const rank = m[1].toUpperCase();
+    const suit = m[2].toLowerCase();
+    parsed.push({ code: `${rank}${suit}`, rank, suit });
+  }
+  return parsed;
+}
+
+function renderMiniCardChips(cards) {
+  const parsed = parseMiniCards(cards);
+  if (parsed.length === 0) return fmtCards(cards);
+  return (
+    <span style={styles.miniCardRow} data-pa-verbatim="true">
+      {parsed.map((c, idx) => {
+        const suitColor = MINI_CARD_SUIT_COLORS[c.suit] || '#F1F5FC';
+        const suitSymbol = MINI_CARD_SUIT_SYMBOLS[c.suit] || '';
+        return (
+          <span
+            key={`${c.code}-${idx}`}
+            data-mini-card={c.code}
+            data-pa-verbatim="true"
+            style={{
+              ...styles.miniCardChip,
+              color: suitColor,
+              borderColor: `${suitColor}55`,
+            }}
+          >
+            {`${c.rank}${suitSymbol}`}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 function num(v, fallback = 0) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
@@ -686,8 +744,14 @@ function TrendChart({ data, optimal, current, status, leakType = null, isRatio: 
         role="img"
         aria-label={isRatio
           ? `Aggression factor trend from ${points[0].date} to ${points[points.length - 1].date}. Latest ${points[points.length - 1].value.toFixed(2)}.`
-          : `Frequency trend from ${points[0].date} to ${points[points.length - 1].date}. Latest ${points[points.length - 1].value} percent.`}
+          : `Frequency trend from ${points[0].date} to ${points[points.length - 1].date}. Latest ${points[points.length - 1].value.toFixed(1)} percent.`}
       >
+        <defs>
+          <linearGradient id={`trend-area-grad-${status || 'emerging'}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={lineColor} stopOpacity="0.34" />
+            <stop offset="100%" stopColor={lineColor} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
         {[0, 25, 50, 75, 100].map(pct => {
           const y = padding.top + (pct / 100) * chartHeight;
           return (
@@ -706,21 +770,48 @@ function TrendChart({ data, optimal, current, status, leakType = null, isRatio: 
           />
         )}
 
-        {areaPath && <path d={areaPath} fill={`${lineColor}22`} />}
+        {areaPath && <path d={areaPath} fill={`url(#trend-area-grad-${status || 'emerging'})`} />}
         {linePath && (
           <path d={linePath} fill="none" stroke={lineColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         )}
 
-        {points.map((p, i) => (
-          <circle
-            key={`${p.date}-${i}`}
-            cx={getX(i)} cy={getY(p.value)}
-            r={activeIdx === i ? 7 : 5}
-            fill={activeIdx === i ? '#FFFFFF' : lineColor}
-            stroke={lineColor}
-            strokeWidth="2"
-          />
-        ))}
+        {points.map((p, i) => {
+          const cx = getX(i);
+          const cy = getY(p.value);
+          const isPointActive = activeIdx === i;
+          return (
+            <g
+              key={`${p.date}-${i}`}
+              onClick={() => setActiveIdx(isPointActive ? null : i)}
+              style={{ cursor: 'pointer' }}
+            >
+              {isPointActive && (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={11}
+                  fill="none"
+                  stroke={lineColor}
+                  strokeOpacity="0.36"
+                  strokeWidth="3"
+                />
+              )}
+              <circle
+                cx={cx}
+                cy={cy}
+                r={isPointActive ? 7 : 5}
+                fill={isPointActive ? '#FFFFFF' : lineColor}
+                stroke={lineColor}
+                strokeWidth="2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveIdx(isPointActive ? null : i);
+                }}
+                style={{ cursor: 'pointer' }}
+              />
+            </g>
+          );
+        })}
       </svg>
 
       {/* Axis + scale info as HTML so font sizes stay in CSS pixels */}
@@ -866,8 +957,8 @@ function AuditReceipt({ result }) {
       <div className={toolStyles.auditReceiptHeader}>
         <span className={toolStyles.auditReceiptSeal} aria-hidden="true">
           {sync.available === false || sync.persisted === false || result.persisted === false
-            ? <AlertTriangle size={20} strokeWidth={2} />
-            : <CheckCircle2 size={20} strokeWidth={2} />}
+            ? <AlertTriangle size={20} strokeWidth={2} aria-hidden="true" />
+            : <CheckCircle2 size={20} strokeWidth={2} aria-hidden="true" />}
         </span>
         <span>
           <strong id="audit-receipt-title">Deterministic Audit Receipt</strong>
@@ -971,6 +1062,7 @@ function progressLabel(progress) {
 function LeakCardProgress({ progress }) {
   if (!progress || !progress.started) return null;
   const tone = progressTone(progress);
+  const ratio = Math.max(0, Math.min(100, num(progress.percent))) / 100;
   return (
     <span style={styles.leakCardProgress}>
       <span
@@ -981,7 +1073,10 @@ function LeakCardProgress({ progress }) {
         aria-valuenow={progress.percent}
         aria-label={`Fix progress ${progress.percent} percent`}
       >
-        <span style={{ ...styles.progressFill, width: `${progress.percent}%`, background: tone }} />
+        <span
+          className="leak-progress-fill"
+          style={{ ...styles.progressFill, transform: `scaleX(${ratio})`, background: tone }}
+        />
       </span>
       <span style={{ ...styles.leakCardProgressLabel, color: progress.retired ? T.success : T.textMuted }}>
         {progressLabel(progress)}
@@ -1061,7 +1156,7 @@ function ShareReviewControl({ hand }) {
     <details className="pa-disclosure" data-share-review="true">
       <summary>
         <span>Share Review</span>
-        <small>Read-Only Link</small>
+        <small style={{ fontSize: 12 }}>Read-Only Link</small>
       </summary>
       <div className="pa-disclosure-body" style={{ display: 'grid', gap: S.xs }}>
         <label style={shareCheckRow}>
@@ -1069,7 +1164,7 @@ function ShareReviewControl({ hand }) {
             type="checkbox"
             checked={anonymize}
             onChange={(event) => setAnonymize(event.target.checked)}
-            style={{ width: 22, height: 22, flex: '0 0 22px' }}
+            style={{ width: 22, height: 22, flex: '0 0 22px', accentColor: '#087cfa' }}
           />
           <span>Anonymize Villain Names</span>
         </label>
@@ -1078,7 +1173,7 @@ function ShareReviewControl({ hand }) {
             type="checkbox"
             checked={includeHole}
             onChange={(event) => setIncludeHole(event.target.checked)}
-            style={{ width: 22, height: 22, flex: '0 0 22px' }}
+            style={{ width: 22, height: 22, flex: '0 0 22px', accentColor: '#087cfa' }}
           />
           <span>Include My Hole Cards</span>
         </label>
@@ -1300,8 +1395,8 @@ function AutoGuidanceToggle({ value, onChange }) {
           {value ? 'Highlighting the top suggested fix automatically.' : 'Suggesting one fix at a time.'}
         </span>
       </span>
-      <span aria-hidden="true" style={{ ...styles.switchTrack, background: value ? T.accent : T.surface3 }}>
-        <span style={{ ...styles.switchKnob, transform: value ? 'translateX(18px)' : 'translateX(0)' }} />
+      <span aria-hidden="true" className="leak-switch-track" style={{ ...styles.switchTrack, background: value ? T.accent : T.surface3 }}>
+        <span className="leak-switch-knob" style={{ ...styles.switchKnob, transform: value ? 'translateX(18px)' : 'translateX(0)' }} />
       </span>
     </button>
   );
@@ -1368,7 +1463,14 @@ function ResolutionProgressSection({ record }) {
         aria-valuenow={progress.percent}
         aria-label={`Progress to resolution: ${progress.percent} percent`}
       >
-        <span style={{ ...styles.progressFill, width: `${progress.percent}%`, background: tone }} />
+        <span
+          className="leak-progress-fill"
+          style={{
+            ...styles.progressFill,
+            transform: `scaleX(${Math.max(0, Math.min(100, num(progress.percent))) / 100})`,
+            background: tone,
+          }}
+        />
       </span>
 
       <p style={styles.progressStageCopy}>{STAGE_COPY[progress.stage] || STAGE_COPY['not-started']}</p>
@@ -1645,13 +1747,13 @@ function LeakDetail({
                     aria-label={`Review this hand: ${fmtCards(snap.hero_cards)} on ${fmtCards(snap.board)}`}
                   >
                     <span style={styles.exampleLine1}>
-                      <span style={styles.exampleCards}>{fmtCards(snap.hero_cards)}</span>
+                      <span style={styles.exampleCards}>{renderMiniCardChips(snap.hero_cards)}</span>
                       <span style={styles.exampleEv}>
                         {Number.isFinite(Number(ex.evLoss)) ? `-${Math.abs(Number(ex.evLoss)).toFixed(2)} BB` : 'Not Available'}
                       </span>
                     </span>
                     <span style={styles.exampleLine2}>
-                      <span style={styles.exampleBoard}>Board: {fmtCards(snap.board)}</span>
+                      <span style={styles.exampleBoard}>Board: {renderMiniCardChips(snap.board)}</span>
                       <span style={pill('accent')}>{String(snap.street || '?').toUpperCase()}</span>
                       <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, marginLeft: 'auto' }} />
                     </span>
@@ -2516,7 +2618,7 @@ export default function LeakFinderPage() {
       }
       setDetectionSummary({
         type: result.partial ? 'info' : 'success',
-        text: `Analysed ${num(result.handsAnalyzed).toLocaleString()} Hands · Scanned ${num(result.auditProgress?.handsScanned ?? result.clubArenaSync?.handsFound).toLocaleString()} Club Arena Hands · Re-Audited ${num(result.auditProgress?.handsAudited ?? result.clubArenaSync?.handsAudited).toLocaleString()} · Graded ${num(result.solverDecisionsAnalyzed).toLocaleString()} Solver Decisions · ${found} Leak${found === 1 ? '' : 's'} Found.${result.partial ? ' Some follow-up evidence could not be synchronized and will be retried.' : ''}`,
+        text: `Analyzed ${num(result.handsAnalyzed).toLocaleString()} Hands · Scanned ${num(result.auditProgress?.handsScanned ?? result.clubArenaSync?.handsFound).toLocaleString()} Club Arena Hands · Re-Audited ${num(result.auditProgress?.handsAudited ?? result.clubArenaSync?.handsAudited).toLocaleString()} · Graded ${num(result.solverDecisionsAnalyzed).toLocaleString()} Solver Decisions · ${found} Leak${found === 1 ? '' : 's'} Found.${result.partial ? ' Some follow-up evidence could not be synchronized and will be retried.' : ''}`,
       });
     } else {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
@@ -3279,7 +3381,7 @@ export default function LeakFinderPage() {
     <details className="pa-disclosure" style={{ marginBottom: S.sm }}>
       <summary>
         <span>Analysis Settings</span>
-        <small>{activeSettingsOverrides > 0 ? `${activeSettingsOverrides} Custom` : 'Defaults Active'}</small>
+        <small style={{ fontSize: 12 }}>{activeSettingsOverrides > 0 ? `${activeSettingsOverrides} Custom` : 'Defaults Active'}</small>
       </summary>
       <div className="pa-disclosure-body" style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
         <Segmented
@@ -3307,7 +3409,7 @@ export default function LeakFinderPage() {
         <Segmented
           idPrefix="leak-status"
           label="Status"
-          tone="warn"
+          tone={statusFilter === 'persistent' ? 'warn' : 'accent'}
           columns={2}
           value={statusFilter}
           onChange={updateStatusFilter}
@@ -3448,15 +3550,12 @@ export default function LeakFinderPage() {
             />
           </div>
 
-          {/* ── Sample-data disclosure ── */}
-          {leaksAreDemo && !leaksLoading && (
+          {/* ── Sample-data disclosure (only when signed-in user is viewing demo/onboarding leaks) ── */}
+          {userId && leaksAreDemo && !leaksLoading && (
             <section style={styles.demoBanner} aria-label="Sample Data Notice">
               <p style={styles.demoBannerText}>
-                You Are Viewing Sample Data. Sign In And Run Detection To Analyse Your Own Hands.
+                You Are Viewing Sample Data. Run Detection To Analyze Your Own Hands.
               </p>
-              <a className="pa-btn" href="/auth/login" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 44 }}>
-                Sign In To Analyse My Hands
-              </a>
             </section>
           )}
 
@@ -3476,7 +3575,7 @@ export default function LeakFinderPage() {
               <div className={toolStyles.scanDeck} data-tutorial="detect">
                 <div className={toolStyles.scanDeckInner}>
                   <div className={toolStyles.scanDeckCopy}>
-                    <span className={toolStyles.scanDisc} aria-hidden="true"><Activity size={20} strokeWidth={1.8} /></span>
+                    <span className={toolStyles.scanDisc} aria-hidden="true"><Activity size={20} strokeWidth={1.8} aria-hidden="true" /></span>
                     <span className={toolStyles.scanText}>
                       <strong>Analyze My Play</strong>
                       <span>{activeScopeSummary}</span>
@@ -3510,7 +3609,7 @@ export default function LeakFinderPage() {
                         onClick={() => setAddHandsOpen(true)}
                       >
                         <Plus size={18} strokeWidth={2.2} aria-hidden="true" />
-                        <span>+ Add / Audit Hands</span>
+                        <span>Add / Audit Hands</span>
                       </button>
                     )}
                   </div>
@@ -3550,7 +3649,7 @@ export default function LeakFinderPage() {
                       onClick={() => setDetectionSummary(null)}
                       style={iconBtn({ transparent: true, color: T.textMuted })}
                     >
-                      <X size={18} strokeWidth={2} />
+                      <X size={18} strokeWidth={2} aria-hidden="true" />
                     </button>
                   </div>
                 )}
@@ -3699,10 +3798,10 @@ export default function LeakFinderPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
                         <span style={pill('accent')}>Club Arena Hand Linked</span>
                         {linkedHandAudit?.hand?.formatLabel && (
-                          <span style={pill('muted')}>{linkedHandAudit.hand.formatLabel}</span>
+                          <span style={pill('neutral')}>{linkedHandAudit.hand.formatLabel}</span>
                         )}
                         {linkedHandAudit?.hand?.variant && (
-                          <span style={pill('muted')} data-pa-verbatim="true">{String(linkedHandAudit.hand.variant).toUpperCase()}</span>
+                          <span style={pill('neutral')} data-pa-verbatim="true">{String(linkedHandAudit.hand.variant).toUpperCase()}</span>
                         )}
                         {linkedHandAudit?.supported === false && (
                           <span style={pill('warn')}>Unsupported Format · Unmeasured</span>
@@ -3719,10 +3818,10 @@ export default function LeakFinderPage() {
                         <strong data-pa-verbatim="true">{linkedClubHand.label}</strong>
                         {linkedHandAudit?.hand?.stakes ? ` · ${linkedHandAudit.hand.stakes}` : ''}
                         {Array.isArray(linkedHandAudit?.hand?.heroCards) && linkedHandAudit.hand.heroCards.length >= 2 && (
-                          <> · Hero <span data-pa-verbatim="true">{linkedHandAudit.hand.heroCards.join(' ')}</span></>
+                          <> · Hero <span data-pa-verbatim="true">{renderMiniCardChips(linkedHandAudit.hand.heroCards)}</span></>
                         )}
                         {Array.isArray(linkedHandAudit?.hand?.board) && linkedHandAudit.hand.board.length > 0 && (
-                          <> · Board <span data-pa-verbatim="true">{linkedHandAudit.hand.board.join(' ')}</span></>
+                          <> · Board <span data-pa-verbatim="true">{renderMiniCardChips(linkedHandAudit.hand.board)}</span></>
                         )}
                       </div>
                     </div>
@@ -3776,7 +3875,7 @@ export default function LeakFinderPage() {
                         }}
                         style={iconBtn({ transparent: true, color: T.textMuted })}
                       >
-                        <X size={18} strokeWidth={2} />
+                        <X size={18} strokeWidth={2} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -3856,7 +3955,7 @@ export default function LeakFinderPage() {
                                 {decision.solverVerified && decision.solverAction ? ` · Solver ${decision.solverAction}` : ''}
                               </span>
                               <span style={{ display: 'flex', alignItems: 'center', gap: S.xs }}>
-                                <span style={pill(decision.solverVerified ? (decision.classification === 'correct' ? 'success' : 'warn') : 'muted')}>
+                                <span style={pill(decision.solverVerified ? (decision.classification === 'correct' ? 'success' : 'warn') : 'neutral')}>
                                   {decision.solverVerified ? decision.classification : 'Unmeasured'}
                                 </span>
                                 {decision.evLossMeasured && decision.evLoss != null && (
@@ -3872,7 +3971,16 @@ export default function LeakFinderPage() {
                                     <strong style={{ ...numeric, color: T.text }}>{selPct}%</strong>
                                   </div>
                                   <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                                    <div style={{ width: `${selPct}%`, height: '100%', background: decision.classification === 'correct' ? T.success : T.warn }} />
+                                    <div
+                                      className="leak-progress-fill"
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        transformOrigin: 'left center',
+                                        transform: `scaleX(${selPct / 100})`,
+                                        background: decision.classification === 'correct' ? T.success : T.warn,
+                                      }}
+                                    />
                                   </div>
                                 </div>
                                 <div>
@@ -3881,7 +3989,16 @@ export default function LeakFinderPage() {
                                     <strong style={{ ...numeric, color: T.success }}>{optPct}%</strong>
                                   </div>
                                   <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                                    <div style={{ width: `${optPct}%`, height: '100%', background: T.success }} />
+                                    <div
+                                      className="leak-progress-fill"
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        transformOrigin: 'left center',
+                                        transform: `scaleX(${optPct / 100})`,
+                                        background: T.success,
+                                      }}
+                                    />
                                   </div>
                                 </div>
                               </div>
@@ -3915,7 +4032,7 @@ export default function LeakFinderPage() {
               <details className="pa-disclosure" style={{ marginBottom: S.md }}>
                 <summary>
                   <span>Stats &amp; Audit Details</span>
-                  <small>
+                  <small style={{ fontSize: 12 }}>
                     {(!authInitializing && !userId)
                       ? 'Sign In Required'
                       : (leaksLoading || statsLoading)
@@ -3957,7 +4074,7 @@ export default function LeakFinderPage() {
                       value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? 'Not Available' : String(stats.sessionsReviewed))}
                     />
                     <StatCell
-                      label="Hands analysed"
+                      label="Hands analyzed"
                       value={statsLoading ? null : (statsError || statsAreDemo || stats.handsAnalyzed === null ? 'Not Available' : stats.handsAnalyzed.toLocaleString())}
                     />
                     <StatCell
@@ -4052,7 +4169,7 @@ export default function LeakFinderPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
                   <EmptyState
                     compact
-                    icon={<Inbox size={22} strokeWidth={2} />}
+                    icon={<Inbox size={22} strokeWidth={2} aria-hidden="true" />}
                     title={(autoDetecting || isDetecting) ? 'Checking your recent hands…' : 'No leaks detected yet'}
                     body={(autoDetecting || isDetecting)
                       ? 'Scanning your hand history for repeated, measurable EV mistakes. This takes a few seconds.'
@@ -4166,7 +4283,7 @@ export default function LeakFinderPage() {
 
                   {/* Compact single-row search bar (Sort/Format/Status live in Analysis Settings above) */}
                   <div className={toolStyles.instrumentPanel} style={{ ...cardCompact, marginBottom: S.md }}>
-                    <div style={styles.searchWrap}>
+                    <div className="leak-search-wrap" style={styles.searchWrap}>
                       <Search size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.textDim, flexShrink: 0 }} />
                       <input
                         type="text"
@@ -4184,7 +4301,7 @@ export default function LeakFinderPage() {
                           onClick={() => setQuery('')}
                           style={iconBtn({ transparent: true, color: T.textMuted })}
                         >
-                          <X size={18} strokeWidth={2} />
+                          <X size={18} strokeWidth={2} aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -4193,7 +4310,7 @@ export default function LeakFinderPage() {
                   {shownLeaks.length === 0 ? (
                     <EmptyState
                       compact
-                      icon={<Search size={22} strokeWidth={2} />}
+                      icon={<Search size={22} strokeWidth={2} aria-hidden="true" />}
                       title="No Matching Leaks"
                       body="No leak matches this filter. Clear the search or switch back to All."
                       action={(
@@ -4420,7 +4537,7 @@ export default function LeakFinderPage() {
                             aria-label={`Open audited hand review for the archived coach record on ${fmtCards(spot?.board)}`}
                           >
                             <span style={styles.exampleLine1}>
-                              <span style={styles.exampleCards}>{fmtCards(spot?.board)}</span>
+                              <span style={styles.exampleCards}>{renderMiniCardChips(spot?.board)}</span>
                               <span style={{ ...styles.exampleEv, ...numeric }}>Ungraded Archive</span>
                             </span>
                             <span style={styles.exampleLine2}>
@@ -4562,7 +4679,7 @@ export default function LeakFinderPage() {
             <Segmented
               idPrefix="sheet-leak-status"
               label="Status"
-              tone="warn"
+              tone={statusFilter === 'persistent' ? 'warn' : 'accent'}
               columns={2}
               value={statusFilter}
               onChange={(val) => {
@@ -4757,7 +4874,7 @@ export default function LeakFinderPage() {
               onClick={() => handleShareLeak(selectedLeak)}
               style={iconBtn({ color: T.textMuted })}
             >
-              <Link2 size={18} strokeWidth={2} />
+              <Link2 size={18} strokeWidth={2} aria-hidden="true" />
             </button>
           ) : null}
         >
@@ -4789,6 +4906,11 @@ export default function LeakFinderPage() {
           .leak-card:focus-visible {
             outline: 2px solid ${T.accent};
             outline-offset: 2px;
+          }
+          .leak-search-wrap:focus-within {
+            border-color: #56d8ff;
+            outline: 2px solid #83deff;
+            outline-offset: 1px;
           }
           .leaks-page {
             background-color: #040D18;
@@ -4836,11 +4958,21 @@ export default function LeakFinderPage() {
               opacity: 1;
               animation: leakProgressSlide 1.2s ease-in-out infinite;
             }
+            .leak-progress-fill {
+              transition: transform .24s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .leak-switch-track {
+              transition: background .14s ease;
+            }
+            .leak-switch-knob {
+              transition: transform .14s cubic-bezier(0.22, 1, 0.36, 1);
+            }
           }
           /* The shell carries its padding as an inline style, which a plain
              rule cannot override · hence !important on this one declaration. */
           @media (min-width: 769px) {
             .leaks-shell {
+              max-width: 820px !important;
               padding-left: max(20px, env(safe-area-inset-left, 0px)) !important;
               padding-right: max(20px, env(safe-area-inset-right, 0px)) !important;
             }
@@ -4923,29 +5055,7 @@ const styles = {
     margin: '0 auto',
     boxSizing: 'border-box',
     padding: `10px max(8px, env(safe-area-inset-left, 0px))`,
-    paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
-  },
-
-  pageHeader: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: S.sm,
-    marginBottom: S.lg,
-  },
-  pageTitle: {
-    fontSize: 'clamp(32px, 5vw, 48px)',
-    fontWeight: 600,
-    fontFamily: DISPLAY_FONT,
-    letterSpacing: '-0.02em',
-    color: T.text,
-    margin: 0,
-    lineHeight: 1.2,
-  },
-  pageSub: {
-    fontSize: F.bodySm,
-    color: T.textMuted,
-    margin: '4px 0 0',
-    lineHeight: 1.45,
+    paddingBottom: 'max(18px, env(safe-area-inset-bottom, 0px))',
   },
   integrityBadge: {
     display: 'inline-flex',
@@ -5504,9 +5614,10 @@ const styles = {
   },
   progressFill: {
     display: 'block',
+    width: '100%',
     height: '100%',
     borderRadius: 999,
-    transition: 'width .3s ease',
+    transformOrigin: 'left center',
   },
   progressHeaderRow: {
     display: 'flex',
@@ -5776,6 +5887,27 @@ const styles = {
     color: T.danger,
     flexShrink: 0,
   },
+  miniCardRow: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+    verticalAlign: 'middle',
+  },
+  miniCardChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '1px 6px',
+    borderRadius: 5,
+    border: '1px solid rgba(140, 161, 180, 0.35)',
+    background: '#060E18',
+    fontFamily: DATA_FONT,
+    fontSize: 12,
+    fontWeight: 800,
+    lineHeight: 1.25,
+    letterSpacing: '0.01em',
+  },
 
   // Fix cards
   fixGrid: {
@@ -5853,13 +5985,11 @@ const styles = {
     alignItems: 'center',
     padding: 3,
     boxSizing: 'border-box',
-    transition: 'background .12s ease',
   },
   switchKnob: {
     width: 20,
     height: 20,
     borderRadius: '50%',
     background: '#FFFFFF',
-    transition: 'transform .12s ease',
   },
 };
