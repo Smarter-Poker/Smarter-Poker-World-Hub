@@ -38,6 +38,7 @@
   font-family: var(--font-rajdhani, 'Rajdhani', system-ui, sans-serif);
 }
 
+.shell.shell.shell .chromeButton,
 .chromeButton {
   appearance: none;
   box-sizing: border-box;
@@ -70,6 +71,8 @@
 .chromeButton:hover:not(:disabled) { box-shadow: inset 0 1px 1px #fff9, inset 0 -1px 2px #65d3ffa8, 0 0 14px #008ad329; }
 .chromeButton:active:not(:disabled) { filter: brightness(.9); }
 .chromeButton:disabled { opacity: .48; cursor: not-allowed; }
+.shell.shell.shell .chromeButton[aria-pressed='true'],
+.shell.shell.shell .primaryButton,
 .chromeButton[aria-pressed='true'],
 .primaryButton {
   background: var(--training-blue) padding-box, var(--training-chrome) border-box;
@@ -100,13 +103,15 @@
   box-shadow: inset 0 1px 1px #d4f6ff38;
 }
 .titleBar h1 { margin: 0; color: #f3f6f9; font-size: clamp(32px, 5.1vw, 52px); font-weight: 800; line-height: 1.05; letter-spacing: .015em; text-shadow: 0 2px 2px #000, 0 -1px 1px #fff5; }
+.shell.shell.shell .helpButton,
 .helpButton { flex: 0 0 48px; width: 48px; height: 48px; min-height: 48px; padding: 0; border-radius: 50%; font-size: 34px; }
 .launchActions { display: grid; grid-template-columns: 1fr 1.1fr; gap: 12px; }
+.shell.shell.shell .quickPlay,
 .quickPlay { min-height: 72px; font-size: clamp(20px, 3.8vw, 31px); }
 .quickPlay svg { width: 30px; height: 30px; }
 .assistantAction { justify-content: flex-start; gap: 10px; padding: 4px 10px; min-height: 72px; }
 .jarvisPortrait { display: block; position: relative; flex: 0 0 auto; width: 48px; height: 60px; overflow: hidden; }
-.jarvisPortrait img { position: absolute; left: -90%; top: -8%; width: 280%; max-width: none; height: auto; }
+.jarvisPortrait img { position: absolute; left: -90%; top: -8%; width: 280%; max-width: none !important; height: auto; }
 .assistantCopy { display: flex; flex: 1; flex-direction: column; gap: 4px; border-left: 1px solid #8aa0b3; padding-left: 10px; text-align: center; }
 .assistantCopy strong { color: #f4f7fa; font-size: clamp(17px, 2.8vw, 27px); font-weight: 700; line-height: 1.1; }
 .assistantCopy > span { color: #e3ebf2; font-size: clamp(13px, 2.2vw, 19px); font-weight: 500; }
@@ -120,10 +125,13 @@
 .searchWell input::-webkit-search-cancel-button { display: none; }
 .searchWell:focus-within { outline: 2px solid #8de6ff; outline-offset: 2px; }
 .clearSearch { display: inline-flex; flex: 0 0 44px; align-items: center; justify-content: center; min-width: 44px; height: 44px; margin-right: -8px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #dcecf8; cursor: pointer; }
+.shell.shell.shell .filtersButton,
 .filtersButton { padding-inline: 14px; font-size: 20px; }
 .categoryGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; }
+.shell.shell.shell .categoryGrid .chromeButton,
 .categoryGrid .chromeButton { min-height: 48px; padding-inline: 6px; font-size: clamp(16px, 2.7vw, 23px); }
 .modeGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 2px; }
+.shell.shell.shell .modeGrid .chromeButton,
 .modeGrid .chromeButton { gap: 5px; padding-inline: 5px; font-size: clamp(16px, 2.6vw, 22px); }
 .activeFilters { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; color: #c4d8e8; font-size: 14px; }
 .activeFilters > span { overflow-wrap: anywhere; }
@@ -137,13 +145,16 @@
 .sortBar { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 1.2fr) auto; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid #718996; border-radius: 10px; background: linear-gradient(160deg, #09202d, #020b12); }
 .resultCount { font-size: clamp(17px, 2.6vw, 22px); font-weight: 700; color: #f3f7fc; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .sortSelect { position: relative; min-width: 0; }
+.shell.shell.shell .sortSelect select,
 .sortSelect select { appearance: none; display: block; width: 100%; min-height: 44px; padding: 8px 31px 8px 10px; border: 2px solid transparent; border-radius: 9px; background: var(--training-face) padding-box, var(--training-chrome) border-box; color: #f4f8fb; font-family: inherit; font-size: 17px; font-weight: 600; cursor: pointer; }
 .sortSelect select:focus-visible { outline: 3px solid #8de6ff; outline-offset: 3px; }
 .sortSelect option { background: #0a1927; color: #f5f8fa; }
 .sortSelect > svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
 .viewSwitch { display: flex; gap: 7px; }
+.shell.shell.shell .iconButton,
 .iconButton { flex: 0 0 44px; width: 44px; min-width: 44px; min-height: 44px; height: 44px; padding: 0; border-radius: 9px; }
 .utilityRow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.shell.shell.shell .utilityRow .chromeButton,
 .utilityRow .chromeButton { min-height: 48px; font-size: clamp(16px, 2.6vw, 22px); }
 
 .results { width: 100%; overflow: visible; }
@@ -151,10 +162,12 @@
 .shelfHeading { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0 0 12px; }
 .shelfHeading h2 { flex: 0 1 auto; min-width: 0; margin: 0; padding: 9px 18px; border: 2px solid transparent; border-radius: 8px 16px; background: var(--training-face) padding-box, var(--training-chrome) border-box; color: #f4f7fa; font-size: clamp(22px, 3.4vw, 31px); font-weight: 800; line-height: 1.05; letter-spacing: .01em; text-shadow: 0 2px 2px #000; }
 .shelfLine { display: block; flex: 1 1 24px; height: 2px; min-width: 8px; background: linear-gradient(90deg, #3bd7ff, #0d81b1 55%, transparent); box-shadow: 0 1px 9px #19acfc35; }
+.shell.shell.shell .viewAllButton,
 .viewAllButton { flex: 0 0 auto; min-height: 44px; padding: 7px 12px; border-radius: 24px; font-size: 17px; }
 .shelfTrack { display: grid; grid-auto-flow: column; grid-auto-columns: calc(92% - 8px); align-items: stretch; gap: 14px; width: 100%; max-width: 100%; margin: 0; padding: 3px 3px 12px; overflow-x: auto; overflow-y: hidden; list-style: none; scroll-snap-type: x mandatory; scroll-padding-inline: 3px; overscroll-behavior-inline: contain; scrollbar-width: thin; scrollbar-color: #43859f #07141b; }
 .shelfSlot { min-width: 0; padding: 0; scroll-snap-align: start; list-style: none; }
 .shelfNavigation { display: flex; align-items: center; justify-content: center; min-height: 44px; gap: 10px; margin-top: -4px; }
+.shell.shell.shell .shelfArrow,
 .shelfArrow { min-height: 44px; width: 44px; padding: 4px; border-width: 1px; border-radius: 18px; }
 .shelfDots { display: flex; align-items: center; justify-content: center; }
 .shelfDots button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; border-radius: 8px; cursor: pointer; }
@@ -171,6 +184,7 @@
 .cardCopy { flex: 1; min-width: 0; }
 .gameCard .cardCopy .cardTitle { display: block; margin: 0; padding: 0; color: #f5f7fa; font-size: clamp(24px, 3.7vw, 31px); font-weight: 800; line-height: 1.08; letter-spacing: .005em; white-space: normal; overflow: visible; overflow-wrap: anywhere; text-overflow: unset; text-shadow: 0 1px 2px #000; }
 .cardFocus { margin: 5px 0 0; color: #d1dfeb; font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
+.shell.shell.shell .favoriteButton,
 .favoriteButton { flex: 0 0 44px; width: 44px; min-height: 44px; height: 44px; padding: 0; border-width: 1px; border-radius: 8px; }
 .cardMeta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 7px 12px; margin-top: auto; padding-top: 10px; border-top: 1px solid #8495a170; }
 .cardDetails { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; color: #e6eef4; font-size: 15px; font-weight: 600; line-height: 1.25; }
@@ -180,6 +194,7 @@
 .progressTrack { width: 100%; height: 4px; overflow: hidden; border-radius: 3px; background: #234354; }
 .progressTrack > span { display: block; height: 100%; background: #3ec8ff; border-radius: inherit; }
 .cardActions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.shell.shell.shell .cardActions .chromeButton,
 .cardActions .chromeButton { min-height: 50px; padding: 8px; font-size: 20px; }
 .cardActions .chromeButton:only-child { grid-column: 1 / -1; }
 .cardGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
@@ -191,6 +206,7 @@
 .gameCardList .cardFocus { font-size: 15px; }
 .gameCardList .cardDetails { font-size: 14px; }
 .gameCardList .cardActions { gap: 6px; }
+.shell.shell.shell .gameCardList .cardActions .chromeButton,
 .gameCardList .cardActions .chromeButton { min-height: 46px; gap: 5px; font-size: 17px; padding-inline: 6px; }
 .gameCardList .cardActions svg { width: 18px; }
 .directHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 16px 0; }
@@ -235,23 +251,30 @@
   .gameCardList .cardArtButton { aspect-ratio: 1.4; }
   .gameCardList .cardBody { padding: 16px; }
   .gameCardList .cardCopy .cardTitle { font-size: 28px; }
+  .shell.shell.shell .gameCardList .cardActions .chromeButton,
   .gameCardList .cardActions .chromeButton { font-size: 20px; }
 }
 
 @media (min-width: 1000px) {
   .titleBar { min-height: 82px; padding: 12px 22px; }
   .launchActions { grid-template-columns: 1fr 1fr; }
+  .shell.shell.shell .quickPlay,
   .quickPlay, .assistantAction { min-height: 80px; }
   .assistantAction { justify-content: center; }
   .assistantCopy { flex: 0 1 auto; padding-inline: 18px; }
   .jarvisPortrait { width: 58px; height: 68px; }
   .categoryGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .shell.shell.shell .categoryGrid .chromeButton,
   .categoryGrid .chromeButton { min-height: 52px; font-size: 21px; }
+  .shell.shell.shell .modeGrid .chromeButton,
   .modeGrid .chromeButton { min-height: 50px; }
   .searchWell { min-height: 60px; }
+  .shell.shell.shell .searchWell input,
   .searchWell input { font-size: 21px; }
+  .shell.shell.shell .filtersButton,
   .filtersButton { min-width: 145px; font-size: 23px; }
   .sortBar { grid-template-columns: minmax(0, 1fr) minmax(200px, 400px) auto; padding: 9px 16px; }
+  .shell.shell.shell .sortSelect select,
   .sortSelect select { font-size: 20px; }
   .shelfTrack { grid-auto-columns: calc((100% - 42px) / 3.12); gap: 20px; }
   .shelf { margin-bottom: 24px; }
@@ -266,9 +289,11 @@
 @media (max-width: 420px) {
   .titleBar { min-height: 62px; padding: 9px 11px; gap: 8px; }
   .titleBar h1 { font-size: 32px; }
+  .shell.shell.shell .helpButton,
   .helpButton { flex-basis: 44px; width: 44px; height: 44px; min-height: 44px; font-size: 30px; }
   .launchActions, .searchRow, .categoryGrid, .modeGrid, .utilityRow { gap: 8px; }
   .quickPlay, .assistantAction { min-height: 66px; }
+  .shell.shell.shell .quickPlay,
   .quickPlay { gap: 7px; padding-inline: 8px; font-size: 21px; }
   .quickPlay svg { width: 24px; height: 24px; }
   .assistantAction { gap: 5px; padding: 4px 5px; }
@@ -277,30 +302,41 @@
   .assistantCopy strong { font-size: 17px; }
   .assistantCopy > span { font-size: 12px; }
   .searchWell { gap: 7px; padding-inline: 9px; }
+  .shell.shell.shell .searchWell input,
   .searchWell input { font-size: 17px; }
   .searchWell > svg { width: 21px; }
+  .shell.shell.shell .filtersButton,
   .filtersButton { gap: 5px; padding-inline: 9px; font-size: 18px; }
   .filtersButton svg { width: 19px; }
-  .categoryGrid .chromeButton, .modeGrid .chromeButton { min-height: 46px; font-size: 16px; border-radius: 9px; }
+  .shell.shell.shell .categoryGrid .chromeButton,
+  .categoryGrid .chromeButton,
+  .shell.shell.shell .modeGrid .chromeButton,
+  .modeGrid .chromeButton { min-height: 46px; font-size: 16px; border-radius: 9px; }
+  .shell.shell.shell .modeGrid .chromeButton,
   .modeGrid .chromeButton { font-size: 15px; gap: 4px; }
   .modeGrid svg { width: 16px; }
   .sortBar { gap: 7px; padding: 7px; grid-template-columns: minmax(0, .7fr) minmax(0, 1.2fr) auto; }
   .resultCount { font-size: 16px; }
+  .shell.shell.shell .sortSelect select,
   .sortSelect select { font-size: 16px; padding-left: 8px; padding-right: 24px; }
   .sortSelect > svg { width: 16px; right: 7px; }
   .viewSwitch { gap: 5px; }
   .viewSwitch .iconButton { width: 44px; min-width: 44px; flex-basis: 44px; }
+  .shell.shell.shell .utilityRow .chromeButton,
   .utilityRow .chromeButton { gap: 6px; padding-inline: 6px; font-size: 17px; }
   .shelfHeading { gap: 8px; }
   .shelfHeading h2 { padding: 9px 12px; font-size: 23px; }
+  .shell.shell.shell .viewAllButton,
   .viewAllButton { padding-inline: 9px; font-size: 16px; gap: 3px; }
   .cardBody { padding: 11px 12px 13px; }
   .gameCard .cardCopy .cardTitle { font-size: 25px; }
   .cardFocus { font-size: 16px; }
+  .shell.shell.shell .cardActions .chromeButton,
   .cardActions .chromeButton { gap: 6px; font-size: 19px; }
   .gameCardList .cardCopy .cardTitle { font-size: 21px; }
   .gameCardList .cardIdentity { gap: 5px; }
   .gameCardList .favoriteButton { flex-basis: 44px; width: 44px; }
+  .shell.shell.shell .gameCardList .cardActions .chromeButton,
   .gameCardList .cardActions .chromeButton { font-size: 15px; }
   .gameCardList .cardActions svg { width: 15px; }
   .dialogHeader { padding: 12px; gap: 10px; }

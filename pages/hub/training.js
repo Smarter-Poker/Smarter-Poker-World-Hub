@@ -24,6 +24,7 @@
  * Author: redesign generated 2026-05-06
  */
 
+import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
@@ -568,6 +569,15 @@ export default function TrainingPage() {
         canonical="/hub/training"
         jsonLd={TRAINING_SCHEMA}
       />
+      <Head>
+        <link
+          rel="preload"
+          as="image"
+          type="image/avif"
+          imageSrcSet="/images/training/approved-chrome/640/mtt-001.avif 640w, /images/training/approved-chrome/960/mtt-001.avif 960w, /images/training/approved-chrome/mtt-001.avif 1440w"
+          imageSizes="(max-width: 600px) 88vw, (max-width: 1000px) 46vw, 400px"
+        />
+      </Head>
 
       <GlobalStyle />
 

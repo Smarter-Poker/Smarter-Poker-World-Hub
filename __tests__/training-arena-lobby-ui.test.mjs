@@ -210,6 +210,18 @@ test('approved lobby keeps chrome controls, readable mobile text, and native acc
   for (const forbidden of [/#f3b151/i, /#ffe16a/i, /#facc15/i, /#ffd700/i, /#c084fc/i, /#c99cff/i, /#f59e0b/i, /#fb923c/i]) {
     assert.doesNotMatch(cssCode, forbidden, `Forbidden accent color ${forbidden} in TrainingLobby.module.css`);
   }
+
+  // Legacy global training.css rules must exclude the approved chrome lobby shell,
+  // Jarvis head crop must defeat mobile img max-width: 100%, LCP artwork is preloaded,
+  // and the temporary preview harness stays removed.
+  const worldCss = read('src/styles/worlds/training.css');
+  assert.match(worldCss, /:where\(button, \[role='button'\], \.sp-card, \.sp-card-sm, \.sp-card-lg\):not\([^)]*\.sp-arena-lobby-shell \*\)/);
+  assert.match(worldCss, /:where\(button, \[role='button'\]\):not\([^)]*\.sp-arena-lobby-shell \*\)/);
+  assert.match(worldCss, /:where\(\.sp-card, \.sp-card-sm, \.sp-card-lg, article, fieldset\):not\([^)]*\.sp-arena-lobby-shell \*\)/);
+  assert.match(worldCss, /:where\(input, textarea, select\):not\([^)]*\.sp-arena-lobby-shell \*\)/);
+  assert.match(css, /\.jarvisPortrait img\s*\{[^}]*max-width:\s*none !important/);
+  assert.match(hub, /rel="preload"[\s\S]{0,200}approved-chrome\/640\/mtt-001\.avif/);
+  assert.equal(fs.existsSync(path.join(ROOT, 'public/__training_review_c868.html')), false);
 });
 
 test('guest favorites survive lobby re-entry in the same tab and report storage failures', () => {
