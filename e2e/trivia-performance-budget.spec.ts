@@ -269,6 +269,21 @@ test('Approved Trivia gallery keeps two mobile columns and accessible search and
     await expect(cards.nth(0).getByRole('heading')).toHaveText('1v1 Battle');
     await expect(cards.nth(1).getByRole('heading')).toHaveText('Daily Tournament');
 
+    // Every quick-access tile label must stay on one clean line at 375px with zero clipping.
+    const utilityLabels = await page.locator('.lobby-utility-bar a span:last-child').evaluateAll(nodes =>
+      nodes.map(node => ({
+        text: (node.textContent || '').trim(),
+        scrollWidth: node.scrollWidth,
+        clientWidth: node.clientWidth,
+        height: node.getBoundingClientRect().height,
+      })),
+    );
+    expect(utilityLabels.map(item => item.text)).toEqual(['Leaderboards', 'Stats', 'Achievements', 'Settings']);
+    for (const label of utilityLabels) {
+      expect(label.scrollWidth, `${label.text} must not clip at 375px`).toBeLessThanOrEqual(label.clientWidth + 1);
+      expect(label.height, `${label.text} must remain single-line at 375px`).toBeLessThanOrEqual(22);
+    }
+
     // Load the real lazy artwork before retaining the full-gallery review.
     for (let index = 0; index < expectedModes.length; index += 2) {
       await cards.nth(index).scrollIntoViewIfNeeded();

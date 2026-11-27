@@ -268,8 +268,8 @@
 
 .utilityBar {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr) minmax(0, 1.18fr) minmax(0, 0.86fr);
+  gap: 5px;
 }
 
 .utilityLink {
@@ -277,13 +277,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 2px;
   min-width: 0;
   min-height: 70px;
-  padding: 3px 1px 5px;
+  padding: 4px 2px 6px;
   color: #f5f8fb;
-  font-size: clamp(14px, 2.8vw, 20px);
+  font-size: clamp(12.5px, 3.2vw, 20px);
   font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1.15;
   text-align: center;
   text-decoration: none;
@@ -292,11 +293,13 @@
 
 .utilityLink span:last-child {
   max-width: 100%;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .utilityIcon {
-  --trivia-icon-size: 42px;
+  --trivia-icon-size: 40px;
 }
 
 .modesSection {
@@ -440,14 +443,14 @@
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  margin-top: -10px;
-  padding: 0 5px 5px;
+  margin-top: -8px;
+  padding: 0 6px 6px;
 }
 
 .cardTitle {
   display: flex;
   align-items: flex-end;
-  min-height: 2.15em;
+  min-height: 1.15em;
   margin: 0;
   color: #f5f8fb;
   font-size: clamp(18px, 3.7vw, 30px);
@@ -459,8 +462,8 @@
 }
 
 .cardCaption {
-  min-height: 2.4em;
-  margin: 3px 0 7px;
+  min-height: 1.25em;
+  margin: 2px 0 8px;
   color: #e0e8ed;
   font-size: clamp(14px, 2.9vw, 20px);
   line-height: 1.2;
@@ -674,7 +677,10 @@
   }
 
   .hero {
-    min-height: 136px;
+    min-height: 152px;
+    background: linear-gradient(105deg, #010305 0%, #010305b8 38%, #01030508 65%) padding-box,
+      url('/images/trivia/approved-chrome/hero.webp') center 35% / cover padding-box,
+      var(--chrome-edge) border-box;
   }
 
   .heroCopy {
@@ -728,6 +734,7 @@
   }
 
   .utilityBar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
   }
 
@@ -756,12 +763,12 @@
   }
 
   .cardContent {
-    margin-top: -21px;
+    margin-top: -16px;
     padding: 0 10px 10px;
   }
 
   .cardTitle {
-    min-height: 2.08em;
+    min-height: 1.15em;
   }
 
   .cardCaption {

@@ -127,25 +127,68 @@ function readDeduplicatedPvpRatings(accountKey) {
 }
 
 function TriviaModeArt({ mode, priority }) {
+  const [shouldLoad, setShouldLoad] = useState(Boolean(priority));
   const [fallback, setFallback] = useState(false);
   const [failed, setFailed] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (shouldLoad) return undefined;
+    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') {
+      setShouldLoad(true);
+      return undefined;
+    }
+    const node = containerRef.current;
+    if (!node) {
+      setShouldLoad(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '0px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
   return (
-    <div className={styles.art} aria-hidden="true">
+    <div ref={containerRef} className={styles.art} aria-hidden="true">
       {!failed ? (
-        <img
-          src={fallback ? mode.fallbackImage : mode.image}
-          srcSet={fallback ? undefined : `${mode.imageSmall} 576w, ${mode.image} ${mode.imageWidth}w`}
-          sizes="(max-width: 599px) calc((100vw - 42px) / 2), (max-width: 940px) calc((100vw - 62px) / 2), 439px"
-          alt=""
-          width={mode.imageWidth}
-          height={mode.imageHeight}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
-          onError={() => {
-            if (!fallback && mode.fallbackImage) setFallback(true);
-            else setFailed(true);
-          }}
-        />
+        shouldLoad ? (
+          <img
+            src={fallback ? mode.fallbackImage : mode.image}
+            srcSet={fallback ? undefined : `${mode.imageSmall} 576w, ${mode.image} ${mode.imageWidth}w`}
+            sizes="(max-width: 599px) calc((100vw - 42px) / 2), (max-width: 940px) calc((100vw - 62px) / 2), 439px"
+            alt=""
+            width={mode.imageWidth}
+            height={mode.imageHeight}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : undefined}
+            decoding="async"
+            onError={() => {
+              if (!fallback && mode.fallbackImage) setFallback(true);
+              else setFailed(true);
+            }}
+          />
+        ) : (
+          <noscript>
+            <img
+              src={mode.image}
+              srcSet={`${mode.imageSmall} 576w, ${mode.image} ${mode.imageWidth}w`}
+              sizes="(max-width: 599px) calc((100vw - 42px) / 2), (max-width: 940px) calc((100vw - 62px) / 2), 439px"
+              alt=""
+              width={mode.imageWidth}
+              height={mode.imageHeight}
+              loading="lazy"
+              decoding="async"
+            />
+          </noscript>
+        )
       ) : (
         <TriviaBodyIcon name="duel" className={styles.artFallback} />
       )}

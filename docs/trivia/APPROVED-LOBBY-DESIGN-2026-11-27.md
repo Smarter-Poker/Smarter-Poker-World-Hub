@@ -55,3 +55,14 @@ Local evidence before submission:
 - UI text and title-case scans passed. Final diff whitespace is clean.
 
 Normal commit/pre-push hooks, exact-head hosted checks, protected merge, Vercel source publication, and live verification remain pending at this source checkpoint. The final provider identities and observed result will be recorded in the owning PR and delivery report.
+
+## Resumption, Budget Recovery, And Mobile Polish (2026-11-27)
+
+- Resumption policy reading completed at `2026-11-27T21:10:12.168Z` via `node /Users/smarter.poker/Documents/agent-policy.mjs read`, policy version `2.9`, manifest SHA-256 `e78254a8d7b401b5e9f8fdcefa1f6f36088fa1a7128e1c2d18622c2a952ac2cb`. Repository `AGENTS.md`, `PUBLISHING.md`, and this checkpoint were read separately.
+- Integrated `origin/main` (`eada27372dc`) cleanly and regenerated `.agent/audits/2026-08-31-training-phase-2-inventory.json` via `node scripts/training-surface-inventory.mjs --write` so Pre-Deploy Safety Checks stay current.
+- Optimized approved-chrome WebP assets from the `950cdcc` originals (`hero.webp` 19.2 KB at 1080x360, `ui-icons.webp` 30.6 KB at 448x336, 12x `*-576.webp` mobile renditions averaging 25.4 KB) and bounded below-the-fold card image fetching in `TriviaModeArt` via `IntersectionObserver` (`rootMargin: '0px'`) while keeping above-the-fold priority cards eager in SSR HTML. Updated Trivia art cache digest in `next.config.js` and `worker/index.js` to `trivia-art-f981b38325`.
+- Fixed 375px mobile utility-bar wrapping (`Leaderboards` / `Achievements` previously broke mid-word) using proportional narrow-viewport column tracks (`1.18fr / 0.82fr / 1.18fr / 0.86fr`), tightened card title/caption vertical spacing so Row 1 (`1v1 Battle` and `Daily Tournament`) sits cleanly above the fold, improved desktop hero framing (`center 35%`), and added a 375px single-line utility-label regression assertion in `e2e/trivia-performance-budget.spec.ts`.
+- Local production verification (`next build --webpack` + `next start` + Playwright `trivia-performance` project):
+  - `/hub/trivia` cold mobile p75: `imageKb=960.4KB` (<= 1,024 KB), `jsKb=692.8KB`, `cssKb=189.5KB`, `lcpMs=152ms`, `inpMs=0ms`, `cls=0.000`, `queryCount=11`, `jsHeapMb=9.0MB` — PASS.
+  - Approved gallery 375px + 1280px interaction & screenshot suite (all 12 cards loaded, equal columns, zero overflow, single-line utility labels, search, Help focus/dismissal, landscape reachability) — PASS.
+  - Local contract/unit suites: 97/97 Trivia/PWA/first-paint tests + 7/7 Training inventory & SEO/SMARTERDESIGN fortress tests — PASS.

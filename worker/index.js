@@ -62,7 +62,7 @@ self.addEventListener('message', (event) => {
 // clients while rejected art remains would let an installed PWA reload into a
 // mixed release; keeping the previous worker active is the safe outcome.
 // ---------------------------------------------------------------------------
-const TRIVIA_ART_CACHE = 'trivia-art-76502431e3';
+const TRIVIA_ART_CACHE = 'trivia-art-f981b38325';
 
 async function retireStaleTriviaArt() {
     const cacheStorage = self.caches;
