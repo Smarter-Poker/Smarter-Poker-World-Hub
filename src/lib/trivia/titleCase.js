@@ -3,14 +3,16 @@
  * Capitalizes the first letter of every word while preserving poker acronyms
  */
 
-// Poker/Gaming acronyms to preserve in UPPERCASE
+// Poker/Gaming & Technical acronyms to preserve in UPPERCASE
 const ACRONYMS = new Set([
-    'WSOP', 'WPT', 'EPT', 'GTO', 'ICM', 'EV', 'SPR', 'HUD', 'MTT', 'SNG',
-    'PLO', 'NLH', 'NLHE', 'LHE', 'PL', 'NL', 'FL', 'BB', 'SB', 'BTN', 'CO',
-    'UTG', 'MP', 'LP', 'EP', 'IP', 'OOP', 'VPIP', 'PFR', 'AF', '3BET', 'ATC',
+    'TDA', 'WSOP', 'WPT', 'EPT', 'GTO', 'ICM', 'EV', 'SPR', 'HUD', 'MTT', 'SNG',
+    'PLO', 'PLO4', 'PLO5', 'PLO8', 'NLH', 'NLHE', 'LHE', 'PL', 'NL', 'FL',
+    'BB', 'SB', 'BTN', 'CO', 'HJ', 'LJ', 'UTG', 'MP', 'LP', 'EP', 'IP', 'OOP',
+    'VPIP', 'PFR', 'AF', '3BET', 'ATC',
     'LAG', 'TAG', 'ABC', 'AI', 'AKA', 'APT', 'BRM', 'CBet', 'DON', 'FPS',
     'HH', 'HSP', 'ITM', 'LATB', 'MDF', 'NFD', 'OESD', 'OMC', 'OTB', 'PAD',
     'POF', 'PIO', 'RIO', 'ROI', 'RNG', 'SRP', 'TNT', 'TOC', 'WA', 'WB',
+    'API', 'URL', 'ID', 'UUID', 'CT', 'UTC', 'VIP', 'ELO', 'MFA', 'SMS', 'PWA',
     'USA', 'US', 'UK', 'TV', 'UIGEA', 'DOJ', 'IRS', 'LV', 'LA', 'NYC'
 ]);
 
@@ -92,9 +94,10 @@ export function toTitleCase(text, strict = true) {
                     : word;
             }
 
-            // Handle words starting with punctuation (like quotes)
-            const leadingPunct = word.match(/^[^a-zA-Z]*/)?.[0] || '';
-            const trailingPunct = word.match(/[^a-zA-Z]*$/)?.[0] || '';
+            // Handle words starting/ending with punctuation (like quotes or parens)
+            // Keep digits inside coreWord so alphanumeric acronyms like PLO4, PLO5, PLO8, 3BET match.
+            const leadingPunct = word.match(/^[^a-zA-Z0-9]*/)?.[0] || '';
+            const trailingPunct = word.match(/[^a-zA-Z0-9]*$/)?.[0] || '';
             const coreWord = word.slice(leadingPunct.length, word.length - (trailingPunct.length || 0) || undefined);
 
             if (!coreWord) return word;
@@ -115,6 +118,25 @@ export function toTitleCase(text, strict = true) {
             const upperCore = coreWord.toUpperCase();
             if (ACRONYMS.has(upperCore)) {
                 return leadingPunct + upperCore + trailingPunct;
+            }
+
+            // Preserve acronyms inside hyphenated words (e.g., TDA-governed -> TDA-Governed)
+            if (coreWord.includes('-')) {
+                const formattedParts = coreWord.split('-').map((part, partIdx) => {
+                    if (!part) return part;
+                    const upperPart = part.toUpperCase();
+                    if (ACRONYMS.has(upperPart)) return upperPart;
+                    if (isCardNotation(part)) {
+                        return SUIT_GLYPH.test(part)
+                            ? part.replace(/[akqjt]/g, m => m.toUpperCase())
+                            : part;
+                    }
+                    if (!strict && index > 0 && partIdx > 0 && smallWords.includes(part.toLowerCase())) {
+                        return part.toLowerCase();
+                    }
+                    return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+                });
+                return leadingPunct + formattedParts.join('-') + trailingPunct;
             }
 
             // In strict mode or for first word, always capitalize

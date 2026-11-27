@@ -147,15 +147,15 @@ test('ShareResultCardModal and PostSettlementReviewDrawer are wired across Trivi
     const triviaResult = read('src/components/trivia/TriviaResult.jsx');
     assert.match(triviaResult, /ShareResultCardModal/);
     assert.match(triviaResult, /PostSettlementReviewDrawer/);
-    assert.match(triviaResult, /Share Score Card/);
-    assert.match(triviaResult, /Review Questions/);
+    assert.match(triviaResult, /Share Result Card/);
+    assert.match(triviaResult, /Review Answers/);
     assert.match(triviaResult, /canOpenSettledReview = Boolean\(sessionId && settled !== false\)/);
 
     const phase9Receipt = read('src/components/trivia/phase9/Phase9SettlementReceipt.jsx');
     assert.match(phase9Receipt, /import ShareResultCardModal from '\.\.\/ShareResultCardModal'/);
     assert.match(phase9Receipt, /import PostSettlementReviewDrawer from '\.\.\/PostSettlementReviewDrawer'/);
-    assert.match(phase9Receipt, /Share Score Card/);
-    assert.match(phase9Receipt, /Review Questions/);
+    assert.match(phase9Receipt, /Share Result Card/);
+    assert.match(phase9Receipt, /Review Answers/);
     assert.match(phase9Receipt, /isSettled = Boolean\(/);
     assert.match(phase9Receipt, /<ShareResultCardModal/);
     assert.match(phase9Receipt, /<PostSettlementReviewDrawer/);

@@ -262,7 +262,7 @@ function CatRow({ catId, counts, track }) {
     const targetEasy = Math.floor(TARGET_PER_CATEGORY * 0.20);
     const targetMedium = Math.floor(TARGET_PER_CATEGORY * 0.50);
     const targetHard = Math.floor(TARGET_PER_CATEGORY * 0.30);
-    const trackColor = track === 'A' ? '#22c55e' : '#06b6d4';
+    const trackColor = track === 'A' ? '#4ade80' : '#06b6d4';
     const totalPct = Math.round((counts.total / TARGET_PER_CATEGORY) * 100);
     const belowFloor = counts.total < SIXTY_DAY_FLOOR;
     return (
@@ -275,8 +275,8 @@ function CatRow({ catId, counts, track }) {
             </td>
             <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.easy, targetEasy, '#86daff')}</td>
             <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.medium, targetMedium, '#3b82f6')}</td>
-            <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.hard, targetHard, '#22c55e')}</td>
-            <td style={{ padding: '12px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: belowFloor ? '#ef4444' : totalPct >= 100 ? '#22c55e' : '#fff' }}>
+            <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.hard, targetHard, '#4ade80')}</td>
+            <td style={{ padding: '12px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: belowFloor ? '#ef4444' : totalPct >= 100 ? '#4ade80' : '#fff' }}>
                 {counts.total} / {TARGET_PER_CATEGORY}
                 <div style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.72)' }}>
                     {totalPct}%{belowFloor ? ' · below 60-day floor' : ''}
@@ -669,7 +669,7 @@ export default function TriviaPoolDashboard({
                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
                     <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, color: '#f2f7ff' }}>Trivia Pool Dashboard</h1>
                     <div style={{ fontSize: 12, color: '#bdd0e2' }}>
-                        Generated {new Date(displayGeneratedAt).toLocaleString()} · <a href="/admin/trivia-pool" style={{ color: '#86daff', display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>Reload</a>
+                        Generated {new Date(displayGeneratedAt).toLocaleString()} · <a href="/admin/trivia-pool" style={{ color: '#86daff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44, padding: '0 8px' }}>Reload</a>
                     </div>
                 </div>
                 <div style={{ color: '#bdd0e2', fontSize: 14, marginBottom: 18 }}>
@@ -750,10 +750,10 @@ export default function TriviaPoolDashboard({
                             gap: 12,
                             background: actionFeedback.kind === 'mfa'
                                 ? 'rgba(12, 85, 192, 0.22)'
-                                : (actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.16)'),
+                                : (actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.16)' : 'rgba(74, 222, 128,0.16)'),
                             border: `1px solid ${actionFeedback.kind === 'mfa'
                                 ? 'rgba(134, 218, 255, 0.55)'
-                                : (actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(34,197,94,0.45)')}`,
+                                : (actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(74, 222, 128,0.45)')}`,
                             color: actionFeedback.kind === 'mfa'
                                 ? '#f2f7ff'
                                 : (actionFeedback.kind === 'error' ? '#fecaca' : '#bbf7d0'),
@@ -787,8 +787,8 @@ export default function TriviaPoolDashboard({
                 {activeTab === 'overview' && (
                     <>
                         <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-                            <Card title="Pool Total" value={`${totalCount.toLocaleString()} / ${targetTotal.toLocaleString()}`} subtitle={`${overallPct}% complete`} color={overallPct >= 100 ? '#22c55e' : overallPct >= 50 ? '#86daff' : '#ef4444'} />
-                            <Card title="Track A (Deterministic)" value={`${trackATotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackATotal / 7500) * 100)}% - solver-grounded`} color="#22c55e" />
+                            <Card title="Pool Total" value={`${totalCount.toLocaleString()} / ${targetTotal.toLocaleString()}`} subtitle={`${overallPct}% complete`} color={overallPct >= 100 ? '#4ade80' : overallPct >= 50 ? '#86daff' : '#ef4444'} />
+                            <Card title="Track A (Deterministic)" value={`${trackATotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackATotal / 7500) * 100)}% - solver-grounded`} color="#4ade80" />
                             <Card title="Track B (Grok-3-Mini)" value={`${trackBTotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackBTotal / 7500) * 100)}% - fact-verified`} color="#86daff" />
                         </div>
 
@@ -842,7 +842,7 @@ export default function TriviaPoolDashboard({
                                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
                                     <Card title="Grok Questions" value={poolAudit.grokTotal.toLocaleString()} subtitle="Track B total" color="#86daff" />
                                     <Card title="Audited" value={`${poolAudit.grokAudited.toLocaleString()} / ${poolAudit.grokTotal.toLocaleString()}`} subtitle={`${poolAudit.grokTotal > 0 ? Math.round((poolAudit.grokAudited / poolAudit.grokTotal) * 100) : 0}% reviewed`} color="#bdd0e2" />
-                                    <Card title="Verified" value={poolAudit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
+                                    <Card title="Verified" value={poolAudit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#4ade80" />
                                     <Card title="Flagged" value={poolAudit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
                                     <Card title="Last 24h" value={poolAudit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#86daff" />
                                 </div>
@@ -875,9 +875,9 @@ export default function TriviaPoolDashboard({
                             <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
                                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>QUALITY SYSTEMS (Phase 54)</h3>
                                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
-                                    <Card title="Paused Categories" value={poolPhase54.pausedCategories.length.toString()} subtitle={poolPhase54.pausedCategories.length === 0 ? 'all generating' : poolPhase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={poolPhase54.pausedCategories.length > 0 ? '#ef4444' : '#22c55e'} />
-                                    <Card title="Open Reports" value={poolPhase54.unresolvedReportCount.toString()} subtitle="users flagged" color={poolPhase54.unresolvedReportCount > 0 ? '#86daff' : '#22c55e'} />
-                                    <Card title="Regression Failures" value={poolPhase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={poolPhase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#22c55e'} />
+                                    <Card title="Paused Categories" value={poolPhase54.pausedCategories.length.toString()} subtitle={poolPhase54.pausedCategories.length === 0 ? 'all generating' : poolPhase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={poolPhase54.pausedCategories.length > 0 ? '#ef4444' : '#4ade80'} />
+                                    <Card title="Open Reports" value={poolPhase54.unresolvedReportCount.toString()} subtitle="users flagged" color={poolPhase54.unresolvedReportCount > 0 ? '#86daff' : '#4ade80'} />
+                                    <Card title="Regression Failures" value={poolPhase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={poolPhase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#4ade80'} />
                                     <Card title="Embedding Backlog" value={poolPhase54.embeddingBacklog.toLocaleString()} subtitle="questions un-embedded" color="#86daff" />
                                     <Card title="Theme Backlog" value={poolPhase54.themeBacklog.toLocaleString()} subtitle="questions un-tagged" color="#bdd0e2" />
                                 </div>
@@ -887,9 +887,9 @@ export default function TriviaPoolDashboard({
                                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER - Per-Category Audit Pass Rate</div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
                                             {poolPhase54.categoryHealth.map(h => (
-                                                <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)') }}>
+                                                <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(74, 222, 128,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(74, 222, 128,0.15)') }}>
                                                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{h.category}</div>
-                                                    <div style={{ fontSize: 14, fontWeight: 600, color: h.generation_paused ? '#ef4444' : '#22c55e' }}>
+                                                    <div style={{ fontSize: 14, fontWeight: 600, color: h.generation_paused ? '#ef4444' : '#4ade80' }}>
                                                         {h.pass_rate !== null ? Math.round(h.pass_rate * 100) + '%' : 'no data'}
                                                         {h.generation_paused && <span style={{ marginLeft: 6, fontSize: 12, color: '#ff7a7a' }}>PAUSED</span>}
                                                     </div>
@@ -1109,7 +1109,7 @@ export default function TriviaPoolDashboard({
                                 type="button"
                                 disabled={actionBusy || readyQueueCount === 0}
                                 onClick={selectReadyOnly}
-                                style={{ minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(34,197,94,0.18)', color: '#bbf7d0', border: '1px solid rgba(34,197,94,0.45)' }}
+                                style={{ minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(74, 222, 128,0.18)', color: '#bbf7d0', border: '1px solid rgba(74, 222, 128,0.45)' }}
                             >
                                 Select Ready Only
                             </button>
@@ -1130,7 +1130,7 @@ export default function TriviaPoolDashboard({
                                 type="button"
                                 disabled={actionBusy || selectedIds.length === 0}
                                 onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'approve', reason: curationReason })}
-                                style={{ minHeight: 44, padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#166534', color: '#fff', border: '1px solid #22c55e' }}
+                                style={{ minHeight: 44, padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#166534', color: '#fff', border: '1px solid rgba(74, 222, 128, 0.55)' }}
                             >
                                 Approve Selected
                             </button>
@@ -1163,7 +1163,7 @@ export default function TriviaPoolDashboard({
                                 type="button"
                                 disabled={actionBusy || selectedIds.length === 0}
                                 onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'set_difficulty_hard', reason: curationReason })}
-                                style={{ minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(34, 197, 94, 0.18)', color: '#f2f7ff', border: '1px solid rgba(34, 197, 94, 0.45)' }}
+                                style={{ minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(74, 222, 128, 0.18)', color: '#f2f7ff', border: '1px solid rgba(74, 222, 128, 0.45)' }}
                             >
                                 Re-Tier Hard
                             </button>
@@ -1204,13 +1204,51 @@ export default function TriviaPoolDashboard({
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
-                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12 }}>
-                                                <input
-                                                    type="checkbox"
+                                            <th style={{ padding: '6px 8px', textAlign: 'left', fontSize: 12, width: 56 }}>
+                                                <button
+                                                    type="button"
+                                                    role="checkbox"
+                                                    aria-checked={queueItems.length > 0 && selectedIds.length === queueItems.length}
                                                     aria-label="Select All Questions"
-                                                    checked={queueItems.length > 0 && selectedIds.length === queueItems.length}
-                                                    onChange={toggleSelectAll}
-                                                />
+                                                    className="sd-button"
+                                                    onClick={toggleSelectAll}
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        minWidth: 44,
+                                                        minHeight: 44,
+                                                        width: 44,
+                                                        height: 44,
+                                                        padding: 0,
+                                                        borderRadius: 8,
+                                                        background: queueItems.length > 0 && selectedIds.length === queueItems.length ? 'rgba(25, 129, 236, 0.36)' : 'rgba(10, 24, 41, 0.9)',
+                                                        border: queueItems.length > 0 && selectedIds.length === queueItems.length ? '1px solid #86daff' : '1px solid rgba(189, 208, 226, 0.35)',
+                                                        color: '#f2f7ff',
+                                                        fontSize: 16,
+                                                        fontWeight: 700,
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    <span
+                                                        aria-hidden="true"
+                                                        style={{
+                                                            display: 'inline-block',
+                                                            width: 16,
+                                                            height: 16,
+                                                            borderRadius: 4,
+                                                            border: queueItems.length > 0 && selectedIds.length === queueItems.length
+                                                                ? '2px solid #86daff'
+                                                                : '2px solid rgba(189, 208, 226, 0.55)',
+                                                            background: queueItems.length > 0 && selectedIds.length === queueItems.length
+                                                                ? '#1981ec'
+                                                                : 'transparent',
+                                                            boxShadow: queueItems.length > 0 && selectedIds.length === queueItems.length
+                                                                ? 'inset 0 0 0 2px #0a1829'
+                                                                : 'none',
+                                                        }}
+                                                    />
+                                                </button>
                                             </th>
                                             <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>CATEGORY</th>
                                             <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>DIFFICULTY</th>
@@ -1235,13 +1273,54 @@ export default function TriviaPoolDashboard({
                                                         borderLeft: isFocused ? '3px solid #86daff' : '3px solid transparent',
                                                     }}
                                                 >
-                                                    <td style={{ padding: '10px 10px', verticalAlign: 'top' }}>
-                                                        <input
-                                                            type="checkbox"
+                                                    <td style={{ padding: '6px 8px', verticalAlign: 'top', width: 56 }}>
+                                                        <button
+                                                            type="button"
+                                                            role="checkbox"
+                                                            aria-checked={selectedSet.has(item.questionId)}
                                                             aria-label={`Select Question ${item.questionId.slice(0, 8)}`}
-                                                            checked={selectedSet.has(item.questionId)}
-                                                            onChange={() => toggleSelectId(item.questionId)}
-                                                        />
+                                                            className="sd-button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleSelectId(item.questionId);
+                                                            }}
+                                                            style={{
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                minWidth: 44,
+                                                                minHeight: 44,
+                                                                width: 44,
+                                                                height: 44,
+                                                                padding: 0,
+                                                                borderRadius: 8,
+                                                                background: selectedSet.has(item.questionId) ? 'rgba(25, 129, 236, 0.36)' : 'rgba(10, 24, 41, 0.9)',
+                                                                border: selectedSet.has(item.questionId) ? '1px solid #86daff' : '1px solid rgba(189, 208, 226, 0.35)',
+                                                                color: '#f2f7ff',
+                                                                fontSize: 16,
+                                                                fontWeight: 700,
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            <span
+                                                                aria-hidden="true"
+                                                                style={{
+                                                                    display: 'inline-block',
+                                                                    width: 16,
+                                                                    height: 16,
+                                                                    borderRadius: 4,
+                                                                    border: selectedSet.has(item.questionId)
+                                                                        ? '2px solid #86daff'
+                                                                        : '2px solid rgba(189, 208, 226, 0.55)',
+                                                                    background: selectedSet.has(item.questionId)
+                                                                        ? '#1981ec'
+                                                                        : 'transparent',
+                                                                    boxShadow: selectedSet.has(item.questionId)
+                                                                        ? 'inset 0 0 0 2px #0a1829'
+                                                                        : 'none',
+                                                                }}
+                                                            />
+                                                        </button>
                                                     </td>
                                                     <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
                                                         <div>{PRETTY[item.category] || item.category}</div>
@@ -1260,7 +1339,7 @@ export default function TriviaPoolDashboard({
                                                     <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', minWidth: 180 }}>
                                                         {auditPass ? (
                                                             <div>
-                                                                <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.45)', color: '#bbf7d0', fontSize: 12, fontWeight: 700 }}>
+                                                                <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'rgba(74, 222, 128,0.18)', border: '1px solid rgba(74, 222, 128,0.45)', color: '#bbf7d0', fontSize: 12, fontWeight: 700 }}>
                                                                     Audit {auditScore}/100
                                                                 </span>
                                                                 <div style={{ fontSize: 12, color: '#bdd0e2', marginTop: 4 }}>
@@ -1331,7 +1410,7 @@ export default function TriviaPoolDashboard({
                         <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 18 }}>
                             <Card title="Flagged Outliers" value={String(calibrationSummary.flagged_count || 0)} subtitle={`Min shown >= ${minShown}`} color="#86daff" />
                             <Card title="Easy Too Hard" value={String(calibrationSummary.easy_too_hard_count || 0)} subtitle="Solve rate < 35%" color="#ef4444" />
-                            <Card title="Hard Too Easy" value={String(calibrationSummary.hard_too_easy_count || 0)} subtitle="Solve rate > 85%" color="#22c55e" />
+                            <Card title="Hard Too Easy" value={String(calibrationSummary.hard_too_easy_count || 0)} subtitle="Solve rate > 85%" color="#4ade80" />
                             <Card title="Skip Or Report Outliers" value={String((calibrationSummary.high_skip_count || 0) + (calibrationSummary.high_report_count || 0))} subtitle="High skip or open reports" color="#bdd0e2" />
                         </div>
 
@@ -1414,7 +1493,7 @@ export default function TriviaPoolDashboard({
                                                             type="button"
                                                             disabled={actionBusy}
                                                             onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'set_difficulty_hard', reason: calibrationReason })}
-                                                            style={{ minHeight: 44, padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(34, 197, 94, 0.18)', color: '#f2f7ff', border: '1px solid rgba(34, 197, 94, 0.45)' }}
+                                                            style={{ minHeight: 44, padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(74, 222, 128, 0.18)', color: '#f2f7ff', border: '1px solid rgba(74, 222, 128, 0.45)' }}
                                                         >
                                                             Hard
                                                         </button>

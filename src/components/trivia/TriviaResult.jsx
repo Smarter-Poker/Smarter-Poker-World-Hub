@@ -430,7 +430,7 @@ export default function TriviaResult({
             )}
 
             <div className="result-actions">
-                {canReview && (
+                {canReview ? (
                     <button
                         type="button"
                         className="review-toggle tc-word"
@@ -440,26 +440,22 @@ export default function TriviaResult({
                     >
                         {showReview ? 'Hide Answers' : 'Review Answers'}
                     </button>
-                )}
-                <button type="button" className="result-action result-action--share tc-word" onClick={handleShare}>
-                    {shareLabel}
-                </button>
-                <button
-                    type="button"
-                    className="result-action result-action--share-card tc-word tc-ink--cyan"
-                    onClick={() => setShareCardOpen(true)}
-                >
-                    Share Score Card
-                </button>
-                {canOpenSettledReview ? (
+                ) : canOpenSettledReview ? (
                     <button
                         type="button"
                         className="result-action result-action--verified-review tc-word tc-ink--blue"
                         onClick={() => setVerifiedReviewOpen(true)}
                     >
-                        Review Questions
+                        Review Answers
                     </button>
                 ) : null}
+                <button
+                    type="button"
+                    className="result-action result-action--share-card tc-word tc-ink--cyan"
+                    onClick={() => setShareCardOpen(true)}
+                >
+                    Share Result Card
+                </button>
 
                 {showSpinButton && onSpinWheel && (
                     <button type="button" className="result-action result-action--spin-wheel tc-word tc-ink--cyan" onClick={onSpinWheel}>
@@ -475,7 +471,7 @@ export default function TriviaResult({
 
                 {!actionsInFooter && (
                     <Link href="/hub/trivia" className="result-action result-action--secondary tc-word">
-                        Back To Trivia
+                        Back To Lobby
                     </Link>
                 )}
                 {!actionsInFooter && showPlayAgain && (

@@ -144,11 +144,26 @@ function Status({ ok, good = 'Healthy', bad = 'Needs attention' }) {
     return <span style={{ ...S.badge, background: ok ? '#14532d' : '#7f1d1d' }}>{ok ? good : bad}</span>;
 }
 
-function Metric({ label, value, detail }) {
+function Metric({ label, value, detail, span = 1, mono = false, children = null }) {
     return (
-        <div className={`sd-metric ${consoleStyles.metric}`} style={S.metric}>
+        <div
+            className={`sd-metric ${consoleStyles.metric}`}
+            style={{
+                ...S.metric,
+                ...(span === 'full' ? { gridColumn: '1 / -1' } : span > 1 ? { gridColumn: `span ${span}` } : null),
+            }}
+        >
             <div style={S.metricLabel}>{label}</div>
-            <div style={S.metricValue}>{fmt(value)}</div>
+            {children ? children : (
+                <div
+                    style={{
+                        ...S.metricValue,
+                        ...(mono ? { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, lineHeight: 1.45, overflowWrap: 'anywhere' } : null),
+                    }}
+                >
+                    {fmt(value)}
+                </div>
+            )}
             {detail ? <div style={S.detail}>{detail}</div> : null}
         </div>
     );
@@ -811,7 +826,6 @@ export default function TriviaOperationsPage() {
             <Panel title="Operator authority">
                 <div style={S.grid}>
                     <Metric label="Named roles" value={(data.authority?.roles || []).join(', ') || 'None'} />
-                    <Metric label="Capabilities" value={(data.authority?.capabilities || []).join(', ') || 'None'} />
                     <Metric label="Recent receipts" value={data.operator_events?.length || 0} />
                     <Metric label="Durable alert episodes" value={data.operations_health?.activeEpisodes?.length || 0} />
                     <Metric
@@ -821,6 +835,37 @@ export default function TriviaOperationsPage() {
                             ? (operatorMfa.expiresAt ? `Expires ${fmtTime(operatorMfa.expiresAt)}` : 'Active')
                             : (operatorMfa.reason || 'MFA challenge required')}
                     />
+                    <Metric label="Capabilities" span="full">
+                        {(data.authority?.capabilities || []).length > 0 ? (
+                            <div
+                                data-capabilities-pills="true"
+                                style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}
+                            >
+                                {(data.authority?.capabilities || []).map((cap) => (
+                                    <span
+                                        key={cap}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            padding: '3px 9px',
+                                            borderRadius: 999,
+                                            border: '1px solid rgba(134, 218, 255, 0.32)',
+                                            background: 'rgba(134, 218, 255, 0.1)',
+                                            color: '#f2f7ff',
+                                            fontSize: 12,
+                                            fontWeight: 600,
+                                            lineHeight: 1.3,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {cap}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={S.metricValue}>None</div>
+                        )}
+                    </Metric>
                 </div>
                 {!operatorMfa.verified ? (
                     <div style={S.actions}>
@@ -1009,7 +1054,7 @@ export default function TriviaOperationsPage() {
                     <Metric label="Active owner observed" value={scheduler.active_owner_observed} />
                     <Metric label="Last owner run" value={fmtTime(scheduler.last_owner_run_at)} />
                     <Metric label="Recent runs" value={Array.isArray(scheduler.recent_runs) ? scheduler.recent_runs.length : 0} />
-                    <Metric label="Current holder" value={scheduler.lease?.holder_id} />
+                    <Metric label="Current holder" value={scheduler.lease?.holder_id} span={2} mono />
                     <Metric label="Fencing token" value={scheduler.lease?.fencing_token} />
                     <Metric label="Lease expires" value={fmtTime(scheduler.lease?.expires_at)} />
                     <Metric label="Takeovers" value={scheduler.lease?.takeovers} />

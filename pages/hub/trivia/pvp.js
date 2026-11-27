@@ -11,7 +11,6 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useTriviaRealtimeSync from '../../../src/hooks/useTriviaRealtimeSync';
 import { getFreshAccessToken } from '../../../src/lib/authUtils';
-import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { eloTierInk } from '../../../src/lib/trivia/integrityAndElo.mjs';
 import { triviaPvpPageReleaseResult } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 import { VALID_CHALLENGE_STAKES } from '../../../src/lib/trivia/socialGrowthHelpers.mjs';
@@ -26,12 +25,23 @@ export function getServerSideProps() {
     return triviaPvpPageReleaseResult(process.env);
 }
 
+function formatExactElo(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? Math.round(num).toLocaleString('en-US') : '1,200';
+}
+
+function formatExactCount(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? Math.max(0, Math.round(num)).toLocaleString('en-US') : '0';
+}
+
 function PvpEloHeaderBadge({ rating, loading, realtimeActive = false, realtimeConnected = false }) {
     if (loading && !rating) {
         return (
             <section className="trivia-pvp-elo-banner" aria-label="Your PvP Elo Rating">
                 <div className="trivia-pvp-elo-banner__meta">
                     <span className="tc-label">Ranked PvP Elo</span>
+                    {' '}
                     <strong className="trivia-pvp-elo-banner__score">Loading Rating</strong>
                 </div>
             </section>
@@ -41,26 +51,34 @@ function PvpEloHeaderBadge({ rating, loading, realtimeActive = false, realtimeCo
     const rawTierInk = eloTierInk(rating.tier);
     const tierInk = rawTierInk === 'gold' ? 'blue' : rawTierInk;
     const recordLabel = rating.gamesPlayed > 0
-        ? `${formatTriviaDisplayNumber(rating.wins)}W / ${formatTriviaDisplayNumber(rating.losses)}L / ${formatTriviaDisplayNumber(rating.ties)}T`
+        ? `${formatExactCount(rating.wins)}W / ${formatExactCount(rating.losses)}L / ${formatExactCount(rating.ties)}T`
         : 'Unrated';
 
     return (
         <section className="trivia-pvp-elo-banner" aria-label="Your PvP Elo Rating" data-elo-tier={rating.tier}>
             <div className="trivia-pvp-elo-banner__meta">
-                <span className="tc-label">Ranked PvP Elo</span>
+                <span className="tc-label trivia-pvp-elo-banner__label">Ranked PvP Elo</span>
+                {' '}
                 <span className={`trivia-pvp-elo-badge tc-ink--${tierInk}`}>{rating.tier}</span>
-                <strong className="trivia-pvp-elo-banner__score">{formatTriviaDisplayNumber(rating.elo)} Elo</strong>
-                <span className="trivia-pvp-elo-banner__detail">Peak {formatTriviaDisplayNumber(rating.peakElo)}</span>
+                {' '}
+                <strong className="trivia-pvp-elo-banner__score">{formatExactElo(rating.elo)} Elo</strong>
+                {' '}
+                <span className="trivia-pvp-elo-banner__detail">Peak {formatExactElo(rating.peakElo)}</span>
+                {' '}
                 <span className="trivia-pvp-elo-banner__detail">Record {recordLabel}</span>
                 {realtimeActive ? (
-                    <span
-                        className={`trivia-pvp-elo-badge ${realtimeConnected ? 'tc-ink--green' : 'tc-ink--silver'}`}
-                        data-realtime-sync={realtimeConnected ? 'connected' : 'fallback'}
-                    >
-                        {realtimeConnected ? 'Realtime Live' : 'Polling Sync'}
-                    </span>
+                    <>
+                        {' '}
+                        <span
+                            className={`trivia-pvp-elo-badge ${realtimeConnected ? 'tc-ink--green' : 'tc-ink--silver'}`}
+                            data-realtime-sync={realtimeConnected ? 'connected' : 'fallback'}
+                        >
+                            {realtimeConnected ? 'Realtime Live' : 'Polling Sync'}
+                        </span>
+                    </>
                 ) : null}
             </div>
+            {' '}
             <Link href="/hub/trivia/leaderboard" className="tc-word trivia-pvp-elo-link">
                 PvP Elo Leaderboard
             </Link>

@@ -17,6 +17,69 @@
     min-width: 0;
 }
 
+.trivia-pvp-elo-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    width: min(100%, 1120px);
+    min-height: 54px;
+    margin: 0 auto 14px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--sd-line, var(--tc-bevel, #445e77));
+    background: var(--sd-surface, var(--tc-chassis-black, #0a1829));
+    box-sizing: border-box;
+}
+
+.trivia-pvp-elo-banner__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    min-width: 0;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+.trivia-pvp-elo-banner__label {
+    margin-right: 2px;
+}
+
+.trivia-pvp-elo-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.trivia-pvp-elo-banner__score {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--sd-text, var(--tc-ink-white, #f2f7ff));
+    white-space: nowrap;
+}
+
+.trivia-pvp-elo-banner__detail {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--sd-silver, var(--tc-ink-silver, #bdd0e2));
+    white-space: nowrap;
+}
+
+.trivia-pvp-elo-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    flex-shrink: 0;
+}
+
 .trivia-pvp-console {
     --tc-max: 1120px;
 }

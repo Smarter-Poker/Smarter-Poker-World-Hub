@@ -197,6 +197,65 @@ body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
     border: 0;
 }
 
+/* High-contrast settlement receipt values and composited answer/tab feedback. */
+.phase9-settlement__rows dd {
+    color: var(--tc-ink-white, #f2f7ff);
+}
+
+.phase9-settlement__transactions small {
+    color: var(--tc-ink-silver, #bdd0e2);
+}
+
+.trivia-answer-option {
+    transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease;
+}
+
+.trivia-answer-option:active:not(:disabled) {
+    transform: scale(0.985);
+}
+
+.trivia-answer-option[data-reveal='true'][data-correct='true'],
+.trivia-answer-option[data-reveal='true'][data-wrong='true'] {
+    animation: triviaAnswerReveal 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[role='tabpanel'].modes-grid {
+    animation: triviaPanelFade 180ms ease-out;
+}
+
+@keyframes triviaAnswerReveal {
+    0% {
+        opacity: 0.82;
+        transform: translateY(2px);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes triviaPanelFade {
+    0% {
+        opacity: 0.88;
+        transform: translateY(3px);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .tc-word:active { filter: none; }
+    .trivia-answer-option {
+        transition: none;
+    }
+    .trivia-answer-option:active:not(:disabled) {
+        transform: none;
+    }
+    .trivia-answer-option[data-reveal='true'][data-correct='true'],
+    .trivia-answer-option[data-reveal='true'][data-wrong='true'],
+    [role='tabpanel'].modes-grid {
+        animation: none;
+    }
 }
