@@ -170,16 +170,29 @@ function detectStakes(text) {
         }
     }
 
-    // Fallback: "posts small blind $1" / "posts big blind $2"
+    // 888poker / Pacific Poker: "$0.50/$1.00 Blinds No Limit Holdem"
+    if (!bbRaw) {
+        const blindsMatch = raw.match(/(?:^|\n|\s)[$€£¥]?(\d[\d,.]*)\s*\/\s*[$€£¥]?(\d[\d,.]*)\s+Blinds\b/i);
+        if (blindsMatch) {
+            const sb = parseNumericAmount(blindsMatch[1]);
+            const bb = parseNumericAmount(blindsMatch[2]);
+            if (bb > 0) {
+                sbRaw = sb;
+                bbRaw = bb;
+            }
+        }
+    }
+
+    // Fallback: "posts small blind $1" / "posts big blind [$2]"
     if (!sbRaw) {
-        const sbPost = raw.match(/posts?\s+(?:the\s+)?(?:small\s+blind|sb)\s*[:\s]*[$€£¥]?(\d[\d,.]*)/i);
+        const sbPost = raw.match(/posts?\s+(?:the\s+)?(?:small\s+blind|sb)\s*[:\s]*(?:\[)?\s*[$€£¥]?(\d[\d,.]*)/i);
         if (sbPost) {
             const v = parseNumericAmount(sbPost[1]);
             if (v > 0) sbRaw = v;
         }
     }
     if (!bbRaw) {
-        const bbPost = raw.match(/posts?\s+(?:the\s+)?(?:big\s+blind|bb)\s*[:\s]*[$€£¥]?(\d[\d,.]*)/i);
+        const bbPost = raw.match(/posts?\s+(?:the\s+)?(?:big\s+blind|bb)\s*[:\s]*(?:\[)?\s*[$€£¥]?(\d[\d,.]*)/i);
         if (bbPost) {
             const v = parseNumericAmount(bbPost[1]);
             if (v > 0) bbRaw = v;
@@ -230,10 +243,11 @@ function formatActionLabel(action, amountBb, raiseToBb, allIn) {
  * Parse forced preflop posts (blinds, antes, straddles) from the pre-action section
  * and also return live street-in commitments per player.
  */
-function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes = {}) {
+function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes = {}, seatIndexOf = {}, heroName = null) {
     const raw = String(text || '');
     const beforeFlop = raw.split(/\*\*\*\s*(?:FIRST\s+)?FLOP\s*\*\*\*|\*\*\s*Dealing flop\s*\*\*/i)[0] || raw;
     const knownNames = Object.keys(positionOf).sort((a, b) => b.length - a.length);
+    const villainCount = Object.keys(seatIndexOf).filter((n) => n !== heroName).length;
 
     const posts = [];
     const liveStreetInRaw = {};
@@ -270,13 +284,33 @@ function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes =
         if (!player || !rest) continue;
         if (!/^posts?\b/i.test(rest)) continue;
 
-        // Match: posts small blind $1 / posts big blind $2 / posts the ante $0.25 / posts straddle $4 / posts small & big blinds $3
-        const sbAndBb = rest.match(/posts?\s+(?:the\s+)?small\s*(?:&|and)\s*big\s*blinds?\s*[$€£¥]?(\d[\d,.]*)(?:\s*bb)?/i);
-        const sbMatch = !sbAndBb && rest.match(/posts?\s+(?:the\s+)?(?:small\s+blind|sb)\s*(?:\[)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\])?/i);
-        const bbAnteMatch = rest.match(/posts?\s+(?:the\s+)?(?:big\s+blind\s+ante|bba)\s*(?:\[)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\])?/i);
-        const bbMatch = !sbAndBb && !bbAnteMatch && rest.match(/posts?\s+(?:the\s+)?(?:big\s+blind|bb)\s*(?:\[)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\])?/i);
-        const anteMatch = !bbAnteMatch && rest.match(/posts?\s+(?:the\s+)?(?:dead\s+)?ante\s*(?:\[)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\])?/i);
-        const straddleMatch = rest.match(/posts?\s+(?:a\s+|the\s+|live\s+|utg\s+|mississippi\s+|button\s+)?straddle\s*(?:\[)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\])?/i);
+        // Match: posts small blind $1 / posts big blind [$2] / posts the ante $0.25 / posts straddle $4 / posts small & big blinds $3
+        const sbAndBb = rest.match(/posts?\s+(?:the\s+)?small\s*(?:&|and)\s*big\s*blinds?\s*(?:\[\s*)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\s*\])?/i);
+        const sbMatch = !sbAndBb && rest.match(/posts?\s+(?:the\s+)?(?:small\s+blind|sb)\s*(?:\[\s*)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\s*\])?/i);
+        const bbAnteMatch = rest.match(/posts?\s+(?:the\s+)?(?:big\s+blind\s+ante|bba)\s*(?:\[\s*)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\s*\])?/i);
+        const bbMatch = !sbAndBb && !bbAnteMatch && rest.match(/posts?\s+(?:the\s+)?(?:big\s+blind|bb)\s*(?:\[\s*)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\s*\])?/i);
+        const anteMatch = !bbAnteMatch && rest.match(/posts?\s+(?:the\s+)?(?:dead\s+)?ante\s*(?:\[\s*)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\s*\])?/i);
+        const straddleMatch = rest.match(/posts?\s+(?:a\s+|the\s+|live\s+|utg\s+|mississippi\s+|button\s+)?straddle\s*(?:\[\s*)?[$€£¥]?(\d[\d,.]*)(?:\s*bb)?(?:\s*\])?/i);
+
+        const pushPost = (type, val, liveRaw) => {
+            const isHero = heroName != null && player === heroName;
+            const seatIdx = seatIndexOf[player] ?? (isHero ? 0 : null);
+            const actorKey = isHero
+                ? 'hero'
+                : (typeof seatIdx === 'number' && seatIdx >= 1
+                    ? (villainCount >= 2 ? `villain_${seatIdx - 1}` : 'villain')
+                    : null);
+            posts.push({
+                player,
+                position: positionOf[player] || null,
+                ...(typeof seatIdx === 'number' ? { seatIndex: seatIdx } : {}),
+                ...(actorKey ? { actorKey } : {}),
+                ...(isHero ? { isHero: true, isVillain: false } : (typeof seatIdx === 'number' ? { isHero: false, isVillain: true, villainIndex: seatIdx - 1 } : {})),
+                type,
+                amountRaw: val,
+                liveAmountRaw: liveRaw,
+            });
+        };
 
         if (sbAndBb) {
             const val = parseNumericAmount(sbAndBb[1]);
@@ -284,7 +318,7 @@ function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes =
                 const livePortion = bbSize && val >= bbSize ? bbSize : val;
                 liveStreetInRaw[player] = (liveStreetInRaw[player] || 0) + livePortion;
                 totalForcedPotRaw += val;
-                posts.push({ player, position: positionOf[player] || null, type: 'dead_blind', amountRaw: val, amount: toBbAmount(val, bbSize) });
+                pushPost('dead_blind', val, livePortion);
             }
             continue;
         }
@@ -294,7 +328,7 @@ function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes =
                 if (sbRaw == null) sbRaw = val;
                 liveStreetInRaw[player] = (liveStreetInRaw[player] || 0) + val;
                 totalForcedPotRaw += val;
-                posts.push({ player, position: positionOf[player] || null, type: 'sb', amountRaw: val, amount: toBbAmount(val, bbSize) });
+                pushPost('sb', val, val);
             }
             continue;
         }
@@ -303,7 +337,7 @@ function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes =
             if (val != null && val > 0) {
                 totalAnteRaw += val;
                 totalForcedPotRaw += val;
-                posts.push({ player, position: positionOf[player] || null, type: 'ante', amountRaw: val, amount: toBbAmount(val, bbSize) });
+                pushPost('ante', val, 0);
             }
             continue;
         }
@@ -313,7 +347,7 @@ function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes =
                 if (bbRaw == null) bbRaw = val;
                 liveStreetInRaw[player] = (liveStreetInRaw[player] || 0) + val;
                 totalForcedPotRaw += val;
-                posts.push({ player, position: positionOf[player] || null, type: 'bb', amountRaw: val, amount: toBbAmount(val, bbSize) });
+                pushPost('bb', val, val);
             }
             continue;
         }
@@ -322,7 +356,7 @@ function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes =
             if (val != null && val > 0) {
                 totalAnteRaw += val;
                 totalForcedPotRaw += val;
-                posts.push({ player, position: positionOf[player] || null, type: 'ante', amountRaw: val, amount: toBbAmount(val, bbSize) });
+                pushPost('ante', val, 0);
             }
             continue;
         }
@@ -332,7 +366,7 @@ function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes =
                 totalStraddleRaw += val;
                 liveStreetInRaw[player] = (liveStreetInRaw[player] || 0) + val;
                 totalForcedPotRaw += val;
-                posts.push({ player, position: positionOf[player] || null, type: 'straddle', amountRaw: val, amount: toBbAmount(val, bbSize) });
+                pushPost('straddle', val, val);
             }
         }
     }
@@ -350,6 +384,17 @@ function parseForcedPosts(text, positionOf = {}, bbSize = null, fallbackStakes =
     }
 
     const bbDivisor = effectiveBbRaw || 1;
+    // Normalize post amounts using finalized bbDivisor (handles hands where BB was discovered on a later line).
+    for (const post of posts) {
+        post.amount = toBbAmount(post.amountRaw, bbDivisor);
+        post.liveAmount = post.type === 'ante'
+            ? 0
+            : post.type === 'dead_blind'
+                ? toBbAmount(effectiveBbRaw && post.amountRaw >= effectiveBbRaw ? effectiveBbRaw : post.amountRaw, bbDivisor)
+                : toBbAmount(post.liveAmountRaw ?? post.amountRaw, bbDivisor);
+        delete post.liveAmountRaw;
+    }
+
     const blinds = {
         sb: effectiveSbRaw != null ? round2(effectiveSbRaw / bbDivisor) : 0.5,
         bb: effectiveBbRaw != null ? round2(effectiveBbRaw / bbDivisor) : 1,
@@ -463,13 +508,46 @@ function parseAllActions(text, {
             continue;
         }
 
-        // Handle "Uncalled bet ($4.00) returned to Hero"
-        const uncalled = line.match(/Uncalled\s+bet\s*\(\s*[$€£¥]?(\d[\d,.]*)\s*\)\s*returned\s+to\s+(.+)/i);
+        // Handle "Uncalled bet ($4.00) returned to Hero" (and bracketed variants)
+        const uncalled = line.match(/Uncalled\s+bet\s*(?:\(|\[)\s*[$€£¥]?(\d[\d,.]*)\s*(?:\)|\])\s*returned\s+to\s+(.+)/i);
         if (uncalled) {
             const ret = parseNumericAmount(uncalled[1]);
+            const retPlayer = uncalled[2].trim().replace(/\.$/, '');
             if (ret != null && ret > 0) {
                 uncalledReturnedRaw += ret;
                 runningPotRaw = Math.max(0, runningPotRaw - ret);
+                if (retPlayer) {
+                    streetInRaw[retPlayer] = Math.max(0, (streetInRaw[retPlayer] || 0) - ret);
+                }
+                const amountBb = toBbAmount(ret, bbDivisor);
+                const potBb = toBbAmount(runningPotRaw, bbDivisor);
+                const isHeroRet = heroName != null && retPlayer === heroName;
+                const seatIdxRet = seatIndexOf[retPlayer] ?? (isHeroRet ? 0 : 1);
+                const villainCount = Object.keys(seatIndexOf).filter((n) => n !== heroName).length;
+                const actorKeyRet = isHeroRet
+                    ? 'hero'
+                    : (villainCount >= 2 ? `villain_${Math.max(0, seatIdxRet - 1)}` : 'villain');
+                actions.push({
+                    type: 'uncalled_return',
+                    action: 'uncalled_return',
+                    label: `Uncalled Return ${Number.isInteger(amountBb) ? amountBb : round2(amountBb)} BB`,
+                    actorKey: actorKeyRet,
+                    seat: seatIdxRet,
+                    seatIndex: seatIdxRet,
+                    ...(isHeroRet ? {} : { villainIndex: Math.max(0, seatIdxRet - 1) }),
+                    player: retPlayer,
+                    position: positionOf[retPlayer] || null,
+                    isHero: isHeroRet,
+                    isVillain: !isHeroRet,
+                    street,
+                    amount: amountBb,
+                    amountRaw: round2(ret),
+                    raiseTo: null,
+                    raiseToRaw: null,
+                    allIn: false,
+                    pot: potBb,
+                    potRaw: round2(runningPotRaw),
+                });
             }
             continue;
         }
@@ -740,7 +818,7 @@ function parsePokerStars(text) {
     if (riverMatch) result.board.river = parseCards(riverMatch[1])[0] || null;
 
     // Parse forced posts (blinds, antes, straddles)
-    const forced = parseForcedPosts(text, positionOf, bbSize, stakes);
+    const forced = parseForcedPosts(text, positionOf, bbSize, stakes, seatIndexOf, heroName);
     result.blinds = forced.blinds;
     result.ante = forced.blinds.ante;
     result.straddle = forced.blinds.straddle;
@@ -821,7 +899,7 @@ function parse888(text) {
     if (turnMatch) result.board.turn = parseCards(turnMatch[1])[0] || null;
     if (riverMatch) result.board.river = parseCards(riverMatch[1])[0] || null;
 
-    const forced = parseForcedPosts(text, positionOf, bbSize, stakes);
+    const forced = parseForcedPosts(text, positionOf, bbSize, stakes, seatIndexOf, heroName);
     result.blinds = forced.blinds;
     result.ante = forced.blinds.ante;
     result.straddle = forced.blinds.straddle;

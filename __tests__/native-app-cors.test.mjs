@@ -35,6 +35,7 @@ const PREFIXES = [
   '/api/poy/',
   '/api/avatars',
   '/api/auth/delete-account',
+  '/api/poker/saved-hands',
 ];
 
 test('only the two app origins, never a wildcard', () => {

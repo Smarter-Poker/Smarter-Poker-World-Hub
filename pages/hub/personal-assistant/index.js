@@ -158,6 +158,7 @@ export default function PersonalAssistantPage() {
   const [coachingSnapshot, setCoachingSnapshot] = useState(null);
   const activeUserIdRef = useRef(user?.id || null);
   activeUserIdRef.current = user?.id || null;
+  const prevOverviewUserIdRef = useRef(user?.id || null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -176,7 +177,15 @@ export default function PersonalAssistantPage() {
 
   // Fetch owner's live saved hands counts + coaching focus when signed in (with AbortController + timeout).
   useEffect(() => {
-    if (authInitializing || !user?.id) {
+    const currentUserId = user?.id || null;
+    if (prevOverviewUserIdRef.current !== currentUserId) {
+      prevOverviewUserIdRef.current = currentUserId;
+      setSavedHandsCount(null);
+      setUnreviewedHandsCount(null);
+      setCoachingSnapshot(null);
+    }
+
+    if (authInitializing || !currentUserId) {
       setSavedHandsCount(null);
       setUnreviewedHandsCount(null);
       setSavedHandsLoading(false);
@@ -184,7 +193,7 @@ export default function PersonalAssistantPage() {
       return undefined;
     }
 
-    const expectedUserId = user.id;
+    const expectedUserId = currentUserId;
     let cancelled = false;
     const controller = new AbortController();
     const timeoutId = typeof window !== 'undefined'
@@ -195,8 +204,12 @@ export default function PersonalAssistantPage() {
     const loadPersonalOverview = async () => {
       try {
         const token = await getFreshAccessToken();
-        if (cancelled || activeUserIdRef.current !== expectedUserId || !token) {
-          if (!cancelled) setSavedHandsLoading(false);
+        if (cancelled || activeUserIdRef.current !== expectedUserId) return;
+        if (!token) {
+          setSavedHandsCount(null);
+          setUnreviewedHandsCount(null);
+          setCoachingSnapshot(null);
+          setSavedHandsLoading(false);
           return;
         }
         const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
@@ -209,33 +222,50 @@ export default function PersonalAssistantPage() {
 
         if (savedRes.status === 'fulfilled' && savedRes.value.ok) {
           const payload = await savedRes.value.json().catch(() => null);
-          if (!cancelled && payload?.success && Array.isArray(payload.hands)) {
-            const total = Number.isFinite(Number(payload.totalCount))
-              ? Number(payload.totalCount)
-              : payload.hands.length;
-            const unreviewed = Number.isFinite(Number(payload.unreviewedCount))
-              ? Number(payload.unreviewedCount)
-              : payload.hands.filter((h) => (h?.review?.status || h?.hand_data?.review?.status) !== 'reviewed').length;
-            setSavedHandsCount(total);
-            setUnreviewedHandsCount(unreviewed);
+          if (!cancelled && activeUserIdRef.current === expectedUserId) {
+            if (payload?.success && Array.isArray(payload.hands)) {
+              const total = Number.isFinite(Number(payload.totalCount))
+                ? Number(payload.totalCount)
+                : payload.hands.length;
+              const unreviewed = Number.isFinite(Number(payload.unreviewedCount))
+                ? Number(payload.unreviewedCount)
+                : payload.hands.filter((h) => (h?.review?.status || h?.hand_data?.review?.status) !== 'reviewed').length;
+              setSavedHandsCount(total);
+              setUnreviewedHandsCount(unreviewed);
+            } else {
+              setSavedHandsCount(null);
+              setUnreviewedHandsCount(null);
+            }
           }
+        } else if (!cancelled && activeUserIdRef.current === expectedUserId) {
+          setSavedHandsCount(null);
+          setUnreviewedHandsCount(null);
         }
 
         if (coachRes.status === 'fulfilled' && coachRes.value.ok) {
           const payload = await coachRes.value.json().catch(() => null);
-          if (!cancelled && payload?.success && payload?.snapshot) {
-            setCoachingSnapshot(payload.snapshot);
+          if (!cancelled && activeUserIdRef.current === expectedUserId) {
+            setCoachingSnapshot(payload?.success && payload?.snapshot ? payload.snapshot : null);
           }
+        } else if (!cancelled && activeUserIdRef.current === expectedUserId) {
+          setCoachingSnapshot(null);
         }
       } catch (err) {
-        if (!cancelled && err?.name !== 'AbortError') {
-          console.warn('[Personal Assistant] overview fetch skipped:', err?.message || err);
+        if (!cancelled && activeUserIdRef.current === expectedUserId) {
+          setSavedHandsCount(null);
+          setUnreviewedHandsCount(null);
+          setCoachingSnapshot(null);
+          if (err?.name !== 'AbortError') {
+            console.warn('[Personal Assistant] overview fetch skipped:', err?.message || err);
+          }
         }
       } finally {
         if (timeoutId !== null && typeof window !== 'undefined') {
           window.clearTimeout(timeoutId);
         }
-        if (!cancelled) setSavedHandsLoading(false);
+        if (!cancelled && activeUserIdRef.current === expectedUserId) {
+          setSavedHandsLoading(false);
+        }
       }
     };
 

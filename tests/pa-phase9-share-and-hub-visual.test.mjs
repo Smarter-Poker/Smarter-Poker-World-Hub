@@ -46,7 +46,7 @@ test('1. pages/share/hand.js enforces #SmarterDesign obsidian-navy theme, semant
 
   // Deduplicated PlayingCard component with 4-color high-contrast suits
   assert.match(src, /const SUIT_COLORS = \{\s*c:\s*'#4DE0A5',\s*d:\s*'#56D8FF',\s*h:\s*'#FF6B7A',\s*s:\s*'#F1F5FC'\s*\}/);
-  assert.match(src, /function PlayingCard\(\{\s*card,\s*variant\s*=\s*'hero'\s*\}\)/);
+  assert.match(src, /function PlayingCard\(\{\s*card,\s*variant\s*=\s*'hero'(?:,\s*compact\s*=\s*false)?\s*\}\)/);
   const playingCardUses = src.match(/<PlayingCard\b/g) || [];
   assert.equal(playingCardUses.length, 4, 'Hero and Board card strips in review and standard views must reuse PlayingCard');
 

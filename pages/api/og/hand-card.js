@@ -28,25 +28,32 @@ function formatCard(cardStr) {
 
 function CardElement({ card, size = 'large' }) {
     const isLarge = size === 'large';
+    const isMedium = size === 'medium';
+    const width = isLarge ? 104 : (isMedium ? 86 : 82);
+    const height = isLarge ? 144 : (isMedium ? 124 : 114);
+    const borderRadius = isLarge ? 14 : (isMedium ? 13 : 12);
+    const rankSize = isLarge ? 42 : (isMedium ? 36 : 32);
+    const suitSize = isLarge ? 34 : (isMedium ? 28 : 26);
+    const isHeroSized = isLarge || isMedium;
     return (
         <div style={{
-            width: isLarge ? 104 : 82,
-            height: isLarge ? 144 : 114,
-            borderRadius: isLarge ? 14 : 12,
+            width,
+            height,
+            borderRadius,
             background: 'linear-gradient(180deg, #132238 0%, #08101C 100%)',
-            border: isLarge ? '2px solid rgba(86,216,255,0.42)' : '1px solid rgba(174,192,208,0.28)',
-            borderTop: isLarge ? '2px solid rgba(131,222,255,0.72)' : '1px solid rgba(174,192,208,0.52)',
+            border: isHeroSized ? '2px solid rgba(86,216,255,0.42)' : '1px solid rgba(174,192,208,0.28)',
+            borderTop: isHeroSized ? '2px solid rgba(131,222,255,0.72)' : '1px solid rgba(174,192,208,0.52)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: isLarge
+            boxShadow: isHeroSized
                 ? '0 10px 24px rgba(0,0,0,0.55)'
                 : '0 6px 16px rgba(0,0,0,0.45)',
         }}>
             <div style={{
                 display: 'flex',
-                fontSize: isLarge ? 42 : 32,
+                fontSize: rankSize,
                 fontWeight: 900,
                 color: card.color,
                 lineHeight: 1,
@@ -55,7 +62,7 @@ function CardElement({ card, size = 'large' }) {
             </div>
             <div style={{
                 display: 'flex',
-                fontSize: isLarge ? 34 : 26,
+                fontSize: suitSize,
                 color: card.color,
                 marginTop: 2,
                 lineHeight: 1,
@@ -80,9 +87,16 @@ export default async function handler(req) {
     try {
         const { searchParams } = new URL(req.url);
         const isReview = searchParams.get('view') === 'review';
+        // Supports NLH (2), Pineapple (3), PLO4 (4), PLO5 (5), and PLO6 (6) hole cards.
         const heroCards = isReview
-            ? (() => { const hero = reviewCards(searchParams.get('hero'), 2); return hero.length === 2 ? hero : []; })()
-            : reviewCards(searchParams.get('hero'), 4);
+            ? (() => {
+                const hero = reviewCards(searchParams.get('hero'), 6);
+                return hero.length >= 2 && hero.length <= 6 ? hero : [];
+            })()
+            : reviewCards(searchParams.get('hero'), 6);
+        const heroCardSize = heroCards.length >= 5 ? 'medium' : 'large';
+        const heroCardGap = heroCards.length >= 5 ? 8 : 12;
+        const heroSectionMarginRight = heroCards.length >= 5 ? 32 : (heroCards.length >= 4 ? 40 : 48);
         const board = reviewCards(searchParams.get('board'), 5);
         const result = isReview ? '' : reviewText(searchParams.get('result'), 24);
         const amount = isReview ? '' : reviewText(searchParams.get('amount'), 24);
@@ -227,7 +241,7 @@ export default async function handler(req) {
                         marginBottom: '28px',
                     }}>
                         {/* Hero Cards */}
-                        <div style={{ display: 'flex', flexDirection: 'column', marginRight: 48 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', marginRight: heroSectionMarginRight }}>
                             <div style={{
                                 display: 'flex',
                                 fontSize: 15,
@@ -239,7 +253,7 @@ export default async function handler(req) {
                             }}>
                                 Hole Cards
                             </div>
-                            <div style={{ display: 'flex' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', minHeight: 144 }}>
                                 {heroCards.length === 0 ? (
                                     <div style={{
                                         display: 'flex',
@@ -256,8 +270,8 @@ export default async function handler(req) {
                                         {isReview ? 'Hidden By The Player' : 'Not Shared'}
                                     </div>
                                 ) : heroCards.map((c, i) => (
-                                    <div key={i} style={{ display: 'flex', marginRight: i < heroCards.length - 1 ? 12 : 0 }}>
-                                        <CardElement card={formatCard(c.trim())} size="large" />
+                                    <div key={i} style={{ display: 'flex', marginRight: i < heroCards.length - 1 ? heroCardGap : 0 }}>
+                                        <CardElement card={formatCard(c.trim())} size={heroCardSize} />
                                     </div>
                                 ))}
                             </div>

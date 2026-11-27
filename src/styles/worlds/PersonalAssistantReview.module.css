@@ -806,6 +806,12 @@
   gap: 8px;
 }
 
+.replayerBoardsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .replayerMetricGroup {
   display: flex;
   flex-wrap: wrap;

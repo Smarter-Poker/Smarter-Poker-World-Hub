@@ -618,10 +618,14 @@ test('GET /api/poker/saved-hands supports cursor pagination, accurate counts, an
   assert.deepEqual(page2.body.hands.map((h) => h.id), [HAND_UUID_3, HAND_UUID_4]);
   assert.equal(page2.body.nextCursor, null);
 
-  // Raw ISO timestamp cursor
+  // Raw ISO timestamp cursor (inclusive at equal ms so sibling rows sharing a timestamp are never skipped)
   const isoPage = await callHandler({ method: 'GET', query: { cursor: '2026-11-27T10:04:00.000Z' }, userId: HERO_ID, supabase: sb });
   assert.equal(isoPage.statusCode, 200);
-  assert.deepEqual(isoPage.body.hands.map((h) => h.id), [HAND_UUID_3, HAND_UUID_4]);
+  assert.deepEqual(isoPage.body.hands.map((h) => h.id), [HAND_UUID_2, HAND_UUID_3, HAND_UUID_4]);
+
+  const isoStrictOlder = await callHandler({ method: 'GET', query: { cursor: '2026-11-27T10:03:59.999Z' }, userId: HERO_ID, supabase: sb });
+  assert.equal(isoStrictOlder.statusCode, 200);
+  assert.deepEqual(isoStrictOlder.body.hands.map((h) => h.id), [HAND_UUID_3, HAND_UUID_4]);
 
   // Malformed cursor -> 400
   const badCursor = await callHandler({ method: 'GET', query: { cursor: '!!!not-valid-cursor!!!' }, userId: HERO_ID, supabase: sb });
@@ -1167,10 +1171,12 @@ test('anonymizeHandForShare strips opponent PII, UUIDs, club/table identifiers, 
   assert.match(shared.summaryText, /Villain 1/);
   assert.doesNotMatch(shared.summaryText, /Notes:/);
 
-  // When includeNotes: true is explicitly requested, notes are included in anonymizedHand + summaryText (still never in URL!)
+  // When includeNotes: true is explicitly requested, notes are included in anonymizedHand + summaryText
+  // with opponent names and UUIDs scrubbed (and still never placed in the share URL!)
   const withNotes = shareLib.anonymizeHandForShare(decorated, { includeNotes: true, origin: 'https://smarter.poker' });
-  assert.equal(withNotes.anonymizedHand.notes, 'Exploit ShownVillain because he overfolds rivers');
-  assert.match(withNotes.summaryText, /Notes: Exploit ShownVillain/);
+  assert.equal(withNotes.anonymizedHand.notes, 'Exploit Villain 1 because he overfolds rivers');
+  assert.match(withNotes.summaryText, /Notes: Exploit Villain 1 because he overfolds rivers/);
+  assert.doesNotMatch(withNotes.summaryText, /ShownVillain/);
   assert.ok(withNotes.shareUrl.startsWith('https://smarter.poker/share/hand?'));
   assert.ok(!withNotes.shareUrl.includes('Exploit'), 'private notes must never be placed in share URL');
 });

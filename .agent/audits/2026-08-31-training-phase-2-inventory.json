@@ -18,7 +18,7 @@
     "dialogs": 21,
     "persistenceFiles": 96,
     "realtimeFiles": 7,
-    "tests": 197,
+    "tests": 198,
     "markerCandidates": 393,
     "possibleUnwiredFunctions": 483,
     "routeStateCells": 752,
@@ -84609,6 +84609,7 @@
     "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
     "__tests__/no-slide-to-see.law.test.mjs",
     "__tests__/owner-only-hub-cards.test.mjs",
+    "__tests__/pa-forensic-review-auth.law.test.mjs",
     "__tests__/pa-review-workstation.test.mjs",
     "__tests__/page-tutorials.test.mjs",
     "__tests__/phase23-calculator-schema.test.mjs",
@@ -108958,6 +108959,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/pa-forensic-review-auth.law.test.mjs",
         "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs"
       ]
@@ -116910,6 +116912,7 @@
         "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+        "__tests__/pa-forensic-review-auth.law.test.mjs",
         "__tests__/pa-review-workstation.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/phase23-calculator-schema.test.mjs",

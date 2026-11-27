@@ -23,6 +23,7 @@ import {
   isUniqueViolationError,
   encodeSavedHandsCursor,
   decodeSavedHandsCursor,
+  rowEffectiveTimestamp,
   compareSavedHandRowsDesc,
   isRowAfterCursor,
   isSavedHandUnreviewed,
@@ -36,6 +37,18 @@ import {
 const DEFAULT_PROBE_WINDOW_MS = 10 * 60 * 1000;
 const DEFAULT_PROBE_BLOCK_THRESHOLD = 5;
 const MAX_PROBE_TRACKER_KEYS = 5000;
+
+// Verified against supabase/migrations/20260831094000_version_private_club_arena_hand_facts.sql
+const HERO_HAND_FACT_SELECT = [
+  'hole_cards',
+  'position',
+  'invested',
+  'returned',
+  'net',
+  'net_bb',
+  'went_to_showdown',
+  'won_at_showdown',
+].join(', ');
 
 const SUGGESTED_FACTS_SELECT = [
   'hand_id',
@@ -181,6 +194,32 @@ function recordNonParticipantProbe({
   return { count, throttled, retryAfterSeconds };
 }
 
+function enforceProbePreCheck(req, res, userId, targetId, reason, probeConfig) {
+  const bucketKey = getProbeBucketKey(req, userId);
+  const preThrottle = isProbeBucketThrottled(
+    probeConfig.store,
+    bucketKey,
+    probeConfig.nowMs,
+    probeConfig.windowMs,
+    probeConfig.blockThreshold,
+  );
+  if (!preThrottle.throttled) return false;
+  recordNonParticipantProbe({
+    ...probeConfig,
+    req,
+    userId,
+    targetId,
+    reason,
+  });
+  res.setHeader('Retry-After', String(preThrottle.retryAfterSeconds));
+  res.status(429).json({
+    success: false,
+    code: 'PROBE_RATE_LIMITED',
+    error: 'Too Many Invalid Hand Lookups. Please Wait Before Trying Again.',
+  });
+  return true;
+}
+
 function queryParam(req, key) {
   const raw = req?.query?.[key];
   const val = Array.isArray(raw) ? raw[0] : raw;
@@ -231,14 +270,18 @@ function checkPayloadSize(body) {
   }
 }
 
-async function evaluateActivePlayGate(checkAccess, supabase, userId) {
+async function evaluateActivePlayGate(checkAccess, supabase, userId, { requireFullAccess = false } = {}) {
   try {
     const result = await checkAccess(supabase, userId);
-    if (!result || result.allowed !== true) {
+    const hasAccess = requireFullAccess
+      ? Boolean(result && result.allowed === true && result.accessLevel === 'full_access')
+      : Boolean(result && result.allowed === true);
+    if (!hasAccess) {
       return {
         allowed: false,
         activePlayRestricted: true,
         contextState: result?.contextState || 'session_active_unknown',
+        accessLevel: result?.accessLevel || 'hard_block',
         message: result?.message || null,
       };
     }
@@ -246,6 +289,7 @@ async function evaluateActivePlayGate(checkAccess, supabase, userId) {
       allowed: true,
       activePlayRestricted: false,
       contextState: result.contextState || 'training_mode',
+      accessLevel: result.accessLevel || 'full_access',
       message: null,
     };
   } catch (err) {
@@ -254,6 +298,7 @@ async function evaluateActivePlayGate(checkAccess, supabase, userId) {
       allowed: false,
       activePlayRestricted: true,
       contextState: 'session_active_unknown',
+      accessLevel: 'hard_block',
       message: null,
     };
   }
@@ -452,7 +497,9 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
       // in-list: bounded to <= 50 recent completed Club Arena fact IDs
       historyQuery = historyQuery.in('id', candidateHandIds.slice(0, 50));
       const { data: historyRows, error: histErr } = await historyQuery;
-      if (!histErr && Array.isArray(historyRows)) {
+      if (histErr) {
+        console.warn('[saved-hands] suggested hand_history enrichment failed:', histErr.message || histErr);
+      } else if (Array.isArray(historyRows)) {
         for (const hr of historyRows) {
           const hid = String(hr?.id || '').trim().toLowerCase();
           if (hid) {
@@ -462,8 +509,8 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
         }
       }
     }
-  } catch (_) {
-    // Optional board/pot enrichment degrades safely to ca_hand_facts values.
+  } catch (err) {
+    console.warn('[saved-hands] suggested hand_history enrichment threw:', err?.message || err);
   }
 
   const tableNameById = new Map();
@@ -474,14 +521,16 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
         // in-list: bounded table IDs from <= 50 recent Club Arena facts
         tableQuery = tableQuery.in('id', [...tableIds].slice(0, 50));
         const { data: tableRows, error: tblErr } = await tableQuery;
-        if (!tblErr && Array.isArray(tableRows)) {
+        if (tblErr) {
+          console.warn('[saved-hands] suggested tables enrichment failed:', tblErr.message || tblErr);
+        } else if (Array.isArray(tableRows)) {
           for (const tr of tableRows) {
             if (tr?.id && tr?.name) tableNameById.set(String(tr.id), String(tr.name).trim());
           }
         }
       }
-    } catch (_) {
-      // Table name enrichment is optional.
+    } catch (err) {
+      console.warn('[saved-hands] suggested tables enrichment threw:', err?.message || err);
     }
   }
 
@@ -554,18 +603,6 @@ async function handleExport(req, res, supabase, user, { startedAt }) {
 }
 
 async function handleAnalysisGateRequest(req, res, supabase, user, { checkAccess, probeConfig }) {
-  const gate = await evaluateActivePlayGate(checkAccess, supabase, user.id);
-  if (!gate.allowed) {
-    return res.status(423).json({
-      success: false,
-      activePlayRestricted: true,
-      allowed: false,
-      code: 'ACTIVE_PLAY_RESTRICTED',
-      contextState: gate.contextState,
-      error: ACTIVE_PLAY_ANALYSIS_LOCK_MESSAGE,
-    });
-  }
-
   const action = req.method === 'POST'
     ? String(req.body?.action || '').trim().toLowerCase()
     : 'check_analysis_gate';
@@ -575,6 +612,26 @@ async function handleAnalysisGateRequest(req, res, supabase, user, { checkAccess
     if (!id || id.length > 128) {
       return res.status(400).json({ success: false, error: 'A Valid Saved Hand Identifier Is Required' });
     }
+    if (enforceProbePreCheck(req, res, user.id, id, 'request_analysis_probe_throttled', probeConfig)) {
+      return;
+    }
+  }
+
+  const gate = await evaluateActivePlayGate(checkAccess, supabase, user.id, { requireFullAccess: true });
+  if (!gate.allowed) {
+    return res.status(423).json({
+      success: false,
+      activePlayRestricted: true,
+      allowed: false,
+      code: 'ACTIVE_PLAY_RESTRICTED',
+      contextState: gate.contextState,
+      accessLevel: gate.accessLevel,
+      error: ACTIVE_PLAY_ANALYSIS_LOCK_MESSAGE,
+    });
+  }
+
+  if (action === 'request_analysis') {
+    const id = String(req.body?.id || '').trim();
     const { data, error } = await supabase
       .from('hand_histories')
       .select(SAVED_HAND_LIST_COLUMNS)
@@ -629,28 +686,8 @@ async function handleClubArenaSave(req, res, supabase, user, { probeConfig }) {
     });
   }
 
-  const bucketKey = getProbeBucketKey(req, user.id);
-  const preThrottle = isProbeBucketThrottled(
-    probeConfig.store,
-    bucketKey,
-    probeConfig.nowMs,
-    probeConfig.windowMs,
-    probeConfig.blockThreshold,
-  );
-  if (preThrottle.throttled) {
-    recordNonParticipantProbe({
-      ...probeConfig,
-      req,
-      userId: user.id,
-      targetId: handId,
-      reason: 'club_arena_probe_throttled',
-    });
-    res.setHeader('Retry-After', String(preThrottle.retryAfterSeconds));
-    return res.status(429).json({
-      success: false,
-      code: 'PROBE_RATE_LIMITED',
-      error: 'Too Many Invalid Hand Lookups. Please Wait Before Trying Again.',
-    });
+  if (enforceProbePreCheck(req, res, user.id, handId, 'club_arena_probe_throttled', probeConfig)) {
+    return;
   }
 
   const existingCheck = await readExistingClubArenaSave(supabase, user.id, handId);
@@ -707,18 +744,26 @@ async function handleClubArenaSave(req, res, supabase, user, { probeConfig }) {
     });
   }
 
+  let heroFactRow = null;
   let heroPrivateCards = [];
   try {
     const { data: factRow, error: factErr } = await supabase
       .from('ca_hand_facts')
-      .select('hole_cards')
+      .select(HERO_HAND_FACT_SELECT)
       .eq('user_id', user.id)
       .eq('hand_id', handId)
       .maybeSingle();
-    if (!factErr && factRow?.hole_cards) {
-      heroPrivateCards = toCardCodes(factRow.hole_cards) || [];
+    if (factErr) {
+      console.warn('[saved-hands] ca_hand_facts lookup failed:', factErr.message || factErr);
+    } else if (factRow) {
+      heroFactRow = factRow;
+      if (factRow.hole_cards) {
+        heroPrivateCards = toCardCodes(factRow.hole_cards) || [];
+      }
     }
-  } catch (_) {
+  } catch (err) {
+    console.warn('[saved-hands] ca_hand_facts lookup threw:', err?.message || err);
+    heroFactRow = null;
     heroPrivateCards = [];
   }
 
@@ -731,11 +776,14 @@ async function handleClubArenaSave(req, res, supabase, user, { probeConfig }) {
         .select('id, name, club_id')
         .eq('id', handRow.table_id)
         .maybeSingle();
-      if (!tableErr && tableRow) {
+      if (tableErr) {
+        console.warn('[saved-hands] tables lookup failed:', tableErr.message || tableErr);
+      } else if (tableRow) {
         tableName = tableRow.name || null;
         clubId = tableRow.club_id || null;
       }
-    } catch (_) {
+    } catch (err) {
+      console.warn('[saved-hands] tables lookup threw:', err?.message || err);
       tableName = null;
     }
   }
@@ -744,6 +792,7 @@ async function handleClubArenaSave(req, res, supabase, user, { probeConfig }) {
     userId: user.id,
     handRow,
     heroPrivateCards,
+    heroFactRow,
     tableName,
     clubId,
   });
@@ -795,9 +844,14 @@ async function handlePatch(req, res, supabase, user, { checkAccess, probeConfig 
   }
   const { id, expectedRevision, patch } = validated;
 
-  // Enforce active-play RTA gate when transitioning/requesting verified analysis.
+  if (enforceProbePreCheck(req, res, user.id, id, 'patch_probe_throttled', probeConfig)) {
+    return;
+  }
+
+  // Enforce active-play RTA gate (including 5-min post-session cooldown) when
+  // transitioning/requesting verified analysis.
   if (patch.analysisState === 'analyzed') {
-    const gate = await evaluateActivePlayGate(checkAccess, supabase, user.id);
+    const gate = await evaluateActivePlayGate(checkAccess, supabase, user.id, { requireFullAccess: true });
     if (!gate.allowed) {
       return res.status(423).json({
         success: false,
@@ -805,6 +859,7 @@ async function handlePatch(req, res, supabase, user, { checkAccess, probeConfig 
         allowed: false,
         code: 'ACTIVE_PLAY_RESTRICTED',
         contextState: gate.contextState,
+        accessLevel: gate.accessLevel,
         error: ACTIVE_PLAY_ANALYSIS_LOCK_MESSAGE,
       });
     }
@@ -841,7 +896,9 @@ async function handlePatch(req, res, supabase, user, { checkAccess, probeConfig 
   }
 
   const currentHandData = existing.hand_data && typeof existing.hand_data === 'object' ? existing.hand_data : {};
-  const hadExplicitRevision = currentHandData.review && currentHandData.review.revision !== undefined && currentHandData.review.revision !== null;
+  const rawRev = currentHandData.review ? currentHandData.review.revision : undefined;
+  const parsedRawRev = rawRev === '' || rawRev === null || rawRev === undefined ? NaN : Number(rawRev);
+  const hadExplicitRevision = Number.isFinite(parsedRawRev) && Number.isInteger(parsedRawRev) && parsedRawRev >= 1;
   const currentReview = normalizeSavedHandReviewMeta(existing);
 
   if (expectedRevision !== null && expectedRevision !== currentReview.revision) {
@@ -875,8 +932,12 @@ async function handlePatch(req, res, supabase, user, { checkAccess, probeConfig 
   if (typeof updateQuery.filter === 'function') {
     if (hadExplicitRevision) {
       updateQuery = updateQuery.filter('hand_data->review->>revision', 'eq', String(currentReview.revision));
-    } else {
+    } else if (rawRev === undefined || rawRev === null) {
       updateQuery = updateQuery.filter('hand_data->review->>revision', 'is', null);
+    } else if (typeof rawRev === 'number' || typeof rawRev === 'string' || typeof rawRev === 'boolean') {
+      // Legacy/corrupt scalar revision (e.g. revision: 0) — match stored value so
+      // the row heals cleanly to revision >= 2 instead of 409-deadlocking forever.
+      updateQuery = updateQuery.filter('hand_data->review->>revision', 'eq', String(rawRev));
     }
   }
 
@@ -992,6 +1053,9 @@ export async function executeSavedHandsRequest(req, res, {
 
       const singleId = queryParam(req, 'id');
       if (singleId) {
+        if (enforceProbePreCheck(req, res, user.id, singleId, 'single_read_probe_throttled', probeConfig)) {
+          return;
+        }
         const { data, error } = await supabase
           .from('hand_histories')
           .select(SAVED_HAND_LIST_COLUMNS)
@@ -1088,8 +1152,9 @@ export async function executeSavedHandsRequest(req, res, {
       const hands = afterCursor.slice(0, limit);
       const hasMore = afterCursor.length > limit;
       const lastItem = hands[hands.length - 1];
-      const nextCursor = hasMore && lastItem
-        ? encodeSavedHandsCursor({ createdAt: lastItem.created_at, id: lastItem.id })
+      const lastItemTimestamp = lastItem ? rowEffectiveTimestamp(lastItem) : null;
+      const nextCursor = hasMore && lastItem && lastItemTimestamp
+        ? encodeSavedHandsCursor({ createdAt: lastItemTimestamp, id: lastItem.id })
         : null;
 
       return res.status(200).json({
@@ -1109,6 +1174,9 @@ export async function executeSavedHandsRequest(req, res, {
       const id = queryParam(req, 'id') || String(req.body?.id || '').trim();
       if (!id) {
         return res.status(400).json({ success: false, error: 'A Valid Saved Hand Identifier Is Required' });
+      }
+      if (enforceProbePreCheck(req, res, user.id, id, 'delete_probe_throttled', probeConfig)) {
+        return;
       }
       const { data, error } = await supabase
         .from('hand_histories')
