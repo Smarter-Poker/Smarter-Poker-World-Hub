@@ -8,7 +8,8 @@
  * Both view=review (Personal Assistant read-only hand review links) and standard links are HONEST:
  * they render only sanitized parameters that were explicitly passed (never fabricated cards,
  * amounts, pots, stakes, or win results). Review links keep hole cards hidden unless `hero`
- * carries two valid cards, label opponents as anonymized, and are excluded from search indexing.
+ * carries two to six valid cards (NLH, Pineapple, PLO4/5/6), label opponents as anonymized,
+ * and are excluded from search indexing.
  */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -24,15 +25,19 @@ function parseCard(str) {
     return { rank, suit: SUITS[s] || '?', color: SUIT_COLORS[s] || '#F1F5FC' };
 }
 
-function PlayingCard({ card, variant = 'hero' }) {
+function PlayingCard({ card, variant = 'hero', compact = false }) {
     const isBoard = variant === 'board';
+    const width = isBoard ? 48 : (compact ? 52 : 64);
+    const height = isBoard ? 68 : (compact ? 74 : 90);
+    const rankSize = isBoard ? 20 : (compact ? 22 : 26);
+    const suitSize = isBoard ? 16 : (compact ? 18 : 22);
     return (
         <div
             data-playing-card={variant}
             style={{
-                width: isBoard ? 48 : 64,
-                height: isBoard ? 68 : 90,
-                borderRadius: isBoard ? 8 : 10,
+                width,
+                height,
+                borderRadius: isBoard ? 8 : (compact ? 9 : 10),
                 background: isBoard
                     ? 'linear-gradient(155deg, #0c1b2c 0%, #06101b 100%)'
                     : 'linear-gradient(155deg, #102235 0%, #07111c 100%)',
@@ -50,7 +55,7 @@ function PlayingCard({ card, variant = 'hero' }) {
             }}
         >
             <span style={{
-                fontSize: isBoard ? 20 : 26,
+                fontSize: rankSize,
                 fontWeight: isBoard ? 800 : 900,
                 color: card.color,
                 lineHeight: 1.05,
@@ -59,7 +64,7 @@ function PlayingCard({ card, variant = 'hero' }) {
                 {card.rank}
             </span>
             <span style={{
-                fontSize: isBoard ? 16 : 22,
+                fontSize: suitSize,
                 color: card.color,
                 marginTop: isBoard ? -2 : -4,
                 lineHeight: 1,
@@ -135,9 +140,10 @@ export default function ShareHandPage({ initialQuery = {} }) {
     const isReview = view === 'review';
 
     // Explicit sanitized parameters only (no fabricated defaults in either mode).
-    const cleanHeroList = isReview ? reviewCardList(hero, 2) : reviewCardList(hero, 4);
+    // Supports NLH (2), Pineapple (3), PLO4 (4), PLO5 (5), and PLO6 (6) hole cards.
+    const cleanHeroList = reviewCardList(hero, 6);
     const cleanBoardList = reviewCardList(board, 5);
-    const reviewHeroShared = isReview && cleanHeroList.length === 2;
+    const reviewHeroShared = isReview && cleanHeroList.length >= 2 && cleanHeroList.length <= 6;
     const reviewAnonymized = firstQuery(anon) !== '0';
 
     const cleanResult = isReview ? '' : reviewText(result, 24);
@@ -416,9 +422,9 @@ export default function ShareHandPage({ initialQuery = {} }) {
                         data-share-review="true"
                     >
                         {heroCards.length > 0 ? (
-                            <div style={{ display: 'flex', gap: 8 }} aria-label="Hole Cards">
+                            <div style={{ display: 'flex', gap: heroCards.length > 4 ? 6 : 8, flexWrap: 'wrap', justifyContent: 'center' }} aria-label="Hole Cards">
                                 {heroCards.map((c, i) => (
-                                    <PlayingCard key={i} card={c} variant="hero" />
+                                    <PlayingCard key={i} card={c} variant="hero" compact={heroCards.length > 4} />
                                 ))}
                             </div>
                         ) : (
@@ -450,9 +456,9 @@ export default function ShareHandPage({ initialQuery = {} }) {
                         {heroCards.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                                 <div style={{ color: '#9eb4c8', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Hole Cards</div>
-                                <div style={{ display: 'flex', gap: 8 }} aria-label="Hole Cards">
+                                <div style={{ display: 'flex', gap: heroCards.length > 4 ? 6 : 8, flexWrap: 'wrap', justifyContent: 'center' }} aria-label="Hole Cards">
                                     {heroCards.map((c, i) => (
-                                        <PlayingCard key={i} card={c} variant="hero" />
+                                        <PlayingCard key={i} card={c} variant="hero" compact={heroCards.length > 4} />
                                     ))}
                                 </div>
                             </div>

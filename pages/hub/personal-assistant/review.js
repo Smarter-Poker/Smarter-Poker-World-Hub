@@ -47,7 +47,7 @@ import HubPageShell from '../../../src/components/ui/HubPageShell';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
-import { getFreshAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../../src/lib/authUtils';
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import { anonymizeHandForShare } from '../../../src/lib/personal-assistant/anonymizeHandForShare.mjs';
 import styles from '../../../src/styles/worlds/PersonalAssistantReview.module.css';
@@ -60,6 +60,9 @@ const DELETE_UNDO_SECONDS = 5;
 const VISIBILITY_REFRESH_THROTTLE_MS = 10000;
 const SANDBOX_HANDOFF_KEY = 'pa-sandbox-handoff-v1';
 const SAVED_HANDS_CHANNEL = 'smarter-poker-saved-hands';
+const TAB_ID = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+  ? crypto.randomUUID()
+  : `pa-review-tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 const PRESET_TAGS = [
   '3-Bet Pot',
@@ -350,12 +353,33 @@ function getVariantInfo(hand, heroCards, boards, streets) {
   };
 }
 
+function sliceBoardCardsForStreet(cards, streetName, fallbackCards = []) {
+  const list = Array.isArray(cards) ? cards : [];
+  if (streetName === 'preflop' || streetName === 'pineapple_discard') return [];
+  if (streetName === 'flop') {
+    return list.length >= 3 ? list.slice(0, 3) : fallbackCards.slice(0, 3);
+  }
+  if (streetName === 'turn') {
+    return list.length >= 4 ? list.slice(0, 4) : (list.length > 0 ? list.slice(0, 4) : fallbackCards.slice(0, 4));
+  }
+  if (streetName === 'river') {
+    return list.length >= 5 ? list.slice(0, 5) : (list.length > 0 ? list.slice(0, 5) : fallbackCards.slice(0, 5));
+  }
+  return list.length > 0 ? list : fallbackCards;
+}
+
 function buildReplayerSteps(hand, boards, streets) {
-  const primaryCards = Array.isArray(boards?.[0]?.cards) ? boards[0].cards : [];
+  const normalizedBoards = Array.isArray(boards) ? boards : [];
+  const primaryCards = Array.isArray(normalizedBoards?.[0]?.cards) ? normalizedBoards[0].cards : [];
+  const maxBoardLen = Math.max(
+    0,
+    ...normalizedBoards.map((b) => (Array.isArray(b?.cards) ? b.cards.length : 0)),
+  );
   const hero = getHeroPlayer(hand);
   const bigBlind = Number(hand?.big_blind || 0);
   const smallBlind = Number(hand?.small_blind || 0);
   const potTotal = Number(hand?.pot_total || 0);
+  const isBombPot = Boolean(hand?.hand_data?.bombPot || hand?.hand_data?.bomb_pot);
   const heroStartStack = Number(
     hero?.startingStack
     ?? hero?.stack
@@ -378,13 +402,13 @@ function buildReplayerSteps(hand, boards, streets) {
   if (!byName.has('preflop')) {
     byName.set('preflop', { name: 'preflop', cards: [], actions: [] });
   }
-  if (primaryCards.length >= 3 && !byName.has('flop')) {
+  if (maxBoardLen >= 3 && !byName.has('flop')) {
     byName.set('flop', { name: 'flop', cards: primaryCards.slice(0, 3), actions: [] });
   }
-  if (primaryCards.length >= 4 && !byName.has('turn')) {
+  if (maxBoardLen >= 4 && !byName.has('turn')) {
     byName.set('turn', { name: 'turn', cards: primaryCards.slice(3, 4), actions: [] });
   }
-  if (primaryCards.length >= 5 && !byName.has('river')) {
+  if (maxBoardLen >= 5 && !byName.has('river')) {
     byName.set('river', { name: 'river', cards: primaryCards.slice(4, 5), actions: [] });
   }
 
@@ -395,12 +419,34 @@ function buildReplayerSteps(hand, boards, streets) {
 
   let runningPot = 0;
   let heroInvested = 0;
-  const hasExplicitBlinds = (byName.get('preflop')?.actions || []).some((a) => {
-    const verb = String(a?.action || '').toLowerCase();
-    return verb === 'sb' || verb === 'bb' || verb === 'ante' || verb === 'post';
-  });
-  if (!hasExplicitBlinds && (smallBlind > 0 || bigBlind > 0)) {
-    runningPot += smallBlind + bigBlind;
+  const hasExplicitBlinds = orderedNames.some((name) =>
+    (byName.get(name)?.actions || []).some((a) => {
+      const verb = String(a?.action || '').toLowerCase();
+      return verb === 'sb' || verb === 'bb' || verb === 'ante' || verb === 'post' || verb === 'straddle';
+    }),
+  );
+  let hasRecordedActionAmounts = false;
+  let totalNetActionContribution = 0;
+  for (const name of orderedNames) {
+    for (const action of byName.get(name)?.actions || []) {
+      const amt = Number(action?.amount || 0);
+      if (Number.isFinite(amt) && amt > 0) {
+        hasRecordedActionAmounts = true;
+        const verb = String(action?.action || '').toLowerCase();
+        if (verb === 'return') {
+          totalNetActionContribution = Math.max(0, totalNetActionContribution - amt);
+        } else {
+          totalNetActionContribution += amt;
+        }
+      }
+    }
+  }
+  if (!hasExplicitBlinds) {
+    if (isBombPot && hasRecordedActionAmounts && potTotal > totalNetActionContribution) {
+      runningPot += potTotal - totalNetActionContribution;
+    } else if (!isBombPot && hasRecordedActionAmounts && (smallBlind > 0 || bigBlind > 0)) {
+      runningPot += smallBlind + bigBlind;
+    }
   }
 
   let cumulativeBoard = [];
@@ -444,7 +490,7 @@ function buildReplayerSteps(hand, boards, streets) {
       }
       if (action?.isHero) {
         const verb = String(action?.action || '').toLowerCase();
-        if (!['sb', 'bb', 'ante', 'post', 'return'].includes(verb)) {
+        if (!['sb', 'bb', 'ante', 'post', 'straddle', 'return'].includes(verb)) {
           heroStreetDecisions += 1;
         }
       }
@@ -452,18 +498,36 @@ function buildReplayerSteps(hand, boards, streets) {
 
     runningPot += streetContribution;
     const isFinal = idx === orderedNames.length - 1;
-    const displayPot = runningPot > 0
-      ? runningPot
-      : (isFinal && potTotal > 0 ? potTotal : potAtStreetStart);
+    const usePotTotalOnFinal = isFinal && potTotal > 0 && (
+      runningPot <= 0
+      || (!hasExplicitBlinds && (!hasRecordedActionAmounts || isBombPot))
+    );
+    const displayPot = usePotTotalOnFinal
+      ? potTotal
+      : (runningPot > 0 ? runningPot : potAtStreetStart);
     const sprBasePot = potAtStreetStart > 0 ? potAtStreetStart : displayPot;
     const spr = heroStackAtStreetStart > 0 && sprBasePot > 0
       ? (heroStackAtStreetStart / sprBasePot).toFixed(2)
       : null;
 
+    const stepBoards = normalizedBoards.map((board, bIdx) => {
+      const boardNumber = Number(board?.index || bIdx + 1);
+      return {
+        index: boardNumber,
+        label: board?.label || `Board ${boardNumber}`,
+        cards: sliceBoardCardsForStreet(
+          board?.cards,
+          name,
+          bIdx === 0 ? cumulativeBoard : [],
+        ),
+      };
+    });
+
     return {
       name,
       label: STREET_LABELS[name] || name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
       boardCards: [...cumulativeBoard],
+      boards: stepBoards,
       actions: st.actions,
       runningPot: displayPot,
       spr,
@@ -523,7 +587,7 @@ function broadcastSavedHandsSync(payload) {
   if (typeof BroadcastChannel === 'undefined') return;
   try {
     const channel = new BroadcastChannel(SAVED_HANDS_CHANNEL);
-    channel.postMessage({ ...payload, at: Date.now() });
+    channel.postMessage({ ...payload, tabId: TAB_ID, at: Date.now() });
     channel.close();
   } catch {
     /* ignore restricted browser contexts */
@@ -611,20 +675,35 @@ export default function PersonalAssistantReviewPage() {
   // Native <dialog> Safe Deletion + 5-second Undo Delete countdown toast
   const deleteDialogRef = useRef(null);
   const [deleteDialogHand, setDeleteDialogHand] = useState(null);
-  const [pendingDelete, setPendingDelete] = useState(null); // { hand, secondsLeft, index }
+  const [pendingDelete, setPendingDelete] = useState(null); // { hand, ownerUserId, ownerToken, sourceHandId, secondsLeft, index }
   const deleteTimerRef = useRef(null);
   const deleteTickRef = useRef(null);
   const pendingDeleteRef = useRef(null);
   pendingDeleteRef.current = pendingDelete;
+  const commitServerDeleteRef = useRef(null);
 
   const activeUserIdRef = useRef(user?.id || null);
   activeUserIdRef.current = user?.id || null;
+  const prevUserIdRef = useRef(user?.id || null);
+  const draftOwnerUserIdRef = useRef(null);
+  const draftHandIdRef = useRef('');
+  const draftSourceRevRef = useRef(1);
+  const draftBaselineRef = useRef({ notes: '', status: 'saved', tags: [] });
   const loadGenRef = useRef(0);
   const saveAbortRef = useRef(null);
   const analysisAbortRef = useRef(null);
   const lastVisibilityRefreshRef = useRef(0);
   const selectedHandIdRef = useRef('');
   selectedHandIdRef.current = selectedHandId;
+
+  const applyUnreviewedDelta = useCallback((previousStatus, nextStatus) => {
+    const wasUnreviewed = previousStatus !== 'reviewed';
+    const isNowUnreviewed = nextStatus !== 'reviewed';
+    if (wasUnreviewed === isNowUnreviewed) return;
+    setUnreviewedCount((prev) => (
+      prev !== null ? Math.max(0, prev + (isNowUnreviewed ? 1 : -1)) : null
+    ));
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -683,6 +762,15 @@ export default function PersonalAssistantReviewPage() {
         || !tagsEqual(restored.tags, meta.tags)
       ),
     );
+
+    draftOwnerUserIdRef.current = uid || null;
+    draftHandIdRef.current = hand?.id ? String(hand.id) : '';
+    draftSourceRevRef.current = meta.revision;
+    draftBaselineRef.current = {
+      notes: meta.notes,
+      status: meta.status,
+      tags: meta.tags,
+    };
 
     if (hasMeaningfulDraft) {
       setDraftNotes(restored.notes);
@@ -805,6 +893,17 @@ export default function PersonalAssistantReviewPage() {
       const [listRes, directRes] = await Promise.all([listPromise, directPromise]);
       if (gen !== loadGenRef.current || activeUserIdRef.current !== expectedUserId) return;
 
+      if (listRes.status === 401 || directRes?.status === 401) {
+        setHands([]);
+        setNextCursor(null);
+        setTotalCount(null);
+        setUnreviewedCount(null);
+        setSelectedHandId('');
+        setLoadError('');
+        setLoadStatus('signed_out');
+        return;
+      }
+
       if (!listRes.ok || !listRes.body?.success || !Array.isArray(listRes.body.hands)) {
         if (!silent) {
           setLoadStatus('error');
@@ -814,15 +913,18 @@ export default function PersonalAssistantReviewPage() {
       }
 
       let loadedHands = listRes.body.hands;
-      if (pendingDeleteRef.current?.hand?.id) {
-        const hidingId = String(pendingDeleteRef.current.hand.id);
+      const activePendingDelete = pendingDeleteRef.current?.ownerUserId === expectedUserId
+        ? pendingDeleteRef.current
+        : null;
+      if (activePendingDelete?.hand?.id) {
+        const hidingId = String(activePendingDelete.hand.id);
         loadedHands = loadedHands.filter((row) => String(row.id) !== hidingId);
       }
 
       if (directRes && directRes.ok && directRes.body?.success && directRes.body?.hand) {
         const directRow = directRes.body.hand;
         if (
-          String(directRow.id) !== String(pendingDeleteRef.current?.hand?.id || '')
+          String(directRow.id) !== String(activePendingDelete?.hand?.id || '')
           && !loadedHands.some((row) => String(row.id) === String(directRow.id))
         ) {
           loadedHands = [directRow, ...loadedHands];
@@ -889,9 +991,14 @@ export default function PersonalAssistantReviewPage() {
     if (!nextCursor || loadingMore || !user?.id) return;
     const expectedUserId = user.id;
     setLoadingMore(true);
+    setLoadError('');
     try {
       const token = await getFreshAccessToken();
-      if (activeUserIdRef.current !== expectedUserId || !token) return;
+      if (activeUserIdRef.current !== expectedUserId) return;
+      if (!token) {
+        setLoadStatus('signed_out');
+        return;
+      }
       const queryStr = buildFilterQueryParams(nextCursor);
       const res = await fetchJsonWithTimeout(`/api/poker/saved-hands?${queryStr}`, {
         method: 'GET',
@@ -899,20 +1006,40 @@ export default function PersonalAssistantReviewPage() {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       });
       if (activeUserIdRef.current !== expectedUserId) return;
-      if (res.ok && res.body?.success && Array.isArray(res.body.hands)) {
-        const incoming = res.body.hands;
-        setHands((prev) => {
-          const seen = new Set(prev.map((row) => String(row.id)));
-          const merged = [...prev];
-          for (const row of incoming) {
-            if (!seen.has(String(row.id))) {
-              seen.add(String(row.id));
-              merged.push(row);
-            }
+      if (res.status === 401) {
+        setHands([]);
+        setNextCursor(null);
+        setTotalCount(null);
+        setUnreviewedCount(null);
+        setSelectedHandId('');
+        setLoadError('');
+        setLoadStatus('signed_out');
+        return;
+      }
+      if (!res.ok || !res.body?.success || !Array.isArray(res.body.hands)) {
+        setLoadError(res.body?.error || 'Could Not Load More Saved Hands. Please Retry.');
+        return;
+      }
+      const incoming = res.body.hands;
+      setHands((prev) => {
+        const seen = new Set(prev.map((row) => String(row.id)));
+        const merged = [...prev];
+        for (const row of incoming) {
+          if (!seen.has(String(row.id))) {
+            seen.add(String(row.id));
+            merged.push(row);
           }
-          return merged;
-        });
-        setNextCursor(res.body.nextCursor || null);
+        }
+        return merged;
+      });
+      setNextCursor(res.body.nextCursor || null);
+    } catch (err) {
+      if (activeUserIdRef.current === expectedUserId) {
+        setLoadError(
+          err?.name === 'AbortError'
+            ? 'Loading More Hands Timed Out. Check Your Connection And Retry.'
+            : 'Could Not Load More Saved Hands. Please Retry.',
+        );
       }
     } finally {
       if (activeUserIdRef.current === expectedUserId) {
@@ -920,6 +1047,72 @@ export default function PersonalAssistantReviewPage() {
       }
     }
   }, [nextCursor, loadingMore, user?.id, buildFilterQueryParams]);
+
+  // Synchronously flush pending deletes and reset all user-scoped state on account switch BEFORE any draft effect runs.
+  useEffect(() => {
+    const currentUserId = user?.id || null;
+    if (prevUserIdRef.current === currentUserId) return;
+    prevUserIdRef.current = currentUserId;
+
+    if (deleteTimerRef.current) {
+      window.clearTimeout(deleteTimerRef.current);
+      deleteTimerRef.current = null;
+    }
+    if (deleteTickRef.current) {
+      window.clearInterval(deleteTickRef.current);
+      deleteTickRef.current = null;
+    }
+    const dialog = deleteDialogRef.current;
+    if (dialog?.open) {
+      try {
+        dialog.close('cancel');
+      } catch {
+        /* ignore */
+      }
+    }
+    setDeleteDialogHand(null);
+
+    const priorPending = pendingDeleteRef.current;
+    pendingDeleteRef.current = null;
+    setPendingDelete(null);
+    if (priorPending && typeof commitServerDeleteRef.current === 'function') {
+      commitServerDeleteRef.current(priorPending, { keepalive: true });
+    }
+
+    saveAbortRef.current?.abort?.();
+    analysisAbortRef.current?.abort?.();
+
+    draftOwnerUserIdRef.current = null;
+    draftHandIdRef.current = '';
+    draftSourceRevRef.current = 1;
+    draftBaselineRef.current = { notes: '', status: 'saved', tags: [] };
+
+    setHands([]);
+    setNextCursor(null);
+    setTotalCount(null);
+    setUnreviewedCount(null);
+    setSelectedHandId('');
+    setMissingRequestedId('');
+    setLoadError('');
+    setSuggestedHands([]);
+    setSuggestedRestricted(false);
+    setSuggestedNotice('');
+    setSuggestedError('');
+    setDraftNotes('');
+    setDraftStatus('saved');
+    setDraftTags([]);
+    setCustomTagInput('');
+    setDraftRevision(1);
+    setDraftRestored(false);
+    setSaveState('idle');
+    setSaveError('');
+    setConflictServerHand(null);
+    setAnalysisStatus('idle');
+    setAnalysisResult(null);
+    setAnalysisError('');
+    setShareFeedback('');
+    setExportError('');
+  }, [user?.id]);
 
   useEffect(() => {
     if (router?.isReady === false) return;
@@ -940,7 +1133,9 @@ export default function PersonalAssistantReviewPage() {
       try {
         channel = new BroadcastChannel(SAVED_HANDS_CHANNEL);
         channel.onmessage = (event) => {
-          const msgType = event?.data?.type;
+          const msg = event?.data;
+          if (!msg || msg.tabId === TAB_ID) return;
+          const msgType = msg.type;
           if (msgType === 'saved-hand-updated' || msgType === 'saved-hand-deleted') {
             loadSavedHands({ silent: true });
             loadSuggestedHands();
@@ -969,30 +1164,54 @@ export default function PersonalAssistantReviewPage() {
     };
   }, [user?.id, loadSavedHands, loadSuggestedHands]);
 
-  // Cleanup aborts and pending delete timers on unmount
+  // Cleanup aborts and flush any confirmed pending delete on unmount
   useEffect(() => () => {
     saveAbortRef.current?.abort?.();
     analysisAbortRef.current?.abort?.();
-    if (deleteTimerRef.current) window.clearTimeout(deleteTimerRef.current);
-    if (deleteTickRef.current) window.clearInterval(deleteTickRef.current);
+    if (deleteTimerRef.current) {
+      window.clearTimeout(deleteTimerRef.current);
+      deleteTimerRef.current = null;
+    }
+    if (deleteTickRef.current) {
+      window.clearInterval(deleteTickRef.current);
+      deleteTickRef.current = null;
+    }
+    const pending = pendingDeleteRef.current;
+    pendingDeleteRef.current = null;
+    if (pending && typeof commitServerDeleteRef.current === 'function') {
+      commitServerDeleteRef.current(pending, { keepalive: true });
+    }
   }, []);
 
-  // Offline-safe note/status/tags draft persistence in sessionStorage
+  // Offline-safe note/status/tags draft persistence in sessionStorage (strictly pinned to owner, hand, and source revision)
   useEffect(() => {
-    if (!selectedHand?.id || !user?.id) return;
-    const meta = getReviewMeta(selectedHand);
+    const draftOwner = draftOwnerUserIdRef.current;
+    const draftHandId = draftHandIdRef.current;
+    const draftSourceRev = draftSourceRevRef.current;
+    if (
+      !selectedHand?.id
+      || !user?.id
+      || !draftOwner
+      || draftOwner !== user.id
+      || String(draftHandId) !== String(selectedHand.id)
+      || !Number.isInteger(draftSourceRev)
+      || draftSourceRev < 1
+    ) {
+      return;
+    }
+    const baseline = draftBaselineRef.current;
     const dirty =
-      draftNotes !== meta.notes
-      || draftStatus !== meta.status
-      || !tagsEqual(draftTags, meta.tags);
+      draftNotes !== baseline.notes
+      || draftStatus !== baseline.status
+      || !tagsEqual(draftTags, baseline.tags);
     if (dirty) {
-      writeDraftToSession(user.id, selectedHand.id, meta.revision, {
+      writeDraftToSession(draftOwner, draftHandId, draftSourceRev, {
         notes: draftNotes,
         status: draftStatus,
         tags: draftTags,
       });
     } else {
-      clearDraftFromSession(user.id, selectedHand.id, meta.revision);
+      clearDraftFromSession(draftOwner, draftHandId, draftSourceRev);
     }
   }, [selectedHand, user?.id, draftNotes, draftStatus, draftTags]);
 
@@ -1016,12 +1235,24 @@ export default function PersonalAssistantReviewPage() {
     if (!serverHand?.id) return;
     const uid = activeUserIdRef.current;
     const meta = getReviewMeta(serverHand);
+    const priorSourceRev = draftSourceRevRef.current;
     if (uid) {
       clearDraftFromSession(uid, serverHand.id, meta.revision);
       if (previousRevision !== null && previousRevision !== meta.revision) {
         clearDraftFromSession(uid, serverHand.id, previousRevision);
       }
+      if (priorSourceRev && priorSourceRev !== meta.revision) {
+        clearDraftFromSession(uid, serverHand.id, priorSourceRev);
+      }
     }
+    draftOwnerUserIdRef.current = uid || null;
+    draftHandIdRef.current = String(serverHand.id);
+    draftSourceRevRef.current = meta.revision;
+    draftBaselineRef.current = {
+      notes: meta.notes,
+      status: meta.status,
+      tags: meta.tags,
+    };
     setHands((prev) => prev.map((row) => (String(row.id) === String(serverHand.id) ? serverHand : row)));
     setDraftNotes(meta.notes);
     setDraftStatus(meta.status);
@@ -1061,6 +1292,7 @@ export default function PersonalAssistantReviewPage() {
 
     const targetHandId = selectedHand.id;
     const expectedUserId = user.id;
+    const previousStatus = getReviewMeta(selectedHand).status;
     const desiredNotes = draftNotes;
     const desiredStatus = draftStatus;
     const desiredTags = normalizeTagList(draftTags);
@@ -1106,6 +1338,7 @@ export default function PersonalAssistantReviewPage() {
           && serverMeta.status === desiredStatus
           && tagsEqual(serverMeta.tags, desiredTags)
         ) {
+          applyUnreviewedDelta(previousStatus, serverMeta.status);
           applyServerHand(serverHand, { previousRevision: expectedRevision });
           setSaveState('saved');
           return;
@@ -1148,11 +1381,13 @@ export default function PersonalAssistantReviewPage() {
         return;
       }
 
+      const updatedMeta = getReviewMeta(patchRes.body.hand);
+      applyUnreviewedDelta(previousStatus, updatedMeta.status);
       applyServerHand(patchRes.body.hand, { previousRevision: expectedRevision });
       setSaveState('saved');
       broadcastSavedHandsSync({ type: 'saved-hand-updated', savedRowId: targetHandId });
     } catch (err) {
-      if (controller.signal.aborted && activeUserIdRef.current !== expectedUserId) return;
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
       setSaveState('interrupted');
       setSaveError(
         err?.name === 'AbortError'
@@ -1160,7 +1395,7 @@ export default function PersonalAssistantReviewPage() {
           : 'Network Interrupted During Save. Your Draft Is Safe. Retry Will Reconcile First.',
       );
     }
-  }, [selectedHand, user?.id, saveState, draftNotes, draftStatus, draftTags, draftRevision, applyServerHand]);
+  }, [selectedHand, user?.id, saveState, draftNotes, draftStatus, draftTags, draftRevision, applyServerHand, applyUnreviewedDelta]);
 
   const handleAnalyzeHand = useCallback(async () => {
     const sourceHandId = selectedHand?.sourceHandId || selectedHand?.hand_data?.sourceHandId;
@@ -1215,6 +1450,22 @@ export default function PersonalAssistantReviewPage() {
         return;
       }
 
+      if (gateRes.status === 401) {
+        setAnalysisStatus('error');
+        setAnalysisError('Your Session Expired. Sign In Again To Analyze This Hand.');
+        return;
+      }
+
+      if (!gateRes.ok || gateRes.body?.success === false) {
+        setAnalysisStatus('error');
+        setAnalysisError(
+          gateRes.body?.error
+          || gateRes.body?.message
+          || 'Could Not Verify Active Table Status Before Analysis. Please Retry.',
+        );
+        return;
+      }
+
       const res = await fetchJsonWithTimeout('/api/assistant/leaks/hand-audit', {
         method: 'POST',
         headers,
@@ -1242,6 +1493,7 @@ export default function PersonalAssistantReviewPage() {
       setAnalysisStatus('ready');
 
       // Record explicit analyzed receipt separately from Saved review status.
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
       const currentMeta = getReviewMeta(selectedHand);
       const receiptRes = await fetchJsonWithTimeout('/api/poker/saved-hands', {
         method: 'PATCH',
@@ -1260,17 +1512,40 @@ export default function PersonalAssistantReviewPage() {
           },
         }),
       });
-      if (!controller.signal.aborted && receiptRes.ok && receiptRes.body?.success && receiptRes.body?.hand) {
-        setHands((prev) => prev.map((row) => (String(row.id) === String(receiptRes.body.hand.id) ? receiptRes.body.hand : row)));
-        const nextMeta = getReviewMeta(receiptRes.body.hand);
-        setDraftRevision(nextMeta.revision);
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
+      if (receiptRes.ok && receiptRes.body?.success && receiptRes.body?.hand) {
+        const updatedHand = receiptRes.body.hand;
+        const nextMeta = getReviewMeta(updatedHand);
+        setHands((prev) => prev.map((row) => (String(row.id) === String(updatedHand.id) ? updatedHand : row)));
+        applyUnreviewedDelta(currentMeta.status, nextMeta.status);
+        if (String(selectedHandIdRef.current) === String(targetHandId)) {
+          setDraftRevision(nextMeta.revision);
+          const baseline = draftBaselineRef.current;
+          const hasDirtyDraft =
+            draftNotes !== baseline.notes
+            || draftStatus !== baseline.status
+            || !tagsEqual(draftTags, baseline.tags);
+          if (!hasDirtyDraft) {
+            draftSourceRevRef.current = nextMeta.revision;
+            draftBaselineRef.current = {
+              notes: nextMeta.notes,
+              status: nextMeta.status,
+              tags: nextMeta.tags,
+            };
+          }
+        }
+        broadcastSavedHandsSync({
+          type: 'saved-hand-updated',
+          savedRowId: targetHandId,
+          sourceHandId,
+        });
       }
     } catch {
-      if (controller.signal.aborted && activeUserIdRef.current !== expectedUserId) return;
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
       setAnalysisStatus('error');
       setAnalysisError('Analysis Request Was Interrupted. Please Retry.');
     }
-  }, [selectedHand, user?.id, analysisStatus]);
+  }, [selectedHand, user?.id, analysisStatus, applyUnreviewedDelta, draftNotes, draftStatus, draftTags]);
 
   const handleSaveSuggestedHand = useCallback(async (item) => {
     if (!item?.handId || !user?.id || savingSuggestedId) return;
@@ -1403,58 +1678,107 @@ export default function PersonalAssistantReviewPage() {
     }
   }, [user?.id, exportingFormat]);
 
-  // Execute actual server DELETE after 5-second non-destructive Undo window expires
-  const commitServerDelete = useCallback(async (snapshot) => {
-    if (!snapshot?.hand?.id || !activeUserIdRef.current) return;
-    const expectedUserId = activeUserIdRef.current;
+  // Execute actual server DELETE after 5-second non-destructive Undo window expires (or on account switch / unmount flush)
+  const commitServerDelete = useCallback(async (snapshot, { keepalive = false } = {}) => {
+    const hand = snapshot?.hand;
+    const ownerUserId = snapshot?.ownerUserId;
+    const sourceHandId = snapshot?.sourceHandId || hand?.sourceHandId || hand?.hand_data?.sourceHandId || null;
+    if (!hand?.id || !ownerUserId) return;
+
+    const restoreHandOnFailure = (errorMessage) => {
+      if (keepalive || activeUserIdRef.current !== ownerUserId) return;
+      setHands((prev) => {
+        if (prev.some((row) => String(row.id) === String(hand.id))) return prev;
+        const next = [...prev];
+        next.splice(Math.min(snapshot.index ?? 0, next.length), 0, hand);
+        return next;
+      });
+      if (!selectedHandIdRef.current) {
+        setSelectedHandId(hand.id);
+        syncEditorFromHand(hand);
+      }
+      setLoadError(errorMessage);
+    };
+
     try {
-      const token = await getFreshAccessToken();
-      if (!token || activeUserIdRef.current !== expectedUserId) return;
-      const res = await fetchJsonWithTimeout(
-        `/api/poker/saved-hands?id=${encodeURIComponent(snapshot.hand.id)}`,
-        {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-        },
-      );
-      if (activeUserIdRef.current !== expectedUserId) return;
-      if (!res.ok && res.status !== 404) {
-        // Restore hand on failure
-        setHands((prev) => {
-          if (prev.some((row) => String(row.id) === String(snapshot.hand.id))) return prev;
-          const next = [...prev];
-          next.splice(Math.min(snapshot.index, next.length), 0, snapshot.hand);
-          return next;
-        });
-        setLoadError(res.body?.error || 'Could Not Delete Hand. Restored To Your Queue.');
+      let token = snapshot.ownerToken || null;
+      if (!token && !keepalive && activeUserIdRef.current === ownerUserId) {
+        token = await getFreshAccessToken();
+        if (activeUserIdRef.current !== ownerUserId) return;
+      }
+      if (!token) {
+        restoreHandOnFailure('Your Session Expired While Deleting. Hand Restored To Your Queue.');
         return;
       }
-      clearDraftFromSession(expectedUserId, snapshot.hand.id, getReviewMeta(snapshot.hand).revision);
-      setTotalCount((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
-      if (getReviewMeta(snapshot.hand).status !== 'reviewed') {
-        setUnreviewedCount((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
+
+      const deleteUrl = `/api/poker/saved-hands?id=${encodeURIComponent(hand.id)}`;
+      const deleteHeaders = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
+
+      if (keepalive) {
+        clearDraftFromSession(ownerUserId, hand.id, getReviewMeta(hand).revision);
+        try {
+          const res = await fetch(deleteUrl, {
+            method: 'DELETE',
+            keepalive: true,
+            headers: deleteHeaders,
+          });
+          if (res.ok || res.status === 404) {
+            broadcastSavedHandsSync({
+              type: 'saved-hand-deleted',
+              savedRowId: hand.id,
+              sourceHandId,
+              tabId: TAB_ID,
+            });
+          }
+        } catch {
+          /* keepalive flush best-effort on unmount or account switch */
+        }
+        return;
       }
-      broadcastSavedHandsSync({ type: 'saved-hand-deleted', savedRowId: snapshot.hand.id });
+
+      const res = await fetchJsonWithTimeout(deleteUrl, {
+        method: 'DELETE',
+        headers: deleteHeaders,
+      });
+      if (!res.ok && res.status !== 404) {
+        restoreHandOnFailure(res.body?.error || 'Could Not Delete Hand. Restored To Your Queue.');
+        return;
+      }
+      clearDraftFromSession(ownerUserId, hand.id, getReviewMeta(hand).revision);
+      if (activeUserIdRef.current === ownerUserId) {
+        setTotalCount((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
+        if (getReviewMeta(hand).status !== 'reviewed') {
+          setUnreviewedCount((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
+        }
+      }
+      broadcastSavedHandsSync({
+        type: 'saved-hand-deleted',
+        savedRowId: hand.id,
+        sourceHandId,
+        tabId: TAB_ID,
+      });
     } catch {
-      if (activeUserIdRef.current === expectedUserId) {
-        setHands((prev) => {
-          if (prev.some((row) => String(row.id) === String(snapshot.hand.id))) return prev;
-          const next = [...prev];
-          next.splice(Math.min(snapshot.index, next.length), 0, snapshot.hand);
-          return next;
-        });
-        setLoadError('Network Interrupted While Deleting. Hand Restored To Your Queue.');
-      }
+      restoreHandOnFailure('Network Interrupted While Deleting. Hand Restored To Your Queue.');
     }
-  }, []);
+  }, [syncEditorFromHand]);
+  commitServerDeleteRef.current = commitServerDelete;
 
   const startUndoableDelete = useCallback((handToDelete) => {
-    if (!handToDelete?.id) return;
+    const ownerUserId = activeUserIdRef.current;
+    if (!handToDelete?.id || !ownerUserId) return;
     // Flush any prior pending delete immediately so it is never lost
     if (pendingDeleteRef.current) {
-      if (deleteTimerRef.current) window.clearTimeout(deleteTimerRef.current);
-      if (deleteTickRef.current) window.clearInterval(deleteTickRef.current);
-      commitServerDelete(pendingDeleteRef.current);
+      if (deleteTimerRef.current) {
+        window.clearTimeout(deleteTimerRef.current);
+        deleteTimerRef.current = null;
+      }
+      if (deleteTickRef.current) {
+        window.clearInterval(deleteTickRef.current);
+        deleteTickRef.current = null;
+      }
+      const prior = pendingDeleteRef.current;
+      pendingDeleteRef.current = null;
+      commitServerDelete(prior);
     }
 
     const idx = hands.findIndex((row) => String(row.id) === String(handToDelete.id));
@@ -1470,8 +1794,31 @@ export default function PersonalAssistantReviewPage() {
       }
     }
 
-    const snapshot = { hand: handToDelete, index: Math.max(idx, 0), secondsLeft: DELETE_UNDO_SECONDS };
+    const capturedToken = getAccessToken() || null;
+    const sourceHandId = handToDelete?.sourceHandId || handToDelete?.hand_data?.sourceHandId || null;
+    const snapshot = {
+      hand: handToDelete,
+      ownerUserId,
+      ownerToken: capturedToken,
+      sourceHandId,
+      index: Math.max(idx, 0),
+      secondsLeft: DELETE_UNDO_SECONDS,
+    };
+    pendingDeleteRef.current = snapshot;
     setPendingDelete(snapshot);
+
+    getFreshAccessToken()
+      .then((freshToken) => {
+        if (
+          freshToken
+          && activeUserIdRef.current === ownerUserId
+          && pendingDeleteRef.current?.hand?.id === handToDelete.id
+          && pendingDeleteRef.current?.ownerUserId === ownerUserId
+        ) {
+          pendingDeleteRef.current = { ...pendingDeleteRef.current, ownerToken: freshToken };
+        }
+      })
+      .catch(() => { /* keep synchronously captured token */ });
 
     deleteTickRef.current = window.setInterval(() => {
       setPendingDelete((curr) => (curr && curr.secondsLeft > 1
@@ -1484,6 +1831,7 @@ export default function PersonalAssistantReviewPage() {
       deleteTickRef.current = null;
       deleteTimerRef.current = null;
       const latest = pendingDeleteRef.current;
+      pendingDeleteRef.current = null;
       setPendingDelete(null);
       if (latest) commitServerDelete(latest);
     }, DELETE_UNDO_SECONDS * 1000);
@@ -1491,11 +1839,12 @@ export default function PersonalAssistantReviewPage() {
 
   const handleUndoDelete = useCallback(() => {
     const snapshot = pendingDeleteRef.current;
-    if (!snapshot) return;
+    if (!snapshot || snapshot.ownerUserId !== activeUserIdRef.current) return;
     if (deleteTimerRef.current) window.clearTimeout(deleteTimerRef.current);
     if (deleteTickRef.current) window.clearInterval(deleteTickRef.current);
     deleteTimerRef.current = null;
     deleteTickRef.current = null;
+    pendingDeleteRef.current = null;
     setPendingDelete(null);
     setHands((prev) => {
       if (prev.some((row) => String(row.id) === String(snapshot.hand.id))) return prev;
@@ -1509,21 +1858,28 @@ export default function PersonalAssistantReviewPage() {
 
   const handleOpenDeleteDialog = useCallback(() => {
     if (!selectedHand) return;
-    setDeleteDialogHand(selectedHand);
     const dialog = deleteDialogRef.current;
-    if (dialog && typeof dialog.showModal === 'function' && !dialog.open) {
+    if (!dialog || typeof dialog.showModal !== 'function' || !dialog.isConnected || dialog.open) {
+      setDeleteDialogHand(null);
+      return;
+    }
+    setDeleteDialogHand(selectedHand);
+    try {
       dialog.showModal();
+    } catch {
+      setDeleteDialogHand(null);
     }
   }, [selectedHand]);
 
   const handleDeleteDialogClose = useCallback(() => {
     const dialog = deleteDialogRef.current;
-    if (!dialog) return;
-    const outcome = dialog.returnValue;
-    dialog.returnValue = '';
+    const outcome = dialog?.returnValue || '';
+    if (dialog) {
+      dialog.returnValue = '';
+    }
     const target = deleteDialogHand;
     setDeleteDialogHand(null);
-    if (outcome === 'confirm' && target) {
+    if (outcome === 'confirm' && target && activeUserIdRef.current) {
       startUndoableDelete(target);
     }
   }, [deleteDialogHand, startUndoableDelete]);
@@ -2149,25 +2505,59 @@ export default function PersonalAssistantReviewPage() {
                               className={styles.replayerStage}
                             >
                               <div className={styles.replayerMetrics}>
-                                <div className={styles.cardsGroup} aria-label={`${activeStep.label} Community Cards`}>
-                                  <span className={styles.boardLabel}>{activeStep.label} Board:</span>
-                                  {activeStep.boardCards.length > 0 ? (
-                                    activeStep.boardCards.map((c, cIdx) => {
-                                      const tok = formatCardToken(c);
-                                      return (
-                                        <span
-                                          key={`rep-c-${cIdx}`}
-                                          data-pa-verbatim="true"
-                                          className={`${styles.cardChip} ${tok.red ? styles.cardRed : ''}`}
-                                        >
-                                          {tok.text}
+                                {Array.isArray(activeStep.boards)
+                                && activeStep.boards.length > 1
+                                && activeStep.boards.some((b) => Array.isArray(b.cards) && b.cards.length > 0) ? (
+                                  <div
+                                    className={styles.replayerBoardsStack}
+                                    aria-label={`${activeStep.label} Run It Multi-Board Community Cards`}
+                                    data-testid="replayer-multi-boards"
+                                  >
+                                    {activeStep.boards.map((board) => (
+                                      <div key={`rep-b-${board.index}`} className={styles.cardsGroup}>
+                                        <span className={styles.boardLabel}>
+                                          {activeStep.label} {board.label}:
                                         </span>
-                                      );
-                                    })
-                                  ) : (
-                                    <span className={styles.panelCount}>No Community Cards Dealt</span>
-                                  )}
-                                </div>
+                                        {board.cards.length > 0 ? (
+                                          board.cards.map((c, cIdx) => {
+                                            const tok = formatCardToken(c);
+                                            return (
+                                              <span
+                                                key={`rep-b${board.index}-c-${cIdx}`}
+                                                data-pa-verbatim="true"
+                                                className={`${styles.cardChip} ${tok.red ? styles.cardRed : ''}`}
+                                              >
+                                                {tok.text}
+                                              </span>
+                                            );
+                                          })
+                                        ) : (
+                                          <span className={styles.panelCount}>No Community Cards Dealt</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className={styles.cardsGroup} aria-label={`${activeStep.label} Community Cards`}>
+                                    <span className={styles.boardLabel}>{activeStep.label} Board:</span>
+                                    {activeStep.boardCards.length > 0 ? (
+                                      activeStep.boardCards.map((c, cIdx) => {
+                                        const tok = formatCardToken(c);
+                                        return (
+                                          <span
+                                            key={`rep-c-${cIdx}`}
+                                            data-pa-verbatim="true"
+                                            className={`${styles.cardChip} ${tok.red ? styles.cardRed : ''}`}
+                                          >
+                                            {tok.text}
+                                          </span>
+                                        );
+                                      })
+                                    ) : (
+                                      <span className={styles.panelCount}>No Community Cards Dealt</span>
+                                    )}
+                                  </div>
+                                )}
                                 <div className={styles.replayerMetricGroup}>
                                   <span className={styles.replayerMetricChip}>
                                     Pot: {formatChips(activeStep.runningPot)}
@@ -2518,7 +2908,11 @@ export default function PersonalAssistantReviewPage() {
                                 className={styles.secondaryBtn}
                                 onClick={() => {
                                   if (user?.id && selectedHand?.id) {
-                                    clearDraftFromSession(user.id, selectedHand.id, selectedMeta.revision);
+                                    clearDraftFromSession(
+                                      draftOwnerUserIdRef.current || user.id,
+                                      draftHandIdRef.current || selectedHand.id,
+                                      draftSourceRevRef.current || selectedMeta.revision,
+                                    );
                                   }
                                   syncEditorFromHand(selectedHand, { preserveLocalDraft: false });
                                 }}

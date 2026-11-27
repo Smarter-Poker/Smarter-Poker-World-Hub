@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -248,7 +249,7 @@ export default function SprCalculatorPage({
           style={{
             background: '#0f172a',
             border: '1px solid #1e293b',
-            borderRadius: 14,
+            borderRadius: 0,
             padding: 24,
             marginBottom: 36,
           }}
@@ -271,7 +272,7 @@ export default function SprCalculatorPage({
                     width: '100%',
                     marginTop: 6,
                     padding: '10px 12px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     border: '1px solid #334155',
                     background: '#070b14',
                     color: '#f8fafc',
@@ -295,7 +296,7 @@ export default function SprCalculatorPage({
                     width: '100%',
                     marginTop: 6,
                     padding: '10px 12px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     border: '1px solid #334155',
                     background: '#070b14',
                     color: '#f8fafc',
@@ -309,7 +310,7 @@ export default function SprCalculatorPage({
 
           {/* KPI Output Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Stack-To-Pot Ratio (SPR)
               </div>
@@ -321,7 +322,7 @@ export default function SprCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 3-Street Geometric Bet %
               </div>
@@ -333,7 +334,7 @@ export default function SprCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 2-Street Geometric Bet %
               </div>
@@ -345,7 +346,7 @@ export default function SprCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 1-Street All-In Shove %
               </div>
@@ -359,7 +360,7 @@ export default function SprCalculatorPage({
           </div>
 
           {/* Strategic Zone Banner */}
-          <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b', marginBottom: 18 }}>
+          <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b', marginBottom: 18 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#38bdf8', marginBottom: 6 }}>
               {metrics.zoneTitle}
             </div>
@@ -370,7 +371,7 @@ export default function SprCalculatorPage({
 
           {/* Exact Chip Progression Breakdown */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#34d399', marginBottom: 8 }}>
                 3-Street Geometric Progression ({metrics.geo3Pct}% Pot Per Street)
               </div>
@@ -381,7 +382,7 @@ export default function SprCalculatorPage({
               </ul>
             </div>
 
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', marginBottom: 8 }}>
                 2-Street Geometric Progression ({metrics.geo2Pct}% Pot Per Street)
               </div>
@@ -394,13 +395,21 @@ export default function SprCalculatorPage({
           </div>
         </section>
 
+        <div style={{ marginBottom: 32 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="tools-spr-calculator"
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         {/* Reference Table: Geometric Bet Sizing By SPR */}
         <section style={{ marginBottom: 36 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             GTO Geometric Bet Sizing Reference Chart Across Common SPRs
           </h2>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Exact 1-Street, 2-Street, And 3-Street Geometric Bet Percentages And Stack Commitment Thresholds
               </caption>
@@ -431,27 +440,27 @@ export default function SprCalculatorPage({
         </section>
 
         {/* Cross-Link Navigation */}
-        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 12, border: '1px solid #1e293b' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 0, border: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Related Smarter.Poker Calculators &amp; GTO Strategy Guides
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/tools" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools" style={{ padding: '8px 14px', background: '#1f6feb', color: '#fff', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               All Poker Calculators
             </Link>
-            <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Pot Odds &amp; MDF Calculator
             </Link>
-            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Multiway Equity Calculator
             </Link>
-            <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               13x13 GTO Preflop Ranges
             </Link>
-            <Link href="/learn/stack-to-pot-ratio" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/stack-to-pot-ratio" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Lesson: SPR Strategy Guide
             </Link>
-            <Link href="/research/gto-vs-population-preflop-and-postflop-leak-study" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/research/gto-vs-population-preflop-and-postflop-leak-study" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Study: GTO Vs. Population Postflop Leak Benchmark
             </Link>
           </div>

@@ -107,6 +107,40 @@ function sanitizeTags(rawTags) {
   return out;
 }
 
+const GENERIC_NOTE_NAMES = new Set(['you', 'hero', 'villain', 'player', 'winner', 'seat']);
+
+function escapeRegExp(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function scrubShareNotes(rawNotes, nameToAnonLabel) {
+  if (typeof rawNotes !== 'string') return '';
+  let scrubbed = rawNotes
+    .replace(UUID_GLOBAL_RE, '')
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, ' ');
+
+  if (nameToAnonLabel instanceof Map && nameToAnonLabel.size > 0) {
+    const entries = [...nameToAnonLabel.entries()]
+      .filter(([name]) => name && name.length >= 2 && !GENERIC_NOTE_NAMES.has(name))
+      .sort((a, b) => b[0].length - a[0].length);
+
+    for (const [name, anonLabel] of entries) {
+      const escaped = escapeRegExp(name);
+      const startsWord = /^[a-z0-9_]/i.test(name);
+      const endsWord = /[a-z0-9_]$/i.test(name);
+      const pattern = `${startsWord ? '(?<![A-Za-z0-9_])' : ''}${escaped}${endsWord ? '(?![A-Za-z0-9_])' : ''}`;
+      scrubbed = scrubbed.replace(new RegExp(pattern, 'gi'), anonLabel);
+    }
+  }
+
+  return scrubbed
+    .split('\n')
+    .map((line) => line.replace(/[ \t]{2,}/g, ' ').trim())
+    .join('\n')
+    .trim()
+    .slice(0, MAX_SHARE_NOTES);
+}
+
 /**
  * Anonymize a saved hand for privacy-safe sharing.
  *
@@ -244,8 +278,9 @@ export function anonymizeHandForShare(savedHand, { includeNotes = false, origin 
   const street = inferFinalStreet(primaryBoard, anonymizedStreets);
   const tags = sanitizeTags(review.tags);
 
-  const rawNotes = typeof review.notes === 'string' ? review.notes.trim().slice(0, MAX_SHARE_NOTES) : '';
-  const notes = includeNotes && rawNotes ? rawNotes : null;
+  const rawNotes = typeof review.notes === 'string' ? review.notes.trim() : '';
+  const scrubbedNotes = includeNotes && rawNotes ? scrubShareNotes(rawNotes, nameToAnonLabel) : '';
+  const notes = scrubbedNotes || null;
 
   // Build `/share/hand?...` URL strictly matching `pages/share/hand.js` review mode whitelist:
   // ['view', 'hero', 'board', 'street', 'position', 'stakes', 'venue', 'hand', 'anon']

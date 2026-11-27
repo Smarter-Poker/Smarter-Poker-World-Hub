@@ -13,15 +13,15 @@ const T = {
     text: '#E4E6EB',
     textSec: '#B0B3B8',
     border: '#3E4042',
-    gold: '#FFD700',
+    accent: '#38BDF8',
 };
 
 function intensityColor(intensity) {
     if (intensity <= 0) return 'rgba(255,255,255,0.03)';
-    if (intensity < 0.25) return 'rgba(79,172,254,0.15)';
-    if (intensity < 0.5) return 'rgba(79,172,254,0.35)';
-    if (intensity < 0.75) return 'rgba(255,215,0,0.45)';
-    return 'rgba(255,215,0,0.7)';
+    if (intensity < 0.25) return 'rgba(56,189,248,0.16)';
+    if (intensity < 0.5) return 'rgba(56,189,248,0.34)';
+    if (intensity < 0.75) return 'rgba(37,99,235,0.58)';
+    return 'rgba(56,189,248,0.82)';
 }
 
 export default function PeakHoursHeatmap({ venueId }) {
@@ -54,9 +54,9 @@ export default function PeakHoursHeatmap({ venueId }) {
                 <div style={{ filter: 'blur(8px)', opacity: 0.5, pointerEvents: 'none' }}>
                     {/* Fake Skeleton Data */}
                     <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                        <div style={{ flex: 1, minWidth: 130, background: 'rgba(255,215,0,0.05)', border: `1px solid ${T.gold}22`, borderRadius: 10, padding: '10px 14px' }}>
+                        <div style={{ flex: 1, minWidth: 130, background: 'rgba(56,189,248,0.08)', border: `1px solid rgba(56,189,248,0.28)`, borderRadius: 10, padding: '10px 14px' }}>
                             <div style={{ fontSize: 10, color: T.textSec, letterSpacing: 1 }}>Peak Hour</div>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: T.gold }}>9:00 PM</div>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: T.accent }}>9:00 PM</div>
                         </div>
                         <div style={{ flex: 1, minWidth: 130, background: 'rgba(79,172,254,0.05)', border: `1px solid rgba(79,172,254,0.2)`, borderRadius: 10, padding: '10px 14px' }}>
                             <div style={{ fontSize: 10, color: T.textSec, letterSpacing: 1 }}>Busiest Day</div>
@@ -77,8 +77,8 @@ export default function PeakHoursHeatmap({ venueId }) {
                     <button
                         onClick={showUpgradeModal}
                         style={{
-                            padding: '6px 14px', borderRadius: 8, background: 'rgba(255,215,0,0.1)',
-                            border: `1px solid ${T.gold}44`, color: T.gold, fontSize: 12, fontWeight: 700, cursor: 'pointer'
+                            padding: '8px 16px', borderRadius: 8, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                            border: '1px solid rgba(56,189,248,0.4)', color: '#ffffff', fontSize: 12, fontWeight: 700, cursor: 'pointer'
                         }}
                     >
                         Unlock Feature
@@ -115,11 +115,11 @@ export default function PeakHoursHeatmap({ venueId }) {
                 display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap',
             }}>
                 <div style={{
-                    flex: 1, minWidth: 130, background: 'rgba(255,215,0,0.05)',
-                    border: `1px solid ${T.gold}22`, borderRadius: 10, padding: '10px 14px',
+                    flex: 1, minWidth: 130, background: 'rgba(56,189,248,0.08)',
+                    border: '1px solid rgba(56,189,248,0.28)', borderRadius: 10, padding: '10px 14px',
                 }}>
                     <div style={{ fontSize: 10, color: T.textSec, textTransform: 'uppercase', letterSpacing: 1 }}>Peak Hour</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: T.gold }}>{peakHour}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: T.accent }}>{peakHour}</div>
                 </div>
                 <div style={{
                     flex: 1, minWidth: 130, background: 'rgba(79,172,254,0.05)',

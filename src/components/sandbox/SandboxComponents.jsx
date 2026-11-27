@@ -22,8 +22,14 @@ import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-
 import { isRangeGridNavigationKey, nextRangeGridIndex } from '../../lib/personal-assistant/rangeGridNavigation.mjs';
 import { gradeAction, parseActionLabel, sizeBucketFromPercent } from '../../lib/sandbox/actionGrading';
 export { gradeAction, parseActionLabel, sizeBucketFromPercent } from '../../lib/sandbox/actionGrading';
-import { ACTION_CATALOG, computeHandState, legalActionsFor, potFromActions } from './actionEngine.mjs';
-export { ACTION_CATALOG, computeHandState, legalActionsFor, potFromActions } from './actionEngine.mjs';
+import {
+    ACTION_CATALOG, computeHandState, legalActionsFor, potFromActions,
+    pruneAndRemapActionsOnVillainRemoval, pruneActionsToMaxVillains,
+} from './actionEngine.mjs';
+export {
+    ACTION_CATALOG, computeHandState, legalActionsFor, potFromActions,
+    pruneAndRemapActionsOnVillainRemoval, pruneActionsToMaxVillains,
+} from './actionEngine.mjs';
 // react-hot-toast matches the <Toaster> host the sandbox page mounts. The old
 // `../../stores/toastStore` import rendered nowhere on this page.
 import toast from 'react-hot-toast';
@@ -466,6 +472,7 @@ export function ActionHistoryBuilder({
     villainStack = 100,
     villains = null,
     street, currentStreet,
+    preflopPosts = [],
     handState = null,
     disabled = false,
 }) {
@@ -488,6 +495,7 @@ export function ActionHistoryBuilder({
         villainStack,
         villains,
         street: resolvedStreet,
+        preflopPosts,
     });
     const seats = Array.isArray(state.players) && state.players.length > 0
         ? state.players
@@ -543,7 +551,7 @@ export function ActionHistoryBuilder({
         const cleanVal = Math.round(val * 100) / 100;
         const isFacing = legal.includes('raise');
         if (isFacing) {
-            emit('raise', `Raise ${cleanVal} BB`, { raiseTo: cleanVal, amount: cleanVal });
+            emit('raise', `Raise ${cleanVal} BB`, { raiseTo: cleanVal });
         } else {
             emit('bet', `Bet ${cleanVal} BB`, { amount: cleanVal });
         }

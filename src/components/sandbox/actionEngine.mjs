@@ -83,17 +83,166 @@ function normalizeMultiwaySeats({
   return { players, isMultiway };
 }
 
+function extractVillainIndex(entry, villainCount = 1) {
+  if (!entry) return null;
+  if (entry.actorKey === 'hero' || entry.actor === 'hero' || entry.isHero === true) return null;
+
+  const explicitKey = typeof entry.actorKey === 'string' && entry.actorKey
+    ? entry.actorKey
+    : (typeof entry.actor === 'string' && entry.actor ? entry.actor : null);
+  if (explicitKey) {
+    const indexed = explicitKey.match(/^villain_(\d+)$/);
+    if (indexed) return Number(indexed[1]);
+    if (explicitKey === 'villain') return 0;
+  }
+
+  if (typeof entry.villainIndex === 'number' && Number.isInteger(entry.villainIndex)) {
+    return entry.villainIndex;
+  }
+  if (typeof entry.seatIndex === 'number' && Number.isInteger(entry.seatIndex)) {
+    return entry.seatIndex === 0 ? null : entry.seatIndex - 1;
+  }
+  if (typeof entry.seat === 'number' && Number.isInteger(entry.seat)) {
+    return entry.seat === 0 ? null : entry.seat - 1;
+  }
+  if (entry.isVillain === true) {
+    return villainCount <= 1 ? 0 : null;
+  }
+  return null;
+}
+
+/**
+ * Remove actions belonging to a deleted villain seat and remap higher villain
+ * indices down by 1 (and back to `'villain'` when transitioning to heads-up).
+ */
+export function pruneAndRemapActionsOnVillainRemoval(actionHistory, removedIdx, prevVillainCount) {
+  if (!Array.isArray(actionHistory)) return [];
+  if (
+    !Number.isInteger(removedIdx)
+    || removedIdx < 0
+    || !Number.isInteger(prevVillainCount)
+    || prevVillainCount <= 1
+    || removedIdx >= prevVillainCount
+  ) {
+    return [...actionHistory];
+  }
+
+  const nextVillainCount = prevVillainCount - 1;
+  const out = [];
+
+  for (const entry of actionHistory) {
+    if (!entry) continue;
+    if (entry.actorKey === 'hero' || entry.actor === 'hero' || entry.isHero === true) {
+      out.push(entry);
+      continue;
+    }
+
+    const vIdx = extractVillainIndex(entry, prevVillainCount);
+    if (vIdx == null) {
+      if (entry.isVillain === true) continue;
+      out.push(entry);
+      continue;
+    }
+
+    if (vIdx === removedIdx || vIdx < 0 || vIdx >= prevVillainCount) {
+      continue;
+    }
+
+    const nextIdx = vIdx > removedIdx ? vIdx - 1 : vIdx;
+    const nextKey = nextVillainCount <= 1 ? 'villain' : `villain_${nextIdx}`;
+    const remapped = {
+      ...entry,
+      actor: nextKey,
+      actorKey: nextKey,
+      seatIndex: nextIdx + 1,
+      villainIndex: nextIdx,
+      ...(typeof entry.seat === 'number' ? { seat: nextIdx + 1 } : {}),
+    };
+    if (typeof entry.player === 'string' && /^Villain \d+$/i.test(entry.player.trim())) {
+      remapped.player = `Villain ${nextIdx + 1}`;
+    }
+    out.push(remapped);
+  }
+
+  return out;
+}
+
+/**
+ * Drop actions belonging to villain seats beyond `maxVillains` (e.g., when
+ * clamping 7-9-max imported hand histories into a 6-max table of 5 villains).
+ */
+export function pruneActionsToMaxVillains(actionHistory, maxVillains = 5) {
+  if (!Array.isArray(actionHistory)) return [];
+  const limit = Number.isInteger(maxVillains) && maxVillains >= 1 ? maxVillains : 5;
+  const out = [];
+
+  for (const entry of actionHistory) {
+    if (!entry) continue;
+    if (entry.actorKey === 'hero' || entry.actor === 'hero' || entry.isHero === true) {
+      out.push(entry);
+      continue;
+    }
+
+    const vIdx = extractVillainIndex(entry, limit);
+    if (vIdx == null) {
+      if (entry.isVillain === true) continue;
+      out.push(entry);
+      continue;
+    }
+
+    if (vIdx < 0 || vIdx >= limit) {
+      continue;
+    }
+
+    if (limit === 1) {
+      const remapped = { ...entry };
+      if (remapped.actorKey === 'villain_0') remapped.actorKey = 'villain';
+      if (remapped.actor === 'villain_0') remapped.actor = 'villain';
+      out.push(remapped);
+    } else {
+      out.push(entry);
+    }
+  }
+
+  return out;
+}
+
 function resolveActorKey(entry, players, heroPosition) {
-  if (!entry) return 'hero';
-  if (entry.actorKey && players.some((p) => p.key === entry.actorKey)) return entry.actorKey;
-  if (entry.actor === 'hero' || entry.isHero === true) return 'hero';
-  if (entry.actor && players.some((p) => p.key === entry.actor)) return entry.actor;
-  if (typeof entry.seatIndex === 'number' && players[entry.seatIndex]) return players[entry.seatIndex].key;
-  if (typeof entry.villainIndex === 'number' && players[entry.villainIndex + 1]) return players[entry.villainIndex + 1].key;
+  if (!entry) return null;
+  const explicitKey = typeof entry.actorKey === 'string' && entry.actorKey
+    ? entry.actorKey
+    : (typeof entry.actor === 'string' && entry.actor ? entry.actor : null);
+
+  if (explicitKey) {
+    if (explicitKey === 'hero') return 'hero';
+    if (players.some((p) => p.key === explicitKey)) return explicitKey;
+    // An explicit indexed villain key (e.g. villain_2) whose seat no longer exists
+    // must NEVER silently fall through onto another surviving villain.
+    if (/^villain_\d+$/.test(explicitKey)) return null;
+  }
+
+  if (entry.isHero === true) return 'hero';
+
+  if (typeof entry.villainIndex === 'number' && Number.isInteger(entry.villainIndex)) {
+    const target = players[entry.villainIndex + 1];
+    return target ? target.key : null;
+  }
+
+  if (typeof entry.seatIndex === 'number' && Number.isInteger(entry.seatIndex)) {
+    const target = players[entry.seatIndex];
+    return target ? target.key : null;
+  }
+
+  if (typeof entry.seat === 'number' && Number.isInteger(entry.seat)) {
+    const target = players[entry.seat];
+    return target ? target.key : null;
+  }
+
   if (entry.player) {
     const byName = players.find((p) => p.name && p.name.toLowerCase() === String(entry.player).toLowerCase());
     if (byName) return byName.key;
   }
+
   if (entry.isVillain === true) {
     if (entry.position) {
       const byPos = players.find((p) => p.isVillain && !p.folded && p.position === entry.position)
@@ -101,14 +250,16 @@ function resolveActorKey(entry, players, heroPosition) {
       if (byPos) return byPos.key;
     }
     const firstActiveVillain = players.find((p) => p.isVillain && !p.folded) || players[1];
-    return firstActiveVillain ? firstActiveVillain.key : 'villain';
+    return firstActiveVillain ? firstActiveVillain.key : null;
   }
+
   if (entry.position) {
     if (entry.position === heroPosition) return 'hero';
     const byPos = players.find((p) => !p.folded && p.position === entry.position)
       || players.find((p) => p.position === entry.position);
     if (byPos) return byPos.key;
   }
+
   return 'hero';
 }
 
@@ -125,6 +276,7 @@ function betPctOf(actionId) {
 export function computeHandState({
   basePot = 1.5, actions = [], heroPosition = 'BTN', villainPosition = 'BB',
   heroStack = 100, villainStack = 100, villains = null, street = 'preflop',
+  preflopPosts = [],
 } = {}) {
   const { players, isMultiway } = normalizeMultiwaySeats({
     heroPosition, heroStack, villainPosition, villainStack, villains,
@@ -139,7 +291,8 @@ export function computeHandState({
   const remainingOf = (p) => Math.max(0, capFor(p) - p.invested);
 
   let committed = Math.max(0, Number(basePot) || 0);
-  let currentStreet = STREET_ORDER.includes(String(actions?.[0]?.street || '').toLowerCase())
+  const hasActions = Array.isArray(actions) && actions.length > 0;
+  let currentStreet = hasActions && STREET_ORDER.includes(String(actions[0]?.street || '').toLowerCase())
     ? String(actions[0].street).toLowerCase()
     : 'preflop';
   let terminal = null; // 'fold' | 'allin' | null
@@ -148,6 +301,30 @@ export function computeHandState({
   let streetClosed = false;
   let actedThisStreet = new Set();
   const perStreetActiveCounts = { [currentStreet]: players.length };
+
+  // Seed live preflop blind/straddle commitments so preflop calls (e.g. BTN raise 3 BB + BB call 2 BB)
+  // close preflop accurately without double-counting blinds already included in basePot.
+  const shouldSeedPreflop = (hasActions ? currentStreet === 'preflop' : String(street || 'preflop').toLowerCase() === 'preflop')
+    && Array.isArray(preflopPosts) && preflopPosts.length > 0;
+  if (shouldSeedPreflop) {
+    let seededLiveTotal = 0;
+    for (const post of preflopPosts) {
+      if (!post || post.type === 'ante') continue;
+      const liveRaw = post.liveAmount != null ? Number(post.liveAmount) : Number(post.amount);
+      if (!Number.isFinite(liveRaw) || liveRaw <= 0) continue;
+      const postKey = resolveActorKey(post, players, heroPosition);
+      const poster = postKey ? byKey[postKey] : null;
+      if (!poster) continue;
+      const capped = Math.max(0, Math.min(liveRaw, remainingOf(poster)));
+      poster.streetIn += capped;
+      poster.invested += capped;
+      if (remainingOf(poster) <= 0.001) poster.allIn = true;
+      seededLiveTotal += capped;
+    }
+    if (seededLiveTotal > 0) {
+      committed = Math.max(0, committed - seededLiveTotal);
+    }
+  }
 
   const highestStreetBetNow = () => players.reduce((m, p) => Math.max(m, p.streetIn), 0);
   const totalStreetInNow = () => players.reduce((s, p) => s + p.streetIn, 0);
@@ -192,9 +369,30 @@ export function computeHandState({
   };
 
   (actions || []).forEach((entry) => {
+    const isUncalledReturn = entry?.type === 'uncalled_return'
+      || String(entry?.action || '').toLowerCase() === 'uncalled_return';
+    if (isUncalledReturn) {
+      const whoKey = resolveActorKey(entry, players, heroPosition);
+      const actor = whoKey ? byKey[whoKey] : null;
+      const refund = Number.isFinite(Number(entry?.amount)) && Number(entry.amount) > 0
+        ? Number(entry.amount)
+        : 0;
+      if (actor && refund > 0) {
+        const fromStreet = Math.min(refund, actor.streetIn);
+        actor.streetIn = Math.max(0, actor.streetIn - fromStreet);
+        const remainder = Math.max(0, refund - fromStreet);
+        if (remainder > 0) {
+          committed = Math.max(0, committed - remainder);
+        }
+        actor.invested = Math.max(0, actor.invested - refund);
+        if (remainingOf(actor) > 0.001) actor.allIn = false;
+      }
+      return;
+    }
+
     if (terminal) return;
     const whoKey = resolveActorKey(entry, players, heroPosition);
-    const actor = byKey[whoKey];
+    const actor = whoKey ? byKey[whoKey] : null;
     if (!actor || actor.folded) return;
 
     const entryStreetRaw = String(entry?.street || '').toLowerCase();
@@ -236,12 +434,10 @@ export function computeHandState({
       actedThisStreet.add(actor.key);
     } else if (id === 'raise') {
       let delta = 0;
-      if (explicitAmount != null) {
-        // When both explicitAmount (added chips from parser) and explicitRaiseTo exist,
-        // explicitAmount accurately reflects preflop blind deductions already accounted for.
+      if (explicitRaiseTo != null) {
+        delta = Math.max(0, explicitRaiseTo - actor.streetIn);
+      } else if (explicitAmount != null) {
         delta = explicitAmount;
-      } else if (explicitRaiseTo != null && explicitRaiseTo > actor.streetIn) {
-        delta = explicitRaiseTo - actor.streetIn;
       } else {
         const target = highBefore > 0 ? highBefore * 3 : Math.max(potNow * 0.75, 2.5);
         delta = Math.max(target - actor.streetIn, toCall);
@@ -253,10 +449,10 @@ export function computeHandState({
         actedThisStreet.add(actor.key);
       }
     } else if (id === 'allin' || entry?.allIn === true) {
-      if (explicitAmount != null) {
+      if (explicitRaiseTo != null) {
+        addChips(Math.min(Math.max(0, explicitRaiseTo - actor.streetIn), remainingOf(actor)));
+      } else if (explicitAmount != null) {
         addChips(Math.min(explicitAmount, remainingOf(actor)));
-      } else if (explicitRaiseTo != null && explicitRaiseTo > actor.streetIn) {
-        addChips(Math.min(explicitRaiseTo - actor.streetIn, remainingOf(actor)));
       } else {
         addChips(remainingOf(actor));
       }
@@ -268,9 +464,11 @@ export function computeHandState({
       }
     } else if (id === 'bet' || betPctOf(id) != null) {
       const pct = betPctOf(id);
-      const delta = explicitAmount != null
-        ? explicitAmount
-        : (pct != null ? potNow * (pct / 100) : Math.max(potNow * 0.5, 1));
+      const delta = explicitRaiseTo != null
+        ? Math.max(0, explicitRaiseTo - actor.streetIn)
+        : explicitAmount != null
+          ? explicitAmount
+          : (pct != null ? potNow * (pct / 100) : Math.max(potNow * 0.5, 1));
       addChips(delta);
       if (actor.streetIn > highBefore + 0.001) {
         actedThisStreet = new Set([actor.key]);

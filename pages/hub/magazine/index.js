@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import NewsletterCaptureBar from '../../../src/components/news/NewsletterCaptureBar.js';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
     FALLBACK_MAGAZINE_IMAGE,
     MagazinePageSheet,
@@ -314,7 +315,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                         style={{
                             background: '#0b1520',
                             border: '1px solid #1b2c3d',
-                            borderRadius: '18px',
+                            borderRadius: 0,
                             padding: '26px 28px',
                             marginBottom: '26px',
                         }}
@@ -348,7 +349,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         background: '#102131',
                                         border: '1px solid #1b2c3d',
                                         color: '#60a5fa',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                         padding: '5px 14px',
                                         fontSize: '12.5px',
                                         fontWeight: 800,
@@ -363,7 +364,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         background: '#102131',
                                         border: '1px solid #4fc1b3',
                                         color: '#4fc1b3',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                         padding: '5px 14px',
                                         fontSize: '12.5px',
                                         fontWeight: 800,
@@ -382,7 +383,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         color: '#ffffff',
                                         background: '#05070a',
                                         border: '1px solid #1b2c3d',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                         padding: '5px 13px',
                                         fontSize: '12.5px',
                                         fontWeight: 700,
@@ -417,7 +418,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                         style={{
                             background: 'linear-gradient(135deg, #0b1520 0%, #102131 100%)',
                             border: '1px solid #1b2c3d',
-                            borderRadius: '20px',
+                            borderRadius: 0,
                             padding: '28px',
                             marginBottom: '28px',
                             display: 'grid',
@@ -433,7 +434,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                     maxWidth: '330px',
                                     transform: 'perspective(1200px) rotateY(-6deg)',
                                     boxShadow: '-14px 18px 38px rgba(0, 0, 0, 0.72), -4px 0 0 #4fc1b3',
-                                    borderRadius: '6px 12px 12px 6px',
+                                    borderRadius: 0,
                                     overflow: 'hidden',
                                     border: '1px solid #1b2c3d',
                                 }}
@@ -467,7 +468,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         letterSpacing: '1.5px',
                                         textTransform: 'uppercase',
                                         padding: '4px 10px',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                     }}
                                 >
                                     {currentHero
@@ -484,7 +485,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         fontSize: '11px',
                                         fontWeight: 800,
                                         padding: '4px 10px',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                     }}
                                 >
                                     {`${currentHero?.pageCount || 44} Pages \u2022 Saddle-Stitch Print Spec`}
@@ -545,7 +546,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                     fontWeight: 900,
                                                     fontSize: '14px',
                                                     padding: '10px 18px',
-                                                    borderRadius: '10px',
+                                                    borderRadius: 0,
                                                 }}
                                             >
                                                 {`Continue Reading Issue #${currentHero.issueNumber} (Page ${leadSavedPage})`} &rarr;
@@ -563,7 +564,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                 fontWeight: 900,
                                                 fontSize: '14px',
                                                 padding: '10px 20px',
-                                                borderRadius: '10px',
+                                                borderRadius: 0,
                                             }}
                                         >
                                             Open Two-Page Flipbook &rarr;
@@ -581,7 +582,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                 fontWeight: 800,
                                                 fontSize: '14px',
                                                 padding: '10px 18px',
-                                                borderRadius: '10px',
+                                                borderRadius: 0,
                                             }}
                                         >
                                             Clean Mobile Reader
@@ -599,7 +600,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                 fontWeight: 800,
                                                 fontSize: '14px',
                                                 padding: '10px 18px',
-                                                borderRadius: '10px',
+                                                borderRadius: 0,
                                             }}
                                         >
                                             Download 44-Page PDF
@@ -617,7 +618,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                 fontWeight: 800,
                                                 fontSize: '14px',
                                                 padding: '10px 18px',
-                                                borderRadius: '10px',
+                                                borderRadius: 0,
                                             }}
                                         >
                                             Print-Ready Sheet View
@@ -636,7 +637,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                             fontWeight: 900,
                                             fontSize: '14px',
                                             padding: '10px 20px',
-                                            borderRadius: '10px',
+                                            borderRadius: 0,
                                         }}
                                     >
                                         Read Weekly Wire Editions &rarr;
@@ -656,7 +657,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         fontWeight: 800,
                                         fontSize: '14px',
                                         padding: '10px 18px',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                     }}
                                 >
                                     Stock In Your Poker Room
@@ -675,7 +676,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         fontWeight: 800,
                                         fontSize: '14px',
                                         padding: '10px 18px',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                     }}
                                 >
                                     Table-Tent QR Kit
@@ -727,7 +728,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                     flex: '1 1 260px',
                                     background: '#0b1520',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '10px',
+                                    borderRadius: 0,
                                     padding: '11px 16px',
                                     color: '#ffffff',
                                     fontSize: '16px',
@@ -742,7 +743,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         background: '#102131',
                                         border: '1px solid #1b2c3d',
                                         color: '#4fc1b3',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                         padding: '11px 16px',
                                         fontSize: '13.5px',
                                         fontWeight: 800,
@@ -766,7 +767,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                             background: selected ? '#4fc1b3' : '#0b1520',
                                             color: selected ? '#05070a' : '#9fb3c8',
                                             border: `1px solid ${selected ? '#4fc1b3' : '#1b2c3d'}`,
-                                            borderRadius: '999px',
+                                            borderRadius: 0,
                                             padding: '7px 14px',
                                             fontSize: '12.5px',
                                             fontWeight: 800,
@@ -784,7 +785,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                 style={{
                                     background: '#0b1520',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '16px',
+                                    borderRadius: 0,
                                     padding: '32px 24px',
                                     textAlign: 'center',
                                 }}
@@ -807,7 +808,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                 style={{
                                                     background: '#4fc1b3',
                                                     color: '#05070a',
-                                                    borderRadius: '8px',
+                                                    borderRadius: 0,
                                                     padding: '10px 18px',
                                                     fontSize: '13.5px',
                                                     fontWeight: 800,
@@ -822,7 +823,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                     background: '#102131',
                                                     border: '1px solid #60a5fa',
                                                     color: '#60a5fa',
-                                                    borderRadius: '8px',
+                                                    borderRadius: 0,
                                                     padding: '10px 18px',
                                                     fontSize: '13.5px',
                                                     fontWeight: 800,
@@ -843,7 +844,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                 background: '#4fc1b3',
                                                 border: 'none',
                                                 color: '#05070a',
-                                                borderRadius: '8px',
+                                                borderRadius: 0,
                                                 padding: '10px 18px',
                                                 fontSize: '13.5px',
                                                 fontWeight: 800,
@@ -869,7 +870,7 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         style={{
                                             background: '#0b1520',
                                             border: '1px solid #1b2c3d',
-                                            borderRadius: '14px',
+                                            borderRadius: 0,
                                             overflow: 'hidden',
                                             display: 'flex',
                                             flexDirection: 'column',
@@ -986,6 +987,13 @@ export default function SmarterPokerMagazineNewsstandPage({
                             </div>
                         )}
                     </section>
+                    <div style={{ marginTop: 28 }}>
+                        <SmarterAccountUnlockGate
+                            variant="editorial-wire"
+                            context="magazine-index"
+                            redirectPath="/hub/magazine"
+                        />
+                    </div>
                 </div>
             </main>
         </>

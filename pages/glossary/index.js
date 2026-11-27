@@ -20,6 +20,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import {
   GLOSSARY_TERMS,
   GLOSSARY_URL,
@@ -161,6 +162,14 @@ export default function GlossaryIndexPage() {
             slug="smarter-poker-glossary-index"
           />
 
+          <div style={{ margin: '28px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="study-deck"
+              context="glossary-index"
+              redirectPath="/glossary"
+            />
+          </div>
+
           <AiPromptLauncher
             title="Smarter.Poker Official Poker & GTO Strategy Glossary"
             canonicalUrl="https://smarter.poker/glossary"
@@ -209,7 +218,7 @@ const styles = {
   jumpLink: {
     display: 'inline-block',
     padding: '6px 12px',
-    borderRadius: 999,
+    borderRadius: 0,
     border: '1px solid rgba(0, 198, 255, 0.25)',
     color: '#9fd8ff',
     fontSize: 13,
@@ -220,7 +229,7 @@ const styles = {
   item: {
     background: 'rgba(255, 255, 255, 0.04)',
     border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    borderRadius: 0,
     padding: '14px 16px 12px',
   },
   link: {

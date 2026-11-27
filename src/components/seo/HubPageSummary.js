@@ -640,8 +640,8 @@ export const HUB_PAGE_SUMMARIES = {
       'Personal Poker Assistant Is The Central Command Center For Jarvis Coaching, Deterministic Leak Detection, And Evidence-Backed Training Reviews On Smarter Poker. Review Recent Session History, Inspect Active Statistical Leaks Across Preflop And Postflop Streets, And Launch Signed Training Drills That Target Your Highest-Cost Expected Value Mistakes Without Leaving The Browser. Free To Open And Explore.',
     links: [
       { name: 'Leak Finder', href: '/hub/personal-assistant/leaks', text: 'Run Deterministic Post-Session Audits To Find Repeated EV Leaks.' },
-      { name: 'Scenario Archive', href: '/hub/personal-assistant/sandbox', text: 'Review The Verified Evidence Boundary And Open Signed Training.' },
-      { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Scenario Games Graded Against Solver Baselines.' },
+      { name: 'Virtual Sandbox', href: '/hub/personal-assistant/sandbox', text: 'Explore Poker Scenarios And Runout Equity Inside Your Assistant.' },
+      { name: 'Review My Play', href: '/hub/personal-assistant/review', text: 'Inspect Saved Club Arena And Logged Hands With Private Notes.' },
       { name: 'AI Coach Feature Guide', href: '/features/poker-ai-coach', text: 'How Jarvis And Leak Finder Work Together Across Smarter Poker.' },
     ],
   },
@@ -1684,9 +1684,10 @@ const defaultStyles = {
     padding: 0,
   },
   item: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
+    boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.16)',
     padding: '16px 16px 14px',
   },
   link: {

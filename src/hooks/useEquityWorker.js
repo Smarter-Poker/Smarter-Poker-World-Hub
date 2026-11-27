@@ -21,12 +21,16 @@ function round1(val) {
   return Math.round(val * 10) / 10;
 }
 
+function hasValidHeroEquity(res) {
+  return Boolean(res && res.heroEquity != null && Number.isFinite(Number(res.heroEquity)));
+}
+
 /**
  * Sample-size-weighted combination of independent Monte Carlo equity batches.
  */
 export function combineEquitySamples(batches = []) {
   const valid = (Array.isArray(batches) ? batches : []).filter(
-    (b) => b && Number.isFinite(Number(b.heroEquity)) && Number(b.sampleSize) > 0,
+    (b) => hasValidHeroEquity(b) && Number(b.sampleSize) > 0,
   );
   if (valid.length === 0) return null;
 
@@ -91,7 +95,7 @@ export async function runProgressiveEquity({
   const preview = await calculateFn(heroCards, boardCards, firstBatchSize, rangeArg, { signal });
   if (isCancelled() || !preview) return null;
 
-  if (preview.blocked || preview.invalid || !Number.isFinite(Number(preview.heroEquity))) {
+  if (preview.blocked || preview.invalid || !hasValidHeroEquity(preview)) {
     const terminalResult = {
       ...preview,
       isPreview: false,
@@ -126,7 +130,7 @@ export async function runProgressiveEquity({
     const nextSize = Math.min(maxBatch, remaining);
     const batch = await calculateFn(heroCards, boardCards, nextSize, rangeArg, { signal });
     if (isCancelled() || !batch) return null;
-    if (batch.blocked || batch.invalid || !Number.isFinite(Number(batch.heroEquity))) {
+    if (batch.blocked || batch.invalid || !hasValidHeroEquity(batch)) {
       break;
     }
 
@@ -213,7 +217,7 @@ export function useEquityWorker({
       calculateFn,
       onProgress: (result) => {
         if (reqId !== reqIdRef.current) return;
-        setEquity(result && Number.isFinite(Number(result.heroEquity)) ? result : null);
+        setEquity(hasValidHeroEquity(result) ? result : null);
         setComputing(false);
         setRefining(Boolean(result?.isPreview && !result?.converged));
       },

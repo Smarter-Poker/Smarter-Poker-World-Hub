@@ -112,10 +112,20 @@ export default function AuthCallback() {
             } catch (_e) {
                 /* private mode / storage disabled - the code in the URL still lands */
             }
+            const rawNext = Array.isArray(router.query.next) ? router.query.next[0] : router.query.next;
+            const rawRedirect = Array.isArray(router.query.redirect)
+                ? router.query.redirect[0]
+                : router.query.redirect;
+            const safeReturnPath = isSafeRelativePath(rawNext)
+                ? rawNext
+                : (isSafeRelativePath(rawRedirect) ? rawRedirect : null);
+            const redirectSuffix = safeReturnPath
+                ? `&redirect=${encodeURIComponent(safeReturnPath)}`
+                : '';
             // 1500ms: still long enough to read the error; was 2500ms which caused
             // the e2e/07-auth.spec.ts 8000ms timeout to expire in CI.
             setTimeout(
-                () => router.replace(`${dest}?authError=${encodeURIComponent(code)}`),
+                () => router.replace(`${dest}?authError=${encodeURIComponent(code)}${redirectSuffix}`),
                 1500
             );
         };
@@ -457,11 +467,16 @@ export default function AuthCallback() {
                     // localStorage unavailable (privacy mode) — default to /hub
                 }
 
-                // Honour an explicit ?next=/path override if it's a same-origin path
+                // Honour an explicit ?next=/path (or ?redirect=/path) override if it's a same-origin path
                 let nextPath = null;
                 const rawNext = Array.isArray(router.query.next) ? router.query.next[0] : router.query.next;
+                const rawRedirect = Array.isArray(router.query.redirect)
+                    ? router.query.redirect[0]
+                    : router.query.redirect;
                 if (isSafeRelativePath(rawNext)) {
                     nextPath = rawNext;
+                } else if (isSafeRelativePath(rawRedirect)) {
+                    nextPath = rawRedirect;
                 }
 
                 const inviteDest = inviteJoinPath;
@@ -473,8 +488,13 @@ export default function AuthCallback() {
                     || (isCommanderOrigin ? '/commander/dashboard' : null)
                     || inviteDest
                     || '/hub';
+                const canForwardNext = destination !== '/hub' && (
+                    typeof isSafeRelativePath === 'function'
+                        ? isSafeRelativePath(destination)
+                        : Boolean(nextPath || safeClubArenaPath(destination))
+                );
                 const dest = newPlayerNeedsPhone && !isCommanderOrigin
-                    ? `/hub/verify-phone?welcome=1${safeClubArenaPath(destination) ? `&next=${encodeURIComponent(destination)}` : ''}`
+                    ? `/hub/verify-phone?welcome=1${canForwardNext ? `&next=${encodeURIComponent(destination)}` : ''}`
                     : destination;
 
 

@@ -36,13 +36,14 @@ export default function StudyStatus({ refreshKey = 0 }) {
         })();
         return () => { active = false; clearTimeout(deadline); controller.abort(); };
     }, [ownerId, refreshKey, revision]);
-    return <section className="vl-study-status" aria-label="Diamond Study Streak" data-video-library-study-status>
+    // Three centred readouts; how the streak is counted lives behind the
+    // library's "?" help (VIDEO_LIBRARY_HELP_STEPS, step "study"), Dan 2026-11-27.
+    return <section className="vl-study-status" aria-label="Diamond Study Streak" data-video-library-study-status data-tutorial="study">
         <h2>Diamond Study Streak</h2>
-        {!ownerId ? <p><Link href="/auth/login?redirect=%2Fhub%2Fvideo-library" rel="nofollow" prefetch={false}>Sign In To See Your Study Streak</Link></p> : current?.status === 'ready' ? <>
-            <p className="vl-study-streak-value">{current.data.currentStreak}{current.data.streakAtLeast ? '+' : ''} {current.data.currentStreak === 1 ? 'Day' : 'Days'}</p>
-            <p>{current.data.diamondsToday} Diamonds Earned From Videos Today</p>
-            <p>Counts Days With Verified Video Watch Diamond Credits. Watch Rewards Use Existing Eligibility And Limits. No Extra Streak Bonus.</p>
-            <p>{current.data.studiedToday ? 'Today Counts Toward Your Streak.' : 'Earn A Video Watch Reward Today To Continue Your Streak.'}</p>
-        </> : current?.status === 'error' ? <><p role="alert">{current.error}</p><button type="button" className="vl-pill-button" onClick={() => setRevision(value => value + 1)}>Reload Study Status</button></> : <p role="status">Loading Study Status</p>}
+        {!ownerId ? <p><Link href="/auth/login?redirect=%2Fhub%2Fvideo-library" rel="nofollow" prefetch={false}>Sign In To See Your Study Streak</Link></p> : current?.status === 'ready' ? <div className="vl-study-readouts">
+            <div className="vl-study-readout"><span>Streak</span><p className="vl-study-streak-value">{current.data.currentStreak}{current.data.streakAtLeast ? '+' : ''} {current.data.currentStreak === 1 ? 'Day' : 'Days'}</p></div>
+            <div className="vl-study-readout"><span>Diamonds Today</span><p className="vl-study-streak-value">{current.data.diamondsToday.toLocaleString()}</p></div>
+            <div className={`vl-study-readout${current.data.studiedToday ? ' is-done' : ''}`}><span>Today</span><p className="vl-study-streak-value">{current.data.studiedToday ? 'Counted' : 'Not Yet'}</p></div>
+        </div> : current?.status === 'error' ? <><p role="alert">{current.error}</p><button type="button" className="vl-pill-button" onClick={() => setRevision(value => value + 1)}>Reload Study Status</button></> : <p role="status">Loading Study Status</p>}
     </section>;
 }

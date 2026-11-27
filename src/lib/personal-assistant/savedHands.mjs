@@ -56,6 +56,9 @@ export const CLUB_ARENA_SOURCE_HAND_SELECT = [
   'rit_boards',
   'button_seat',
   'actions',
+  'winners',
+  'winners_by_board',
+  'showdown',
   'summary',
   'source',
   'created_at',
@@ -313,25 +316,47 @@ export function extractMultiBoards(handRow, summary = {}) {
   return boards;
 }
 
+function optionalFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function extractHandLabel(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  if (typeof entry.hand === 'string' && entry.hand.trim()) return entry.hand.trim();
+  if (entry.hand && typeof entry.hand === 'object') {
+    const nested = entry.hand.name || entry.hand.description || entry.hand.handName || entry.hand.hand_name;
+    if (typeof nested === 'string' && nested.trim()) return nested.trim();
+  }
+  const alt = entry.handName || entry.hand_name || entry.description;
+  return typeof alt === 'string' && alt.trim() ? alt.trim() : null;
+}
+
 /**
  * Normalize recorded street actions without exposing any opponent's private cards.
  */
-function extractSanitizedStreets(handRow, summary, userId, boards) {
+function extractSanitizedStreets(handRow, summary, userId, boards, heroPositionOverride = null) {
   const uid = String(userId || '').trim();
   const primaryBoard = boards[0]?.cards || [];
   const rawActions = Array.isArray(handRow?.actions) ? handRow.actions : [];
   const playerMap = new Map();
+  const playerBySeat = new Map();
   const rawPlayers = Array.isArray(summary?.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(handRow?.players) ? handRow.players : []);
   for (const p of rawPlayers) {
     const pid = playerIdOf(p);
-    if (pid) {
-      playerMap.set(pid, {
-        name: String(p.username || p.name || p.displayName || (pid === uid ? 'You' : 'Player')).trim(),
-        position: p.position ? String(p.position).trim().toUpperCase() : null,
-      });
-    }
+    const seatKey = optionalFiniteNumber(p?.seat ?? p?.seatIndex ?? p?.seat_number);
+    const isHeroPlayer = pid !== '' && pid === uid;
+    const rawPos = p?.position || (isHeroPlayer ? heroPositionOverride : null);
+    const meta = {
+      pid,
+      name: String(p.username || p.name || p.displayName || (isHeroPlayer ? 'You' : 'Player')).trim(),
+      position: rawPos ? String(rawPos).trim().toUpperCase() : null,
+    };
+    if (pid) playerMap.set(pid, meta);
+    if (seatKey !== null) playerBySeat.set(seatKey, meta);
   }
 
   const streetKeys = ['preflop', 'pineapple_discard', 'flop', 'turn', 'river'];
@@ -360,9 +385,12 @@ function extractSanitizedStreets(handRow, summary, userId, boards) {
       name: streetKey,
       cards: boardForStreet,
       actions: list.map((a) => {
-        const actorId = String(a?.playerId ?? a?.userId ?? a?.player_id ?? '').trim();
+        const explicitActorId = String(a?.playerId ?? a?.userId ?? a?.player_id ?? '').trim();
+        const seatKey = optionalFiniteNumber(a?.seat ?? a?.seatIndex ?? a?.seat_number);
+        const seatMeta = !explicitActorId && seatKey !== null ? playerBySeat.get(seatKey) : null;
+        const actorId = explicitActorId || seatMeta?.pid || '';
         const isHero = actorId !== '' && actorId === uid;
-        const meta = playerMap.get(actorId);
+        const meta = (actorId ? playerMap.get(actorId) : null) || seatMeta;
         const rawAction = String(a?.action || a?.type || '').trim().toLowerCase();
         const amount = a?.amount !== undefined && a?.amount !== null && a?.amount !== '' && Number.isFinite(Number(a.amount))
           ? Number(a.amount)
@@ -391,6 +419,8 @@ function extractSanitizedStreets(handRow, summary, userId, boards) {
  * - Opponent hole cards are stripped unless explicitly revealed at showdown
  *   (and never revealed if the opponent folded or mucked).
  * - Hero's own hole cards are preserved (marked private if folded/mucked).
+ * - `club_id` is ALWAYS stored as `null` on `public.hand_histories` so the legacy
+ *   club-admin RLS policy can never read a player's private notes, tags, or folded cards.
  * - Review state (`status: 'saved'`) and analysis state (`analysisState: 'not_analyzed'`)
  *   are kept strictly distinct.
  */
@@ -398,6 +428,7 @@ export function buildClubArenaSavedHandRow({
   userId,
   handRow,
   heroPrivateCards = [],
+  heroFactRow = null,
   tableName = null,
   clubId = null,
   now = new Date(),
@@ -405,26 +436,56 @@ export function buildClubArenaSavedHandRow({
   const uid = String(userId || '').trim();
   const sourceHandId = String(handRow?.id || '').trim();
   const summary = parseHandSummary(handRow?.summary) || {};
+  const fact = heroFactRow && typeof heroFactRow === 'object' ? heroFactRow : null;
+  const factPositionRaw = fact?.position || fact?.hero_position || null;
+  const factPosition = factPositionRaw ? String(factPositionRaw).trim().toUpperCase() : null;
+  const factInvested = optionalFiniteNumber(fact?.invested);
+  const factReturned = optionalFiniteNumber(fact?.returned);
+  const factNet = optionalFiniteNumber(fact?.net);
+  const factNetBb = optionalFiniteNumber(fact?.net_bb);
   const at = now.toISOString();
   const boards = extractMultiBoards(handRow, summary);
-  const streets = extractSanitizedStreets(handRow, summary, uid, boards);
+  const streets = extractSanitizedStreets(handRow, summary, uid, boards, factPosition);
 
   const rawPlayers = Array.isArray(summary?.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(handRow?.players) ? handRow.players : []);
 
+  const seatToPlayerId = new Map();
+  const playerNameById = new Map();
+  for (let idx = 0; idx < rawPlayers.length; idx += 1) {
+    const p = rawPlayers[idx];
+    const pid = playerIdOf(p);
+    const seatKey = optionalFiniteNumber(p?.seat ?? p?.seatIndex ?? p?.seat_number);
+    if (pid && seatKey !== null) seatToPlayerId.set(seatKey, pid);
+    if (pid) {
+      const isHero = pid === uid;
+      playerNameById.set(
+        pid,
+        String(p?.username || p?.name || p?.displayName || (isHero ? 'You' : `Seat ${idx + 1}`)).trim(),
+      );
+    }
+  }
+
+  const resolveActionActorId = (a) => {
+    const explicit = String(a?.playerId ?? a?.userId ?? a?.player_id ?? '').trim();
+    if (explicit) return explicit;
+    const seatKey = optionalFiniteNumber(a?.seat ?? a?.seatIndex ?? a?.seat_number);
+    return seatKey !== null ? (seatToPlayerId.get(seatKey) || '') : '';
+  };
+
   const foldedIds = new Set();
   const allFlatActions = Array.isArray(handRow?.actions) ? handRow.actions : [];
   for (const a of allFlatActions) {
     const verb = String(a?.action || a?.type || '').trim().toLowerCase();
-    const actorId = String(a?.playerId ?? a?.userId ?? a?.player_id ?? '').trim();
+    const actorId = resolveActionActorId(a);
     if (verb === 'fold' && actorId) foldedIds.add(actorId);
   }
   if (summary?.streets && typeof summary.streets === 'object') {
     for (const st of Object.values(summary.streets)) {
       for (const a of Array.isArray(st?.actions) ? st.actions : []) {
         const verb = String(a?.action || a?.type || '').trim().toLowerCase();
-        const actorId = String(a?.playerId ?? a?.userId ?? a?.player_id ?? '').trim();
+        const actorId = resolveActionActorId(a);
         if (verb === 'fold' && actorId) foldedIds.add(actorId);
       }
     }
@@ -441,22 +502,83 @@ export function buildClubArenaSavedHandRow({
   }
 
   const showdownPlayerIds = new Set();
-  if (Array.isArray(summary?.showdown)) {
-    for (const row of summary.showdown) {
-      const pid = playerIdOf(row);
-      const shownCards = normalizeBoardCodes(row?.holeCards || row?.cards);
-      if (pid && shownCards.length > 0 && row?.mucked !== true) showdownPlayerIds.add(pid);
+  const showdownCardsByPid = new Map();
+
+  // Merge top-level Club Arena engine `hand_history.showdown` entries:
+  // `{ user_id, seat, reveal_order, mucked, hand_name, hand_description }`
+  if (Array.isArray(handRow?.showdown)) {
+    for (const row of handRow.showdown) {
+      const seatKey = optionalFiniteNumber(row?.seat ?? row?.seatIndex ?? row?.seat_number);
+      const pid = playerIdOf(row) || (seatKey !== null ? (seatToPlayerId.get(seatKey) || '') : '');
+      if (!pid) continue;
+      if (row?.mucked === true) {
+        muckedIds.add(pid);
+        continue;
+      }
+      showdownPlayerIds.add(pid);
+      const shownCards = normalizeBoardCodes(row?.holeCards || row?.hole_cards || row?.cards);
+      if (shownCards.length > 0) showdownCardsByPid.set(pid, shownCards);
     }
   }
+
+  // Merge legacy `summary.showdown` entries.
+  if (Array.isArray(summary?.showdown)) {
+    for (const row of summary.showdown) {
+      const seatKey = optionalFiniteNumber(row?.seat ?? row?.seatIndex ?? row?.seat_number);
+      const pid = playerIdOf(row) || (seatKey !== null ? (seatToPlayerId.get(seatKey) || '') : '');
+      if (!pid) continue;
+      if (row?.mucked === true) {
+        muckedIds.add(pid);
+        continue;
+      }
+      const shownCards = normalizeBoardCodes(row?.holeCards || row?.hole_cards || row?.cards);
+      if (shownCards.length > 0) {
+        showdownPlayerIds.add(pid);
+        if (!showdownCardsByPid.has(pid)) showdownCardsByPid.set(pid, shownCards);
+      }
+    }
+  }
+
   const holeCardsColumn = handRow?.hole_cards && typeof handRow.hole_cards === 'object' && !Array.isArray(handRow.hole_cards)
     ? handRow.hole_cards
     : {};
 
   const wentToShowdown = Boolean(
     summary?.wentToShowdown === true
+    || fact?.went_to_showdown === true
+    || (Array.isArray(handRow?.showdown) && handRow.showdown.length > 0)
     || showdownPlayerIds.size > 0
     || rawPlayers.some((p) => p?.showedCards === true || p?.revealed === true || p?.shown === true),
   );
+
+  // Merge top-level `handRow.winners` & `handRow.winners_by_board` alongside legacy `summary`.
+  const rawWinners = Array.isArray(handRow?.winners) && handRow.winners.length > 0
+    ? handRow.winners
+    : (Array.isArray(summary?.winners) ? summary.winners : []);
+
+  const rawWinnersByBoard = Array.isArray(handRow?.winners_by_board) && handRow.winners_by_board.length > 0
+    ? handRow.winners_by_board
+    : (Array.isArray(summary?.winnersByBoard) && summary.winnersByBoard.length > 0
+      ? summary.winnersByBoard
+      : (Array.isArray(summary?.boardResults) ? summary.boardResults : []));
+
+  const winnerAmountByPid = new Map();
+  for (const w of rawWinners) {
+    const pid = playerIdOf(w);
+    const amt = optionalFiniteNumber(w?.amount ?? w?.won);
+    if (pid && amt !== null) {
+      winnerAmountByPid.set(pid, (winnerAmountByPid.get(pid) || 0) + amt);
+    }
+  }
+  if (winnerAmountByPid.size === 0 && rawWinnersByBoard.length > 0) {
+    for (const wb of rawWinnersByBoard) {
+      const pid = playerIdOf(wb);
+      const amt = optionalFiniteNumber(wb?.amount ?? wb?.won);
+      if (pid && amt !== null) {
+        winnerAmountByPid.set(pid, (winnerAmountByPid.get(pid) || 0) + amt);
+      }
+    }
+  }
 
   const sanitizedPlayers = rawPlayers.map((p, idx) => {
     const pid = playerIdOf(p);
@@ -481,9 +603,11 @@ export function buildClubArenaSavedHandRow({
     if (isHero) {
       const heroCandidates = [
         heroPrivateCards,
+        fact?.hole_cards,
         p?.holeCards,
         p?.privateHoleCards,
         p?.cards,
+        showdownCardsByPid.get(uid),
         holeCardsColumn[uid],
       ];
       for (const candidate of heroCandidates) {
@@ -500,6 +624,7 @@ export function buildClubArenaSavedHandRow({
           : 'private_hero';
     } else if (explicitlyShown) {
       const oppCandidates = [
+        showdownCardsByPid.get(pid),
         holeCardsColumn[pid],
         p?.holeCards,
         p?.cards,
@@ -513,28 +638,40 @@ export function buildClubArenaSavedHandRow({
       }
       cardsVisibility = visibleCards.length > 0 ? 'shown' : 'hidden';
     } else {
-      // Strictly strip hidden opponent cards.
+      // Strictly strip hidden, folded, or mucked opponent cards.
       visibleCards = [];
       cardsVisibility = 'hidden';
     }
 
-    const won = finiteNumber(p?.won ?? p?.payout ?? p?.collected, 0);
-    const invested = finiteNumber(p?.invested ?? p?.totalBet ?? p?.bet, 0);
-    const netResult = p?.netResult !== undefined && p?.netResult !== null
-      ? finiteNumber(p.netResult, 0)
-      : p?.net !== undefined && p?.net !== null
-        ? finiteNumber(p.net, 0)
-        : p?.result !== undefined && p?.result !== null
-          ? finiteNumber(p.result, 0)
-          : (won - invested);
+    const explicitWon = optionalFiniteNumber(p?.won ?? p?.payout ?? p?.collected);
+    const won = explicitWon !== null
+      ? explicitWon
+      : (isHero && factReturned !== null
+        ? factReturned
+        : (pid && winnerAmountByPid.has(pid) ? winnerAmountByPid.get(pid) : 0));
+
+    const explicitInvested = optionalFiniteNumber(p?.invested ?? p?.totalBet ?? p?.bet);
+    const invested = explicitInvested !== null
+      ? explicitInvested
+      : (isHero && factInvested !== null ? factInvested : 0);
+
+    const explicitNet = optionalFiniteNumber(p?.netResult ?? p?.net ?? p?.result);
+    const netResult = explicitNet !== null
+      ? explicitNet
+      : (isHero && factNet !== null ? factNet : (won - invested));
+
+    const resolvedPosition = p?.position
+      ? String(p.position).trim().toUpperCase()
+      : (isHero ? factPosition : null);
 
     return {
       seatIndex: finiteNumber(p?.seat ?? p?.seatIndex ?? p?.seat_number, idx + 1),
       name: String(p?.username || p?.name || p?.displayName || (isHero ? 'You' : `Seat ${idx + 1}`)).trim(),
-      position: p?.position ? String(p.position).trim().toUpperCase() : null,
+      position: resolvedPosition,
       stack: finiteNumber(p?.stack ?? p?.startingStack ?? p?.chips, 0),
       netResult,
       won,
+      invested,
       folded,
       mucked,
       isHero,
@@ -544,41 +681,51 @@ export function buildClubArenaSavedHandRow({
     };
   });
 
-  const rawWinners = Array.isArray(summary?.winners) ? summary.winners : [];
   const winners = rawWinners.map((w) => {
     const pid = playerIdOf(w);
     const isHero = pid !== '' && pid === uid;
-    const matchedPlayer = sanitizedPlayers.find((p) => (isHero ? p.isHero : p.name === (w?.playerName || w?.name)));
+    const matchedName = (pid && playerNameById.get(pid))
+      || w?.playerName
+      || w?.name
+      || (isHero ? 'You' : 'Winner');
     return {
-      playerName: String(w?.playerName || w?.name || matchedPlayer?.name || (isHero ? 'You' : 'Winner')).trim(),
+      playerName: String(matchedName).trim(),
       amount: finiteNumber(w?.amount ?? w?.won, 0),
-      hand: w?.hand || w?.handName || w?.description || null,
+      hand: extractHandLabel(w),
       isHero,
       ...(w?.board !== undefined && w?.board !== null ? { board: Number(w.board) } : {}),
       ...(w?.low === true ? { low: true } : {}),
     };
   });
 
-  const rawWinnersByBoard = Array.isArray(summary?.winnersByBoard)
-    ? summary.winnersByBoard
-    : (Array.isArray(summary?.boardResults) ? summary.boardResults : []);
   const winnersByBoard = rawWinnersByBoard.map((wb, idx) => {
     const pid = playerIdOf(wb);
     const isHero = pid !== '' && pid === uid;
+    const matchedName = (pid && playerNameById.get(pid))
+      || wb?.playerName
+      || wb?.name
+      || (isHero ? 'You' : 'Winner');
     return {
       board: finiteNumber(wb?.board ?? wb?.boardIndex ?? wb?.run, idx + 1),
-      playerName: String(wb?.playerName || wb?.name || (isHero ? 'You' : 'Winner')).trim(),
+      playerName: String(matchedName).trim(),
       amount: finiteNumber(wb?.amount ?? wb?.won, 0),
-      hand: wb?.hand || wb?.handName || wb?.description || null,
+      hand: extractHandLabel(wb),
       low: wb?.low === true,
       isHero,
     };
   });
 
   const heroEntry = sanitizedPlayers.find((p) => p.isHero) || null;
+  const heroWonChips = heroEntry?.won ?? (factReturned ?? 0);
+  const heroInvestedChips = heroEntry?.invested ?? (factInvested ?? 0);
+  const heroNet = heroEntry?.netResult ?? (factNet ?? 0);
+  const heroPosition = heroEntry?.position || factPosition || null;
   const heroWon = Boolean(
-    (heroEntry && (heroEntry.won > 0 || heroEntry.netResult > 0))
-    || winners.some((w) => w.isHero),
+    heroWonChips > 0
+    || heroNet > 0
+    || winners.some((w) => w.isHero)
+    || winnersByBoard.some((wb) => wb.isHero)
+    || fact?.won_at_showdown === true,
   );
 
   const variant = normalizeVariantLabel(handRow?.game_variant || summary?.gameVariant || summary?.variant);
@@ -587,6 +734,7 @@ export function buildClubArenaSavedHandRow({
   const potTotal = finiteNumber(handRow?.pot_size ?? summary?.potTotal ?? summary?.potSize ?? summary?.pot, 0);
   const playedAt = handRow?.created_at || summary?.playedAt || at;
   const savedRowId = randomUUID();
+  const resolvedClubId = clubId ? String(clubId) : (summary?.clubId ? String(summary.clubId) : null);
 
   return {
     id: savedRowId,
@@ -594,7 +742,10 @@ export function buildClubArenaSavedHandRow({
     user_id: uid,
     player_ids: [uid],
     table_id: String(handRow?.table_id || 'club-arena'),
-    club_id: clubId ? String(clubId) : (summary?.clubId ? String(summary.clubId) : null),
+    // Privacy invariant: keep top-level club_id NULL on public.hand_histories so the
+    // legacy "Club admins can view club hands" RLS policy can never expose private
+    // notes, tags, or folded hero cards to club admins/managers.
+    club_id: null,
     hand_number: Math.max(0, Math.trunc(finiteNumber(handRow?.hand_number ?? summary?.handNumber, 0))),
     variant,
     betting_structure: inferBettingStructure(variant),
@@ -605,16 +756,21 @@ export function buildClubArenaSavedHandRow({
     hand_data: {
       source: CLUB_ARENA_SOURCE,
       sourceHandId,
+      ...(resolvedClubId ? { clubId: resolvedClubId } : {}),
       tableName: tableName ? String(tableName).trim() : (summary?.tableName ? String(summary.tableName).trim() : null),
       tournamentId: handRow?.tournament_id ? String(handRow.tournament_id) : null,
       buttonSeat: handRow?.button_seat ?? summary?.buttonSeat ?? null,
       wentToShowdown,
+      wonAtShowdown: Boolean(fact?.won_at_showdown === true || (wentToShowdown && heroWon)),
       bombPot: handRow?.bomb_pot || summary?.bombPot || null,
       killPot: Boolean(handRow?.kill_pot || summary?.killPot),
       heroCards: heroEntry?.holeCards || [],
       heroCardsVisibility: heroEntry?.cardsVisibility || 'unavailable',
-      heroNet: heroEntry?.netResult ?? 0,
-      heroPosition: heroEntry?.position || null,
+      heroNet,
+      ...(factNetBb !== null ? { heroNetBb: factNetBb } : {}),
+      heroPosition,
+      won: heroWonChips,
+      invested: heroInvestedChips,
       communityCards: boards[0]?.cards || [],
       boards,
       streets,
@@ -795,8 +951,12 @@ export function decodeSavedHandsCursor(raw) {
   }
 }
 
+export function rowEffectiveTimestamp(row) {
+  return row?.created_at || row?.completed_at || row?.started_at || null;
+}
+
 function rowTimestampMs(row) {
-  const raw = row?.created_at || row?.completed_at || row?.started_at || '';
+  const raw = rowEffectiveTimestamp(row) || '';
   const ms = Date.parse(String(raw));
   return Number.isNaN(ms) ? 0 : ms;
 }
@@ -816,7 +976,9 @@ export function isRowAfterCursor(row, cursor) {
   const rowMs = rowTimestampMs(row);
   if (rowMs < cursor.ms) return true;
   if (rowMs > cursor.ms) return false;
-  if (!cursor.id) return false;
+  // Raw ISO timestamp cursors carry no tie-breaker ID; include equal-millisecond
+  // siblings rather than silently dropping rows that share the same timestamp.
+  if (!cursor.id) return true;
   return String(row?.id || '') < String(cursor.id);
 }
 
@@ -884,14 +1046,13 @@ export function matchesSavedHandFilters(row, filters = {}) {
 
   if (filters.status) {
     const wantedStatus = String(filters.status).trim().toLowerCase();
+    if (!ALLOWED_LIST_STATUSES.has(wantedStatus)) return false;
     if (wantedStatus === 'unreviewed' || wantedStatus === 'saved') {
       if (review.status !== 'saved') return false;
     } else if (wantedStatus === 'in_review' || wantedStatus === 'reviewed') {
       if (review.status !== wantedStatus) return false;
     } else if (wantedStatus === 'analyzed') {
       if (review.analysisState !== 'analyzed') return false;
-    } else {
-      return false;
     }
   }
 
@@ -1253,6 +1414,7 @@ export default {
   isUniqueViolationError,
   encodeSavedHandsCursor,
   decodeSavedHandsCursor,
+  rowEffectiveTimestamp,
   compareSavedHandRowsDesc,
   isRowAfterCursor,
   isSavedHandUnreviewed,

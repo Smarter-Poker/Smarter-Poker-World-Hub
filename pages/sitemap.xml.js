@@ -215,6 +215,7 @@ const staticPages = [
   { path: '/hub/vip-membership/compare', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/install', priority: '0.7', changefreq: 'monthly' },
   { path: '/hub/personal-assistant', priority: '0.85', changefreq: 'weekly' },
+  { path: '/hub/personal-assistant/review', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/personal-assistant/leaks', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/personal-assistant/sandbox', priority: '0.7', changefreq: 'monthly' },
   { path: '/hub/merch-store', priority: '0.7', changefreq: 'weekly' },

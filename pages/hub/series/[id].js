@@ -9,6 +9,7 @@ import Head from 'next/head';
 import { resolveVenueTimeZone } from '../../../src/components/poker-near-me/pnm-utils';
 import { qualifiedScheduleZone, scheduleDateStatus } from '../../../src/lib/poker-near-me/scheduleTemporal.mjs';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import useHasMounted from '../../../src/hooks/useHasMounted';
@@ -56,15 +57,15 @@ import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 
 // Tour badge color mapping
 const TOUR_COLORS = {
-  'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+  'WSOP': { bg: 'linear-gradient(135deg, #0284c7, #0c4a6e)', text: '#fff', border: '#38bdf8' },
   'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
-  'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+  'WSOPC': { bg: 'linear-gradient(135deg, #1d4ed8, #1e3a8a)', text: '#fff', border: '#60a5fa' },
   'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
   'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
-  'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
+  'PGT': { bg: 'linear-gradient(135deg, #0f766e, #115e59)', text: '#fff', border: '#2dd4bf' },
   'EPT': { bg: 'linear-gradient(135deg, #0ea5e9, #0369a1)', text: '#fff', border: '#38bdf8' },
   'LAPC': { bg: 'linear-gradient(135deg, #e11d48, #9f1239)', text: '#fff', border: '#fb7185' },
-  'SHRPO': { bg: 'linear-gradient(135deg, #d97706, #92400e)', text: '#fff', border: '#f59e0b' },
+  'SHRPO': { bg: 'linear-gradient(135deg, #0369a1, #075985)', text: '#fff', border: '#38bdf8' },
   'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' },
 };
 
@@ -72,7 +73,7 @@ const TOUR_COLORS = {
 const SERIES_TYPE_COLORS = {
   major: { bg: '#00D4FF', text: '#000' },
   circuit: { bg: '#60a5fa', text: '#000' },
-  regional: { bg: '#a78bfa', text: '#000' },
+  regional: { bg: '#38bdf8', text: '#000' },
   'mid-major': { bg: '#4ade80', text: '#000' },
   weekly: { bg: '#94a3b8', text: '#000' },
 };
@@ -81,7 +82,7 @@ const ACTIVITY_TYPE_COLORS = {
   update: { bg: 'rgba(96, 165, 250, 0.15)', text: '#60a5fa', border: 'rgba(96, 165, 250, 0.3)' },
   announcement: { bg: 'rgba(0, 212, 255, 0.15)', text: '#00D4FF', border: 'rgba(0, 212, 255, 0.3)' },
   promotion: { bg: 'rgba(74, 222, 128, 0.15)', text: '#4ade80', border: 'rgba(74, 222, 128, 0.3)' },
-  result: { bg: 'rgba(167, 139, 250, 0.15)', text: '#a78bfa', border: 'rgba(167, 139, 250, 0.3)' },
+  result: { bg: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)' },
 };
 
 const PODIUM_COLORS = {
@@ -238,7 +239,7 @@ function deriveDetailCategory(series) {
 
 function deriveDetailCategoryColor(series) {
   const cat = deriveDetailCategory(series);
-  const cats = { 'Card Room': '#8b5cf6', 'Charity': '#ec4899', 'Poker Club': '#06b6d4', 'Casino': '#f59e0b', 'Major': '#c9a227', 'Circuit': '#3b82f6', 'Mid-Major': '#4ade80' };
+  const cats = { 'Card Room': '#38bdf8', 'Charity': '#2dd4bf', 'Poker Club': '#06b6d4', 'Casino': '#60a5fa', 'Major': '#00D4FF', 'Circuit': '#3b82f6', 'Mid-Major': '#4ade80' };
   return cats[cat] || '#6b7280';
 }
 function timeAgo(dateStr) {
@@ -930,13 +931,13 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 onClick={() => router.push('/hub/poker-series')}
-                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#ffffff', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: 20, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#ffffff', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: 0, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               >
                 Browse All Series
               </button>
               <button
                 onClick={() => router.back()}
-                style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 0, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
               >
                 Go Back
               </button>
@@ -1119,7 +1120,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             padding: '12px 14px',
             background: 'rgba(0, 212, 255, 0.04)',
             border: '1px solid rgba(0, 212, 255, 0.15)',
-            borderRadius: '8px',
+            borderRadius: 0,
             fontSize: '13px',
             lineHeight: '1.5',
             color: '#cbd5e1'
@@ -1183,7 +1184,13 @@ export default function SeriesDetailPage({ seoSeries = null }) {
           </dl>
         </PokerNearMePanelShell>
 
-        <div style={{ margin: '18px 0' }}>
+        <div style={{ margin: '18px 0', display: 'grid', gap: 18 }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={`series-${String(id || 'detail')}`}
+            title={`Track ${series?.name || 'This Poker Series'} Events, Buy-Ins & Alerts Free`}
+            redirectPath={`/hub/series/${id || ''}`}
+          />
           <SmarterConversionCta
             eyebrow="Free Tournament Series Companion"
             title="Save This Series Schedule & Track Live Buy-Ins Free"
@@ -1205,7 +1212,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                 <details key={qIdx} style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '8px',
+                  borderRadius: 0,
                   padding: '12px 14px',
                   color: '#e2e8f0'
                 }}>
@@ -1296,7 +1303,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
           </h2>
 
           {events.length > 0 ? (
-            <div className="events-table-wrap">
+            <div className="events-table-wrap" style={{ overflowX: 'auto' }}>
               <table className="events-table" aria-label="Official Tournament Event Schedule">
                 <caption className="sr-only">
                   Official Tournament Event Schedule For {series.name || 'Poker Series'}
@@ -1461,7 +1468,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
           {leaderboard.length > 0 && (
             <div className="leaderboard-section">
               <h3 className="subsection-title">Leaderboard</h3>
-              <div className="leaderboard-table-wrap">
+              <div className="leaderboard-table-wrap" style={{ overflowX: 'auto' }}>
                 <table className="leaderboard-table">
                   <thead>
                     <tr>
@@ -1796,7 +1803,7 @@ const styles = `
     min-width: 20px;
     height: 20px;
     padding: 0 6px;
-    border-radius: 10px;
+    border-radius: 0;
     background: rgba(0, 212, 255, 0.2);
     font-size:12px;
     font-weight: 700;
@@ -1908,7 +1915,7 @@ const styles = `
     color: #94a3b8;
     background: rgba(148, 163, 184, 0.1);
     padding: 4px 10px;
-    border-radius: 12px;
+    border-radius: 0;
   }
 
   /* Venue Info */
@@ -1977,7 +1984,7 @@ const styles = `
     color: #00D4FF;
     background: rgba(0, 212, 255, 0.08);
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 0;
     border: 1px solid rgba(0, 212, 255, 0.2);
   }
   .venue-link-primary:hover {
@@ -2113,7 +2120,7 @@ const styles = `
   .event-detail-content {
     background: rgba(15, 23, 42, 0.6);
     border: 1px solid rgba(0, 212, 255, 0.15);
-    border-radius: 10px;
+    border-radius: 0;
     padding: 16px 20px;
   }
   .event-detail-grid {
@@ -2146,7 +2153,7 @@ const styles = `
     font-weight: 700;
   }
   .detail-late-reg {
-    color: #fbbf24;
+    color: #38bdf8;
     font-weight: 600;
   }
 
@@ -2370,7 +2377,7 @@ const styles = `
     display: inline-flex;
     align-items: center;
     padding: 3px 10px;
-    border-radius: 20px;
+    border-radius: 0;
     border: 1px solid;
     font-size:12px;
     font-weight: 600;
@@ -2452,7 +2459,7 @@ const styles = `
   gap: 2px;
   padding: 11px 13px;
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 10px;
+  border-radius: 0;
   background: rgba(30, 41, 59, 0.42);
 }
 .sss-name { font-size: 13.5px; font-weight: 700; color: #f1f5f9; line-height: 1.35; }
@@ -2515,7 +2522,7 @@ const styles = `
     padding: 12px 24px;
     background: rgba(0, 212, 255, 0.12);
     border: 1px solid rgba(0, 212, 255, 0.3);
-    border-radius: 10px;
+    border-radius: 0;
     color: #00D4FF;
     text-decoration: none;
     font-size: 14px;
@@ -2583,7 +2590,7 @@ const styles = `
       gap: 8px;
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
+      border-radius: 0;
       position: relative;
     }
     .events-table tbody td {
@@ -2595,7 +2602,7 @@ const styles = `
       font-size: 12px;
       background: rgba(255,255,255,0.1);
       padding: 2px 8px;
-      border-radius: 12px;
+      border-radius: 0;
       color: #cbd5e1;
     }
     .event-name {

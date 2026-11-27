@@ -27,6 +27,7 @@
 import Link from 'next/link';
 import { TOUR_TYPE_LABELS, tourFaqs } from '../../lib/seo/tourPageSeo';
 import FaqSection from './FaqSection';
+import SmarterAccountUnlockGate from './SmarterAccountUnlockGate';
 
 export default function TourPageSummary({ code, name, type, website, stops = [], events = [], facts = null }) {
   const label = (name || '').trim() || `${code} Poker Tour`;
@@ -163,6 +164,12 @@ export default function TourPageSummary({ code, name, type, website, stops = [],
           </li>
         )}
       </ul>
+      <SmarterAccountUnlockGate
+        variant="live-venue-intel"
+        context={`tour-${String(code || 'series').toLowerCase()}`}
+        title={`Track ${label} Stops, Buy-Ins & Calendar Alerts With A Free Account`}
+        redirectPath={`/hub/tours/${encodeURIComponent(String(code || ''))}`}
+      />
       <FaqSection faqs={tourFaqs({ code, name, stops: stopList })} id="tour-faq" />
       <p style={styles.compliance}>
         Schedules And Results Come From The Tour Operators And Can Change. 18+.{' '}
@@ -198,24 +205,24 @@ const styles = {
     margin: '0 0 8px',
   },
   factRow: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.07)',
-    borderRadius: 10,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '11px 14px',
   },
   factTerm: {
     fontSize: 12,
     letterSpacing: '0.6px',
     textTransform: 'uppercase',
-    color: '#7f8ca3',
+    color: '#86daff',
     margin: 0,
   },
-  factValue: { fontSize: 14, lineHeight: 1.5, color: '#e6ecf5', margin: '3px 0 0' },
+  factValue: { fontSize: 14, lineHeight: 1.5, color: '#f2f7ff', margin: '3px 0 0' },
   subheading: {
-    fontFamily: 'var(--font-orbitron), sans-serif',
-    fontSize: 'clamp(15px, 1.8vw, 18px)',
-    fontWeight: 700,
-    color: '#ffffff',
+    fontFamily: "var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif",
+    fontSize: 'clamp(16px, 2vw, 20px)',
+    fontWeight: 800,
+    color: '#f2f7ff',
     margin: '28px 0 12px',
     letterSpacing: '0.4px',
   },
@@ -231,25 +238,25 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 3,
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(0, 198, 255, 0.14)',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px 16px',
   },
-  stopName: { fontSize: 15, fontWeight: 700, color: '#ffffff', lineHeight: 1.35 },
-  stopWhere: { fontSize: 13.5, color: '#b8c4d6' },
-  stopWhen: { fontSize: 13.5, color: '#9fd8ff', fontWeight: 600 },
-  stopDetail: { fontSize: 13, color: '#8fa0b8' },
+  stopName: { fontSize: 15, fontWeight: 700, color: '#f2f7ff', lineHeight: 1.35 },
+  stopWhere: { fontSize: 13.5, color: '#bdd0e2' },
+  stopWhen: { fontSize: 13.5, color: '#86daff', fontWeight: 600 },
+  stopDetail: { fontSize: 13, color: '#bdd0e2' },
   eventList: { listStyle: 'none', margin: '0 0 8px', padding: 0, display: 'grid', gap: 8 },
   event: {
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
-    borderLeft: '2px solid rgba(0, 198, 255, 0.3)',
+    borderLeft: '2px solid #38bdf8',
     padding: '4px 0 4px 12px',
   },
-  eventName: { fontSize: 14, fontWeight: 600, color: '#e6ecf5' },
-  eventMeta: { fontSize: 13, color: '#8fa0b8' },
+  eventName: { fontSize: 14, fontWeight: 600, color: '#f2f7ff' },
+  eventMeta: { fontSize: 13, color: '#bdd0e2' },
   list: {
     listStyle: 'none',
     display: 'grid',
@@ -259,9 +266,9 @@ const styles = {
     padding: 0,
   },
   item: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px 16px 14px',
   },
   link: {

@@ -1813,6 +1813,24 @@ export default function SignUpPage() {
           <form onSubmit={handleSignUp} style={phoneStyles.panel}>
             {/* #SMARTERDESIGN Trust Strip & Primary 1-Tap Google CTA */}
             <div style={phoneStyles.quickStartCard}>
+              {typeof router?.query?.unlock === 'string' && router.query.unlock.trim() && (
+                <div
+                  data-testid="signup-unlock-context"
+                  style={{
+                    marginBottom: 8,
+                    padding: '6px 10px',
+                    border: '1px solid #3a7fbd',
+                    background: 'linear-gradient(180deg, #12406f 0%, #082341 100%)',
+                    color: '#86daff',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                    textAlign: 'center',
+                  }}
+                >
+                  Free Account Unlock Ready: Complete Below To Continue Immediately
+                </div>
+              )}
               <div style={phoneStyles.trustStrip}>
                 100% Free Account • 107 GTO Training Games • 715+ Live Poker Rooms
               </div>

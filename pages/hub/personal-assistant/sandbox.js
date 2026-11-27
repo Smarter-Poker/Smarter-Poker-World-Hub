@@ -26,7 +26,7 @@ import { useRouter } from 'next/router';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   SlidersHorizontal, Shuffle, RotateCcw, Undo2, Plus, X as XIcon,
-  Layers, Users, LayoutGrid, Bookmark, FolderOpen, Upload, FileCode,
+  Layers, Users, LayoutGrid, Flame, Bookmark, FolderOpen, Upload, FileCode,
   Film, Share2, ClipboardList, BarChart3, ShieldAlert, Check,
   PlayCircle, Trash2, Loader2, RefreshCw, ExternalLink, Volume2, VolumeX,
 } from 'lucide-react';
@@ -48,10 +48,9 @@ import {
 } from '../../../src/lib/personal-assistant/persistenceContract';
 import {
   calculateEquityAsync, simulateRunoutsAsync,
-  isEquityWorkerAvailable, terminateEquityWorker,
 } from '../../../src/lib/sandbox/EquityEngine';
 import {
-  runProgressiveEquity, DEFAULT_PREVIEW_TRIALS, DEFAULT_FULL_TRIALS,
+  useEquityWorker, DEFAULT_PREVIEW_TRIALS, DEFAULT_FULL_TRIALS,
 } from '../../../src/hooks/useEquityWorker';
 import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
 import {
@@ -74,32 +73,84 @@ import {
 } from '../../../src/components/sandbox/paKit';
 import {
   computeHandState, classifyBoardTexture,
+  pruneAndRemapActionsOnVillainRemoval, pruneActionsToMaxVillains,
   ActionHistoryBuilder, StreetTimeline, ActionReplayBar,
   PreflopChartOverlay, RunoutChart, VillainReadCard,
 } from '../../../src/components/sandbox/SandboxComponents';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CODE-SPLIT WORKSPACE PANELS (loaded on demand)
+// CODE-SPLIT WORKSPACE PANELS (loaded on demand with accessible fallbacks)
 // ═══════════════════════════════════════════════════════════════════════════
+function ModalLoadingFallback({ label = 'Loading Panel…', height = 96 }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      style={{
+        display: 'flex', flexDirection: 'column', gap: S.xs,
+        padding: S.sm, borderRadius: R.sm, background: T.surface2,
+        border: `1px solid ${T.border}`,
+      }}
+    >
+      <span style={{ fontSize: F.caption, fontWeight: 700, color: T.textMuted }}>{label}</span>
+      <Skeleton h={height} />
+    </div>
+  );
+}
+
 const RangeHeatGrid = dynamic(
   () => import('../../../src/components/sandbox/RangeHeatGrid'),
-  { ssr: false, loading: () => <Skeleton h={220} /> },
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Range Heat Grid…" height={180} /> },
 );
 const ExportCard = dynamic(
   () => import('../../../src/components/sandbox/ExportCard').then((m) => m.ExportCard),
-  { ssr: false },
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Export Card…" height={72} /> },
 );
-const RangeExplorer = dynamic(() => import('../../../src/components/sandbox/RangeExplorer'), { ssr: false });
-const VillainPresetPicker = dynamic(() => import('../../../src/components/sandbox/VillainPresetPicker'), { ssr: false });
-const EquityHeatmapOverlay = dynamic(() => import('../../../src/components/sandbox/EquityHeatmapOverlay'), { ssr: false });
-const HandReplay = dynamic(() => import('../../../src/components/sandbox/HandReplay'), { ssr: false });
-const StudyFolders = dynamic(() => import('../../../src/components/sandbox/StudyFolders'), { ssr: false });
-const SaveHandModal = dynamic(() => import('../../../src/components/sandbox/SaveHandModal'), { ssr: false });
-const ShareScenarioModal = dynamic(() => import('../../../src/components/sandbox/ShareScenarioModal'), { ssr: false });
-const ImportHHModal = dynamic(() => import('../../../src/components/sandbox/ImportHHModal'), { ssr: false });
-const ExternalSolverImport = dynamic(() => import('../../../src/components/sandbox/ExternalSolverImport'), { ssr: false });
-const SessionReport = dynamic(() => import('../../../src/components/sandbox/SessionReport'), { ssr: false });
-const SessionAnalytics = dynamic(() => import('../../../src/components/sandbox/SessionAnalytics'), { ssr: false });
+const RangeExplorer = dynamic(
+  () => import('../../../src/components/sandbox/RangeExplorer'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Range Explorer…" height={180} /> },
+);
+const VillainPresetPicker = dynamic(
+  () => import('../../../src/components/sandbox/VillainPresetPicker'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Villain Presets…" height={140} /> },
+);
+const EquityHeatmapOverlay = dynamic(
+  () => import('../../../src/components/sandbox/EquityHeatmapOverlay'),
+  { ssr: false, loading: () => null },
+);
+const HandReplay = dynamic(
+  () => import('../../../src/components/sandbox/HandReplay'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Hand Replay…" height={140} /> },
+);
+const StudyFolders = dynamic(
+  () => import('../../../src/components/sandbox/StudyFolders'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Study Folders…" height={140} /> },
+);
+const SaveHandModal = dynamic(
+  () => import('../../../src/components/sandbox/SaveHandModal'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Save Hand…" height={140} /> },
+);
+const ShareScenarioModal = dynamic(
+  () => import('../../../src/components/sandbox/ShareScenarioModal'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Share Scenario…" height={140} /> },
+);
+const ImportHHModal = dynamic(
+  () => import('../../../src/components/sandbox/ImportHHModal'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Hand History Import…" height={140} /> },
+);
+const ExternalSolverImport = dynamic(
+  () => import('../../../src/components/sandbox/ExternalSolverImport'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Solver Import…" height={140} /> },
+);
+const SessionReport = dynamic(
+  () => import('../../../src/components/sandbox/SessionReport'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Session Report…" height={140} /> },
+);
+const SessionAnalytics = dynamic(
+  () => import('../../../src/components/sandbox/SessionAnalytics'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Historical Stats…" height={140} /> },
+);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS & PURE HELPERS
@@ -226,71 +277,76 @@ function describeHeroHand(heroHand) {
 const MemoSandboxPokerTable = memo(SandboxPokerTable);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CARD SLOT HELPER
+// CARD SLOT HELPER (Single persistent <button> ref preserves focus return)
 // ═══════════════════════════════════════════════════════════════════════════
 function CardSlot({ card, label, onTap, onRemove }) {
-  if (card) {
-    return (
-      <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+  const buttonRef = useRef(null);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+      <button
+        ref={buttonRef}
+        type="button"
+        className="pa-btn"
+        onClick={onTap}
+        aria-label={card ? `Change ${card}` : (label ? `Pick ${label} Card` : 'Pick Board Card')}
+        style={card ? {
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          width: 52, height: 72, borderRadius: R.sm,
+        } : {
+          width: 52, height: 72, borderRadius: R.sm, cursor: 'pointer', flexShrink: 0,
+          background: T.accentSoft, border: '2px dashed rgba(99,231,255,0.42)',
+          color: T.accent, fontSize: F.caption, fontWeight: 700,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 2, boxSizing: 'border-box',
+        }}
+      >
+        {card ? (
+          <TableCard card={card} style={{ width: 52, height: 72 }} />
+        ) : (
+          <>
+            <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
+            <span>{label || 'Card'}</span>
+          </>
+        )}
+      </button>
+      {card && onRemove && (
         <button
           type="button"
           className="pa-btn"
-          onClick={onTap}
-          aria-label={`Change ${card}`}
+          onClick={onRemove}
+          aria-label={`Remove ${card}`}
           style={{
-            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-            width: 52, height: 72, borderRadius: R.sm,
+            position: 'absolute', top: -14, right: -14, width: 36, height: 36, minWidth: 36, minHeight: 36,
+            borderRadius: '50%', background: 'transparent', border: 'none',
+            color: '#F1F5FC', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', padding: 0,
           }}
         >
-          <TableCard card={card} style={{ width: 52, height: 72 }} />
-        </button>
-        {onRemove && (
-          <button
-            type="button"
-            className="pa-btn"
-            onClick={onRemove}
-            aria-label={`Remove ${card}`}
+          <span
+            aria-hidden="true"
             style={{
-              position: 'absolute', top: -14, right: -14, width: 36, height: 36, minWidth: 36, minHeight: 36,
-              borderRadius: '50%', background: 'transparent', border: 'none',
-              color: '#F1F5FC', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', padding: 0,
+              width: 24, height: 24, borderRadius: '50%',
+              background: T.danger, border: '2px solid #040D18',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <span
-              aria-hidden="true"
-              style={{
-                width: 24, height: 24, borderRadius: '50%',
-                background: T.danger, border: '2px solid #040D18',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <XIcon size={12} strokeWidth={3} aria-hidden="true" />
-            </span>
-          </button>
-        )}
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      className="pa-btn"
-      onClick={onTap}
-      aria-label={label ? `Pick ${label} Card` : 'Pick Board Card'}
-      style={{
-        width: 52, height: 72, borderRadius: R.sm, cursor: 'pointer', flexShrink: 0,
-        background: T.accentSoft, border: '2px dashed rgba(99,231,255,0.42)',
-        color: T.accent, fontSize: F.caption, fontWeight: 700,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 2, boxSizing: 'border-box',
-      }}
-    >
-      <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
-      <span>{label || 'Card'}</span>
-    </button>
+            <XIcon size={12} strokeWidth={3} aria-hidden="true" />
+          </span>
+        </button>
+      )}
+    </span>
   );
 }
+
+const MOBILE_RANK_ROWS = [
+  RANKS.slice(0, 5),
+  RANKS.slice(5, 10),
+  RANKS.slice(10),
+];
+const MOBILE_SUIT_ROWS = [
+  SUITS.slice(0, 2),
+  SUITS.slice(2, 4),
+];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD PICKER SHEET (CSS-only responsive + Spatial Keyboard Navigation)
@@ -308,6 +364,7 @@ function CardPickerSheet({
   const mobileRankGridRef = useRef(null);
   const mobileSuitGridRef = useRef(null);
   const returnFocusElRef = useRef(null);
+  const prevRankRef = useRef(null);
 
   const used = useMemo(() => new Set(usedCards || []), [usedCards]);
   const freeCountFor = useCallback((r) => SUITS.filter((s) => !used.has(`${r}${s.code}`)).length, [used]);
@@ -336,8 +393,25 @@ function CardPickerSheet({
     }
     if (!isOpen) {
       setRank(null);
+      prevRankRef.current = null;
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const prevRank = prevRankRef.current;
+    prevRankRef.current = rank;
+    if (!isOpen || prevRank === rank) return;
+    if (rank) {
+      const target = mobileSuitGridRef.current?.querySelector('button[role="gridcell"][tabindex="0"]:not([disabled])')
+        || mobileSuitGridRef.current?.querySelector('button[role="gridcell"]:not([disabled])');
+      target?.focus?.({ preventScroll: true });
+    } else if (prevRank) {
+      const target = mobileRankGridRef.current?.querySelector(`button[data-rank-code="${prevRank}"]:not([disabled])`)
+        || mobileRankGridRef.current?.querySelector('button[role="gridcell"][tabindex="0"]:not([disabled])')
+        || mobileRankGridRef.current?.querySelector('button[role="gridcell"]:not([disabled])');
+      target?.focus?.({ preventScroll: true });
+    }
+  }, [isOpen, rank]);
 
   useEffect(() => {
     if (!activeDesktopCard || used.has(activeDesktopCard)) {
@@ -435,6 +509,13 @@ function CardPickerSheet({
     <BottomSheet
       open={isOpen}
       onClose={handleCloseWithRestore}
+      onBeforeEscape={() => {
+        if (rank != null) {
+          setRank(null);
+          return true;
+        }
+        return false;
+      }}
       title={title}
       subtitle={rank ? `Choose A Suit For ${rank}` : 'Choose Rank And Suit (Arrow Keys Navigate Grid)'}
       ariaLabel={title}
@@ -465,34 +546,42 @@ function CardPickerSheet({
             role="grid"
             aria-label="Select Card Rank"
             onKeyDown={onMobileRankKeyDown}
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: S.sm }}
+            style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}
           >
-            {RANKS.map((r) => {
-              const free = freeCountFor(r);
-              const isRovingActive = activeMobileRank === r && free > 0;
-              return (
-                <button
-                  key={r}
-                  type="button"
-                  role="gridcell"
-                  data-rank-code={r}
-                  tabIndex={isRovingActive ? 0 : -1}
-                  className="pa-btn"
-                  disabled={free === 0}
-                  onFocus={() => setActiveMobileRank(r)}
-                  onClick={() => setRank(r)}
-                  aria-label={`Rank ${r}, ${free} Suits Available`}
-                  style={{
-                    ...btn('secondary', { disabled: free === 0 }),
-                    minHeight: 52, minWidth: 44, padding: 0, flexDirection: 'column', gap: 2,
-                    fontSize: 18, fontWeight: 800,
-                  }}
-                >
-                  <span>{r}</span>
-                  <span style={{ fontSize: F.caption, color: T.textDim }}>{free}</span>
-                </button>
-              );
-            })}
+            {MOBILE_RANK_ROWS.map((rowRanks, rowIdx) => (
+              <div
+                key={`rank-row-${rowIdx}`}
+                role="row"
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: S.sm }}
+              >
+                {rowRanks.map((r) => {
+                  const free = freeCountFor(r);
+                  const isRovingActive = activeMobileRank === r && free > 0;
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      role="gridcell"
+                      data-rank-code={r}
+                      tabIndex={isRovingActive ? 0 : -1}
+                      className="pa-btn"
+                      disabled={free === 0}
+                      onFocus={() => setActiveMobileRank(r)}
+                      onClick={() => setRank(r)}
+                      aria-label={`Rank ${r}, ${free} Suits Available`}
+                      style={{
+                        ...btn('secondary', { disabled: free === 0 }),
+                        minHeight: 52, minWidth: 44, padding: 0, flexDirection: 'column', gap: 2,
+                        fontSize: 18, fontWeight: 800,
+                      }}
+                    >
+                      <span>{r}</span>
+                      <span style={{ fontSize: F.caption, color: T.textDim }}>{free}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
@@ -509,33 +598,41 @@ function CardPickerSheet({
               role="grid"
               aria-label={`Select Suit For ${rank}`}
               onKeyDown={onMobileSuitKeyDown}
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: S.sm }}
+              style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}
             >
-              {SUITS.map((s) => {
-                const code = `${rank}${s.code}`;
-                const taken = used.has(code);
-                const isRovingActive = activeMobileSuit === code && !taken;
-                return (
-                  <button
-                    key={s.code}
-                    type="button"
-                    role="gridcell"
-                    data-card-code={code}
-                    tabIndex={isRovingActive ? 0 : -1}
-                    className="pa-btn"
-                    disabled={taken}
-                    onFocus={() => setActiveMobileSuit(code)}
-                    onClick={() => pick(code)}
-                    aria-label={`${rank} Of ${s.label}`}
-                    style={{
-                      ...btn('secondary', { disabled: taken }),
-                      minHeight: 56, minWidth: 44, fontSize: 18, fontWeight: 800, color: taken ? T.textDim : s.color,
-                    }}
-                  >
-                    <span>{rank}{s.symbol} {s.label}</span>
-                  </button>
-                );
-              })}
+              {MOBILE_SUIT_ROWS.map((rowSuits, rowIdx) => (
+                <div
+                  key={`suit-row-${rowIdx}`}
+                  role="row"
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: S.sm }}
+                >
+                  {rowSuits.map((s) => {
+                    const code = `${rank}${s.code}`;
+                    const taken = used.has(code);
+                    const isRovingActive = activeMobileSuit === code && !taken;
+                    return (
+                      <button
+                        key={s.code}
+                        type="button"
+                        role="gridcell"
+                        data-card-code={code}
+                        tabIndex={isRovingActive ? 0 : -1}
+                        className="pa-btn"
+                        disabled={taken}
+                        onFocus={() => setActiveMobileSuit(code)}
+                        onClick={() => pick(code)}
+                        aria-label={`${rank} Of ${s.label}`}
+                        style={{
+                          ...btn('secondary', { disabled: taken }),
+                          minHeight: 56, minWidth: 44, fontSize: 18, fontWeight: 800, color: taken ? T.textDim : s.color,
+                        }}
+                      >
+                        <span>{rank}{s.symbol} {s.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1007,10 +1104,6 @@ export default function VirtualSandboxPage() {
     if (kind === 'card' || kind === 'cardDeal') playCardDeal?.();
     else playChipClick?.();
   }, [playCardDeal, playChipClick]);
-  const [workerReady, setWorkerReady] = useState(false);
-  useEffect(() => {
-    setWorkerReady(Boolean(isEquityWorkerAvailable()));
-  }, []);
 
   // ── Navigation & Active-Play Gate State ──
   const [showMenu, setShowMenu] = useState(false);
@@ -1032,6 +1125,7 @@ export default function VirtualSandboxPage() {
   const [villains, setVillains] = useState(() => withVillainIds(DEFAULT_VILLAINS));
   const [activeVillainIdx, setActiveVillainIdx] = useState(0);
   const [actionHistory, setActionHistory] = useState([]);
+  const [preflopPosts, setPreflopPosts] = useState([]);
   const [replayIndex, setReplayIndex] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
   const [tableFelt, setTableFelt] = useState('default');
@@ -1040,9 +1134,6 @@ export default function VirtualSandboxPage() {
   // ── Equity & Runout Engine State ──
   const [equityVsRange, setEquityVsRange] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const [equity, setEquity] = useState(null);
-  const [equityComputing, setEquityComputing] = useState(false);
-  const [equityRefining, setEquityRefining] = useState(false);
   const [runouts, setRunouts] = useState(null);
   const [runoutsComputing, setRunoutsComputing] = useState(false);
   const [preflopScenario, setPreflopScenario] = useState('rfi');
@@ -1059,6 +1150,7 @@ export default function VirtualSandboxPage() {
   const [heroPickStep, setHeroPickStep] = useState(1);
   const [showSetup, setShowSetup] = useState(false);
   const [showRangeExplorer, setShowRangeExplorer] = useState(false);
+  const [showRangeHeatGrid, setShowRangeHeatGrid] = useState(false);
   const [showVillainPresets, setShowVillainPresets] = useState(false);
   const [showSaveHand, setShowSaveHand] = useState(false);
   const [showStudyFolders, setShowStudyFolders] = useState(false);
@@ -1091,20 +1183,17 @@ export default function VirtualSandboxPage() {
   const closeMenu = useCallback(() => setShowMenu(false), []);
   const closeSetup = useCallback(() => setShowSetup(false), []);
   const closeDeck = useCallback(() => { setShowDeck(false); setDeckTarget(null); }, []);
+  const closeRangeHeatGrid = useCallback(() => setShowRangeHeatGrid(false), []);
   useModalHistory(showMenu, closeMenu);
   useModalHistory(showSetup, closeSetup);
   useModalHistory(showDeck, closeDeck);
+  useModalHistory(showRangeHeatGrid, closeRangeHeatGrid);
 
   // ── Club Arena Table Theme Sync ──
   useEffect(() => {
     setArenaTheme(getClubArenaTheme());
     const unsub = onClubArenaThemeChange((next) => setArenaTheme(next));
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, []);
-
-  // ── Terminate Equity Worker cleanly on unmount ──
-  useEffect(() => () => {
-    try { terminateEquityWorker(); } catch (_e) { /* noop */ }
   }, []);
 
   // ── Server-Enforced Active-Play Gate Check (waits for !authInitializing) ──
@@ -1189,7 +1278,8 @@ export default function VirtualSandboxPage() {
     villains,
     street: currentStreet,
     actions: actionHistory,
-  }), [potBase, heroPosition, heroStack, primaryVillain, villains, currentStreet, actionHistory]);
+    preflopPosts,
+  }), [potBase, heroPosition, heroStack, primaryVillain, villains, currentStreet, actionHistory, preflopPosts]);
 
   const replayState = useMemo(() => {
     if (replayIndex == null || replayIndex < 0 || replayIndex >= actionHistory.length) return null;
@@ -1203,6 +1293,7 @@ export default function VirtualSandboxPage() {
       villains,
       street: currentStreet,
       actions: sliced,
+      preflopPosts,
     });
     const lastStreet = sliced[sliced.length - 1]?.street || 'preflop';
     const cards = lastStreet === 'preflop'
@@ -1213,7 +1304,7 @@ export default function VirtualSandboxPage() {
           ? communityCards.slice(0, 4)
           : communityCards;
     return { handState: st, cards, street: lastStreet };
-  }, [replayIndex, actionHistory, potBase, heroPosition, heroStack, primaryVillain, villains, currentStreet, communityCards]);
+  }, [replayIndex, actionHistory, potBase, heroPosition, heroStack, primaryVillain, villains, currentStreet, communityCards, preflopPosts]);
 
   const streetHistory = useMemo(() => {
     const order = ['preflop', 'flop', 'turn', 'river'];
@@ -1255,59 +1346,29 @@ export default function VirtualSandboxPage() {
   const heroClassLabel = useMemo(() => describeHeroHand(heroHand), [heroHand]);
 
   // ── Progressive Worker Equity + Instant Cancellation (500 preview -> 10,000 convergence) ──
-  useEffect(() => {
-    if (activePlayBlock) return undefined;
-    if (heroCardsMemo.length < 2) {
-      equityReqIdRef.current += 1;
-      setEquity(null);
-      setEquityComputing(false);
-      setEquityRefining(false);
-      return undefined;
-    }
-    const reqId = ++equityReqIdRef.current;
-    const abortHandle = makeAbortHandle();
-    setEquityComputing(true);
-    setEquityRefining(false);
-
-    const rangeArg = !equityVsRange
+  const equityRangeArg = useMemo(() => (
+    !equityVsRange
       ? (villains.length >= 2 ? { villains: villains.map(() => null) } : null)
       : villains.length >= 2
         ? { villains: resolvedVillainRanges }
-        : (resolvedVillainRanges[0] || null);
+        : (resolvedVillainRanges[0] || null)
+  ), [equityVsRange, villains.length, resolvedVillainRanges]);
 
-    runProgressiveEquity({
-      heroCards: heroCardsMemo,
-      boardCards: communityCards,
-      rangeArg,
-      previewTrials: DEFAULT_PREVIEW_TRIALS,
-      fullTrials: DEFAULT_FULL_TRIALS,
-      signal: abortHandle.signal,
-      tokenRef: equityReqIdRef,
-      requestId: reqId,
-      calculateFn: calculateEquityAsync,
-      onProgress: (res) => {
-        if (reqId !== equityReqIdRef.current) return;
-        setEquity(res && Number.isFinite(Number(res.heroEquity)) ? res : null);
-        setEquityComputing(false);
-        setEquityRefining(Boolean(res?.isPreview && !res?.converged));
-      },
-    })
-      .catch((err) => {
-        if (isAbortError(err) || reqId !== equityReqIdRef.current) return;
-        setEquity(null);
-      })
-      .finally(() => {
-        if (reqId === equityReqIdRef.current) {
-          setEquityComputing(false);
-          setEquityRefining(false);
-        }
-      });
-
-    return () => {
-      equityReqIdRef.current += 1;
-      abortHandle.abort();
-    };
-  }, [heroCardsMemo, communityCards, equityVsRange, villains, resolvedVillainRanges, activePlayBlock]);
+  const {
+    equity,
+    computing: equityComputing,
+    refining: equityRefining,
+    workerReady,
+  } = useEquityWorker({
+    heroCards: heroCardsMemo,
+    boardCards: communityCards,
+    rangeArg: equityRangeArg,
+    enabled: !activePlayBlock,
+    previewTrials: DEFAULT_PREVIEW_TRIALS,
+    fullTrials: DEFAULT_FULL_TRIALS,
+    tokenRef: equityReqIdRef,
+    calculateFn: calculateEquityAsync,
+  });
 
   // ── Async Runout Simulation (Flop/Turn) ──
   useEffect(() => {
@@ -1351,8 +1412,9 @@ export default function VirtualSandboxPage() {
     board,
     villains,
     actionHistory,
+    preflopPosts,
     authority: 'authored-sandbox-ungraded',
-  }), [gameType, heroPosition, heroStack, handState.pot, potBase, heroHand, board, villains, actionHistory]);
+  }), [gameType, heroPosition, heroStack, handState.pot, potBase, heroHand, board, villains, actionHistory, preflopPosts]);
 
   const pushUndo = useCallback(() => {
     setUndoStack((prev) => [...prev.slice(-19), sandboxSnapshot]);
@@ -1379,6 +1441,8 @@ export default function VirtualSandboxPage() {
     } else if (typeof raw.hand === 'string' && raw.hand.replace(/\s+/g, '').length >= 4) {
       const compact = raw.hand.replace(/\s+/g, '');
       setHeroHand({ card1: compact.slice(0, 2), card2: compact.slice(2, 4) });
+    } else if (Object.prototype.hasOwnProperty.call(raw, 'heroHand') && raw.heroHand === null) {
+      setHeroHand({ card1: null, card2: null });
     }
     if (raw.board) {
       const cards = boardToArray(raw.board);
@@ -1388,15 +1452,33 @@ export default function VirtualSandboxPage() {
         river: cards[4] || null,
       });
     }
+    let nextVillainLimit = MAX_VILLAINS;
     if (Array.isArray(raw.villains) && raw.villains.length > 0) {
-      setVillains(withVillainIds(raw.villains.slice(0, MAX_VILLAINS)));
+      const clampedVillains = withVillainIds(raw.villains.slice(0, MAX_VILLAINS));
+      nextVillainLimit = clampedVillains.length;
+      setVillains(clampedVillains);
+      setActiveVillainIdx(0);
+    } else if (Object.prototype.hasOwnProperty.call(raw, 'villains')) {
+      const fallbackPos = String(raw.heroPosition || '').toUpperCase() === 'BB' ? 'BTN' : 'BB';
+      setVillains(withVillainIds([{ ...DEFAULT_VILLAINS[0], position: fallbackPos }]));
+      nextVillainLimit = 1;
       setActiveVillainIdx(0);
     }
     if (Array.isArray(raw.actionHistory)) {
-      setActionHistory(raw.actionHistory);
+      const shouldClamp = (Array.isArray(raw.villains) && raw.villains.length > MAX_VILLAINS)
+        || nextVillainLimit < MAX_VILLAINS;
+      setActionHistory(
+        shouldClamp
+          ? pruneActionsToMaxVillains(raw.actionHistory, nextVillainLimit)
+          : raw.actionHistory,
+      );
     }
+    setPreflopPosts(Array.isArray(raw.preflopPosts) ? raw.preflopPosts : []);
     setReplayIndex(null);
   }, [pushUndo]);
+
+  const restoreScenarioRef = useRef(restoreScenario);
+  restoreScenarioRef.current = restoreScenario;
 
   // ── Preload Hand From Review My Play (?fromReview=<savedRowId>) ──
   useEffect(() => {
@@ -1409,14 +1491,16 @@ export default function VirtualSandboxPage() {
     const applyHandoff = (handoff) => {
       if (!handoff) return;
       consumedReviewIdRef.current = fromReviewId;
-      restoreScenario({
+      restoreScenarioRef.current({
         gameType: handoff.gameType,
         heroPosition: handoff.heroPosition,
         heroStack: handoff.heroStack,
         potBase: handoff.potBase,
         heroHand: handoff.heroHand,
         board: handoff.board,
+        villains: Array.isArray(handoff.villains) && handoff.villains.length > 0 ? handoff.villains : null,
         actionHistory: [],
+        preflopPosts: [],
       });
       setReviewHandoffSource(handoff.sourceRowId || fromReviewId);
       toast.success(
@@ -1459,7 +1543,7 @@ export default function VirtualSandboxPage() {
     })();
 
     return () => { active = false; };
-  }, [router.isReady, router.query?.fromReview, activePlayBlock, authInitializing, userId, requestReviewHandoff, restoreScenario]);
+  }, [router.isReady, router.query?.fromReview, activePlayBlock, authInitializing, userId, requestReviewHandoff]);
 
   const popUndo = useCallback(() => {
     setUndoStack((prev) => {
@@ -1473,6 +1557,7 @@ export default function VirtualSandboxPage() {
       setBoard(last.board || { flop: [], turn: null, river: null });
       setVillains(withVillainIds(last.villains || DEFAULT_VILLAINS));
       setActionHistory(Array.isArray(last.actionHistory) ? last.actionHistory : []);
+      setPreflopPosts(Array.isArray(last.preflopPosts) ? last.preflopPosts : []);
       setReplayIndex(null);
       return prev.slice(0, -1);
     });
@@ -1480,20 +1565,63 @@ export default function VirtualSandboxPage() {
     toast.success('Reverted Last Change');
   }, [haptic]);
 
-  const recordExplorationSnapshot = useCallback((label = 'Explored Spot') => {
-    if (heroCardsMemo.length < 2) return;
+  const recordExplorationSnapshot = useCallback((label = 'Explored Spot', overrideScenario = null) => {
+    const hasOverride = Boolean(overrideScenario && typeof overrideScenario === 'object');
+    let snapHero = heroHand;
+    if (hasOverride) {
+      if (overrideScenario.heroHand && (overrideScenario.heroHand.card1 || overrideScenario.heroHand.card2)) {
+        snapHero = overrideScenario.heroHand;
+      } else if (typeof overrideScenario.hand === 'string' && overrideScenario.hand.replace(/\s+/g, '').length >= 4) {
+        const compact = overrideScenario.hand.replace(/\s+/g, '');
+        snapHero = { card1: compact.slice(0, 2), card2: compact.slice(2, 4) };
+      } else if (Object.prototype.hasOwnProperty.call(overrideScenario, 'heroHand') && overrideScenario.heroHand === null) {
+        snapHero = { card1: null, card2: null };
+      }
+    }
+    if (!snapHero?.card1 || !snapHero?.card2) return;
+
+    const snapBoardCards = hasOverride && overrideScenario.board
+      ? boardToArray(overrideScenario.board)
+      : communityCards;
+    const snapStreet = hasOverride && overrideScenario.board
+      ? streetOfBoard(overrideScenario.board)
+      : currentStreet;
+    const snapPos = hasOverride && overrideScenario.heroPosition
+      ? String(overrideScenario.heroPosition).toUpperCase()
+      : heroPosition;
+    const snapStack = hasOverride && Number.isFinite(Number(overrideScenario.heroStack ?? overrideScenario.effStack))
+      ? Number(overrideScenario.heroStack ?? overrideScenario.effStack)
+      : heroStack;
+    const snapActions = hasOverride && Array.isArray(overrideScenario.actionHistory)
+      ? overrideScenario.actionHistory
+      : actionHistory;
+    const snapPot = hasOverride
+      ? (Number.isFinite(Number(overrideScenario.pot))
+        ? Number(overrideScenario.pot)
+        : Number.isFinite(Number(overrideScenario.potSize))
+          ? Number(overrideScenario.potSize)
+          : Number.isFinite(Number(overrideScenario.potBase))
+            ? Number(overrideScenario.potBase)
+            : handState.pot)
+      : handState.pot;
+    const snapEquity = hasOverride
+      ? null
+      : (equity?.heroEquity != null && Number.isFinite(Number(equity.heroEquity))
+        ? Number(Number(equity.heroEquity).toFixed(1))
+        : null);
+
     setSessionLog((prev) => [
       ...prev.slice(-49),
       {
         id: `spot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        hand: `${heroHand.card1}${heroHand.card2}`,
-        position: heroPosition,
-        street: currentStreet,
-        board: communityCards.join(' '),
-        equity: equity?.heroEquity != null ? Number(equity.heroEquity.toFixed(1)) : null,
-        stackDepth: heroStack,
-        potSize: handState.pot,
-        actionLine: actionHistory.map((a) => `${a.isHero || a.actor === 'hero' ? 'H' : (a.position || 'V')}:${a.label || a.action || ''}`).join(' -> '),
+        hand: `${snapHero.card1}${snapHero.card2}`,
+        position: snapPos,
+        street: snapStreet,
+        board: snapBoardCards.join(' '),
+        equity: snapEquity,
+        stackDepth: snapStack,
+        potSize: snapPot,
+        actionLine: snapActions.map((a) => `${a.isHero || a.actor === 'hero' ? 'H' : (a.position || 'V')}:${a.label || a.action || ''}`).join(' -> '),
         source: 'live',
         note: label,
         sessionStartedAt: sessionStartedAtRef.current,
@@ -1503,7 +1631,7 @@ export default function VirtualSandboxPage() {
         evDelta: null,
       },
     ]);
-  }, [heroCardsMemo, heroHand, heroPosition, currentStreet, communityCards, equity, heroStack, handState.pot, actionHistory]);
+  }, [heroHand, heroPosition, currentStreet, communityCards, equity, heroStack, handState.pot, actionHistory]);
 
   // ── Table Card & Deal Interactions ──
   const openHeroPicker = useCallback(() => {
@@ -1572,6 +1700,7 @@ export default function VirtualSandboxPage() {
     setHeroHand({ card1: cards[0], card2: cards[1] });
     setBoard({ flop: cards.slice(2, 5), turn: null, river: null });
     setActionHistory([]);
+    setPreflopPosts([]);
     setReplayIndex(null);
     playSound?.('card');
     haptic('light');
@@ -1616,6 +1745,7 @@ export default function VirtualSandboxPage() {
     setHeroHand({ card1: null, card2: null });
     setBoard({ flop: [], turn: null, river: null });
     setActionHistory([]);
+    setPreflopPosts([]);
     setReplayIndex(null);
     setPotBase(6.5);
     haptic('light');
@@ -1653,9 +1783,19 @@ export default function VirtualSandboxPage() {
   }, [heroPosition]);
 
   const removeVillain = useCallback((idx) => {
+    if (villains.length <= 1 || idx < 0 || idx >= villains.length) return;
+    const prevCount = villains.length;
+    const nextLen = prevCount - 1;
+    pushUndo();
     setVillains((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
-    setActiveVillainIdx((prev) => Math.max(0, prev - 1));
-  }, []);
+    setActionHistory((prev) => pruneAndRemapActionsOnVillainRemoval(prev, idx, prevCount));
+    setActiveVillainIdx((prev) => {
+      if (idx < prev) return prev - 1;
+      if (prev >= nextLen) return Math.max(0, nextLen - 1);
+      return prev;
+    });
+    setReplayIndex(null);
+  }, [villains.length, pushUndo]);
 
   // ── Templates API (Deadline + Stale-Safe + Uncertain-Write Recovery) ──
   const loadTemplates = useCallback(async () => {
@@ -1805,6 +1945,11 @@ export default function VirtualSandboxPage() {
         type: 'action',
         label: 'Range Explorer (13x13)',
         onClick: () => { setShowMenu(false); setShowRangeExplorer(true); },
+      },
+      {
+        type: 'action',
+        label: 'Range Heat Grid (13x13)',
+        onClick: () => { setShowMenu(false); setShowRangeHeatGrid(true); },
       },
       {
         type: 'action',
@@ -1998,10 +2143,10 @@ export default function VirtualSandboxPage() {
             </div>
             <div className="metric-tile">
               <span className="metric-label">Monte Carlo Equity</span>
-              <strong className="metric-value" style={{ color: equity?.heroEquity >= 50 ? T.success : T.accent }}>
+              <strong className="metric-value" style={{ color: equity?.heroEquity != null && Number(equity.heroEquity) >= 50 ? T.success : T.accent }}>
                 {equityComputing && !equity
                   ? 'Computing…'
-                  : equity?.heroEquity != null
+                  : equity?.heroEquity != null && Number.isFinite(Number(equity.heroEquity))
                     ? `${Number(equity.heroEquity).toFixed(1)}%`
                     : 'Not Available'}
               </strong>
@@ -2284,6 +2429,7 @@ export default function VirtualSandboxPage() {
                   potSize={potBase}
                   heroStack={heroStack}
                   villainStack={Number(primaryVillain?.stack) || 100}
+                  preflopPosts={preflopPosts}
                   handState={handState}
                   disabled={!!activePlayBlock}
                 />
@@ -2305,6 +2451,16 @@ export default function VirtualSandboxPage() {
                       style={{ ...btn('secondary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
                     >
                       <Users size={14} strokeWidth={2} aria-hidden="true" /> Presets
+                    </button>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      onClick={() => setShowRangeHeatGrid(true)}
+                      disabled={!!activePlayBlock}
+                      aria-label="Open 13x13 Opponent Range Heat Grid"
+                      style={{ ...btn('secondary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
+                    >
+                      <Flame size={14} strokeWidth={2} aria-hidden="true" /> Heat Grid
                     </button>
                     <button
                       type="button"
@@ -2345,11 +2501,16 @@ export default function VirtualSandboxPage() {
                 <VillainReadCard villain={primaryVillain} />
 
                 <div style={{ marginTop: S.md }}>
-                  <RangeHeatGrid
-                    range={activeVillainRange}
-                    heroHand={heroHand}
-                    title={`${primaryVillain?.position || 'BB'} · ${primaryVillain?.archetype?.name || 'GTO Neutral'} Range`}
-                  />
+                  <button
+                    type="button"
+                    className="pa-btn"
+                    onClick={() => setShowRangeHeatGrid(true)}
+                    disabled={!!activePlayBlock}
+                    style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
+                  >
+                    <Flame size={16} strokeWidth={2} aria-hidden="true" />
+                    Range Grid · {primaryVillain?.position || 'BB'} Vs {communityCards.length ? communityCards.join(' ') : 'Preflop'}
+                  </button>
                 </div>
               </section>
 
@@ -2654,12 +2815,23 @@ export default function VirtualSandboxPage() {
         onDelete={deleteTemplate}
       />
 
+      {showRangeHeatGrid && (
+        <RangeHeatGrid
+          isOpen={showRangeHeatGrid}
+          onClose={closeRangeHeatGrid}
+          villainRange={activeVillainRange}
+          villainLabel={`${primaryVillain?.position || 'BB'} · ${primaryVillain?.archetype?.name || 'GTO Neutral'}`}
+          heroHand={heroHand}
+          boardCards={communityCards}
+        />
+      )}
+
       {showRangeExplorer && (
         <RangeExplorer
           initialRange={activeVillainRange}
           villains={villains}
           initialVillainIdx={safeVillainIdx}
-          onApplyRange={(rangeStr, targetIdx = safeVillainIdx) => {
+          onSelectRange={(rangeStr, targetIdx = safeVillainIdx) => {
             patchVillain(targetIdx, { range: rangeStr });
             toast.success('Updated Villain Range');
           }}
@@ -2706,7 +2878,7 @@ export default function VirtualSandboxPage() {
           onClose={() => setShowImportHH(false)}
           onImport={(parsed) => {
             restoreScenario(parsed);
-            recordExplorationSnapshot('Imported Hand History');
+            recordExplorationSnapshot('Imported Hand History', parsed);
             toast.success(
               parsed?.wagerSizesExact
                 ? 'Hand History Loaded With Exact Wager Sizes'
@@ -2721,7 +2893,7 @@ export default function VirtualSandboxPage() {
           onClose={() => setShowSolverImport(false)}
           onImport={(state) => {
             restoreScenario(state);
-            recordExplorationSnapshot('Imported Solver Node');
+            recordExplorationSnapshot('Imported Solver Node', state);
           }}
         />
       )}

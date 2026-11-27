@@ -22,6 +22,7 @@ import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { COMPARE_CSS } from '../../src/components/compare/CompareStyles';
 import {
   CHECKED_LABEL,
@@ -89,7 +90,7 @@ export default function ComparePage({ slug }) {
           <p className="cmp-disclosure">{PLAY_CREDIT_DISCLOSURE.value}</p>
 
           {page.table && (
-            <div className="cmp-table-wrap">
+            <div className="cmp-table-wrap" style={{ overflowX: 'auto' }}>
               <table className="cmp-table">
                 <caption>{page.table.caption}</caption>
                 <thead>
@@ -233,6 +234,14 @@ export default function ComparePage({ slug }) {
             canonicalUrl={`https://smarter.poker${comparePath(page.slug)}`}
             markdownUrl={`https://smarter.poker${comparePath(page.slug)}.md`}
           />
+
+          <div style={{ margin: '24px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="dataset-export"
+              context="compare-detail"
+              redirectPath={comparePath(page.slug)}
+            />
+          </div>
 
           <CitationBacklinkBox
             title={page.h1}

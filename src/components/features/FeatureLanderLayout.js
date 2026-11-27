@@ -4,6 +4,7 @@ import SEOHead, { schemas } from '../seo/SEOHead';
 import AiPromptLauncher from '../seo/AiPromptLauncher';
 import CitationBacklinkBox from '../seo/CitationBacklinkBox';
 import SmarterConversionCta from '../seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../seo/SmarterAccountUnlockGate';
 
 const FEATURE_SEMANTIC_MESH = {
   '/features/preflop-charts-matrix': {
@@ -501,6 +502,23 @@ export default function FeatureLanderLayout({
             </section>
           )}
 
+          <div style={{ marginTop: 32 }}>
+            <SmarterAccountUnlockGate
+              variant={
+                String(canonical || '').includes('poker-near-me') || String(canonical || '').includes('commander')
+                  ? 'live-venue-intel'
+                  : String(canonical || '').includes('preflop') || String(canonical || '').includes('training') || String(canonical || '').includes('sandbox')
+                    ? 'solver-matrix'
+                    : String(canonical || '').includes('calculator') || String(canonical || '').includes('bankroll')
+                      ? 'calculator-pro'
+                      : 'study-deck'
+              }
+              context={`feature-${String(canonical || 'hub').replace(/^\/features\//, '')}`}
+              title={`See Full ${title} Workspace With A Free Account`}
+              redirectPath={canonical || '/hub'}
+            />
+          </div>
+
           {faqs.length > 0 && (
             <section style={styles.section}>
               <h2 style={styles.h2}>Frequently Asked Questions</h2>
@@ -624,35 +642,37 @@ const styles = {
   header: { marginBottom: 44 },
   badge: {
     display: 'inline-block',
-    background: 'rgba(56, 189, 248, 0.12)',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    color: '#38bdf8',
-    padding: '6px 14px',
-    borderRadius: 20,
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: '0.5px',
-    marginBottom: 16,
+    background: 'linear-gradient(180deg, #12406f 0%, #082341 100%)',
+    border: '1px solid #3a7fbd',
+    boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.45)',
+    color: '#86daff',
+    padding: '5px 12px',
+    borderRadius: 0,
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: '0.09em',
+    textTransform: 'uppercase',
+    marginBottom: 14,
   },
   h1: {
-    fontFamily: "var(--font-orbitron), sans-serif",
-    fontSize: 'clamp(26px, 4.5vw, 38px)',
-    fontWeight: 700,
-    lineHeight: 1.25,
-    color: '#ffffff',
+    fontFamily: "var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif",
+    fontSize: 'clamp(28px, 4.8vw, 42px)',
+    fontWeight: 800,
+    lineHeight: 1.12,
+    color: '#f2f7ff',
     margin: '0 0 16px',
-    letterSpacing: '0.5px',
+    letterSpacing: '0.01em',
   },
   lead: {
-    fontSize: 17,
-    lineHeight: 1.7,
-    color: '#cbd5e1',
+    fontSize: 16.5,
+    lineHeight: 1.68,
+    color: '#bdd0e2',
     margin: '0 0 24px',
   },
   ctaGroup: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
     marginTop: 20,
   },
   primaryBtn: {
@@ -660,88 +680,92 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
-    background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
-    border: '1px solid rgba(148, 184, 224, 0.36)',
+    background: 'linear-gradient(180deg, #1f6feb 0%, #11449e 100%)',
+    border: '1px solid #5bc0ff',
+    boxShadow: 'inset 0 1px 0 rgba(186, 234, 255, 0.55), 0 4px 12px rgba(17, 68, 158, 0.4)',
     color: '#ffffff',
-    fontWeight: 700,
+    fontWeight: 800,
     fontSize: 15,
     padding: '10px 22px',
-    borderRadius: 8,
+    borderRadius: 0,
     textDecoration: 'none',
-    letterSpacing: '0.3px',
+    letterSpacing: '0.03em',
   },
   signupBtn: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
-    background: '#081121',
-    border: '1px solid rgba(56, 189, 248, 0.55)',
+    background: 'linear-gradient(180deg, #172b42 0%, #0b1827 100%)',
+    border: '1px solid #4895d9',
+    boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.35)',
     color: '#ffffff',
-    fontWeight: 700,
+    fontWeight: 800,
     fontSize: 15,
     padding: '10px 22px',
-    borderRadius: 8,
+    borderRadius: 0,
     textDecoration: 'none',
-    letterSpacing: '0.3px',
+    letterSpacing: '0.03em',
   },
   secondaryBtn: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
-    background: 'rgba(8, 17, 33, 0.85)',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    color: '#cbd5e1',
-    fontWeight: 600,
-    fontSize: 15,
-    padding: '10px 20px',
-    borderRadius: 8,
+    background: '#071321',
+    border: '1px solid #2b4663',
+    color: '#bdd0e2',
+    fontWeight: 700,
+    fontSize: 14,
+    padding: '10px 18px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   section: {
-    marginTop: 48,
-    paddingTop: 36,
-    borderTop: '1px solid rgba(148, 184, 224, 0.2)',
+    marginTop: 44,
+    paddingTop: 32,
+    borderTop: '1px solid #243c56',
   },
   h2: {
-    fontFamily: "var(--font-orbitron), sans-serif",
-    fontSize: 'clamp(20px, 3vw, 24px)',
-    fontWeight: 600,
-    color: '#ffffff',
-    margin: '0 0 24px',
-    letterSpacing: '0.5px',
+    fontFamily: "var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif",
+    fontSize: 'clamp(21px, 3vw, 26px)',
+    fontWeight: 800,
+    color: '#f2f7ff',
+    margin: '0 0 22px',
+    letterSpacing: '0.02em',
   },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: 16,
+    gap: 14,
   },
   card: {
-    background: '#081121',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.16)',
+    borderRadius: 0,
     padding: '20px 18px',
   },
   cardTitle: {
-    fontFamily: "var(--font-orbitron), sans-serif",
-    fontSize: 15,
-    fontWeight: 600,
-    color: '#38bdf8',
+    fontFamily: "var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif",
+    fontSize: 17,
+    fontWeight: 800,
+    color: '#86daff',
     margin: '0 0 8px',
-    letterSpacing: '0.3px',
+    letterSpacing: '0.02em',
   },
   cardText: {
     fontSize: 14,
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
   tableWrapper: {
     overflowX: 'auto',
-    borderRadius: 12,
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    background: '#081121',
+    borderRadius: 0,
+    border: '6px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+    background: '#06111e',
   },
   table: {
     width: '100%',
@@ -783,21 +807,21 @@ const styles = {
   stepItem: {
     display: 'flex',
     gap: 16,
-    background: '#081121',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px 20px',
   },
   stepNumber: {
-    fontFamily: "var(--font-orbitron), sans-serif",
+    fontFamily: "var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif",
     fontSize: 18,
-    fontWeight: 700,
-    color: '#38bdf8',
-    background: 'rgba(56, 189, 248, 0.12)',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
+    fontWeight: 800,
+    color: '#86daff',
+    background: 'linear-gradient(180deg, #12406f 0%, #082341 100%)',
+    border: '1px solid #3a7fbd',
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -805,36 +829,36 @@ const styles = {
   },
   stepTitle: {
     fontSize: 16,
-    fontWeight: 600,
-    color: '#ffffff',
+    fontWeight: 700,
+    color: '#f2f7ff',
     margin: '0 0 6px',
   },
   stepDescription: {
     fontSize: 14,
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
   faqList: {
     display: 'grid',
-    gap: 16,
+    gap: 12,
   },
   faqItem: {
-    background: '#081121',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px 20px',
   },
   faqQuestion: {
     fontSize: 16,
-    fontWeight: 600,
-    color: '#38bdf8',
+    fontWeight: 700,
+    color: '#86daff',
     margin: '0 0 8px',
   },
   faqAnswer: {
     fontSize: 14,
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
   conversionWrap: {

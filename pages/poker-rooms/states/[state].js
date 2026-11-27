@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import {
@@ -280,7 +281,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
           </div>
 
           {topStateVenues.length > 0 && (
-            <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid #1e293b' }}>
+            <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid #2b4663' }}>
               <h3 style={styles.h3}>Top Verified Live Poker Rooms In {stateGuide.name}</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
                 {topStateVenues.map((venue) => (
@@ -290,8 +291,8 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
                     style={{
                       padding: '8px 12px',
                       background: '#020608',
-                      border: '1px solid #334155',
-                      borderRadius: '4px',
+                      border: '1px solid #2b4663',
+                      borderRadius: 0,
                       color: '#25c8ff',
                       textDecoration: 'none',
                       fontSize: '13px',
@@ -379,6 +380,15 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
           </div>
         </section>
 
+        <div style={{ margin: '24px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={`poker-rooms-state-${stateGuide.slug}`}
+            title={`See Live ${stateGuide.name} Poker Rooms, Waitlists & Alerts Free`}
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         <CitationBacklinkBox
           title={stateGuide.title}
           canonicalUrl={canonicalUrl}
@@ -404,7 +414,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     color: '#e2e8f0',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
@@ -435,9 +445,9 @@ const styles = {
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -454,7 +464,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -464,7 +474,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
@@ -487,9 +497,9 @@ const styles = {
     marginBottom: '22px',
   },
   metricCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   metricLabel: {
@@ -522,7 +532,7 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
@@ -531,23 +541,23 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
     color: '#e2e8f0',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
   },
@@ -563,9 +573,9 @@ const styles = {
     gap: '16px',
   },
   colBox: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px',
   },
   tagCyan: {
@@ -600,9 +610,9 @@ const styles = {
     gap: '12px',
   },
   peerCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px',
     textDecoration: 'none',
     display: 'flex',
@@ -629,9 +639,9 @@ const styles = {
     gap: '14px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {

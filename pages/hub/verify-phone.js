@@ -24,7 +24,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { useRequireAuth, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 import { busEmit } from '../../src/engine/EventBus';
-import { fetchPendingJoinPath, safeClubArenaPath } from '../../src/lib/clubInvite';
+import { fetchPendingJoinPath, isSafeRelativePath, safeClubArenaPath } from '../../src/lib/clubInvite';
 import { codeNotDeliveredMessage } from '../../src/lib/sms/codeDelivery.mjs';
 import {
     cleanPromoTokenShape,
@@ -51,10 +51,28 @@ function formatPhone(value) {
 export default function VerifyPhonePage() {
     const router = useRouter();
     const isWelcome = router.query.welcome === '1';
-    // Arrived on a Share & Invite link (Dan 2026-10-15): once the phone step is
-    // done, or skipped, the player goes straight to that club's join page. Only
-    // a Club Arena path on this origin is honoured.
-    const queryNext = safeClubArenaPath(Array.isArray(router.query.next) ? router.query.next[0] : router.query.next);
+    // Honour any safe same-origin relative path passed in ?next= or ?redirect=
+    // (such as a Share & Invite club join page or /hub/personal-assistant/review?hand=<uuid>).
+    const isSafeInternalPath = (raw) => {
+        if (typeof isSafeRelativePath === 'function') return isSafeRelativePath(raw);
+        if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return false;
+        if (/[\u0000-\u0020\u007f\\]/.test(raw)) return false;
+        if (typeof URL === 'function') {
+            try {
+                return new URL(raw, 'https://same.origin.invalid').origin === 'https://same.origin.invalid';
+            } catch {
+                return false;
+            }
+        }
+        return !/^\/[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw) && !raw.includes('://');
+    };
+    const rawQueryNext = Array.isArray(router.query.next) ? router.query.next[0] : router.query.next;
+    const rawQueryRedirect = Array.isArray(router.query.redirect)
+        ? router.query.redirect[0]
+        : router.query.redirect;
+    const queryNext = isSafeInternalPath(rawQueryNext)
+        ? rawQueryNext
+        : (isSafeInternalPath(rawQueryRedirect) ? rawQueryRedirect : null);
     // Opened without ?next= (the hamburger's verify phone entry): the account's
     // own pending invite, if any, is where the player continues to.
     const [pendingNext, setPendingNext] = useState(null);
@@ -373,7 +391,11 @@ export default function VerifyPhonePage() {
                 cooldown={cooldown} formatPhone={formatPhone} sendCode={sendCode} verifyCode={verifyCode}
                 skip={skip} goHub={goHub} doneLead={doneLead} vipDays={vipDays}
                 welcomeDiamonds={welcomeDiamonds} bonusDiamonds={bonusDiamonds} promoChips={promoChips} packageStatus={packageStatus}
-                continueLabel={nextPath || promoChips > 0 ? 'Continue To The Club' : undefined}
+                continueLabel={
+                    promoChips > 0 || safeClubArenaPath(nextPath)
+                        ? 'Continue To The Club'
+                        : (nextPath ? 'Continue' : undefined)
+                }
                 onPhoneChange={(event) => { setPhone(event.target.value); setError(''); }}
                 onCodeChange={(event) => { setCode(event.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
                 changePhone={() => { if (!busy) { clearPendingPhoneVerification(phoneChallengeStorage(), user?.id); setStage('phone'); setError(''); } }}
