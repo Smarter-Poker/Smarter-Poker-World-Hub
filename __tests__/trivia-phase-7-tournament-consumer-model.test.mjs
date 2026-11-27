@@ -275,7 +275,8 @@ test('mobile and desktop composition preserve the rendered casino console', () =
     assert.match(sections, /Transaction Receipt/);
     assert.match(sections, /Nightly History/);
     assert.match(css, /\.tt-run \{ order: 1; \}/);
-    assert.match(css, /grid-template-columns: minmax\(0, 3fr\) minmax\(0, 6fr\) minmax\(0, 3fr\)/);
+    assert.match(css, /grid-template-columns: minmax\(0, 1\.08fr\) minmax\(0, 0\.92fr\)/);
+    assert.match(css, /'tabs tabs'[\s\S]*'ledger run'[\s\S]*'center center'/);
     assert.match(css, /content-visibility: auto/);
     assert.match(css, /min-height: 44px/);
     assert.match(css, /prefers-reduced-motion: reduce/);

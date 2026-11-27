@@ -5,6 +5,7 @@ import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART } from '../../../src/config/triviaIntroArt.mjs';
@@ -387,6 +388,16 @@ export default function TriviaLeaderboard() {
                                 subtitle={validBoard === SOLO_BOARD ? `${triviaModeLabel(validMode)} · ${periodLabel}` : validBoard === PVP_ELO_BOARD ? 'Ranked Head To Head Elo' : 'Official Nightly Results'}
                                 pill={isLoading ? 'Loading' : loadError ? 'Error' : `${formatTriviaDisplayNumber(total)} Entrants`}
                                 pillInk={loadError ? 'red' : total > 0 ? 'green' : 'blue'}
+                                headerAction={(
+                                    <TriviaHelpButton
+                                        ariaLabel="Trivia Leaderboard Help"
+                                        eyebrow="Player Progress"
+                                        title="About Trivia Leaderboard"
+                                        subtitle="Verified Rankings And Official Results"
+                                    >
+                                        <HubPageSummary page="trivia-leaderboard" />
+                                    </TriviaHelpButton>
+                                )}
                                 className="trivia-progress-console"
                                 secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
                                 primaryAction={!isLoading && loadError ? { label: 'Retry', onClick: retry } : undefined}
@@ -498,7 +509,6 @@ export default function TriviaLeaderboard() {
                         </main>
                     </div>
                 </PageTransition>
-                <HubPageSummary page="trivia-leaderboard" />
             </>
         </TriviaErrorBoundary>
     );

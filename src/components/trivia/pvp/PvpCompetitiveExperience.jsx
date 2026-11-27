@@ -532,6 +532,7 @@ export default function PvpCompetitiveExperience({
     pairedMatchId = null,
     settledSessionId = '',
     settledMatch = null,
+    headerAction = null,
     friendChallengeSlot = null,
 }) {
     const router = useRouter();
@@ -1469,6 +1470,7 @@ export default function PvpCompetitiveExperience({
                 subtitle="Checking Your Server Record First"
                 pill="Secure"
                 pillInk="blue"
+                headerAction={headerAction}
                 className="trivia-pvp-console"
             >
                 <div className="trivia-pvp-layout trivia-pvp-layout--active" aria-live="polite">
@@ -1494,6 +1496,7 @@ export default function PvpCompetitiveExperience({
                 subtitle="Your Match And Diamond Record Stay Account Bound"
                 pill="1 V 1"
                 pillInk="blue"
+                headerAction={headerAction}
                 className="trivia-pvp-console"
                 secondaryAction={{ label: 'Trivia Lobby', onClick: () => router.push('/hub/trivia') }}
                 primaryAction={{
@@ -1526,6 +1529,7 @@ export default function PvpCompetitiveExperience({
                 subtitle="No New Entry Was Created"
                 pill="Offline"
                 pillInk="red"
+                headerAction={headerAction}
                 className="trivia-pvp-console"
                 secondaryAction={{ label: 'Trivia Lobby', onClick: () => router.push('/hub/trivia') }}
                 primaryAction={{ label: 'Restore Again', onClick: () => setBootEpoch((value) => value + 1) }}
@@ -1950,6 +1954,7 @@ export default function PvpCompetitiveExperience({
             subtitle={subtitle}
             pill={pill}
             pillInk={pillInk}
+            headerAction={headerAction}
             primaryAction={primaryAction}
             secondaryAction={secondaryAction}
             className="trivia-pvp-console"

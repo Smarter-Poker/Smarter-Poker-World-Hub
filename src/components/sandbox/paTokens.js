@@ -26,12 +26,12 @@ export const T = {
     accentSoft: 'rgba(8,124,250,0.18)',
     success: '#4DE0A5',
     successSoft: 'rgba(77,224,165,0.14)',
-    warn: '#FFC66D',
-    warnSoft: 'rgba(255,198,109,0.14)',
+    warn: '#86DAFF',
+    warnSoft: 'rgba(134,218,255,0.14)',
     danger: '#FF6B7A',
     dangerSoft: 'rgba(255,107,122,0.14)',
-    purple: '#B9A7FF', // GTO / solver / "study" semantics
-    purpleSoft: 'rgba(185,167,255,0.14)',
+    purple: '#63E7FF', // #SMARTERDESIGN ice-cyan accent (never purple/amber text)
+    purpleSoft: 'rgba(99,231,255,0.14)',
     // scrims
     scrim: 'rgba(2,7,14,0.82)',
     glassEdge: 'rgba(174,192,208,0.22)',
@@ -71,12 +71,12 @@ export const DATA_FONT = "'IBM Plex Mono','SFMono-Regular',Consolas,monospace";
 export const numeric = { fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 };
 
 export const card = {
-    background: 'radial-gradient(ellipse at 90% -40%, rgba(30,56,83,0.45), transparent 63%), linear-gradient(145deg, #091727, #030B14 74%)',
-    border: `1px solid ${T.border}`,
-    borderTopColor: T.borderHi,
+    background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+    border: '5px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
     borderRadius: R.md,
     padding: S.md,
-    boxShadow: E.card,
+    boxShadow: '0 6px 18px rgba(0,0,0,0.45)',
     boxSizing: 'border-box',
     width: '100%',
     maxWidth: '100%',
@@ -84,7 +84,9 @@ export const card = {
 
 export const cardCompact = {
     ...card,
-    background: 'linear-gradient(108deg, #13253A, #060E18 72%)',
+    background: 'linear-gradient(155deg, #162b40 0%, #0a1929 48%, #040d18 92%)',
+    border: '3px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
     padding: S.md,
     borderRadius: R.md,
 };
@@ -92,46 +94,61 @@ export const cardCompact = {
 export function btn(variant = 'primary', opts = {}) {
     const base = {
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: S.sm,
-        minHeight: 44, minWidth: 44, padding: '0 16px', borderRadius: R.sm,
+        minHeight: 44, minWidth: 44, padding: '6px 16px', borderRadius: R.sm,
         fontSize: F.bodySm, fontWeight: 700, fontFamily: DISPLAY_FONT, lineHeight: 1.15,
-        letterSpacing: '0.015em',
+        letterSpacing: '0.02em',
         cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-        transition: 'background .12s ease, opacity .12s ease, border-color .12s ease',
-        boxSizing: 'border-box', border: '1px solid transparent', width: opts.block ? '100%' : 'auto',
+        transition: 'filter .12s ease, opacity .12s ease, transform .1s ease',
+        boxSizing: 'border-box', border: '3px solid transparent', width: opts.block ? '100%' : 'auto',
     };
     const v = {
         primary: {
-            background: 'linear-gradient(180deg, #087CFA 0%, #0044AC 55%, #002B68 100%)',
+            background: 'linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba)',
             color: '#FFFFFF',
-            borderColor: '#56D8FF',
-            borderTopColor: '#B3EAFF',
-            boxShadow: 'none',
+            borderImage: "url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch",
+            textShadow: '0 1px 2px rgba(2,9,20,0.85)',
+            boxShadow: '0 3px 10px rgba(0,0,0,0.4)',
         },
         secondary: {
-            background: 'linear-gradient(180deg, #152639 0%, #06111E 65%)',
-            color: '#DCE5EF',
-            borderColor: T.border,
-            borderTopColor: T.borderHi,
-            boxShadow: 'none',
+            background: 'linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c)',
+            color: '#F2F7FF',
+            borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+            textShadow: '0 1px 2px rgba(2,9,20,0.75)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
         },
-        ghost: { background: 'transparent', color: T.textMuted, borderColor: 'transparent' },
-        danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(255,107,122,0.5)' },
-        success: { background: T.successSoft, color: T.success, borderColor: 'rgba(77,224,165,0.5)' },
-        purple: { background: T.purpleSoft, color: T.purple, borderColor: 'rgba(185,167,255,0.5)' },
+        ghost: { background: 'transparent', color: T.textMuted, border: '1px solid transparent' },
+        danger: {
+            background: 'linear-gradient(180deg, rgba(164,34,52,0.52), rgba(74,14,24,0.82))',
+            color: '#FFD6DC',
+            borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+        },
+        success: {
+            background: 'linear-gradient(180deg, rgba(22,126,90,0.48), rgba(8,52,38,0.82))',
+            color: '#D5FFF0',
+            borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+        },
+        purple: {
+            background: 'linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba)',
+            color: '#FFFFFF',
+            borderImage: "url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch",
+        },
     }[variant] || {};
     const dis = opts.disabled ? { opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' } : null;
     return { ...base, ...v, ...dis };
 }
 
-/** Icon-only button: 44x44 circle. Always pair with an aria-label. */
+/** Icon-only button: 44x44 circle with brushed-steel bezel. Always pair with an aria-label. */
 export function iconBtn(opts = {}) {
     return {
         width: 44, height: 44, minWidth: 44, minHeight: 44, flexShrink: 0,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: '50%', background: opts.transparent ? 'transparent' : T.surface2,
-        border: '1px solid transparent', color: opts.color || T.text, padding: 0,
+        borderRadius: '50%',
+        background: opts.transparent ? 'transparent' : 'linear-gradient(180deg, #263f58 0%, #102336 52%, #071420 100%)',
+        border: opts.transparent ? '1px solid transparent' : '1.5px solid #8ea6bd',
+        boxShadow: opts.transparent ? 'none' : 'inset 0 1px 0 rgba(242,247,255,0.32), 0 2px 6px rgba(0,0,0,0.45)',
+        color: opts.color || T.text, padding: 0,
         cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-        transition: 'transform .12s ease, background .12s ease',
+        transition: 'transform .12s ease, filter .12s ease',
         ...(opts.disabled ? { opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' } : null),
     };
 }
@@ -139,15 +156,16 @@ export function iconBtn(opts = {}) {
 export const sheetBackdrop = {
     position: 'fixed', inset: 0, background: T.scrim, zIndex: Z.backdrop,
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-    WebkitBackdropFilter: 'blur(2px)', backdropFilter: 'blur(2px)',
+    WebkitBackdropFilter: 'blur(3px)', backdropFilter: 'blur(3px)',
 };
 
 export const sheet = {
     width: '100%', maxWidth: 680,
-    background: `linear-gradient(180deg, #0D1E32 0, ${T.surface} 52px, #040D18 100%)`,
-    border: `1px solid ${T.borderHi}`, borderBottom: 0,
-    borderRadius: R.sheet, boxShadow: E.sheet, zIndex: Z.sheet,
-    maxHeight: '85dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+    background: 'linear-gradient(155deg, #162b40 0%, #0b1c2c 40%, #050e18 88%)',
+    border: '5px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+    borderRadius: R.sheet, boxShadow: '0 -12px 36px rgba(0,0,0,0.82)', zIndex: Z.sheet,
+    maxHeight: '88dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
     paddingBottom: 'env(safe-area-inset-bottom,0px)',
 };
 

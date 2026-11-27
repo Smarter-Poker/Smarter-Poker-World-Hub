@@ -21,6 +21,7 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_ENDLESS } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
@@ -1372,7 +1373,7 @@ export default function EndlessModePage() {
                         <UniversalHeader pageDepth={2} />
                         <PageTransition>
                             <main className="trivia-challenge-shell" aria-labelledby="endless-trivia-title">
-                                <TriviaConsole className="trivia-challenge-console" eyebrow="Three Miss Challenge" title="Endless Trivia" titleId="endless-trivia-title" subtitle="Keep The Streak Alive" pill="Loading" aria-labelledby="endless-trivia-title" secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}>
+                                <TriviaConsole className="trivia-challenge-console" eyebrow="Three Miss Challenge" title="Endless Trivia" titleAs="h1" titleId="endless-trivia-title" subtitle="Keep The Streak Alive" pill="Loading" headerAction={<TriviaHelpButton ariaLabel="Endless Trivia Help" eyebrow="Three Miss Challenge" title="About Endless Trivia" subtitle="Rules, Entry Cost And Lifelines"><HubPageSummary page="trivia-endless" /></TriviaHelpButton>} aria-labelledby="endless-trivia-title" secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}>
                                     <section className="trivia-challenge-intro phase9-intro-layout" aria-label="Loading Account Run">
                                         <ResponsiveModeArt art={TRIVIA_INTRO_ART_ENDLESS} priority />
                                         <p className="trivia-challenge-notice" role="status">Loading The Authoritative Run For This Account</p>
@@ -1382,7 +1383,6 @@ export default function EndlessModePage() {
                         </PageTransition>
                     </div>
                 </>
-                <HubPageSummary page="trivia-endless" as="h1" />
             </TriviaErrorBoundary>
         );
     }
@@ -1411,9 +1411,20 @@ export default function EndlessModePage() {
                                 className="trivia-challenge-console"
                                 eyebrow="Three Miss Challenge"
                                 title="Endless Trivia"
+                                titleAs="h1"
                                 titleId="endless-trivia-title"
                                 subtitle="Keep The Streak Alive"
                                 pill={stateLabel}
+                                headerAction={(
+                                    <TriviaHelpButton
+                                        ariaLabel="Endless Trivia Help"
+                                        eyebrow="Three Miss Challenge"
+                                        title="About Endless Trivia"
+                                        subtitle="Rules, Entry Cost And Lifelines"
+                                    >
+                                        <HubPageSummary page="trivia-endless" />
+                                    </TriviaHelpButton>
+                                )}
                                 aria-labelledby="endless-trivia-title"
                                 primaryAction={primaryAction}
                                 secondaryAction={secondaryAction}
@@ -1811,9 +1822,6 @@ export default function EndlessModePage() {
                     </PageTransition>
                 </div>
             </>
-          {/* Server rendered: measured on production this page returned
-              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-          <HubPageSummary page="trivia-endless" as="h1" />
         </TriviaErrorBoundary>
     );
 }

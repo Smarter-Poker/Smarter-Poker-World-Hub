@@ -209,6 +209,7 @@ export default function TriviaLobby({
   playerDataLoading = false,
   playerDataStatus = { profile: 'loading', daily: 'loading', streak: 'loading' },
   onRetryPlayerData,
+  helpSummary = null,
 }) {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('all');
@@ -587,13 +588,20 @@ export default function TriviaLobby({
             const rewardText = typeof mode.diamondReward === 'number'
               ? `+${mode.diamondReward}${mode.perfectBonus ? ` / +${mode.perfectBonus} Perfect` : ''}`
               : printTitle(mode.diamondReward);
+            const canOpenCard = !isRouting && !playerDataLoading && !unavailable;
             return (
               <article
                 key={mode.id}
-                className={`mode-card ${styles.gameCard}`}
+                className={`mode-card ${styles.gameCard}${canOpenCard ? ` ${styles.gameCardInteractive}` : ''}`}
                 data-mode-id={mode.id}
                 data-mode-availability={availability.state}
                 aria-labelledby={`trivia-card-${mode.id}`}
+                onClick={() => {
+                  if (canOpenCard) startMode(mode.id);
+                }}
+                onPointerDown={() => {
+                  if (availability.enabled) prefetchMode(mode.id);
+                }}
               >
                 <TriviaModeArt mode={mode} priority={index < 2} />
                 {unavailable ? (
@@ -606,7 +614,10 @@ export default function TriviaLobby({
                     type="button"
                     className={`mode-card__action ${styles.button} ${styles.cardButton}${unavailable ? '' : ` ${styles.primaryButton}`}`}
                     data-mode-availability={availability.state}
-                    onClick={() => startMode(mode.id)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      startMode(mode.id);
+                    }}
                     onPointerDown={() => availability.enabled && prefetchMode(mode.id)}
                     onFocus={() => availability.enabled && prefetchMode(mode.id)}
                     disabled={isRouting || playerDataLoading || unavailable}
@@ -709,6 +720,9 @@ export default function TriviaLobby({
             accountKey={accountKey}
             modeAvailability={modeAvailability}
           />
+          {helpSummary ? (
+            <div className={styles.helpSummary}>{helpSummary}</div>
+          ) : null}
         </div>
       </TriviaConsoleDialog>
 

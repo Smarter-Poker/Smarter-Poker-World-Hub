@@ -672,15 +672,15 @@ export default function InlineHandReplay({
             gap: 4,
             padding: '8px 12px',
             borderRadius: 6,
-            background: 'rgba(255, 198, 109, 0.12)',
-            border: '1px solid rgba(140, 161, 180, 0.24)',
-            borderLeft: '3px solid #ffc66d',
+            background: 'rgba(8, 124, 250, 0.14)',
+            border: '1px solid rgba(140, 161, 180, 0.28)',
+            borderLeft: '3px solid #56d8ff',
             color: '#f1f5fc',
             fontSize: 13,
             lineHeight: 1.4,
           }}
         >
-          <strong style={{ color: '#ffc66d', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <strong style={{ color: '#86daff', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Replay Only · Strategy Grading Not Supported
           </strong>
           <span>{resolvedDeclineReason}</span>
@@ -725,8 +725,8 @@ export default function InlineHandReplay({
                       gap: 8,
                       padding: '8px 12px',
                       borderRadius: 6,
-                      background: divergent ? 'rgba(255, 198, 109, 0.12)' : '#091017',
-                      border: divergent ? '1px solid rgba(255, 198, 109, 0.45)' : '1px solid rgba(140, 161, 180, 0.24)',
+                      background: divergent ? 'rgba(8, 124, 250, 0.16)' : '#091017',
+                      border: divergent ? '1px solid rgba(86, 216, 255, 0.5)' : '1px solid rgba(140, 161, 180, 0.24)',
                       color: '#f1f5fc',
                       fontSize: 13,
                       lineHeight: 1.4,
@@ -740,7 +740,7 @@ export default function InlineHandReplay({
                         alignItems: 'center',
                         padding: '2px 8px',
                         borderRadius: 4,
-                        background: divergent ? '#ffc66d' : '#16324f',
+                        background: divergent ? '#56d8ff' : '#16324f',
                         color: divergent ? '#040d18' : '#83deff',
                         fontWeight: 800,
                         fontSize: 12,
@@ -890,7 +890,7 @@ export default function InlineHandReplay({
                             <div style={{ display: 'grid', gap: 3 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#9eb4c8' }}>
                                 <span>Hero Action Frequency</span>
-                                <strong style={{ color: divergent ? '#ffc66d' : '#4de0a5' }}>{freqComparison.heroFrequencyPct}%</strong>
+                                <strong style={{ color: divergent ? '#86daff' : '#4de0a5' }}>{freqComparison.heroFrequencyPct}%</strong>
                               </div>
                               <div
                                 role="progressbar"
@@ -918,7 +918,7 @@ export default function InlineHandReplay({
                                     transform: `scaleX(${Math.max(0, Math.min(1, freqComparison.heroFrequencyPct / 100))})`,
                                     transformOrigin: 'left center',
                                     background: divergent
-                                      ? 'linear-gradient(90deg, #d99b38 0%, #ffc66d 100%)'
+                                      ? 'linear-gradient(90deg, #0c55c0 0%, #86daff 100%)'
                                       : 'linear-gradient(90deg, #1fa97c 0%, #4de0a5 100%)',
                                     borderRadius: 999,
                                   }}

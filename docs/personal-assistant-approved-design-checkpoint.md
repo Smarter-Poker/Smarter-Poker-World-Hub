@@ -1,5 +1,22 @@
 # Personal Assistant Approved Design Correction
 
+## November 27 Phase 2 — Subpages, Popups, Whole-Card Clickability & Poker Arena Sandbox
+
+Delivered on owned branch `agent/antigravity/pa-subpages-sandbox-smarterdesign` in SSD2 worktree `/Volumes/SmarterWork/agent-work/extreme-capacity/pa-smarterdesign-upgrade-ecd14ca4` (off merged Phase 1 `4ceb9277eac4e31d34097dcd41a38cadd5cdc945`). Fresh policy 2.9 reader receipt on resumption: `2026-11-27T22:11:30.199Z`, manifest `e78254a8d7b401b5e9f8fdcefa1f6f36088fa1a7128e1c2d18622c2a952ac2cb` (verified byte-identical against `/Users/smarter.poker/Documents`).
+
+Implemented changes:
+- **Whole-card & artwork clickability (`pages/hub/personal-assistant/index.js`, `PersonalAssistantHub.module.css`)**: clicking anywhere on the Review My Play, Virtual Sandbox, or My Leaks card or illustration navigates to that destination (preserving nested link/button controls and preventing duplicate navigation). Documented permanently as Rules 13-14 in `.agent/skills/smarterdesign/SKILL.md`, `/Users/smarter.poker/.codex/skills/smarterdesign/SKILL.md`, and `docs/SMARTERDESIGN.md`.
+- **Full `#SMARTERDESIGN` nine-slice metallic chrome across ALL PA subpages, sheets, modals, tabs, filters, and buttons**: upgraded `paTokens.js`, `paKit.jsx`, `PersonalAssistantTools.module.css`, `CoachingWorkspace.module.css`, `PersonalAssistantReview.module.css`, `pages/hub/personal-assistant/leaks.js`, `pages/hub/personal-assistant/sandbox.js`, `InlineHandReplay.jsx`, `QuickSpotDrill.jsx`, `ExportCard.jsx`, and `SandboxComponents.jsx` to canonical nine-slice metallic chrome (`chrome-readout.webp`, `chrome-row.webp`, `chrome-active.webp`, `chrome-stat.webp`), cobalt active bevels, and ink-navy surfaces while removing forbidden amber/gold/purple colors and mobile border-stripping regressions.
+- **Detached plural capitalization fix (`LeakS` / `HandS` / `MistakeS` / `SpotS` / `SetupS`)**: unified split JSX plural expressions across `leaks.js`, `LiveSpotQuickEntry.jsx`, `SessionAnalytics.jsx`, `SessionReport.jsx`, and `StudyFolders.jsx`.
+- **Authentic Club Arena / Poker Arena Virtual Sandbox (`SandboxPokerTable.jsx`, `sandbox.js`)**: replaced the legacy black/gold overlay and low-res PNG cards with the authentic Club Arena table skin (`resolveArenaSkinUrl` -> `/hub/table-theme/tables/skin_classic_green.png` and selectable Club Arena skins), Club Arena lounge room background (`resolveArenaBackgroundLayers`), 4-color Club Arena WebP deck (`/hub/club-arena/cards/4color/*.webp` with automatic `/cards/*.png` fallback), Club Arena card backs beside villain pods, Club Arena dealer button (`D`), brushed-steel metallic seat pods with centered transform wrapper, and compact `#SMARTERDESIGN` workspace header.
+- **Regression guards**: added whole-card artwork clickability and Club Arena table skin assertions in `e2e/personal-assistant-completion.spec.ts` and full `#SMARTERDESIGN` chrome, color-policy, Arena-table, and detached-plural static guards in `tests/pa-phase9-share-and-hub-visual.test.mjs`.
+
+Local verification on this candidate:
+- `node scripts/training-surface-inventory.mjs --check` & `node scripts/ci/pa-browser-smoke.mjs --check-only`: passed.
+- `node --test tests/pa-*.test.mjs tests/personal-assistant-*.test.mjs __tests__/pa-*.test.mjs __tests__/no-slide-to-see.law.test.mjs __tests__/unbatched-in-lists-guard.test.mjs tests/training-authored-surface-authority.test.mjs`: 608/608 passed, 0 failed.
+- `npm run test:leak-engine`: 479/479 passed, 0 failed; `npm prebuild`: 421/421 passed, 0 failed.
+- Full Next.js webpack production build (`next build --webpack`, 937/937 pages) + 12/12 Chromium Playwright cases (`pa-desktop1249`, `pa-mobile390`): passed. Visual captures at `390x844` and `1280x960` saved under `/Volumes/SmarterArchives/agent-evidence/extreme-archive/pa-ecd14ca4/phase2-visuals/` and inspected. Hosted CI, protected merge, Vercel `hub-vanguard` deployment, and live verification remain pending.
+
 ## November 27 Antigravity Completion Pickup
 
 Picked up from PR #3174 (`6d91e5dc3cb7ee2a44ddce0fdee1584401e231a1`) on owned branch `agent/antigravity/pa-approved-1to1-clone-and-clip-fix` in SSD2 worktree `/Volumes/SmarterWork/agent-work/extreme-capacity/pa-completion-ecd14ca4` without competing on the Codex branch. Fresh policy 2.9 reader receipt: `2026-11-27T21:10:27.746Z`, manifest `e78254a8d7b401b5e9f8fdcefa1f6f36088fa1a7128e1c2d18622c2a952ac2cb` (verified byte-identical against `/Users/smarter.poker/Documents`).

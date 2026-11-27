@@ -241,8 +241,8 @@ function getMatrixHandKey(row, col) {
 function getMatrixColor(freq) {
     if (freq == null) return 'rgba(255,255,255,0.03)';
     if (freq >= 90) return '#4DE0A5'; if (freq >= 70) return '#2FBF91';
-    if (freq >= 50) return '#63E7FF'; if (freq >= 30) return '#FFC66D';
-    if (freq >= 15) return '#F08B5A'; if (freq > 0) return '#FF6B7A';
+    if (freq >= 50) return '#63E7FF'; if (freq >= 30) return '#2F9BFF';
+    if (freq >= 15) return '#5D7D9E'; if (freq > 0) return '#FF6B7A';
     return 'rgba(255,255,255,0.03)';
 }
 
@@ -435,14 +435,14 @@ export function classifyBoardTexture(board) {
     const isWet = (flushPossible || isMonotone || isTwoTone) && isConnected;
 
     let label, color, textColor, strategy;
-    if (isTrips) { label = '3-OF-A-KIND BOARD'; color = 'rgba(236,72,153,0.2)'; textColor = '#f472b6'; strategy = 'Very dry · high c-bet frequency, small sizing'; }
+    if (isTrips) { label = '3-OF-A-KIND BOARD'; color = 'rgba(86,216,255,0.18)'; textColor = '#86DAFF'; strategy = 'Very dry · high c-bet frequency, small sizing'; }
     else if (isMonotone) { label = 'MONOTONE'; color = 'rgba(255,107,122,0.2)'; textColor = '#fca5a5'; strategy = 'Flush-heavy board · reduce c-bet freq, check more with non-flush hands'; }
     else if (flushPossible) { label = 'FLUSH POSSIBLE'; color = 'rgba(255,107,122,0.15)'; textColor = '#fca5a5'; strategy = 'Three to a flush on board · size down and check back marginal made hands'; }
-    else if (isWet) { label = 'WET / CONNECTED'; color = 'rgba(255,198,109,0.2)'; textColor = '#fde68a'; strategy = 'Many draws possible · polarize bet sizing, protect strong hands'; }
+    else if (isWet) { label = 'WET / CONNECTED'; color = 'rgba(8,124,250,0.22)'; textColor = '#86DAFF'; strategy = 'Many draws possible · polarize bet sizing, protect strong hands'; }
     else if (isDry) { label = 'DRY'; color = 'rgba(77,224,165,0.2)'; textColor = '#86efac'; strategy = 'Few draws · high c-bet frequency, use small sizing (25-33%)'; }
-    else if (isPaired) { label = 'PAIRED'; color = 'rgba(139,92,246,0.2)'; textColor = '#c4b5fd'; strategy = 'Paired boards favor preflop raiser · c-bet with high frequency'; }
+    else if (isPaired) { label = 'PAIRED'; color = 'rgba(99,231,255,0.18)'; textColor = '#B3ECFF'; strategy = 'Paired boards favor preflop raiser · c-bet with high frequency'; }
     else if (isHighBoard) { label = 'HIGH CARDS'; color = 'rgba(59,130,246,0.2)'; textColor = '#93c5fd'; strategy = 'Favors the in-position or preflop aggressor range'; }
-    else { label = isTwoTone ? 'TWO-TONE' : 'RAINBOW'; color = 'rgba(100,116,139,0.2)'; textColor = '#94a3b8'; strategy = 'Standard texture · play position and range advantage'; }
+    else { label = isTwoTone ? 'TWO-TONE' : 'RAINBOW'; color = 'rgba(100,116,139,0.2)'; textColor = '#B8CADB'; strategy = 'Standard texture · play position and range advantage'; }
 
     return { label, color, textColor, strategy, isMonotone, isTwoTone, isRainbow, flushPossible, isPaired, isConnected, isDry, isWet };
 }
@@ -1768,7 +1768,7 @@ export function EquityGraph({ streetHistory, currentEquity, currentStreet, onSel
 // ═══════════════════════════════════════════════════════════════════════════
 // SESSION LOG MODAL · Wave 2 Feature 5
 // ═══════════════════════════════════════════════════════════════════════════
-const SESSION_ACTION_COLORS = { fold: '#ef4444', check: '#94a3b8', call: '#fbbf24', bet: '#22c55e', raise: '#22c55e', allin: '#f97316' };
+const SESSION_ACTION_COLORS = { fold: '#FF6B7A', check: '#B8CADB', call: '#56D8FF', bet: '#4DE0A5', raise: '#4DE0A5', allin: '#86DAFF' };
 
 export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onClearSession }) {
     // Two-step confirm · the journal is persisted to IndexedDB, so one stray tap
@@ -2280,7 +2280,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     const actions = [
         { Icon: Camera, label: 'Download Image', sub: 'Save PNG to device', onClick: handleDownload, color: '#63E7FF' },
         { Icon: Spade, label: isPosting ? 'Posting...' : 'Post to My Profile', sub: 'Share to your Smarter.Poker feed', onClick: handlePostToProfile, color: '#22c55e', primary: true },
-        { Icon: Share2, label: 'Share Link', sub: 'Copy link or open share sheet', onClick: handleNativeShare, color: '#a78bfa' },
+        { Icon: Share2, label: 'Share Link', sub: 'Copy link or open share sheet', onClick: handleNativeShare, color: '#86DAFF' },
     ];
 
     return (
@@ -2343,14 +2343,14 @@ export function VillainReadCard({ villain }) {
     // VPIP is unknown until the user picks an archetype/position · do not paint
     // "unknown" green as if it were a confirmed nit.
     const vpipValue = villain.vpip != null && Number.isFinite(Number(villain.vpip)) ? Number(villain.vpip) : null;
-    const color = vpipValue == null ? '#B7D0DD' : vpipValue > 40 ? '#f97316' : vpipValue > 25 ? '#fbbf24' : '#4ade80';
+    const color = vpipValue == null ? '#B7D0DD' : vpipValue > 40 ? '#FF6B7A' : vpipValue > 25 ? '#86DAFF' : '#4DE0A5';
 
     return (
-        <div style={{ margin: '12px 0', borderRadius: 10, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(139,92,246,0.06)', overflow: 'hidden' }}>
+        <div style={{ ...card, margin: '12px 0', padding: 0, overflow: 'hidden' }}>
             <button onClick={() => { setOpen(o => !o); try { navigator.vibrate?.(8); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } }}
                 className="pa-btn" type="button" aria-expanded={open}
-                style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: S.sm, padding: `0 ${S.md}px`, background: 'none', border: 'none', cursor: 'pointer', color: T.purple, fontSize: F.label, fontWeight: 700, textAlign: 'left' }}>
-                <Spade size={14} strokeWidth={2} style={{ color: '#a78bfa', flexShrink: 0 }} aria-hidden="true" />
+                style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: S.sm, padding: `0 ${S.md}px`, background: 'none', border: 'none', cursor: 'pointer', color: T.accent, fontSize: F.label, fontWeight: 700, textAlign: 'left' }}>
+                <Spade size={14} strokeWidth={2} style={{ color: '#63E7FF', flexShrink: 0 }} aria-hidden="true" />
                 Villain Intel · {villain.archetype.name || archetypeId}
                 <span style={{ marginLeft: 'auto', display: 'inline-flex', color: T.textDim }} aria-hidden="true">
                     {open ? <ChevronUp size={18} strokeWidth={2} /> : <ChevronDown size={18} strokeWidth={2} />}

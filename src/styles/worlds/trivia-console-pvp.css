@@ -27,9 +27,10 @@
     min-height: 54px;
     margin: 0 auto 14px;
     padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--sd-line, var(--tc-bevel, #445e77));
-    background: var(--sd-surface, var(--tc-chassis-black, #0a1829));
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 16 / 4px stretch;
+    background: var(--sd-navy, #0a1829);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 14%);
     box-sizing: border-box;
 }
 
@@ -236,18 +237,19 @@
 }
 
 .trivia-pvp-data--summary {
-    border-top: var(--tc-rule);
-    border-bottom: var(--tc-rule);
-    box-shadow: var(--tc-rule-lit), inset 0 -1px 0 rgb(255 255 255 / 8%);
+    padding: 12px 16px;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 16 / 4px stretch;
+    background: var(--sd-navy, #0a1829);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 12%);
 }
 
 .trivia-pvp-stakes {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
     min-width: 0;
-    border-top: var(--tc-rule);
-    border-bottom: var(--tc-rule);
-    box-shadow: var(--tc-rule-lit), inset 0 -1px 0 rgb(255 255 255 / 8%);
+    padding: 4px 0;
 }
 
 .trivia-pvp-stake {
@@ -255,35 +257,39 @@
     display: grid;
     gap: 4px;
     min-width: 0;
-    min-height: 56px;
-    padding: 10px clamp(4px, 1.4cqw, 12px);
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    color: var(--tc-ink-silver);
-    font: 800 clamp(13px, 2.8cqw, 17px) / 1.2 'Roboto Condensed', Inter, system-ui, sans-serif;
+    min-height: 60px;
+    padding: 12px 14px;
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+    background: var(--sd-control, #0e2236);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 10%);
+    color: var(--tc-ink-white);
+    font: 800 clamp(14px, 2.8cqw, 18px) / 1.2 var(--sd-type, 'Arial Narrow', 'Roboto Condensed', Inter, system-ui, sans-serif);
     text-align: left;
     cursor: pointer;
     touch-action: manipulation;
+    transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.trivia-pvp-stake:nth-child(even) {
-    border-left: var(--tc-rule);
-    box-shadow: var(--tc-rule-lit);
+.trivia-pvp-stake:active:not(:disabled) {
+    transform: scale(0.985);
 }
 
 .trivia-pvp-stake > span:last-child {
-    color: var(--tc-ink-muted);
+    color: var(--tc-ink-blue);
     font-size: 0.78em;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
 }
 
 .trivia-pvp-stake[data-selected='true'] {
-    color: var(--tc-ink-blue);
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 6px;
+    border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+    background: var(--sd-cobalt, #0c4ea9);
+    color: #fff;
+    text-decoration: none;
+}
+
+.trivia-pvp-stake[data-selected='true'] > span:last-child {
+    color: #f2f7ff;
 }
 
 .trivia-pvp-stake[data-affordable='false'] {
@@ -330,10 +336,8 @@
 
 .trivia-pvp-options {
     display: grid;
+    gap: 10px;
     min-width: 0;
-    border-top: var(--tc-rule);
-    border-bottom: var(--tc-rule);
-    box-shadow: var(--tc-rule-lit), inset 0 -1px 0 rgb(255 255 255 / 8%);
 }
 
 .trivia-pvp-answer {
@@ -344,22 +348,21 @@
     gap: clamp(8px, 1.8cqw, 16px);
     min-width: 0;
     min-height: 56px;
-    padding: 8px 0;
-    border: 0;
-    border-top: var(--tc-rule);
-    border-radius: 0;
-    background: transparent;
-    box-shadow: var(--tc-rule-lit);
-    color: var(--tc-ink-silver);
-    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    padding: 10px 14px 10px 8px;
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+    background: var(--sd-control, #0e2236);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 10%);
+    color: var(--tc-ink-white);
+    font-family: var(--sd-type, 'Arial Narrow', 'Roboto Condensed', Inter, system-ui, sans-serif);
     text-align: left;
     cursor: pointer;
     touch-action: manipulation;
+    transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.trivia-pvp-answer:first-child {
-    border-top: 0;
-    box-shadow: none;
+.trivia-pvp-answer:active:not(:disabled) {
+    transform: scale(0.985);
 }
 
 .trivia-pvp-answer > span {
@@ -378,15 +381,27 @@
 }
 
 .trivia-pvp-answer[data-selected='true'] {
-    color: var(--tc-ink-blue);
+    border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+    background: var(--sd-cobalt, #0c4ea9);
+    color: #fff;
+}
+
+.trivia-pvp-answer[data-selected='true'] > span {
+    color: #f2f7ff;
 }
 
 .trivia-pvp-answer[data-status='recorded'] {
-    color: var(--tc-ink-green);
+    border-image: none;
+    border: 2px solid var(--tc-ink-green);
+    background: rgb(34 197 94 / 20%);
+    color: var(--tc-ink-white);
 }
 
 .trivia-pvp-answer[data-status='error'] {
-    color: var(--tc-ink-red);
+    border-image: none;
+    border: 2px solid var(--tc-ink-red);
+    background: rgb(239 68 68 / 20%);
+    color: var(--tc-ink-white);
 }
 
 .trivia-pvp-answer:disabled {
@@ -548,12 +563,16 @@
         align-items: start;
     }
 
+    /* Full-width hero banner eliminates the empty vertical void under the art on desktop. */
     .trivia-pvp-layout--idle > .trivia-pvp-art {
-        grid-column: span 5;
+        grid-column: 1 / -1;
     }
 
     .trivia-pvp-layout--idle > .trivia-pvp-main {
-        grid-column: span 7;
+        grid-column: 1 / -1;
+        padding-left: 0;
+        border-left: 0;
+        box-shadow: none;
     }
 
     .trivia-pvp-layout--active > .trivia-pvp-art,
@@ -591,7 +610,9 @@
     }
 
     .trivia-pvp-layout--idle > .trivia-pvp-main {
-        padding-left: clamp(18px, 3cqw, 30px);
+        padding-left: 0;
+        border-left: 0;
+        box-shadow: none;
     }
 
     .trivia-pvp-data-row {
@@ -628,22 +649,7 @@
 
 @media (max-width: 540px) {
     .trivia-pvp-stakes {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .trivia-pvp-stake:nth-child(even) {
-        border-left: 0;
-        box-shadow: none;
-    }
-
-    .trivia-pvp-stake {
-        border-top: var(--tc-rule);
-        box-shadow: var(--tc-rule-lit);
-    }
-
-    .trivia-pvp-stake:first-child {
-        border-top: 0;
-        box-shadow: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .trivia-pvp-history-list summary,

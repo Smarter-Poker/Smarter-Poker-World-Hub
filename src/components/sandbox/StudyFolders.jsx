@@ -387,7 +387,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     )}
 
                     <div style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
-                        {filtered.length} setup{filtered.length === 1 ? '' : 's'} In {activeFolder || 'Not Available'}
+                        {`${filtered.length} ${filtered.length === 1 ? 'Setup' : 'Setups'} In ${activeFolder || 'Not Available'}`}
                     </div>
 
                     {filtered.length === 0 ? (

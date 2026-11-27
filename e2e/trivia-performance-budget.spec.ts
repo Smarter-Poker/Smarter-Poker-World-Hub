@@ -331,9 +331,12 @@ test('Approved Trivia gallery keeps two mobile columns and accessible search and
     const help = page.getByRole('button', { name: 'Poker Trivia Help', exact: true });
     const dialog = page.getByRole('dialog', { name: 'How To Play', exact: true });
     const closeHelp = dialog.getByRole('button', { name: 'Close Help', exact: true });
+    // About Poker Trivia summary lives inside the "?" Help modal, never below the 12-card grid.
+    await expect(page.getByText('About Poker Trivia')).toHaveCount(0);
     await help.click();
     await expect(help).toHaveAttribute('aria-expanded', 'true');
     await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('About Poker Trivia');
     await expect(closeHelp).toBeFocused();
     await expect(closeHelp).toBeInViewport({ ratio: 1 });
     await attachView(page, 'trivia-help-portrait');
@@ -377,6 +380,16 @@ test('Approved Trivia gallery keeps two mobile columns and accessible search and
       (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
     )))).toBe(true);
     await attachView(desktop, 'trivia-desktop-1280');
+
+    // Clicking anywhere on a game card (including its artwork image) opens the game.
+    const gtoCard = desktop.locator('#trivia-game-grid > [data-mode-id="gto"]');
+    await gtoCard.scrollIntoViewIfNeeded();
+    const gtoCardArt = gtoCard.locator('img');
+    await expect(gtoCardArt).toBeVisible();
+    await Promise.all([
+      desktop.waitForURL(/\/hub\/trivia\/gto(?:\?|$)/),
+      gtoCardArt.click(),
+    ]);
   } finally {
     await desktopContext.close();
   }

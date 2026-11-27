@@ -4,6 +4,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART } from '../../../src/config/triviaIntroArt.mjs';
@@ -409,6 +410,17 @@ export default function TriviaSettings() {
                                 subtitle="Accessible Local And Cloud Controls"
                                 pill={syncLabel}
                                 pillInk={!accountBoundaryPending && ['conflict', 'error'].includes(syncStatus) ? 'red' : !accountBoundaryPending && (syncStatus === 'pending' || syncStatus === 'stale') ? 'blue' : !accountBoundaryPending && syncStatus === 'cloud' ? 'green' : 'blue'}
+                                headerAction={(
+                                    <TriviaHelpButton
+                                        ariaLabel="Trivia Settings Help"
+                                        eyebrow="Player Controls"
+                                        title="About Trivia Settings"
+                                        subtitle="Gameplay, Feedback, Accessibility And Cloud Sync"
+                                    >
+                                        <p>Customize Countdown Visibility, Question Hints, Endless Difficulty, Audio, Haptics And Accessibility Controls Across Every Poker Trivia Room.</p>
+                                        <p>Signed-In Changes Autosave To Your Account When Online And Keep A Local Device Copy Offline With Safe Conflict Resolution.</p>
+                                    </TriviaHelpButton>
+                                )}
                                 secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART.settings} priority />

@@ -423,6 +423,11 @@ export default function PersonalAssistantPage() {
                       className={`${styles.featureCard} ${styles.featureCardPrimary}`}
                       aria-labelledby="card-review-title"
                       data-tutorial="mission"
+                      data-card-href="/hub/personal-assistant/review"
+                      onClick={(event) => {
+                        if (event.target instanceof Element && event.target.closest('a, button')) return;
+                        openInternalRoute('/hub/personal-assistant/review');
+                      }}
                     >
                       <ApprovedChrome kind="review" className={styles.chromeOverlay} />
                       <div className={styles.featureArtWrap}>
@@ -463,6 +468,11 @@ export default function PersonalAssistantPage() {
                       className={`${styles.featureCard} ${styles.featureCardSandbox}`}
                       aria-labelledby="card-sandbox-title"
                       data-tutorial="systems"
+                      data-card-href="/hub/personal-assistant/sandbox"
+                      onClick={(event) => {
+                        if (event.target instanceof Element && event.target.closest('a, button')) return;
+                        openInternalRoute('/hub/personal-assistant/sandbox');
+                      }}
                     >
                       <ApprovedChrome kind="sandbox" className={styles.chromeOverlay} />
                       <div className={styles.featureArtWrap}>
@@ -498,6 +508,11 @@ export default function PersonalAssistantPage() {
                       className={`${styles.featureCard} ${styles.featureCardLeaks}`}
                       aria-labelledby="card-leaks-title"
                       data-tutorial="stats"
+                      data-card-href="/hub/personal-assistant/leaks"
+                      onClick={(event) => {
+                        if (event.target instanceof Element && event.target.closest('a, button')) return;
+                        openInternalRoute('/hub/personal-assistant/leaks');
+                      }}
                     >
                       <ApprovedChrome kind="leaks" className={styles.chromeOverlay} />
                       <div className={styles.featureArtWrap}>

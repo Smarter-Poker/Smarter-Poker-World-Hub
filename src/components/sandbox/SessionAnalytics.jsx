@@ -166,7 +166,7 @@ function AccuracyTrend({ data, avg }) {
             }}>
                 {active ? (
                     <span style={{ color: T.text, fontWeight: 700 }}>
-                        {active.date} · {active.pct}% Over {active.total} hand{active.total === 1 ? '' : 's'}
+                        {`${active.date} · ${active.pct}% Over ${active.total} ${active.total === 1 ? 'Hand' : 'Hands'}`}
                     </span>
                 ) : (
                     <>

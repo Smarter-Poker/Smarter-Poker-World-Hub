@@ -487,13 +487,10 @@ export default function TriviaHubPage({ modeAvailability }) {
                         playerDataStatus={playerDataStatus}
                         onRetryPlayerData={() => loadUserData({ force: true })}
                         onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
+                        helpSummary={<HubPageSummary page="trivia" />}
                     />
                 </main>
             </div>
-
-            {/* Server rendered: measured on production this page returned
-                only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-            <HubPageSummary page="trivia" />
         </PageTransition>
     );
 }
