@@ -72,6 +72,27 @@ async function once(browserType, name, i) {
     await page.locator('[data-world-menu-trigger]:visible').first().waitFor({ timeout: 20000 });
     const a = await snapshot(page, 'loaded');
     await page.evaluate(() => {
+      const log = (window.__hdrLog = []);
+      const t0 = performance.now();
+      const sample = (why) => {
+        const t = document.querySelector('[data-world-menu-trigger="approved-header"]');
+        const all = document.querySelectorAll('[data-world-menu-trigger]');
+        if (!t) { log.push({ ms: Math.round(performance.now() - t0), why, missing: true, all: all.length }); return; }
+        const r = t.getBoundingClientRect();
+        if (Math.abs(r.y - 5) < 2 && all.length === 1) return;
+        const h = t.closest('header');
+        const cs = h ? getComputedStyle(h) : null;
+        const H = getComputedStyle(document.documentElement), B = getComputedStyle(document.body);
+        const pick = (c) => c && ({ pos: c.position, top: c.top, tf: c.transform, f: c.filter, ct: c.contain, wc: c.willChange, ctype: c.containerType, ov: c.overflowX + '/' + c.overflowY, disp: c.display });
+        const chain = []; for (let n = h && h.parentElement; n && chain.length < 6; n = n.parentElement) chain.push(n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + '.' + String(n.className).trim().split(/\s+/).slice(0, 2).join('.'));
+        log.push({ ms: Math.round(performance.now() - t0), why, y: Math.round(r.y), all: all.length, sY: Math.round(scrollY), dH: document.documentElement.scrollHeight, hdr: pick(cs), hdrRectTop: h && Math.round(h.getBoundingClientRect().top), chain, html: pick(H), body: pick(B), htmlStyle: document.documentElement.getAttribute('style'), bodyStyle: document.body.getAttribute('style'), bodyClass: document.body.className, vvTop: window.visualViewport && Math.round(window.visualViewport.offsetTop) });
+      };
+      const loop = () => { sample('raf'); if (performance.now() - t0 < 3500) requestAnimationFrame(loop); };
+      requestAnimationFrame(loop);
+      const mo = new MutationObserver(() => sample('mutation'));
+      mo.observe(document.documentElement, { attributes: true, childList: true, subtree: true });
+      setTimeout(() => mo.disconnect(), 3500);
+      window.addEventListener('scroll', () => sample('scroll'), { passive: true });
       const shell = document.querySelector('.pnm-shell');
       const bottomWithinShell = shell
         ? shell.getBoundingClientRect().top + window.scrollY + shell.scrollHeight - window.innerHeight
@@ -94,6 +115,9 @@ async function once(browserType, name, i) {
     console.log('SHOT ' + name + ' #' + i + ' at-measure: ' + shot1);
     console.log('SHOT ' + name + ' #' + i + ' settled:    ' + shot2);
     console.log('HIT ' + name + ' #' + i + ' ' + JSON.stringify(hit1));
+    await page.waitForTimeout(1200);
+    const hl = await page.evaluate(() => window.__hdrLog);
+    console.log('HDRLOG ' + name + ' #' + i + ' n=' + hl.length + ' ' + JSON.stringify(hl.slice(0, 6)));
     console.log('SERIES ' + name + ' #' + i + ' ' + series.join(' ; '));
     await page.waitForTimeout(100);
     const c = await snapshot(page, 'scrolled+2.5s');
