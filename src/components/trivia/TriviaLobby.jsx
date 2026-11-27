@@ -1,7 +1,6 @@
 /**
- * TRIVIA LOBBY - Mode discovery and entry routing on canonical #SMARTERDESIGN.
- * Zero broken raster mode-card images, zero double-modal friction, visible
- * #SMARTERDESIGN masthead, active solo Continue Game CTA, accurate entry pricing.
+ * Approved mobile-first Trivia gallery. Presentation stays separate from the
+ * canonical mode registry, entry pricing, availability and recovery contracts.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -9,16 +8,22 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { authedFetch } from '../../lib/authUtils';
 import CompetitiveLobbyBriefing from './competitive/CompetitiveLobbyBriefing';
+import TriviaBodyIcon from './TriviaBodyIcon';
+import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import styles from './TriviaLobby.module.css';
 import { getModeConfig } from '../../lib/trivia/triviaEngine';
 import { readSoloRunRecovery } from '../../lib/trivia/soloRunRecovery.mjs';
 import {
   TRIVIA_FEATURED_MODE,
-  TRIVIA_MIDDLE_MODES as MODE_CARDS,
   TRIVIA_MODE_BY_ID,
   TRIVIA_QUICK_STAKES_MODE,
   getTriviaModeRoute as getModeRoute,
   resolveTriviaModeAvailability,
 } from '../../config/triviaModeRegistry.mjs';
+import {
+  TRIVIA_LOBBY_CARDS,
+  filterTriviaLobbyCards,
+} from '../../config/triviaLobbyPresentation.mjs';
 
 function printTitle(text) {
   return String(text ?? '')
@@ -37,47 +42,6 @@ const VARIABLE_COST_MODES = new Set(['pvp', 'tournaments']);
 
 /** Strictly FREE (cost === 0) modes eligible for safe 1-tap ?autostart=1 from the Lobby. */
 const FREE_AUTOSTART_MODES = Object.freeze(new Set(['daily', 'history', 'rules', 'pro']));
-
-/** MTT-density category tabs for single-screen phone browsing. */
-const LOBBY_CATEGORY_TABS = Object.freeze([
-  Object.freeze({
-    id: 'featured',
-    label: 'Featured & Free',
-    modeIds: Object.freeze(['daily', 'history', 'rules', 'pro']),
-    aliases: Object.freeze(['featured', 'free', 'knowledge']),
-  }),
-  Object.freeze({
-    id: 'strategy',
-    label: 'Strategy',
-    modeIds: Object.freeze(['mtt', 'cash', 'icm', 'gto', 'mixed']),
-    aliases: Object.freeze(['strategy']),
-  }),
-  Object.freeze({
-    id: 'timed',
-    label: 'Timed & Survival',
-    modeIds: Object.freeze(['arcade', 'time-attack', 'endless', 'survival']),
-    aliases: Object.freeze(['timed', 'survival', 'challenge']),
-  }),
-  Object.freeze({
-    id: 'competitive',
-    label: 'Competitive',
-    modeIds: Object.freeze(['pvp', 'tournaments']),
-    aliases: Object.freeze(['competitive']),
-  }),
-  Object.freeze({
-    id: 'all',
-    label: 'All',
-    modeIds: null,
-    aliases: Object.freeze(['all']),
-  }),
-]);
-
-const LOBBY_TAB_COUNTS = Object.freeze(Object.fromEntries(
-  LOBBY_CATEGORY_TABS.map((tab) => [
-    tab.id,
-    tab.modeIds ? tab.modeIds.length : MODE_CARDS.length,
-  ]),
-));
 
 /** Solo modes scanned for active, non-expired recoverable runs. */
 const SOLO_RECOVERY_MODES = Object.freeze([
@@ -162,6 +126,33 @@ function readDeduplicatedPvpRatings(accountKey) {
   return promise;
 }
 
+function TriviaModeArt({ mode, priority }) {
+  const [fallback, setFallback] = useState(false);
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className={styles.art} aria-hidden="true">
+      {!failed ? (
+        <img
+          src={fallback ? mode.fallbackImage : mode.image}
+          srcSet={fallback ? undefined : `${mode.imageSmall} 576w, ${mode.image} ${mode.imageWidth}w`}
+          sizes="(max-width: 599px) calc((100vw - 42px) / 2), (max-width: 940px) calc((100vw - 62px) / 2), 439px"
+          alt=""
+          width={mode.imageWidth}
+          height={mode.imageHeight}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          onError={() => {
+            if (!fallback && mode.fallbackImage) setFallback(true);
+            else setFailed(true);
+          }}
+        />
+      ) : (
+        <TriviaBodyIcon name="duel" className={styles.artFallback} />
+      )}
+    </div>
+  );
+}
+
 export default function TriviaLobby({
   userDiamonds = 0,
   isVip = false,
@@ -177,27 +168,16 @@ export default function TriviaLobby({
   onRetryPlayerData,
 }) {
   const router = useRouter();
-  // Default to Featured & Free so mobile (< 900px) renders compactly without layout shift;
-  // desktop (>= 900px) expands to All on mount unless a tab query param or user click sets one.
-  const [activeFilter, setActiveFilter] = useState('featured');
-  const userSelectedTabRef = useRef(false);
-  const filterRailRef = useRef(null);
-  const filterButtonRefs = useRef([]);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
+  const searchInputRef = useRef(null);
   const routingRef = useRef(false);
   const prefetchedRoutesRef = useRef(new Set());
   const [isRouting, setIsRouting] = useState(false);
   const [routeError, setRouteError] = useState('');
   const [pvpEloBadge, setPvpEloBadge] = useState(null);
   const [activeSoloRecovery, setActiveSoloRecovery] = useState(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || userSelectedTabRef.current) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('tab') || params.get('filter')) return;
-    if (window.matchMedia && !window.matchMedia('(max-width: 899px)').matches) {
-      setActiveFilter('all');
-    }
-  }, []);
 
   useEffect(() => {
     try {
@@ -260,13 +240,7 @@ export default function TriviaLobby({
     };
   }, [accountKey, authState]);
 
-  const activeTabDef = LOBBY_CATEGORY_TABS.find((tab) => tab.id === activeFilter) || LOBBY_CATEGORY_TABS[0];
-  const filteredModes =
-    activeFilter === 'all' || !activeTabDef.modeIds
-      ? MODE_CARDS
-      : MODE_CARDS.filter((mode) => activeTabDef.modeIds.includes(mode.id));
-  const showQuickStakes = activeFilter === 'all' || activeFilter === 'timed';
-  const showCompetitiveBriefing = activeFilter === 'all' || activeFilter === 'competitive';
+  const filteredModes = filterTriviaLobbyCards(searchQuery, activeFilter);
   const availabilityFor = (modeId) => resolveTriviaModeAvailability(modeId, modeAvailability);
   const liveModeCount = filteredModes.filter((mode) => availabilityFor(mode.id).enabled).length;
   const maintenanceModeCount = filteredModes.length - liveModeCount;
@@ -280,65 +254,14 @@ export default function TriviaLobby({
   const profileDataReady = playerDataStatus.profile === 'ready' || playerDataStatus.profile === 'signed-out';
   const dailyDataUnavailable = playerDataStatus.daily === 'error';
 
-  const revealFilter = (filterIndex, { focus = false } = {}) => {
-    requestAnimationFrame(() => {
-      const rail = filterRailRef.current;
-      const button = filterButtonRefs.current[filterIndex];
-      if (!rail || !button) return;
-      if (focus) button.focus();
-      const maxLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
-      if (maxLeft === 0) return;
-      const targetLeft = button.offsetLeft - (rail.clientWidth - button.offsetWidth) / 2;
-      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      rail.scrollTo({
-        left: Math.min(maxLeft, Math.max(0, targetLeft)),
-        behavior: reduceMotion ? 'auto' : 'smooth',
-      });
-    });
-  };
-
-  const selectFilter = (filterId, filterIndex, options) => {
-    userSelectedTabRef.current = true;
-    setActiveFilter(filterId);
-    revealFilter(filterIndex, options);
-  };
-
   // Honor both ?tab= and ?filter= deep-link query params.
   useEffect(() => {
     if (!router.isReady) return;
     const rawRequested = typeof router.query.tab === 'string'
       ? router.query.tab
       : (typeof router.query.filter === 'string' ? router.query.filter : '');
-    const requested = rawRequested.trim().toLowerCase();
-    if (!requested) return;
-    const filterIndex = LOBBY_CATEGORY_TABS.findIndex(
-      (tab) => tab.id === requested || tab.aliases.includes(requested),
-    );
-    if (filterIndex >= 0) selectFilter(LOBBY_CATEGORY_TABS[filterIndex].id, filterIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setActiveFilter(rawRequested.trim().toLowerCase() || 'all');
   }, [router.isReady, router.query.tab, router.query.filter]);
-
-  const handleFilterKeyDown = (event, currentIndex) => {
-    let nextIndex;
-    switch (event.key) {
-      case 'ArrowRight':
-        nextIndex = (currentIndex + 1) % LOBBY_CATEGORY_TABS.length;
-        break;
-      case 'ArrowLeft':
-        nextIndex = (currentIndex - 1 + LOBBY_CATEGORY_TABS.length) % LOBBY_CATEGORY_TABS.length;
-        break;
-      case 'Home':
-        nextIndex = 0;
-        break;
-      case 'End':
-        nextIndex = LOBBY_CATEGORY_TABS.length - 1;
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
-    selectFilter(LOBBY_CATEGORY_TABS[nextIndex].id, nextIndex, { focus: true });
-  };
 
   const prefetchMode = (modeId) => {
     if (!availabilityFor(modeId).enabled) return;
@@ -418,941 +341,342 @@ export default function TriviaLobby({
   const quickStakesCostText = formatEntryCost(TRIVIA_QUICK_STAKES_MODE.id, !quickStakesAvailability.enabled);
   const recoveryModeDef = activeSoloRecovery ? TRIVIA_MODE_BY_ID[activeSoloRecovery.mode] : null;
 
-  return (
-    <div className="trivia-lobby smarterdesign">
-      {/* Visible #SMARTERDESIGN Masthead with Primary Daily Trivia Action */}
-      <header className="sd-masthead lobby-masthead">
-        <div className="lobby-masthead__top">
-          <div className="lobby-masthead__copy">
-            <span className="lobby-masthead__eyebrow">Smarter.Poker</span>
-            <h1 className="lobby-masthead__title">Poker Trivia</h1>
-            <p className="lobby-masthead__subtitle">
-              Daily Trivia, Solver Strategy Drills, And Competitive Poker Modes
-            </p>
-          </div>
-          <div className="lobby-masthead__cta">
-            <button
-              type="button"
-              className="sd-button sd-primary lobby-daily-cta"
-              onClick={() => {
-                if (!dailyCompleted && dailyAvailability.enabled) startMode(TRIVIA_FEATURED_MODE.id);
-              }}
-              onPointerDown={() => dailyAvailability.enabled && !dailyCompleted && prefetchMode(TRIVIA_FEATURED_MODE.id)}
-              disabled={playerDataLoading || dailyDataUnavailable || dailyCompleted || !dailyAvailability.enabled || isRouting}
-              aria-label={
-                playerDataLoading
-                  ? 'Checking Daily Trivia Status'
-                  : dailyDataUnavailable
-                    ? 'Daily Trivia Status Unavailable'
-                    : dailyCompleted
-                      ? 'Daily Trivia Completed'
-                      : dailyAvailability.enabled
-                        ? 'Play Daily Trivia - Free, 10 Questions Fresh Every Day'
-                        : dailyAvailability.message
-              }
-            >
-              {playerDataLoading
-                ? 'Checking Daily...'
-                : dailyCompleted
-                  ? 'Daily Trivia Completed'
-                  : !dailyAvailability.enabled
-                    ? 'Daily Maintenance'
-                    : 'Play Daily Trivia (Free)'}
-            </button>
-          </div>
-        </div>
+  const clearSearch = () => {
+    setSearchQuery('');
+    setActiveFilter('all');
+    searchInputRef.current?.focus();
+  };
+  const hasSearch = searchQuery.trim().length > 0 || activeFilter !== 'all';
 
-        <dl className="lobby-metrics" aria-label="Player Trivia Summary">
-          <div className="sd-metric lobby-metric">
-            <dt>Diamonds</dt>
-            <dd>
-              {playerDataLoading
-                ? 'Checking'
-                : authState === 'signed-out'
-                  ? 'Sign In'
-                  : profileDataReady
-                    ? Number(userDiamonds || 0).toLocaleString('en-US')
-                    : 'Server Verified'}
-            </dd>
-          </div>
-          <div className="sd-metric lobby-metric">
-            <dt>Daily Streak</dt>
-            <dd className={currentStreak > 0 ? 'tc-ink--blue' : undefined}>
-              {playerDataLoading
-                ? 'Checking'
-                : `${Number(currentStreak || 0).toLocaleString('en-US')} ${currentStreak === 1 ? 'Day' : 'Days'}`}
-            </dd>
-          </div>
-          <div className="sd-metric lobby-metric">
-            <dt>Daily Trivia</dt>
-            <dd className={dailyCompleted ? 'tc-ink--green' : dailyDataUnavailable ? 'tc-ink--red' : 'tc-ink--blue'}>
-              {playerDataLoading
-                ? 'Checking'
-                : dailyDataUnavailable
-                  ? 'Unavailable'
-                  : dailyCompleted
-                    ? 'Completed Today'
-                    : 'Ready (10 Qs)'}
-            </dd>
-          </div>
-          <div className="sd-metric lobby-metric">
-            <dt>Access</dt>
-            <dd className="tc-ink--blue">
-              {isVip
-                ? 'VIP Member'
-                : arcadeTicketCount > 0
-                  ? `${arcadeTicketCount} Free ${arcadeTicketCount === 1 ? 'Ticket' : 'Tickets'}`
-                  : 'Standard'}
-            </dd>
-          </div>
-        </dl>
+  return (
+    <div className={`trivia-lobby smarterdesign ${styles.lobby}`}>
+      <header className={`lobby-masthead ${styles.hero}`}>
+        <div className={styles.heroCopy}>
+          <h1 className={`lobby-masthead__title ${styles.title}`}>Poker Trivia</h1>
+          <p className={styles.heroCount}>{TRIVIA_LOBBY_CARDS.length} Games</p>
+        </div>
+        <button
+          type="button"
+          className={styles.helpButton}
+          aria-label="Poker Trivia Help"
+          aria-haspopup="dialog"
+          aria-expanded={helpOpen}
+          onClick={() => setHelpOpen(true)}
+        >
+          <TriviaBodyIcon name="help" className={styles.helpIcon} />
+        </button>
       </header>
 
-      {/* Active Solo Session Continue Game Card */}
+      <button
+        type="button"
+        className={`lobby-daily-cta ${styles.button} ${styles.primaryButton} ${styles.dailyButton}`}
+        onClick={() => {
+          if (!dailyCompleted && dailyAvailability.enabled) startMode(TRIVIA_FEATURED_MODE.id);
+        }}
+        onPointerDown={() => dailyAvailability.enabled && !dailyCompleted && prefetchMode(TRIVIA_FEATURED_MODE.id)}
+        onFocus={() => dailyAvailability.enabled && !dailyCompleted && prefetchMode(TRIVIA_FEATURED_MODE.id)}
+        disabled={playerDataLoading || dailyDataUnavailable || dailyCompleted || !dailyAvailability.enabled || isRouting}
+        aria-label={
+          playerDataLoading
+            ? 'Checking Daily Trivia Status'
+            : dailyDataUnavailable
+              ? 'Daily Trivia Status Unavailable'
+              : dailyCompleted
+                ? 'Daily Trivia Completed'
+                : dailyAvailability.enabled
+                  ? 'Play Daily Trivia - Free, 10 Questions Fresh Every Day'
+                  : dailyAvailability.message
+        }
+      >
+        <TriviaBodyIcon name="play" className={styles.dailyPlayIcon} />
+        <span>
+          {playerDataLoading
+            ? 'Checking Daily...'
+            : dailyDataUnavailable
+              ? 'Daily Status Unavailable'
+              : dailyCompleted
+                ? 'Daily Trivia Completed'
+                : !dailyAvailability.enabled
+                  ? 'Daily Maintenance'
+                  : 'Play Daily Trivia'}
+        </span>
+      </button>
+
+      <dl className={`lobby-metrics ${styles.metrics}`} aria-label="Player Trivia Summary">
+        <div className={styles.metric}>
+          <dt className={styles.srOnly}>Diamonds</dt>
+          <dd className={styles.metricValue}>
+            <TriviaBodyIcon name="diamonds" className={styles.metricIcon} />
+            <div className={styles.metricCopy}>
+              <strong>
+                {playerDataLoading
+                  ? 'Checking'
+                  : authState === 'signed-out'
+                    ? 'Sign In'
+                    : profileDataReady
+                      ? Number(userDiamonds || 0).toLocaleString('en-US')
+                      : 'Server Verified'}
+              </strong>
+              <span aria-hidden="true">Diamonds</span>
+            </div>
+          </dd>
+        </div>
+        <div className={styles.metric}>
+          <dt className={styles.srOnly}>Day Streak</dt>
+          <dd className={styles.metricValue}>
+            <TriviaBodyIcon name="streak" className={styles.metricIcon} />
+            <div className={styles.metricCopy}>
+              <strong>
+                {playerDataLoading
+                  ? 'Checking'
+                  : playerDataStatus.streak === 'error'
+                    ? 'Unavailable'
+                    : Number(currentStreak || 0).toLocaleString('en-US')}
+              </strong>
+              <span aria-hidden="true">Day Streak</span>
+            </div>
+          </dd>
+        </div>
+      </dl>
+
       {activeSoloRecovery && recoveryModeDef ? (
         <section
-          className="sd-panel lobby-continue-card"
+          className={`lobby-continue-card ${styles.notice} ${styles.continueCard}`}
           aria-labelledby="lobby-continue-title"
           data-solo-recovery-mode={activeSoloRecovery.mode}
         >
-          <div className="lobby-continue-card__copy">
-            <span className="tc-label">Active Solo Session</span>
-            <h2 id="lobby-continue-title" className="lobby-continue-card__title">
-              {recoveryModeDef.name}
-            </h2>
-            <p className="lobby-continue-card__detail">
-              {formatRecoveryProgress(activeSoloRecovery)}
-            </p>
+          <div>
+            <span className={styles.eyebrow}>Active Solo Session</span>
+            <h2 id="lobby-continue-title" className={styles.continueTitle}>{recoveryModeDef.name}</h2>
+            <p>{formatRecoveryProgress(activeSoloRecovery)}</p>
           </div>
           <button
             type="button"
-            className="sd-button sd-primary lobby-continue-card__action"
+            className={`lobby-continue-card__action ${styles.button} ${styles.primaryButton}`}
             disabled={isRouting}
             onClick={() => void routeToMode(activeSoloRecovery.mode)}
           >
+            <TriviaBodyIcon name="play" className={styles.playIcon} />
             Continue Game
           </button>
         </section>
       ) : null}
 
       {playerDataPartial ? (
-        <div className="sd-panel player-data-notice" role="status" aria-live="polite">
+        <div className={`player-data-notice ${styles.notice}`} role="status" aria-live="polite">
           <p>
             {allPlayerReadsFailed
               ? 'Player Details Are Unavailable. Game Charges Stay Server Verified.'
               : 'Some Player Details Are Unavailable. Successful Reads Were Kept And Game Charges Stay Server Verified.'}
           </p>
           {typeof onRetryPlayerData === 'function' ? (
-            <button type="button" className="sd-button player-data-notice__retry" onClick={onRetryPlayerData}>
+            <button type="button" className={styles.button} onClick={onRetryPlayerData}>
               Refresh Player Status
             </button>
           ) : null}
         </div>
       ) : null}
 
-      {/* Quick Access Utility Bar */}
-      <nav className="lobby-utility-bar" aria-label="Trivia Quick Access">
-        <div className="lobby-utility-links">
-          <Link href="/hub/trivia/study" className="sd-button lobby-utility-link">
-            Study Your Misses
-          </Link>
-          <Link href="/hub/trivia/leaderboard" className="sd-button lobby-utility-link">
-            Leaderboards
-          </Link>
-          <Link href="/hub/trivia/stats" className="sd-button lobby-utility-link">
-            Stats
-          </Link>
-          <Link href="/hub/trivia/achievements" className="sd-button lobby-utility-link">
-            Achievements
-          </Link>
-          <Link href="/hub/trivia/settings" className="sd-button lobby-utility-link">
-            Settings
-          </Link>
-        </div>
-        {pvpEloBadge ? (
-          availabilityFor('pvp').enabled ? (
-            <Link href="/hub/trivia/pvp" className="sd-metric lobby-elo-pill tc-ink--blue">
-              PvP Elo {pvpEloBadge.elo.toLocaleString('en-US')} / {printTitle(pvpEloBadge.tier)}
-            </Link>
-          ) : (
-            <span className="sd-metric lobby-elo-pill tc-ink--blue">
-              PvP Elo {pvpEloBadge.elo.toLocaleString('en-US')} / {printTitle(pvpEloBadge.tier)}
-            </span>
-          )
-        ) : null}
+      <div className={styles.discoveryRow}>
+        <Link href="/hub/trivia/study" className={`${styles.button} ${styles.studyButton}`}>
+          <TriviaBodyIcon name="study" className={styles.discoveryIcon} />
+          <span>Study My Misses</span>
+        </Link>
+        <label className={styles.searchField}>
+          <TriviaBodyIcon name="search" className={styles.discoveryIcon} />
+          <span className={styles.srOnly}>Search Trivia Games</span>
+          <input
+            ref={searchInputRef}
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={`Search ${TRIVIA_LOBBY_CARDS.length} Games`}
+            aria-controls="trivia-game-grid"
+            autoComplete="off"
+          />
+        </label>
+      </div>
+
+      <nav className={`lobby-utility-bar ${styles.utilityBar}`} aria-label="Trivia Quick Access">
+        <Link href="/hub/trivia/leaderboard" className={styles.utilityLink}>
+          <TriviaBodyIcon name="leaderboards" className={styles.utilityIcon} />
+          <span>Leaderboards</span>
+        </Link>
+        <Link href="/hub/trivia/stats" className={styles.utilityLink}>
+          <TriviaBodyIcon name="stats" className={styles.utilityIcon} />
+          <span>Stats</span>
+        </Link>
+        <Link href="/hub/trivia/achievements" className={styles.utilityLink}>
+          <TriviaBodyIcon name="achievements" className={styles.utilityIcon} />
+          <span>Achievements</span>
+        </Link>
+        <Link href="/hub/trivia/settings" className={styles.utilityLink}>
+          <TriviaBodyIcon name="settings" className={styles.utilityIcon} />
+          <span>Settings</span>
+        </Link>
       </nav>
 
-      {/* Mode Cards Section */}
-      <section className="modes-section" aria-labelledby="trivia-modes-title">
-        <div className="modes-toolbar">
-          <div className="modes-toolbar__heading">
-            <span className="tc-label">Game Select</span>
-            <h2 id="trivia-modes-title" className="sd-section-title modes-toolbar__title">
-              Choose Your Game
-            </h2>
+      <section className={`modes-section ${styles.modesSection}`} aria-labelledby="trivia-modes-title">
+        <div className={styles.sectionBar}>
+          <div className={styles.sectionHeading}>
+            <TriviaBodyIcon name="duel" className={styles.sectionIcon} />
+            <h2 id="trivia-modes-title">Choose Your Game</h2>
           </div>
-          <span
-            className="modes-toolbar__count"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className="tc-ink--green">{liveModeCount} Live</span>
-            {maintenanceModeCount > 0 ? (
-              <span className="tc-ink--muted">{maintenanceModeCount} Maintenance</span>
-            ) : null}
+          <span className={styles.gameCount} role="status" aria-live="polite" aria-atomic="true">
+            {filteredModes.length} {filteredModes.length === 1 ? 'Game' : 'Games'}
+            <span className={styles.srOnly}>. {liveModeCount} Live. {maintenanceModeCount} In Maintenance.</span>
           </span>
         </div>
+        {hasSearch ? (
+          <div className={styles.searchSummary}>
+            <p>{searchQuery.trim() ? `Results For “${searchQuery.trim()}”` : `${printTitle(activeFilter)} Games`}</p>
+            <button type="button" className={styles.button} onClick={clearSearch}>Show All Games</button>
+          </div>
+        ) : null}
 
-        <div
-          ref={filterRailRef}
-          className="sd-tabs mode-filters"
-          role="tablist"
-          aria-label="Trivia Mode Categories"
-        >
-          {LOBBY_CATEGORY_TABS.map((filter, filterIndex) => {
-            const tabCount = filter.id === 'all'
-              ? MODE_CARDS.filter((mode) => availabilityFor(mode.id).enabled).length
-              : LOBBY_TAB_COUNTS[filter.id];
-            return (
-              <button
-                key={filter.id}
-                ref={(node) => {
-                  filterButtonRefs.current[filterIndex] = node;
-                }}
-                type="button"
-                role="tab"
-                data-lobby-tab={filter.id}
-                className={`sd-button mode-filter${activeFilter === filter.id ? ' active' : ''}`}
-                onClick={() => selectFilter(filter.id, filterIndex)}
-                onKeyDown={(event) => handleFilterKeyDown(event, filterIndex)}
-                tabIndex={activeFilter === filter.id ? 0 : -1}
-                aria-selected={activeFilter === filter.id}
-                aria-controls="trivia-mode-grid"
-                aria-label={`${printTitle(filter.label)}, ${tabCount} ${tabCount === 1 ? 'Mode' : 'Modes'}`}
-              >
-                <span>{printTitle(filter.label)}</span>
-                {' '}
-                <span className="mode-filter__count" aria-hidden="true">
-                  {tabCount}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="modes-grid" id="trivia-mode-grid" role="tabpanel">
-          {filteredModes.map((mode) => {
+        <div id="trivia-game-grid" className={`modes-grid ${styles.gameGrid}`}>
+          {filteredModes.map((mode, index) => {
             const availability = availabilityFor(mode.id);
             const unavailable = !availability.enabled;
-            const modeName = mode.name;
+            const modeName = printTitle(mode.displayName);
             const modeDescription = printTitle(mode.description);
             const costText = formatEntryCost(mode.id, unavailable);
-            const rewardText =
-              typeof mode.diamondReward === 'number'
-                ? `+${mode.diamondReward}${mode.perfectBonus ? ` / +${mode.perfectBonus} Perfect` : ''}`
-                : mode.diamondReward
-                  ? printTitle(String(mode.diamondReward))
-                  : '-';
-
+            const rewardText = typeof mode.diamondReward === 'number'
+              ? `+${mode.diamondReward}${mode.perfectBonus ? ` / +${mode.perfectBonus} Perfect` : ''}`
+              : printTitle(mode.diamondReward);
             return (
               <article
                 key={mode.id}
-                className={`sd-panel mode-card${unavailable ? ' mode-card--maintenance' : ''}`}
+                className={`mode-card ${styles.gameCard}`}
                 data-mode-id={mode.id}
                 data-mode-availability={availability.state}
+                aria-labelledby={`trivia-card-${mode.id}`}
               >
-                <div className="mode-card__head">
-                  <span className="mode-card__kicker">
-                    {mode.code} / {printTitle(mode.category)}
-                  </span>
-                  <span className={`mode-card__status ${unavailable ? 'tc-ink--muted' : 'tc-ink--green'}`}>
-                    {printTitle(availability.label)}
-                  </span>
+                <TriviaModeArt mode={mode} priority={index < 2} />
+                {unavailable ? (
+                  <span className={styles.maintenanceBadge}>Maintenance</span>
+                ) : null}
+                <div className={styles.cardContent}>
+                  <h3 id={`trivia-card-${mode.id}`} className={styles.cardTitle}>{modeName}</h3>
+                  <p className={styles.cardCaption}>{mode.caption}</p>
+                  <button
+                    type="button"
+                    className={`mode-card__action ${styles.button} ${styles.cardButton}${unavailable ? '' : ` ${styles.primaryButton}`}`}
+                    data-mode-availability={availability.state}
+                    onClick={() => startMode(mode.id)}
+                    onPointerDown={() => availability.enabled && prefetchMode(mode.id)}
+                    onFocus={() => availability.enabled && prefetchMode(mode.id)}
+                    disabled={isRouting || playerDataLoading || unavailable}
+                    aria-disabled={playerDataLoading || unavailable}
+                    title={unavailable ? availability.message : `Entry: ${costText}`}
+                    aria-label={
+                      unavailable
+                        ? `${modeName}. ${availability.message}`
+                        : `Play ${modeName}. ${modeDescription}. Entry ${costText}. Reward ${rewardText}${typeof mode.diamondReward === 'number' ? ' Diamonds' : ''}.`
+                    }
+                  >
+                    {!unavailable ? <TriviaBodyIcon name="play" className={styles.playIcon} /> : null}
+                    <span>{unavailable ? 'Maintenance' : 'Play'}</span>
+                  </button>
                 </div>
-
-                <h3 className="mode-card__title">{modeName}</h3>
-                <p className="mode-card__description">
-                  {unavailable ? availability.message : modeDescription}
-                </p>
-
-                <dl className="mode-card__meta">
-                  <div className="mode-card__row">
-                    <dt>Entry</dt>
-                    <dd className={costText === 'Free' || costText === 'VIP Free' || costText === '1 Free Entry Ticket' ? 'tc-ink--green' : 'tc-ink--blue'}>
-                      {costText}
-                    </dd>
-                  </div>
-                  <div className="mode-card__row">
-                    <dt>Reward</dt>
-                    <dd>{rewardText}</dd>
-                  </div>
-                </dl>
-
-                <button
-                  type="button"
-                  className={`sd-button${unavailable ? '' : ' sd-primary'} mode-card__action`}
-                  data-mode-availability={availability.state}
-                  onClick={() => startMode(mode.id)}
-                  onPointerDown={() => availability.enabled && prefetchMode(mode.id)}
-                  onFocus={() => availability.enabled && prefetchMode(mode.id)}
-                  disabled={isRouting || unavailable}
-                  aria-disabled={playerDataLoading || unavailable}
-                  title={unavailable ? availability.message : undefined}
-                  aria-label={
-                    unavailable
-                      ? `${modeName}. ${availability.message}`
-                      : `Play ${modeName}. ${modeDescription}. Entry ${costText}. Reward ${rewardText}${typeof mode.diamondReward === 'number' ? ' Diamonds' : ''}.`
-                  }
-                >
-                  <span className="mode-card__action-full">
-                    {unavailable ? 'Maintenance' : `Play ${modeName}`}
-                  </span>
-                  <span className="mode-card__action-compact" aria-hidden="true">
-                    {unavailable ? 'Closed' : 'Play'}
-                  </span>
-                </button>
               </article>
             );
           })}
         </div>
+        {filteredModes.length === 0 ? (
+          <div className={styles.emptyState}>
+            <h3>No Games Found</h3>
+            <p>Try A Game Name, Poker Topic, Or Category.</p>
+          </div>
+        ) : null}
       </section>
 
-      {/* Quick Stakes Featured Panel */}
-      {showQuickStakes ? (
-        <section className="sd-panel quick-stakes-card" aria-labelledby="quick-stakes-title">
-          <div className="quick-stakes-card__copy">
-            <span className="tc-label">Featured Timed Mode</span>
-            <h2 id="quick-stakes-title" className="quick-stakes-card__title">
-              {TRIVIA_QUICK_STAKES_MODE.name}
-            </h2>
-            <p className="quick-stakes-card__desc">
-              {TRIVIA_QUICK_STAKES_MODE.description}. 20 Questions In 3 Minutes, Cash Out After 6 Correct.
-            </p>
-            <p className="quick-stakes-card__entry">
-              Entry: <strong className={quickStakesCostText === 'VIP Free' || quickStakesCostText === '1 Free Entry Ticket' ? 'tc-ink--green' : 'tc-ink--blue'}>{quickStakesCostText}</strong>
-            </p>
-          </div>
-          <button
-            type="button"
-            className="sd-button sd-primary quick-stakes-card__action"
-            onClick={() => startMode(TRIVIA_QUICK_STAKES_MODE.id)}
-            onPointerDown={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
-            onFocus={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
-            disabled={isRouting || playerDataLoading || !quickStakesAvailability.enabled}
-            aria-label={
-              playerDataLoading
-                ? 'Checking Quick Stakes Access'
-                : quickStakesAvailability.enabled
-                  ? `Play ${TRIVIA_QUICK_STAKES_MODE.name}. Entry ${quickStakesCostText}.`
-                  : quickStakesAvailability.message
-            }
-          >
-            {quickStakesAvailability.enabled ? 'Play Quick Stakes' : 'Maintenance'}
-          </button>
-        </section>
-      ) : null}
-
-      {/* Competitive Briefing (Nightly Tournament & 1v1 Head To Head) */}
-      {showCompetitiveBriefing ? (
-        <CompetitiveLobbyBriefing
-          key={`competitive-lobby:${accountKey || 'no-account'}`}
-          authState={authState}
-          accountKey={accountKey}
-          modeAvailability={modeAvailability}
-        />
-      ) : null}
+      <TriviaConsoleDialog
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        eyebrow="Poker Trivia"
+        title="How To Play"
+        subtitle="Choose Your Challenge And Build Your Poker Knowledge"
+        primaryAction={{ label: 'Close Help', onClick: () => setHelpOpen(false) }}
+      >
+        <div className={styles.helpContent}>
+          <section>
+            <h2>Daily Trivia</h2>
+            <p>Play 10 Free Questions Each Day. Review Missed Answers In Study My Misses And Track Your Progress In Stats.</p>
+            <dl className={styles.helpFacts}>
+              <div>
+                <dt>Daily Status</dt>
+                <dd>{playerDataLoading ? 'Checking' : dailyDataUnavailable ? 'Unavailable' : dailyCompleted ? 'Completed' : dailyAvailability.enabled ? 'Ready (10 Questions)' : 'Maintenance'}</dd>
+              </div>
+              <div>
+                <dt>Player Access</dt>
+                <dd>{playerDataLoading ? 'Checking' : !profileDataReady ? 'Verified At Entry' : isVip ? 'VIP Member' : arcadeTicketCount > 0 ? `${arcadeTicketCount} Free ${arcadeTicketCount === 1 ? 'Ticket' : 'Tickets'}` : 'Standard'}</dd>
+              </div>
+            </dl>
+          </section>
+          <section>
+            <h2>Game Entry And Rewards</h2>
+            <p>Entry Details Are Verified Before A Paid Game Starts. Maintenance Games Will Return When Available.</p>
+            <dl className={styles.helpFacts}>
+              {TRIVIA_LOBBY_CARDS.map((mode) => (
+                <div key={mode.id}>
+                  <dt>{mode.displayName}</dt>
+                  <dd>{formatEntryCost(mode.id, !availabilityFor(mode.id).enabled)}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+          {pvpEloBadge ? (
+            availabilityFor('pvp').enabled ? (
+              <Link href="/hub/trivia/pvp" className={`lobby-elo-pill ${styles.eloPill}`}>
+                PvP Elo {pvpEloBadge.elo.toLocaleString('en-US')} / {printTitle(pvpEloBadge.tier)}
+              </Link>
+            ) : (
+              <p className={`lobby-elo-pill ${styles.eloPill}`}>
+                PvP Elo {pvpEloBadge.elo.toLocaleString('en-US')} / {printTitle(pvpEloBadge.tier)}
+              </p>
+            )
+          ) : null}
+          <section className={`quick-stakes-card ${styles.quickStakes}`} aria-labelledby="quick-stakes-title">
+            <h2 id="quick-stakes-title">{TRIVIA_QUICK_STAKES_MODE.name}</h2>
+            <p>{TRIVIA_QUICK_STAKES_MODE.description}. 20 Questions In 3 Minutes, Cash Out After 6 Correct.</p>
+            <p>Entry: <strong>{quickStakesCostText}</strong></p>
+            <button
+              type="button"
+              className={`quick-stakes-card__action ${styles.button} ${styles.primaryButton}`}
+              onClick={() => startMode(TRIVIA_QUICK_STAKES_MODE.id)}
+              onPointerDown={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
+              onFocus={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
+              disabled={isRouting || playerDataLoading || !quickStakesAvailability.enabled}
+              aria-label={
+                playerDataLoading
+                  ? 'Checking Quick Stakes Access'
+                  : quickStakesAvailability.enabled
+                    ? `Play ${TRIVIA_QUICK_STAKES_MODE.name}. Entry ${quickStakesCostText}.`
+                    : quickStakesAvailability.message
+              }
+            >
+              <TriviaBodyIcon name="play" className={styles.playIcon} />
+              {quickStakesAvailability.enabled ? 'Play Quick Stakes' : 'Maintenance'}
+            </button>
+          </section>
+          <CompetitiveLobbyBriefing
+            key={`competitive-lobby:${accountKey || 'no-account'}`}
+            authState={authState}
+            accountKey={accountKey}
+            modeAvailability={modeAvailability}
+          />
+        </div>
+      </TriviaConsoleDialog>
 
       {routeError && (
-        <p className="route-error tc-ink--red" role="alert">
-          {printTitle(routeError)}
-        </p>
+        <p className={styles.routeError} role="alert">{printTitle(routeError)}</p>
       )}
-
       {isRouting && (
-        <div
-          className="deducting-overlay"
-          role="status"
-          aria-live="polite"
-          aria-label="Opening Game"
-        >
-          <span className="route-opening tc-label">Opening Game</span>
+        <div className={styles.routingOverlay} role="status" aria-live="polite" aria-label="Opening Game">
+          <span>Opening Game</span>
         </div>
       )}
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .trivia-lobby,
-        .trivia-lobby * {
-          box-sizing: border-box;
-        }
-
-        .trivia-lobby {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          width: 100%;
-          max-width: 1000px;
-          margin: 0 auto;
-          padding: 12px 16px 28px;
-          color: var(--sd-text, #f2f7ff);
-          background: var(--sd-ink, #040d18);
-          font-variant-numeric: tabular-nums lining-nums;
-        }
-
-        .lobby-masthead {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .lobby-masthead__top {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px 18px;
-        }
-
-        .lobby-masthead__copy {
-          min-width: 0;
-          flex: 1 1 260px;
-        }
-
-        .lobby-masthead__eyebrow {
-          display: block;
-          color: var(--sd-ice, #86daff);
-          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-        }
-
-        .lobby-masthead__title {
-          margin: 2px 0 4px;
-        }
-
-        .lobby-masthead__subtitle {
-          margin: 0;
-          color: var(--sd-silver, #bdd0e2);
-          font-size: 14px;
-          line-height: 1.4;
-        }
-
-        .lobby-masthead__cta {
-          flex: 0 0 auto;
-        }
-
-        .lobby-daily-cta {
-          min-height: 48px;
-          padding: 10px 20px;
-          font-size: 16px;
-        }
-
-        .lobby-metrics {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
-          margin: 0;
-        }
-
-        .lobby-metric {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .lobby-metric dt {
-          color: var(--sd-silver, #bdd0e2);
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .lobby-metric dd {
-          margin: 0;
-          color: var(--sd-text, #f2f7ff);
-          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
-          font-size: 18px;
-          font-weight: 700;
-        }
-
-        .lobby-continue-card {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px 18px;
-        }
-
-        .lobby-continue-card__copy {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          min-width: 0;
-          flex: 1 1 220px;
-        }
-
-        .lobby-continue-card__title {
-          margin: 0;
-          color: var(--sd-text, #f2f7ff);
-          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
-          font-size: 20px;
-          font-weight: 700;
-        }
-
-        .lobby-continue-card__detail {
-          margin: 0;
-          color: var(--sd-silver, #bdd0e2);
-          font-size: 14px;
-        }
-
-        .lobby-continue-card__action {
-          min-height: 44px;
-          padding: 8px 20px;
-          font-size: 15px;
-        }
-
-        .player-data-notice {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          color: var(--sd-ice, #86daff);
-        }
-
-        .player-data-notice p {
-          margin: 0;
-          font-size: 13px;
-          line-height: 1.4;
-        }
-
-        .player-data-notice__retry {
-          flex: 0 0 auto;
-          min-height: 44px;
-        }
-
-        .lobby-utility-bar {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px 12px;
-        }
-
-        .lobby-utility-links {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .lobby-utility-link {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 44px;
-          padding: 6px 14px;
-          font-size: 14px;
-        }
-
-        .lobby-elo-pill {
-          display: inline-flex;
-          align-items: center;
-          min-height: 44px;
-          padding: 6px 12px;
-          font-size: 13px;
-          font-weight: 700;
-          text-decoration: none;
-          white-space: nowrap;
-        }
-
-        .modes-section {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .modes-toolbar {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: baseline;
-          justify-content: space-between;
-          gap: 8px 16px;
-        }
-
-        .modes-toolbar__heading {
-          min-width: 0;
-        }
-
-        .modes-toolbar__title {
-          margin: 2px 0 0;
-        }
-
-        .modes-toolbar__count {
-          display: flex;
-          gap: 12px;
-          font-size: 13px;
-          font-weight: 700;
-          white-space: nowrap;
-        }
-
-        .mode-filters {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .mode-filter {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          min-height: 44px;
-          padding: 6px 14px;
-          font-size: 14px;
-        }
-
-        .mode-filter__count {
-          opacity: 0.85;
-          font-size: 12px;
-        }
-
-        .modes-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 12px;
-        }
-
-        .mode-card {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 14px;
-          min-width: 0;
-        }
-
-        .mode-card--maintenance {
-          opacity: 0.78;
-        }
-
-        .mode-card__head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .mode-card__kicker {
-          color: var(--sd-ice, #86daff);
-        }
-
-        .mode-card__title {
-          margin: 0;
-          color: var(--sd-text, #f2f7ff);
-          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
-          font-size: 20px;
-          font-weight: 700;
-          line-height: 1.15;
-        }
-
-        .mode-card__description {
-          margin: 0;
-          color: var(--sd-silver, #bdd0e2);
-          font-size: 13px;
-          line-height: 1.4;
-          flex: 1 1 auto;
-        }
-
-        .mode-card__meta {
-          display: grid;
-          gap: 4px;
-          margin: 4px 0 6px;
-          padding-top: 8px;
-          border-top: 1px solid var(--sd-line, #445e77);
-        }
-
-        .mode-card__row {
-          display: flex;
-          align-items: baseline;
-          justify-content: space-between;
-          gap: 8px;
-          font-size: 13px;
-        }
-
-        .mode-card__row dt {
-          color: var(--sd-silver, #bdd0e2);
-          font-weight: 600;
-        }
-
-        .mode-card__row dd {
-          margin: 0;
-          font-weight: 700;
-          text-align: right;
-        }
-
-        .mode-card__action {
-          width: 100%;
-          min-height: 44px;
-          font-size: 15px;
-          touch-action: manipulation;
-        }
-
-        .mode-card__action-compact {
-          display: none;
-        }
-
-        .mode-card__action:focus-visible,
-        .lobby-daily-cta:focus-visible,
-        .lobby-continue-card__action:focus-visible,
-        .quick-stakes-card__action:focus-visible {
-          outline: 2px solid #9ee3ff;
-          outline-offset: 2px;
-        }
-
-        .quick-stakes-card {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px 18px;
-        }
-
-        .quick-stakes-card__copy {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          min-width: 0;
-          flex: 1 1 260px;
-        }
-
-        .quick-stakes-card__title {
-          margin: 0;
-          color: var(--sd-text, #f2f7ff);
-          font-family: var(--sd-type, 'Arial Narrow', sans-serif);
-          font-size: 22px;
-          font-weight: 700;
-        }
-
-        .quick-stakes-card__desc,
-        .quick-stakes-card__entry {
-          margin: 0;
-          color: var(--sd-silver, #bdd0e2);
-          font-size: 14px;
-          line-height: 1.4;
-        }
-
-        .quick-stakes-card__action {
-          min-height: 44px;
-          padding: 8px 20px;
-          font-size: 15px;
-        }
-
-        .deducting-overlay {
-          position: fixed;
-          z-index: 9998;
-          inset: 0;
-          display: grid;
-          place-items: center;
-          background: rgb(4 13 24 / 78%);
-        }
-
-        .route-opening {
-          font-size: 16px;
-        }
-
-        .route-error {
-          margin: 4px 0 0;
-          font-size: 14px;
-          font-weight: 700;
-          text-align: center;
-        }
-
-        @media (max-width: 899px) and (min-width: 641px) {
-          .modes-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
-          .lobby-metrics {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-
-        @media (max-width: 640px) {
-          .trivia-lobby {
-            gap: 10px;
-            padding: 8px 10px 24px;
-          }
-
-          .lobby-metrics {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
-          .lobby-utility-bar {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            gap: 8px;
-            padding-right: 28px;
-            -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
-            mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
-          }
-
-          .lobby-utility-bar::-webkit-scrollbar,
-          .lobby-utility-links::-webkit-scrollbar,
-          .mode-filters::-webkit-scrollbar {
-            display: none;
-          }
-
-          .lobby-utility-links {
-            flex-wrap: nowrap;
-            flex: 0 0 auto;
-            gap: 6px;
-          }
-
-          .lobby-utility-link,
-          .lobby-elo-pill {
-            flex: 0 0 auto;
-            white-space: nowrap;
-            padding: 6px 12px;
-            font-size: 13px;
-          }
-
-          .mode-filters {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            gap: 6px;
-            padding: 0 28px 2px 0;
-            -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
-            mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
-          }
-
-          .mode-filter {
-            flex: 0 0 auto;
-            white-space: nowrap;
-            padding: 6px 12px;
-            font-size: 13px;
-          }
-
-          .lobby-masthead__cta,
-          .lobby-daily-cta,
-          .lobby-continue-card__action,
-          .quick-stakes-card__action {
-            width: 100%;
-          }
-
-          .modes-grid {
-            grid-template-columns: 1fr;
-            gap: 8px;
-          }
-
-          .mode-card {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            grid-template-areas:
-              'head action'
-              'title action'
-              'desc action'
-              'meta action';
-            align-items: center;
-            gap: 2px 10px;
-            padding: 10px 12px;
-          }
-
-          .mode-card__head {
-            grid-area: head;
-            justify-content: flex-start;
-            gap: 8px;
-            font-size: 11px;
-          }
-
-          .mode-card__title {
-            grid-area: title;
-            font-size: 17px;
-            line-height: 1.15;
-          }
-
-          .mode-card__description {
-            grid-area: desc;
-            font-size: 12px;
-            line-height: 1.3;
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-          }
-
-          .mode-card__meta {
-            grid-area: meta;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 4px 8px;
-            margin: 2px 0 0;
-            padding-top: 0;
-            border-top: 0;
-          }
-
-          .mode-card__row {
-            gap: 4px;
-            font-size: 12px;
-          }
-
-          .mode-card__row dt {
-            display: none;
-          }
-
-          .mode-card__row + .mode-card__row::before {
-            content: '·';
-            color: var(--sd-silver, #bdd0e2);
-            margin-right: 4px;
-          }
-
-          .mode-card__action {
-            grid-area: action;
-            width: auto;
-            min-width: 72px;
-            min-height: 44px;
-            padding: 8px 14px;
-            font-size: 14px;
-            align-self: center;
-          }
-
-          .mode-card__action-full {
-            display: none;
-          }
-
-          .mode-card__action-compact {
-            display: inline;
-          }
-        }
-
-        @media (prefers-contrast: more) {
-          .mode-card__description,
-          .mode-card__row dt,
-          .lobby-masthead__subtitle {
-            color: var(--sd-text, #f2f7ff);
-          }
-        }
-
-        @media (forced-colors: active) {
-          .mode-card,
-          .lobby-masthead,
-          .lobby-continue-card,
-          .quick-stakes-card {
-            border-color: CanvasText;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .mode-filters {
-            scroll-behavior: auto;
-          }
-        }
-      ` }} />
     </div>
   );
 }
