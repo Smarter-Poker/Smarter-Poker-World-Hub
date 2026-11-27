@@ -18,6 +18,7 @@ import GeoCitationCapsule, { geoClaimSchema } from '../../src/components/seo/Geo
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export const DECISION_SCENARIOS = [
   {
@@ -561,6 +562,7 @@ export async function getServerSideProps({ req, res, query }) {
     res.end();
     return { props: {} };
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }
 

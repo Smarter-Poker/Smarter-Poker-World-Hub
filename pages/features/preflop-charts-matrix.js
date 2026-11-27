@@ -1,5 +1,6 @@
 import React from 'react';
 import FeatureLanderLayout from '../../src/components/features/FeatureLanderLayout';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export default function PreflopChartsMatrixPage() {
   const features = [
@@ -112,6 +113,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {},
   };

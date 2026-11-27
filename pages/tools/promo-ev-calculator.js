@@ -21,6 +21,7 @@ import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShar
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderPromoEvCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const QUALIFIER_TIERS = [
   { id: 'ACES_FULL_TENS', label: 'Aces Full Of Tens+ Beaten', oneInHands: 11500 },
@@ -619,5 +620,6 @@ export async function getServerSideProps({ req, res, query }) {
       return { props: {} };
     }
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }

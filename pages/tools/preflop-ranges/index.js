@@ -19,6 +19,7 @@ import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
 import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
 import { STARTING_HANDS } from '../../../src/content/learn/hands';
+import { setPublicSeoHtmlCache } from '../../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const POSITIONS = [
   { id: 'UTG', name: 'Under The Gun', abbrev: 'UTG', desc: 'Tightest opening range from first position at 6-max table.' },
@@ -756,5 +757,6 @@ export async function getServerSideProps({ req, res, query }) {
     res.end();
     return { props: {} };
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }

@@ -22,6 +22,7 @@ import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../../src/components/seo/GeoFollowUpChain';
+import { setPublicSeoHtmlCache } from '../../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
   POKER_ROOMS_BY_GAME,
   BY_GAME_AS_OF,
@@ -60,6 +61,7 @@ export async function getServerSideProps(context) {
     gameFormat: g.gameFormat,
   }));
 
+  setPublicSeoHtmlCache(context.res);
   return {
     props: {
       gameVertical,

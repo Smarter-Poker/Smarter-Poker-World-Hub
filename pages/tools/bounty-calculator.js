@@ -17,6 +17,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const PKO_STAGE_CONVERSIONS = [
   { stage: 'Tournament Start (Level 1 - 100% Starting Stacks)', bountyRatio: '1.0x Starting Bounty', bountyPowerPct: '33.3% Of Starting Stack', chipValue20k: '6,667 Chips', equityDiscount: '5% To 7% Wider Call' },
@@ -441,6 +442,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialStartingStack: Number(query?.startingStack) || 20000,

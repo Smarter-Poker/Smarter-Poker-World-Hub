@@ -17,6 +17,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const SIDE_POT_BENCHMARKS = [
   {
@@ -523,6 +524,7 @@ export async function getServerSideProps({ req, res, query }) {
         .slice(0, 9)
     : [2500, 6000, 12000, 12000];
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialStacks: parsedStacks.length >= 2 ? parsedStacks : [2500, 6000, 12000, 12000],

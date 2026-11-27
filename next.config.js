@@ -1367,6 +1367,27 @@ const nextConfig = {
         destination: '/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study',
         permanent: true,
       },
+      // Removed YouTube video watch URLs with high GSC organic impressions -> evergreen topic hubs
+      {
+        source: '/hub/video-library/watch/gy5wNpDc_f4/who-is-the-best-poker-player-of-all-time',
+        destination: '/learn/best-poker-players',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/gy5wNpDc_f4',
+        destination: '/learn/best-poker-players',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/gW_J_uIbE20/corey-eyring-getting-steamrolled',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/gW_J_uIbE20',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
       {
         source: '/research/plo4-plo5-plo6-equity-and-variance-study.md',
         destination: '/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.md',

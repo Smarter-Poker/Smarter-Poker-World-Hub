@@ -5,6 +5,7 @@
  */
 
 import PreflopRangeMatrixHub from './preflop-ranges/index';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export async function getServerSideProps({ req, res, query }) {
   const acceptHeader = String(req?.headers?.accept || '');
@@ -22,6 +23,7 @@ export async function getServerSideProps({ req, res, query }) {
     res.end();
     return { props: {} };
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }
 

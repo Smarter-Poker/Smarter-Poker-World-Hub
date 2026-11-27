@@ -5,6 +5,7 @@ import SEOHead from '../src/components/seo/SEOHead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import { freerollEventSchema } from '../src/lib/seo/hubPageSchema';
 import { FREE_BUY_SCHEDULE, FREE_BUY_GAME, FREE_BUY_SUMMARY, freeBuyPrizeLabel } from '../src/lib/freerolls/freeBuySchedule.mjs';
+import { setPublicSeoHtmlCache } from '../src/lib/seo/edgeCacheHeaders.mjs';
 import { 
   Trophy, 
   Calendar, 
@@ -1074,6 +1075,7 @@ export async function getServerSideProps({ req, res, query }) {
     res.end();
     return { props: {} };
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }
 
