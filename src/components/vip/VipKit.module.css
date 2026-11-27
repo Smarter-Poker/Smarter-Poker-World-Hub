@@ -1,0 +1,515 @@
+/*
+ * VIP offer kit on #SMARTERDESIGN. One family for every surface that sells or
+ * pitches VIP: the storefront, the product pages, Compare, the popups and the
+ * upgrade prompts.
+ *
+ * Paint what never changes, print what does. The rims are the approved Club
+ * Arena console nine-slices (public/images/smarterdesign/chrome-*.webp), the
+ * actions are the approved painted plates (marketplace-console-v1/shark-panel
+ * button-primary / button-secondary), the crown is the approved VIP master
+ * (store-v3/vip-hero.webp and its seal crop). Every word and figure is live.
+ *
+ * Text inks: white, silver, ice blue only.
+ */
+.kit {
+  --vk-text: #f2f7ff;
+  --vk-silver: #bdd0e2;
+  --vk-ice: #86daff;
+  --vk-line: #3d5771;
+  --vk-type: var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif;
+  --vk-body: var(--font-inter), Arial, sans-serif;
+  box-sizing: border-box;
+  min-width: 0;
+  color: var(--vk-text);
+  font-family: var(--vk-body);
+  font-variant-numeric: tabular-nums lining-nums;
+  color-scheme: dark;
+}
+.kit *,
+.kit *::before,
+.kit *::after {
+  box-sizing: border-box;
+}
+
+/* One continuous steel rim around one surface. */
+.frame {
+  position: relative;
+  min-width: 0;
+  border: 6px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background:
+    radial-gradient(120% 70% at 50% -10%, #1b426e 0%, transparent 62%),
+    linear-gradient(160deg, #15293e 0%, #0a1a2b 44%, #040d18 100%);
+  box-shadow:
+    0 18px 34px rgb(0 0 0 / 72%),
+    0 0 0 1px #02070d;
+}
+
+/* ── Masthead: seal, live title, crown scene, help ───────────────────── */
+.masthead {
+  --vk-seal: clamp(58px, 15vw, 96px);
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--vk-seal) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(10px, 2vw, 22px);
+  min-height: clamp(104px, 14vw, 150px);
+  padding: 14px 58px 14px 12px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 18% 104%, #23466f 0, #0f2338 40%, #06111d 80%);
+}
+.scene {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: 62%;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  object-position: 60% 50%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #0003 20%, #0009 52%, #000 82%);
+  mask-image: linear-gradient(90deg, transparent, #0003 20%, #0009 52%, #000 82%);
+  pointer-events: none;
+}
+.seal {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--vk-seal, 64px);
+  height: var(--vk-seal, 64px);
+  padding: clamp(3px, 0.5vw, 5px);
+  border-radius: 50%;
+  background: conic-gradient(
+    from 25deg,
+    #6d94b1,
+    #d8e7f3 12%,
+    #3c5369 23%,
+    #0d263b 35%,
+    #a6c8e0 50%,
+    #465d72 64%,
+    #f4f9ff 78%,
+    #234968 90%,
+    #6d94b1
+  );
+  box-shadow:
+    0 0 0 1px #09121c,
+    0 0 0 2px #92aac0,
+    0 3px 10px rgb(1 6 15 / 80%),
+    0 0 18px rgb(45 157 255 / 35%);
+}
+.seal img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #06101b;
+  object-fit: cover;
+}
+.mastCopy {
+  position: relative;
+  min-width: 0;
+}
+.parent {
+  margin: 0 0 3px;
+  color: var(--vk-ice);
+  font: 700 12px/1.2 var(--vk-type);
+  letter-spacing: 0.07em;
+}
+.title {
+  margin: 0;
+  color: #f3f7fc;
+  font: italic 800 clamp(1.7rem, 7vw, 3.1rem) / 1.02 var(--vk-type);
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  text-shadow:
+    0 2px 3px #020911,
+    0 0 8px #061321;
+}
+.help {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: #f2f7ff;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.help span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #c9d9e7;
+  background: radial-gradient(circle at 35% 30%, #35506b, #0a1826 70%);
+  box-shadow:
+    0 0 0 1px #09121c,
+    0 2px 5px #000,
+    inset 0 1px 0 #ffffff55;
+  font: 800 18px/1 var(--vk-type);
+}
+.help:focus-visible,
+.close:focus-visible {
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
+}
+/* The plates are clipped to their chamfer, so their focus ring sits inside. */
+.cta:focus-visible,
+.ghost:focus-visible {
+  outline: 2px solid #d9f3ff !important;
+  outline-offset: -6px !important;
+}
+
+/* ── Price readout: the price this account pays, as the largest thing ── */
+.price {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px 14px 15px;
+  border: 4px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 5px stretch;
+  background:
+    radial-gradient(110% 80% at 50% 0%, #153f6c 0%, #08192c 52%, #030a13 100%);
+  box-shadow:
+    inset 0 3px 12px rgb(0 0 0 / 85%),
+    inset 0 -1px 0 rgb(72 126 178 / 35%);
+  text-align: center;
+}
+.price::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #58c4ff, #dff5ff, #58c4ff, transparent);
+  box-shadow: 0 0 12px 1px rgb(45 157 255 / 80%);
+}
+.offerTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 12px;
+  border: 1px solid #3a7fbd;
+  background: linear-gradient(180deg, #12406f, #082341);
+  box-shadow:
+    inset 0 1px 0 rgb(134 218 255 / 45%),
+    0 1px 0 #010509;
+  color: var(--vk-ice);
+  font: 700 12px/1.2 var(--vk-type);
+  letter-spacing: 0.08em;
+}
+.amountRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px 10px;
+  min-width: 0;
+}
+.amount {
+  color: #fff;
+  font: 800 clamp(58px, 17vw, 78px) / 0.92 var(--vk-type);
+  letter-spacing: -0.02em;
+  text-shadow:
+    0 1px 0 #d4e8f8,
+    0 2px 0 #86a2ba,
+    0 3px 0 #3f5870,
+    0 5px 9px #000,
+    0 0 24px rgb(47 157 255 / 55%);
+}
+.unit {
+  color: var(--vk-text);
+  font: 700 clamp(20px, 5.6vw, 26px) / 1.05 var(--vk-type);
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 3px #000;
+}
+.then {
+  margin: 0;
+  color: var(--vk-silver);
+  font: 600 14px/1.4 var(--vk-body);
+  text-wrap: balance;
+}
+.then strong {
+  color: var(--vk-text);
+  font-weight: 700;
+}
+.verify {
+  margin: 0;
+  color: var(--vk-ice);
+  font: 600 13px/1.4 var(--vk-body);
+  text-wrap: balance;
+}
+.priceCompact {
+  padding: 13px 12px 12px;
+  gap: 6px;
+}
+.priceCompact .amount {
+  font-size: clamp(44px, 13vw, 56px);
+}
+.priceCompact .unit {
+  font-size: 19px;
+}
+.priceCompact .then {
+  font-size: 13px;
+}
+
+/* ── Actions: the approved painted plates, live lettering ───────────── */
+.cta,
+.ghost {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 100%;
+  min-width: 0;
+  min-height: 58px;
+  margin: 0;
+  padding: 0 6px;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 15px 20px;
+  background: none;
+  color: #fff;
+  font: 800 18px/1.12 var(--vk-type);
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  /* The painted plate is an octagon on a dark backing: clip to the chamfer. */
+  clip-path: polygon(13px 0, calc(100% - 13px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 12px), 0 12px);
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease;
+}
+.cta {
+  border-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png') 36 44 fill / 15px
+    20px stretch;
+  text-shadow:
+    0 1px 2px #001230,
+    0 0 12px rgb(124 200 255 / 60%);
+}
+.ghost {
+  min-height: 50px;
+  border-width: 13px 18px;
+  border-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png') 36 44 fill /
+    13px 18px stretch;
+  color: #dbe7f2;
+  font-size: 16px;
+  text-shadow: 0 1px 2px #000;
+}
+.ctaSub {
+  color: #cfeaff;
+  font: 600 12px/1.2 var(--vk-body);
+  letter-spacing: 0;
+  text-shadow: 0 1px 2px #001230;
+}
+.cta:active:not(:disabled),
+.ghost:active:not(:disabled) {
+  transform: translateY(2px);
+  filter: brightness(0.86);
+}
+.cta:disabled,
+.ghost:disabled,
+.cta[aria-disabled='true'] {
+  cursor: not-allowed;
+  filter: grayscale(0.75) brightness(0.62);
+}
+
+/* ── Inline upgrade prompt ──────────────────────────────────────────── */
+.prompt {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-width: 460px;
+  margin-inline: auto;
+  padding: 14px 12px 14px;
+  text-align: center;
+}
+.promptHead {
+  --vk-seal: 54px;
+  display: grid;
+  grid-template-columns: var(--vk-seal) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.promptTitle {
+  margin: 0;
+  color: var(--vk-text);
+  font: 800 22px/1.1 var(--vk-type);
+  letter-spacing: 0.005em;
+  text-shadow: 0 2px 0 #243951, 0 3px 6px #020914;
+}
+.promptCopy {
+  margin: 3px 0 0;
+  color: var(--vk-silver);
+  font: 500 13px/1.4 var(--vk-body);
+}
+.diamondLine {
+  margin: 0;
+  color: var(--vk-silver);
+  font: 600 13px/1.4 var(--vk-body);
+}
+
+/* ── Dialog ─────────────────────────────────────────────────────────── */
+.backdrop {
+  position: fixed;
+  z-index: 12000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  background:
+    radial-gradient(90% 60% at 50% 40%, rgb(16 52 92 / 55%), transparent 70%),
+    rgb(2 8 15 / 90%);
+}
+.dialog {
+  width: min(100%, 460px);
+}
+/* Focus lands on the chassis only so the trap has a start; no ring on it. */
+.dialog:focus,
+.dialog:focus-visible {
+  outline: none !important;
+}
+.dialogHead .scene {
+  width: 52%;
+  opacity: 0.85;
+}
+.dialogHead {
+  --vk-seal: 60px;
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--vk-seal) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 92px;
+  padding: 12px 56px 12px 12px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--vk-line);
+  background: radial-gradient(ellipse at 18% 110%, #23466f 0, #0f2338 42%, #06111d 82%);
+}
+.dialogTitle {
+  margin: 0;
+  color: #f3f7fc;
+  font: italic 800 clamp(1.5rem, 6.4vw, 2rem) / 1.04 var(--vk-type);
+  letter-spacing: -0.01em;
+  text-shadow:
+    0 2px 3px #020911,
+    0 0 8px #061321;
+}
+.close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #f2f7ff;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.close span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #b9cbdb;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #35506b, #0a1826 70%);
+  box-shadow:
+    0 0 0 1px #09121c,
+    0 2px 5px #000,
+    inset 0 1px 0 #ffffff55;
+  font: 700 17px/1 var(--vk-body);
+}
+.dialogBody {
+  display: grid;
+  gap: 14px;
+  padding: 16px 14px 16px;
+}
+.dialogLead {
+  margin: 0;
+  color: var(--vk-silver);
+  font: 500 15px/1.45 var(--vk-body);
+  text-align: center;
+  text-wrap: balance;
+}
+.dialogLead strong {
+  color: var(--vk-text);
+  font-weight: 700;
+}
+.perks {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--vk-line);
+}
+.perks li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--vk-line);
+  color: var(--vk-silver);
+  font: 600 14px/1.3 var(--vk-body);
+}
+.perks li > :last-child {
+  color: var(--vk-text);
+  font-weight: 700;
+  text-align: right;
+}
+.dialogActions {
+  display: grid;
+  gap: 10px;
+}
+.dialogPair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.dialogPair .ghost {
+  font-size: 15px;
+}
+
+@media (min-width: 700px) {
+  .masthead {
+    padding: 18px 70px 18px 24px;
+  }
+  .scene {
+    width: 56%;
+  }
+  .help {
+    top: 10px;
+    right: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta,
+  .ghost {
+    transition: none;
+  }
+}
