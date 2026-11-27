@@ -24,17 +24,17 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-test('1. PA Home wires 44x44 Settings gear button, approved PA destinations, and PA HamburgerMenu', () => {
+test('1. PA Home wires its labeled Settings control, approved PA destinations, and PA HamburgerMenu', () => {
   const home = read('pages/hub/personal-assistant/index.js');
   const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
   const menus = read('src/config/hamburgerMenus.js');
 
   assert.match(home, /<HubPageShell\b/);
-  assert.match(css, /@media \(min-width: 769px\)\s*\{\s*\.tabs,\s*\.main\s*\{\s*width:\s*min\(820px,\s*calc\(100% - 24px\)\);/);
-
-  assert.match(home, /aria-label="Practice And Audit Settings"/);
+  assert.match(home, /aria-label="Review Settings"/);
   assert.match(home, /openInternalRoute\('\/hub\/personal-assistant\/leaks\?settings=1'\)/);
-  assert.match(css, /\.settingsButton\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;[\s\S]*?min-width:\s*44px;[\s\S]*?min-height:\s*44px;/);
+  assert.match(home, /<span>Review Settings<\/span>/);
+  assert.match(css, /\.settingsButton\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/,
+    'The labeled Settings pill retains a usable touch target');
 
   assert.match(home, /getMenuConfig\('personal-assistant',\s*user,\s*\{\},\s*\{\}\)/);
   assert.match(home, /<HamburgerMenu[\s\S]{0,220}theme="pa"[\s\S]{0,120}user=\{user\}/);
@@ -47,36 +47,30 @@ test('1. PA Home wires 44x44 Settings gear button, approved PA destinations, and
   assert.match(paMenuBlock, /createMenuItem\.navigation\('Coaching Plan',\s*'\/hub\/personal-assistant\/leaks\?tab=coaching'/);
 });
 
-test('2. PA Home keeps obsidian 4-color card styles and approved card artwork', () => {
+test('2. PA Home keeps approved card artwork complete and proportional', () => {
   const home = read('pages/hub/personal-assistant/index.js');
   const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
 
-  assert.match(css, /\.playingCard,\s*\.boardCard\s*\{[\s\S]*?background:\s*linear-gradient\(180deg,\s*#132238 0%,\s*#08101C 100%\);/);
-  assert.match(css, /\.suitClubs\s*\{[^}]*color:\s*#4DE0A5;/);
-  assert.match(css, /\.suitDiamonds\s*\{[^}]*color:\s*#56D8FF;/);
-  assert.match(css, /\.suitHearts\s*\{[^}]*color:\s*#FF6B7A;/);
-  assert.match(css, /\.suitSpades\s*\{[^}]*color:\s*#F1F5FC;/);
-  assert.doesNotMatch(css, /#edf3f8|#dce7f0/);
+  assert.match(css, /\.featureArt\s*\{[^}]*object-fit:\s*contain;/);
+  assert.doesNotMatch(css, /\.featureArt\s*\{[^}]*object-fit:\s*(?:cover|fill);/);
+  assert.match(home, /\/images\/personal-assistant\/review-my-play-chrome\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox-chrome\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/my-leaks-chrome\.webp/);
 
   assert.match(home, /A♠ K♠/);
   assert.match(home, /A♥ 4♠ 5♠/);
   assert.match(home, /K♥ Q♥/);
 });
 
-test('3. PA Home preserves phone-safe CSS, cyan feature check tinting, and tutorial wiring', () => {
+test('3. PA Home preserves phone-safe actions, readable states, and tutorial wiring', () => {
   const home = read('pages/hub/personal-assistant/index.js');
   const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
 
-  // Decision Loop phone stacking & wrap safety (sanctioned 600px breakpoint)
-  assert.match(css, /\.loopStep small\s*\{[^}]*white-space:\s*normal;/);
-  assert.match(css, /@media \(max-width: 600px\)\s*\{\s*\.decisionLoop\s*\{\s*grid-template-columns:\s*1fr;\s*\}/);
-
-  // Dead .systemCopy h3/p/ul/li replaced with live .systemFeatureItem svg cyan tinting
-  assert.doesNotMatch(css, /\.systemCopy\s+(?:h3|p|ul|li)\b/);
-  assert.match(css, /\.systemFeatureItem svg\s*\{[^}]*color:\s*var\(--pa-cyan\);/);
-
-  // Compact empty/syncing class stays intact
-  assert.match(css, /\.sessionEmpty\s*\{/);
+  // Direct illustrated destinations replace the retired Decision Loop and session list.
+  assert.match(css, /@media \(max-width: 600px\)[\s\S]*\.featureCard\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\);/);
+  assert.match(css, /\.featureTitle\s*\{[^}]*overflow-wrap:\s*break-word;/);
+  assert.match(home, /readyToReviewText/);
+  assert.match(home, /leaksSummaryText/);
   assert.match(home, /data-tutorial="mission"/);
   assert.match(home, /data-tutorial="systems"/);
   assert.match(home, /data-tutorial="stats"/);

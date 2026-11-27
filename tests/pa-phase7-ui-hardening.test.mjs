@@ -120,6 +120,20 @@ test('5. [P0 #4 & P2 #16, #17] CoachingWorkspace syncs saved preferences, gates 
   // URL settings auto-open is skipped when controlledSettingsOpen !== undefined, and leaks.js clears ?settings=1 / ?view=data once consumed
   assert.match(coaching, /if \(\(urlView === 'data' \|\| urlSettings === '1'\) && controlledSettingsOpen === undefined\)/);
   assert.match(leaks, /setSettingsOpen\(true\);\s*const nextQuery = \{ \.\.\.router\.query \};\s*delete nextQuery\.settings;\s*if \(nextView === 'data'\) delete nextQuery\.view;\s*router\.replace/);
+
+  // Consuming the deep link must preserve the open sheet and active filters.
+  // An asPath-keyed app boundary previously remounted Leaks and closed Settings.
+  const app = read('pages/_app.js');
+  const keyExpression = app.match(/const pageErrorBoundaryKey = ([\s\S]*?);/)[1];
+  const boundaryKey = new Function('resolvedPath', 'router', `return (${keyExpression});`);
+  const leaksPath = '/hub/personal-assistant/leaks';
+  const keyFor = (asPath) => boundaryKey(leaksPath, { asPath });
+  assert.equal(keyFor(`${leaksPath}?settings=1`), keyFor(leaksPath));
+  assert.equal(keyFor(`${leaksPath}?view=data`), keyFor(leaksPath));
+  assert.equal(keyFor(`${leaksPath}?tab=plan`), keyFor(leaksPath));
+  assert.notEqual(boundaryKey('/hub/profile', { asPath: '/hub/profile?tab=about' }),
+    boundaryKey('/hub/profile', { asPath: '/hub/profile?tab=activity' }),
+    'Unrelated pages retain their existing boundary-reset behavior');
 });
 
 test('6. [P1 #5 & Backend P1-3] InlineHandReplay sticky offset, honest unsupported banner, effectiveStackBb priority, and cooldown badge', () => {
