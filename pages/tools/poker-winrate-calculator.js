@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -273,7 +274,7 @@ export default function PokerWinrateCalculatorPage({
               <li><strong>True Standardized Winrate:</strong> <span style={{ color: '#34d399', fontWeight: 700 }}>{metrics.bbPer100} BB / 100 Hands</span></li>
               <li><strong>Hourly Winrate ($/Hr &amp; BB/Hr):</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>${metrics.hourlyDollars} / Hr</span> ({metrics.hourlyBb} BB / Hr)</li>
               <li><strong>Estimated Total Sample Size:</strong> {metrics.totalHands} Hands ({metrics.totalBbWon} Total BB Won)</li>
-              <li><strong>95% Confidence Interval (80 SD):</strong> <span style={{ color: '#f59e0b', fontWeight: 700 }}>{metrics.ciLow} To {metrics.ciHigh} BB/100</span> (±{metrics.ci95Margin} BB/100)</li>
+              <li><strong>95% Confidence Interval (80 SD):</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>{metrics.ciLow} To {metrics.ciHigh} BB/100</span> (±{metrics.ci95Margin} BB/100)</li>
               <li><strong>1,500-Hour Full-Time Annual Pace:</strong> ${metrics.annualProjection2000Hrs} / Year</li>
             </ul>
           </div>
@@ -307,7 +308,7 @@ export default function PokerWinrateCalculatorPage({
                     <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.solidWinrate}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.crusherWinrate}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.solidBbPerHr}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{row.crusherBbPerHr}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.crusherBbPerHr}</td>
                   </tr>
                 ))}
               </tbody>
@@ -340,7 +341,7 @@ export default function PokerWinrateCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{s.sampleHands}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{s.stdError85}</td>
                     <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{s.ci95Width}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{s.probLossAt4Bb}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{s.probLossAt4Bb}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{s.statisticalReliability}</td>
                   </tr>
                 ))}
@@ -375,6 +376,17 @@ export default function PokerWinrateCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Track Your Real BB/100 & Hourly Winrate Free"
+          description="Log Live And Online Sessions In Bankroll Manager To Measure True Hourly Earnings And Unlock 107 GTO Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/poker-winrate-calculator&src=winrate-calc"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/poker-winrate-calculator"
+        />
 
         <FaqSection faqs={POKER_WINRATE_CALCULATOR_FAQS} />
 

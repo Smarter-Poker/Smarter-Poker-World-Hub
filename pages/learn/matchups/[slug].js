@@ -16,6 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import {
   HAND_MATCHUPS,
   MATCHUPS_AS_OF,
@@ -401,12 +402,22 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
             </div>
 
             <div style={styles.evCard}>
-              <div style={styles.evCardBadgeEmerald}>FINAL TABLE ICM PRESSURE</div>
+              <div style={styles.evCardBadgeEmerald}>Final Table ICM Pressure</div>
               <h3 style={styles.h3}>Final Table Bubble &amp; ICM Adjustment</h3>
               <p style={styles.evBody}>{matchup.evAnalysis.icmFinalTable}</p>
             </div>
           </div>
         </section>
+
+        <SmarterConversionCta
+          eyebrow="Free GTO Preflop & Equity Training"
+          title={`Practice ${matchup.handA} Vs ${matchup.handB} In Live GTO Drills`}
+          description="Test Your All-In Calling Thresholds, 3-Bet Shoves, And Tournament ICM Spots Across 107 Free Solver-Backed Training Games."
+          primaryLabel="Train Free In GTO Hub"
+          primaryHref={`/auth/signup?redirect=/hub/training&src=matchup-${encodeURIComponent(matchup.slug)}`}
+          secondaryLabel="Simulate In Odds Calculator"
+          secondaryHref={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(matchup.handA)}&hand2=${encodeURIComponent(matchup.handB)}`}
+        />
 
         {/* Peer Matchups */}
         {peerMatchups.length > 0 && (

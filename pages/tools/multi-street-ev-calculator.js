@@ -17,6 +17,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -323,7 +324,7 @@ export default function MultiStreetEvCalculatorPage({
               { label: 'Villain Turn Fold (%)', val: tFold, set: setTFold, step: 2, color: '#34d399' },
               { label: 'River Bet Sizing (% Of Pot)', val: rBet, set: setRBet, step: 5, color: '#25c8ff' },
               { label: 'Villain River Fold (%)', val: rFold, set: setRFold, step: 2, color: '#34d399' },
-              { label: 'Hero Equity When Called (%)', val: eq, set: setEq, step: 1, color: '#f2b84b' },
+              { label: 'Hero Equity When Called (%)', val: eq, set: setEq, step: 1, color: '#38bdf8' },
             ].map((inp) => (
               <div key={inp.label}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
@@ -363,11 +364,11 @@ export default function MultiStreetEvCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Street Bet Progression
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.B1} -&gt; {metrics.B2} -&gt; {metrics.B3} BB
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -438,7 +439,7 @@ export default function MultiStreetEvCalculatorPage({
                   <tr key={row.line} style={{ borderBottom: '1px solid #1e293b' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.line}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.potGrowth}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.perStreetMdf}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.perStreetMdf}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.cumulativeContinue}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.cumulativeFold}</td>
                   </tr>
@@ -456,7 +457,7 @@ export default function MultiStreetEvCalculatorPage({
             <Link href="/tools/geometric-bet-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Geometric 2e/3e Overbet Planner
             </Link>
-            <Link href="/tools/bluff-catching-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/bluff-catching-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               River Bluff-Catching Solver
             </Link>
             <Link href="/tools/board-texture-analyzer" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -470,6 +471,17 @@ export default function MultiStreetEvCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Triple-Barrel EV Lines & Drill Postflop GTO Free"
+              description="Bookmark Multi-Street Fold-Equity Calculations And Practice Bluff Lines In 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/multi-street-ev-calculator&src=multi-street-ev"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/multi-street-ev-calculator"
+            />
+
             <FaqSection faqs={MULTI_STREET_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

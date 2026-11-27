@@ -3,6 +3,7 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../seo/SEOHead';
 import AiPromptLauncher from '../seo/AiPromptLauncher';
 import CitationBacklinkBox from '../seo/CitationBacklinkBox';
+import SmarterConversionCta from '../seo/SmarterConversionCta';
 
 const FEATURE_SEMANTIC_MESH = {
   '/features/preflop-charts-matrix': {
@@ -112,8 +113,9 @@ const FEATURE_SEMANTIC_MESH = {
       { href: '/glossary/must-move-table', label: 'Must-Move Table' },
     ],
     tools: [
+      { href: '/hub/toke-tracker', label: 'Poker Dealer Toke Tracker App' },
       { href: '/hub/commander/venues', label: 'Club Commander Live Poker Rooms' },
-      { href: '/compare/smarter-poker-vs-downcount', label: 'Smarter.Poker Vs DownCount Comparison' },
+      { href: '/research/poker-dealer-toke-and-hourly-rate-benchmark', label: 'Poker Dealer Toke And Hourly Rate Benchmark' },
     ],
   },
   '/features/poker-ai-coach': {
@@ -260,7 +262,7 @@ const FEATURE_SEMANTIC_MESH = {
     tools: [
       { href: '/hub/club-arena', label: 'Poker Arena Private Club Hub' },
       { href: '/compare/best-poker-club-apps', label: 'Best Private Poker Club Apps Compared' },
-      { href: '/research/private-poker-club-and-cardroom-software-economics', label: 'Private Poker Club Economics Study' },
+      { href: '/research/private-poker-club-software-and-platform-economics', label: 'Private Poker Club Economics Study' },
     ],
   },
   '/features/poker-reels-social-feed': {
@@ -391,6 +393,9 @@ export default function FeatureLanderLayout({
     });
   }
 
+  const signupHref = `/auth/signup?redirect=${encodeURIComponent(primaryCtaHref || '/hub')}&src=feature-lander`;
+  const loginHref = `/auth/login?redirect=${encodeURIComponent(primaryCtaHref || '/hub')}`;
+
   return (
     <>
       <SEOHead
@@ -423,6 +428,9 @@ export default function FeatureLanderLayout({
             <div style={styles.ctaGroup}>
               <Link href={primaryCtaHref} style={styles.primaryBtn}>
                 {primaryCtaText}
+              </Link>
+              <Link href={signupHref} style={styles.signupBtn}>
+                Create Free Account
               </Link>
               {secondaryCtaHref && (
                 <a href={secondaryCtaHref} style={styles.secondaryBtn}>
@@ -549,6 +557,19 @@ export default function FeatureLanderLayout({
             markdownUrl={markdownUrl || `https://smarter.poker${canonical}.md`}
           />
 
+          <div style={styles.conversionWrap}>
+            <SmarterConversionCta
+              eyebrow="Free Smarter.Poker Account"
+              title={`Unlock ${title} With A Free Account`}
+              description="Save Your Drills, Sync Bankroll Sessions, Track 715+ Live Poker Rooms, And Access Every Smarter.Poker Tool With Zero Subscription Fees."
+              primaryLabel="Create Free Account"
+              primaryHref={signupHref}
+              secondaryLabel="Sign In"
+              secondaryHref={loginHref}
+              highlights={['100% Free Forever', '107 GTO Drills', '715+ Live Rooms']}
+            />
+          </div>
+
           <footer style={styles.footer}>
             <p style={styles.footerNote}>
               Free To Play Platform Operated By Smarter Software Inc. Zero Financial Deposit Required.
@@ -577,35 +598,41 @@ export default function FeatureLanderLayout({
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'linear-gradient(180deg, #0a0a12 0%, #050510 100%)',
-    color: '#e6ecf5',
+    background: 'linear-gradient(180deg, #060d1a 0%, #081121 100%)',
+    color: '#ffffff',
     fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif",
   },
   article: { maxWidth: 920, margin: '0 auto', padding: '40px 20px 64px' },
   breadcrumb: {
     display: 'flex',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     fontSize: 13,
-    color: '#7f8ca3',
-    marginBottom: 28,
+    color: '#94a3b8',
+    marginBottom: 24,
   },
-  breadcrumbLink: { color: '#00c6ff', textDecoration: 'none' },
-  breadcrumbSeparator: { color: '#4a5568' },
-  breadcrumbCurrent: { color: '#b8c4d6', fontWeight: 500 },
+  breadcrumbLink: {
+    color: '#38bdf8',
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 44,
+  },
+  breadcrumbSeparator: { color: '#64748b' },
+  breadcrumbCurrent: { color: '#cbd5e1', fontWeight: 500 },
   header: { marginBottom: 44 },
   badge: {
     display: 'inline-block',
-    background: 'rgba(0, 198, 255, 0.1)',
-    border: '1px solid rgba(0, 198, 255, 0.3)',
-    color: '#00c6ff',
-    padding: '4px 12px',
+    background: 'rgba(56, 189, 248, 0.12)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    color: '#38bdf8',
+    padding: '6px 14px',
     borderRadius: 20,
     fontSize: 12,
-    fontWeight: 600,
+    fontWeight: 700,
     letterSpacing: '0.5px',
     marginBottom: 16,
-    textTransform: 'uppercase',
   },
   h1: {
     fontFamily: "var(--font-orbitron), sans-serif",
@@ -619,41 +646,63 @@ const styles = {
   lead: {
     fontSize: 17,
     lineHeight: 1.7,
-    color: '#c7d2e2',
+    color: '#cbd5e1',
     margin: '0 0 24px',
   },
   ctaGroup: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: 14,
+    gap: 12,
     marginTop: 20,
   },
   primaryBtn: {
-    display: 'inline-block',
-    background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
+    border: '1px solid rgba(148, 184, 224, 0.36)',
     color: '#ffffff',
-    fontWeight: 600,
+    fontWeight: 700,
     fontSize: 15,
-    padding: '12px 24px',
+    padding: '10px 22px',
     borderRadius: 8,
     textDecoration: 'none',
-    letterSpacing: '0.5px',
+    letterSpacing: '0.3px',
+  },
+  signupBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    background: '#081121',
+    border: '1px solid rgba(56, 189, 248, 0.55)',
+    color: '#ffffff',
+    fontWeight: 700,
+    fontSize: 15,
+    padding: '10px 22px',
+    borderRadius: 8,
+    textDecoration: 'none',
+    letterSpacing: '0.3px',
   },
   secondaryBtn: {
-    display: 'inline-block',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    color: '#e6ecf5',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    background: 'rgba(8, 17, 33, 0.85)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    color: '#cbd5e1',
     fontWeight: 600,
     fontSize: 15,
-    padding: '12px 24px',
+    padding: '10px 20px',
     borderRadius: 8,
     textDecoration: 'none',
   },
   section: {
     marginTop: 48,
     paddingTop: 36,
-    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+    borderTop: '1px solid rgba(148, 184, 224, 0.2)',
   },
   h2: {
     fontFamily: "var(--font-orbitron), sans-serif",
@@ -669,8 +718,8 @@ const styles = {
     gap: 16,
   },
   card: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(0, 198, 255, 0.15)',
+    background: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: 12,
     padding: '20px 18px',
   },
@@ -678,20 +727,21 @@ const styles = {
     fontFamily: "var(--font-orbitron), sans-serif",
     fontSize: 15,
     fontWeight: 600,
-    color: '#00c6ff',
+    color: '#38bdf8',
     margin: '0 0 8px',
     letterSpacing: '0.3px',
   },
   cardText: {
     fontSize: 14,
     lineHeight: 1.6,
-    color: '#b8c4d6',
+    color: '#cbd5e1',
     margin: 0,
   },
   tableWrapper: {
     overflowX: 'auto',
     borderRadius: 12,
-    border: '1px solid rgba(0, 198, 255, 0.2)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    background: '#081121',
   },
   table: {
     width: '100%',
@@ -700,28 +750,28 @@ const styles = {
     textAlign: 'left',
   },
   th: {
-    background: 'rgba(0, 198, 255, 0.12)',
+    background: 'rgba(29, 78, 216, 0.22)',
     color: '#ffffff',
     fontWeight: 600,
     padding: '14px 16px',
-    borderBottom: '1px solid rgba(0, 198, 255, 0.2)',
+    borderBottom: '1px solid rgba(148, 184, 224, 0.28)',
   },
   tr: {
-    background: 'rgba(255, 255, 255, 0.02)',
+    background: '#060d1a',
   },
   trAlt: {
-    background: 'rgba(255, 255, 255, 0.04)',
+    background: '#081121',
   },
   td: {
     padding: '14px 16px',
-    color: '#c7d2e2',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    color: '#cbd5e1',
+    borderBottom: '1px solid rgba(148, 184, 224, 0.14)',
   },
   tdBold: {
     padding: '14px 16px',
     color: '#ffffff',
     fontWeight: 600,
-    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    borderBottom: '1px solid rgba(148, 184, 224, 0.14)',
   },
   stepList: {
     listStyle: 'none',
@@ -733,8 +783,8 @@ const styles = {
   stepItem: {
     display: 'flex',
     gap: 16,
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    background: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: 12,
     padding: '18px 20px',
   },
@@ -742,8 +792,9 @@ const styles = {
     fontFamily: "var(--font-orbitron), sans-serif",
     fontSize: 18,
     fontWeight: 700,
-    color: '#00c6ff',
-    background: 'rgba(0, 198, 255, 0.12)',
+    color: '#38bdf8',
+    background: 'rgba(56, 189, 248, 0.12)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -761,7 +812,7 @@ const styles = {
   stepDescription: {
     fontSize: 14,
     lineHeight: 1.6,
-    color: '#b8c4d6',
+    color: '#cbd5e1',
     margin: 0,
   },
   faqList: {
@@ -769,42 +820,50 @@ const styles = {
     gap: 16,
   },
   faqItem: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(0, 198, 255, 0.12)',
+    background: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: 12,
     padding: '18px 20px',
   },
   faqQuestion: {
     fontSize: 16,
     fontWeight: 600,
-    color: '#00c6ff',
+    color: '#38bdf8',
     margin: '0 0 8px',
   },
   faqAnswer: {
     fontSize: 14,
     lineHeight: 1.6,
-    color: '#c7d2e2',
+    color: '#cbd5e1',
     margin: 0,
   },
+  conversionWrap: {
+    marginTop: 40,
+  },
   footer: {
-    marginTop: 56,
+    marginTop: 48,
     paddingTop: 28,
-    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+    borderTop: '1px solid rgba(148, 184, 224, 0.2)',
     textAlign: 'center',
   },
   footerNote: {
     fontSize: 13,
-    color: '#7f8ca3',
+    color: '#94a3b8',
     margin: '0 0 14px',
   },
   footerLinks: {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 18,
+    gap: 16,
   },
   footerLink: {
     fontSize: 13,
-    color: '#9fd8ff',
+    color: '#38bdf8',
     textDecoration: 'underline',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 44,
+    padding: '0 4px',
   },
 };

@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -268,7 +269,7 @@ export default function PokerTaxCalculatorPage({
         <div
           style={{
             background: '#101a20',
-            border: '1px solid #f2b84b',
+            border: '1px solid #38bdf8',
             borderRadius: '2px',
             padding: '12px 16px',
             fontSize: 13,
@@ -450,7 +451,7 @@ export default function PokerTaxCalculatorPage({
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 15,
                     fontWeight: 700,
                   }}
@@ -473,11 +474,11 @@ export default function PokerTaxCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Estimated Federal Marginal Tax
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 ${taxMetrics.totalEstimatedFederalTax.toLocaleString('en-US')} ({taxMetrics.marginalRatePct}% Bracket)
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -542,7 +543,7 @@ export default function PokerTaxCalculatorPage({
                   <tr key={item.field} style={{ borderBottom: '1px solid #1e293b' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{item.field}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{item.requirement}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 600 }}>{item.irsReference}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 600 }}>{item.irsReference}</td>
                   </tr>
                 ))}
               </tbody>
@@ -559,7 +560,7 @@ export default function PokerTaxCalculatorPage({
             <Link href="/tools/staking-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Poker Staking &amp; Markup Split Calculator
             </Link>
-            <Link href="/tools/chop-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/chop-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Final Table Deal &amp; ICM Chop Calculator
             </Link>
             <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -576,6 +577,17 @@ export default function PokerTaxCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Track Deductible Sessions & Export Tax Logs Free"
+              description="Log Every Live And Online Session In Bankroll Manager To Maintain Audit-Ready W-2G Records Year-Round."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/poker-tax-calculator&src=poker-tax"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/poker-tax-calculator"
+            />
+
             <FaqSection faqs={POKER_TAX_FAQS} />
 
             <CitationBacklinkBox

@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -443,7 +444,7 @@ export default function BoardTextureAnalyzerPage() {
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -614,7 +615,7 @@ export default function BoardTextureAnalyzerPage() {
                 padding: 12,
               }}
             >
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#f2b84b', marginBottom: 8 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#38bdf8', marginBottom: 8 }}>
                 Pre-Flop Scenario
                 <select
                   value={scenario}
@@ -655,11 +656,11 @@ export default function BoardTextureAnalyzerPage() {
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Recommended GTO C-Bet Strategy
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#f2b84b', marginTop: 6 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#38bdf8', marginTop: 6 }}>
                 {analysis.strategyLabel}
               </div>
               <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 4 }}>
@@ -735,7 +736,7 @@ export default function BoardTextureAnalyzerPage() {
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.archetype}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.connectedness}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.advantage}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.strategy}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.strategy}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.turnPlan}</td>
                   </tr>
                 ))}
@@ -753,7 +754,7 @@ export default function BoardTextureAnalyzerPage() {
             <Link href="/tools/spr-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               SPR &amp; Geometric Bet Sizing Calculator
             </Link>
-            <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Pot Odds &amp; MDF Calculator
             </Link>
             <Link href="/tools/outs-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -770,6 +771,17 @@ export default function BoardTextureAnalyzerPage() {
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Flop C-Bet Textures & Drill Postflop GTO Free"
+              description="Bookmark Board Texture Solutions And Practice Flop Continuation Betting In 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/board-texture-analyzer&src=board-texture"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/board-texture-analyzer"
+            />
+
             <FaqSection faqs={BOARD_TEXTURE_FAQS} />
 
             <CitationBacklinkBox

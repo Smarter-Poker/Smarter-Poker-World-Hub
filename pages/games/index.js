@@ -6,8 +6,8 @@
  * 15 poker variants across Community Card, Stud, Draw & Lowball, and Mixed
  * Rotations.
  *
- * Design: #SmarterCasinoRealism (#020608 obsidian, #101a20 gunmetal, #25c8ff cyan,
- * #f2b84b vault gold, borderRadius: '2px').
+ * Design: #SMARTERDESIGN (#060d1a ink-navy, #081121 panel, #38bdf8 ice-blue,
+ * #1d4ed8 cobalt primary CTA, 1px steel rim rgba(148, 184, 224, 0.28)).
  * House style: Title Case, zero em dashes.
  */
 
@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import {
   GAME_CATEGORIES,
   GAMES_AS_OF,
@@ -138,7 +139,7 @@ export default function PokerGamesIndexPage() {
 
         <header style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.goldBadge}>15 COMPLETE VARIANT RULEBOOKS</span>
+            <span style={styles.primaryBadge}>15 COMPLETE VARIANT RULEBOOKS</span>
             <span style={styles.cyanBadge}>HOLD&apos;EM · PLO · STUD · LOWBALL · MIXED</span>
             <a href="/games.md" style={styles.mdBadge}>
               RAW MARKDOWN (/GAMES.MD)
@@ -156,7 +157,7 @@ export default function PokerGamesIndexPage() {
           </p>
 
           <div style={styles.quickCrossLinks}>
-            <Link href="/learn/poker-hand-rankings" style={styles.crossBtnGold}>
+            <Link href="/learn/poker-hand-rankings" style={styles.crossBtnPrimary}>
               Poker Hand Rankings &amp; Lowball Cheat Sheet
             </Link>
             <Link href="/rules" style={styles.crossBtnCyan}>
@@ -279,6 +280,16 @@ export default function PokerGamesIndexPage() {
           );
         })}
 
+        <SmarterConversionCta
+          eyebrow="Free Multi-Variant Poker Account"
+          title="Master Hold'em, PLO & Mixed Games With Free Smarter.Poker Tools"
+          description="Access 107 Free GTO Training Games, Multi-Variant Equity Calculators, And 715+ Live Poker Room Schedules In One Account."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/hub/training&src=games-index"
+          secondaryLabel="Find Live Poker Rooms"
+          secondaryHref="/hub/poker-near-me/lobby"
+        />
+
         <section style={styles.crossHubPlate}>
           <h2 style={styles.h2}>Interactive Equity Calculators, Hand Rankings &amp; Official Rules</h2>
           <p style={styles.bodyText}>
@@ -396,7 +407,7 @@ export default function PokerGamesIndexPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#020608',
+    backgroundColor: '#060d1a',
     color: '#e2e8f0',
     fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, sans-serif',
   },
@@ -439,10 +450,10 @@ const styles = {
     gap: '10px',
     marginBottom: '14px',
   },
-  goldBadge: {
-    backgroundColor: 'rgba(242, 184, 75, 0.14)',
-    border: '1px solid #f2b84b',
-    color: '#f2b84b',
+  primaryBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.08em',
@@ -491,9 +502,12 @@ const styles = {
     flexWrap: 'wrap',
     gap: '10px',
   },
-  crossBtnGold: {
-    backgroundColor: '#f2b84b',
-    color: '#020608',
+  crossBtnPrimary: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: '44px',
+    backgroundColor: '#1d4ed8',
+    color: '#ffffff',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 14px',
@@ -570,7 +584,7 @@ const styles = {
   },
   asOfText: {
     fontSize: '12px',
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontWeight: 600,
   },
   table: {
@@ -606,7 +620,7 @@ const styles = {
   },
   tdCat: {
     padding: '12px',
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontWeight: 700,
     verticalAlign: 'top',
     whiteSpace: 'nowrap',
@@ -665,7 +679,7 @@ const styles = {
   cardCatTag: {
     fontSize: '11px',
     fontWeight: 700,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.04em',
   },
   cardMdLink: {
@@ -702,7 +716,7 @@ const styles = {
     gap: '4px',
   },
   specLabel: {
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontWeight: 700,
   },
   specVal: {
@@ -716,7 +730,7 @@ const styles = {
   },
   crossHubPlate: {
     backgroundColor: '#101a20',
-    border: '1px solid rgba(242, 184, 75, 0.35)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: '2px',
     padding: '24px',
     marginBottom: '30px',
@@ -745,7 +759,7 @@ const styles = {
   hubCardLabel: {
     fontSize: '11px',
     fontWeight: 700,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.07em',
   },
   hubCardTitle: {

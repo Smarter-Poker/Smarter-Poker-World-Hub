@@ -9,12 +9,13 @@ import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import {
     makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
 import { getWorldMenuById, getWorldMenuStyleVariables } from '../../src/config/worldMenuNavigation';
 import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
-// 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
+// 2026-05-07: UI-UX-Pro-Max Lucide icons replace UTF chars / emoji
 import {
     X, UserPlus, Crown, RotateCcw, Layers, Code, Check, Share2, Copy, SlidersHorizontal, Ban, ChevronDown, ChartPie, Calculator, Spade, Heart, Diamond, Club, Plus, UserRound,
 } from 'lucide-react';
@@ -306,11 +307,11 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
         if (hands.length <= 2 || idx === 0) return;
         setHands(h => h.filter((_, i) => i !== idx));
         setResults(null);
-        /* Issue #780 — the production crash. Removing a player BELOW the
+        /* Issue #780: the production crash. Removing a player BELOW the
            selected one shifts every hand down an index, but the selected slot
            kept its old playerIdx: select Player 3, remove Player 2, and the
            slot now points one PAST the end of the array. The next card tap
-           spread `updated[playerIdx]` — undefined — and took the page down
+           spread `updated[playerIdx]` (undefined) and took the page down
            with "Spread syntax requires ...iterable not be null or undefined".
            The slot now follows the hand it was pointing at. */
         if (selectedSlot?.type === 'hand') {
@@ -777,6 +778,19 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                         </button>
                     </div>
 
+                    {!isEmbedMode && (
+                        <SmarterConversionCta
+                            eyebrow="Free Smarter.Poker Account"
+                            title="Save Hand Simulations & Unlock 107 Free GTO Training Games"
+                            description="Save Multiway Equity Spots, Track Live Cash & Tournament Sessions In Bankroll Manager, And Drill GTO Scenarios Free."
+                            primaryLabel="Create Free Account"
+                            primaryHref="/auth/signup?redirect=/tools/poker-odds-calculator&src=odds-calc"
+                            secondaryLabel="Sign In"
+                            secondaryHref="/auth/login?redirect=/tools/poker-odds-calculator"
+                            highlights={['100% Free Forever', '107 GTO Drills', 'Save Hand Spots']}
+                        />
+                    )}
+
                     {/* ═══════════════════════════════════════════
                         CARD PICKER
                     ═══════════════════════════════════════════ */}
@@ -901,7 +915,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
 }
 
 /* ═══════════════════════════════════════════════
-   STYLES — Smarter.Poker Odds Calculator console
+   STYLES: Smarter.Poker Odds Calculator console
    Colours are the world's --world-* tokens (set on .odds-page from
    src/config/worldMenuNavigation.js). One 1px frame per surface; a selected
    surface changes that frame's colour, it never adds a second one.

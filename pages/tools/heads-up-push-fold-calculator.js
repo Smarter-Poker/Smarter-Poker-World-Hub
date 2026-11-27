@@ -17,6 +17,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -366,7 +367,7 @@ export default function HeadsUpPushFoldCalculatorPage({
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 15,
                     fontWeight: 700,
                   }}
@@ -393,11 +394,11 @@ export default function HeadsUpPushFoldCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 High-Pair Limp-Trap Frequency
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.limpTrapPct}% ({metrics.limpTrapCombos} Combos)
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -423,13 +424,13 @@ export default function HeadsUpPushFoldCalculatorPage({
               {metrics.grid.flat().map((cell) => {
                 const bg =
                   cell.cellAction === 'LIMP_TRAP'
-                    ? 'rgba(242, 184, 75, 0.25)'
+                    ? 'rgba(56, 189, 248, 0.22)'
                     : cell.cellAction === 'PUSH' || cell.cellAction === 'CALL'
                     ? 'rgba(52, 211, 153, 0.22)'
                     : '#020608';
                 const borderCol =
                   cell.cellAction === 'LIMP_TRAP'
-                    ? '#f2b84b'
+                    ? '#38bdf8'
                     : cell.cellAction === 'PUSH' || cell.cellAction === 'CALL'
                     ? '#34d399'
                     : '#1e293b';
@@ -492,7 +493,7 @@ export default function HeadsUpPushFoldCalculatorPage({
             <Link href="/tools/push-fold-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               6-Max Push/Fold Nash Chart
             </Link>
-            <Link href="/tools/blind-vs-blind-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/blind-vs-blind-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Blind Vs Blind SB/BB Explorer
             </Link>
             <Link href="/tools/m-ratio-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -506,6 +507,17 @@ export default function HeadsUpPushFoldCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Heads-Up Nash Ranges & Drill Short-Stack Spots Free"
+              description="Bookmark 1BB To 25BB Heads-Up Shove & Limp Charts And Practice 107 Free GTO Training Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/heads-up-push-fold-calculator&src=hu-push-fold"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/heads-up-push-fold-calculator"
+            />
+
             <FaqSection faqs={HU_PUSH_FOLD_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

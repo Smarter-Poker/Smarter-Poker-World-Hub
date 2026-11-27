@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -277,7 +278,7 @@ export default function PromoEvCalculatorPage({
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -407,7 +408,7 @@ export default function PromoEvCalculatorPage({
               { label: 'Table Share % (15%-20%)', val: tablePct, set: setTablePct, step: 5, color: '#f8fafc' },
               { label: 'Room Share % (10%-20%)', val: roomPct, set: setRoomPct, step: 5, color: '#f8fafc' },
               { label: 'Promo Drop Per Pot ($1 Or $2)', val: promoDrop, set: setPromoDrop, step: 1, color: '#f87171' },
-              { label: 'High-Hand Hourly Prize ($)', val: highHandPrize, set: setHighHandPrize, step: 100, color: '#f2b84b' },
+              { label: 'High-Hand Hourly Prize ($)', val: highHandPrize, set: setHighHandPrize, step: 100, color: '#38bdf8' },
               { label: 'Active Tables In Room', val: activeTables, set: setActiveTables, step: 1, color: '#f8fafc' },
             ].map((input) => (
               <div key={input.label}>
@@ -474,11 +475,11 @@ export default function PromoEvCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Gross Promo EV Per Hand
               </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 +${metrics.grossPromoEvHand} / Hand
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -537,7 +538,7 @@ export default function PromoEvCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.qualifier}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.hitOdds}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.breakevenPool1Drop}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.breakevenPool2Drop}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.breakevenPool2Drop}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.strategicNote}</td>
                   </tr>
                 ))}
@@ -555,7 +556,7 @@ export default function PromoEvCalculatorPage({
             <Link href="/tools/rake-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Live Cash Game Rake &amp; Drop Calculator
             </Link>
-            <Link href="/tools/session-planner" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/session-planner" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Live Cash Session &amp; Stop-Loss Planner
             </Link>
             <Link href="/tools/poker-tax-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -572,6 +573,17 @@ export default function PromoEvCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save High-Hand & Jackpot EV Spots & Find Best Rooms Free"
+              description="Compare Bad Beat Jackpot And High-Hand Value Across 715+ Verified Live Poker Rooms And Track Sessions Free."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/promo-ev-calculator&src=promo-ev"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/promo-ev-calculator"
+            />
+
             <FaqSection faqs={PROMO_EV_FAQS} />
 
             <CitationBacklinkBox

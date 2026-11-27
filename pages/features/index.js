@@ -3,6 +3,7 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const FEATURES_FAQS = [
@@ -40,7 +41,7 @@ export const ALL_FEATURES = [
     badge: 'Casino Dealer Suite',
     description: 'Log Cash And Tournament Downs, Track Tip Rates ($/hr And $/down), Manage Multi-Casino Shift Calendars, And Estimate Year-End Taxes.',
     href: '/features/poker-dealer-toke-tracker',
-    appHref: '/hub/commander',
+    appHref: '/hub/toke-tracker',
     mdHref: '/features/poker-dealer-toke-tracker.md',
     competitors: 'Free Alternative To DownCount & Poker Dealer Toolkit',
   },
@@ -50,7 +51,7 @@ export const ALL_FEATURES = [
     badge: 'Solver-Grade AI Coach',
     description: 'Analyze Hands In Conversational Plain English, Automatically Detect Hidden Strategic Leaks, And Practice GTO Solver Equilibrium Lines.',
     href: '/features/poker-ai-coach',
-    appHref: '/hub/training',
+    appHref: '/hub/personal-assistant',
     mdHref: '/features/poker-ai-coach.md',
     competitors: 'Free Alternative To PokerInk, Sharp Poker & DTO',
   },
@@ -293,12 +294,13 @@ export default function FeaturesIndexPage() {
     <>
       <SEOHead
         title="Platform Features Directory"
-        description="Comprehensive Guide to Smarter.Poker Free Tools: Bankroll Tax Tracker, Dealer Tokes, Jarvis AI Coach, Club Commander, Video Calls, GTO Solvers, And Trivia."
+        description="Comprehensive Guide To Smarter.Poker Free Tools: Bankroll Tax Tracker, Dealer Tokes, Jarvis AI Coach, Club Commander, Video Calls, GTO Solvers, And Trivia."
         canonical="/features"
         markdownUrl="https://smarter.poker/features.md"
         jsonLd={[schemas.organization, collectionSchema, faqSchemaNode, breadcrumbsSchema]}
       />
 
+      <div style={styles.page}>
       <div style={styles.container}>
         <header style={styles.header}>
           <div style={styles.badge}>Platform Verticals Directory</div>
@@ -308,6 +310,9 @@ export default function FeaturesIndexPage() {
             Every Tool Runs Directly In Your Web Browser With Zero Subscription Fees Or Paywalls.
           </p>
           <div style={styles.headerLinks}>
+            <Link href="/auth/signup?redirect=/hub&src=features-index" style={styles.headerCta}>
+              Create Free Account
+            </Link>
             <Link href="/compare" style={styles.headerLink}>
               View Competitor Comparisons
             </Link>
@@ -348,10 +353,10 @@ export default function FeaturesIndexPage() {
           ))}
         </main>
 
-        <section style={{ marginTop: 64, paddingTop: 48, borderTop: '1px solid #1F2937' }} aria-labelledby="world-hub-directory-heading">
+        <section style={{ marginTop: 64, paddingTop: 48, borderTop: '1px solid rgba(148, 184, 224, 0.22)' }} aria-labelledby="world-hub-directory-heading">
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div style={styles.badge}>Complete World Hub Directory</div>
-            <h2 id="world-hub-directory-heading" style={{ fontSize: '2rem', fontWeight: 800, color: '#FFFFFF', marginBottom: 12 }}>
+            <h2 id="world-hub-directory-heading" style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: 12 }}>
               All Interactive Training Simulators, Calculators &amp; Hub Tools
             </h2>
             <p style={styles.subtitle}>
@@ -366,18 +371,20 @@ export default function FeaturesIndexPage() {
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
+                  justifyContent: 'center',
+                  minHeight: 44,
                   gap: 4,
                   padding: '14px 16px',
-                  background: '#111827',
-                  border: '1px solid #1F2937',
+                  background: '#081121',
+                  border: '1px solid rgba(148, 184, 224, 0.28)',
                   borderRadius: 10,
                   textDecoration: 'none',
                 }}
               >
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#34D399', letterSpacing: '0.03em' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.03em' }}>
                   {tool.category}
                 </span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#60A5FA' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#38bdf8' }}>
                   {tool.name}
                 </span>
               </Link>
@@ -385,7 +392,7 @@ export default function FeaturesIndexPage() {
           </div>
         </section>
 
-        <div style={{ maxWidth: 1180, margin: '0 auto 40px' }}>
+        <div style={{ maxWidth: 1180, margin: '48px auto 40px' }}>
           <FaqSection title="Smarter.Poker Platform Features FAQ" faqs={FEATURES_FAQS} />
         </div>
 
@@ -399,6 +406,20 @@ export default function FeaturesIndexPage() {
           publishedYear="2026"
           slug="smarter-poker-features-directory"
         />
+
+        <div style={{ marginTop: 40 }}>
+          <SmarterConversionCta
+            eyebrow="Free Smarter.Poker Account"
+            title="Unlock All 15 Platform Verticals Free"
+            description="Create Your Free Smarter.Poker Account To Save Bankroll Sessions, Track Live Poker Rooms, And Practice 107 GTO Training Games."
+            primaryLabel="Create Free Account"
+            primaryHref="/auth/signup?redirect=/hub&src=features-index"
+            secondaryLabel="Sign In"
+            secondaryHref="/auth/login?redirect=/hub"
+            highlights={['100% Free Forever', '107 GTO Drills', '715+ Live Rooms']}
+          />
+        </div>
+      </div>
       </div>
     </>
   );
@@ -428,11 +449,15 @@ export async function getServerSideProps({ req, res, query }) {
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    background: 'linear-gradient(180deg, #060d1a 0%, #081121 100%)',
+  },
   container: {
     maxWidth: 1240,
     margin: '0 auto',
     padding: '48px 24px 80px',
-    color: '#F3F4F6',
+    color: '#ffffff',
     fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif',
   },
   header: {
@@ -442,10 +467,10 @@ const styles = {
   badge: {
     display: 'inline-block',
     padding: '6px 14px',
-    background: 'rgba(217, 119, 6, 0.15)',
-    border: '1px solid rgba(217, 119, 6, 0.4)',
+    background: 'rgba(56, 189, 248, 0.12)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: 20,
-    color: '#FBBF24',
+    color: '#38bdf8',
     fontSize: '0.85rem',
     fontWeight: 700,
     letterSpacing: '0.04em',
@@ -455,31 +480,47 @@ const styles = {
     fontSize: '2.6rem',
     fontWeight: 900,
     lineHeight: 1.2,
-    color: '#FFFFFF',
+    color: '#ffffff',
     marginBottom: 16,
     letterSpacing: '-0.02em',
   },
   subtitle: {
     fontSize: '1.15rem',
     lineHeight: 1.6,
-    color: '#9CA3AF',
+    color: '#cbd5e1',
     maxWidth: 820,
     margin: '0 auto 28px',
   },
   headerLinks: {
     display: 'flex',
     justifyContent: 'center',
-    gap: 16,
+    gap: 14,
     flexWrap: 'wrap',
+  },
+  headerCta: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    padding: '10px 22px',
+    background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
+    border: '1px solid rgba(148, 184, 224, 0.36)',
+    borderRadius: 8,
+    color: '#ffffff',
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    textDecoration: 'none',
   },
   headerLink: {
     display: 'inline-flex',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
     padding: '10px 20px',
-    background: '#1F2937',
-    border: '1px solid #374151',
+    background: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: 8,
-    color: '#60A5FA',
+    color: '#38bdf8',
     fontSize: '0.9rem',
     fontWeight: 600,
     textDecoration: 'none',
@@ -487,28 +528,30 @@ const styles = {
   headerLinkSecondary: {
     display: 'inline-flex',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
     padding: '10px 20px',
     background: 'transparent',
-    border: '1px solid #4B5563',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: 8,
-    color: '#D1D5DB',
+    color: '#cbd5e1',
     fontSize: '0.9rem',
     fontWeight: 600,
     textDecoration: 'none',
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-    gap: 28,
+    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gap: 24,
   },
   card: {
     display: 'flex',
     flexDirection: 'column',
-    background: '#111827',
-    border: '1px solid #1F2937',
+    background: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: 14,
     padding: 24,
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
   },
   cardTop: {
     display: 'flex',
@@ -519,16 +562,16 @@ const styles = {
   cardBadge: {
     alignSelf: 'flex-start',
     padding: '4px 10px',
-    background: 'rgba(16, 185, 129, 0.15)',
-    border: '1px solid rgba(16, 185, 129, 0.4)',
+    background: 'rgba(56, 189, 248, 0.12)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: 12,
-    color: '#34D399',
+    color: '#38bdf8',
     fontSize: '0.75rem',
     fontWeight: 700,
   },
   competitorTag: {
-    fontSize: '0.75rem',
-    color: '#9CA3AF',
+    fontSize: '0.78rem',
+    color: '#94a3b8',
     fontStyle: 'italic',
   },
   cardTitle: {
@@ -538,13 +581,13 @@ const styles = {
     marginBottom: 12,
   },
   titleLink: {
-    color: '#F9FAFB',
+    color: '#ffffff',
     textDecoration: 'none',
   },
   cardDescription: {
     fontSize: '0.92rem',
     lineHeight: 1.55,
-    color: '#9CA3AF',
+    color: '#cbd5e1',
     flexGrow: 1,
     marginBottom: 20,
   },
@@ -554,31 +597,44 @@ const styles = {
     alignItems: 'center',
     flexWrap: 'wrap',
     paddingTop: 16,
-    borderTop: '1px solid #1F2937',
+    borderTop: '1px solid rgba(148, 184, 224, 0.2)',
   },
   primaryBtn: {
-    padding: '8px 14px',
-    background: '#F59E0B',
-    borderRadius: 6,
-    color: '#000000',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    padding: '8px 16px',
+    background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
+    border: '1px solid rgba(148, 184, 224, 0.35)',
+    borderRadius: 8,
+    color: '#ffffff',
     fontSize: '0.85rem',
     fontWeight: 700,
     textDecoration: 'none',
   },
   secondaryBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
     padding: '8px 14px',
-    background: '#1F2937',
-    border: '1px solid #374151',
-    borderRadius: 6,
-    color: '#E5E7EB',
+    background: '#060d1a',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: 8,
+    color: '#cbd5e1',
     fontSize: '0.85rem',
     fontWeight: 600,
     textDecoration: 'none',
   },
   mdBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
     padding: '8px 10px',
     background: 'transparent',
-    color: '#6B7280',
+    color: '#94a3b8',
     fontSize: '0.8rem',
     fontWeight: 500,
     textDecoration: 'none',

@@ -5,8 +5,8 @@
  * Server-rendered floor ruling guide at /rules/<slug> (and raw Markdown at
  * /rules/<slug>.md).
  *
- * Design: #SmarterCasinoRealism (#020608 obsidian, #101a20 gunmetal, #25c8ff cyan,
- * #f2b84b vault gold, borderRadius: '2px').
+ * Design: #SMARTERDESIGN (#060d1a ink-navy, #081121 panel, #38bdf8 ice-blue,
+ * #1d4ed8 cobalt primary CTA, 1px steel rim rgba(148, 184, 224, 0.28)).
  * House style: Title Case, zero em dashes.
  */
 
@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import {
   POKER_RULES,
   RULES_AS_OF,
@@ -146,7 +147,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
         <article>
           <header style={styles.heroPlate}>
             <div style={styles.badgeRow}>
-              <span style={styles.goldBadge}>{rule.tdaRef}</span>
+              <span style={styles.primaryBadge}>{rule.tdaRef}</span>
               <span style={styles.cyanBadge}>{rule.category}</span>
               <a href={mdPath} style={styles.mdBadge}>
                 RAW MARKDOWN ({mdPath})
@@ -169,8 +170,8 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                     padding: '8px 13px',
                     fontSize: '12px',
                     fontWeight: 800,
-                    background: rulingCopiedKey === 'quick-citation' ? '#10b981' : '#f2b84b',
-                    color: '#020608',
+                    background: rulingCopiedKey === 'quick-citation' ? '#047857' : '#1d4ed8',
+                    color: '#ffffff',
                     border: 'none',
                     borderRadius: '2px',
                     cursor: 'pointer',
@@ -217,7 +218,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                     fontSize: '12px',
                     fontWeight: 700,
                     background: '#101a20',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     border: '1px solid #1e293b',
                     borderRadius: '2px',
                     textDecoration: 'none',
@@ -244,7 +245,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
               }}
             >
               <div style={{ flex: '1 1 360px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#f2b84b', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.04em', marginBottom: '8px' }}>
                   SETTLE THE BET AT THE TABLE: SHARE OR PRINT THIS FLOOR RULE REFERENCE SHEET
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -294,8 +295,8 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                       fontSize: '12px',
                       fontWeight: 700,
                       background: '#101a20',
-                      color: '#f2b84b',
-                      border: '1px solid #f2b84b',
+                      color: '#38bdf8',
+                      border: '1px solid #38bdf8',
                       borderRadius: '2px',
                       cursor: 'pointer',
                     }}
@@ -378,7 +379,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                 <div key={sc.situation} style={styles.scenarioCard}>
                   <div style={styles.scenarioNum}>SCENARIO #{idx + 1}</div>
                   <div style={styles.scenarioBlock}>
-                    <span style={styles.scenarioHeadingGold}>Table Situation:</span>
+                    <span style={styles.scenarioHeadingPrimary}>Table Situation:</span>
                     <p style={styles.scenarioText}>{sc.situation}</p>
                   </div>
                   <div style={styles.scenarioBlockRuling}>
@@ -389,6 +390,16 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
               ))}
             </div>
           </section>
+
+          <SmarterConversionCta
+            eyebrow="Free Live Poker & GTO Account"
+            title="Play Smarter Live Poker With Free Floor Rules, Rooms & GTO Tools"
+            description="Find 715+ Verified Live Poker Rooms, Track Your Bankroll Sessions, And Practice 107 Free GTO Drills In One Account."
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=/hub/poker-near-me/lobby&src=rule-${encodeURIComponent(rule.slug)}`}
+            secondaryLabel="Browse Live Poker Rooms"
+            secondaryHref="/hub/poker-near-me/lobby"
+          />
 
           <section style={styles.twoColGrid}>
             <div style={styles.colPlate}>
@@ -499,7 +510,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#020608',
+    backgroundColor: '#060d1a',
     color: '#e2e8f0',
     fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, sans-serif',
   },
@@ -542,10 +553,10 @@ const styles = {
     gap: '10px',
     marginBottom: '14px',
   },
-  goldBadge: {
-    backgroundColor: 'rgba(242, 184, 75, 0.14)',
-    border: '1px solid #f2b84b',
-    color: '#f2b84b',
+  primaryBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.07em',
@@ -582,17 +593,17 @@ const styles = {
   },
   summaryBox: {
     backgroundColor: '#020608',
-    borderLeft: '4px solid #f2b84b',
-    borderTop: '1px solid rgba(242, 184, 75, 0.25)',
-    borderRight: '1px solid rgba(242, 184, 75, 0.25)',
-    borderBottom: '1px solid rgba(242, 184, 75, 0.25)',
+    borderLeft: '4px solid #38bdf8',
+    borderTop: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRight: '1px solid rgba(148, 184, 224, 0.28)',
+    borderBottom: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: '2px',
     padding: '16px 18px',
   },
   summaryLabel: {
     fontSize: '11px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.08em',
     marginBottom: '6px',
   },
@@ -650,7 +661,7 @@ const styles = {
   scenarioNum: {
     fontSize: '11px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.08em',
     marginBottom: '8px',
   },
@@ -661,11 +672,11 @@ const styles = {
     borderTop: '1px solid rgba(148, 163, 184, 0.14)',
     paddingTop: '10px',
   },
-  scenarioHeadingGold: {
+  scenarioHeadingPrimary: {
     display: 'block',
     fontSize: '12px',
     fontWeight: 700,
-    color: '#f2b84b',
+    color: '#38bdf8',
     marginBottom: '4px',
   },
   scenarioHeadingCyan: {
@@ -703,7 +714,7 @@ const styles = {
   h3Small: {
     fontSize: '14px',
     fontWeight: 700,
-    color: '#f2b84b',
+    color: '#38bdf8',
     margin: '0 0 8px',
   },
   smallNote: {
@@ -729,7 +740,7 @@ const styles = {
   calcTag: {
     fontSize: '10px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.08em',
   },
   calcTitle: {
@@ -753,9 +764,9 @@ const styles = {
     textDecoration: 'none',
   },
   glossaryAllChip: {
-    backgroundColor: 'rgba(242, 184, 75, 0.14)',
-    border: '1px solid #f2b84b',
-    color: '#f2b84b',
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '12.5px',
     fontWeight: 700,
     padding: '6px 11px',
@@ -820,7 +831,7 @@ const styles = {
     textDecoration: 'none',
   },
   rawIndexLink: {
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontSize: '13px',
     fontWeight: 600,
     textDecoration: 'none',

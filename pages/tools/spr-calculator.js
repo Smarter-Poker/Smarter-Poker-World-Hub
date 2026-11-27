@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -336,7 +337,7 @@ export default function SprCalculatorPage({
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 2-Street Geometric Bet %
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#f59e0b', marginTop: 4 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.geo2Pct}% Pot
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
@@ -381,7 +382,7 @@ export default function SprCalculatorPage({
             </div>
 
             <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', marginBottom: 8 }}>
                 2-Street Geometric Progression ({metrics.geo2Pct}% Pot Per Street)
               </div>
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.75, color: '#cbd5e1' }}>
@@ -419,7 +420,7 @@ export default function SprCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.spr}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.preflopSpot}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.geo1}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{row.geo2}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.geo2}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.geo3}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.commitmentRule}</td>
                   </tr>
@@ -455,6 +456,17 @@ export default function SprCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save SPR Commitment Plans & Drill Postflop GTO Free"
+          description="Bookmark Stack-To-Pot Ratios And Geometric Sizing Trees And Practice 107 Free GTO Training Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/spr-calculator&src=spr-calc"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/spr-calculator"
+        />
 
         <FaqSection faqs={SPR_CALCULATOR_FAQS} />
 

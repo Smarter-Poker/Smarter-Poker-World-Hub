@@ -389,7 +389,7 @@ const styles = {
   card: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   cardHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   cardCodeBadge: { fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 5, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8' },
-  cardCatBadge: { fontSize: 11, fontWeight: 700, color: '#f2b84b' },
+  cardCatBadge: { fontSize: 11, fontWeight: 700, color: '#e2e8f0' },
   cardTitle: { fontSize: 18, fontWeight: 800, margin: '0 0 8px 0' },
   cardTitleLink: { color: '#f8fafc', textDecoration: 'none' },
   cardSummary: { fontSize: 13.5, lineHeight: 1.58, color: '#cbd5e1', margin: '0 0 12px 0' },

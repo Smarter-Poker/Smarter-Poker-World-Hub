@@ -28,6 +28,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { firstThatFits, fitMetaDescription } from '../../src/lib/seo/titleFit.js';
 import {
   LEARN_PATH,
@@ -339,6 +340,16 @@ export default function LessonPage({ lesson, related, glossary, cta }) {
               </li>
             </ul>
           </section>
+
+          <SmarterConversionCta
+            eyebrow="Free Smarter.Poker GTO Training"
+            title={`Drill ${lesson.category} Spots Free On Smarter.Poker`}
+            description="Turn This Strategy Lesson Into Repeatable Table Instincts With 107 Free GTO Training Games, Preflop Range Charts, And AI Hand Reviews."
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=/hub/training&src=lesson-${encodeURIComponent(lesson.slug)}`}
+            secondaryLabel="Open Preflop Range Matrix"
+            secondaryHref="/tools/preflop-ranges"
+          />
 
           <CitationBacklinkBox
             title={lesson.title}

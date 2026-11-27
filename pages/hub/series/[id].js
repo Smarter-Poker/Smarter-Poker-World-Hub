@@ -9,6 +9,7 @@ import Head from 'next/head';
 import { resolveVenueTimeZone } from '../../../src/components/poker-near-me/pnm-utils';
 import { qualifiedScheduleZone, scheduleDateStatus } from '../../../src/lib/poker-near-me/scheduleTemporal.mjs';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import useHasMounted from '../../../src/hooks/useHasMounted';
 import {
@@ -1094,7 +1095,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             <button
               className="action-btn calendar-btn"
               onClick={handleDownloadIcs}
-              title="Add to iCal / Outlook Calendar (.ics)"
+              title="Add To Apple / Outlook Calendar (ICS)"
             >
               <PokerNearMeConsoleIcon name="calendar" className="action-btn__glyph" />
               Add To Calendar
@@ -1105,7 +1106,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="action-btn google-cal-btn"
-                title="Add to Google Calendar"
+                title="Add To Google Calendar"
               >
                 Google Cal
               </a>
@@ -1123,7 +1124,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             lineHeight: '1.5',
             color: '#cbd5e1'
           }}>
-            <strong style={{ color: '#00D4FF', display: 'block', marginBottom: '4px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '4px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Series Overview
             </strong>
             <p style={{ margin: 0 }}>{buildSeriesFactKernel(series, venueName, formatDateRange(series.start_date, series.end_date))}</p>
@@ -1181,6 +1182,19 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             </div>
           </dl>
         </PokerNearMePanelShell>
+
+        <div style={{ margin: '18px 0' }}>
+          <SmarterConversionCta
+            eyebrow="Free Tournament Series Companion"
+            title="Save This Series Schedule & Track Live Buy-Ins Free"
+            description="Create A Free Smarter.Poker Account To Bookmark Events, Sync Tournament Schedules, And Track Your Live Poker Bankroll."
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=${encodeURIComponent(`/hub/series/${id || ''}`)}&src=series`}
+            secondaryLabel="Sign In"
+            secondaryHref={`/auth/login?redirect=${encodeURIComponent(`/hub/series/${id || ''}`)}`}
+            highlights={['100% Free Account', 'Schedule Alerts', 'Bankroll Tracker']}
+          />
+        </div>
 
         {/* Conversational People Also Ask (AEO FAQ Section) */}
         {series && (

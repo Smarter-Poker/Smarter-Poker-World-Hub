@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -242,7 +243,7 @@ export default function HandConverterPage() {
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -324,8 +325,8 @@ export default function HandConverterPage() {
                 style={{
                   padding: '8px 14px',
                   background: copiedPrompt ? '#059669' : '#020608',
-                  color: '#f2b84b',
-                  border: '1px solid #f2b84b',
+                  color: '#38bdf8',
+                  border: '1px solid #38bdf8',
                   borderRadius: '2px',
                   fontSize: 12,
                   fontWeight: 700,
@@ -427,7 +428,7 @@ export default function HandConverterPage() {
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 14,
                     fontWeight: 700,
                   }}
@@ -484,7 +485,7 @@ export default function HandConverterPage() {
                     type="text"
                     value={flopBoard}
                     onChange={(e) => setFlopBoard(e.target.value)}
-                    style={{ padding: '8px 10px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', fontWeight: 700 }}
+                    style={{ padding: '8px 10px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', fontWeight: 700 }}
                   />
                   <input
                     type="text"
@@ -576,9 +577,9 @@ export default function HandConverterPage() {
               </pre>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#f2b84b' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#38bdf8' }}>
                   Instant Discord / X / TwoPlusTwo Format
                 </span>
                 <button
@@ -586,7 +587,7 @@ export default function HandConverterPage() {
                   onClick={() => copyText(outputs.discordFormat, setCopiedDiscord)}
                   style={{
                     padding: '5px 10px',
-                    background: copiedDiscord ? '#059669' : '#f2b84b',
+                    background: copiedDiscord ? '#059669' : '#38bdf8',
                     color: '#020608',
                     border: 0,
                     borderRadius: '2px',
@@ -614,7 +615,7 @@ export default function HandConverterPage() {
             <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Multiway Poker Odds &amp; Equity Calculator
             </Link>
-            <Link href="/tools/board-texture-analyzer" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/board-texture-analyzer" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Flop Board Texture &amp; C-Bet Analyzer
             </Link>
             <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -631,6 +632,17 @@ export default function HandConverterPage() {
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Formatted Hand Histories & Study Spots Free"
+              description="Bookmark Hand Breakdowns, Share With Study Groups, And Drill Similar Spots In 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/hand-converter&src=hand-converter"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/hand-converter"
+            />
+
             <FaqSection faqs={HAND_CONVERTER_FAQS} />
 
             <CitationBacklinkBox

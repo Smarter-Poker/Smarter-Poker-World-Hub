@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -338,7 +339,7 @@ export default function PloBetCalculatorPage({
             <h2 style={{ fontSize: 20, fontWeight: 700, color: '#25c8ff', margin: 0 }}>
               1. Interactive Pot-Limit Maximum Raise Solver (3x Dealer Formula)
             </h2>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#f2b84b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Formula: 3 * Last Bet + Trail + Previous Pot
             </span>
           </div>
@@ -478,11 +479,11 @@ export default function PloBetCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Pot After Hero Calls ({betMetrics.callAmountNeeded})
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {betMetrics.potAfterHeroCall}
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -515,7 +516,7 @@ export default function PloBetCalculatorPage({
             marginBottom: 36,
           }}
         >
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f2b84b', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#38bdf8', margin: '0 0 12px 0' }}>
             2. Double-Board PLO Bomb Pot Split Equity &amp; Quartering Risk Solver
           </h2>
           <p style={{ fontSize: 14, color: '#cbd5e1', margin: '0 0 18px 0', lineHeight: 1.55 }}>
@@ -651,7 +652,7 @@ export default function PloBetCalculatorPage({
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Quartered Outcome (25% Share)
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 ${bombMetrics.quarterLossIfChoppedOneBoard}
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -688,7 +689,7 @@ export default function PloBetCalculatorPage({
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.potBefore}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.lastBetToCall}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.maxPotBet}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.resultingPotIfCalled}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.resultingPotIfCalled}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.shortcutMath}</td>
                   </tr>
                 ))}
@@ -715,7 +716,7 @@ export default function PloBetCalculatorPage({
             <Link href="/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Study: PLO4 Vs PLO5 Vs PLO6 Equity &amp; Variance
             </Link>
-            <Link href="/games/pot-limit-omaha" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/games/pot-limit-omaha-plo4" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Pot-Limit Omaha Rules &amp; Strategy Guide
             </Link>
             <Link href="/tools/spr-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -724,11 +725,22 @@ export default function PloBetCalculatorPage({
             <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Pot Odds &amp; MDF Calculator
             </Link>
-            <Link href="/tools/rake-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/rake-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Live Cash Rake &amp; Time Calculator
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save PLO Pot-Limit Sizing Spots & Master Omaha Free"
+          description="Bookmark PLO & Double-Board Bomb Pot Math, Track Live Omaha Sessions, And Unlock 107 Free GTO Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/plo-bet-calculator&src=plo-bet"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/plo-bet-calculator"
+        />
 
         <FaqSection faqs={PLO_BET_CALCULATOR_FAQS} />
 

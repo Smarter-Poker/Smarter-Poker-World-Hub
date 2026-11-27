@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -40,7 +41,7 @@ const GAME_LIBRARY = {
     maxRaises: 'Bet + 3 Raises (4-Bet Cap)',
     qualifier: '8-Or-Better Qualifier For Low Half (Must Use 2 Hole Cards)',
     cards: '4 Hole Cards (Must Use 2) + 5 Community Cards',
-    slug: 'omaha-hi-lo',
+    slug: 'omaha-hi-lo-o8',
   },
   RAZZ: {
     code: 'R',
@@ -49,7 +50,7 @@ const GAME_LIBRARY = {
     maxRaises: 'Bet + 3 Raises (4-Bet Cap)',
     qualifier: 'Ace-To-Five Lowball (No 8-Or-Better Qualifier; Aces Play Low)',
     cards: '3 Downcards + 4 Upcards (7-Card Stud)',
-    slug: 'razz',
+    slug: 'razz-seven-card-lowball',
   },
   STUD: {
     code: 'S',
@@ -67,7 +68,7 @@ const GAME_LIBRARY = {
     maxRaises: 'Bet + 3 Raises (4-Bet Cap)',
     qualifier: '8-Or-Better Qualifier For Low Half (5 Unpaired Cards 8 Or Lower)',
     cards: '3 Downcards + 4 Upcards (7-Card Stud)',
-    slug: 'stud-hi-lo',
+    slug: 'seven-card-stud-hi-lo',
   },
   TD27: {
     code: 'T',
@@ -76,7 +77,7 @@ const GAME_LIBRARY = {
     maxRaises: 'Bet + 3 Raises Across All 4 Betting Rounds',
     qualifier: 'Deuce-To-Seven Kansas City Lowball (Aces High; Straights/Flushes Count Against Low)',
     cards: '5 Draw Cards With 3 Draw Opportunities (7-5-4-3-2 Unsuited Nuts)',
-    slug: '2-7-triple-draw',
+    slug: 'deuce-to-seven-triple-draw',
   },
   NLHE: {
     code: 'N',
@@ -94,7 +95,7 @@ const GAME_LIBRARY = {
     maxRaises: 'Uncapped Up To Effective Stack',
     qualifier: 'High Only (Must Use Exactly 2 Hole Cards And 3 Board Cards)',
     cards: '4 Hole Cards + 5 Community Cards',
-    slug: 'pot-limit-omaha',
+    slug: 'pot-limit-omaha-plo4',
   },
   BADUGI: {
     code: 'B',
@@ -103,7 +104,7 @@ const GAME_LIBRARY = {
     maxRaises: 'Bet + 3 Raises Across 3 Draws',
     qualifier: '4-Card Rainbow Unpaired Low (A-2-3-4 Of Four Different Suits Is Nuts)',
     cards: '4 Draw Cards With 3 Draw Opportunities',
-    slug: 'badugi',
+    slug: 'badugi-four-card-lowball',
   },
   NL27: {
     code: 'D',
@@ -112,7 +113,7 @@ const GAME_LIBRARY = {
     maxRaises: 'Uncapped All-In Pre-Draw And Post-Draw',
     qualifier: 'Deuce-To-Seven Lowball (7-5-4-3-2 Unsuited Nuts; Aces High)',
     cards: '5 Draw Cards With 1 Draw Opportunity',
-    slug: 'no-limit-2-7-single-draw',
+    slug: 'no-limit-deuce-to-seven-single-draw',
   },
   BOMBPOT: {
     code: 'BP',
@@ -121,7 +122,7 @@ const GAME_LIBRARY = {
     maxRaises: 'Uncapped Up To Stack Starting On Flop',
     qualifier: '50% Pot Awarded To Each Board High (Must Use 2 Hole Cards Per Board)',
     cards: '4 Or 5 Hole Cards + Two 5-Card Boards',
-    slug: 'double-board-bomb-pot',
+    slug: 'double-board-bomb-pot-plo',
   },
 };
 
@@ -305,7 +306,7 @@ export default function MixedGamePlacardsPage() {
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -429,8 +430,8 @@ export default function MixedGamePlacardsPage() {
                 style={{
                   padding: '8px 14px',
                   background: '#020608',
-                  color: '#f2b84b',
-                  border: '1px solid #f2b84b',
+                  color: '#38bdf8',
+                  border: '1px solid #38bdf8',
                   borderRadius: '2px',
                   fontSize: 12,
                   fontWeight: 700,
@@ -487,7 +488,7 @@ export default function MixedGamePlacardsPage() {
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 14,
                     fontWeight: 700,
                   }}
@@ -556,7 +557,7 @@ export default function MixedGamePlacardsPage() {
               <div style={{ marginTop: 8 }}>
                 <Link
                   href={`/games/${tracker.currentGame.slug}`}
-                  style={{ fontSize: 12, fontWeight: 700, color: '#f2b84b', textDecoration: 'none' }}
+                  style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textDecoration: 'none' }}
                 >
                   Open Official {tracker.currentGame.name} Rules Guide
                 </Link>
@@ -575,11 +576,11 @@ export default function MixedGamePlacardsPage() {
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 18, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 18, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Next Game On Deck
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#f2b84b', marginTop: 6 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#38bdf8', marginTop: 6 }}>
                 [{tracker.nextGame.code}] {tracker.nextGame.name}
               </div>
               <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 4 }}>
@@ -606,7 +607,7 @@ export default function MixedGamePlacardsPage() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#f2b84b', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase' }}>
                     Placard #{card.order} ({card.limitType})
                   </span>
                   {card.isActive && (
@@ -647,7 +648,7 @@ export default function MixedGamePlacardsPage() {
             <Link href="/games" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               15 Poker Variants &amp; Mixed Games Encyclopedia
             </Link>
-            <Link href="/tools/home-game-kit" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/home-game-kit" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Home Game Chip Set &amp; Setup Calculator
             </Link>
             <Link href="/tools/blind-structure-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -664,6 +665,17 @@ export default function MixedGamePlacardsPage() {
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Mixed Game Rotations & Study All 15 Variants Free"
+              description="Bookmark HORSE And 8-Game Rotation Templates, Track Sessions, And Unlock 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/mixed-game-placards&src=mixed-placards"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/mixed-game-placards"
+            />
+
             <FaqSection faqs={MIXED_GAME_FAQS} />
 
             <CitationBacklinkBox

@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -290,7 +291,7 @@ export default function PotOddsCalculatorPage({
             <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.9, color: '#cbd5e1', fontSize: 15 }}>
               <li><strong>Pot Odds Ratio:</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>{metrics.potOddsRatio} : 1</span></li>
               <li><strong>Break-Even Required Equity:</strong> <span style={{ color: '#34d399', fontWeight: 700 }}>{metrics.reqEquity}%</span></li>
-              <li><strong>Minimum Defense Frequency (MDF):</strong> <span style={{ color: '#f59e0b', fontWeight: 700 }}>{metrics.mdf}%</span> (Max Fold: {metrics.maxFoldPct}%)</li>
+              <li><strong>Minimum Defense Frequency (MDF):</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>{metrics.mdf}%</span> (Max Fold: {metrics.maxFoldPct}%)</li>
               <li><strong>Optimal Polarized River Bluff Frequency:</strong> {metrics.bluffFreqOnRiver}% Of Betting Range</li>
               <li><strong>1-Card Draw Equity ({metrics.safeOuts} Outs):</strong> {metrics.turnHitExact}% ({metrics.profitableTurnCall ? 'Direct +EV Call' : 'Requires Implied Odds'})</li>
               <li><strong>2-Card All-In Equity ({metrics.safeOuts} Outs):</strong> {metrics.flopToRiverExact}% ({metrics.profitableAllInFlopCall ? 'Direct +EV All-In Call' : 'Below Break-Even Threshold'})</li>
@@ -323,7 +324,7 @@ export default function PotOddsCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.label}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.ratio}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.reqEquity}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{row.mdf}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.mdf}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.bluffRatio}</td>
                   </tr>
                 ))}
@@ -392,6 +393,17 @@ export default function PotOddsCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Pot Odds & MDF Spots & Drill GTO Math Free"
+          description="Bookmark Required Equity And Minimum Defense Calculations And Practice 107 Free GTO Training Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/pot-odds-calculator&src=pot-odds"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/pot-odds-calculator"
+        />
 
         <FaqSection faqs={POT_ODDS_CALCULATOR_FAQS} />
 

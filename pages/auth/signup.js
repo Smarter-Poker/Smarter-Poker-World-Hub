@@ -30,6 +30,7 @@ import SignupWelcome from '../../src/components/auth/SignupWelcome';
 import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
 import {
   authSwitchHref,
+  isSafeRelativePath,
   readPendingInvite,
   rememberInvite,
   safeClubArenaPath,
@@ -235,11 +236,41 @@ export default function SignUpPage() {
   const [referralValid, setReferralValid] = useState(null);
   const [referralDetails, setReferralDetails] = useState(null); // { referrerId, playerNumber, referrerName }
   const [isReferralCode, setIsReferralCode] = useState(false); // true if input looks like a referral code
+  const [promoOpen, setPromoOpen] = useState(false);
 
-  // Auto-fill promo/referral code from ?ref= or ?promo= query parameter
+  // Safe same-origin redirect helper (?redirect= or ?next=), preserving clean
+  // return paths like /tools/preflop-ranges/btn or /hub/series/5001355.
+  const getSafeRedirect = () => {
+    const fromRouter = Array.isArray(router.query?.redirect)
+      ? router.query.redirect[0]
+      : router.query?.redirect || (Array.isArray(router.query?.next) ? router.query.next[0] : router.query?.next);
+    let raw = fromRouter;
+    if (!raw && typeof window !== 'undefined' && window.location?.search) {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        raw = params.get('redirect') || params.get('next');
+      } catch {
+        /* ignore malformed search */
+      }
+    }
+    if (typeof raw !== 'string' || !raw) return null;
+    if (typeof isSafeRelativePath === 'function') {
+      return isSafeRelativePath(raw) ? raw : null;
+    }
+    if (!raw.startsWith('/') || raw.startsWith('//') || /[\u0000-\u0020\u007f\\]/.test(raw)) return null;
+    return raw;
+  };
+
+  const buildCallbackUrl = () => {
+    const base = `${window.location.origin}/auth/callback`;
+    const target = getSafeRedirect();
+    return target ? `${base}?next=${encodeURIComponent(target)}` : base;
+  };
+
+  // Auto-fill promo/referral code from ?ref=, ?promo=, or ?code= query parameter
   useEffect(() => {
     if (router.isReady) {
-      const { ref, promo, invite, pt } = router.query;
+      const { ref, promo, code, invite, pt } = router.query;
       // A Share & Invite link (/i/<code>) sends the player here first. Keep
       // the code (first link wins) so it survives email confirmation.
       if (invite) rememberInvite(String(invite));
@@ -252,10 +283,16 @@ export default function SignUpPage() {
       const nestedRef = !ref ? (refFromRedirect(router.query.redirect) || refFromRedirect(router.query.next)) : null;
       if (nestedRef && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: nestedRef }));
+        setPromoOpen(true);
       } else if (ref && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: String(ref).toUpperCase() }));
+        setPromoOpen(true);
       } else if (promo && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: String(promo).toUpperCase() }));
+        setPromoOpen(true);
+      } else if (code && !formData.promoCode) {
+        setFormData((prev) => ({ ...prev, promoCode: String(code).toUpperCase() }));
+        setPromoOpen(true);
       }
     }
   }, [router.isReady]);
@@ -301,7 +338,7 @@ export default function SignUpPage() {
 
     if (formData.pokerAlias.length > 20) {
       setAliasAvailable(false);
-      setAliasError('Alias must be 20 characters or less');
+      setAliasError('Alias Must Be 20 Characters Or Less');
       return;
     }
 
@@ -328,7 +365,7 @@ export default function SignUpPage() {
 
           if (fallbackData && fallbackData.length > 0) {
             setAliasAvailable(false);
-            setAliasError('This alias is already taken');
+            setAliasError('This Alias Is Already Taken');
           } else {
             setAliasAvailable(true);
             setAliasError('');
@@ -340,7 +377,7 @@ export default function SignUpPage() {
             setAliasError('');
           } else {
             setAliasAvailable(false);
-            setAliasError('This alias is already taken');
+            setAliasError('This Alias Is Already Taken');
           }
         }
       } catch (err) {
@@ -398,7 +435,7 @@ export default function SignUpPage() {
           } else {
             setReferralValid(false);
             setPromoValid(false);
-            setPromoError(data.error || 'Invalid referral code');
+            setPromoError(data.error || 'Invalid Referral Code');
           }
         } else {
           // Validate as promo code
@@ -417,7 +454,7 @@ export default function SignUpPage() {
           } else {
             setPromoValid(false);
             setPromoDetails(null);
-            setPromoError(data.error || 'Invalid promo code');
+            setPromoError(data.error || 'Invalid Promo Code');
           }
         }
       } catch (err) {
@@ -477,10 +514,14 @@ export default function SignUpPage() {
       // Bind any campaign to THIS flow: a single-use nonce the callback must
       // echo back (src/lib/acquisition/firstTouch.mjs).
       const attributionNonce = beginOAuthAttribution();
+      const callbackBase =
+        typeof buildCallbackUrl === 'function'
+          ? buildCallbackUrl()
+          : `${window.location.origin}/auth/callback`;
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: withAttributionNonce(`${window.location.origin}/auth/callback`, attributionNonce),
+          redirectTo: withAttributionNonce(callbackBase, attributionNonce),
           skipBrowserRedirect: true,
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
           // Supabase's Facebook default is `email` alone - no name, no avatar,
@@ -500,7 +541,7 @@ export default function SignUpPage() {
       // reporting, so a provider failure was invisible. This closes the
       // exact bug the callback fix was written to close.
       reportAuthError('signup_oauth_init', err);
-      setError(err.message || `Failed to sign in with ${provider}`);
+      setError(err.message || `Failed To Sign In With ${provider}`);
       setOauthLoading('');
     }
   };
@@ -601,7 +642,7 @@ export default function SignUpPage() {
     // fully local.
     const pwCheck = await validatePassword(formData.password);
     if (!pwCheck.ok) {
-      setError(pwCheck.reason || 'Password does not meet our security requirements.');
+      setError(pwCheck.reason || 'Password Does Not Meet Our Security Requirements.');
       setLoading(false);
       return;
     }
@@ -721,7 +762,7 @@ export default function SignUpPage() {
             ...firstTouchMetadata(),
           },
           // Enable email confirmation - redirect to /auth/callback after verification
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: buildCallbackUrl(),
         },
       });
 
@@ -802,11 +843,12 @@ export default function SignUpPage() {
         const redeemCodes = session?.access_token && authData?.user?.id
           ? redeemPendingSignupCodes({ accessToken: session.access_token, userId: authData.user.id })
           : Promise.resolve();
-        const [, , next] = await Promise.all([
+        const [, , clubNext] = await Promise.all([
           fetchPlayerNumber(),
           redeemCodes,
           resolveSignupClubPath(session, rawRedirect),
         ]);
+        const next = clubNext || getSafeRedirect();
         setSignupClubPath(next);
         setStep('success');
         // The first screen after signing in is the welcome package offer
@@ -824,7 +866,7 @@ export default function SignUpPage() {
         reportAuthError('signup_form_submit', err);
         setError(isAbortedAuthRequest(err)
           ? 'Your Connection Dropped Before We Could Create Your Account. Please Check Your Signal And Tap Create Account Again.'
-          : 'Failed to create account. Please check your details and try again.');
+          : 'Failed To Create Account. Please Check Your Details And Try Again.');
       }
     } finally {
       setLoading(false);
@@ -853,7 +895,7 @@ export default function SignUpPage() {
       const { error: resendError } = await supabase.auth.resend({
         type: 'signup',
         email: formData.email.trim().toLowerCase(),
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: buildCallbackUrl() },
       });
       if (resendError) throw resendError;
       setVerificationCode('');
@@ -925,11 +967,12 @@ export default function SignUpPage() {
         const rawVerifyPt = Array.isArray(router.query?.pt) ? router.query.pt[0] : router.query?.pt;
         rememberPromoSignupToken(rawVerifyPt || data?.user?.user_metadata?.promo_signup_token);
       }
-      const [, , next] = await Promise.all([
+      const [, , clubNext] = await Promise.all([
         fetchPlayerNumber(),
         redeemCodes,
         resolveSignupClubPath(data?.session, rawVerifyRedirect),
       ]);
+      const next = clubNext || getSafeRedirect();
       setSignupClubPath(next);
       setStep('success');
       // Offer the earned welcome package before entering Club Arena, invited
@@ -937,7 +980,7 @@ export default function SignUpPage() {
       window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
     } catch (err) {
       console.warn('Verification error:', err);
-      setError(err.message || 'Invalid verification code. Please try again.');
+      setError(err.message || 'Invalid Verification Code. Please Try Again.');
     } finally {
       setVerifying(false);
     }
@@ -946,6 +989,14 @@ export default function SignUpPage() {
   // The form fields, rendered once for the desktop art card and once for the
   // phone layout (CSS decides which tree is visible; both share this state).
   const promoPlayThroughTerms = 'Promo Winnings Require Qualifying Fees Equal To Twice The Original Promo Grant Before Cashout Or Agent Claim-Back. The Remaining Original Promo Chips Require Four Times The Original Grant. The Same Fees Count Toward Both Milestones. Your Own Deposits And Rakeback Stay Separate From These Promo Locks. Tickets Must Use Cashable Player Or Agent Wallet Chips; Promo Chips Can Fund Tournament Entry Directly.';
+
+  const hasQueryPromoOrRef = Boolean(
+    router.query?.ref ||
+    router.query?.promo ||
+    router.query?.code ||
+    (typeof refFromRedirect === 'function' && (refFromRedirect(router.query?.redirect) || refFromRedirect(router.query?.next)))
+  );
+  const isPromoExpanded = promoOpen || Boolean(formData.promoCode) || hasQueryPromoOrRef;
 
   const signupFields = (
     <>
@@ -1150,53 +1201,105 @@ export default function SignUpPage() {
                   )}
                 </div>
 
-                {/* Promo Code */}
+                {/* Promo Or Referral Code — collapsed behind toggle unless prefilled or queried */}
                 <div className="auth-field-group">
-                  <label className="auth-label">Promo Or Referral Code <span className="auth-label-hint" style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Optional)</span></label>
-                  <input
-                    type="text"
-                    className="auth-input-styled"
-                    placeholder="ENTER CODE"
-                    value={formData.promoCode}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
-                      })
-                    }
-                    maxLength={20}
-                    style={{ textTransform: "uppercase" }}
-                  />
-                  {/* THE VALIDATION RAN, NOTHING SHOWED IT (fixed 2026-08-25).
-                      The debounced effect above calls
-                      /api/promo/validate-{promo,referral}-code and sets
-                      promoChecking / promoError / promoDetails - and not one of
-                      the three was rendered anywhere. A mistyped code looked
-                      exactly like a good one right up until the account was
-                      created without the bonus, because handleSignUp only
-                      stores the pending code when `promoValid` is true. */}
-                  {promoChecking && (
-                    <div style={{ marginTop: '6px', color: '#9aa5b6', fontSize: '11px' }}>
-                      Checking Code...
-                    </div>
-                  )}
-                  {!promoChecking && promoError && (
+                  <button
+                    type="button"
+                    className="sp-promo-toggle"
+                    aria-expanded={isPromoExpanded}
+                    onClick={() => setPromoOpen((prev) => !prev)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      width: '100%',
+                      minHeight: '44px',
+                      padding: '10px 12px',
+                      background: 'rgba(8, 17, 33, 0.85)',
+                      border: '1px solid rgba(148, 184, 224, 0.28)',
+                      borderRadius: '8px',
+                      color: '#38bdf8',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      letterSpacing: '0.2px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <span>Have A Promo Or Referral Code?</span>
+                    <span aria-hidden="true" style={{ color: '#cbd5e1', fontSize: '15px', fontWeight: 700, lineHeight: 1 }}>
+                      {isPromoExpanded ? '-' : '+'}
+                    </span>
+                  </button>
+                  {isPromoExpanded && (
                     <div
-                      role="alert"
-                      style={{ marginTop: '6px', color: '#ff6b6b', fontSize: '11px' }}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        marginTop: '6px',
+                        padding: '10px',
+                        background: 'rgba(6, 13, 26, 0.85)',
+                        border: '1px solid rgba(148, 184, 224, 0.28)',
+                        borderRadius: '8px',
+                      }}
                     >
-                      {promoError}
-                    </div>
-                  )}
-                  {!promoChecking && promoValid && (
-                    <div style={{ marginTop: '6px', color: '#31A24C', fontSize: '11px' }}>
-                      {isReferralCode
-                        ? `Referral Code Accepted${referralDetails?.username ? ` - ${referralDetails.username}` : ''}`
-                        : `Promo Code Accepted${promoDetails?.description ? ` - ${promoDetails.description}` : ''}`}
+                      <label className="auth-label">
+                        Promo Or Referral Code{' '}
+                        <span className="auth-label-hint" style={{ color: '#38bdf8', fontSize: '9px', textTransform: 'none' }}>
+                          (Optional)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        className="auth-input-styled"
+                        placeholder="Enter Code"
+                        value={formData.promoCode}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''),
+                          })
+                        }
+                        maxLength={20}
+                        style={{ textTransform: 'uppercase' }}
+                      />
+                      {/* THE VALIDATION RAN, NOTHING SHOWED IT (fixed 2026-08-25).
+                          The debounced effect above calls
+                          /api/promo/validate-{promo,referral}-code and sets
+                          promoChecking / promoError / promoDetails - and not one of
+                          the three was rendered anywhere. A mistyped code looked
+                          exactly like a good one right up until the account was
+                          created without the bonus, because handleSignUp only
+                          stores the pending code when `promoValid` is true. */}
+                      {promoChecking && (
+                        <div style={{ marginTop: '4px', color: '#cbd5e1', fontSize: '11px' }}>
+                          Checking Code...
+                        </div>
+                      )}
+                      {!promoChecking && promoError && (
+                        <div
+                          role="alert"
+                          style={{ marginTop: '4px', color: '#f87171', fontSize: '11px' }}
+                        >
+                          {promoError}
+                        </div>
+                      )}
+                      {!promoChecking && promoValid && (
+                        <div style={{ marginTop: '4px', color: '#4ade80', fontSize: '11px' }}>
+                          {isReferralCode
+                            ? `Referral Code Accepted${referralDetails?.username ? ` - ${referralDetails.username}` : ''}`
+                            : `Promo Code Accepted${promoDetails?.description ? ` - ${promoDetails.description}` : ''}`}
+                        </div>
+                      )}
+                      <p style={{ ...phoneStyles.termsText, fontSize: '11px', margin: '4px 0 0', color: '#94a3b8' }}>
+                        {promoPlayThroughTerms}
+                      </p>
                     </div>
                   )}
                 </div>
-                <p style={phoneStyles.termsText}>{promoPlayThroughTerms}</p>
     </>
   );
 
@@ -1270,6 +1373,13 @@ export default function SignUpPage() {
               .dynamic-auth-form input, .dynamic-auth-form select, .dynamic-auth-form button {
                  min-height: 0 !important;
                  font-family: inherit;
+              }
+              .dynamic-auth-form button.sp-promo-toggle {
+                 min-height: 44px !important;
+              }
+              .dynamic-auth-form button.sp-promo-toggle:focus-visible {
+                 outline: 2px solid #38bdf8;
+                 outline-offset: 2px;
               }
               .dynamic-auth-form input, .dynamic-auth-form select {
                  background: transparent;
@@ -1657,7 +1767,14 @@ export default function SignUpPage() {
             .sp-signup-phone .auth-label-hint { font-size: 12px !important; }
             .sp-signup-phone .auth-field-row select.auth-input-styled { min-width: 0; padding: 0 8px !important; }
             .sp-signup-phone .auth-input-styled.auth-country-choice { font-size: 15px !important; padding: 0 6px !important; white-space: nowrap; }
-            .sp-signup-phone .auth-input-styled.auth-country-choice.is-active { border-color: #00d4ff !important; background: rgba(0, 212, 255, 0.16) !important; color: #00d4ff !important; box-shadow: 0 0 0 1px #00d4ff inset; }
+            .sp-signup-phone .auth-input-styled.auth-country-choice.is-active { border-color: #38bdf8 !important; background: rgba(56, 189, 248, 0.16) !important; color: #38bdf8 !important; box-shadow: 0 0 0 1px #38bdf8 inset; }
+            .sp-signup-phone button.sp-google-cta { min-height: 48px !important; }
+            .sp-signup-phone button.sp-google-cta:focus-visible,
+            .sp-signup-phone button.sp-touch-link:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+            .sp-signup-phone button.sp-touch-link { min-height: 44px !important; }
+            @media (prefers-reduced-motion: reduce) {
+              .sp-signup-phone * { transition: none !important; animation: none !important; }
+            }
           ` }} />
 
           {/* Art header: the top 34% of the painted card (logo, Create Account,
@@ -1694,6 +1811,52 @@ export default function SignUpPage() {
           </div>
 
           <form onSubmit={handleSignUp} style={phoneStyles.panel}>
+            {/* #SMARTERDESIGN Trust Strip & Primary 1-Tap Google CTA */}
+            <div style={phoneStyles.quickStartCard}>
+              <div style={phoneStyles.trustStrip}>
+                100% Free Account • 107 GTO Training Games • 715+ Live Poker Rooms
+              </div>
+              <div style={phoneStyles.quickStartLabel}>
+                Fastest Way: 1-Tap Sign Up With Google
+              </div>
+              <button
+                type="button"
+                className="sp-google-cta"
+                onClick={() => handleOAuthSignIn('google')}
+                disabled={!!oauthLoading}
+                style={{
+                  ...phoneStyles.googlePrimaryCta,
+                  opacity: oauthLoading ? 0.7 : 1,
+                  cursor: oauthLoading ? 'wait' : 'pointer',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+                  <path
+                    fill="#ffffff"
+                    d="M21.8 12.23c0-.7-.06-1.38-.18-2.03H12v3.84h5.5a4.7 4.7 0 0 1-2.04 3.09v2.56h3.3c1.93-1.78 3.04-4.4 3.04-7.46Z"
+                  />
+                  <path
+                    fill="#e2e8f0"
+                    d="M12 22c2.76 0 5.07-.91 6.76-2.47l-3.3-2.56c-.91.61-2.08.98-3.46.98-2.66 0-4.91-1.8-5.71-4.21H2.88v2.64A10.22 10.22 0 0 0 12 22Z"
+                  />
+                  <path
+                    fill="#cbd5e1"
+                    d="M6.29 13.74A6.13 6.13 0 0 1 5.97 12c0-.6.11-1.19.32-1.74V7.62H2.88A10.22 10.22 0 0 0 1.8 12c0 1.65.4 3.21 1.08 4.38l3.41-2.64Z"
+                  />
+                  <path
+                    fill="#ffffff"
+                    d="M12 6.05c1.5 0 2.85.52 3.91 1.53l2.93-2.93C17.06 2.99 14.76 2 12 2a10.22 10.22 0 0 0-9.12 5.62l3.41 2.64c.8-2.41 3.05-4.21 5.71-4.21Z"
+                  />
+                </svg>
+                <span>{oauthLoading === 'google' ? 'Connecting To Google...' : 'Continue With Google'}</span>
+              </button>
+              <div style={phoneStyles.orDivider}>
+                <span style={phoneStyles.orLine} />
+                <span style={phoneStyles.orText}>Or Create Account With Email</span>
+                <span style={phoneStyles.orLine} />
+              </div>
+            </div>
+
             {signupFields}
 
             <label style={phoneStyles.termsRow}>
@@ -1732,13 +1895,13 @@ export default function SignUpPage() {
             <div style={phoneStyles.ssl}>256-Bit SSL Encrypted</div>
             <div style={phoneStyles.legal}>
               By Signing Up, You Agree To Our{' '}
-              <button type="button" onClick={() => setLegalModal('terms')} style={phoneStyles.legalLink}>Terms Of Service</button>
+              <button type="button" className="sp-touch-link" onClick={() => setLegalModal('terms')} style={phoneStyles.legalLink}>Terms Of Service</button>
               {' '}And{' '}
-              <button type="button" onClick={() => setLegalModal('privacy')} style={phoneStyles.legalLink}>Privacy Policy</button>
+              <button type="button" className="sp-touch-link" onClick={() => setLegalModal('privacy')} style={phoneStyles.legalLink}>Privacy Policy</button>
             </div>
             <div style={phoneStyles.signin}>
               Already Have An Account?{' '}
-              <button type="button" onClick={() => router.push(authSwitchHref('/auth/login', router.query))} style={phoneStyles.signinLink}>Sign In</button>
+              <button type="button" className="sp-touch-link" onClick={() => router.push(authSwitchHref('/auth/login', router.query))} style={phoneStyles.signinLink}>Sign In</button>
             </div>
           </form>
         </div>
@@ -1814,15 +1977,16 @@ export default function SignUpPage() {
                 </div>
                 <button
                   type="button"
+                  aria-label="Close"
                   onClick={() => setLegalModal(null)}
                   style={{
                     background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(148,184,224,0.28)',
                     borderRadius: '8px',
                     color: '#fff',
                     fontSize: '18px',
-                    width: '32px',
-                    height: '32px',
+                    width: '44px',
+                    height: '44px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -2067,7 +2231,7 @@ export default function SignUpPage() {
                 alias={formData.pokerAlias}
                 city={formData.city}
                 state={formData.outsideUs ? formData.country : formData.state}
-                onContinue={() => window.location.assign(signupClubPath || '/hub/club-arena')}
+                onContinue={() => window.location.assign(signupClubPath || getSafeRedirect() || '/hub/club-arena')}
                 onVerifyPhone={async () => {
                   const rawBtnRedirect = Array.isArray(router.query?.redirect)
                     ? router.query.redirect[0]
@@ -2076,10 +2240,11 @@ export default function SignUpPage() {
                   const btnPt =
                     (typeof cleanPromoTokenShape === 'function' ? cleanPromoTokenShape(rawBtnPt) : null) ||
                     (typeof readPendingPromoSignupToken === 'function' ? readPendingPromoSignupToken() : null);
-                  const next = signupClubPath || await resolveSignupClubPath(
+                  const clubNext = signupClubPath || await resolveSignupClubPath(
                     { access_token: getAccessToken() },
                     rawBtnRedirect
                   );
+                  const next = clubNext || getSafeRedirect();
                   router.push(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}${btnPt ? `&pt=${encodeURIComponent(btnPt)}` : ''}`);
                 }}
               />
@@ -2518,8 +2683,8 @@ const styles = {
     display: 'flex',
     gap: '12px',
     padding: '16px',
-    background: 'rgba(255, 200, 0, 0.1)',
-    border: '1px solid rgba(255, 200, 0, 0.3)',
+    background: 'rgba(56, 189, 248, 0.1)',
+    border: '1px solid rgba(148, 184, 224, 0.32)',
     borderRadius: '8px',
     marginTop: '8px',
   },
@@ -2530,7 +2695,7 @@ const styles = {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: '13px',
     fontWeight: 600,
-    color: '#ffc800',
+    color: '#38bdf8',
     marginBottom: '4px',
   },
   restrictedText: {
@@ -2676,8 +2841,8 @@ const styles = {
 const phoneStyles = {
   page: {
     minHeight: '100dvh',
-    background: '#070a12',
-    color: '#e6f1ff',
+    background: '#060d1a',
+    color: '#ffffff',
     fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   art: {
@@ -2690,7 +2855,7 @@ const phoneStyles = {
     backgroundSize: '100% auto',
     backgroundPosition: 'top center',
     backgroundRepeat: 'no-repeat',
-    backgroundColor: '#000',
+    backgroundColor: '#060d1a',
     overflow: 'hidden',
   },
   artFade: {
@@ -2698,8 +2863,8 @@ const phoneStyles = {
     left: 0,
     right: 0,
     bottom: 0,
-    height: '10%',
-    background: 'linear-gradient(180deg, rgba(7, 10, 18, 0) 0%, #070a12 100%)',
+    height: '12%',
+    background: 'linear-gradient(180deg, rgba(6, 13, 26, 0) 0%, #060d1a 100%)',
     pointerEvents: 'none',
   },
   hotspot: {
@@ -2717,6 +2882,68 @@ const phoneStyles = {
     padding: '4px 16px 32px',
     maxWidth: '520px',
     margin: '0 auto',
+  },
+  quickStartCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    padding: '14px',
+    background: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: '12px',
+    boxSizing: 'border-box',
+  },
+  trustStrip: {
+    fontSize: '12px',
+    fontWeight: 600,
+    lineHeight: 1.4,
+    color: '#cbd5e1',
+    textAlign: 'center',
+    padding: '6px 8px',
+    background: 'rgba(6, 13, 26, 0.75)',
+    border: '1px solid rgba(148, 184, 224, 0.22)',
+    borderRadius: '8px',
+  },
+  quickStartLabel: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#38bdf8',
+    textAlign: 'center',
+    letterSpacing: '0.2px',
+  },
+  googlePrimaryCta: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+    width: '100%',
+    height: '48px',
+    padding: '0 16px',
+    background: 'linear-gradient(180deg, #1d4ed8 0%, #0284c7 100%)',
+    border: '1px solid rgba(148, 184, 224, 0.45)',
+    borderRadius: '10px',
+    color: '#ffffff',
+    fontSize: '15px',
+    fontWeight: 700,
+    boxSizing: 'border-box',
+    boxShadow: '0 4px 16px rgba(2, 132, 199, 0.28)',
+  },
+  orDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginTop: '2px',
+  },
+  orLine: {
+    flex: 1,
+    height: '1px',
+    background: 'rgba(148, 184, 224, 0.24)',
+  },
+  orText: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#94a3b8',
+    whiteSpace: 'nowrap',
   },
   error: {
     padding: '10px 12px',
@@ -2764,21 +2991,25 @@ const phoneStyles = {
   legalLink: {
     background: 'none',
     border: 'none',
-    padding: 0,
-    minHeight: 0,
-    color: '#00c6ff',
+    padding: '10px 4px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: '44px',
+    color: '#38bdf8',
     fontSize: '12px',
     textDecoration: 'underline',
     cursor: 'pointer',
     fontFamily: 'inherit',
   },
-  signin: { textAlign: 'center', fontSize: '14px', color: 'rgba(230, 241, 255, 0.7)', marginTop: '6px' },
+  signin: { textAlign: 'center', fontSize: '14px', color: '#cbd5e1', marginTop: '6px' },
   signinLink: {
     background: 'none',
     border: 'none',
-    padding: 0,
-    minHeight: 0,
-    color: '#00c6ff',
+    padding: '10px 8px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: '44px',
+    color: '#38bdf8',
     fontSize: '14px',
     fontWeight: 600,
     cursor: 'pointer',

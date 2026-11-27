@@ -18,6 +18,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -308,7 +309,7 @@ export default function MysteryBountyTrackerPage({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 22 }}>
             {[
               { label: 'Remaining Bounty Pool ($)', val: pool, set: setPool, step: 5000, color: '#34d399' },
-              { label: 'Top Jackpot Envelope ($)', val: topBounty, set: setTopBounty, step: 2500, color: '#f2b84b' },
+              { label: 'Top Jackpot Envelope ($)', val: topBounty, set: setTopBounty, step: 2500, color: '#38bdf8' },
               { label: 'Remaining Unopened Envelopes', val: envelopes, set: setEnvelopes, step: 1, color: '#25c8ff' },
               { label: 'Total Day-1 Tournament Entries', val: players, set: setPlayers, step: 50, color: '#f8fafc' },
               { label: 'Day-1 Starting Chip Stack', val: startChips, set: setStartChips, step: 5000, color: '#f8fafc' },
@@ -364,11 +365,11 @@ export default function MysteryBountyTrackerPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 1-Pull Top Jackpot Odds
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.onePullTopProbPct}%
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -429,7 +430,7 @@ export default function MysteryBountyTrackerPage({
             <Link href="/tools/bounty-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               PKO Bounty Chip Calculator
             </Link>
-            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Final Table ICM Calculator
             </Link>
             <Link href="/tools/bubble-factor-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -443,6 +444,17 @@ export default function MysteryBountyTrackerPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Mystery Bounty Pulls & Track Day-2 Equity Free"
+              description="Bookmark Remaining Envelope Values, Log Tournament Cashes, And Unlock 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/mystery-bounty-tracker&src=mystery-bounty"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/mystery-bounty-tracker"
+            />
+
             <FaqSection faqs={MYSTERY_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

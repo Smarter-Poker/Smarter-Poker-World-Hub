@@ -167,7 +167,7 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
-  // Honor ?redirect= (or ?next=) param — send user back to the page they came from,
+  // Honor ?redirect= (or ?next=) param from useRequireAuth() or SEO CTAs,
   // preserving internal query strings such as ?hand=<uuid>.
   const getRedirectUrl = useCallback(() => {
     const raw = router.query.redirect ?? router.query.next;
@@ -222,7 +222,7 @@ export default function LoginPage() {
           navigateWithFreshAuth(getRedirectUrl(), router);
         } else {
           // Show "already signed in" banner instead of auto-redirecting
-          setExistingUser(user?.email || 'your account');
+          setExistingUser(user?.email || 'Your Account');
         }
       }
     }
@@ -396,7 +396,7 @@ export default function LoginPage() {
     //      with email pre-filled instead of creating a half-built account.
     const pwCheck = await validatePassword(safePassword);
     if (!pwCheck.ok) {
-      setError(pwCheck.reason || 'Please choose a stronger password.');
+      setError(pwCheck.reason || 'Please Choose A Stronger Password.');
       setIsLoading(false);
       return;
     }
@@ -433,11 +433,11 @@ export default function LoginPage() {
 
       if (authError) throw authError;
 
-      setMessage('Magic link sent! Check your email.');
+      setMessage('Magic Link Sent! Check Your Email.');
     } catch (err) {
       console.warn('Magic link error:', err);
       reportAuthError('magic_link_send', err);
-      setError(err.message || 'Failed to send magic link');
+      setError(err.message || 'Failed To Send Magic Link');
     } finally {
       setIsLoading(false);
     }
@@ -509,7 +509,7 @@ export default function LoginPage() {
       cancelOpening();
       console.warn(`${provider} sign in error:`, err);
       reportAuthError('login_oauth_init', err);
-      setError(err.message || `Failed to sign in with ${provider}`);
+      setError(err.message || `Failed To Sign In With ${provider}`);
       setOauthLoading('');
     }
   };
@@ -536,7 +536,7 @@ export default function LoginPage() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#000',
+        backgroundColor: '#060d1a',
         overflowY: 'auto',
         overflowX: 'hidden',
       }}
@@ -1059,7 +1059,7 @@ export default function LoginPage() {
                 zIndex: 10,
                 outline: 'none',
               }}
-              onFocus={(e) => (e.target.style.boxShadow = '0 0 10px 2px rgba(255,215,0,0.5)')}
+              onFocus={(e) => (e.target.style.boxShadow = '0 0 10px 2px rgba(56,189,248,0.55)')}
               onBlur={(e) => (e.target.style.boxShadow = 'none')}
             />
           )}
