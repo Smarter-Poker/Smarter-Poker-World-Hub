@@ -873,6 +873,7 @@ export async function harvestMonthlyMagazineVault(
             .select('id, name, club_id, game_type, buy_in_amount, buy_in_fee, prize_pool, guaranteed_prize, current_players, start_time, status')
             // Kings Club players play the Midway Union schedule, so the union's
             // completed events are Kings Club results too (MAG LAW 26).
+            // in-list: bounded to two fixed club ids
             .in('club_id', [KINGS_CLUB_UUID, MIDWAY_UNION_CLUB_UUID])
             .eq('status', 'COMPLETED')
             .gte('start_time', lookbackStartIso)
@@ -890,6 +891,7 @@ export async function harvestMonthlyMagazineVault(
                 const { data: payRows } = await client
                     .from('tournament_payouts')
                     .select('tournament_id, field_size')
+                    // in-list: bounded by the 40-row tournament query above
                     .in('tournament_id', ids);
                 for (const pr of payRows || []) {
                     const n = Math.round(Number(pr?.field_size || 0));
