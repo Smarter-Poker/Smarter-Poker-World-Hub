@@ -21,6 +21,9 @@ import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaD
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
+import TriviaCardText from '../../../src/components/trivia/TriviaCardText';
+import TriviaQuestionProgress from '../../../src/components/trivia/TriviaQuestionProgress';
+import useTriviaKeyboardControls from '../../../src/hooks/useTriviaKeyboardControls';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
@@ -31,6 +34,7 @@ import { getDailyDiamondsEarned } from '../../../src/lib/trivia/diamondCap';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { HubPageSummarySchema } from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
 import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
 import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
@@ -647,6 +651,13 @@ export default function MixedModePage() {
     }
 
     const currentQuestion = questions[currentQuestionIndex];
+    useTriviaKeyboardControls({
+        enabled: gameState === 'playing' && Boolean(currentQuestion) && !showOutOfDiamonds,
+        optionCount: currentQuestion?.options?.length || 0,
+        canSelect: gameState === 'playing' && Boolean(currentQuestion) && selectedAnswer === null && !showResult,
+        canAdvance: false,
+        onSelectOption: gradeAnswer,
+    });
     const currentCategory = CATEGORIES.find(c => c.id === currentQuestion?.displayCategory) || CATEGORIES[0];
     const currentCategoryBay = Math.max(0, CATEGORIES.findIndex(category => category.id === currentCategory.id));
     const nextCategory = CATEGORIES[(currentCategoryBay + 1) % CATEGORIES.length];
@@ -696,6 +707,7 @@ export default function MixedModePage() {
                     description="Mixed Poker Trivia On Smarter.Poker: enter a server-verified Dealer's Choice rotation across seven poker disciplines with category breakdowns and a verified receipt."
                     canonical="/hub/trivia/mixed"
                 />
+                <HubPageSummarySchema page="trivia-mixed" />
 
                 <div
                     className="smarterdesign trivia-challenge-page trivia-challenge-page--mixed"
@@ -866,12 +878,17 @@ export default function MixedModePage() {
                                         max={Math.max(questions.length, 1)}
                                         aria-label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
                                     />
+                                    <TriviaQuestionProgress
+                                        total={questions.length}
+                                        currentIndex={currentQuestionIndex}
+                                        label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
+                                    />
                                     <p className="trivia-challenge-progress-label">
                                         Question {formatTriviaDisplayNumber(currentQuestionIndex + 1)} Of {formatTriviaDisplayNumber(questions.length)}
                                     </p>
 
                                     <h2 id="mixed-question-title" className="trivia-challenge-question">
-                                        {toTitleCase(currentQuestion.question)}
+                                        <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} />
                                     </h2>
 
                                     <div className="trivia-challenge-options">

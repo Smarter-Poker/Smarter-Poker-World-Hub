@@ -1586,6 +1586,23 @@ export function lookupHubSummaryEntry(page) {
   return null;
 }
 
+export function HubPageSummarySchema({ page, path }) {
+  const resolvedPage = page || path;
+  const entry = lookupHubSummaryEntry(resolvedPage);
+  if (!entry) return null;
+  const schema = summarySchema(resolvedPage, entry);
+  if (!schema) return null;
+  return (
+    <Head>
+      <script
+        key={`hub-summary-schema-${resolvedPage}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }}
+      />
+    </Head>
+  );
+}
+
 export default function HubPageSummary({ page, path, as = 'h2' }) {
   page = page || path;
   const entry = lookupHubSummaryEntry(page);
@@ -1606,6 +1623,7 @@ export default function HubPageSummary({ page, path, as = 'h2' }) {
       {schema && (
         <Head>
           <script
+            key={`hub-summary-schema-${page}`}
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }}
           />

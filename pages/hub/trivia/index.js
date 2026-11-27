@@ -29,6 +29,7 @@ import {
     resolveTriviaModeAvailability,
 } from '../../../src/config/triviaModeRegistry.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { HubPageSummarySchema } from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
 import {
     createTriviaLobbyAccountRequestGuard,
@@ -452,6 +453,7 @@ export default function TriviaHubPage({ modeAvailability }) {
                 description="Explore 12 Poker Trivia Games, Starting With 1v1 Battle And Daily Tournament. Play Free Daily Trivia, Strategy Challenges, Poker History, And More."
                 canonical="/hub/trivia"
             />
+            <HubPageSummarySchema page="trivia" />
 
             <div className={`${styles.page} smarterdesign`} style={{ background: 'var(--tc-black, #040d18)' }}>
                 <UniversalHeader

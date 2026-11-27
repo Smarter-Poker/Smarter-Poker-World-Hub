@@ -40,7 +40,7 @@ export function TriviaPlateButton({ label, zone, className = '', children, tone,
     return (
         <button
             type="button"
-            className={`sd-button ${isPrimary ? 'sd-primary ' : ''}${styles.plate} ${className}`.trim()}
+            className={`sd-button ${isPrimary ? `sd-primary ${styles.platePrimary} ` : ''}${styles.plate} ${className}`.trim()}
             data-ink={resolved}
             {...buttonProps}
         >

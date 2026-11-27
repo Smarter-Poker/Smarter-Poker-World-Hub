@@ -71,6 +71,12 @@
     flex: 0 0 auto;
 }
 
+@media (max-width: 720px) {
+    .trivia-tournaments-page .tt-tabs {
+        box-shadow: inset -18px 0 14px -10px rgb(4 13 24 / 92%), inset 0 1px 0 rgb(242 247 255 / 12%);
+    }
+}
+
 .trivia-tournaments-page .tt-center {
     min-width: 0;
 }

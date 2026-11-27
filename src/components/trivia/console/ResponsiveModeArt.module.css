@@ -46,3 +46,9 @@
         aspect-ratio: 12 / 5;
     }
 }
+
+@media (min-width: 900px) {
+    .art {
+        max-height: 260px;
+    }
+}

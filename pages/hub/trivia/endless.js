@@ -32,6 +32,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
+import TriviaCardText from '../../../src/components/trivia/TriviaCardText';
+import TriviaQuestionProgress from '../../../src/components/trivia/TriviaQuestionProgress';
+import useTriviaKeyboardControls from '../../../src/hooks/useTriviaKeyboardControls';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
@@ -42,6 +45,7 @@ import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionB
 import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { HubPageSummarySchema } from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
 import {
     createAccountOperationScope,
@@ -1359,6 +1363,14 @@ export default function EndlessModePage() {
             ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
             : null;
 
+    useTriviaKeyboardControls({
+        enabled: gameState === 'playing' && Boolean(currentQuestion) && !showOutOfDiamonds,
+        optionCount: currentQuestion?.options?.length || 0,
+        canSelect: gameState === 'playing' && Boolean(currentQuestion) && trivia.selectedAnswer === null && !trivia.showResult && !timeoutRetryRequired,
+        canAdvance: false,
+        onSelectOption: gradeAnswer,
+    });
+
     const accountBoundaryPending = shouldGateAccountOwnedRender({
         loading: authLoading,
         resolvedIdentity: resolvedAccountId,
@@ -1369,6 +1381,7 @@ export default function EndlessModePage() {
             <TriviaErrorBoundary pageName="Endless Mode">
                 <>
                     <SEOHead title="Endless Trivia - Keep The Streak Alive" description="Endless Poker Trivia On Smarter.Poker: enter a server-verified run, answer until the third miss, use limited lifelines, and review the final settlement receipt." canonical="/hub/trivia/endless" />
+                    <HubPageSummarySchema page="trivia-endless" />
                     <div className="smarterdesign trivia-challenge-page trivia-challenge-page--endless" data-trivia-family="challenge" data-trivia-surface="endless" data-game-state="loading">
                         <UniversalHeader pageDepth={2} />
                         <PageTransition>
@@ -1395,6 +1408,7 @@ export default function EndlessModePage() {
                     description="Endless Poker Trivia On Smarter.Poker: enter a server-verified run, answer until the third miss, use limited lifelines, and review the final settlement receipt."
                     canonical="/hub/trivia/endless"
                 />
+                <HubPageSummarySchema page="trivia-endless" />
 
                 <div
                     className="smarterdesign trivia-challenge-page trivia-challenge-page--endless"
@@ -1682,13 +1696,18 @@ export default function EndlessModePage() {
                                             </section>
                                         )}
 
+                                        <TriviaQuestionProgress
+                                            total={questions.length}
+                                            currentIndex={currentIndex}
+                                            label={`Question ${currentIndex + 1} Of ${questions.length}`}
+                                        />
                                         <p className="trivia-challenge-progress-label">
                                             Question {formatTriviaDisplayNumber(currentIndex + 1)}
                                             {' | '}
                                             {toTitleCase(String(currentQuestion.category || 'Mixed').replaceAll('_', ' '))}
                                         </p>
                                         <h2 id="endless-question-title" className="trivia-challenge-question">
-                                            {toTitleCase(currentQuestion.question)}
+                                            <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} />
                                         </h2>
 
                                         <div className="trivia-challenge-options">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { HubPageSummarySchema } from '../../../src/components/seo/HubPageSummary';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
@@ -375,6 +376,7 @@ export default function TriviaLeaderboard() {
                     description="Compare Verified Poker Trivia Scores By Mode, Follow Your Rank, Or Review Official Nightly Tournament Results Across Comparable Boards."
                     canonical="/hub/trivia/leaderboard"
                 />
+                <HubPageSummarySchema page="trivia-leaderboard" />
                 <PageTransition>
                     <div className="smarterdesign trivia-progress-page trivia-progress-page--leaderboard" data-trivia-family="progress" data-trivia-surface="leaderboard">
                         <UniversalHeader pageDepth={2} />

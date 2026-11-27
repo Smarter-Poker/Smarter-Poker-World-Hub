@@ -456,6 +456,14 @@ export default function TriviaResult({
                 >
                     Share Result Card
                 </button>
+                {safeTotal > safeCorrect ? (
+                    <Link
+                        href="/hub/trivia/study"
+                        className="result-action result-action--study-misses tc-word tc-ink--blue"
+                    >
+                        Study Your Misses
+                    </Link>
+                ) : null}
 
                 {showSpinButton && onSpinWheel && (
                     <button type="button" className="result-action result-action--spin-wheel tc-word tc-ink--cyan" onClick={onSpinWheel}>
