@@ -1,0 +1,866 @@
+[
+ {
+  "route": "/hub/training/aggregate",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Aggregate Reports Are Paused",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/achievements",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Training Achievements",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/autopilot",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/blind-defense",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Blind Defense",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/bluff-catcher",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Bluff Catcher",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/challenges",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Your Goals",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/bounty-trainer",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Bounty Trainer",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/coach-mode",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Train Every Decision Until It Becomes In",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/custom-rake",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Rake Cost Estimator",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/community-leaderboard",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Community Leaderboard",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/daily-challenge",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [
+   "\u25c7 Preflop Ranges"
+  ],
+  "h1": "Daily Challenge",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/drill-builder",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/custom-solve",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/famous-finals",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Famous Finals Archive",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/daily-goals",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Daily Goals",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/flashcards",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "GTO Flashcards",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/frequency-locking",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Frequency Math",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/equity-calculator",
+  "header": true,
+  "art": "jarvis",
+  "help": false,
+  "bad": [],
+  "h1": "Equity Calculator",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/gto-news",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "GTO News",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/ev-trainer",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Expected Value",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/gto-reports",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Verified Training Reports",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/final-table-sim",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Final Table Sim",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/gto-vs-exploitative",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "GTO Versus Exploitative",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/focus-timer",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Focus Timer",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/glossary",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Glossary Study Tool",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/gto-preloader",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/hand-history-upload",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "About Hand History Upload",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/hand-comparison",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "HAND COMPARISON",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/icm-calculator",
+  "header": true,
+  "art": "poker_mtt",
+  "help": false,
+  "bad": [],
+  "h1": "ICM Calculator",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/icm-simulator",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/hand-lab",
+  "header": true,
+  "art": "casino_table",
+  "help": false,
+  "bad": [],
+  "h1": "Hand Lab",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/leaderboard",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Training Leaderboard",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/icm-final-table",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Final Table ICM",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/mental-journal",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Mental Journal",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/jarvis",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "JARVIS Dashboard",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/mixed-strategy-lab",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Mixed Strategy Lab",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/multiway-postflop",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Multiway Postflop",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/live-hud-sync",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Live HUD Sync",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/my-playbook",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "My Playbook",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/player-profiles",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Population Reads",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/milestones",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/pot-geometry",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Pot Geometry",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/preflop-charts",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Preflop Charts",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/pvp-lobby",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "PvP Lobby",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/multi-table",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/quick-warmup",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/multiway-preflop",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Multiway Preflop Reference",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/range-advisor",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Range Construction",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/reports",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Verified Training Reports",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/nodelocking",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Node Locking",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/scenario-demo",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/position-mastery",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Position Mastery",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/preflop-advisor",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Preflop Decisions",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/progress",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/qre-explorer",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/quiz-builder",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/session-notes",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Session Notes",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/rake-solutions",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/short-deck-trainer",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/range-builder",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Range Builder",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/replay-theater",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/spr-trainer",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Stack-To-Pot Ratio",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/risk-analyzer",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/study-group-finder",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/session-dashboard",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Session Dashboard",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/study-plan",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Weekly Study Plan",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/session-warmup",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Mental State Check",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/three-way-postflop",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Three-Way Postflop",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/skill-tree",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Skill Tree",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/tournament-prep",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "TOURNAMENT PREP PLANNER",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/spot-trainer",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Solver Spot Study",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/training-calendar",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Training Calendar",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/streaks",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": null,
+  "missing": []
+ },
+ {
+  "route": "/hub/training/villain-range",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Range Advantage",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/study-group",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "COLLABORATIVE STUDY ROOM",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/table-wizard",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Table Selection",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/tilt-guard",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Tilt Guard",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/tournaments",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Training Tournaments",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/training-feed",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Training Feed",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/weakness-scanner",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Weakness Scanner",
+  "missing": []
+ },
+ {
+  "route": "/hub/training",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "Training Games",
+  "missing": []
+ },
+ {
+  "route": "/hub/preflop-charts/stats",
+  "header": true,
+  "art": "reports",
+  "help": false,
+  "bad": [
+   "LEGACY LOCAL ARCHIVE",
+   "No Verified Rank Or Reward",
+   "Practice Locally"
+  ],
+  "h1": "Local Practice History",
+  "missing": []
+ },
+ {
+  "route": "/hub/preflop-charts/leaderboard",
+  "header": true,
+  "art": "players",
+  "help": false,
+  "bad": [],
+  "h1": "Ranked Standings Paused",
+  "missing": []
+ },
+ {
+  "route": "/hub/preflop-charts/achievements",
+  "header": true,
+  "art": "goals",
+  "help": false,
+  "bad": [
+   "VAULT COMPLETION",
+   "0 / 9 Unlocked",
+   "Next TargetFirst Signal",
+   "First Signal",
+   "Unlock Status Could Not Be S",
+   "01",
+   "AA",
+   "60"
+  ],
+  "h1": "Range Distinctions",
+  "missing": []
+ },
+ {
+  "route": "/hub/preflop-charts/tutorial",
+  "header": true,
+  "art": "rules",
+  "help": false,
+  "bad": [],
+  "h1": "Operate The Matrix",
+  "missing": []
+ },
+ {
+  "route": "/hub/preflop-charts",
+  "header": true,
+  "art": "series",
+  "help": false,
+  "bad": [
+   "DAILY LOCAL PRACTICE",
+   "AI TRAINING LINK"
+  ],
+  "h1": "Preflop Charts",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/category/MTT",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "404",
+  "missing": []
+ },
+ {
+  "route": "/hub/training/category/CASH",
+  "header": false,
+  "art": null,
+  "help": false,
+  "bad": [],
+  "h1": "404",
+  "missing": []
+ },
+ {
+  "route": "/hub/bankroll-manager/export",
+  "header": true,
+  "art": "export",
+  "help": false,
+  "bad": [
+   "World Command",
+   "Connected",
+   "Sessions, Trips, Reports, Ru",
+   "Turn On Push Alerts For This",
+   "Bankroll Dashboard",
+   "Log A Session",
+   "Trip Tracker",
+   "Bankroll Reports"
+  ],
+  "h1": "Export Data",
+  "missing": []
+ },
+ {
+  "route": "/hub/toke-tracker/shift",
+  "header": true,
+  "art": "toke-shift",
+  "help": false,
+  "bad": [
+   "World Command",
+   "Connected",
+   "Shifts, Tokes, Taxes, Venues",
+   "Turn On Push Alerts For This",
+   "Toke Dashboard",
+   "Shift Tracker",
+   "Toke Analytics",
+   "Dealer Vault"
+  ],
+  "h1": "Shift Tracker",
+  "missing": []
+ },
+ {
+  "route": "/hub/bankroll-manager?section=trips",
+  "header": true,
+  "art": "bankroll",
+  "help": false,
+  "bad": [
+   "World Command",
+   "Connected",
+   "Sessions, Trips, Reports, Ru",
+   "Turn On Push Alerts For This",
+   "Bankroll Dashboard",
+   "Log A Session",
+   "Trip Tracker",
+   "Bankroll Reports"
+  ],
+  "h1": "Bankroll Manager",
+  "missing": []
+ }
+]

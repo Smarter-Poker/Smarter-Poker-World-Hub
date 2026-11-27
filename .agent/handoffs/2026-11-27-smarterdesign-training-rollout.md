@@ -61,8 +61,15 @@ Commit author MUST be `Smarter-Poker <254329056+Smarter-Poker@users.noreply.gith
     states: populated|empty|error|signedout|help|ranges, includes forbidden-ink audit.
   * Route list: /tmp/all-routes.txt (91 routes = training pages + lobby + preflop + categories MTT/CASH +
     bankroll export + toke shift + bankroll trips). Pristine BEFORE worktree: /home/claude/wh-before (HEAD 3ef4e63).
-  * BEFORE screenshots: /tmp/before-all/*.png (91 of 91, 393px) + /tmp/before/ (4 original pages).
-    These /tmp files will NOT survive into a new session — regenerate from a worktree at 3ef4e63.
+  * ALL SCREENSHOTS ARE SAVED IN THE REPO (branch) at
+    `.agent/handoffs/2026-11-27-smarterdesign-screenshots/` (see its README.md):
+      - before-all-393/  BEFORE of all 91 routes (main 3ef4e63) + report.json
+      - first-four-pages/ before/after/final of ICM, Preflop, Goals, Leaderboard (393 + desktop, all states)
+      - sheets/          comparison sheets shown to Dan, seal contact sheet, art sheet
+      - reference/       Dan's attachments (correct Cashier help icon, wrong Toke/Bankroll icons, his before shots)
+    Save new AFTER shots as after-all-393/<same file name>.webp so each pairs with its BEFORE.
+  * Header art is committed under public/images/smarterdesign/headers/ (237 files incl. existing bankroll art);
+    the chrome help icon is public/images/smarterdesign/help-chrome.png.
 
 ## 2. What is DONE (code, in the branch)
 ### 2.1 Shared components / styles
