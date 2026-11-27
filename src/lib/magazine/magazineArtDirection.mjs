@@ -44,7 +44,8 @@ export const MAGAZINE_BRAND_ART = Object.freeze({
         '/images/training/coach-mode/turn-evolution.webp',
         '/images/training/training-orb-hero.webp',
     ],
-    back_cover: ['/images/og-card.jpg'],
+    // A dark, text-free plate: the old share card carried screenshot text that fought the back-cover type.
+    back_cover: ['/images/training/casino-realism/adv-005.webp'],
 });
 
 /** Art the reader sees when a table of contents page has no unused news photo left. */

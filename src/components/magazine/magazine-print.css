@@ -289,6 +289,8 @@
     color: rgba(255, 255, 255, 0.88);
 }
 
+/* Two classes so the .spm-sheet blockquote reset cannot strip the room the quote mark needs. */
+.spm-sheet .spm-pullquote,
 .spm-pullquote {
     position: relative;
     padding: 2.2cqw 0 2.2cqw 4.6cqw;

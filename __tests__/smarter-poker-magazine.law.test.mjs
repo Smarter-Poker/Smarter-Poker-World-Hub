@@ -2605,3 +2605,37 @@ test('MAG LAW 24: every printed picture is real and unique, placeholder plates n
     assert.match(read('pages/_app.js'), /magazine-print\.css/, 'The print stylesheet must load globally');
     assert.doesNotMatch(rendererSrc, /Scan At The Table/, 'Generic QR badges must not return');
 });
+
+// ── MAG LAW 25: Printed Copy Never Stops Mid-Word & Pull Quotes Keep Their Gutter ──
+test('MAG LAW 25: decks and paragraphs clip on a full sentence, never mid-word, and the pull-quote mark keeps its gutter', async () => {
+    const { clipAtSentence, buildCleanNonEchoingDeck } = await import('../src/lib/magazine/vaultHarvester.mjs');
+    const long = "Only four people will ever have a Triton 10th Anniversary commemorative coin in their prize cabinets, won in the $150,000 NLH 10th Anniversary Special tournaments held at this year's Triton stops. The last one was up for grabs today at the Triton Super High Roller Series North Cyprus, where the field was the deepest of the year.";
+    const clipped = clipAtSentence(long, 280);
+    assert.ok(clipped.length <= 280, 'Clipped copy must respect the limit');
+    assert.ok(clipped.endsWith("Triton stops."), `Clipped copy must end on the last full sentence, got: ${clipped.slice(-40)}`);
+    assert.equal(clipAtSentence('Short line.', 280), 'Short line.', 'Copy under the limit is untouched');
+    const noStops = 'word '.repeat(80).trim();
+    const wordClip = clipAtSentence(noStops, 100);
+    assert.ok(wordClip.endsWith('word…'), 'Without a sentence end the clip lands on a whole word with an ellipsis');
+    assert.ok(wordClip.length <= 100, 'Word clip respects the limit');
+    const deck = buildCleanNonEchoingDeck({ title: 'Triton Anniversary Special', rawSummary: long });
+    assert.match(deck, /[.!?…]["”')\]]?$/, 'Decks end on punctuation, never mid-word');
+    const harvester = read('src/lib/magazine/vaultHarvester.mjs');
+    assert.doesNotMatch(harvester, /return cand\.slice\(0, 280\)/, 'Decks must not be sliced mid-word');
+    assert.doesNotMatch(harvester, /paragraphs\.push\(text\.slice\(0, 700\)\)/, 'Paragraphs must not be sliced mid-word');
+    const { MAGAZINE_BRAND_ART } = await import('../src/lib/magazine/magazineArtDirection.mjs');
+    assert.notEqual(MAGAZINE_BRAND_ART.back_cover[0], '/images/og-card.jpg', 'The back cover must not sit on the text-heavy share card');
+    const art = Object.values(MAGAZINE_BRAND_ART).flat().filter(Boolean);
+    assert.equal(new Set(art).size, art.length, 'Each piece of brand art prints on one page only');
+    const css = read('src/components/magazine/magazine-print.css');
+    assert.match(css, /\.spm-sheet \.spm-pullquote,\s*\n\.spm-pullquote \{/, 'The pull quote must out-rank the .spm-sheet blockquote reset so its quote mark never overlaps the text');
+    const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
+    assert.match(renderer, /const BRAIN_MARK = '\/images\/magazine\/brain-mark\.webp'/, 'The cover brain mark must be the transparent cut, never the checkerboard icon');
+    const mark = fs.readFileSync(path.join(REPO, 'public/images/magazine/brain-mark.webp'));
+    const chunk = mark.toString('ascii', 12, 16);
+    assert.ok(chunk === 'VP8L' || (chunk === 'VP8X' && (mark[20] & 0x10) !== 0), 'The brain mark must carry a real alpha channel');
+    const phone = read('src/index.css');
+    for (const sel of ['img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]):not(.spm-sheet *)', 'h1:not(.spm-sheet *)', 'h2:not(.spm-sheet *)', 'h3:not(.spm-sheet *)', 'a:not(.spm-sheet *)']) {
+        assert.ok(phone.includes(sel), `The phone reset must skip magazine sheets: ${sel}`);
+    }
+});
