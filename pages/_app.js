@@ -161,6 +161,7 @@ import { isOperatorConsoleRoute } from '../src/components/admin/operatorConsoleR
 import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
+import GuestConversionBar from '../src/components/seo/GuestConversionBar';
 import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
 import ActivePokerSeatLink from '../src/components/ui/ActivePokerSeatLink';
@@ -1239,6 +1240,11 @@ export default function App({ Component, pageProps }) {
                           <ActiveIdentityProvider>
                             <CallProvider>
                             <WorldThemeProvider>
+                              {!isEmbedded && !isPrintProofRoute && !isOperatorConsole && !isClubArenaRoute && (
+                                <HubErrorBoundary name="Guest Conversion Bar" fallback={<></>}>
+                                  <GuestConversionBar />
+                                </HubErrorBoundary>
+                              )}
                               <PageErrorBoundary key={pageErrorBoundaryKey}>
                                 {isTrainingRoute ? (
                                   <div
