@@ -81,6 +81,7 @@ import {
     buildMagazineQrMatrixSvg,
     currentIssuePeriod,
     formatChipsOnly,
+    magazineContinuedLabel,
     formatPeriodLabel,
     isValidIssuePeriod,
     normalizeIssueManifest,
@@ -2609,8 +2610,7 @@ test('MAG LAW 24: every printed picture is real and unique, placeholder plates n
     assert.match(rendererSrc, /if \(!page\?\.showQr\) return null;/, 'QrBlock must render only when the plan prints a QR');
     assert.match(rendererSrc, /page\.imageRole === 'none'/, 'Pages without a picture must print no picture');
     assert.match(rendererSrc, /deckEchoesCopy/, 'Decks that repeat the first paragraph must be dropped');
-    assert.match(rendererSrc, /smarter-poker-logo-final\.png/, 'Running heads must carry the Smarter.Poker logo');
-    assert.match(rendererSrc, /brand-text-trimmed\.png/, 'The cover masthead must carry the Smarter.Poker wordmark');
+    assert.match(rendererSrc, /smarter-poker-wordmark\.webp/, 'Running heads and the cover masthead must carry the Smarter.Poker wordmark');
     assert.match(read('pages/_app.js'), /magazine-print\.css/, 'The print stylesheet must load globally');
     assert.doesNotMatch(rendererSrc, /Scan At The Table/, 'Generic QR badges must not return');
 });
@@ -2639,10 +2639,10 @@ test('MAG LAW 25: decks and paragraphs clip on a full sentence, never mid-word, 
     const css = read('src/components/magazine/magazine-print.css');
     assert.match(css, /\.spm-sheet \.spm-pullquote,\s*\n\.spm-pullquote \{/, 'The pull quote must out-rank the .spm-sheet blockquote reset so its quote mark never overlaps the text');
     const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
-    assert.match(renderer, /const BRAIN_MARK = '\/images\/magazine\/brain-mark\.webp'/, 'The cover brain mark must be the transparent cut, never the checkerboard icon');
-    const mark = fs.readFileSync(path.join(REPO, 'public/images/magazine/brain-mark.webp'));
+    assert.doesNotMatch(renderer, /BRAIN_MARK|brain-mark|brain-icon/, 'The brain icon is not the Smarter.Poker logo');
+    const mark = fs.readFileSync(path.join(REPO, 'public/images/magazine/smarter-poker-wordmark.webp'));
     const chunk = mark.toString('ascii', 12, 16);
-    assert.ok(chunk === 'VP8L' || (chunk === 'VP8X' && (mark[20] & 0x10) !== 0), 'The brain mark must carry a real alpha channel');
+    assert.ok(chunk === 'VP8L' || (chunk === 'VP8X' && (mark[20] & 0x10) !== 0), 'The wordmark must carry a real alpha channel');
     const phone = read('src/index.css');
     for (const sel of ['img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]):not(.spm-sheet *)', 'h1:not(.spm-sheet *)', 'h2:not(.spm-sheet *)', 'h3:not(.spm-sheet *)', 'a:not(.spm-sheet *)']) {
         assert.ok(phone.includes(sel), `The phone reset must skip magazine sheets: ${sel}`);
@@ -2735,4 +2735,80 @@ test('MAG LAW 27: Chips amounts with cents keep them instead of rounding to a fa
     assert.equal(formatChipsOnly(15507.5), '15,507.50 Chips');
     assert.equal(formatChipsOnly(97920), '97,920 Chips');
     assert.equal(formatChipsOnly(0), '0 Chips');
+});
+
+test('MAG LAW 28: continuation labels never repeat the section name', () => {
+    assert.equal(magazineContinuedLabel('The Rail', 'The Rail: Global Tour & High-Stakes Briefs'), 'The Rail • Global Tour & High-Stakes Briefs');
+    assert.equal(magazineContinuedLabel('Final Table', 'Final Table: Triton, Circuit & BSOP Winners (Continued)'), 'Final Table • Triton, Circuit & BSOP Winners');
+    assert.equal(magazineContinuedLabel('The Rail', 'The Rail'), 'The Rail • Continued');
+    assert.equal(magazineContinuedLabel('The Rail', 'Tour Radar: December'), 'The Rail • Tour Radar');
+});
+
+test('MAG LAW 29: the magazine carries the real Smarter.Poker wordmark and never the brain icon', async () => {
+    const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
+    const css = read('src/components/magazine/magazine-print.css');
+    assert.match(renderer, /const WORDMARK = '\/images\/magazine\/smarter-poker-wordmark\.webp'/, 'The wordmark is cut from the approved global header artwork');
+    assert.match(renderer, /const LOGO_LIGHT = WORDMARK;/, 'Running heads use the same wordmark');
+    for (const banned of ['brain-mark', 'brain-icon', 'brain-only', 'smarter-poker-logo-final', 'smarter-poker-logo-nobg', 'brand-text-trimmed', 'spm-masthead__brain']) {
+        assert.ok(!renderer.includes(banned), `Renderer must not reference ${banned}`);
+        assert.ok(!css.includes(banned), `Print CSS must not reference ${banned}`);
+    }
+    const { MAGAZINE_BRAND_ART } = await import('../src/lib/magazine/magazineArtDirection.mjs');
+    const art = Object.values(MAGAZINE_BRAND_ART).flat().filter(Boolean);
+    for (const brainArt of ['/circuit-brain-bg.webp', '/images/training/coach-mode/strategy-chamber-hero.webp', '/images/training/training-orb-hero.webp']) {
+        assert.ok(!art.includes(brainArt), `Brand art must not include the brain image ${brainArt}`);
+    }
+    for (const file of art) {
+        assert.ok(fs.existsSync(path.join(REPO, 'public', file)), `Brand art file exists: ${file}`);
+    }
+});
+
+test('MAG LAW 30: printed strategy spots are card-accurate (no duplicate cards, and a titled N-out Omaha wrap is a real N-out draw with no made straight)', async () => {
+    const { SPOT_OF_THE_WEEK_CATALOG } = await import('../src/lib/newsletter/weeklyWireCatalog.mjs');
+    const RANKS = '23456789TJQKA';
+    const rankOf = (card) => RANKS.indexOf(String(card).replace('10', 'T')[0]) + 2;
+    const straightHigh = (ranks) => {
+        const s = new Set(ranks);
+        if (s.has(14)) s.add(1);
+        let best = 0;
+        for (let h = 5; h <= 14; h += 1) {
+            if ([0, 1, 2, 3, 4].every((d) => s.has(h - d))) best = h;
+        }
+        return best;
+    };
+    const combos = (arr, k) => (k === 0 ? [[]] : arr.flatMap((x, i) => combos(arr.slice(i + 1), k - 1).map((c) => [x, ...c])));
+    // Omaha rule: exactly two hole cards and exactly three board cards.
+    const omahaStraight = (holeRanks, boardRanks) => {
+        let best = 0;
+        for (const h of combos(holeRanks, 2)) {
+            for (const b of combos(boardRanks, 3)) {
+                const r = [...h, ...b];
+                if (new Set(r).size === 5) best = Math.max(best, straightHigh(r));
+            }
+        }
+        return best;
+    };
+    for (const spot of SPOT_OF_THE_WEEK_CATALOG) {
+        const hero = (spot.heroCards || []).filter(Boolean);
+        const board = (spot.boardCards || []).filter(Boolean);
+        const all = [...hero, ...board];
+        assert.equal(new Set(all).size, all.length, `${spot.slug}: a card appears twice`);
+        const wrap = /(\d+)-Out Wrap/i.exec(spot.title || '');
+        if (!wrap || !/^plo/.test(spot.variant || '')) continue;
+        assert.equal(board.length, 3, `${spot.slug}: a wrap spot is a flop spot`);
+        const heroRanks = hero.map(rankOf);
+        const boardRanks = board.map(rankOf);
+        assert.equal(omahaStraight(heroRanks, boardRanks), 0, `${spot.slug}: hero already holds a straight, so it is not a wrap`);
+        const suits = ['♠', '♥', '♦', '♣'];
+        let outs = 0;
+        for (let r = 2; r <= 14; r += 1) {
+            for (const s of suits) {
+                const card = `${RANKS[r - 2]}${s}`;
+                if (all.includes(card)) continue;
+                if (omahaStraight(heroRanks, [...boardRanks, r])) outs += 1;
+            }
+        }
+        assert.equal(outs, Number(wrap[1]), `${spot.slug}: title says ${wrap[1]} outs but the hand has ${outs}`);
+        assert.match(spot.situation, new RegExp(`${wrap[1]}-out wrap`, 'i'), `${spot.slug}: the situation text matches the title's out count`);
+    }
 });

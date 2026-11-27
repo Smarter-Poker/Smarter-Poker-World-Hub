@@ -333,6 +333,26 @@ export function formatChipsOnly(amount) {
     return `${text} Chips`;
 }
 
+/**
+ * Label for a continuation page of a multi-page department (The Rail, Final Table).
+ * A page headline like "The Rail: Global Tour Briefs" must not print as
+ * "The Rail • The Rail", so a prefix that repeats the section name is replaced
+ * by the words after the colon.
+ */
+export function magazineContinuedLabel(section, headline) {
+    const sec = String(section || '').trim();
+    const head = String(headline || '')
+        .replace(/\s*\(continued\)\s*$/i, '')
+        .trim();
+    const key = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const [pre, ...rest] = head.split(':');
+    const after = rest.join(':').trim();
+    let label = pre.trim();
+    if (key(label) === key(sec)) label = after;
+    if (!label || key(label) === key(sec)) return `${sec} • Continued`;
+    return `${sec} • ${label}`;
+}
+
 /** Generic image the email-image route draws when a page has no real artwork. */
 export const MAGAZINE_FALLBACK_IMAGE_URL = '/api/news/email-image?fallback=1&w=960&h=540';
 

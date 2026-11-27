@@ -23,15 +23,17 @@ import {
     formatChipsOnly,
     formatPeriodLabel,
     isMagazineFallbackImageUrl,
+    magazineContinuedLabel,
     stripMagazineDashes,
 } from '../../lib/magazine/magazineSchema.mjs';
 
 export const FALLBACK_MAGAZINE_IMAGE = '/api/news/email-image?fallback=1&w=960&h=540';
 
-const LOGO_LIGHT = '/smarter-poker-logo-final.png';
-// Cut from the transparent Smarter.Poker logo; brain-icon.png has a checkerboard painted into it.
-const BRAIN_MARK = '/images/magazine/brain-mark.webp';
-const WORDMARK = '/images/brand-text-trimmed.png';
+// The Smarter.Poker wordmark (silver "Smarter." and blue "Poker"), cut with a
+// transparent background from the approved global header artwork the live site uses.
+// The brain icon is not part of the Smarter.Poker logo and never appears in the magazine.
+const WORDMARK = '/images/magazine/smarter-poker-wordmark.webp';
+const LOGO_LIGHT = WORDMARK;
 
 /**
  * Shared image error handler. A picture inside a figure is removed from the
@@ -429,7 +431,6 @@ function FrontCoverLayout({ page, issueMeta, mode, onSelectPage }) {
             <div className="spm-shade-bottom" />
             <div className="spm-masthead">
                 <div className="spm-masthead__mark">
-                    <MagImg src={BRAIN_MARK} alt="" className="spm-masthead__brain" mode={mode} />
                     <MagImg src={WORDMARK} alt={MAGAZINE_MASTHEAD} className="spm-masthead__wordmark" mode={mode} />
                 </div>
                 <div className="spm-masthead__strip">
@@ -646,7 +647,7 @@ function NewsRailLayout({ page, issueMeta, mode }) {
             {isOpener ? (
                 <SectionHead kicker={section} headline={page?.headline} size="md" deck={page?.subheadline} />
             ) : (
-                <div className="spm-continued">{`${section} • ${stripContinued(page?.headline).split(':')[0]}`}</div>
+                <div className="spm-continued">{magazineContinuedLabel(section, cleanText(page?.headline))}</div>
             )}
             {lead ? (
                 <article className="spm-stack spm-stack--tight">

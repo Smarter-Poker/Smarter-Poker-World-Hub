@@ -25,9 +25,9 @@ import {
 /** Smarter.Poker brand art (files in /public), assigned by page kind and position in its run. */
 export const MAGAZINE_BRAND_ART = Object.freeze({
     house_promo_spread: ['/images/club_arena_card_art.webp'],
-    editor_first_hand: ['/circuit-brain-bg.webp'],
+    editor_first_hand: ['/images/training/casino-realism/hand-lab.webp'],
     platform_feature: [
-        '/images/training/coach-mode/strategy-chamber-hero.webp',
+        '/images/training/casino-realism/mixed-strategy-lab.webp',
         '/images/training/coach-mode/pot-odds-core.webp',
     ],
     poy_standings: ['/images/training/coach-mode/river-mastery.webp'],
@@ -42,14 +42,14 @@ export const MAGAZINE_BRAND_ART = Object.freeze({
     poker_rooms_directory: ['/images/training/casino-realism/adv-010.webp'],
     cardroom_bundle_cta: [
         '/images/training/coach-mode/turn-evolution.webp',
-        '/images/training/training-orb-hero.webp',
+        '/images/training/casino-realism/final-table-sim.webp',
     ],
     // A dark, text-free plate: the old share card carried screenshot text that fought the back-cover type.
     back_cover: ['/images/training/casino-realism/adv-005.webp'],
 });
 
 /** Art the reader sees when a table of contents page has no unused news photo left. */
-const TOC_ART_FALLBACK = ['/images/training/casino-realism/adv-001.webp', '/images/training/training-orb-hero.webp'];
+const TOC_ART_FALLBACK = ['/images/training/casino-realism/adv-001.webp', '/images/training/casino-realism/final-table-sim.webp'];
 
 const STORY_PHOTO_KINDS = new Set([
     'front_cover',

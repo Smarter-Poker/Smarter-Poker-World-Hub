@@ -830,14 +830,8 @@
     width: 100%;
 }
 
-.spm-masthead__brain {
-    height: 13cqw;
-    width: auto;
-    filter: drop-shadow(0 0 1.6cqw rgba(96, 165, 250, 0.55));
-}
-
 .spm-masthead__wordmark {
-    width: 70cqw;
+    width: 82cqw;
     height: auto;
     filter: drop-shadow(0 0.6cqw 1.4cqw rgba(0, 0, 0, 0.7));
 }

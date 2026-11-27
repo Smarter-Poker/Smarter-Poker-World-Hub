@@ -450,8 +450,8 @@ export const SPOT_OF_THE_WEEK_CATALOG = [
     {
         slug: 'plo5-wrap-plus-flushdraw-spr3-202611',
         category: 'PLO5 Wrap Equity',
-        title: '5-Card Omaha 17-Out Wrap Vs. Top Set Commitment',
-        situation: '100bb PLO5 Cash. Single-raised pot 3-way (12bb). Flop Ks Jd Tc. Hero on BTN holds Qs 9s 8d 7c 2s (13-card nut wrap + king-high spade backdoor, no flush draw). Pot-sized bet of 12bb in front.',
+        title: '5-Card Omaha 20-Out Wrap Vs. Top Set Commitment',
+        situation: '100bb PLO5 Cash. Single-raised pot 3-way (12bb). Flop 9s 8d 2c. Hero on BTN holds Js Td 7c 6h 3s: no made hand, a 20-out wrap with 14 outs to the nut straight, and a jack-high backdoor spade draw. A pot-sized bet of 12bb comes in front.',
         options: [
             { key: 'A', label: 'Call In Position To Realize Clean Wrap Outs' },
             { key: 'B', label: 'Repot All-In Without A Flush Redraw' },
@@ -459,10 +459,10 @@ export const SPOT_OF_THE_WEEK_CATALOG = [
         ],
         correctKey: 'A',
         solverFrequency: '89% Smooth Call In Position',
-        evSummary: 'In PLO5, repotting 100bb multiway without a flush redraw isolates Hero against top set + nut flush draw combos that freeroll or boat up. Calling in position preserves implied odds on clean non-pairing straight turns while avoiding disaster on paired turns.',
+        evSummary: 'Hero holds no made hand and only a backdoor flush draw, so repotting 100bb multiway gets called by top set and two pair with redraws that fill up or chop. Calling in position keeps all 20 straight outs alive, realizes equity on the 14 nut cards, and avoids building a big pot on paired turns that give sets a full house.',
         variant: 'plo5',
-        heroCards: ['Q♠', '9♠', '8♦', '7♣', '2♠'],
-        boardCards: ['K♠', 'J♦', 'T♣', '', ''],
+        heroCards: ['J♠', 'T♦', '7♣', '6♥', '3♠'],
+        boardCards: ['9♠', '8♦', '2♣', '', ''],
         targetUrl: 'https://smarter.poker/hub/training/hand-lab',
     },
     {
