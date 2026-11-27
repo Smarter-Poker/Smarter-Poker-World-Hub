@@ -514,14 +514,16 @@ test('share/hand and OG hand-card have an honest view=review mode and keep legac
   assert.match(page, /Anonymized Villain/);
   assert.match(og, /view'\) === 'review'/);
   assert.match(og, /Hidden By The Player/);
-  // Legacy defaults still exist for non-review links, and review mode bypasses every one of them.
+  // Phase 10 honesty upgrade: neither review nor standard links fabricate fake Ah,Kh or +$1,250 defaults.
   for (const [name, text] of [['page', page], ['og', og]]) {
-    assert.match(text, /Ah,Kh/, `${name}: legacy default preserved for old links`);
-    assert.match(text, /\+\$1,250/, `${name}: legacy default preserved for old links`);
+    assert.doesNotMatch(text, /\|\|\s*['"]Ah,Kh['"]/, `${name}: must not fabricate default Ah,Kh hole cards`);
+    assert.doesNotMatch(text, /\|\|\s*['"]\+\$1,250['"]/, `${name}: must not fabricate default +$1,250 amount`);
   }
   assert.match(og, /const result = isReview \? '' :/);
   assert.match(og, /const amount = isReview \? '' :/);
   assert.match(og, /const pot = isReview \? '' :/);
   assert.match(og, /const player = isReview \? 'Smarter\.Poker Hand Review'/);
+  assert.match(og, /private, no-store, max-age=0/);
+  assert.match(og, /noindex, nofollow/);
   assert.match(page, /isReview \? reviewTitle/);
 });

@@ -39,9 +39,9 @@ test('1. pages/share/hand.js enforces #SmarterDesign obsidian-navy theme, semant
   assert.match(src, /<main[\s\S]*className="share-hand-page"/);
   assert.match(src, /<h1\s+style=/);
 
-  // Contrast fixes (#9eb4c8 on footer and Vs divider, no low-contrast rgba(255,255,255,0.2/0.3))
+  // Contrast fixes (#9eb4c8 on footer and Board divider, no low-contrast rgba(255,255,255,0.2/0.3))
   assert.doesNotMatch(src, /rgba\(255,\s*255,\s*255,\s*0\.[23]\)/);
-  assert.match(src, /color:\s*'#9eb4c8'[\s\S]{0,60}>Vs<\/div>/);
+  assert.match(src, /data-testid="share-board-label"/);
   assert.match(src, /color:\s*'#9eb4c8'[\s\S]{0,120}The #1 Poker Intelligence Platform/);
 
   // Deduplicated PlayingCard component with 4-color high-contrast suits
@@ -94,9 +94,9 @@ test('2. PersonalAssistantHub.module.css and index.js use GPU opacity skeleton p
   }
   assert.match(css, /transform:\s*scale\(0\.985\)/);
 
-  // Tactile card elevation/sheen + crisp suit contrast + 'T' -> '10' formatting
-  assert.match(css, /\.playingCard,\s*\.boardCard\s*\{[\s\S]{0,260}border-top-color:\s*#ffffff;/);
-  assert.match(css, /\.redCard\s*\{\s*color:\s*#b8142c;\s*\}/);
+  // Obsidian 4-color beveled card surfaces + crisp suit contrast + 'T' -> '10' formatting
+  assert.match(css, /\.playingCard,\s*\.boardCard\s*\{[\s\S]{0,360}linear-gradient\(180deg,\s*#132238 0%,\s*#08101c 100%\)/i);
+  assert.match(css, /\.suitHearts\s*\{[^}]*color:\s*#ff6b7a;/i);
   assert.match(home, /const rank = rawRank === 'T' \? '10' : rawRank;/);
 
   // Confirmed unused CSS classes removed
@@ -133,12 +133,11 @@ test('3. pages/hub/personal-assistant/sandbox.js adds hover, reduced-motion acti
   assert.match(sandbox, /@media \(prefers-reduced-motion: no-preference\)[\s\S]*transform:\s*scale\(0\.985\)/);
 });
 
-test('4. pages/features/virtual-poker-sandbox.js enforces >=12px button/link text, 44px hero CTAs, focus-visible outline, and WebGL/Title Case copy', () => {
+test('4. pages/features/virtual-poker-sandbox.js enforces >=12px button/link text, 44px hero CTAs, focus-visible outline, and honest Title Case copy', () => {
   const feature = read('pages/features/virtual-poker-sandbox.js');
 
-  assert.match(feature, /Zero Download WebGL Engine/);
-  assert.doesNotMatch(feature, /Zero Download Web GL Engine/);
-  assert.match(feature, /Can I Run Multiway All-In Scenarios In The Sandbox\?/);
+  assert.doesNotMatch(feature, /Zero Download WebGL Engine|Zero Download Web GL Engine/);
+  assert.match(feature, /Post-Session Hand Analysis|Leak Finder/);
   assert.doesNotMatch(feature, /Can I Run Multiway All-In Scenarios in The Sandbox\?/);
   assert.match(feature, /\.virtual-sandbox-lander header a\s*\{[\s\S]*min-height:\s*44px/);
   assert.match(feature, /\.virtual-sandbox-lander button,[\s\S]*font-size:\s*12px\s*!important/);

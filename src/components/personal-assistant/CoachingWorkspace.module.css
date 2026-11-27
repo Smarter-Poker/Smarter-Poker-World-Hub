@@ -441,3 +441,65 @@
   .metricGrid { grid-column: 1 / -1; grid-template-columns: repeat(4, 1fr); }
   .debriefGrid { grid-template-columns: repeat(3, 1fr); }
 }
+
+@media print {
+  .workspace {
+    color: #111827;
+    background: #ffffff;
+  }
+
+  .commandHeader, .panel, .statePanel, .metricGrid, .nextAction, .dangerPanel {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .commandHeader h2, .panel h3, .statePanel h2, .nextAction > strong, .metricGrid strong, .funnelSteps strong, .debriefGrid strong, .reportMetrics strong, .findingTakeaway, .gapCopy strong, .priorityCopy strong, .evidenceChain strong, .timelineList strong, .goalList strong, .coverageList dd, .provenanceGrid dd {
+    color: #111827 !important;
+  }
+
+  .commandHeader p, .panel p, .statePanel p, .eyebrow, .metricGrid span, .debriefGrid span, .reportMetrics span, .funnelSteps span, .repHandNote, .mutedCopy, .progressMeta, .reasonList li, .evidenceChain small, .timelineList small, .goalList small, .coverageList dt, .provenanceGrid dt, .reportFooter, .stakePoolNote, .gapCopy small {
+    color: #334155 !important;
+  }
+
+  .metricGrid > div, .funnelSteps > li, .reportMetrics > div, .provenanceGrid div, .stakePoolNote, .receipt, .reportList li, .alertList li {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #111827 !important;
+  }
+
+  .basisPill, .confidence, .claimedBadge, .rank, .gapRank {
+    background: #f1f5f9 !important;
+    color: #111827 !important;
+    border-color: #94a3b8 !important;
+  }
+
+  .viewNav,
+  .searchBar,
+  .settingsGearBtn,
+  .overflowBtn,
+  .primaryButton,
+  .secondaryButton,
+  .claimButton,
+  .removeDataButton,
+  .exportTray,
+  .actionRow,
+  .onePlusOneRow,
+  .goalActions,
+  .debriefHandActions,
+  .leakPicker,
+  .inlineNotice button {
+    visibility: hidden !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    overflow: clip !important;
+    pointer-events: none !important;
+  }
+}

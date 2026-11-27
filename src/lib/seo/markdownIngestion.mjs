@@ -626,31 +626,32 @@ export function renderPokerAiCoachMarkdown({ canonicalUrl = 'https://smarter.pok
 }
 
 /**
- * Format Virtual Poker Table Sandbox as clean structured Markdown for LLM ingestion
+ * Format Virtual Poker Study Lab, Leak Finder & Odds Calculator as clean structured Markdown for LLM ingestion
  */
 export function renderVirtualSandboxMarkdown({ canonicalUrl = 'https://smarter.poker/features/virtual-poker-sandbox' } = {}) {
   return [
-    '# Smarter.Poker Virtual Poker Table Sandbox & Runout Simulator',
+    '# Smarter.Poker Virtual Poker Study Lab, Leak Finder & Odds Calculator',
     '',
-    `> Source: [Virtual Poker Sandbox on Smarter.Poker](${canonicalUrl})`,
+    `> Source: [Virtual Poker Study Lab on Smarter.Poker](${canonicalUrl})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    'The Smarter.Poker Virtual Sandbox (https://smarter.poker/hub/personal-assistant/sandbox) Connects Players To Verified GTO Training, Audited Spot Study, Leak Finder, And Club Arena Hand History Analysis In Any Web Browser.',
+    'Smarter.Poker Connects Players To Post-Session Hand Analysis, Automated Leak Finder (https://smarter.poker/hub/personal-assistant/leaks), Audited Spot Study, And The Free Browser Poker Odds Calculator (https://smarter.poker/tools/poker-odds-calculator) With Zero Software Downloads.',
     '',
     '## Core Capabilities & Features',
-    '- **Custom Board & Table Setup**: Configure Stacks, Positions, Hole Cards, And Dealer Button For 2 To 9 Players.',
-    '- **Runout Distribution Engine**: Monte Carlo Simulation Running Thousands Of Turn And River Boards To Chart Win, Tie, And Equity Distributions.',
-    '- **Multiway Pot Modeling**: Accurate Side Pot Breakdown And Equity Calculations Across Multi-All-In Encounters.',
-    '- **Stateless Hand Review & Personal Assistant Analysis**: Audit Completed Hands And Transition Directly Into Evidence-Backed GTO Training And Deterministic Leak Detection.',
-    '- **Device Compatibility**: Responsive 3D Rendering On Mobile Touchscreens And High-Resolution Desktop Displays.',
+    '- **Post-Session Hand Analysis**: Audit Completed Club Arena And Live Cash Or Tournament Hands Street By Street With Deterministic Leak Detection And Evidence-Backed Reviews.',
+    '- **Automated Leak Finder**: Surface Recurring Positional, Street, And Bet-Sizing Leaks At https://smarter.poker/hub/personal-assistant/leaks.',
+    '- **Audited Spot Study & GTO Drills**: Turn Audited Decisions Into Focused Practice Drills Grounded In Verified Pre-Solved Baselines.',
+    '- **Multiway Poker Odds Calculator**: Compute Exact Flop-To-River Win, Tie, And Split-Pot Equities Across Up To 7 Players In Hold\'em (Or 4 In 5- And 6-Card Omaha) With Dead-Card Filtering At https://smarter.poker/tools/poker-odds-calculator.',
+    '- **Stateless Hand Review**: Generate Privacy-Safe Read-Only Hand Review Snapshots With Default Villain Anonymization And Opt-In Hole-Card Visibility.',
+    '- **Device Compatibility**: Responsive Browser Experience On Desktop, iPhone, iPad, And Android With Zero Downloads.',
     '',
     '## Frequently Asked Questions',
     '',
-    '### Can I Run Multiway All-In Scenarios in The Sandbox?',
-    'Yes. The Sandbox Handles Multiway Hands With Up To 9 Players, Accurately Segmenting Main Pots And Side Pots While Computing Exact Equities.',
+    '### Can I Run Multiway All-In Scenarios?',
+    'Yes. Use The Free Poker Odds Calculator At https://smarter.poker/tools/poker-odds-calculator To Compute Multiway Win, Tie, And Split-Pot Equities For Up To 7 Players In Hold\'em (Or 4 In 5- And 6-Card Omaha) With Exact Flop-To-River Enumeration.',
     '',
-    '### Is The Virtual Table Sandbox Free?',
-    'Yes. Full Simulation, Runout Modeling, And Personal Assistant Hand Review Workflows Are 100% Free With No Download Required.',
+    '### Is Smarter.Poker Post-Session Analysis And Odds Calculation Free?',
+    'Yes. Personal Assistant Leak Finder, Audited Spot Study, Stateless Hand Review, And The Poker Odds Calculator Are 100% Free In Any Web Browser With No Download Required.',
     '',
   ].join('\n');
 }
@@ -1101,7 +1102,7 @@ export function renderFeaturesIndexMarkdown({ canonicalUrl = 'https://smarter.po
     '- [Poker Bankroll & Form W-2G Tax Ledger](https://smarter.poker/features/bankroll-tax-tracker) ([Raw Markdown](https://smarter.poker/features/bankroll-tax-tracker.md)): Session Win-Loss Accounting, Form W-2G Document Tracking, Receipt Photos, And CPA Schedule C CSV Exports.',
     '- [Poker Dealer Toke Tracker & Shift Scheduling](https://smarter.poker/features/poker-dealer-toke-tracker) ([Raw Markdown](https://smarter.poker/features/poker-dealer-toke-tracker.md)): Cash vs. Tournament Down Tracking, Tip Hourly Rates ($/hr), $/down Metrics, And Shift Calendars.',
     '- [PokerBrain & Jarvis AI Tactical Coach](https://smarter.poker/features/poker-ai-coach) ([Raw Markdown](https://smarter.poker/features/poker-ai-coach.md)): Street-by-Street Plain English Hand Analysis, Automated Leak Detection, And GTO Solver Baselines.',
-    '- [Virtual Poker Table Sandbox & Runout Simulator](https://smarter.poker/features/virtual-poker-sandbox) ([Raw Markdown](https://smarter.poker/features/virtual-poker-sandbox.md)): Interactive Table Builder, Custom Stacks, Turn/River Runout Distributions, And Multiway Equity Modeling.',
+    '- [Virtual Poker Study Lab, Leak Finder & Odds Calculator](https://smarter.poker/features/virtual-poker-sandbox) ([Raw Markdown](https://smarter.poker/features/virtual-poker-sandbox.md)): Post-Session Hand Analysis, Automated Leak Finder, Audited Spot Study, And Free Multiway Poker Odds Calculation.',
     '- [Club Commander Cardroom Management](https://smarter.poker/features/club-commander) ([Raw Markdown](https://smarter.poker/features/club-commander.md)): Cloud Waitlists, Multi-Screen TV Displays, Automated Two-Way Player SMS Alerts, And Tournament Clocks.',
     '- [Live Poker Messenger & FaceTime Video Calls](https://smarter.poker/features/poker-messenger-video-calls) ([Raw Markdown](https://smarter.poker/features/poker-messenger-video-calls.md)): In-Browser WebRTC Multi-Peer Video Rooms, Spatial Voice Chat, And Hand History Link Previews.',
     '- [Multiplayer Poker Trivia & Brain Training](https://smarter.poker/features/poker-trivia) ([Raw Markdown](https://smarter.poker/features/poker-trivia.md)): 10,000+ Question Bank, Survival Mode, 60-Second Blitz, GTO Math Drills, And Daily Leaderboards.',

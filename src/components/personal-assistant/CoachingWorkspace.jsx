@@ -641,6 +641,63 @@ export default function CoachingWorkspace({
     }
   }, [getStudyPlanMarkdown]);
 
+  const getStudyPlanJson = useCallback(async () => {
+    try {
+      const mod = await import('../../lib/personal-assistant/studyPlanExport.mjs');
+      if (typeof mod.buildStudyPlanJson === 'function') {
+        return mod.buildStudyPlanJson(workspace?.snapshot);
+      }
+    } catch (_) {}
+    return {
+      schemaVersion: 1,
+      title: 'Personal Assistant Poker Study Plan',
+      generatedAt: new Date().toISOString(),
+      funnelMetrics: {
+        auditedHands: null,
+        activeLeaks: null,
+        drilledLeaks: null,
+        masteredLeaks: null,
+        verifiedFixedLive: null,
+      },
+      modules: [],
+      coverageGaps: [],
+    };
+  }, [workspace?.snapshot]);
+
+  const handleDownloadStudyPlanJson = useCallback(async () => {
+    setExportingPlan(true);
+    try {
+      const planJson = await getStudyPlanJson();
+      const blob = new Blob([JSON.stringify(planJson, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `smarter-poker-study-plan-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus({ tone: 'success', text: 'Study Plan Downloaded As JSON' });
+    } catch (_) {
+      setStatus({ tone: 'danger', text: 'Could Not Download Study Plan JSON' });
+    } finally {
+      setExportingPlan(false);
+    }
+  }, [getStudyPlanJson]);
+
+  const handlePrintStudyPlan = useCallback(() => {
+    if (typeof window === 'undefined' || typeof window.print !== 'function') {
+      setStatus({ tone: 'danger', text: 'Printing Is Not Available In This Browser' });
+      return;
+    }
+    try {
+      window.print();
+      setStatus({ tone: 'success', text: 'Print Dialog Opened For Study Plan' });
+    } catch (_) {
+      setStatus({ tone: 'danger', text: 'Could Not Open Print Dialog' });
+    }
+  }, []);
+
   const handleClaimLiveFix = useCallback(async (leakId) => {
     setClaimingRewardLeakId(leakId);
     setStatus(null);
@@ -870,6 +927,24 @@ export default function CoachingWorkspace({
                     disabled={exportingPlan}
                   >
                     Download .Md File
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    data-testid="download-study-plan-json-btn"
+                    onClick={handleDownloadStudyPlanJson}
+                    disabled={exportingPlan}
+                  >
+                    Download JSON
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    data-testid="print-study-plan-btn"
+                    onClick={handlePrintStudyPlan}
+                    disabled={exportingPlan}
+                  >
+                    Print / Save PDF
                   </button>
                 </div>
               )}
@@ -1109,10 +1184,12 @@ export default function CoachingWorkspace({
                   <button
                     type="button"
                     className={`${styles.primaryButton} ${styles.onePlusOnePrimary}`}
+                    data-testid="next-best-action-practice-btn"
                     onClick={() => {
                       const targetLeak = findLeak(leaks, snapshot.nextBestAction.leakId);
                       if (onStartReview && targetLeak) onStartReview(targetLeak);
-                      else onOpenHandReview?.(targetLeak);
+                      else if (onTrain) onTrain(targetLeak || null);
+                      else if (typeof window !== 'undefined') window.location.assign('/hub/training');
                     }}
                   >
                     Practice This

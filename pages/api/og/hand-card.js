@@ -1,28 +1,28 @@
 /**
  * OG Hand Card Image Generator
- * GET /api/og/hand-card?hero=Ah,Kh&board=Qh,Jh,Th&result=Won&amount=+$1250&stakes=$1/$3 NLH&venue=Horseshoe&pot=$2500&player=Dan&hand=Royal Flush
- * 
- * Generates a beautiful shareable poker hand card image using @vercel/og
+ * GET /api/og/hand-card?hero=As,Kd&board=Qh,Jh,Th&result=Won&amount=+$420&stakes=$1/$3 NLH&venue=Horseshoe&pot=$840&player=Dan&hand=Royal Flush
+ *
+ * Generates a #SmarterDesign 1200x630 shareable poker hand card image using @vercel/og.
  * Every element MUST have display:'flex' for Satori compatibility.
  *
- * view=review (Personal Assistant hand review links) is HONEST: it renders only parameters that
- * were explicitly passed. No default hole cards, result, amount, pot, stakes or player name is
- * ever invented, and hole cards stay hidden unless `hero` carries two valid cards.
+ * Both view=review (Personal Assistant read-only hand review links) and standard links are HONEST:
+ * they render only sanitized, bounded parameters that were explicitly passed. No fabricated hole
+ * cards, amounts, pots, stakes, or win results are ever invented when omitted.
  */
 import { ImageResponse } from '@vercel/og';
 export const config = { runtime: 'edge' };
 
 const SUITS = { c: '♣', d: '♦', h: '♥', s: '♠' };
-const SUIT_COLORS = { c: '#2ECC71', d: '#3498DB', h: '#E74C3C', s: '#ECF0F1' };
+const SUIT_COLORS = { c: '#4DE0A5', d: '#56D8FF', h: '#FF6B7A', s: '#F1F5FC' };
 
 function formatCard(cardStr) {
-    if (!cardStr || cardStr.length < 2) return { rank: '?', suit: '?', color: '#fff' };
-    const rank = cardStr.slice(0, -1).replace('T', '10');
+    if (!cardStr || cardStr.length < 2) return { rank: '?', suit: '?', color: '#F1F5FC' };
+    const rank = cardStr.slice(0, -1).toUpperCase().replace(/^T$/, '10');
     const suitChar = cardStr.slice(-1).toLowerCase();
     return {
         rank,
         suit: SUITS[suitChar] || '?',
-        color: SUIT_COLORS[suitChar] || '#fff',
+        color: SUIT_COLORS[suitChar] || '#F1F5FC',
     };
 }
 
@@ -30,20 +30,23 @@ function CardElement({ card, size = 'large' }) {
     const isLarge = size === 'large';
     return (
         <div style={{
-            width: isLarge ? 72 : 56,
-            height: isLarge ? 100 : 78,
-            borderRadius: isLarge ? 10 : 8,
-            background: 'linear-gradient(135deg, #1a1a3e, #2a2a5e)',
-            border: isLarge ? '2px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.12)',
+            width: isLarge ? 104 : 82,
+            height: isLarge ? 144 : 114,
+            borderRadius: isLarge ? 14 : 12,
+            background: 'linear-gradient(180deg, #132238 0%, #08101C 100%)',
+            border: isLarge ? '2px solid rgba(86,216,255,0.42)' : '1px solid rgba(174,192,208,0.28)',
+            borderTop: isLarge ? '2px solid rgba(131,222,255,0.72)' : '1px solid rgba(174,192,208,0.52)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: isLarge ? '0 4px 12px rgba(0,0,0,0.4)' : 'none',
+            boxShadow: isLarge
+                ? '0 10px 24px rgba(0,0,0,0.55)'
+                : '0 6px 16px rgba(0,0,0,0.45)',
         }}>
             <div style={{
                 display: 'flex',
-                fontSize: isLarge ? 28 : 22,
+                fontSize: isLarge ? 42 : 32,
                 fontWeight: 900,
                 color: card.color,
                 lineHeight: 1,
@@ -52,9 +55,10 @@ function CardElement({ card, size = 'large' }) {
             </div>
             <div style={{
                 display: 'flex',
-                fontSize: isLarge ? 24 : 18,
+                fontSize: isLarge ? 34 : 26,
                 color: card.color,
-                marginTop: -2,
+                marginTop: 2,
+                lineHeight: 1,
             }}>
                 {card.suit}
             </div>
@@ -78,23 +82,37 @@ export default async function handler(req) {
         const isReview = searchParams.get('view') === 'review';
         const heroCards = isReview
             ? (() => { const hero = reviewCards(searchParams.get('hero'), 2); return hero.length === 2 ? hero : []; })()
-            : (searchParams.get('hero') || 'Ah,Kh').split(',').filter(Boolean);
-        const board = isReview
-            ? reviewCards(searchParams.get('board'), 5)
-            : (searchParams.get('board') || '').split(',').filter(Boolean);
-        const result = isReview ? '' : (searchParams.get('result') || 'Won');
-        const amount = isReview ? '' : (searchParams.get('amount') || '+$1,250');
-        const stakes = isReview ? reviewText(searchParams.get('stakes'), 24) : (searchParams.get('stakes') || '$1/$3 NLH');
-        const venue = isReview ? reviewText(searchParams.get('venue'), 24) : (searchParams.get('venue') || 'Live Poker');
-        const pot = isReview ? '' : (searchParams.get('pot') || '$2,500');
-        const player = isReview ? 'Smarter.Poker Hand Review' : (searchParams.get('player') || 'Smarter.Poker Player');
-        const handName = isReview ? reviewText(searchParams.get('hand'), 60) : (searchParams.get('hand') || '');
+            : reviewCards(searchParams.get('hero'), 4);
+        const board = reviewCards(searchParams.get('board'), 5);
+        const result = isReview ? '' : reviewText(searchParams.get('result'), 24);
+        const amount = isReview ? '' : reviewText(searchParams.get('amount'), 24);
+        const stakes = reviewText(searchParams.get('stakes'), 24);
+        const venue = reviewText(searchParams.get('venue'), 24);
+        const pot = isReview ? '' : reviewText(searchParams.get('pot'), 24);
+        const player = isReview ? 'Smarter.Poker Hand Review' : (reviewText(searchParams.get('player'), 40) || 'Smarter.Poker Player');
+        const handName = reviewText(searchParams.get('hand'), 60);
         const reviewStreet = isReview ? reviewText(searchParams.get('street'), 12).toUpperCase() : '';
         const reviewPosition = isReview ? reviewText(searchParams.get('position'), 8).toUpperCase() : '';
 
         const isWin = !isReview && (result.toLowerCase().includes('won') || amount.startsWith('+'));
-        const accent = isReview ? '#83DEFF' : (isWin ? '#2ECC71' : '#E74C3C');
-        const accentSoft = isReview ? 'rgba(131,222,255,0.12)' : (isWin ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)');
+        const isLoss = !isReview && !isWin && (result.toLowerCase().includes('lost') || amount.startsWith('-'));
+        const accent = isReview
+            ? '#83DEFF'
+            : (isWin ? '#4DE0A5' : (isLoss ? '#FF6B7A' : '#56D8FF'));
+        const accentSoft = isReview
+            ? 'rgba(131,222,255,0.14)'
+            : (isWin ? 'rgba(77,224,165,0.14)' : (isLoss ? 'rgba(255,107,122,0.14)' : 'rgba(86,216,255,0.14)'));
+        const badgeLabel = isReview ? 'Hand Review' : (amount || result || 'Hand Snapshot');
+        const subtitle = [stakes, venue].filter(Boolean).join(' - ') || (isReview ? 'Hand Review' : 'Hand Snapshot');
+
+        const headers = isReview
+            ? {
+                'Cache-Control': 'private, no-store, max-age=0',
+                'X-Robots-Tag': 'noindex, nofollow',
+            }
+            : {
+                'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+            };
 
         return new ImageResponse(
             (
@@ -103,35 +121,38 @@ export default async function handler(req) {
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    background: 'linear-gradient(135deg, #0a0a1e 0%, #1a1a3e 40%, #0d0d2e 100%)',
-                    padding: '48px',
+                    background: 'linear-gradient(135deg, #040D18 0%, #091727 52%, #05080C 100%)',
+                    padding: '52px 64px',
                     fontFamily: 'sans-serif',
                     position: 'relative',
+                    border: '2px solid rgba(174,192,208,0.28)',
                 }}>
                     {/* Header row */}
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'flex-start',
-                        marginBottom: '20px',
+                        marginBottom: '28px',
                     }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <div style={{
                                 display: 'flex',
-                                fontSize: 28,
-                                fontWeight: 800,
-                                color: '#FFD700',
-                                letterSpacing: 1,
+                                alignItems: 'center',
+                                fontSize: 34,
+                                fontWeight: 900,
+                                color: '#F1F5FC',
+                                letterSpacing: 2,
                             }}>
                                 SMARTER.POKER
                             </div>
                             <div style={{
                                 display: 'flex',
-                                fontSize: 16,
-                                color: 'rgba(255,255,255,0.5)',
-                                marginTop: 4,
+                                fontSize: 18,
+                                color: '#9EB4C8',
+                                fontWeight: 600,
+                                marginTop: 6,
                             }}>
-                                {[stakes, venue].filter(Boolean).join(' - ') || 'Hand Review'}
+                                {subtitle}
                             </div>
                         </div>
                         <div style={{
@@ -139,17 +160,17 @@ export default async function handler(req) {
                             alignItems: 'center',
                             background: accentSoft,
                             border: `2px solid ${accent}`,
-                            borderRadius: 12,
-                            padding: '8px 20px',
+                            borderRadius: 14,
+                            padding: '10px 26px',
                         }}>
                             <div style={{
                                 display: 'flex',
-                                fontSize: 32,
+                                fontSize: 34,
                                 fontWeight: 900,
                                 letterSpacing: 1,
-color: accent,
+                                color: accent,
                             }}>
-                                {isReview ? 'Hand Review' : amount}
+                                {badgeLabel}
                             </div>
                         </div>
                     </div>
@@ -158,38 +179,40 @@ color: accent,
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        marginBottom: '28px',
+                        marginBottom: '34px',
                     }}>
                         <div style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 22,
-                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                            width: 56,
+                            height: 56,
+                            borderRadius: 28,
+                            background: 'linear-gradient(135deg, #087CFA 0%, #56D8FF 100%)',
+                            border: '2px solid rgba(174,192,208,0.28)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: 22,
-                            fontWeight: 800,
-                            color: '#000',
-                            marginRight: 12,
+                            fontSize: 26,
+                            fontWeight: 900,
+                            color: '#F1F5FC',
+                            marginRight: 16,
                         }}>
                             {player.charAt(0).toUpperCase()}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <div style={{
                                 display: 'flex',
-                                fontSize: 20,
-                                fontWeight: 700,
-                                color: '#E4E6EB',
+                                fontSize: 26,
+                                fontWeight: 800,
+                                color: '#F1F5FC',
                             }}>
                                 {player}
                             </div>
                             {handName ? (
                                 <div style={{
                                     display: 'flex',
-                                    fontSize: 14,
-                                    color: '#FFD700',
-                                    fontWeight: 600,
+                                    fontSize: 18,
+                                    color: '#83DEFF',
+                                    fontWeight: 700,
+                                    marginTop: 2,
                                 }}>
                                     {handName}
                                 </div>
@@ -201,28 +224,39 @@ color: accent,
                     <div style={{
                         display: 'flex',
                         alignItems: 'flex-start',
-                        marginBottom: '24px',
+                        marginBottom: '28px',
                     }}>
                         {/* Hero Cards */}
-                        <div style={{ display: 'flex', flexDirection: 'column', marginRight: 32 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', marginRight: 48 }}>
                             <div style={{
                                 display: 'flex',
-                                fontSize: 11,
-                                color: 'rgba(255,255,255,0.4)',
+                                fontSize: 15,
+                                color: '#9EB4C8',
                                 textTransform: 'uppercase',
                                 letterSpacing: 2,
                                 fontWeight: 700,
-                                marginBottom: 8,
+                                marginBottom: 12,
                             }}>
                                 Hole Cards
                             </div>
                             <div style={{ display: 'flex' }}>
-{heroCards.length === 0 ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', height: 100, fontSize: 16, color: 'rgba(255,255,255,0.5)' }}>
-                                        Hidden By The Player
+                                {heroCards.length === 0 ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        height: 144,
+                                        padding: '0 24px',
+                                        borderRadius: 14,
+                                        background: 'rgba(19,34,56,0.65)',
+                                        border: '1px solid rgba(174,192,208,0.28)',
+                                        fontSize: 20,
+                                        fontWeight: 700,
+                                        color: '#9EB4C8',
+                                    }}>
+                                        {isReview ? 'Hidden By The Player' : 'Not Shared'}
                                     </div>
                                 ) : heroCards.map((c, i) => (
-                                    <div key={i} style={{ display: 'flex', marginRight: i < heroCards.length - 1 ? 8 : 0 }}>
+                                    <div key={i} style={{ display: 'flex', marginRight: i < heroCards.length - 1 ? 12 : 0 }}>
                                         <CardElement card={formatCard(c.trim())} size="large" />
                                     </div>
                                 ))}
@@ -234,18 +268,18 @@ color: accent,
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <div style={{
                                     display: 'flex',
-                                    fontSize: 11,
-                                    color: 'rgba(255,255,255,0.4)',
+                                    fontSize: 15,
+                                    color: '#9EB4C8',
                                     textTransform: 'uppercase',
                                     letterSpacing: 2,
                                     fontWeight: 700,
-                                    marginBottom: 8,
+                                    marginBottom: 12,
                                 }}>
                                     Board
                                 </div>
-                                <div style={{ display: 'flex' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', height: 144 }}>
                                     {board.map((c, i) => (
-                                        <div key={i} style={{ display: 'flex', marginRight: i < board.length - 1 ? 6 : 0 }}>
+                                        <div key={i} style={{ display: 'flex', marginRight: i < board.length - 1 ? 10 : 0 }}>
                                             <CardElement card={formatCard(c.trim())} size="small" />
                                         </div>
                                     ))}
@@ -258,64 +292,70 @@ color: accent,
                     <div style={{
                         display: 'flex',
                         marginTop: 'auto',
-                        borderTop: '1px solid rgba(255,255,255,0.08)',
-                        paddingTop: '16px',
+                        borderTop: '1px solid rgba(174,192,208,0.28)',
+                        paddingTop: '22px',
+                        alignItems: 'flex-end',
+                        justifyContent: 'space-between',
                     }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', marginRight: 32 }}>
-                            <div style={{
-                                display: 'flex',
-                                fontSize: 11,
-                                color: 'rgba(255,255,255,0.4)',
-                                textTransform: 'uppercase',
-                                letterSpacing: 1,
-                            }}>
-{isReview ? 'Street' : 'Pot'}
+                        <div style={{ display: 'flex' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', marginRight: 56 }}>
+                                <div style={{
+                                    display: 'flex',
+                                    fontSize: 15,
+                                    color: '#9EB4C8',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 1.5,
+                                    fontWeight: 700,
+                                    marginBottom: 4,
+                                }}>
+                                    {isReview ? 'Street' : 'Pot'}
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    fontSize: 30,
+                                    fontWeight: 800,
+                                    color: '#83DEFF',
+                                }}>
+                                    {isReview ? (reviewStreet || 'Not Shared') : (pot || 'Not Shared')}
+                                </div>
                             </div>
-                            <div style={{
-                                display: 'flex',
-                                fontSize: 24,
-                                fontWeight: 800,
-                                color: '#FFD700',
-                            }}>
-{isReview ? (reviewStreet || 'Not Shared') : pot}
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{
+                                    display: 'flex',
+                                    fontSize: 15,
+                                    color: '#9EB4C8',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 1.5,
+                                    fontWeight: 700,
+                                    marginBottom: 4,
+                                }}>
+                                    {isReview ? 'Position' : 'Result'}
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    fontSize: 30,
+                                    fontWeight: 800,
+                                    color: isReview ? '#F1F5FC' : (isWin ? '#4DE0A5' : (isLoss ? '#FF6B7A' : '#F1F5FC')),
+                                }}>
+                                    {isReview ? (reviewPosition || 'Not Shared') : (result || 'Not Shared')}
+                                </div>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <div style={{
-                                display: 'flex',
-                                fontSize: 11,
-                                color: 'rgba(255,255,255,0.4)',
-                                textTransform: 'uppercase',
-                                letterSpacing: 1,
-                            }}>
-{isReview ? 'Position' : 'Result'}
-                            </div>
-                            <div style={{
-                                display: 'flex',
-                                fontSize: 24,
-                                fontWeight: 800,
-color: isReview ? '#F1F5FC' : (isWin ? '#2ECC71' : '#E74C3C'),
-                            }}>
-                                {isReview ? (reviewPosition || 'Not Shared') : result}
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Branding footer */}
-                    <div style={{
-                        display: 'flex',
-                        position: 'absolute',
-                        bottom: 16,
-                        right: 48,
-                        fontSize: 12,
-                        color: 'rgba(255,255,255,0.2)',
-                        fontWeight: 600,
-                    }}>
-                        Smarter.Poker
+                        {/* Branding footer */}
+                        <div style={{
+                            display: 'flex',
+                            fontSize: 16,
+                            color: '#9EB4C8',
+                            fontWeight: 700,
+                            letterSpacing: 1,
+                        }}>
+                            Smarter.Poker
+                        </div>
                     </div>
                 </div>
             ),
-            { width: 800, height: 420 }
+            { width: 1200, height: 630, headers }
         );
     } catch (err) {
         console.warn('[OG Hand Card] Error:', err);
