@@ -282,7 +282,7 @@ export default function BestPokerPlayersPage() {
             margin: '0 0 32px 0',
           }}
         >
-          <strong>Direct Answer:</strong> Determining The Greatest Poker Player In History Depends On Four Measurable Pillars: <strong>All-Around Mixed-Game Mastery</strong> (Led By <strong>Phil Ivey</strong>, 11 WSOP Bracelets), <strong>Tournament Bracelet Volume</strong> (Led By <strong>Phil Hellmuth</strong>, 17 WSOP Bracelets), <strong>Multi-Decade Cash Longevity</strong> (Defined By <strong>Doyle Brunson</strong> And <strong>Chip Reese</strong>), And <strong>Modern Solver-Era High Roller Consistency</strong> (Benchmarked By <strong>Erik Seidel</strong>, <strong>Stephen Chidwick</strong>, And Today&apos;s Top GTO Specialists).
+          <strong>Direct Answer:</strong> Determining The Greatest Poker Player In History Depends On Four Measurable Pillars: <strong>All-Around Mixed-Game Mastery</strong> (Led By <strong>Phil Ivey</strong>, 11 WSOP Bracelets), <strong>Tournament Bracelet Volume</strong> (Led By <strong>Phil Hellmuth</strong>, 17 WSOP Bracelets), <strong>Multi-Decade Cash Longevity</strong> (Defined By <strong>Doyle Brunson</strong> And <strong>Chip Reese</strong>), And <strong>Modern Solver-Era High Roller Consistency</strong> (Benchmarked By <strong>Erik Seidel</strong>, <strong>Stephen Chidwick</strong>, And Leading Modern GTO Specialists).
         </p>
 
         {/* Summary Ranking Table */}

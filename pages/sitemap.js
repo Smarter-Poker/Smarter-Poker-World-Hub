@@ -17,7 +17,7 @@ import { US_POKER_STATES, stateGuidePath } from '../src/content/guides/states';
 import { POKER_MARKET_GUIDES, marketGuidePath } from '../src/content/guides/markets';
 import { LESSONS } from '../src/content/learn/lessons';
 import { RESEARCH_REPORTS, researchPath } from '../src/content/research/reports';
-import { POKER_RULES, rulePath } from '../src/content/rules/pokerRules';
+import { POKER_RULES, rulePath } from '../src/content/rules/rules';
 import { POKER_VARIANTS, variantPath } from '../src/content/games/variants';
 import { COMPARE_PAGES, comparePath } from '../src/content/compare/pages';
 import { SITE_URL, ORGANIZATION_ID } from '../src/lib/learn/learnSite.js';
@@ -193,7 +193,7 @@ export default function HtmlSitemapPage({
 
         <p id="sitemap-intro" style={{ fontSize: 15, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
           Navigate Every Major Smarter.Poker Hub, All 51 US State &amp; DC Poker Legality Guides, Regional Market Briefs, Free Poker Calculators, GTO Strategy Lessons, Official Rules, Game Variants, Platform Comparisons, And Open Industry Research Studies. Machine-Readable XML Sitemaps Are Published At{' '}
-          <a href="https://smarter.poker/sitemap_index.xml" style={{ color: '#38bdf8' }}>sitemap_index.xml</a>.
+          <a href="https://smarter.poker/sitemap_index.xml" style={{ color: '#38bdf8' }}>XML Sitemap Index</a>.
         </p>
 
         <SitemapSection title="Core Platform & Live Directory Hubs" items={CORE_HUB_LINKS} />
