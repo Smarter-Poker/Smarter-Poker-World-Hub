@@ -11,6 +11,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 import { resolveAnonKey, anonKeyWarning } from './supabaseKeys';
+import { createHardenedSupabaseClient } from './realtimeTransportGuard';
 
 // CRITICAL: .trim() removes trailing newlines/whitespace that cause connection issues
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -54,7 +55,7 @@ function getSupabase() {
          console.warn('[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_ANON_KEY - cannot create authenticated client');
       }
 
-      _supabase = createClient(safeUrl, supabaseAnonKey || '', {
+      _supabase = createHardenedSupabaseClient(createClient, safeUrl, supabaseAnonKey || '', {
          global: {
             fetch: async (input, init) => {
                const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;

@@ -299,6 +299,9 @@ jobs:
       - name: Fabricated Test Sessions Stay Off Live Realtime
         run: node --test __tests__/a-fabricated-session-never-reaches-live-realtime.law.test.mjs
 
+      - name: Refused WebSocket Never Crashes The App
+        run: node --test __tests__/a-refused-websocket-never-crashes-the-app.law.test.mjs
+
       - name: Messenger Live Probe Safety
         run: node scripts/ci/messenger-live-check.mjs --self-test
 

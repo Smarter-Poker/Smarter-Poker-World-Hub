@@ -9,13 +9,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { createClient } from '@supabase/supabase-js';
+import { createHardenedSupabaseClient } from '../../src/lib/realtimeTransportGuard';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
 
 let _sb = null;
 function getSb() {
-  if (!_sb) _sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  if (!_sb) _sb = createHardenedSupabaseClient(
+    createClient,
+    (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim(),
+    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim()
   );
   return _sb;
 }
