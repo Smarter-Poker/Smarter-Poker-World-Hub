@@ -87,6 +87,18 @@ test('the "?" sits 3px inside the painted rim, top and right, by arithmetic', as
   let opaque = 0;
   while (alphaAt(info.width >> 1, opaque) > 128) opaque += 1;
   assert.ok(Math.abs((opaque / 21) * 8 - 3.5) < 0.25, `painted rim is ${(opaque / 21) * 8}px, not the 3.5px default`);
+  // Training's generic button skin (square corners, bevel, 20px drop shadow)
+  // outranks the control's own `box-shadow: none`; both rules must skip it.
+  const training = read('src/styles/worlds/training.css');
+  for (const opener of [
+    "body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(",
+    "body.world-training .sp-training-page-stage :where(button, [role='button']):not(",
+  ]) {
+    const start = training.indexOf(opener);
+    assert.ok(start >= 0, `training.css still has ${opener}`);
+    const selector = training.slice(start, training.indexOf('{', start));
+    assert.match(selector, /\.sd-header-help[,)]/, `${opener} must exclude .sd-header-help`);
+  }
   assert.doesNotMatch(vipCss, /\n\.help \{/, 'the retired VIP help circle stays deleted');
   assert.doesNotMatch(read('src/components/bankroll/BankrollHelp.module.css'), /\.help\b/, 'the retired Bankroll help circle stays deleted');
 });

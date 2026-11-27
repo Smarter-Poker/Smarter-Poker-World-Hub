@@ -2657,12 +2657,16 @@ body.world-training .sp-training-page-stage :where(p, label, legend):not(.univer
 /* Straight 90-degree controls and cards: no clipped corners or ornamental boxes.
    Exclude the approved chrome Training Lobby (.sp-arena-lobby-shell) which owns
    its own rounded metallic-chrome border-box tokens in TrainingLobby.module.css. */
-body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(.universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(.universal-header *, .approved-global-header__button, .sd-header-help, .sp-arena-lobby-shell *) {
     border-radius: 0 !important;
     clip-path: none !important;
 }
 
-body.world-training .sp-training-page-stage :where(button, [role='button']):not(.universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *) {
+/* The painted image-header "?" (.sd-header-help, #SmarterDesign standard) is a
+   transparent 44px target around its icon. It is not a control slab, so it never
+   takes the square corners or the bevel and drop shadow below: on ICM, Hand Lab
+   and Equity those drew a dark box around the icon. */
+body.world-training .sp-training-page-stage :where(button, [role='button']):not(.universal-header *, .approved-global-header__button, .sd-header-help, .sp-arena-lobby-shell *) {
     min-height: 44px;
     color: #eefbff !important;
     border-color: rgba(154, 226, 255, 0.52) !important;
