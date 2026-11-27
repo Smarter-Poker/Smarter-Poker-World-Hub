@@ -248,7 +248,7 @@ export default function FreerollsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B1118', color: '#F0F4F8', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Free Daily Poker Freerolls - 5 Free Tournaments Daily"
+        title="Free Daily Poker Freerolls - 5 Free Events"
         description={fitMetaDescription(`Play 5 Free Daily Poker Freerolls With Zero Buy-In & Zero Deposit: ${FREE_BUY_SUMMARY}`, 158)}
         canonical="/freerolls"
         jsonLd={FREEROLLS_SCHEMA}

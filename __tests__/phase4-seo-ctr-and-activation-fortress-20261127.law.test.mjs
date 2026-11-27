@@ -51,7 +51,7 @@ test('Phase 4.2 — High-impression GSC pages carry CTR hooks, #SMARTERDESIGN ma
   assert.match(preflopSrc, /Free \$\{posData\.abbrev\} GTO Preflop Range Chart \(100BB\)/);
 
   const freerollsSrc = read('pages/freerolls.js');
-  assert.match(freerollsSrc, /Free Daily Poker Freerolls - 5 Free Tournaments Daily/);
+  assert.match(freerollsSrc, /Free Daily Poker Freerolls - 5 Free Events/);
   assert.match(freerollsSrc, /fitMetaDescription/);
 
   const variantsSrc = read('src/content/games/variants.js');
