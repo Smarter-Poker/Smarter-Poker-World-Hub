@@ -236,6 +236,17 @@ export default function PokerVariantDetailPage({ variant, peerVariants = [] }) {
                   <span style={styles.calcTag}>OFFICIAL FLOOR RULINGS</span>
                   <span style={styles.calcTitle}>30 Official TDA &amp; Cash Game Floor Rulings</span>
                 </Link>
+                {variant.slug.includes('plo') && (
+                  <Link
+                    href="/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study"
+                    style={styles.calcLinkCard}
+                  >
+                    <span style={styles.calcTag}>PLO4 VS PLO5 VS PLO6 DATA STUDY</span>
+                    <span style={styles.calcTitle}>
+                      PLO4 Vs PLO5 Vs PLO6 Multiway Equity Compression &amp; Bankroll Study
+                    </span>
+                  </Link>
+                )}
               </div>
             </div>
 

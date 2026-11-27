@@ -17,6 +17,7 @@ import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox
 import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../../src/components/seo/SmarterCalculatorSaveBar';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
 import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
@@ -122,8 +123,8 @@ export default function PreflopRangeMatrixHub({
     };
   }, [selectedHand, rfiMap]);
 
-  const pageTitle = `GTO Preflop Ranges: ${posData.abbrev} Chart`;
-  const pageDesc = `Interactive 13x13 GTO Preflop Range Matrix For ${posData.name} (${posData.abbrev}). Explore Exact Opening Frequencies, Combos, And Mixed Strategies In 100BB 6-Max Poker.`;
+  const pageTitle = `Free ${posData.abbrev} GTO Preflop Range Chart (100BB)`;
+  const pageDesc = `Free Interactive 13x13 ${posData.abbrev} GTO Preflop Chart (${stats.percent}% Open). Explore 100BB 6-Max Opening Frequencies, Combos & Mixed Hands.`;
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
 
   const faqs = useMemo(() => preflopRangeFaqs(posData, stats), [posData, stats]);
@@ -351,6 +352,18 @@ export default function PreflopRangeMatrixHub({
               <div style={{ fontSize: 12, color: '#6E7681', marginTop: 2 }}>100% Frequency Hands</div>
             </div>
           </div>
+
+          <SmarterCalculatorSaveBar
+            toolSlug={`preflop-ranges-${posData.abbrev.toLowerCase()}`}
+            toolName={`${posData.abbrev} GTO Preflop Range`}
+            eyebrow="Free Solver Cloud Sync"
+            title={`Save This ${posData.abbrev} 100BB GTO Range (${stats.percent}% Open) Free`}
+            description="Unlock Full 3-Bet, 4-Bet & Facing-Raise Ranges Across 100BB, 50BB & 20BB MTT Stacks With A Free Account."
+            ctaLabel={`Save ${posData.abbrev} Range Free`}
+            summaryText={`${posData.abbrev} 100BB 6-Max GTO Opening Range (${stats.percent}% Open)${selectedData ? ` - ${selectedData.hand} ${selectedData.action}` : ''}`}
+            redirectPath={canonicalPath}
+            unlockKey={`calc-save-preflop-${posData.abbrev.toLowerCase()}`}
+          />
 
           {/* Interactive 13x13 Grid Frame */}
           <div style={{

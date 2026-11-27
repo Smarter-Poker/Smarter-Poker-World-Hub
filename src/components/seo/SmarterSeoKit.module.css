@@ -736,6 +736,85 @@
   gap: 8px;
 }
 
+/* ── Flagship Calculator Peak-Intent Cloud-Save Hardware Bar ────────── */
+.calcSaveBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin: 14px 0 18px;
+  padding: 12px 16px;
+}
+
+.calcSaveCopy {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.calcSaveTitle {
+  margin: 4px 0 2px;
+  color: #ffffff;
+  font: 800 15px/1.25 var(--sk-type);
+}
+
+.calcSaveDesc {
+  margin: 0;
+  color: var(--sk-silver);
+  font: 400 13px/1.45 var(--sk-body);
+}
+
+.calcSaveActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* ── Post-Signup Unlock Continuity & Activation Banner ──────────────── */
+.unlockedBanner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 10600;
+  width: min(680px, calc(100vw - 24px));
+  padding: 14px 16px;
+}
+
+.unlockedBannerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.unlockedBannerCopy {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.unlockedBannerTitle {
+  margin: 4px 0 2px;
+  color: #ffffff;
+  font: 800 16px/1.2 var(--sk-type);
+}
+
+.unlockedBannerBody {
+  margin: 0;
+  color: var(--sk-silver);
+  font: 400 13px/1.45 var(--sk-body);
+}
+
+.unlockedBannerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .sheetSignInRow a {
   color: var(--sk-ice);
   font-weight: 700;

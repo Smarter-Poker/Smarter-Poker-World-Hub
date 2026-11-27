@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 import { trackSeoFunnelEvent } from '../../lib/seo/seoFunnelTelemetry';
+import { recordPendingSeoUnlock } from './SmarterUnlockedWelcomeBanner';
 import {
   recordFirstTouch,
   beginOAuthAttribution,
@@ -151,6 +152,11 @@ export default function SmarterQuickSignupSheet() {
       try {
         recordFirstTouch();
         nonce = beginOAuthAttribution();
+        recordPendingSeoUnlock({
+          unlockKey: payload.unlockKey,
+          source: payload.source,
+          redirectPath: payload.redirectPath,
+        });
       } catch (_) {
         /* non-blocking */
       }
@@ -187,6 +193,11 @@ export default function SmarterQuickSignupSheet() {
       return;
     }
     try {
+      recordPendingSeoUnlock({
+        unlockKey: payload.unlockKey,
+        source: payload.source,
+        redirectPath: payload.redirectPath,
+      });
       trackFunnelEvent('seo_quick_signup_email_continue', {
         has_prefilled_email: Boolean(trimmed),
         unlock_key: payload.unlockKey,
