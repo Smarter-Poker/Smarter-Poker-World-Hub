@@ -20,6 +20,8 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import {
   GAME_CATEGORIES,
   GAMES_AS_OF,
@@ -137,18 +139,33 @@ export default function PokerGamesIndexPage() {
           <span style={styles.crumbCurrent}>Poker Variants &amp; Mixed Games Encyclopedia</span>
         </nav>
 
-        <header style={styles.heroPlate}>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="games"
+            eyebrow="Smarter.Poker Mixed Games Encyclopedia"
+            title="Poker Variants & Mixed Games Encyclopedia: Official Rules, Hand Rankings & Starting Hand Strategy"
+            lead="Master All 15 Major Live, Tournament & Private Club Poker Formats From Texas Hold Em To PLO5, Short Deck & H.O.R.S.E."
+            stats={[
+              { label: 'Poker Formats', value: `${POKER_VARIANTS.length} Variants` },
+              { label: 'Game Families', value: `${GAME_CATEGORIES.length} Families` },
+              { label: 'GTO Drills', value: '107 Games' },
+              { label: 'Account Tier', value: '100% Free' },
+            ]}
+            redirectPath="/games"
+            unlockKey="masthead-games"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/tools/poker-odds-calculator"
+            secondaryLabel="6-Game Odds Calc"
+          />
+        </div>
+
+        <section aria-label="Poker Variants Quick Reference" style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.primaryBadge}>15 COMPLETE VARIANT RULEBOOKS</span>
             <span style={styles.cyanBadge}>HOLD&apos;EM · PLO · STUD · LOWBALL · MIXED</span>
             <a href="/games.md" style={styles.mdBadge}>
               RAW MARKDOWN (/GAMES.MD)
             </a>
           </div>
-
-          <h1 style={styles.h1}>
-            Poker Variants &amp; Mixed Games Encyclopedia: Official Rules, Hand Rankings &amp; Starting Hand Strategy
-          </h1>
 
           <p style={styles.lead}>
             Master All 15 Major Live, Tournament, And Private Club Poker Formats. Compare Hole Card Counts, Must-Use-Two
@@ -170,7 +187,7 @@ export default function PokerGamesIndexPage() {
               PLO Pot-Limit Bet Calculator
             </Link>
           </div>
-        </header>
+        </section>
 
         <section aria-label="Filter Variants By Category" style={styles.filterBar}>
           <button
@@ -387,6 +404,14 @@ export default function PokerGamesIndexPage() {
           summary="Complete rulebooks, hand ranking systems, and starting hand strategy tiers for 15 poker variants published by Smarter.Poker."
           slug="poker-variants-encyclopedia"
         />
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="study-deck"
+            context="games-index"
+            redirectPath="/games"
+          />
+        </div>
 
         <AiPromptLauncher
           title="Poker Variants & Mixed Games Encyclopedia (15 Complete Rulebooks)"
@@ -657,7 +682,7 @@ const styles = {
   },
   cardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
     gap: '14px',
   },
   cardPlate: {
@@ -743,7 +768,7 @@ const styles = {
   },
   hubLinkGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))',
     gap: '12px',
   },
   hubCard: {

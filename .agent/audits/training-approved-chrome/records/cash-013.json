@@ -1,0 +1,71 @@
+{
+  "id": "cash-013",
+  "name": "Probe Betting",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:25.659Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Probe Betting.\nSubject: A neglected pot beyond an opponent's withdrawn hand, with a new line of cobalt betting chips confidently entering the open space. The withdrawal and the entering bet tell the checked-through-then-probe story without a literal scientific probe.\nCamera: Medium close table-height view from behind the player taking the initiative, with a strong depth change from hand to pot.\nComposition: A black sleeve and a low moving bet occupy the left foreground; the unused pot is clear at mid-right. The opponent's retreating hand recedes toward the upper crop. A thin horizontal silver rail binds the scene. Light reveals open felt ahead of the bet, not a reserved card slot.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A neglected pot beyond an opponent's withdrawn hand, with a new line of cobalt betting chips confidently entering the open space. The withdrawal and the entering bet tell the checked-through-then-probe story without a literal scientific probe.",
+  "camera": "Medium close table-height view from behind the player taking the initiative, with a strong depth change from hand to pot.",
+  "composition": "A black sleeve and a low moving bet occupy the left foreground; the unused pot is clear at mid-right. The opponent's retreating hand recedes toward the upper crop. A thin horizontal silver rail binds the scene. Light reveals open felt ahead of the bet, not a reserved card slot.",
+  "source": {
+    "fileName": "exec-80e6bc01-eb18-4e54-81a9-be1427e611b7.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2173601,
+    "sha256": "ec80fdc1934292bbf4d9184dbae1cd114337c37a633a086896f70f74f2f11dac"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-013.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 27352,
+      "sha256": "0018797a6d994a9af577a28dcab4b4d428d21a01eb1025897b7cc615df4407eb"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-013.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 22985,
+      "sha256": "cba3a5b1a42fe767e3728dbe61b9ee75caa5baa9e3ce4b44249884594789feb2"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-013.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 55078,
+      "sha256": "aa6f4a00e5a9768249cef0404a1f5e7b06a8ab3e53c72b3653133b845e9f9027"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-013.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 44092,
+      "sha256": "7063aa847529778e22d9070b8cc776e6f88b82cdf6fb713eda90fc415f757baf"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-013.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 107306,
+      "sha256": "ed665bf74796baf9c54349935cc5a44c9d6a03dd29b7fbabc42288d3ddfe6c0b"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-013.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 78175,
+      "sha256": "f39c6a5124a7c7a8f791ccacf20833e7fd8dfb71aa2c0a01e66865d7267bd37b"
+    }
+  ]
+}

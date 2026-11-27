@@ -14,8 +14,32 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { openQuickSignup } from '../seo/SmarterQuickSignupSheet';
 
 const SAVED_SPOTS_STORAGE_KEY = 'sp_saved_spots_v1';
+
+function hasLocalAuthSession() {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = window.localStorage.getItem('smarter-poker-auth');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.access_token || parsed.user)) return true;
+    }
+  } catch (_) {
+    return false;
+  }
+  return false;
+}
+
+function notifyToolEngaged(toolSlug) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent('sp:seo-tool-engaged', { detail: { toolSlug } }));
+  } catch (_) {
+    /* non-blocking */
+  }
+}
 
 export default function CalculatorShareAndPresets({
   toolTitle,
@@ -46,9 +70,11 @@ export default function CalculatorShareAndPresets({
   const [baselineSpotA, setBaselineSpotA] = useState(null);
   const [showQrCard, setShowQrCard] = useState(false);
   const [currentPath, setCurrentPath] = useState(resolvedToolPath);
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    setIsSignedIn(hasLocalAuthSession());
     setCurrentPath(`${window.location.pathname || resolvedToolPath}${window.location.search || ''}`);
     try {
       const rawSaved = window.localStorage.getItem(SAVED_SPOTS_STORAGE_KEY);
@@ -122,6 +148,7 @@ export default function CalculatorShareAndPresets({
       // Ignore quota errors
     }
     setPinnedFeedback(true);
+    notifyToolEngaged(resolvedToolSlug);
     setTimeout(() => setPinnedFeedback(false), 2000);
   };
 
@@ -239,7 +266,10 @@ export default function CalculatorShareAndPresets({
                 <button
                   key={preset.id || preset.label}
                   type="button"
-                  onClick={() => presetHandler && presetHandler(preset)}
+                  onClick={() => {
+                    notifyToolEngaged(resolvedToolSlug);
+                    if (presetHandler) presetHandler(preset);
+                  }}
                   style={{
                     padding: '6px 12px',
                     borderRadius: '2px',
@@ -449,6 +479,37 @@ export default function CalculatorShareAndPresets({
           >
             Show QR Cheat-Card
           </button>
+
+          {!isSignedIn && (
+            <button
+              type="button"
+              data-testid="calculator-cloud-save-cta"
+              onClick={() =>
+                openQuickSignup({
+                  unlockKey: `tool-${resolvedToolSlug}`,
+                  eyebrow: 'Free Cloud Workspace',
+                  title: `Save Your ${resolvedToolName} Scenarios Free`,
+                  subtitle:
+                    summaryText ||
+                    'Create Your Free Smarter.Poker Account To Sync Saved Scenarios, Export CSVs & Train 107 GTO Games.',
+                  redirectPath: currentPath || resolvedToolPath,
+                  source: `calc-toolbar-${resolvedToolSlug}`,
+                })
+              }
+              style={{
+                padding: '7px 13px',
+                background: 'linear-gradient(180deg, #1f6feb 0%, #11449e 100%)',
+                color: '#ffffff',
+                border: '1px solid #5bc0ff',
+                borderRadius: 0,
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              Save To Free Cloud Account
+            </button>
+          )}
         </div>
 
         <Link

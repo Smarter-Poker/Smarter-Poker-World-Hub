@@ -1,0 +1,81 @@
+{
+  "id": "mtt-015",
+  "name": "Heads Up Duel",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:10.147Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Heads Up Duel.\nSubject: Heads Up Duel: the final two tournament seats face each other across a narrow black poker table with unequal cobalt chip stacks and a distant silver winner's cup\nCamera: cinematic first-person seated viewpoint over the near rail\nComposition: The opposing chair is large on the right back half; chips flank the narrow table and the trophy stays small behind it. Keep a natural dark felt patch at lower left for two real Arena hole cards added by the app. Strong human-scale duel atmosphere, not an object stage.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "Heads Up Duel: the final two tournament seats face each other across a narrow black poker table with unequal cobalt chip stacks and a distant silver winner's cup",
+  "camera": "cinematic first-person seated viewpoint over the near rail",
+  "composition": "The opposing chair is large on the right back half; chips flank the narrow table and the trophy stays small behind it. Keep a natural dark felt patch at lower left for two real Arena hole cards added by the app. Strong human-scale duel atmosphere, not an object stage.",
+  "source": {
+    "fileName": "exec-151c19a9-25ae-441f-87d5-b81f5f25a441.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2325914,
+    "sha256": "13970eef68aa0b2bae6f567e0d33e821c2392a46951258c7f7886ff2488cc1e9"
+  },
+  "nativeCards": [
+    "Ah",
+    "Ks"
+  ],
+  "placement": "left",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-015.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 31080,
+      "sha256": "bad0e8cd0757f725c506d0c1f617e00c10517d3cd52180df1c98b6c0ad4c5554"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-015.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 26445,
+      "sha256": "c8e17c8c423ba451660e9c42f400927f08678d058afb1c551bdbec5a63fe4f89"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-015.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 61998,
+      "sha256": "e09cdd017087a58c1c1f1160d0e347db6db197bb92ca73836855c98c241dcac8"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-015.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 50437,
+      "sha256": "e4b92a6e0467eef685ff674b22e6415cc993512c1d5b17e22d83fcddbfea8c0f"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-015.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 121548,
+      "sha256": "b49b53739bfc734a7827d6ea3643de5fec65da8d1cd8fc76351789c54201fffa"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-015.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 90041,
+      "sha256": "b29eb6d397fbd583660173cb1276c414f088cbc711e22046b5cbe22c22dc02a5"
+    }
+  ],
+  "overlay": {
+    "left": 26,
+    "bottom": 17,
+    "width": 36,
+    "height": 58
+  },
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

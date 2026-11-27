@@ -1,0 +1,71 @@
+{
+  "id": "spins-001",
+  "name": "Hyper Opener",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:57:53.368Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Hyper Opener.\nSubject: The first betting decision of a three-player spin tournament seen from one seated player's perspective. A black-clothed shoulder and forearm lead into a hand advancing a small opening wager; two opponents across the compact table watch beside balanced early-game chip reserves.\nCamera: Natural seated eye level just behind the opening player's left shoulder, looking across the felt toward the two opponents. Use a close fifty-millimeter cinematic perspective; no overhead, tilted isometric or bird's-eye view.\nComposition: The close shoulder frames the left third and the opening hand stretches from lower center toward a small pot at mid-right. Two partial opponent silhouettes occupy the far upper band, with their separate reserves visible. The table is experienced from a chair, not shown as a triangular geometric object. Keep the opening hand and wager large; no display stage, turbine, card reserve area or decorative speed wheel.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "The first betting decision of a three-player spin tournament seen from one seated player's perspective. A black-clothed shoulder and forearm lead into a hand advancing a small opening wager; two opponents across the compact table watch beside balanced early-game chip reserves.",
+  "camera": "Natural seated eye level just behind the opening player's left shoulder, looking across the felt toward the two opponents. Use a close fifty-millimeter cinematic perspective; no overhead, tilted isometric or bird's-eye view.",
+  "composition": "The close shoulder frames the left third and the opening hand stretches from lower center toward a small pot at mid-right. Two partial opponent silhouettes occupy the far upper band, with their separate reserves visible. The table is experienced from a chair, not shown as a triangular geometric object. Keep the opening hand and wager large; no display stage, turbine, card reserve area or decorative speed wheel.",
+  "source": {
+    "fileName": "exec-ffb67645-a003-4b84-8248-b5c6a5d3c475.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2318996,
+    "sha256": "065e0c2ad0eeb5f3e1e2732f257bfbf5cb777b77176ef202cca8eaf341be439f"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-001.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 25910,
+      "sha256": "67eef3c73ad0e9fc53d4f51446d77f8472174328efaff17055f883461816e7a5"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-001.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 21917,
+      "sha256": "43a0d8390d00f1b5a6e7e24dcff1feffea2c6dc8fbfeb2b95c656e2adaed51a6"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-001.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 52518,
+      "sha256": "4acd38a4b0a474a59e8bde56197ce0f1a6db74466543454338e5499631600a25"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-001.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 43967,
+      "sha256": "934ed2c822b59de89714a960fefe7f67fac7a59b0f2d07b344f2664009b13eb0"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-001.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 106168,
+      "sha256": "37fd20ab55dbcb9c948720d32b1be49541e4a2e717394430ac51fa36c19822d7"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-001.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 83732,
+      "sha256": "8e0e415cf133e816edc62964718c5c7d28041897978798ea5c6f4c6ebb95db05"
+    }
+  ]
+}

@@ -103,9 +103,9 @@ test('2. normalizeDailyHandPayload keeps card-based hands intact and fails close
 test('3. PA Home preserves approved landing artwork and live saved-hand and coaching states', () => {
   const home = read('pages/hub/personal-assistant/index.js');
 
-  assert.match(home, /\/images\/personal-assistant\/review-my-play-chrome\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox-chrome\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/my-leaks-chrome\.webp/);
+  assert.match(home, /<ApprovedIllustration\s+kind="review"/);
+  assert.match(home, /<ApprovedIllustration\s+kind="sandbox"/);
+  assert.match(home, /<ApprovedIllustration\s+kind="leaks"/);
   assert.match(home, /savedHandsLoading/);
   assert.match(home, /readyToReviewText/);
   assert.match(home, /coachingSnapshot/);

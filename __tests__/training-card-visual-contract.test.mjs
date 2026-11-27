@@ -55,5 +55,5 @@ test('category artwork stays out of normal flow so Play stays beside the title',
   const source = fs.readFileSync(path.join(ROOT, 'pages/hub/training/category/[categoryId].js'), 'utf8');
   assert.match(source, /<div className="sp-category-hero-art" aria-hidden="true">\s*<TrainingGameArt/);
   assert.match(source, /\.sp-category-hero-art \{ position: absolute; inset: 0;/);
-  assert.match(source, /\.sp-category-hero-art :global\(img\) \{ object-fit: cover;/);
+  assert.match(source, /\.sp-category-hero-art :global\(\.training-art-scene\) \{ object-fit: cover;/);
 });

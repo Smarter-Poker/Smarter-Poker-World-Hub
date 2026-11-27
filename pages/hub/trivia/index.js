@@ -449,7 +449,7 @@ export default function TriviaHubPage({ modeAvailability }) {
         <PageTransition>
             <SEOHead
                 title="Poker Trivia - Test Your Knowledge"
-                description="Put Your Poker Knowledge To The Test With Multiple Game Modes: Endless, Survival, Time Attack, Mixed, PvP, And Tournaments."
+                description="Explore 12 Poker Trivia Games, Starting With 1v1 Battle And Daily Tournament. Play Free Daily Trivia, Strategy Challenges, Poker History, And More."
                 canonical="/hub/trivia"
             />
 
@@ -487,13 +487,10 @@ export default function TriviaHubPage({ modeAvailability }) {
                         playerDataStatus={playerDataStatus}
                         onRetryPlayerData={() => loadUserData({ force: true })}
                         onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
+                        helpSummary={<HubPageSummary page="trivia" />}
                     />
                 </main>
             </div>
-
-            {/* Server rendered: measured on production this page returned
-                only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-            <HubPageSummary page="trivia" />
         </PageTransition>
     );
 }

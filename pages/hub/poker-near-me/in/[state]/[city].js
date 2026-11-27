@@ -1,4 +1,5 @@
 import PokerNearMeLocationPage from '../../../../../src/components/poker-near-me/PokerNearMeLocationPage';
+import SmarterAccountUnlockGate from '../../../../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
 import { cityTitleToSlug, citySlugToTitle } from '../../../../../src/lib/home-games/locationUtils';
 import { fetchPokerVenueLocation, resolveStateSlug, venueLocationCanonical } from '../../../../../src/lib/poker-near-me/locationPages';
@@ -73,16 +74,24 @@ export default function PokerCityPage({ state, city, ...props }) {
       description={`Find Casino Poker Rooms And Cardrooms In ${city}, ${state.name}. Compare Venue Profiles, Schedules, Room Details, And Current Discovery Signals.`}
       canonical={venueLocationCanonical(state.code, city)}
       conversionCta={(
-        <SmarterConversionCta
-          eyebrow={`Free ${city} Poker Directory Account`}
-          title={`Find Live Games & Track Sessions In ${city}, ${state.name} Free`}
-          description={`Create A Free Smarter.Poker Account To Save Favorite ${city} Poker Rooms, Check In Live, And Track Your Cash Game Profit.`}
-          primaryLabel="Create Free Account"
-          primaryHref={`/auth/signup?redirect=${encodeURIComponent(cityPath)}&src=pnm-city`}
-          secondaryLabel="Sign In"
-          secondaryHref={`/auth/login?redirect=${encodeURIComponent(cityPath)}`}
-          highlights={['100% Free Account', 'Live Room Check-Ins', 'Bankroll Tracker']}
-        />
+        <div style={{ display: 'grid', gap: 18 }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={`pnm-city-${state.slug}-${cityTitleToSlug(city)}`}
+            title={`See Live ${city} Waitlists, Peak Hours & Seat Alerts Free`}
+            redirectPath={cityPath}
+          />
+          <SmarterConversionCta
+            eyebrow={`Free ${city} Poker Directory Account`}
+            title={`Find Live Games & Track Sessions In ${city}, ${state.name} Free`}
+            description={`Create A Free Smarter.Poker Account To Save Favorite ${city} Poker Rooms, Check In Live, And Track Your Cash Game Profit.`}
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=${encodeURIComponent(cityPath)}&src=pnm-city`}
+            secondaryLabel="Sign In"
+            secondaryHref={`/auth/login?redirect=${encodeURIComponent(cityPath)}`}
+            highlights={['100% Free Account', 'Live Room Check-Ins', 'Bankroll Tracker']}
+          />
+        </div>
       )}
     />
   );

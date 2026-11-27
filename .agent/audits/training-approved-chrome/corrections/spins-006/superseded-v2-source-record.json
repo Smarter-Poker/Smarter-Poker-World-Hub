@@ -1,0 +1,74 @@
+{
+  "id": "spins-006",
+  "name": "Limb Trap",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:01:02.356Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Limb Trap.\nSubject: A small initial limp is followed by an opposing raise, then an exact matching return that keeps the hand alive. Three distinct chip movements trace a broad hooked path across the felt, with native Q-heart and J-spade at the caller's end.\nCamera: High oblique close-up of the hooked action route, with the caller's side in the near-right foreground.\nComposition: The early single-chip entry occupies upper left; the opponent's larger raise sweeps through center; the matching return bends toward lower right beside the real hand. Use physical chip spacing to communicate the sequence, not text, arrows, trap jaws or a display stage.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "A small initial limp is followed by an opposing raise, then an exact matching return that keeps the hand alive. Three distinct chip movements trace a broad hooked path across the felt, with native Q-heart and J-spade at the caller's end.",
+  "camera": "High oblique close-up of the hooked action route, with the caller's side in the near-right foreground.",
+  "composition": "The early single-chip entry occupies upper left; the opponent's larger raise sweeps through center; the matching return bends toward lower right beside the real hand. Use physical chip spacing to communicate the sequence, not text, arrows, trap jaws or a display stage.",
+  "source": {
+    "fileName": "exec-adc08a0a-154c-4dac-88a2-dafb873793cf.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2847943,
+    "sha256": "23526ae4b2b10e891cce687059e913bf179d9543ebbecb86caf6d3d479a9a0e7"
+  },
+  "nativeCards": [
+    "Qh",
+    "Js"
+  ],
+  "placement": "right",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-006.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 47310,
+      "sha256": "242781e8da7ff004d78e2a7ce1113765c656a80dc8915c93a157a66a8c9e3296"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-006.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 44180,
+      "sha256": "acd15bbb1e02f054160f035c7d954a1d5d3770e7734a0580f8facc2a1058f763"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-006.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 99516,
+      "sha256": "5c5e827f3c6246037dac5a2ff8178624c37272cd1f4fcb5c44133fea2b07f6db"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-006.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 89141,
+      "sha256": "84cae39a909288d30819f7fbead4122219338dd568d5e20104d40ff366ef2c77"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-006.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 196134,
+      "sha256": "a515f22593e0f38ae7ca310996487765284a88d0a5cf84847f2ed1d8b1d1fbb4"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-006.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 153475,
+      "sha256": "99601db2a1270cebb039e78320e67892b3b950cbd4a470ef47c19f107b9c7e55"
+    }
+  ]
+}

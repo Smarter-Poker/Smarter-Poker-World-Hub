@@ -36,7 +36,9 @@ import TriviaNetworkBanner from './TriviaNetworkBanner';
 import TriviaSkeleton from './TriviaSkeleton';
 import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import TriviaConsole from './console/TriviaConsole';
+import TriviaHelpButton from './TriviaHelpButton';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import { VipUpgradePrompt } from '../vip/VipKit';
 import ResponsiveModeArt from './console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_CASH, TRIVIA_INTRO_ART_GTO, TRIVIA_INTRO_ART_ICM, TRIVIA_INTRO_ART_MTT } from '../../config/triviaIntroArt.mjs';
 import {
@@ -1094,6 +1096,17 @@ export default function StrategyTrivia({ mode }) {
                             </li>
                         </ul>
                     ) : null}
+                    {/* A non-VIP account that has not claimed the phone
+                        verification reward sees that offer here first; Skip
+                        shows the VIP price (Dan, 2026-11-27). */}
+                    {userId && isVip === false && !vipInitializing ? (
+                        <VipUpgradePrompt
+                            accountId={userId}
+                            enabled={showOutOfDiamonds}
+                            title="Play Unlimited With VIP"
+                            copy="VIP Members Play Every Trivia Mode Free."
+                        />
+                    ) : null}
                 </TriviaConsoleDialog>
 
                 <main className="content">
@@ -1104,6 +1117,17 @@ export default function StrategyTrivia({ mode }) {
                         subtitle={config.subtitle}
                         pill={gameState === 'lobby' ? (isPreparing ? 'Dealing' : 'Ready') : gameState === 'playing' ? 'Live' : 'Results'}
                         pillInk={gameState === 'playing' ? 'green' : 'blue'}
+                        headerAction={(
+                            <TriviaHelpButton
+                                ariaLabel={`${config.title} Help`}
+                                eyebrow="Strategy Table"
+                                title={`About ${config.title}`}
+                                subtitle={config.subtitle}
+                            >
+                                <p>{config.description || 'Test Your Poker Strategy Across Server-Scored Scenarios With Detailed Coaching Explanations.'}</p>
+                                <p>Every Run Confirms Entry Terms And VIP Eligibility Upfront And Records Verified Results To Your Stats And Study Deck.</p>
+                            </TriviaHelpButton>
+                        )}
                         titleAs="h1"
                         secondaryAction={(gameState === 'lobby' || gameState === 'results')
                             ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }

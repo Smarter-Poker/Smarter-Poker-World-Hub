@@ -1,0 +1,859 @@
+.lobby,
+.lobby * {
+  box-sizing: border-box;
+}
+
+.lobby {
+  --chrome-edge: linear-gradient(135deg, #f6fcff 0%, #697780 8%, #10161b 15%, #e6f6ff 23%, #77848d 40%, #121a20 53%, #d9e3eb 75%, #78848c 83%, #f3f8fa 96%);
+  --glass-face: linear-gradient(180deg, #19242b 0%, #03080c 23%, #000 75%, #111d23 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 940px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 0 8px 92px;
+  color: #f5f8fb;
+  background: #000;
+  font-family: var(--sd-type, 'Rajdhani', 'Arial Narrow', Arial, sans-serif);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 102px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(105deg, #010305 0%, #010305b8 38%, #01030508 65%) padding-box,
+    url('/images/trivia/approved-chrome/hero.webp') center / cover padding-box,
+    var(--chrome-edge) border-box;
+  box-shadow: inset 0 0 0 1px #e5f5ff30, 0 0 12px #1bbcff10;
+}
+
+.heroCopy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  padding: 12px;
+}
+
+.title {
+  margin: 0;
+  color: #f3f8fb;
+  font-size: clamp(29px, 6.8vw, 56px);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  text-shadow: 0 2px 0 #2b3740, 0 3px 8px #000;
+}
+
+.heroCount {
+  margin: 4px 0 0;
+  color: #dce9f1;
+  font-size: clamp(17px, 3.6vw, 25px);
+  font-style: italic;
+  line-height: 1.2;
+  text-shadow: 0 2px 5px #000;
+}
+
+.helpButton {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  align-self: flex-start;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  margin: 8px 6px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #f5f8fb;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.helpIcon {
+  --trivia-icon-size: 52px;
+}
+
+.button,
+.metric,
+.searchField,
+.utilityLink {
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  background: var(--glass-face) padding-box, var(--chrome-edge) border-box;
+  box-shadow: inset 0 1px 1px #e2f6ff61, inset 0 -1px 2px #d5e6ee38, 0 1px 3px #000;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 10px;
+  color: #f5f8fb;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 2px 3px #000;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.primaryButton {
+  background: linear-gradient(180deg, #2eabff 0%, #0867ff 12%, #0445ec 34%, #0026b9 76%, #007bff 100%) padding-box,
+    var(--chrome-edge) border-box;
+  box-shadow: inset 0 1px 2px #fff, inset 0 -2px 3px #40cdffb3, 0 0 7px #0067ff4d;
+  color: #fff;
+}
+
+.button:active:not(:disabled),
+.utilityLink:active,
+.helpButton:active {
+  filter: brightness(1.16);
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  cursor: default;
+}
+
+.button:disabled:not(.primaryButton) {
+  background: linear-gradient(180deg, #727d84 0%, #283038 17%, #05070a 75%, #151c21 100%) padding-box,
+    var(--chrome-edge) border-box;
+  color: #e2e9ee;
+}
+
+.primaryButton:disabled {
+  filter: saturate(0.55) brightness(0.84);
+}
+
+.lobby a:focus-visible,
+.lobby button:focus-visible,
+.lobby input:focus-visible {
+  outline: 3px solid #8be6ff;
+  outline-offset: 3px;
+}
+
+.dailyButton {
+  width: 100%;
+  min-height: 52px;
+  gap: 8px;
+  border-width: 2px;
+  border-radius: 12px;
+  font-size: clamp(21px, 4.8vw, 35px);
+}
+
+.dailyPlayIcon {
+  --trivia-icon-size: 36px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 6px;
+}
+
+.metricIcon {
+  --trivia-icon-size: 30px;
+  flex-shrink: 0;
+}
+
+.metricValue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+}
+
+.metricCopy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0 4px;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.metricCopy strong {
+  margin: 0;
+  color: #f5f8fb;
+  font-weight: 700;
+}
+
+.metricCopy span {
+  color: #d4e6ee;
+}
+
+.discoveryRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.studyButton {
+  justify-content: flex-start;
+  min-height: 52px;
+  gap: 3px;
+  padding: 4px 6px;
+  font-size: clamp(15px, 3.2vw, 23px);
+}
+
+.discoveryIcon {
+  --trivia-icon-size: 33px;
+  flex-shrink: 0;
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 6px;
+}
+
+.searchField input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #f5f8fb;
+  font: inherit;
+  font-size: 16px;
+  font-style: italic;
+  appearance: none;
+}
+
+.searchField input::placeholder {
+  color: #d9eaf1;
+  opacity: 1;
+}
+
+.utilityBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr) minmax(0, 1.18fr) minmax(0, 0.86fr);
+  gap: 5px;
+}
+
+.utilityLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 70px;
+  padding: 4px 2px 6px;
+  color: #f5f8fb;
+  font-size: clamp(12.5px, 3.2vw, 20px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.utilityLink span:last-child {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.utilityIcon {
+  --trivia-icon-size: 40px;
+}
+
+.modesSection {
+  min-width: 0;
+}
+
+.sectionBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  min-height: 50px;
+  margin-bottom: 7px;
+}
+
+.sectionBar::before {
+  position: absolute;
+  top: 50%;
+  right: 7%;
+  left: 10%;
+  z-index: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #a5efff, #2cbbff 65%, transparent);
+  box-shadow: 0 0 7px #18baff;
+  content: '';
+}
+
+.sectionHeading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 1px;
+  padding: 0 13px 0 0;
+  border-top: 1px solid #dce9ee;
+  border-bottom: 1px solid #a5b9c4;
+  background: linear-gradient(180deg, #172329, #020506 43%, #101920);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  color: #f5f8fb;
+  font-size: clamp(19px, 4.1vw, 29px);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.08;
+  text-shadow: 0 2px 3px #000;
+}
+
+.sectionIcon {
+  --trivia-icon-size: 42px;
+  flex-shrink: 0;
+}
+
+.gameCount {
+  position: relative;
+  flex-shrink: 0;
+  padding-left: 4px;
+  color: #e8f0f4;
+  background: #000;
+  font-size: 16px;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.gameGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gameCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(#010508, #000) padding-box, var(--chrome-edge) border-box;
+  box-shadow: inset 0 0 0 1px #ebf4fa78, 0 1px 2px #000, 0 0 5px #a3dfff26;
+}
+
+.gameCardInteractive {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gameCardInteractive:active {
+  filter: brightness(1.08);
+  transform: translateY(1px);
+}
+
+.art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  border-radius: 8px 8px 0 0;
+  background: radial-gradient(ellipse at 50% 70%, #103148, #01060a 70%);
+}
+
+.art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.art::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 23%;
+  background: linear-gradient(transparent, #000);
+  pointer-events: none;
+  content: '';
+}
+
+.artFallback {
+  --trivia-icon-size: 72px;
+}
+
+.maintenanceBadge {
+  position: absolute;
+  top: 8px;
+  right: 7px;
+  z-index: 1;
+  padding: 3px 5px;
+  border: 1px solid #8bb8ca;
+  border-radius: 4px;
+  background: #02070deb;
+  color: #c9edfc;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cardContent {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  margin-top: -8px;
+  padding: 0 6px 6px;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: flex-end;
+  min-height: 1.15em;
+  margin: 0;
+  color: #f5f8fb;
+  font-size: clamp(18px, 3.7vw, 30px);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  overflow-wrap: break-word;
+  text-shadow: 0 2px 3px #000, 0 0 5px #000;
+}
+
+.cardCaption {
+  min-height: 1.25em;
+  margin: 2px 0 8px;
+  color: #e0e8ed;
+  font-size: clamp(14px, 2.9vw, 20px);
+  line-height: 1.2;
+}
+
+.cardButton {
+  width: 100%;
+  min-height: 44px;
+  margin-top: auto;
+  padding: 4px 3px;
+  border-radius: 6px;
+  font-size: clamp(17px, 3.4vw, 24px);
+}
+
+.playIcon {
+  --trivia-icon-size: 26px;
+  flex-shrink: 0;
+}
+
+.notice,
+.emptyState {
+  padding: 12px;
+  border: 1px solid #4b6574;
+  border-radius: 8px;
+  background: #050b10;
+  color: #d8e5ed;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.notice p,
+.emptyState p {
+  margin: 0 0 10px;
+}
+
+.notice .button {
+  width: 100%;
+}
+
+.continueCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.continueCard > div {
+  flex: 1 1 160px;
+}
+
+.continueCard .button {
+  flex: 1 1 140px;
+}
+
+.continueCard p {
+  margin-bottom: 0;
+}
+
+.continueTitle {
+  margin: 3px 0;
+  font-size: 20px;
+}
+
+.eyebrow {
+  color: #a6daef;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.searchSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #d8e5ed;
+  font-size: 15px;
+}
+
+.searchSummary p {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.emptyState {
+  text-align: center;
+}
+
+.emptyState h3 {
+  margin: 0 0 5px;
+  color: #f5f8fb;
+  font-size: 20px;
+}
+
+.helpContent {
+  display: grid;
+  gap: 18px;
+  max-height: min(61vh, 600px, max(64px, calc(100vh - 250px)));
+  max-height: min(61dvh, 600px, max(64px, calc(100dvh - 250px)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 6px 8px 2px;
+  color: #d8e5ed;
+  font-size: 15px;
+  line-height: 1.45;
+  scrollbar-color: #789eb0 #060c12;
+  -webkit-overflow-scrolling: touch;
+}
+
+.helpContent h2 {
+  margin: 0 0 5px;
+  color: #f5f8fb;
+  font-size: 21px;
+  line-height: 1.2;
+}
+
+.helpContent p {
+  margin: 0 0 8px;
+}
+
+.helpFacts {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+}
+
+.helpFacts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid #2e414d;
+}
+
+.helpFacts dt {
+  min-width: 0;
+  color: #d8e5ed;
+}
+
+.helpFacts dd {
+  min-width: 0;
+  margin: 0;
+  color: #f5f8fb;
+  text-align: right;
+}
+
+.eloPill {
+  display: block;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid #4b6574;
+  border-radius: 6px;
+  color: #bbeaff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.quickStakes .button {
+  width: 100%;
+}
+
+.helpSummary {
+  padding-top: 12px;
+  border-top: 1px solid #2e414d;
+}
+
+.helpSummary :global(section) {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+  background: transparent !important;
+}
+
+.routeError {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #d9eaf1;
+  border-radius: 6px;
+  color: #f5f8fb;
+  background: #142431;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.routingOverlay {
+  position: fixed;
+  z-index: 13000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #000a;
+  color: #f5f8fb;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.routingOverlay span {
+  padding: 16px 24px;
+  border: 1px solid #91cde8;
+  border-radius: 10px;
+  background: #07141e;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+@media (min-width: 600px) {
+  .lobby {
+    gap: 14px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .hero {
+    min-height: 152px;
+    background: linear-gradient(105deg, #010305 0%, #010305b8 38%, #01030508 65%) padding-box,
+      url('/images/trivia/approved-chrome/hero.webp') center 35% / cover padding-box,
+      var(--chrome-edge) border-box;
+  }
+
+  .heroCopy {
+    padding: 18px;
+  }
+
+  .helpButton {
+    width: 64px;
+    height: 64px;
+    flex-basis: 64px;
+    margin: 12px 12px 0 0;
+  }
+
+  .helpIcon {
+    --trivia-icon-size: 64px;
+  }
+
+  .dailyButton {
+    min-height: 66px;
+  }
+
+  .dailyPlayIcon {
+    --trivia-icon-size: 48px;
+  }
+
+  .metric {
+    min-height: 54px;
+    gap: 9px;
+  }
+
+  .metricIcon,
+  .discoveryIcon {
+    --trivia-icon-size: 44px;
+  }
+
+  .metricCopy {
+    font-size: 22px;
+    gap: 5px;
+  }
+
+  .studyButton,
+  .searchField {
+    min-height: 64px;
+    gap: 8px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .searchField input {
+    font-size: 23px;
+  }
+
+  .utilityBar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .utilityLink {
+    min-height: 92px;
+  }
+
+  .utilityIcon {
+    --trivia-icon-size: 62px;
+  }
+
+  .sectionIcon {
+    --trivia-icon-size: 58px;
+  }
+
+  .gameCount {
+    font-size: 23px;
+  }
+
+  .gameGrid {
+    gap: 14px;
+  }
+
+  .gameCard {
+    border-radius: 16px;
+  }
+
+  .cardContent {
+    margin-top: -16px;
+    padding: 0 10px 10px;
+  }
+
+  .cardTitle {
+    min-height: 1.15em;
+  }
+
+  .cardCaption {
+    margin-bottom: 9px;
+    min-height: 1.2em;
+  }
+
+  .cardButton {
+    min-height: 48px;
+  }
+
+  .playIcon {
+    --trivia-icon-size: 32px;
+  }
+
+  .maintenanceBadge {
+    font-size: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby *,
+  .lobby *::before,
+  .lobby *::after {
+    scroll-behavior: auto;
+    transition: none;
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .cardCaption,
+  .metricCopy span,
+  .helpContent,
+  .helpFacts dt {
+    color: #fff;
+  }
+
+  .gameCard,
+  .button,
+  .utilityLink,
+  .metric,
+  .searchField {
+    border-color: #d7f1ff;
+  }
+}
+
+@media (forced-colors: active) {
+  .hero,
+  .gameCard,
+  .button,
+  .utilityLink,
+  .metric,
+  .searchField,
+  .maintenanceBadge {
+    border-color: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .button:disabled {
+    color: GrayText;
+    border-color: GrayText;
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "id": "adv-020",
+  "name": "Level 10: GTO Apex",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:04:40.835Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Level 10: GTO Apex.\nSubject: GTO Apex: a complex black-and-chrome strategy landscape converges into one precise silver summit under a narrow cobalt light\nCamera: dramatic wide low-angle sculptural landscape view\nComposition: Many irregular branching ridges flow from both lower corners toward an off-center summit in the upper right; illuminated blue paths meet cleanly near the peak. Large bold geometry and premium metal surfaces, no trophy, central ring, chips, text or pedestal.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "GTO Apex: a complex black-and-chrome strategy landscape converges into one precise silver summit under a narrow cobalt light",
+  "camera": "dramatic wide low-angle sculptural landscape view",
+  "composition": "Many irregular branching ridges flow from both lower corners toward an off-center summit in the upper right; illuminated blue paths meet cleanly near the peak. Large bold geometry and premium metal surfaces, no trophy, central ring, chips, text or pedestal.",
+  "source": {
+    "fileName": "exec-ecb8a798-6245-4590-92cb-2d85374bf7b6.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2318657,
+    "sha256": "5d9024809b05c8c4e75e58487262cb284bbae7c164a88633c8699d5afd3b522e"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-020.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 37308,
+      "sha256": "616d830f6eb5c2e918626357803e25fa55dd8ea17b314c88c444b0e730d13f10"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-020.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 34001,
+      "sha256": "cb4c8c786e6ef202fa96ff972fb2acf3bfc5852b678a89d713ba282ab21cfa16"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-020.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 70092,
+      "sha256": "a494465e6aa8801e3550275161a94f635914cafd355af131c504650deb78ed1c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-020.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 59739,
+      "sha256": "4b389832cfedd9ad483f4025f9b0ea4082392c1c31d5becefeac339378c95013"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-020.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 127614,
+      "sha256": "fb0ca1b7e8c9f06f5b7b087cbdb3ed183e8073b5da5e7cf8d333bf2c6889649d"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-020.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 100532,
+      "sha256": "a5b9f8c67febad252daa09e9269f8f90578bcccd67d2875588f31dfc093402a5"
+    }
+  ]
+}

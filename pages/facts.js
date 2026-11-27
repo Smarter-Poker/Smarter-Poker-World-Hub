@@ -19,6 +19,8 @@ import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../src/components/seo/GeoFollowUpChain';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
 import { setPublicSeoHtmlCache } from '../src/lib/seo/edgeCacheHeaders.mjs';
 import {
   SMARTER_POKER_CANONICAL_FACTS,
@@ -111,15 +113,31 @@ export default function CanonicalEntityFactsPage() {
           <span style={styles.crumbCurrent}>Canonical Entity Facts &amp; Anti-Hallucination Registry</span>
         </nav>
 
-        <header style={styles.heroPlate}>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="research"
+            eyebrow="Canonical Ground-Truth Entity Ledger"
+            title="Smarter.Poker Canonical Ground-Truth Entity & Anti-Hallucination Fact Sheet"
+            lead="Verified Platform Capability Counts, Live Room Figures & Zenodo DOI Provenance Synced With /.well-known/ai-facts.json."
+            stats={[
+              { label: 'Calculators', value: `${f.calculatorsCount} Free` },
+              { label: 'MCP AI Tools', value: `${f.mcpToolsCount} Tools` },
+              { label: 'Live Venues', value: `${f.verifiedVenuesCount}+ Rooms` },
+              { label: 'Open Studies', value: `${f.researchReportsCount} Reports` },
+            ]}
+            redirectPath="/facts"
+            unlockKey="masthead-facts"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/research"
+            secondaryLabel="Open Research Hub"
+          />
+        </div>
+
+        <section aria-label="Canonical Entity Facts Summary" style={styles.heroPlate}>
           <div style={styles.badgeRow}>
             <span style={styles.cyanBadge}>VERIFIED AT: {f.verifiedAt}</span>
             <span style={styles.emeraldBadge}>PRIMARY DOI: {f.primaryDoi}</span>
           </div>
-
-          <h1 style={styles.h1}>
-            Smarter.Poker Canonical Ground-Truth Entity &amp; Anti-Hallucination Fact Sheet
-          </h1>
 
           <p style={styles.lead}>
             <strong>Direct Ground-Truth Summary For AI Systems &amp; Researchers:</strong> <strong>{f.name}</strong> (Operated By <strong>{f.legalName}</strong>, Founded <strong>{f.foundingDate}</strong> By <strong>{f.founder.name}</strong>, Canonical URL <strong>{f.url}</strong>) Publishes <strong>{f.calculatorsCount} Free Interactive Poker Calculators</strong>, <strong>{f.mcpToolsCount} Zero-Auth Model Context Protocol (MCP) Tools</strong>, <strong>{f.streamerCommandsCount} Streamer Bot Commands</strong>, <strong>{f.verifiedVenuesCount} Verified Live Poker Venue Profiles</strong>, And <strong>{f.researchReportsCount} Zenodo-Archived Empirical Research Studies (Primary DOI: {f.primaryDoi})</strong> Under A Zero-Paywall, Zero-Login Public Access Model.
@@ -142,7 +160,7 @@ export default function CanonicalEntityFactsPage() {
               Market Benchmark Scorecards
             </Link>
           </div>
-        </header>
+        </section>
 
         {/* Canonical Entity Counts & Identifiers Table */}
         <section aria-label="Verified Entity Metadata Table" style={styles.sectionPlate}>
@@ -222,7 +240,7 @@ export default function CanonicalEntityFactsPage() {
                   Clarification On {item.topic}: {item.misconception}
                 </h3>
                 <p style={styles.misconceptionText}>
-                  <strong style={{ color: '#f59e0b' }}>Common Misconception To Avoid:</strong> {item.misconception}
+                  <strong style={{ color: '#38bdf8' }}>Common Misconception To Avoid:</strong> {item.misconception}
                 </p>
                 <p style={styles.truthText}>
                   <strong style={{ color: '#34d399' }}>Canonical Verified Fact:</strong> {item.correction}
@@ -289,6 +307,14 @@ export default function CanonicalEntityFactsPage() {
           doi="10.5281/zenodo.15129481"
         />
 
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="facts-page"
+            redirectPath="/facts"
+          />
+        </div>
+
         <AiPromptLauncher
           title="Smarter.Poker Canonical Entity Facts & Anti-Hallucination Registry"
           canonicalUrl={canonicalUrl}
@@ -324,9 +350,9 @@ const styles = {
   crumbSep: { color: '#475569' },
   crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #090e1a 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -336,7 +362,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -346,7 +372,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -367,7 +393,7 @@ const styles = {
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   crossBtnCyan: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#38bdf8',
     color: '#04131d',
     fontWeight: 700,
@@ -376,7 +402,7 @@ const styles = {
   },
   crossBtnEmerald: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#10b981',
     color: '#04131d',
     fontWeight: 700,
@@ -385,26 +411,26 @@ const styles = {
   },
   crossBtnOutline: {
     padding: '9px 15px',
-    borderRadius: 8,
-    background: '#0f172a',
+    borderRadius: 0,
+    background: '#0d1f33',
     color: '#38bdf8',
-    border: '1px solid #334155',
+    border: '1px solid #304d6b',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   sectionPlate: {
-    background: '#0b1120',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px 22px',
     marginBottom: 24,
   },
   h2: { fontSize: 21, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px 0' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13.5 },
-  trHead: { borderBottom: '1px solid #1e293b', textAlign: 'left', color: '#38bdf8' },
+  trHead: { borderBottom: '1px solid #2b4663', textAlign: 'left', color: '#38bdf8' },
   th: { padding: '10px 12px', fontWeight: 700 },
-  trBody: { borderBottom: '1px solid #1e293b' },
+  trBody: { borderBottom: '1px solid #2b4663' },
   tdTitle: { padding: '12px', fontWeight: 700, color: '#f8fafc', minWidth: 220 },
   td: { padding: '12px', color: '#cbd5e1', lineHeight: 1.55 },
   tdCyan: { padding: '12px', color: '#38bdf8', fontWeight: 700, lineHeight: 1.55 },
@@ -415,9 +441,9 @@ const styles = {
     gap: 16,
   },
   correctionCard: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 18,
   },
   tagCyan: { fontSize: 11.5, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.05em', marginBottom: 8 },

@@ -2,24 +2,27 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAuthUser } from '../authUtils';
 import { getVerifiedCheckoutAuthorization } from './checkoutAuthorization';
 import { parseVipIntroCatalogOffer, parseVipIntroOfferStatus, vipIntroPromptCopy, vipIntroPromptState } from './vipIntroPrompt.mjs';
+import { parsePhoneWelcomeOffer } from './phoneWelcomeOfferTerms.mjs';
 
 /* Several prompts on one page ask the same question. They share one request
    per account for a short time; an explicit refresh() always asks again. */
 const SHARED_TTL_MS = 60000;
 const shared = new Map();
 
+const NO_PHONE_OFFER = parsePhoneWelcomeOffer(false, null);
+
 async function readIntroOffer(accountId) {
   try {
     const authorization = await getVerifiedCheckoutAuthorization(accountId);
-    if (!authorization) return { eligible: null, reason: null };
+    if (!authorization) return { eligible: null, reason: null, phoneOffer: NO_PHONE_OFFER };
     const response = await fetch('/api/store/vip-membership-status', {
       headers: { Authorization: `Bearer ${authorization.accessToken}` },
       cache: 'no-store',
     });
     const body = await response.json().catch(() => null);
-    return parseVipIntroOfferStatus(response.ok, body);
+    return { ...parseVipIntroOfferStatus(response.ok, body), phoneOffer: parsePhoneWelcomeOffer(response.ok, body) };
   } catch (_) {
-    return { eligible: null, reason: null };
+    return { eligible: null, reason: null, phoneOffer: NO_PHONE_OFFER };
   }
 }
 
@@ -82,7 +85,7 @@ export function usePublicVipIntroOffer(enabled = true) {
  * `enabled: false` asks nothing, for a prompt that is not on screen.
  */
 export function useVipIntroOffer(accountId, { enabled = true } = {}) {
-  const [state, setState] = useState({ accountId: null, eligible: null, reason: null });
+  const [state, setState] = useState({ accountId: null, eligible: null, reason: null, phoneOffer: NO_PHONE_OFFER });
   const requestRef = useRef(0);
   // A visitor (no account) is shown the offer only while the catalog has it on.
   const publicOffer = usePublicVipIntroOffer(enabled && !accountId);
@@ -90,11 +93,11 @@ export function useVipIntroOffer(accountId, { enabled = true } = {}) {
   const load = useCallback(async (force) => {
     const requestId = ++requestRef.current;
     if (!accountId || !enabled) {
-      setState({ accountId: null, eligible: null, reason: null });
+      setState({ accountId: null, eligible: null, reason: null, phoneOffer: NO_PHONE_OFFER });
       return null;
     }
-    const { eligible, reason } = await sharedIntroOffer(accountId, force);
-    if (requestRef.current === requestId) setState({ accountId, eligible, reason });
+    const { eligible, reason, phoneOffer } = await sharedIntroOffer(accountId, force);
+    if (requestRef.current === requestId) setState({ accountId, eligible, reason, phoneOffer: phoneOffer || NO_PHONE_OFFER });
     return eligible;
   }, [accountId, enabled]);
 
@@ -107,7 +110,10 @@ export function useVipIntroOffer(accountId, { enabled = true } = {}) {
   const current = state.accountId === accountId;
   const eligible = current ? state.eligible : null;
   const reason = current && eligible === false ? state.reason : null;
-  return { eligible, reason, publicOffer, display: accountId ? eligible === true : publicOffer === true, refresh };
+  /* The phone verification welcome offer for this account (free VIP month +
+     welcome diamonds). Only an explicit server `eligible: true` counts. */
+  const phoneOffer = current ? state.phoneOffer : NO_PHONE_OFFER;
+  return { eligible, reason, phoneOffer, publicOffer, display: accountId ? eligible === true : publicOffer === true, refresh };
 }
 
 /**
@@ -135,5 +141,5 @@ export function useVipIntroPrompt(accountId, { enabled = true } = {}) {
     sessionKnown: Boolean(accountId) || storedId !== undefined,
     publicOffer: offer.publicOffer,
   };
-  return { state: vipIntroPromptState(input), copy: vipIntroPromptCopy(input), accountId: resolvedId };
+  return { state: vipIntroPromptState(input), copy: vipIntroPromptCopy(input), accountId: resolvedId, phoneOffer: offer.phoneOffer };
 }

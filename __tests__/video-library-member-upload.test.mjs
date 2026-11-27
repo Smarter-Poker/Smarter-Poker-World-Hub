@@ -9,7 +9,9 @@ test('member clips enter the maintained poker upload flow with a truthful public
     const reels = read('pages/hub/reels.js');
     assert.match(entry, /MEMBER_CLIP_UPLOAD_PATH = '\/hub\/reels\?category=poker&upload=1'/);
     assert.match(entry, /href=\{MEMBER_CLIP_UPLOAD_PATH\}/);
-    assert.match(entry, /In Poker Reels/);
+    // The publication destination is stated behind the library's "?" help
+    // since Dan's 2026-11-27 ruling removed the grey sentence from the page.
+    assert.match(read('pages/hub/video-library.js'), /Share Your Own Poker Clip In Poker Reels/);
     assert.match(reels, /POKER_REEL_UPLOAD_PATH = '\/hub\/reels\?category=poker&upload=1'/);
     assert.match(reels, /router\.query\.upload !== '1'/);
     assert.match(reels, /getAuthUser\(\)\?\.id !== user\.id \|\| !getAccessToken\(\)/);

@@ -1,0 +1,71 @@
+{
+  "id": "cash-008",
+  "name": "4-Bet Wars",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:41.960Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: 4-Bet Wars.\nSubject: Two opposing lines of escalating poker wagers rush toward one another: four chunky successive tiers of chips on each side, frozen at the moment the largest wagers meet. The scene should feel like a costly preflop confrontation, not a trophy.\nCamera: Dynamic diagonal viewpoint tilted above the felt, close enough for the nearest wager to feel oversized.\nComposition: Two opposing triangular masses occupy opposite corners and collide across the center. The fourth wager is largest and sharp; earlier tiers recede in softer focus. Restrained motion traces follow actual chip movement. Fill the frame with the confrontation, without a circular base or empty half.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Two opposing lines of escalating poker wagers rush toward one another: four chunky successive tiers of chips on each side, frozen at the moment the largest wagers meet. The scene should feel like a costly preflop confrontation, not a trophy.",
+  "camera": "Dynamic diagonal viewpoint tilted above the felt, close enough for the nearest wager to feel oversized.",
+  "composition": "Two opposing triangular masses occupy opposite corners and collide across the center. The fourth wager is largest and sharp; earlier tiers recede in softer focus. Restrained motion traces follow actual chip movement. Fill the frame with the confrontation, without a circular base or empty half.",
+  "source": {
+    "fileName": "exec-d5c424f4-0bb6-4a89-a91a-ba75131f2d64.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2508897,
+    "sha256": "bb68fc07cc20248c270fdfec83d012f3d5eb0eed66ab9cd2d3fcd25d080a84ea"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-008.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 41728,
+      "sha256": "99dcf054c716f08beb15bc9c2497f85f92db0b3d6e9efb015572ca6ab2bc9133"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-008.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 39450,
+      "sha256": "5aed5b26e5b6b5097f2972b7f3db5bd49cd4d60844422210ea971c354857699f"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-008.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 83816,
+      "sha256": "4da18542b545c92af911e1d3300550c11dd3fae6c0a93916eb454a24e98500a7"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-008.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 73542,
+      "sha256": "ae659b8e3d3e2f271ddc38a3cf15250cc8e1947ca57c7e71b62f5046ba483cd0"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-008.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 159180,
+      "sha256": "ca727261517c991d58a825b67356bc7606f88d7f2b4024efd5343bba4c97e391"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-008.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 127634,
+      "sha256": "24699afb329712be583d43e6d215fce2385078c17011f98117e7c72500cb884b"
+    }
+  ]
+}

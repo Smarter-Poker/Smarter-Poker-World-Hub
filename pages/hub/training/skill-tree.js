@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -693,6 +694,14 @@ export default function SkillTreePage() {
                 </div>
               </motion.div>
             ))}
+
+          <div style={{ marginTop: 20 }}>
+            <SmarterAccountUnlockGate
+              variant="study-deck"
+              context="training-skill-tree"
+              redirectPath="/hub/training/skill-tree"
+            />
+          </div>
 
           <div style={{ marginTop: 20 }}>
             <SmarterConversionCta

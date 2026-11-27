@@ -107,7 +107,7 @@ const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalH
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { VIPCard } from '../../src/components/store/StoreCards';
-import { VipMasthead, VipPricePlate, vipIntroPlateProps } from '../../src/components/vip/VipKit';
+import { VipMasthead, VipPricePlate, vipIntroPlateProps, VipPhoneOfferGate } from '../../src/components/vip/VipKit';
 import { VIP_INTRO_VERIFY_REASON } from '../../src/lib/store/vipIntroPrompt.mjs';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
@@ -3735,6 +3735,14 @@ export default function DiamondStorePage({
                       </div>
                       <Link href="/hub/vip-membership/manage" className={vipStyles.action}>Manage My VIP</Link>
                     </section>
+                  )}
+
+                  {/* Phone verification reward first (Dan, 2026-11-27): an account
+                      that has not claimed its free VIP month and welcome
+                      diamonds sees that offer above the plans. Skip hides it;
+                      the plans below are unchanged either way. */}
+                  {!isVip && !vipProduct?.gift && (
+                    <VipPhoneOfferGate accountId={committedStoreAccountId} heading="h2">{null}</VipPhoneOfferGate>
                   )}
 
                   {!vipProduct?.gift && <section id="vip-plans" className={vipStyles.purchase} aria-labelledby="vip-plan-title">

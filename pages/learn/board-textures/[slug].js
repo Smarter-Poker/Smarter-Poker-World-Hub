@@ -16,6 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
   BOARD_TEXTURES,
   BOARD_TEXTURES_AS_OF,
@@ -202,7 +203,7 @@ export default function BoardTextureDetailPage({ texture, allTextures = [] }) {
             <button
               type="button"
               onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
-              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#38bdf8', borderColor: 'rgba(37, 200, 255, 0.45)' }}
             >
               {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Board Card'}
             </button>
@@ -306,6 +307,13 @@ export default function BoardTextureDetailPage({ texture, allTextures = [] }) {
             ))}
           </div>
         </section>
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context={`learn-board-texture-${texture.slug}`}
+          title={`Unlock Full ${texture.name} C-Bet Frequencies & Turn Barrel Trees Free`}
+          redirectPath={canonicalPath}
+        />
+
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>
@@ -346,8 +354,8 @@ export default function BoardTextureDetailPage({ texture, allTextures = [] }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#050811',
-    color: '#e2e8f0',
+    background: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
   },
   container: {
@@ -360,16 +368,16 @@ const styles = {
     flexWrap: 'wrap',
     gap: 8,
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginBottom: 18,
   },
   crumbLink: { color: '#38bdf8', textDecoration: 'none' },
-  crumbSep: { color: '#475569' },
-  crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
+  crumbSep: { color: '#2b4663' },
+  crumbCurrent: { color: '#bdd0e2', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #0a1a2b 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 26,
   },
@@ -379,7 +387,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -389,7 +397,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -397,14 +405,14 @@ const styles = {
   h1: {
     fontSize: 'clamp(25px, 3.5vw, 35px)',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     lineHeight: 1.22,
     margin: '0 0 14px 0',
   },
   lead: {
     fontSize: 16,
     lineHeight: 1.66,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 20px 0',
   },
   metricsGrid: {
@@ -414,63 +422,63 @@ const styles = {
     marginBottom: 20,
   },
   metricCard: {
-    background: '#070b14',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px 16px',
   },
-  metricLabel: { fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 },
+  metricLabel: { fontSize: 12, color: '#bdd0e2', fontWeight: 600, marginBottom: 6 },
   metricValueCyan: { fontSize: 17, fontWeight: 800, color: '#38bdf8' },
   metricValueEmerald: { fontSize: 17, fontWeight: 800, color: '#34d399' },
-  metricValueText: { fontSize: 13.5, fontWeight: 700, color: '#f8fafc', lineHeight: 1.4 },
+  metricValueText: { fontSize: 13.5, fontWeight: 700, color: '#f2f7ff', lineHeight: 1.4 },
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   crossBtnCyan: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#38bdf8',
-    color: '#04131d',
+    color: '#071321',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#10b981',
-    color: '#04131d',
+    color: '#071321',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   crossBtnOutline: {
     padding: '9px 15px',
-    borderRadius: 8,
-    background: '#0f172a',
+    borderRadius: 0,
+    background: '#0d1f33',
     color: '#38bdf8',
-    border: '1px solid #334155',
+    border: '1px solid #2b4663',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   sectionPlate: {
-    background: '#0b1120',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px 22px',
     marginBottom: 26,
   },
-  h2: { fontSize: 21, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0' },
-  h3: { fontSize: 17, fontWeight: 700, color: '#f8fafc', margin: '6px 0 12px 0' },
-  bodyText: { fontSize: 14.5, lineHeight: 1.65, color: '#cbd5e1', margin: '6px 0 0 0' },
+  h2: { fontSize: 21, fontWeight: 800, color: '#f2f7ff', margin: '0 0 14px 0' },
+  h3: { fontSize: 17, fontWeight: 700, color: '#f2f7ff', margin: '6px 0 12px 0' },
+  bodyText: { fontSize: 14.5, lineHeight: 1.65, color: '#bdd0e2', margin: '6px 0 0 0' },
   twoColGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
     gap: 18,
   },
   colBox: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 18,
   },
   tagCyan: {
@@ -488,7 +496,7 @@ const styles = {
     letterSpacing: '0.05em',
   },
   bulletList: { margin: 0, paddingLeft: 18, display: 'grid', gap: 10 },
-  bulletItem: { fontSize: 14, lineHeight: 1.6, color: '#cbd5e1' },
+  bulletItem: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2' },
   peerGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
@@ -499,21 +507,21 @@ const styles = {
     flexDirection: 'column',
     gap: 4,
     padding: '14px 16px',
-    borderRadius: 10,
-    background: '#0f172a',
-    border: '1px solid #1e293b',
+    borderRadius: 0,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
     textDecoration: 'none',
   },
   peerCode: { fontSize: 11, fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace' },
-  peerName: { fontSize: 14.5, fontWeight: 700, color: '#f8fafc' },
-  peerStats: { fontSize: 12, color: '#94a3b8' },
+  peerName: { fontSize: 14.5, fontWeight: 700, color: '#f2f7ff' },
+  peerStats: { fontSize: 12, color: '#bdd0e2' },
   faqList: { display: 'grid', gap: 14 },
   faqItem: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px 18px',
   },
-  faqQ: { fontSize: 16, fontWeight: 700, color: '#f8fafc', margin: '0 0 6px 0' },
-  faqA: { fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: 0 },
+  faqQ: { fontSize: 16, fontWeight: 700, color: '#f2f7ff', margin: '0 0 6px 0' },
+  faqA: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: 0 },
 };

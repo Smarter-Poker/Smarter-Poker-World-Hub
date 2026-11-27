@@ -30,6 +30,7 @@ import { checkNewUnlocks, computeTriviaStats } from '../../../src/config/triviaA
 
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_ARCADE, TRIVIA_INTRO_ART_DAILY, TRIVIA_INTRO_ART_HISTORY, TRIVIA_INTRO_ART_PRO, TRIVIA_INTRO_ART_RULES } from '../../../src/config/triviaIntroArt.mjs';
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
@@ -1716,6 +1717,17 @@ export default function TriviaModePage() {
                         subtitle={modeTagFitsHead ? modeTag : undefined}
                         pill={gameState === 'ready' && (mode === 'daily' || isPhase9KnowledgeMode) && serverRun.hasRecoverableSession ? 'Resume' : gameState === 'ready' ? 'Ready' : gameState === 'playing' ? 'Live' : gameState === 'results' ? 'Results' : gameState === 'saving' ? 'Saving' : gameState === 'saving_error' || gameState === 'error' ? 'Attention' : 'Loading'}
                         pillInk={gameState === 'saving_error' || gameState === 'error' ? 'red' : gameState === 'playing' ? 'green' : 'blue'}
+                        headerAction={(
+                            <TriviaHelpButton
+                                ariaLabel={`${modeName} Help`}
+                                eyebrow="Smarter Poker Trivia"
+                                title={`About ${modeName}`}
+                                subtitle={modeTag || 'Server-Scored Poker Trivia'}
+                            >
+                                <p>{modeConfig?.description || 'Answer Server-Scored Poker Questions, Track Your Accuracy And Collect Verified Diamond Rewards.'}</p>
+                                <p>Entry Cost, VIP Eligibility And Reward Limits Are Confirmed Before Your Run Starts. Completed Runs Settle With Verifiable Server Receipts.</p>
+                            </TriviaHelpButton>
+                        )}
                         titleAs="h1"
                         secondaryAction={consoleSecondary}
                         primaryAction={consolePrimary}

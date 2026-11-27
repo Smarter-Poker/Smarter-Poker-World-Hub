@@ -17,6 +17,7 @@ import {
     isDisplayableVideoTitle,
     isCuratedFeedVideo,
 } from '../../../src/lib/videoLibraryCuration.mjs';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 
 const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FALLBACK_THUMB_SRC = '/api/news/email-image?fallback=1&m=thumb';
@@ -873,7 +874,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     gap: '6px',
                                     color: '#05070a',
                                     background: '#4fc1b3',
-                                    borderRadius: '999px',
+                                    borderRadius: 0,
                                     padding: '4px 13px',
                                     fontSize: '12.5px',
                                     fontWeight: 800,
@@ -910,7 +911,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                         style={{
                             background: '#0b1118',
                             border: '1px solid #1b2c3d',
-                            borderRadius: '18px',
+                            borderRadius: 0,
                             padding: '30px 26px',
                             marginBottom: '26px',
                         }}
@@ -944,7 +945,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     fontSize: '11.5px',
                                     fontWeight: 700,
                                     padding: '4px 10px',
-                                    borderRadius: '999px',
+                                    borderRadius: 0,
                                 }}
                             >
                                 {formatPublishedDate(issue?.publishedAt)}
@@ -988,7 +989,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                         style={{
                                             background: '#0b1118',
                                             border: '1px solid #1b2c3d',
-                                            borderRadius: '14px',
+                                            borderRadius: 0,
                                             padding: '20px 22px',
                                         }}
                                     >
@@ -1003,7 +1004,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                 letterSpacing: '1px',
                                                 textTransform: 'uppercase',
                                                 padding: '3px 10px',
-                                                borderRadius: '999px',
+                                                borderRadius: 0,
                                             }}
                                         >
                                             {u.badge}
@@ -1033,7 +1034,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                 background: '#101a24',
                                 border: '1px solid #1b2c3d',
                                 borderLeft: '4px solid #4fc1b3',
-                                borderRadius: '16px',
+                                borderRadius: 0,
                                 padding: '24px 22px',
                                 marginBottom: '28px',
                             }}
@@ -1072,7 +1073,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     height: 'auto',
                                     aspectRatio: '600 / 240',
                                     objectFit: 'cover',
-                                    borderRadius: '12px',
+                                    borderRadius: 0,
                                     border: '1px solid #1b2c3d',
                                     background: '#0b1520',
                                     margin: '0 0 14px 0',
@@ -1109,7 +1110,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                     : isChosen
                                                       ? '1px solid #60a5fa'
                                                       : '1px solid #1b2c3d',
-                                                borderRadius: '10px',
+                                                borderRadius: 0,
                                                 padding: '12px 14px',
                                                 color: '#ffffff',
                                                 fontSize: '14px',
@@ -1124,7 +1125,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                         justifyContent: 'center',
                                                         width: '26px',
                                                         height: '26px',
-                                                        borderRadius: '999px',
+                                                        borderRadius: 0,
                                                         background: '#4fc1b3',
                                                         color: '#05070a',
                                                         fontSize: '12.5px',
@@ -1152,7 +1153,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     style={{
                                         marginTop: '12px',
                                         padding: '10px 14px',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                         background: '#0b1118',
                                         border: '1px solid #60a5fa',
                                         color: '#cbd5e1',
@@ -1169,7 +1170,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     style={{
                                         marginTop: '12px',
                                         padding: '10px 14px',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                         background: '#0b1118',
                                         border: '1px solid rgba(96, 165, 250, 0.3)',
                                         display: 'flex',
@@ -1195,7 +1196,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                         padding: '14px 16px',
                                         background: '#0b1118',
                                         border: '1px solid #255c56',
-                                        borderRadius: '12px',
+                                        borderRadius: 0,
                                     }}
                                 >
                                     <div style={{ color: '#4fc1b3', fontSize: '12.5px', fontWeight: 800, marginBottom: '4px' }}>
@@ -1214,7 +1215,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     style={{
                                         marginTop: '16px',
                                         padding: '14px 16px',
-                                        borderRadius: '12px',
+                                        borderRadius: 0,
                                         background: '#0b1118',
                                         border: '1px solid #1b2c3d',
                                         borderLeft: '3px solid #4fc1b3',
@@ -1272,7 +1273,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                             alignItems: 'flex-start',
                                             background: '#0b1118',
                                             border: '1px solid #1b2c3d',
-                                            borderRadius: '14px',
+                                            borderRadius: 0,
                                             padding: '16px 18px',
                                             textDecoration: 'none',
                                             color: '#ffffff',
@@ -1294,7 +1295,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                 width: '112px',
                                                 height: '78px',
                                                 objectFit: 'cover',
-                                                borderRadius: '8px',
+                                                borderRadius: 0,
                                                 border: '1px solid #1b2c3d',
                                                 background: '#0b1520',
                                                 flexShrink: 0,
@@ -1334,7 +1335,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                             style={{
                                 background: '#0b1118',
                                 border: '1px solid #1b2c3d',
-                                borderRadius: '16px',
+                                borderRadius: 0,
                                 padding: '20px 22px',
                                 marginBottom: '28px',
                             }}
@@ -1377,7 +1378,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                         width: '112px',
                                         height: '78px',
                                         objectFit: 'cover',
-                                        borderRadius: '8px',
+                                        borderRadius: 0,
                                         border: '1px solid #1b2c3d',
                                         background: '#0b1520',
                                         flexShrink: 0,
@@ -1404,7 +1405,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                             style={{
                                 background: '#0b1118',
                                 border: '1px solid #1b2c3d',
-                                borderRadius: '16px',
+                                borderRadius: 0,
                                 padding: '22px 22px',
                                 marginBottom: '28px',
                             }}
@@ -1438,7 +1439,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     fontWeight: 800,
                                     fontSize: '13.5px',
                                     padding: '10px 18px',
-                                    borderRadius: '8px',
+                                    borderRadius: 0,
                                 }}
                             >
                                 Open Free Calculator &rarr;
@@ -1454,7 +1455,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                 background: '#0b1118',
                                 border: '1px solid #1b2c3d',
                                 borderLeft: '4px solid #60a5fa',
-                                borderRadius: '16px',
+                                borderRadius: 0,
                                 padding: '24px 22px',
                                 marginBottom: '28px',
                             }}
@@ -1489,7 +1490,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                             background: 'rgba(79, 193, 179, 0.12)',
                                             border: '1px solid rgba(79, 193, 179, 0.3)',
                                             padding: '2px 8px',
-                                            borderRadius: '999px',
+                                            borderRadius: 0,
                                         }}
                                     >
                                         {trivia.categoryLabel}
@@ -1515,7 +1516,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                 justifyContent: 'space-between',
                                                 gap: '10px',
                                                 padding: '12px 14px',
-                                                borderRadius: '10px',
+                                                borderRadius: 0,
                                                 textAlign: 'left',
                                                 cursor: 'pointer',
                                                 background: isAnswer
@@ -1549,7 +1550,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     style={{
                                         marginTop: '14px',
                                         padding: '14px 16px',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                         background: '#101a24',
                                         border: selectedTriviaKey === trivia.answerKey ? '1px solid #4fc1b3' : '1px solid #60a5fa',
                                     }}
@@ -1587,7 +1588,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                             style={{
                                 background: '#0b1118',
                                 border: '1px solid #1b2c3d',
-                                borderRadius: '16px',
+                                borderRadius: 0,
                                 padding: '22px',
                                 marginBottom: '28px',
                             }}
@@ -1598,7 +1599,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     style={{
                                         marginBottom: '18px',
                                         padding: '16px 18px',
-                                        borderRadius: '12px',
+                                        borderRadius: 0,
                                         background: '#101a24',
                                         border: '1px solid #1b2c3d',
                                         borderLeft: '3px solid #4fc1b3',
@@ -1623,7 +1624,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                 style={{
                                                     background: '#0b1118',
                                                     border: '1px solid #1b2c3d',
-                                                    borderRadius: '10px',
+                                                    borderRadius: 0,
                                                     padding: '10px 12px',
                                                 }}
                                             >
@@ -1664,7 +1665,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                 style={{
                                                     background: '#101a24',
                                                     border: '1px solid #1b2c3d',
-                                                    borderRadius: '12px',
+                                                    borderRadius: 0,
                                                     padding: '16px 18px',
                                                 }}
                                             >
@@ -1684,7 +1685,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                             fontWeight: 800,
                                                             fontSize: '13px',
                                                             padding: '9px 16px',
-                                                            borderRadius: '8px',
+                                                            borderRadius: 0,
                                                         }}
                                                     >
                                                         Join Club 25450
@@ -1700,7 +1701,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                                             fontWeight: 800,
                                                             fontSize: '13px',
                                                             padding: '9px 16px',
-                                                            borderRadius: '8px',
+                                                            borderRadius: 0,
                                                         }}
                                                     >
                                                         {CALENDAR_ICS_LABEL}
@@ -1719,7 +1720,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                         style={{
                             background: '#101a24',
                             border: '1px solid #1b2c3d',
-                            borderRadius: '16px',
+                            borderRadius: 0,
                             padding: '24px 22px',
                             display: 'flex',
                             alignItems: 'center',
@@ -1751,7 +1752,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     fontWeight: 800,
                                     fontSize: '13.5px',
                                     padding: '11px 16px',
-                                    borderRadius: '8px',
+                                    borderRadius: 0,
                                 }}
                             >
                                 Launch ICM Tool
@@ -1766,7 +1767,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     fontWeight: 800,
                                     fontSize: '13.5px',
                                     padding: '11px 18px',
-                                    borderRadius: '8px',
+                                    borderRadius: 0,
                                 }}
                             >
                                 Enter Club Arena
@@ -1800,7 +1801,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     fontWeight: 800,
                                     fontSize: '13.5px',
                                     padding: '10px 16px',
-                                    borderRadius: '10px',
+                                    borderRadius: 0,
                                 }}
                             >
                                 &larr; Previous Edition (#{issue.prevEditionNumber})
@@ -1822,7 +1823,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                                     fontWeight: 800,
                                     fontSize: '13.5px',
                                     padding: '10px 16px',
-                                    borderRadius: '10px',
+                                    borderRadius: 0,
                                 }}
                             >
                                 Next Edition (#{issue.nextEditionNumber}) &rarr;
@@ -1831,6 +1832,13 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                             <div />
                         )}
                     </nav>
+                    <div style={{ marginTop: 28 }}>
+                        <SmarterAccountUnlockGate
+                            variant="editorial-wire"
+                            context="wire-edition"
+                            redirectPath={issue?.editionNumber ? `/hub/wire/${issue.editionNumber}` : '/hub/wire'}
+                        />
+                    </div>
                 </article>
             </main>
         </>

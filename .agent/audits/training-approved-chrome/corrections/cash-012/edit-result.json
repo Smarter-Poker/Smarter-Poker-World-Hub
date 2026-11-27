@@ -1,0 +1,8 @@
+{
+  "tool": "imagegen",
+  "sourceInput": "/workspace/scratch/c868e812eb6b/generated_images/exec-555076d1-799c-4510-be3a-7ade2dd567a8.png",
+  "sourceOutput": "/workspace/scratch/c868e812eb6b/generated_images/exec-5233132e-2bb8-498b-b201-21d3594ca7ca.png",
+  "prompt": "Edit this existing poker-table image. Preserve exactly the overhead camera, navy felt texture, upper-left pot of black/cobalt/silver chips, lower-right human hand holding its call chip, curved stitched chrome-edged table rail, and the lighting. Remove ALL FIVE white blank playing-card rectangles completely, including their outlines and shadows. Fill their entire former area seamlessly with continuous dark navy poker felt matching the surrounding texture and illumination. The center of the table must be uninterrupted navy felt with NO white rectangles, NO cards, NO card backs, NO card faces, NO suit or rank marks, NO blank placeholders, NO printed text, and NO replacement objects. Do not add any objects or redesign any preserved area. This is a clean scene plate; source-exact real cards will later be rendered by application code, so draw absolutely no cards here. Preserve the original dimensions and high image quality.",
+  "generatedAt": "2026-11-27T18:54:52.733Z",
+  "supersededRecord": ".agent/audits/training-approved-chrome/corrections/cash-012/superseded-v2-source-record.json"
+}

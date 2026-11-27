@@ -346,9 +346,12 @@ test('4. [LiveSpotQuickEntry] .pa-btn on all interactive buttons, GPU scaleX bul
     assert.match(btnTag, /className="pa-btn"/, `Button missing className="pa-btn": ${btnTag}`);
   }
 
-  // Action links (Sign In, Drill This Spot) also carry className="pa-btn"
+  // Sign In, Drill This Spot and both confirmed-save outcomes use action links.
   const linkTags = liveSpotSrc.match(/<a\b[\s\S]*?>/g) || [];
-  assert.equal(linkTags.length, 2, 'Expected Sign In and Drill This Spot action links');
+  assert.equal(linkTags.length, 4, 'Expected Sign In, Drill This Spot, Saved Review And Partial Saved Review Links');
+  for (const destination of ['href="/auth/login"', 'href={summary.drillHref}', 'href={summary.reviewHref}', 'href={result.summary.reviewHref}']) {
+    assert.ok(linkTags.some(tag => tag.includes(destination)), `Missing Action Destination ${destination}`);
+  }
   for (const linkTag of linkTags) {
     assert.match(linkTag, /className="pa-btn"/, `Link missing className="pa-btn": ${linkTag}`);
   }

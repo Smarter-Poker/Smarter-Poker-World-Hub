@@ -13,14 +13,14 @@
   pointer-events: auto;
   width: 100%;
   max-width: 920px;
-  background: linear-gradient(135deg, #0b1118 0%, #101a24 100%);
-  border: 1px solid #1b2c3d;
-  border-left: 3px solid #4fc1b3;
-  border-radius: 14px;
-  padding: 14px 18px;
-  box-shadow: 0 18px 44px rgba(5, 7, 10, 0.82);
-  color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(160deg, #132539 0%, #091625 60%, #040d18 100%);
+  border: 4px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 6px stretch;
+  border-radius: 0;
+  padding: 12px 16px;
+  box-shadow: 0 18px 44px rgba(2, 7, 15, 0.86);
+  color: #f2f7ff;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .inlineWrap {
@@ -30,13 +30,13 @@
 
 .inlineCard {
   width: 100%;
-  background: linear-gradient(135deg, #0b1118 0%, #101a24 100%);
-  border: 1px solid #1b2c3d;
-  border-left: 3px solid #4fc1b3;
-  border-radius: 14px;
-  padding: 22px 22px;
-  color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(160deg, #132539 0%, #091625 60%, #040d18 100%);
+  border: 6px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  padding: 20px 22px;
+  color: #f2f7ff;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .innerRow {
@@ -68,13 +68,13 @@
 }
 
 .badge {
-  background: rgba(96, 165, 250, 0.14);
-  border: 1px solid rgba(96, 165, 250, 0.35);
-  color: #60a5fa;
-  font-size: 12px;
-  font-weight: 700;
+  background: linear-gradient(180deg, #12406f 0%, #082341 100%);
+  border: 1px solid #3a7fbd;
+  color: #86daff;
+  font-size: 11px;
+  font-weight: 800;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 .headline {
@@ -103,11 +103,11 @@
 .emailInput {
   flex: 1 1 auto;
   min-width: 0;
-  background: #05070a;
-  border: 1px solid #1b2c3d;
-  border-radius: 9px;
+  background: #040c16;
+  border: 1px solid #2b4663;
+  border-radius: 0;
   padding: 10px 13px;
-  color: #ffffff;
+  color: #f2f7ff;
   font-size: 14px;
   outline: none;
   transition: border-color 0.18s ease;
@@ -118,16 +118,16 @@
 }
 
 .emailInput:focus {
-  border-color: #4fc1b3;
+  border-color: #86daff;
 }
 
 .submitBtn {
   flex: 0 0 auto;
   min-height: 44px;
-  background: #4fc1b3;
-  color: #05070a;
-  border: none;
-  border-radius: 9px;
+  background: linear-gradient(180deg, #1f6feb 0%, #11449e 100%);
+  color: #ffffff;
+  border: 1px solid #5bc0ff;
+  border-radius: 0;
   padding: 10px 16px;
   font-size: 13.5px;
   font-weight: 800;
@@ -149,10 +149,10 @@
   flex: 0 0 auto;
   width: 44px;
   height: 44px;
-  border-radius: 8px;
-  border: 1px solid #1b2c3d;
-  background: #05070a;
-  color: #9fb3c8;
+  border-radius: 0;
+  border: 1px solid #2b4663;
+  background: #050d17;
+  color: #bdd0e2;
   font-size: 16px;
   line-height: 1;
   display: inline-flex;
@@ -197,11 +197,24 @@
   .floatingWrap {
     left: 10px;
     right: 10px;
-    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
   }
 
   .floatingCard {
-    padding: 12px 14px;
+    padding: 9px 11px;
+  }
+
+  .floatingCard .innerRow {
+    gap: 8px;
+  }
+
+  .floatingCard .eyebrowRow {
+    margin-bottom: 2px;
+  }
+
+  .floatingCard .headline {
+    font-size: 13.5px;
+    line-height: 1.25;
   }
 
   .formRow {
@@ -209,6 +222,7 @@
     flex-wrap: wrap;
     width: 100%;
     max-width: none;
+    gap: 6px;
   }
 
   .emailInput {

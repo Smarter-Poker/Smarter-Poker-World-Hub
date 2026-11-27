@@ -22,6 +22,7 @@ import '../src/styles/worlds/training.css';
 import '../src/styles/worlds/marketplace.css';
 import '../src/styles/worlds/news.css';
 import '../src/styles/worlds/video-library.css';
+import '../src/styles/worlds/video-library-pages.css';
 import '../src/styles/worlds/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-lobby.css';
 import '../src/styles/worlds/memory-games.css';
@@ -162,6 +163,8 @@ import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import GuestConversionBar from '../src/components/seo/GuestConversionBar';
+import SmarterQuickSignupSheet from '../src/components/seo/SmarterQuickSignupSheet';
+import SmarterEngagedConversionPrompt from '../src/components/seo/SmarterEngagedConversionPrompt';
 import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
 import ActivePokerSeatLink from '../src/components/ui/ActivePokerSeatLink';
@@ -992,9 +995,10 @@ export default function App({ Component, pageProps }) {
   // Query-state changes must not remount the full-screen Reel viewer or the
   // Stable Admin console, browsing search, or Personal Assistant settings while
   // their in-flight work and keyboard state settle. Leaks consumes settings=1
-  // after opening its sheet; remounting here would immediately close it.
+  // after opening its sheet; Review changes ?hand= after selecting a saved hand.
+  // Remounting either would close the sheet or reset the player's active filters.
   // Other routes retain the historical full-URL error-boundary reset behavior.
-  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/video-library' || resolvedPath === '/hub/personal-assistant/leaks'
+  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/video-library' || resolvedPath === '/hub/personal-assistant/leaks' || resolvedPath === '/hub/personal-assistant/review'
     ? resolvedPath
     : router.asPath;
   // Every Poker Near Me route owns a complete SEOHead. Keeping the generic
@@ -1245,6 +1249,8 @@ export default function App({ Component, pageProps }) {
                               {!isEmbedded && !isPrintProofRoute && !isOperatorConsole && !isClubArenaRoute && (
                                 <HubErrorBoundary name="Guest Conversion Bar" fallback={<></>}>
                                   <GuestConversionBar />
+                                  <SmarterQuickSignupSheet />
+                                  <SmarterEngagedConversionPrompt />
                                 </HubErrorBoundary>
                               )}
                               <PageErrorBoundary key={pageErrorBoundaryKey}>

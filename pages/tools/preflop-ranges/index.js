@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
 import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
@@ -61,6 +62,7 @@ export default function PreflopRangeMatrixHub({
   initialPosition = 'UTG',
   canonicalPath = '/tools/preflop-ranges',
   markdownPath = '/tools/preflop-ranges.md',
+  unlockGateSlot = null,
 }) {
   const [activePos, setActivePos] = useState(initialPosition);
   const [selectedHand, setSelectedHand] = useState(null);
@@ -228,7 +230,7 @@ export default function PreflopRangeMatrixHub({
                 aria-label="Copy Range Spot Summary"
                 style={{
                   padding: '8px 14px',
-                  borderRadius: 8,
+                  borderRadius: 0,
                   fontSize: 13,
                   fontWeight: 600,
                   border: '1px solid rgba(57,233,165,0.4)',
@@ -246,7 +248,7 @@ export default function PreflopRangeMatrixHub({
                 aria-label="Print Or Save PDF Preflop Chart"
                 style={{
                   padding: '8px 14px',
-                  borderRadius: 8,
+                  borderRadius: 0,
                   fontSize: 13,
                   fontWeight: 600,
                   border: '1px solid rgba(88,166,255,0.4)',
@@ -286,7 +288,7 @@ export default function PreflopRangeMatrixHub({
                   }}
                   style={{
                     padding: '8px 16px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     fontSize: 14,
                     fontWeight: 600,
                     border: active ? '1px solid #58A6FF' : '1px solid rgba(255,255,255,0.1)',
@@ -313,7 +315,7 @@ export default function PreflopRangeMatrixHub({
             <div style={{
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 10,
+              borderRadius: 0,
               padding: '12px 16px',
             }}>
               <div style={{ fontSize: 12, color: '#8B949E', textTransform: 'uppercase' }}>Frequency Open</div>
@@ -326,7 +328,7 @@ export default function PreflopRangeMatrixHub({
             <div style={{
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 10,
+              borderRadius: 0,
               padding: '12px 16px',
             }}>
               <div style={{ fontSize: 12, color: '#8B949E', textTransform: 'uppercase' }}>Combos Touched</div>
@@ -339,7 +341,7 @@ export default function PreflopRangeMatrixHub({
             <div style={{
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 10,
+              borderRadius: 0,
               padding: '12px 16px',
             }}>
               <div style={{ fontSize: 12, color: '#8B949E', textTransform: 'uppercase' }}>Pure Opens</div>
@@ -354,7 +356,7 @@ export default function PreflopRangeMatrixHub({
           <div style={{
             background: '#161B22',
             border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 12,
+            borderRadius: 0,
             padding: 12,
             marginBottom: 24,
             overflowX: 'auto',
@@ -391,7 +393,7 @@ export default function PreflopRangeMatrixHub({
                       style={{
                         aspectRatio: '1/1',
                         border: isSelected ? '2px solid #FFFFFF' : '1px solid rgba(0,0,0,0.3)',
-                        borderRadius: 3,
+                        borderRadius: 0,
                         background: bgColor,
                         color: textColor,
                         fontSize: 11,
@@ -416,7 +418,7 @@ export default function PreflopRangeMatrixHub({
             <div style={{
               background: 'rgba(88,166,255,0.08)',
               border: '1px solid rgba(88,166,255,0.3)',
-              borderRadius: 10,
+              borderRadius: 0,
               padding: '14px 18px',
               marginBottom: 24,
               display: 'flex',
@@ -439,11 +441,22 @@ export default function PreflopRangeMatrixHub({
             </div>
           )}
 
+          {/* Progressive Free-Account Unlock Gate */}
+          <div className="no-print" style={{ marginBottom: 24 }}>
+            {unlockGateSlot || (
+              <SmarterAccountUnlockGate
+                variant="solver-matrix"
+                context={`tools-preflop-ranges-${posData.abbrev.toLowerCase()}`}
+                redirectPath={canonicalPath}
+              />
+            )}
+          </div>
+
           {/* Strategy Guide Text Breakdown */}
           <div style={{
             background: '#161B22',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12,
+            borderRadius: 0,
             padding: 24,
             marginBottom: 24,
             lineHeight: 1.6,
@@ -473,7 +486,7 @@ export default function PreflopRangeMatrixHub({
           <div className="no-print" style={{
             background: '#161B22',
             border: '1px solid rgba(88,166,255,0.28)',
-            borderRadius: 12,
+            borderRadius: 0,
             padding: 20,
             marginBottom: 24,
             display: 'flex',
@@ -493,7 +506,7 @@ export default function PreflopRangeMatrixHub({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
               <Link href="/hub/training" style={{
                 padding: '9px 16px',
-                borderRadius: 8,
+                borderRadius: 0,
                 fontSize: 13,
                 fontWeight: 600,
                 background: '#1F6FEB',
@@ -504,7 +517,7 @@ export default function PreflopRangeMatrixHub({
               </Link>
               <Link href="/tools/poker-odds-calculator" style={{
                 padding: '9px 16px',
-                borderRadius: 8,
+                borderRadius: 0,
                 fontSize: 13,
                 fontWeight: 600,
                 border: '1px solid rgba(255,255,255,0.16)',
@@ -516,7 +529,7 @@ export default function PreflopRangeMatrixHub({
               </Link>
               <Link href="/hub/bankroll-manager" style={{
                 padding: '9px 16px',
-                borderRadius: 8,
+                borderRadius: 0,
                 fontSize: 13,
                 fontWeight: 600,
                 border: '1px solid rgba(255,255,255,0.16)',
@@ -544,7 +557,7 @@ export default function PreflopRangeMatrixHub({
           <div style={{
             background: '#161B22',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12,
+            borderRadius: 0,
             padding: 24,
           }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 16px 0', color: '#FFFFFF' }}>
@@ -573,7 +586,7 @@ export default function PreflopRangeMatrixHub({
             marginTop: 24,
             background: '#161B22',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12,
+            borderRadius: 0,
             padding: 24,
           }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px 0', color: '#FFFFFF' }}>
@@ -593,7 +606,7 @@ export default function PreflopRangeMatrixHub({
                     padding: '6px 10px',
                     background: 'rgba(88, 166, 255, 0.08)',
                     border: '1px solid rgba(88, 166, 255, 0.25)',
-                    borderRadius: 6,
+                    borderRadius: 0,
                     color: '#58A6FF',
                     fontSize: 12,
                     fontWeight: 700,
@@ -611,7 +624,7 @@ export default function PreflopRangeMatrixHub({
                   padding: '6px 12px',
                   background: 'rgba(0, 230, 118, 0.12)',
                   border: '1px solid rgba(0, 230, 118, 0.3)',
-                  borderRadius: 6,
+                  borderRadius: 0,
                   color: '#00E676',
                   fontSize: 12,
                   fontWeight: 700,
@@ -628,7 +641,7 @@ export default function PreflopRangeMatrixHub({
             marginTop: 24,
             background: '#161B22',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12,
+            borderRadius: 0,
             padding: 24,
           }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 14px 0', color: '#FFFFFF' }}>
@@ -643,7 +656,7 @@ export default function PreflopRangeMatrixHub({
                   padding: '8px 14px',
                   background: 'rgba(88, 166, 255, 0.12)',
                   border: '1px solid rgba(88, 166, 255, 0.3)',
-                  borderRadius: 6,
+                  borderRadius: 0,
                   color: '#58A6FF',
                   fontSize: 13,
                   fontWeight: 700,
@@ -660,7 +673,7 @@ export default function PreflopRangeMatrixHub({
                   padding: '8px 14px',
                   background: 'rgba(0, 230, 118, 0.12)',
                   border: '1px solid rgba(0, 230, 118, 0.3)',
-                  borderRadius: 6,
+                  borderRadius: 0,
                   color: '#00E676',
                   fontSize: 13,
                   fontWeight: 700,
@@ -677,7 +690,7 @@ export default function PreflopRangeMatrixHub({
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: 6,
+                  borderRadius: 0,
                   color: '#E6EDF3',
                   fontSize: 13,
                   fontWeight: 600,
@@ -694,7 +707,7 @@ export default function PreflopRangeMatrixHub({
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: 6,
+                  borderRadius: 0,
                   color: '#E6EDF3',
                   fontSize: 13,
                   fontWeight: 600,
@@ -711,7 +724,7 @@ export default function PreflopRangeMatrixHub({
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: 6,
+                  borderRadius: 0,
                   color: '#E6EDF3',
                   fontSize: 13,
                   fontWeight: 600,
@@ -728,7 +741,7 @@ export default function PreflopRangeMatrixHub({
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: 6,
+                  borderRadius: 0,
                   color: '#E6EDF3',
                   fontSize: 13,
                   fontWeight: 600,

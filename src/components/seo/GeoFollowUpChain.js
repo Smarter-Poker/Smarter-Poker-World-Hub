@@ -61,9 +61,12 @@ export default function GeoFollowUpChain({
         marginTop: 26,
         marginBottom: 28,
         padding: '22px 24px',
-        background: '#0b1120',
-        border: '1px solid #1e293b',
-        borderRadius: 12,
+        background:
+          'radial-gradient(120% 70% at 50% -10%, #1b426e 0%, transparent 62%), linear-gradient(160deg, #15293e 0%, #0a1a2b 44%, #040d18 100%)',
+        border: '6px solid transparent',
+        borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+        borderRadius: 0,
+        boxShadow: '0 14px 28px rgba(0, 0, 0, 0.65), 0 0 0 1px #02070d',
       }}
     >
       <div
@@ -80,12 +83,13 @@ export default function GeoFollowUpChain({
           style={{
             fontSize: 11,
             fontWeight: 800,
-            letterSpacing: '0.07em',
-            color: accentColor,
+            letterSpacing: '0.08em',
+            color: '#86daff',
             padding: '4px 10px',
-            borderRadius: 6,
-            background: 'rgba(0, 212, 255, 0.12)',
-            border: `1px solid ${accentColor}`,
+            borderRadius: 0,
+            background: 'linear-gradient(180deg, #12406f 0%, #082341 100%)',
+            border: '1px solid #3a7fbd',
+            boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.4)',
           }}
         >
           MULTI-TURN CONVERSATIONAL AI GROUNDING CHAIN
@@ -95,7 +99,7 @@ export default function GeoFollowUpChain({
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: '#34d399',
+            color: '#86daff',
             textDecoration: 'none',
           }}
         >
@@ -105,9 +109,10 @@ export default function GeoFollowUpChain({
 
       <h2
         style={{
-          fontSize: 20,
+          fontFamily: "var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif",
+          fontSize: 22,
           fontWeight: 800,
-          color: '#f8fafc',
+          color: '#f2f7ff',
           margin: '0 0 8px 0',
         }}
       >
@@ -118,14 +123,14 @@ export default function GeoFollowUpChain({
         style={{
           fontSize: 14,
           lineHeight: 1.6,
-          color: '#94a3b8',
+          color: '#bdd0e2',
           margin: '0 0 16px 0',
         }}
       >
         Pre-Computed Turn-2, Turn-3, And Turn-4 Answers With Paired Interactive Calculators And Machine-Readable Markdown Twins For {topicTitle}:
       </p>
 
-      <div style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'grid', gap: 12 }}>
         {items.map((item, idx) => {
           const calcHref = item.calculatorHref || '/tools/poker-odds-calculator';
           const calcLabel = item.calculatorLabel || 'Launch Paired Calculator';
@@ -135,18 +140,19 @@ export default function GeoFollowUpChain({
             <div
               key={item.question || idx}
               style={{
-                background: '#0f172a',
-                border: '1px solid #1e293b',
-                borderRadius: 10,
+                background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+                border: '1px solid #2b4663',
+                borderRadius: 0,
                 padding: '16px 18px',
+                boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.16)',
               }}
             >
               <div
                 style={{
                   fontSize: 11,
                   fontWeight: 800,
-                  color: '#f2b84b',
-                  letterSpacing: '0.06em',
+                  color: '#86daff',
+                  letterSpacing: '0.08em',
                   marginBottom: 6,
                 }}
               >
@@ -156,7 +162,7 @@ export default function GeoFollowUpChain({
                 style={{
                   fontSize: 16,
                   fontWeight: 700,
-                  color: '#f8fafc',
+                  color: '#f2f7ff',
                   margin: '0 0 8px 0',
                   lineHeight: 1.4,
                 }}
@@ -167,21 +173,25 @@ export default function GeoFollowUpChain({
                 style={{
                   fontSize: 14,
                   lineHeight: 1.62,
-                  color: '#cbd5e1',
+                  color: '#bdd0e2',
                   margin: '0 0 12px 0',
                 }}
               >
                 {item.answer}
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <Link
                   href={calcHref}
                   style={{
-                    display: 'inline-block',
-                    padding: '7px 13px',
-                    borderRadius: 7,
-                    background: accentColor,
-                    color: '#041019',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minHeight: 40,
+                    padding: '0 14px',
+                    borderRadius: 0,
+                    background: 'linear-gradient(180deg, #1f6feb 0%, #11449e 100%)',
+                    border: '1px solid #5bc0ff',
+                    boxShadow: 'inset 0 1px 0 rgba(186, 234, 255, 0.5)',
+                    color: '#ffffff',
                     fontSize: 12.5,
                     fontWeight: 800,
                     textDecoration: 'none',
@@ -192,12 +202,14 @@ export default function GeoFollowUpChain({
                 <a
                   href={mdHref}
                   style={{
-                    display: 'inline-block',
-                    padding: '7px 12px',
-                    borderRadius: 7,
-                    background: '#050811',
-                    color: '#38bdf8',
-                    border: '1px solid #334155',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minHeight: 40,
+                    padding: '0 12px',
+                    borderRadius: 0,
+                    background: 'linear-gradient(180deg, #172b42 0%, #0b1827 100%)',
+                    color: '#86daff',
+                    border: '1px solid #3f5d7b',
                     fontSize: 12,
                     fontWeight: 700,
                     textDecoration: 'none',

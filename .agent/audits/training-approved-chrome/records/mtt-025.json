@@ -1,0 +1,71 @@
+{
+  "id": "mtt-025",
+  "name": "Level 10: MTT Champion",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:45.895Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Level 10: MTT Champion.\nSubject: MTT Champion: a victorious tournament trophy on the final poker table under a dramatic arena spotlight, with the winning stack gathered around its base\nCamera: low cinematic winner's-eye view with the trophy high on the right\nComposition: A tall sculpted silver cup dominates the right half; the curved black tournament rail sweeps through the foreground and a long cobalt chip trail leads in from left. Sparse silver confetti frozen in the light, no generic plinth, no gold.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "MTT Champion: a victorious tournament trophy on the final poker table under a dramatic arena spotlight, with the winning stack gathered around its base",
+  "camera": "low cinematic winner's-eye view with the trophy high on the right",
+  "composition": "A tall sculpted silver cup dominates the right half; the curved black tournament rail sweeps through the foreground and a long cobalt chip trail leads in from left. Sparse silver confetti frozen in the light, no generic plinth, no gold.",
+  "source": {
+    "fileName": "exec-e5971f75-4281-4b94-94bf-b02c0ff710f3.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2261185,
+    "sha256": "4ac7ae11901daafdf9e41bf72b32a351c298bbc86c81f998d09b96c3538aa473"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-025.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 46024,
+      "sha256": "df215e29933fb2f5aa1271accf91a3367a89f5f3444b72ab98762c3b97959c17"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-025.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 44780,
+      "sha256": "c52fce2d910fcab4791065eea5ad6046bb88f9be93cddfb2a33ecc7384c924ef"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-025.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 80852,
+      "sha256": "6ae0b30f4da94c49a2efc24ab55a03c24fc8601addab4fca1d6116aa9c780738"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-025.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 73205,
+      "sha256": "5ec453109cd9930025550baaedfeeeba9fb8e3c0c6e8ee4dbd11482cd221cc51"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-025.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 138076,
+      "sha256": "15d81e4d9140b08367216415b0805b7b0ec041b6e1732f925794f416de07ea3c"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-025.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 112599,
+      "sha256": "b3f34dccbe8052b83e9a79a7c090df0ec51fa7462e6f88b351b1354ddb099e3f"
+    }
+  ]
+}

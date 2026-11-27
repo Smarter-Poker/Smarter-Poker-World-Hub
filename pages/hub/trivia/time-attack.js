@@ -24,6 +24,7 @@ import TimeAttackGame from '../../../src/components/trivia/TimeAttackGame';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_TIME_ATTACK } from '../../../src/config/triviaIntroArt.mjs';
 import { busEmit } from '../../../src/engine/EventBus';
@@ -574,9 +575,20 @@ export default function TimeAttackPage() {
                             className="trivia-challenge-console"
                             eyebrow="Timed Challenge"
                             title="Time Attack"
+                            titleAs="h1"
                             titleId="time-attack-title"
                             subtitle="Beat The Clock"
                             pill={stateLabel}
+                            headerAction={(
+                                <TriviaHelpButton
+                                    ariaLabel="Time Attack Trivia Help"
+                                    eyebrow="Timed Challenge"
+                                    title="About Time Attack Trivia"
+                                    subtitle="Rules, Clock Scoring And Rewards"
+                                >
+                                    <HubPageSummary page="trivia-time-attack" />
+                                </TriviaHelpButton>
+                            )}
                             aria-labelledby="time-attack-title"
                             primaryAction={primaryAction}
                             secondaryAction={secondaryAction}
@@ -755,9 +767,6 @@ export default function TimeAttackPage() {
                     </main>
                 </div>
             </>
-          {/* Server rendered in every state (AEO phase 3, 2026-09-17): a
-              crawler always arrives while the roster is still loading. */}
-          <HubPageSummary page="trivia-time-attack" as="h1" />
         </TriviaErrorBoundary>
     );
 }

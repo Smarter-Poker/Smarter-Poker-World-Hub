@@ -1,0 +1,80 @@
+{
+  "id": "spins-006",
+  "name": "Limb Trap",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:03:26.268Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Limb Trap.\nSubject: A small initial limp is followed by an opposing raise, then an exact matching return that keeps the hand alive. Three distinct chip movements trace a broad hooked path across the felt, communicating the limp-call line without any playing cards.\nCamera: High oblique close-up of the hooked action route, with the caller's side in the near-right foreground.\nComposition: The early single-chip entry occupies upper left; the opponent's larger raise sweeps through center; the matching return bends toward lower right and remains fully visible. Use physical chip spacing to communicate the sequence, not text, arrows, trap jaws, cards or a display stage.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A small initial limp is followed by an opposing raise, then an exact matching return that keeps the hand alive. Three distinct chip movements trace a broad hooked path across the felt, communicating the limp-call line without any playing cards.",
+  "camera": "High oblique close-up of the hooked action route, with the caller's side in the near-right foreground.",
+  "composition": "The early single-chip entry occupies upper left; the opponent's larger raise sweeps through center; the matching return bends toward lower right and remains fully visible. Use physical chip spacing to communicate the sequence, not text, arrows, trap jaws, cards or a display stage.",
+  "source": {
+    "fileName": "exec-b367b929-b3b9-4ec5-a000-0e81864344cf.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2708500,
+    "sha256": "8d1aff19d81b39c472d6dbda3798293b3cf422ae3218c9ff55d6cc3a7465842c"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-006.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 38876,
+      "sha256": "1ee9aef25aa5ea2803181099359b63dba4f5bac65547813e5f532eea02c67424"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-006.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 35846,
+      "sha256": "d73ea08cb82bdff8c2c8fdb93cc720ba24d685a540c3152c4c2c1b3043eb52ac"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-006.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 87906,
+      "sha256": "d4dce400e52c5afe943cc4bf8b5a3c36451d8681067911234e7dc2f358502c91"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-006.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 78302,
+      "sha256": "080110f7fa5cb4417745fa771a944e7ebbc647548618c05f861671fd615cf65e"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-006.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 175352,
+      "sha256": "13000fdc690f1bc271d8d6b88ac1fed1a5b66333d8c03ad871b8693619d529fa"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-006.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 139181,
+      "sha256": "0cd0ed096dcd1a14a74bced75a8095c09fb2631ae4b02b16593b0a43d1b6dc0f"
+    }
+  ],
+  "imagegenCorrection": {
+    "id": "spins-006",
+    "tool": "imagegen",
+    "sourceInput": "/workspace/scratch/c868e812eb6b/generated_images/exec-adc08a0a-154c-4dac-88a2-dafb873793cf.png",
+    "sourceOutput": "/workspace/scratch/c868e812eb6b/generated_images/exec-b367b929-b3b9-4ec5-a000-0e81864344cf.png",
+    "prompt": "Edit the provided existing poker-table scene with a precise cleanup only. Completely REMOVE BOTH playing cards in the LOWER-RIGHT corner, including all white card surfaces, queen/jack illustrations, heart/spade suit marks, colored print, borders, edges and card shadows. Fill their entire former area seamlessly with continuous dark navy poker felt matching the surrounding texture and light. Preserve all three chip contributions and their exact positions, sizes and highlights, the near-left padded rail, far rail and camera angle. Do not alter, move, add or remove any chips. Do not add replacement objects. The finished scene must contain NO playing cards, NO card backs, NO card faces, NO blank placeholders, NO suit/rank markings and NO text. Application code can add source-exact native card assets separately; draw none in this clean scene. Preserve original image dimensions and quality.",
+    "generatedAt": "2026-11-27T19:03:26.268Z",
+    "supersededRecord": ".agent/audits/training-approved-chrome/corrections/spins-006/superseded-v2-source-record.json"
+  }
+}

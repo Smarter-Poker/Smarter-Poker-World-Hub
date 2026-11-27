@@ -20,7 +20,7 @@ const T = {
     text: '#E4E6EB',
     textSec: '#8B949E',
     textMuted: '#5a6270',
-    star: '#d4a853',
+    star: '#86daff',
     starEmpty: 'rgba(255,255,255,0.12)',
     accent: '#00D4FF',
     accentDim: 'rgba(0,212,255,0.12)',
@@ -163,7 +163,7 @@ function VerifiedBadge({ size = 14 }) {
 /** Category rating bar */
 function CategoryBar({ label, icon, value, maxValue = 5 }) {
     const pct = value ? (value / maxValue) * 100 : 0;
-    const barColor = value >= 4 ? T.green : value >= 3 ? T.star : value >= 2 ? '#f59e0b' : T.red;
+    const barColor = value >= 4 ? T.green : value >= 3 ? T.star : value >= 2 ? '#38bdf8' : T.red;
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <span style={{ width: 110, fontSize: 12, color: T.textSec, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>

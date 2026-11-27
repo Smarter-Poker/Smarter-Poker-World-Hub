@@ -3,6 +3,8 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
+import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { buildVideoLibraryBreadcrumbs } from '../../../../src/lib/videoLibraryBreadcrumbs.mjs';
 
@@ -29,6 +31,11 @@ export async function getServerSideProps({ res }) {
         };
     }
 }
+
+// The directory's explanation lives behind the mast's chrome "?" (Dan, 2026-11-27).
+const CHANNELS_HELP_STEPS = Object.freeze([
+    { id: 'channels', title: 'Poker Video Channels', body: 'Explore Verified Poker Channels And Broadcast Archives In The Smarter.Poker Video Library.', target: 'channel-directory' },
+]);
 
 export default function VideoLibraryChannelsDirectory({ channels = [] }) {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -63,7 +70,7 @@ export default function VideoLibraryChannelsDirectory({ channels = [] }) {
             />
             <div className="video-library-page">
                 <HubPageShell className="video-library" maxWidth={1760} header={header}>
-                    <article className="vl-player-directory">
+                    <article className="vl-player-directory vl-console-page">
                         <nav className="vl-breadcrumbs" aria-label="Breadcrumb">
                             <Link href="/hub">World Hub</Link>
                             <span aria-hidden="true">/</span>
@@ -71,19 +78,27 @@ export default function VideoLibraryChannelsDirectory({ channels = [] }) {
                             <span aria-hidden="true">/</span>
                             <span aria-current="page">Poker Channels</span>
                         </nav>
-                        <h1>Poker Video Channels</h1>
-                        <p>Explore Verified Poker Channels And Broadcast Archives In The Smarter.Poker Video Library.</p>
-                        {channels.length > 0 ? (
-                            <nav className="vl-player-directory-links" aria-label="Poker Channels">
-                                {channels.map(ch => (
-                                    <Link key={ch.id} className="vl-pill-button" href={ch.path}>
-                                        {ch.name}
-                                    </Link>
-                                ))}
-                            </nav>
-                        ) : (
-                            <p>Browse All Verified Channels Directly From The <Link href="/hub/video-library">Poker Video Library</Link>.</p>
-                        )}
+                        <VideoLibraryWorkspaceHeader title="Poker Video Channels" eyebrow="Video Library" emblem="channel" helpId="channels" helpSteps={CHANNELS_HELP_STEPS} />
+                        <section className="vl-console-frame" data-tutorial="channel-directory" aria-label="Poker Channels Directory">
+                            {channels.length > 0 ? (
+                                <nav className="vl-player-directory-links" aria-label="Poker Channels">
+                                    {channels.map(ch => (
+                                        <Link key={ch.id} className="vl-pill-button" href={ch.path}>
+                                            {ch.name}
+                                        </Link>
+                                    ))}
+                                </nav>
+                            ) : (
+                                <p className="vl-console-copy">Browse All Verified Channels Directly From The <Link href="/hub/video-library">Poker Video Library</Link>.</p>
+                            )}
+                        </section>
+                        <div style={{ marginTop: 24 }}>
+                            <SmarterAccountUnlockGate
+                                variant="video-drill"
+                                context="video-library-channels-index"
+                                redirectPath="/hub/video-library/channels"
+                            />
+                        </div>
                     </article>
                 </HubPageShell>
             </div>

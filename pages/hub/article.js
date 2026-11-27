@@ -28,6 +28,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import NewsletterCaptureBar from '../../src/components/news/NewsletterCaptureBar';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
 const FALLBACK_HERO_IMAGE = '/api/news/email-image?fallback=1&m=hero';
@@ -899,6 +900,13 @@ export default function ArticlePage({ initialArticle = null, initialRelated = []
                         </div>
                     )}
 
+                    <div style={{ margin: '24px 0' }}>
+                        <SmarterAccountUnlockGate
+                            variant="editorial-wire"
+                            context="hub-article"
+                            redirectPath="/hub/news"
+                        />
+                    </div>
                     <NewsletterCaptureBar variant="inline" pathname="/hub/article" />
                 </article>
 

@@ -21,39 +21,46 @@
 const sectionStyle = {
   marginTop: 32,
   padding: 20,
-  background: 'rgba(255, 255, 255, 0.02)',
-  border: '1px solid rgba(148, 163, 184, 0.25)',
-  borderRadius: 12,
+  background:
+    'radial-gradient(120% 70% at 50% -10%, #1b426e 0%, transparent 62%), linear-gradient(160deg, #15293e 0%, #0a1a2b 44%, #040d18 100%)',
+  border: '6px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+  borderRadius: 0,
+  boxShadow: '0 12px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px #02070d',
   width: '100%',
+  boxSizing: 'border-box',
 };
 
 const headingStyle = {
-  fontSize: 20,
+  fontFamily: "var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif",
+  fontSize: 22,
   fontWeight: 800,
   margin: '0 0 14px 0',
-  color: '#f8fafc',
+  color: '#f2f7ff',
+  letterSpacing: '0.02em',
 };
 
 const itemStyle = {
-  background: 'rgba(255, 255, 255, 0.03)',
-  border: '1px solid rgba(255, 255, 255, 0.08)',
-  borderRadius: 8,
-  padding: '12px 14px',
-  color: '#e2e8f0',
+  background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+  border: '1px solid #2b4663',
+  borderRadius: 0,
+  padding: '13px 15px',
+  color: '#f2f7ff',
+  boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.14)',
 };
 
 const questionStyle = {
   fontWeight: 700,
   fontSize: 15,
   margin: 0,
-  color: '#38bdf8',
+  color: '#86daff',
 };
 
 const answerStyle = {
   margin: '8px 0 0',
   fontSize: 14,
   lineHeight: 1.6,
-  color: '#cbd5e1',
+  color: '#bdd0e2',
 };
 
 /**

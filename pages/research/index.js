@@ -12,6 +12,8 @@ import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
@@ -164,9 +166,25 @@ export default function ResearchIndexPage() {
           <span>Poker Industry Research</span>
         </nav>
 
-        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
-          Smarter.Poker Original Poker Industry Research And Data Benchmarks
-        </h1>
+        <div style={{ marginBottom: 22 }}>
+          <SmarterSeoMasthead
+            vertical="research"
+            eyebrow="Smarter.Poker Quantitative Research Division"
+            title="Smarter.Poker Original Poker Industry Research And Data Benchmarks"
+            lead="15 First-Party Empirical Studies, 6 Zenodo DOI Archives, And Open CC BY 4.0 Live Poker & Solver Datasets."
+            stats={[
+              { label: 'Open Studies', value: `${RESEARCH_REPORTS.length} Reports` },
+              { label: 'Zenodo Archives', value: '6 DOIs' },
+              { label: 'Open License', value: 'CC BY 4.0' },
+              { label: 'Raw Exports', value: 'CSV / JSON' },
+            ]}
+            redirectPath="/research"
+            unlockKey="masthead-research"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/research/annual-state-of-poker-2026"
+            secondaryLabel="2026 Whitepaper"
+          />
+        </div>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of 324+ Verified US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
@@ -177,7 +195,7 @@ export default function ResearchIndexPage() {
             href="/research/annual-state-of-poker-2026"
             style={{
               padding: '9px 15px',
-              borderRadius: 8,
+              borderRadius: 0,
               background: '#38bdf8',
               color: '#04131d',
               fontWeight: 700,
@@ -191,7 +209,7 @@ export default function ResearchIndexPage() {
             href="/research/benchmarks"
             style={{
               padding: '9px 15px',
-              borderRadius: 8,
+              borderRadius: 0,
               background: '#10b981',
               color: '#04131d',
               fontWeight: 700,
@@ -205,10 +223,10 @@ export default function ResearchIndexPage() {
             href="/facts"
             style={{
               padding: '9px 15px',
-              borderRadius: 8,
-              background: '#0f172a',
+              borderRadius: 0,
+              background: '#0d1f33',
               color: '#38bdf8',
-              border: '1px solid #334155',
+              border: '1px solid #304d6b',
               fontWeight: 700,
               fontSize: 13,
               textDecoration: 'none',
@@ -220,10 +238,10 @@ export default function ResearchIndexPage() {
             href="/api/datasets/citation?format=bibtex"
             style={{
               padding: '9px 15px',
-              borderRadius: 8,
-              background: '#0f172a',
+              borderRadius: 0,
+              background: '#0d1f33',
               color: '#34d399',
-              border: '1px solid #334155',
+              border: '1px solid #304d6b',
               fontWeight: 700,
               fontSize: 13,
               textDecoration: 'none',
@@ -237,9 +255,9 @@ export default function ResearchIndexPage() {
           aria-label="Open Datasets And Archival Registry"
           style={{
             padding: 20,
-            background: '#0f172a',
-            borderRadius: 12,
-            border: '1px solid #1e293b',
+            background: '#0d1f33',
+            borderRadius: 0,
+            border: '1px solid #2b4663',
             marginBottom: 28,
           }}
         >
@@ -293,8 +311,8 @@ export default function ResearchIndexPage() {
             </li>
             <li>
               <strong>Software Heritage SWHIDs:</strong>{' '}
-              <code>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) &amp;{' '}
-              <code>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
+              <code style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) &amp;{' '}
+              <code style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
             </li>
             <li>
               <strong>Executable Python &amp; Pandas Benchmark Notebook:</strong>{' '}
@@ -327,9 +345,9 @@ export default function ResearchIndexPage() {
               key={r.slug}
               style={{
                 padding: 24,
-                background: '#0f172a',
-                borderRadius: 12,
-                border: '1px solid #1e293b',
+                background: '#0d1f33',
+                borderRadius: 0,
+                border: '1px solid #2b4663',
               }}
             >
               <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', marginBottom: 6 }}>
@@ -356,6 +374,14 @@ export default function ResearchIndexPage() {
               </div>
             </article>
           ))}
+        </div>
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="research-index"
+            redirectPath="/research"
+          />
         </div>
 
         <CitationBacklinkBox

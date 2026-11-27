@@ -23,7 +23,7 @@
 import { useState, useEffect } from 'react';
 import { checkPopupDismissed, dismissPopup, GAME_COST } from '../../lib/gates/perGameGate';
 import TriviaConsoleDialog from '../trivia/console/TriviaConsoleDialog';
-import { VipCta, VipGhost, VipIntroPrice, vipKitStyles as kit } from '../vip/VipKit';
+import { VipCta, VipGhost, VipIntroPrice, VipPhoneOfferBody, usePhoneOfferStep, vipKitStyles as kit } from '../vip/VipKit';
 import { useVipIntroPrompt } from '../../lib/store/useVipIntroOffer';
 import { VIP_MONTHLY_PURCHASE_PATH } from '../../lib/store/vipIntroPrompt.mjs';
 
@@ -43,6 +43,8 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     // notice is actually on screen.
     const vipOn = isVip === false && show && !dismissed;
     const vipPrompt = useVipIntroPrompt(userId || null, { enabled: vipOn });
+    // Phone verification reward first (Dan, 2026-11-27); Skip shows the VIP price.
+    const phoneStep = usePhoneOfferStep(userId || null, { enabled: vipOn });
 
     useEffect(() => {
         // Guard: never show for VIP users, when status is still unknown, or when userId hasn't resolved.
@@ -117,6 +119,9 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
                     <span className="tc-row__value tc-ink--blue">Free, Unlimited</span>
                 </li>
             </ul>
+            {phoneStep.show ? (
+                <VipPhoneOfferBody offer={phoneStep.offer} onSkip={phoneStep.skip} />
+            ) : (<>
             {/* The price THIS account pays for VIP, as one readout. */}
             <VipIntroPrice accountId={userId || null} enabled={vipOn} compact />
             {/* The family's painted plates. Got It is last so the dialog's
@@ -131,6 +136,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
                 </VipCta>
                 <VipGhost onClick={handleDismiss}>Got It</VipGhost>
             </div>
+            </>)}
         </TriviaConsoleDialog>
     );
 }

@@ -10,9 +10,9 @@
 .toolPage {
   --machine-cyan: #56d8ff;
   --machine-blue: #087cfa;
-  --machine-gold: #ffc66d;
-  --machine-steel: rgba(140, 161, 180, 0.24);
-  --machine-hairline: rgba(140, 161, 180, 0.16);
+  --machine-ice: #86daff;
+  --machine-steel: rgba(140, 161, 180, 0.28);
+  --machine-hairline: rgba(140, 161, 180, 0.18);
   --machine-canvas: #040d18;
   min-height: 100dvh;
   background: linear-gradient(180deg, #05080c 0%, #040d18 48%, #020407 100%) !important;
@@ -26,12 +26,12 @@
   overflow: hidden;
   margin: 0 0 10px;
   padding: 0;
-  border: 1px solid rgba(140, 161, 180, 0.24);
-  border-top-color: rgba(174, 192, 208, 0.42);
-  border-radius: 8px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 10px;
   background:
-    radial-gradient(ellipse at 14% 113%, rgba(17, 62, 121, 0.38), transparent 54%),
-    linear-gradient(180deg, #080d14 0%, #05080c 100%);
+    radial-gradient(ellipse at 14% 113%, rgba(17, 62, 121, 0.42), transparent 56%),
+    linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
 .machineHeroInner {
@@ -108,16 +108,17 @@
 }
 
 .telemetryValue[data-tone='live'] { color: #56d8ff; }
-.telemetryValue[data-tone='gold'] { color: #ffc66d; }
+.telemetryValue[data-tone='gold'] { color: #86daff; }
 
 .instrumentPanel {
   position: relative;
   overflow: clip;
   padding: 12px 14px !important;
-  border: 1px solid rgba(140, 161, 180, 0.24) !important;
-  border-radius: 8px !important;
-  background: linear-gradient(180deg, #080d14 0%, #05080c 100%) !important;
-  box-shadow: none !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  border-radius: 10px !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: inset 0 1px 0 rgba(201, 223, 240, 0.18), 0 10px 24px rgba(0, 0, 0, 0.38) !important;
 }
 
 .scanDeck {
@@ -125,9 +126,10 @@
   overflow: hidden;
   margin-bottom: 10px;
   padding: 0;
-  border: 1px solid rgba(140, 161, 180, 0.24);
-  border-radius: 8px;
-  background: linear-gradient(180deg, #080d14 0%, #05080c 100%);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 10px;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
 .scanDeckInner {
@@ -150,13 +152,14 @@
 
 .scanDisc {
   display: grid;
-  width: 38px;
-  height: 38px;
-  border: 1px solid rgba(140, 161, 180, 0.24);
-  border-radius: 7px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(174, 192, 208, 0.55);
+  border-radius: 999px;
   place-items: center;
   color: #83deff;
-  background: #08111c;
+  background: radial-gradient(circle at 32% 28%, #263f58 0%, #0b1c2c 62%, #050e18 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
 }
 
 .scanText strong {
@@ -197,10 +200,11 @@
   flex: 0 0 auto;
   min-height: 44px;
   padding: 0 14px;
-  border-radius: 999px !important;
-  border: 1px solid rgba(140, 161, 180, 0.24);
-  background: #070c12;
-  color: #dce5ef;
+  border-radius: 8px !important;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #e4eef7;
   font: 700 13px / 1 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   letter-spacing: 0.02em;
   display: inline-flex;
@@ -212,8 +216,9 @@
 }
 
 .filterChip[aria-pressed='true'] {
-  border-color: #56d8ff;
-  background: linear-gradient(180deg, #087cfa 0%, #0044ac 60%, #002b68 100%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
   color: #ffffff;
 }
 
@@ -221,9 +226,10 @@
   flex: 0 0 auto;
   min-height: 44px;
   padding: 0 12px;
-  border-radius: 999px !important;
-  border: 1px solid rgba(140, 161, 180, 0.28);
-  background: #0b131d;
+  border-radius: 8px !important;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   color: #83deff;
   font: 700 13px / 1 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   display: inline-flex;
@@ -238,6 +244,10 @@
 .filterMoreBtn:hover {
   border-color: rgba(86, 216, 255, 0.55);
   color: #ffffff;
+}
+.filterChip:hover,
+.filterMoreBtn:hover {
+  filter: brightness(1.1);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -295,9 +305,10 @@
   display: grid;
   margin: 8px 0 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border: 1px solid rgba(140, 161, 180, 0.16);
-  border-radius: 6px;
-  background: #05080c;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 8px;
+  background: linear-gradient(155deg, #15283d 0%, #0a1826 50%, #050e18 100%);
 }
 
 .auditReceiptCell {
@@ -350,10 +361,10 @@
 .auditReceiptNote {
   margin: 8px 0 0;
   padding: 8px 10px;
-  border: 1px solid #5e4822;
+  border: 1px solid rgba(86, 216, 255, 0.42);
   border-radius: 6px;
-  color: #ffc66d;
-  background: rgba(126, 87, 25, 0.14);
+  color: #86daff;
+  background: rgba(8, 124, 250, 0.14);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -370,31 +381,35 @@
 
 .toolPage :global(.sandbox-table-wrap) {
   padding: 6px;
-  border: 1px solid rgba(140, 161, 180, 0.24);
-  border-radius: 7px;
-  background: #040d18;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 10px;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
 .toolPage :global(.sandbox-table-wrap > *) {
-  border: 1px solid rgba(140, 161, 180, 0.16);
+  border: 1px solid rgba(140, 161, 180, 0.22);
 }
 
 .toolPage :global(.sandbox-command-bar) {
-  border-radius: 7px !important;
-  background: linear-gradient(180deg, #080d14, #030b14 74%) !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, #1c3148, #0d1c2e 45%, #06101c 100%) !important;
   box-shadow: none !important;
 }
 
 .toolPage :global(.leak-card) {
-  border-radius: 7px !important;
+  border-radius: 9px !important;
 }
 
 .toolPage :global(.leak-stat-grid) > div {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(140, 161, 180, 0.2) !important;
-  border-radius: 7px !important;
-  background: #060a10 !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 8px !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
   box-shadow: none !important;
 }
 
@@ -407,12 +422,6 @@
   .telemetryValue { font-size: 13px; }
   .instrumentPanel {
     padding: 12px 10px !important;
-    border-left: 0 !important;
-    border-right: 0 !important;
-    border-top: 0 !important;
-    border-bottom: 1px solid rgba(140, 161, 180, 0.16) !important;
-    border-radius: 0 !important;
-    background: transparent !important;
   }
   .scanDeckInner { padding: 10px 12px; }
 }

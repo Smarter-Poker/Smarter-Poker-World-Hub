@@ -1,7 +1,13 @@
 import Link from 'next/link';
-import { forwardRef, useEffect, useId, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useVipIntroPrompt } from '../../lib/store/useVipIntroOffer';
 import { VIP_MONTHLY_PURCHASE_PATH } from '../../lib/store/vipIntroPrompt.mjs';
+import {
+  phoneOfferCopy,
+  phoneVerifyHref,
+  readPhoneOfferSkipped,
+  rememberPhoneOfferSkipped,
+} from '../../lib/store/phoneWelcomeOfferTerms.mjs';
 import styles from './VipKit.module.css';
 import { SD_HEADER_HELP_ICON } from '../smarterdesign/headerHelp';
 
@@ -14,6 +20,9 @@ import { SD_HEADER_HELP_ICON } from '../smarterdesign/headerHelp';
  *   VipIntroPrice    VipPricePlate wired to the account-aware monthly price
  *   VipCta/VipGhost  the approved painted action plates with live lettering
  *   VipUpgradePrompt the inline "this needs VIP" block for a page
+ *   VipPhoneOfferStep the "verify your phone first" step every VIP or
+ *                    Diamond prompt shows to an account that has not yet
+ *                    claimed the phone verification reward (Dan, 2026-11-27)
  *   VipDialog        the popup chassis (focus trap, Escape, 44px close)
  *
  * Presentation only. The price wording comes from vipIntroPrompt.mjs and the
@@ -65,11 +74,11 @@ export function VipMasthead({
  * The price readout. `amount` is the figure, `unit` what it buys, `note` the
  * terms under it. `tag` is the small label above (the new member offer).
  */
-export function VipPricePlate({ amount, unit, note, tag, verify, compact = false, state, className = '' }) {
+export function VipPricePlate({ amount, unit, note, tag, verify, compact = false, uniform = false, state, className = '' }) {
   return (
     <div className={cx(styles.kit, styles.price, compact && styles.priceCompact, className)} data-vip-intro-state={state}>
       {tag && <span className={styles.offerTag}>{tag}</span>}
-      <div className={styles.amountRow}>
+      <div className={cx(styles.amountRow, uniform && styles.amountUniform)}>
         <strong className={styles.amount}>{amount}</strong>
         <span className={styles.unit}>{unit}</span>
       </div>
@@ -84,7 +93,7 @@ const VERIFY_LINE = 'Verify Your Email Or Phone To Unlock The $1 First Month';
 /** Plate props for one of the three monthly price answers. */
 export function vipIntroPlateProps(state) {
   if (state === 'intro') {
-    return { amount: '$1', unit: 'First Month', note: 'Then $20/Month. Cancel Anytime.', tag: 'New Member Offer' };
+    return { amount: '$1', unit: 'First Month', note: 'Then $20/Month. Cancel Anytime.', tag: 'New Member Offer', uniform: true };
   }
   if (state === 'verify') {
     return { amount: '$20', unit: '/Month', note: 'Cancel Anytime.', verify: VERIFY_LINE };
@@ -137,6 +146,117 @@ export function VipMonthlyCta({ accountId = null, enabled = true, onNavigate, cl
   );
 }
 
+export const VIP_DIAMOND_ICON_SRC = '/images/diamond-icon.png';
+
+function sessionStore() {
+  try { return typeof window === 'undefined' ? null : window.sessionStorage; } catch (_) { return null; }
+}
+
+function currentHubPath() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const { pathname, search, hash } = window.location;
+    return `${pathname}${search}${hash}`;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Whether a VIP or Diamond prompt must show the phone verification step first
+ * (Dan, 2026-11-27: "if they haven't used the free one, they should be
+ * prompted to do that first, or skip and sign up").
+ *
+ * `show` is true only when the server said this account is eligible (has not
+ * verified a phone, has not had the free month, is not VIP) and the member
+ * has not tapped Skip this session. Unknown is never eligible, so an error
+ * shows the existing prompt.
+ */
+export function usePhoneOfferStep(accountId = null, { enabled = true } = {}) {
+  const { phoneOffer, accountId: resolvedId } = useVipIntroPrompt(accountId, { enabled });
+  const [skipped, setSkipped] = useState(false);
+  useEffect(() => {
+    setSkipped(readPhoneOfferSkipped(sessionStore(), resolvedId));
+  }, [resolvedId]);
+  const skip = useCallback(() => {
+    rememberPhoneOfferSkipped(sessionStore(), resolvedId);
+    setSkipped(true);
+  }, [resolvedId]);
+  const eligible = Boolean(enabled && resolvedId && phoneOffer?.eligible === true);
+  return { show: eligible && !skipped, offer: phoneOffer, skip, accountId: resolvedId };
+}
+
+/**
+ * The phone step's body: the free month on the price plate, the welcome
+ * diamonds beside it, "Verify Phone Number" on the blue plate and "Skip" on
+ * the ghost plate. `onSkip` reveals whatever the prompt would have shown.
+ * `returnPath` is where the verification page sends the member back to.
+ */
+export function VipPhoneOfferBody({ offer, onSkip, onVerify, returnPath, compact = true }) {
+  const words = phoneOfferCopy(offer || {});
+  const href = phoneVerifyHref(returnPath === undefined ? currentHubPath() : returnPath);
+  return (
+    <>
+      <div className={cx(styles.kit, styles.price, compact && styles.priceCompact)} data-vip-phone-offer-plate="">
+        <span className={styles.offerTag}>{words.tag}</span>
+        <div className={cx(styles.amountRow, styles.amountUniform)}>
+          <strong className={styles.amount}>{words.amount}</strong>
+          <span className={styles.unit}>{words.unit}</span>
+        </div>
+        {words.bonus && (
+          <span className={styles.phoneBonus} data-vip-phone-offer-bonus="">
+            <img src={VIP_DIAMOND_ICON_SRC} alt="" width="24" height="24" decoding="async" aria-hidden="true" />
+            {words.bonus}
+          </span>
+        )}
+        <p className={styles.then}>{words.note}</p>
+      </div>
+      <div className={cx(styles.kit, styles.dialogActions)}>
+        <VipCta href={href} onClick={onVerify} data-vip-phone-offer="verify">{words.cta}</VipCta>
+        <VipGhost onClick={onSkip} data-vip-phone-offer="skip" sub={words.skipSub}>{words.skip}</VipGhost>
+      </div>
+    </>
+  );
+}
+
+/** The phone step as a framed inline block, in place of an upgrade prompt. */
+export function VipPhoneOfferStep({ offer, onSkip, onVerify, returnPath, heading: Heading = 'h3', className = '' }) {
+  const words = phoneOfferCopy(offer || {});
+  return (
+    <section className={cx(styles.kit, styles.frame, styles.prompt, className)} data-vip-phone-offer-step="">
+      <div className={cx(styles.promptHead, styles.promptHeadStacked)}>
+        <VipSeal />
+        <div>
+          <Heading className={styles.promptTitle}>{words.title}</Heading>
+          <p className={styles.promptCopy}>{words.copy}</p>
+        </div>
+      </div>
+      <VipPhoneOfferBody offer={offer} onSkip={onSkip} onVerify={onVerify} returnPath={returnPath} />
+    </section>
+  );
+}
+
+/**
+ * Wrap any VIP or Diamond prompt: an eligible account sees the phone step
+ * first, and Skip reveals `children` exactly as they were.
+ */
+export function VipPhoneOfferGate({ accountId = null, enabled = true, heading, className = '', returnPath, onVerify, children }) {
+  const step = usePhoneOfferStep(accountId, { enabled });
+  if (step.show) {
+    return (
+      <VipPhoneOfferStep
+        offer={step.offer}
+        onSkip={step.skip}
+        onVerify={onVerify}
+        returnPath={returnPath}
+        heading={heading}
+        className={className}
+      />
+    );
+  }
+  return children;
+}
+
 /**
  * The inline upgrade block a page shows where a feature needs VIP.
  * One rim, the crown seal, what unlocks, the price for this account, one action.
@@ -152,9 +272,23 @@ export function VipUpgradePrompt({
   className = '',
   children,
 }) {
+  /* An account that has not claimed the phone verification reward sees that
+     offer first; Skip shows this prompt unchanged. */
+  const phoneStep = usePhoneOfferStep(accountId, { enabled });
+  if (phoneStep.show) {
+    return (
+      <VipPhoneOfferStep
+        offer={phoneStep.offer}
+        onSkip={phoneStep.skip}
+        onVerify={onNavigate}
+        heading={Heading}
+        className={className}
+      />
+    );
+  }
   return (
     <section className={cx(styles.kit, styles.frame, styles.prompt, className)} data-vip-upgrade-prompt="">
-      <div className={styles.promptHead}>
+      <div className={cx(styles.promptHead, styles.promptHeadStacked)}>
         <VipSeal />
         <div>
           <Heading className={styles.promptTitle}>{title}</Heading>

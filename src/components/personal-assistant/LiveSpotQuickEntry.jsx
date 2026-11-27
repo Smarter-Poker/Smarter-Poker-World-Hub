@@ -15,6 +15,7 @@
 import React, { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { getFreshAccessToken } from '../../lib/authUtils';
+import { useAvatar } from '../../contexts/AvatarContext';
 import { BottomSheet, PAStyles, Segmented } from '../sandbox/paKit';
 import { T, F, S, R, DISPLAY_FONT, btn, pill } from '../sandbox/paTokens';
 import {
@@ -175,6 +176,11 @@ function AuditResult({ result, onDismiss }) {
       <div role="alert" style={{ ...noteStyle, padding: 12, border: '1px solid rgba(255,107,122,0.5)', borderRadius: R.sm, background: T.dangerSoft, color: T.text }}>
         <strong style={{ display: 'block', color: T.danger, marginBottom: 4 }}>{result.title || 'Could Not Analyze'}</strong>
         {result.message}
+        {result.summary?.reviewHref && (
+          <a href={result.summary.reviewHref} className="pa-btn" style={{ ...btn('primary', { block: true }), marginTop: 10, textDecoration: 'none' }}>
+            {`Review ${result.summary.savedHandCount} Saved ${result.summary.savedHandCount === 1 ? 'Hand' : 'Hands'}`}
+          </a>
+        )}
       </div>
     );
   }
@@ -189,7 +195,7 @@ function AuditResult({ result, onDismiss }) {
           {summary.verifiedCount} Solver Verified
         </span>
         <span style={pill('neutral')}>{summary.unpricedCount} Unpriced</span>
-        <span style={pill('neutral')}>{summary.handsParsed} Hand{summary.handsParsed === 1 ? '' : 's'} Read</span>
+        <span style={pill('neutral')}>{`${summary.handsParsed} ${summary.handsParsed === 1 ? 'Hand' : 'Hands'} Read`}</span>
         {summary.unsupportedCount > 0 && (
           <span style={pill('warn')}>{summary.unsupportedCount} Unsupported</span>
         )}
@@ -197,6 +203,16 @@ function AuditResult({ result, onDismiss }) {
           Dismiss
         </button>
       </div>
+      {summary.savedForReview && (
+        <p role="status" style={noteStyle}>
+          {`${summary.savedHandCount} ${summary.savedHandCount === 1 ? 'Hand' : 'Hands'} Saved To Review My Play.`}
+        </p>
+      )}
+      {summary.reviewHref && (
+        <a href={summary.reviewHref} className="pa-btn" style={{ ...btn('primary', { block: true }), textDecoration: 'none' }}>
+          {`Review Saved ${summary.savedHandCount === 1 ? 'Hand' : 'Hands'}`}
+        </a>
+      )}
       {!summary.hasVerifiedAdvice && (
         <p style={noteStyle}>
           No Verified Solver Spot Matched, So No Advice Is Shown. This Spot Is Saved As An Unpriced Coverage Gap Instead Of A Guess.
@@ -237,6 +253,8 @@ export default function LiveSpotQuickEntry({
   initialTab = 'spot',
   onAnalyzed,
 }) {
+  const { user } = useAvatar();
+  const userId = user?.id || null;
   const baseId = useId();
   const triggerRef = useRef(null);
   const [tab, setTab] = useState(initialTab === 'paste' ? 'paste' : 'spot');
@@ -251,43 +269,64 @@ export default function LiveSpotQuickEntry({
   const [isDragOver, setIsDragOver] = useState(false);
 
   const requestIdRef = useRef(0);
+  const auditAbortRef = useRef(null);
+  const lifecycleVersionRef = useRef(0);
+  const ownerRef = useRef(userId);
+  ownerRef.current = userId;
   const bulkCancelRef = useRef(false);
   const bulkAbortRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const invalidatePendingAudit = useCallback(() => {
+    requestIdRef.current += 1;
+    lifecycleVersionRef.current += 1;
+    bulkCancelRef.current = true;
+    try {
+      auditAbortRef.current?.abort();
+      bulkAbortRef.current?.abort();
+    } catch (_) {}
+    auditAbortRef.current = null;
+    bulkAbortRef.current = null;
+  }, []);
 
   const deferredPaste = useDeferredValue(pasted);
   const detected = useMemo(() => detectExternalHandFormat(deferredPaste), [deferredPaste]);
   const built = useMemo(() => buildLiveSpotHandHistory(spot), [spot]);
 
-  // Focus preservation: remember previously focused element when opened, and abort in-flight bulk upload when closed or unmounted
+  // Keep all asynchronous work bound to the visible logger and its account.
   useEffect(() => {
     if (open && typeof document !== 'undefined') {
       triggerRef.current = document.activeElement;
     } else if (!open) {
-      bulkCancelRef.current = true;
-      try {
-        bulkAbortRef.current?.abort();
-      } catch (_) {}
+      invalidatePendingAudit();
+      setRunning(false);
+      setBulkProgress(null);
     }
-  }, [open]);
+  }, [invalidatePendingAudit, open]);
 
-  useEffect(() => () => {
-    bulkCancelRef.current = true;
-    try {
-      bulkAbortRef.current?.abort();
-    } catch (_) {}
-  }, []);
+  useEffect(() => invalidatePendingAudit, [invalidatePendingAudit]);
+
+  useEffect(() => {
+    invalidatePendingAudit();
+    setRunning(false);
+    setBulkProgress(null);
+    setResult(null);
+    setStatusAnnouncement('');
+    setPasted('');
+    setSpot(DEFAULT_SPOT);
+    setWizardStep(1);
+    setShowErrors(false);
+  }, [invalidatePendingAudit, userId]);
 
   const handleClose = useCallback(() => {
-    bulkCancelRef.current = true;
-    try {
-      bulkAbortRef.current?.abort();
-    } catch (_) {}
+    invalidatePendingAudit();
+    setRunning(false);
+    setBulkProgress(null);
     onClose?.();
     try {
       triggerRef.current?.focus?.();
     } catch (_) {}
-  }, [onClose]);
+  }, [invalidatePendingAudit, onClose]);
 
   const update = useCallback((patch) => {
     setSpot((current) => {
@@ -322,9 +361,16 @@ export default function LiveSpotQuickEntry({
 
   const runAudit = useCallback(async (text, { evidenceScope = 'external_upload', externalSignal = null, suppressEvents = false } = {}) => {
     const requestId = ++requestIdRef.current;
+    const ownerId = userId;
+    const isCurrent = () => requestId === requestIdRef.current && ownerRef.current === ownerId;
+    auditAbortRef.current?.abort();
     setRunning(true);
-    if (!suppressEvents) setResult(null);
+    if (!suppressEvents) {
+      bulkCancelRef.current = false;
+      setResult(null);
+    }
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    auditAbortRef.current = controller;
     let timedOut = false;
     const timer = controller
       ? setTimeout(() => {
@@ -345,10 +391,18 @@ export default function LiveSpotQuickEntry({
       }
     }
     const signal = controller ? controller.signal : externalSignal;
+    const throwIfAborted = () => {
+      if (!signal?.aborted) return;
+      const error = new Error('Audit Request Was Aborted');
+      error.name = 'AbortError';
+      throw error;
+    };
     try {
-      const token = await getFreshAccessToken();
+      const token = ownerId ? await getFreshAccessToken() : null;
+      if (!isCurrent()) return null;
+      throwIfAborted();
       if (!token) {
-        if (!suppressEvents && requestId === requestIdRef.current) setResult({ kind: 'signin' });
+        if (!suppressEvents) setResult({ kind: 'signin' });
         return { ok: false, signin: true, error: 'Sign In To Analyze.' };
       }
       const response = await fetch(AUDIT_ENDPOINT, {
@@ -363,7 +417,8 @@ export default function LiveSpotQuickEntry({
         ...(signal ? { signal } : {}),
       });
       const payload = await response.json().catch(() => null);
-      if (!suppressEvents && requestId !== requestIdRef.current) return null;
+      if (!isCurrent()) return null;
+      throwIfAborted();
       if (!response.ok || payload?.success === false) {
         const message = response.status === 422
           ? 'No Supported No-Limit Hold\u2019em Hands Could Be Read From This Text. Nothing Was Saved.'
@@ -380,6 +435,11 @@ export default function LiveSpotQuickEntry({
         return { ok: false, status: response.status, title, error: message };
       }
       const summary = summarizeLiveSpotAudit(payload);
+      if (payload?.reviewQueue?.saved !== true || !summary.savedForReview) {
+        const message = 'Saving To Review My Play Could Not Be Confirmed. Retry This Import Safely.';
+        if (!suppressEvents) setResult({ kind: 'error', title: 'Save Not Confirmed', message });
+        return { ok: false, title: 'Save Not Confirmed', error: message };
+      }
       if (!suppressEvents) {
         setResult({ kind: 'ok', summary });
         setStatusAnnouncement(`Audit Complete. ${summary.handsParsed} Hand${summary.handsParsed === 1 ? '' : 's'} Read.`);
@@ -391,7 +451,7 @@ export default function LiveSpotQuickEntry({
       }
       return { ok: true, payload, summary };
     } catch (error) {
-      if (!suppressEvents && requestId !== requestIdRef.current) return null;
+      if (!isCurrent()) return null;
       const isCancelled = error?.name === 'AbortError' && !timedOut && Boolean(externalSignal?.aborted || bulkCancelRef.current);
       const isTimeout = error?.name === 'AbortError' && (timedOut || !isCancelled);
       const title = isCancelled
@@ -426,9 +486,10 @@ export default function LiveSpotQuickEntry({
           externalSignal.removeEventListener('abort', onExternalAbort);
         } catch (_) {}
       }
-      if (requestId === requestIdRef.current) setRunning(false);
+      if (auditAbortRef.current === controller) auditAbortRef.current = null;
+      if (isCurrent()) setRunning(false);
     }
-  }, [onAnalyzed]);
+  }, [onAnalyzed, userId]);
 
   const submitSpot = (event) => {
     event?.preventDefault?.();
@@ -462,8 +523,12 @@ export default function LiveSpotQuickEntry({
       return;
     }
 
+    const lifecycleVersion = lifecycleVersionRef.current;
+    const ownerId = userId;
+    const isCurrent = () => lifecycleVersion === lifecycleVersionRef.current && ownerRef.current === ownerId;
     try {
       const text = await file.text();
+      if (!isCurrent()) return;
       const chunks = splitHandHistoryChunks(text, 50);
       if (chunks.length === 0) {
         setResult({
@@ -517,7 +582,12 @@ export default function LiveSpotQuickEntry({
         complete: true,
         truncated: false,
         drillHref: null,
+        savedForReview: false,
+        savedHandCount: 0,
+        savedHandIds: [],
+        reviewHref: null,
       };
+      const savedHandIds = new Set();
       let completedBatches = 0;
       let failedBatches = 0;
       let firstError = null;
@@ -546,6 +616,7 @@ export default function LiveSpotQuickEntry({
           externalSignal: ctrl?.signal,
           suppressEvents: true,
         });
+        if (!isCurrent()) return;
 
         if (bulkCancelRef.current || outcome?.cancelled) {
           bulkCancelRef.current = true;
@@ -565,6 +636,13 @@ export default function LiveSpotQuickEntry({
           combinedSummary.handsParsed += outcome.summary.handsParsed || 0;
           combinedSummary.decisionsAnalyzed += outcome.summary.decisionsAnalyzed || 0;
           combinedSummary.unsupportedCount += outcome.summary.unsupportedCount || outcome.payload?.unsupportedCount || 0;
+          for (const handId of outcome.summary.savedHandIds || []) savedHandIds.add(handId);
+          combinedSummary.savedHandIds = [...savedHandIds];
+          combinedSummary.savedHandCount = savedHandIds.size;
+          combinedSummary.savedForReview = savedHandIds.size > 0;
+          if (!combinedSummary.reviewHref && outcome.summary.reviewHref) {
+            combinedSummary.reviewHref = outcome.summary.reviewHref;
+          }
           if (outcome.summary.hasVerifiedAdvice) combinedSummary.hasVerifiedAdvice = true;
           if (outcome.summary.complete === false || outcome.payload?.complete === false) {
             combinedSummary.complete = false;
@@ -622,6 +700,7 @@ export default function LiveSpotQuickEntry({
           kind: 'error',
           title: 'Audit Cancelled',
           message: `Bulk Audit Cancelled After ${completedBatches} Of ${totalBatches} Batches.`,
+          summary: combinedSummary,
         });
         return;
       }
@@ -635,6 +714,7 @@ export default function LiveSpotQuickEntry({
           kind: 'error',
           title: partialTitle,
           message: partialMessage,
+          summary: combinedSummary,
         });
         setStatusAnnouncement(partialMessage);
         return;
@@ -643,6 +723,7 @@ export default function LiveSpotQuickEntry({
       setResult({ kind: 'ok', summary: combinedSummary });
       setStatusAnnouncement(`Finished Auditing ${combinedSummary.handsParsed} Hands Across ${totalBatches} Batches.`);
     } catch (err) {
+      if (!isCurrent()) return;
       setBulkProgress(null);
       setResult({
         kind: 'error',
@@ -651,7 +732,7 @@ export default function LiveSpotQuickEntry({
       });
       setStatusAnnouncement('Could Not Read File.');
     }
-  }, [bulkProgress?.active, onAnalyzed, runAudit, running]);
+  }, [bulkProgress?.active, onAnalyzed, runAudit, running, userId]);
 
   const handleCancelBulk = useCallback(() => {
     bulkCancelRef.current = true;
@@ -1143,7 +1224,7 @@ export default function LiveSpotQuickEntry({
                   {detected.variantLabel}
                 </span>
                 {detected.handCount > 0 && (
-                  <span style={pill('neutral')}>{detected.handCount} Hand{detected.handCount === 1 ? '' : 's'} Found</span>
+                  <span style={pill('neutral')}>{`${detected.handCount} ${detected.handCount === 1 ? 'Hand' : 'Hands'} Found`}</span>
                 )}
               </div>
             )}

@@ -18,6 +18,8 @@ import GeoCitationCapsule, { geoClaimSchema } from '../../src/components/seo/Geo
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import {
   EDITORIAL_AUTHORS,
   AUTHORS_AS_OF,
@@ -97,16 +99,27 @@ export default function AuthorsIndexPage() {
           <span style={styles.crumbCurrent}>Editorial &amp; Solver Methodology Team</span>
         </nav>
 
-        <header style={styles.heroPlate}>
-          <div style={styles.badgeRow}>
-            <span style={styles.cyanBadge}>4 SPECIALIZED RESEARCH &amp; AUDIT DESKS</span>
-            <span style={styles.emeraldBadge}>ZENODO DOI &amp; CFR EQUILIBRIUM PROVENANCE</span>
-          </div>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="authors"
+            eyebrow="4 Specialized Research & Audit Desks"
+            title="Smarter.Poker Editorial, Quantitative Solver & Live Venue Verification Team"
+            lead="Every Calculator, GTO Range Matrix, Tournament Playbook & Live Room Profile Audited Under Reproducible Zenodo DOI Provenance."
+            stats={[
+              { label: 'Research Desks', value: `${EDITORIAL_AUTHORS.length} Teams` },
+              { label: 'CFR Standard', value: '<= 0.05% Pot' },
+              { label: 'Live Audits', value: '715+ Venues' },
+              { label: 'Open Access', value: 'CC BY 4.0' },
+            ]}
+            redirectPath="/authors"
+            unlockKey="masthead-authors"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/research"
+            secondaryLabel="15 Open Studies"
+          />
+        </div>
 
-          <h1 style={styles.h1}>
-            Smarter.Poker Editorial, Quantitative Solver &amp; Live Venue Verification Team
-          </h1>
-
+        <section aria-label="Editorial Desk Quick Navigation" style={styles.heroPlate}>
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Every Calculator, GTO Range Matrix, Tournament ICM Playbook, And Live Poker Room Profile On Smarter.Poker Is Authored And Audited By One Of Four Specialized Research Desks Operating Under Published Verification Standards And Open-Access Zenodo DOIs.
           </p>
@@ -125,7 +138,7 @@ export default function AuthorsIndexPage() {
               Press &amp; Media Attribution Kit
             </Link>
           </div>
-        </header>
+        </section>
 
         <GeoCitationCapsule
           title="Smarter.Poker E-E-A-T Quantitative Verification Standard"
@@ -226,6 +239,14 @@ export default function AuthorsIndexPage() {
           doi="10.5281/zenodo.15129481"
         />
 
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="study-deck"
+            context="authors-index"
+            redirectPath="/authors"
+          />
+        </div>
+
         <AiPromptLauncher
           title="Smarter.Poker Editorial & Solver Methodology Team"
           canonicalUrl={AUTHORS_URL}
@@ -269,9 +290,9 @@ const styles = {
   crumbSep: { color: '#475569' },
   crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #090e1a 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -281,7 +302,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -291,7 +312,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -299,22 +320,22 @@ const styles = {
   h1: { fontSize: 'clamp(26px, 3.6vw, 36px)', fontWeight: 800, color: '#f8fafc', lineHeight: 1.2, margin: '0 0 14px 0' },
   lead: { fontSize: 16, lineHeight: 1.68, color: '#cbd5e1', margin: '0 0 20px 0' },
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
-  crossBtnCyan: { padding: '9px 15px', borderRadius: 8, background: '#38bdf8', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  crossBtnEmerald: { padding: '9px 15px', borderRadius: 8, background: '#10b981', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  crossBtnOutline: { padding: '9px 15px', borderRadius: 8, background: '#0f172a', color: '#38bdf8', border: '1px solid #334155', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  sectionPlate: { background: '#0b1120', border: '1px solid #1e293b', borderRadius: 12, padding: '24px 22px', marginBottom: 26 },
+  crossBtnCyan: { padding: '9px 15px', borderRadius: 0, background: '#38bdf8', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  crossBtnEmerald: { padding: '9px 15px', borderRadius: 0, background: '#10b981', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  crossBtnOutline: { padding: '9px 15px', borderRadius: 0, background: '#0d1f33', color: '#38bdf8', border: '1px solid #304d6b', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  sectionPlate: { background: '#071321', border: '1px solid #2b4663', borderRadius: 0, padding: '24px 22px', marginBottom: 26 },
   h2: { fontSize: 21, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px 0' },
-  cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: 18 },
-  card: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: 22, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
-  cardHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  cardCodeBadge: { fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 5, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8' },
+  cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(460px, 100%), 1fr))', gap: 18 },
+  card: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: 22, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 },
+  cardHeaderRow: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 },
+  cardCodeBadge: { fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 0, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8' },
   cardDoiBadge: { fontSize: 11, fontWeight: 700, color: '#34d399' },
   cardTitle: { fontSize: 19, fontWeight: 800, margin: '0 0 8px 0' },
   cardTitleLink: { color: '#f8fafc', textDecoration: 'none' },
-  specialtyStrip: { fontSize: 12.5, fontWeight: 700, color: '#f2b84b', marginBottom: 10 },
+  specialtyStrip: { fontSize: 12.5, fontWeight: 700, color: '#38bdf8', marginBottom: 10 },
   cardSummary: { fontSize: 13.5, lineHeight: 1.6, color: '#cbd5e1', margin: '0 0 12px 0' },
   bulletList: { margin: 0, paddingLeft: 18, display: 'grid', gap: 6 },
   bulletItem: { fontSize: 12.5, lineHeight: 1.5, color: '#94a3b8' },
-  cardCtaBtn: { display: 'inline-block', padding: '8px 14px', borderRadius: 7, background: '#38bdf8', color: '#04131d', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' },
-  cardOutlineBtn: { display: 'inline-block', padding: '8px 14px', borderRadius: 7, background: '#070b14', color: '#34d399', border: '1px solid #10b981', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' },
+  cardCtaBtn: { display: 'inline-block', padding: '8px 14px', borderRadius: 0, background: '#38bdf8', color: '#04131d', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' },
+  cardOutlineBtn: { display: 'inline-block', padding: '8px 14px', borderRadius: 0, background: '#070b14', color: '#34d399', border: '1px solid #10b981', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' },
 };

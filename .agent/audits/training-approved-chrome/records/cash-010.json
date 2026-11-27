@@ -1,0 +1,71 @@
+{
+  "id": "cash-010",
+  "name": "Short Stack Rat",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:47:56.273Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Short Stack Rat.\nSubject: A sleek little gunmetal rat character rapidly slipping along a poker-table rail with a compact bundle of cobalt chips, while enormous out-of-focus opponent reserves loom behind. The compact take and quick exit express a short-stack hit-and-run strategy.\nCamera: Low tracking profile, near the rail and slightly ahead of the moving character.\nComposition: The rat stretches horizontally across the lower-middle frame, with its tail and the curved rail making a long sweep. A small opening in a chip rack at far right gives it a clear destination. Use a polished illustrated character style, black fur-like metal, silver whiskers and cobalt chips; no round podium or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A sleek little gunmetal rat character rapidly slipping along a poker-table rail with a compact bundle of cobalt chips, while enormous out-of-focus opponent reserves loom behind. The compact take and quick exit express a short-stack hit-and-run strategy.",
+  "camera": "Low tracking profile, near the rail and slightly ahead of the moving character.",
+  "composition": "The rat stretches horizontally across the lower-middle frame, with its tail and the curved rail making a long sweep. A small opening in a chip rack at far right gives it a clear destination. Use a polished illustrated character style, black fur-like metal, silver whiskers and cobalt chips; no round podium or cards.",
+  "source": {
+    "fileName": "exec-2f2af49d-e8c2-4be9-b295-e54d69921902.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2201809,
+    "sha256": "016830b7599d278dcca3af91f904920b2d66d257386de110f46c05bed1bfc65c"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-010.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 38860,
+      "sha256": "508ddbe5ebb7ab621df2819c97dcca4f3beaf8307d377d299f077e064961ef76"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-010.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 33899,
+      "sha256": "021f18c8c9841d1ff4427ecfdad3339ed59f6900350d576c1a999b55b984981a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-010.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 71528,
+      "sha256": "4289b8a94b772335409999055e6917bc114539e4e094c9a0b01b7c9f461e841d"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-010.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 58182,
+      "sha256": "062ca66865190392c5bf62f1e4d6cb447721b9cf47750f07acc1a54eb0993107"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-010.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 125194,
+      "sha256": "0a6181d1d18fb20aacb5e938d3670651c761bda4e977b09936bda73c7558b9e2"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-010.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 94038,
+      "sha256": "aa1d7a187d3e26fb41db76d6e18f382a867002c0d6043c1af6a8d8deb87c0a65"
+    }
+  ]
+}

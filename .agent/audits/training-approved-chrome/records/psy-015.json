@@ -1,0 +1,71 @@
+{
+  "id": "psy-015",
+  "name": "Winners Tilt",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:55:31.072Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Winners Tilt.\nSubject: Winners Tilt: an exuberant leaning tower of poker chips is being steadied by a precise chrome spirit level across its top\nCamera: tight upward three-quarter view\nComposition: The unstable stack leans from lower left toward upper right; the level counters it horizontally and one chip is caught just before sliding. Controlled restraint after success, black felt background, no confetti or central ring.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Winners Tilt: an exuberant leaning tower of poker chips is being steadied by a precise chrome spirit level across its top",
+  "camera": "tight upward three-quarter view",
+  "composition": "The unstable stack leans from lower left toward upper right; the level counters it horizontally and one chip is caught just before sliding. Controlled restraint after success, black felt background, no confetti or central ring.",
+  "source": {
+    "fileName": "exec-4aeb947c-9f0e-4498-bcb2-2f1606f5ff98.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2229178,
+    "sha256": "ebc465f2706cf42b0892959110cd7657cc02b109cc7b10f49317667e7313c8fb"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-015.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 35632,
+      "sha256": "322d99792efef3be517de967deb1fe3b49a95a7d4b5383cc06a25f0e91d886c9"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-015.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 31003,
+      "sha256": "74266fe109b3beb8efbea957fab6c3685f794344bd78091fca768625a6cea450"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-015.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 65800,
+      "sha256": "ce1307d30fb0aaa8e4cb572ca534c2b3cf9f7d2510a528c6c3b9b43b7732a298"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-015.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 54180,
+      "sha256": "83aaea571865c17999406d9286d839ef717e26d94e6c53f7fe52d9dc5f6a4896"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-015.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 122944,
+      "sha256": "d9de03b2c80a3070f12a4a2524e2a9998af0a36b3d7e7ef1d044c229cdce5a33"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-015.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 91887,
+      "sha256": "334c92d4c0774de1452d356accb01af72e2232cae707d5e349aee9c4c18b9d4d"
+    }
+  ]
+}

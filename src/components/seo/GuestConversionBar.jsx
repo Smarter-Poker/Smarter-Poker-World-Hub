@@ -1,8 +1,33 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { openQuickSignup } from './SmarterQuickSignupSheet';
 
 export const GUEST_BAR_DISMISSED_KEY = 'sp_guest_conversion_bar_dismissed_v1';
+
+function guestBarCopyForPath(path) {
+  if (path.startsWith('/tools')) {
+    return 'Save Custom Ranges, Compare Villain Equity & Unlock 107 Free GTO Drills';
+  }
+  if (path.startsWith('/learn')) {
+    return 'Unlock Full Multi-Position Solver Matrices & Save Guides To Your Study Deck';
+  }
+  if (
+    path.startsWith('/hub/venues') ||
+    path.startsWith('/hub/series') ||
+    path.startsWith('/hub/poker-near-me') ||
+    path.startsWith('/poker-rooms')
+  ) {
+    return 'Unlock Live Waitlists, Peak-Hour Heatmaps & Seat Alerts Across 715+ Rooms';
+  }
+  if (path.startsWith('/hub/video-library')) {
+    return 'Bookmark Key Hands, Follow Pro Channels & Drill Video Spots Free';
+  }
+  if (path.startsWith('/hub/training')) {
+    return 'Track Your GTO Accuracy, Leak Score & Daily Streaks With A Free Account';
+  }
+  return 'Unlock Full GTO Tools, 715+ Live Poker Rooms & Free Bankroll Tracking';
+}
 
 function normalizePath(rawPath) {
   const base = String(rawPath || '').split(/[?#]/, 1)[0].trim();
@@ -69,6 +94,12 @@ const STATIC_HEADER_PREFIXES = [
   '/facts',
   '/freerolls',
   '/games',
+  '/poker-rooms',
+  '/poker-series',
+  '/press',
+  '/rules',
+  '/search',
+  '/sitemap',
   '/learn/best-poker-players',
   '/learn/board-textures',
   '/learn/cheat-sheets',
@@ -145,6 +176,21 @@ export default function GuestConversionBar() {
     setDismissed(true);
   };
 
+  const contextualCopy = guestBarCopyForPath(currentPath);
+
+  const handleSignupClick = (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    openQuickSignup({
+      unlockKey: 'guest-bar',
+      eyebrow: 'Free Smarter.Poker Account',
+      title: 'Create Your Free Smarter.Poker Account',
+      subtitle: contextualCopy,
+      redirectPath: currentPath,
+      source: 'guest-bar',
+    });
+  };
+
   return (
     <aside
       className={`sd-guest-bar${belowHeader ? ' sd-guest-bar--below-header' : ''}`}
@@ -153,16 +199,14 @@ export default function GuestConversionBar() {
     >
       <div className="sd-guest-bar__inner">
         <div className="sd-guest-bar__copy">
-          <span className="sd-guest-bar__brand">Smarter.Poker</span>
-          <span className="sd-guest-bar__text">
-            Free GTO Tools, Live Poker Rooms &amp; Bankroll Tracker
-          </span>
+          <span className="sd-guest-bar__brand">SMARTER.POKER</span>
+          <span className="sd-guest-bar__text">{contextualCopy}</span>
         </div>
 
         <div className="sd-guest-bar__actions">
-          <Link href={signupHref} className="sd-guest-bar__signup">
+          <a href={signupHref} onClick={handleSignupClick} className="sd-guest-bar__signup">
             Sign Up Free
-          </Link>
+          </a>
           <Link href={loginHref} className="sd-guest-bar__login">
             Sign In
           </Link>
@@ -188,9 +232,11 @@ export default function GuestConversionBar() {
           width: 100%;
           max-width: 100%;
           min-width: 0;
-          background: linear-gradient(90deg, #060d1a 0%, #081121 50%, #060d1a 100%);
-          border-bottom: 1px solid rgba(148, 184, 224, 0.28);
-          color: #ffffff;
+          background: linear-gradient(180deg, #10243a 0%, #071322 100%);
+          border-top: 1px solid rgba(134, 218, 255, 0.28);
+          border-bottom: 2px solid #2b4d70;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.58);
+          color: #f2f7ff;
           font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           font-variant-numeric: tabular-nums;
         }
@@ -205,7 +251,7 @@ export default function GuestConversionBar() {
           width: 100%;
           max-width: 1280px;
           margin: 0 auto;
-          padding: 6px 12px;
+          padding: 5px 12px;
           display: flex;
           flex-wrap: wrap;
           align-items: center;
@@ -226,16 +272,17 @@ export default function GuestConversionBar() {
         .sd-guest-bar__brand {
           display: inline-flex;
           align-items: center;
-          padding: 2px 8px;
-          border-radius: 999px;
-          border: 1px solid rgba(148, 184, 224, 0.28);
-          background: #081121;
-          color: #38bdf8;
-          font-family: var(--font-rajdhani, 'Arial Narrow'), var(--font-inter, Inter), sans-serif;
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          line-height: 1.25;
+          padding: 3px 9px;
+          border-radius: 0;
+          border: 1px solid #3a7fbd;
+          background: linear-gradient(180deg, #12406f 0%, #082341 100%);
+          box-shadow: inset 0 1px 0 rgba(134, 218, 255, 0.42);
+          color: #86daff;
+          font-family: var(--font-roboto-condensed, 'Arial Narrow'), Arial, sans-serif;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          line-height: 1.2;
           white-space: nowrap;
         }
 
@@ -243,7 +290,7 @@ export default function GuestConversionBar() {
           font-size: 13px;
           font-weight: 600;
           line-height: 1.35;
-          color: #cbd5e1;
+          color: #bdd0e2;
           min-width: 0;
           overflow-wrap: break-word;
         }
@@ -252,7 +299,9 @@ export default function GuestConversionBar() {
           display: flex;
           flex-wrap: nowrap;
           align-items: center;
-          gap: 8px;
+          gap: 0;
+          border: 1px solid #355270;
+          background: #06101c;
           flex-shrink: 0;
         }
 
@@ -263,35 +312,40 @@ export default function GuestConversionBar() {
           align-items: center;
           justify-content: center;
           min-height: 44px;
-          padding: 8px 14px;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 700;
-          line-height: 1.2;
+          padding: 8px 16px;
+          border-radius: 0;
+          font-family: var(--font-roboto-condensed, 'Arial Narrow'), Arial, sans-serif;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          line-height: 1.1;
           text-decoration: none;
           white-space: nowrap;
           transition: background-color 140ms ease, border-color 140ms ease, filter 140ms ease;
         }
 
         .sd-guest-bar :global(.sd-guest-bar__signup) {
-          background: linear-gradient(180deg, #0284c7 0%, #1d4ed8 100%);
-          border: 1px solid rgba(56, 189, 248, 0.5);
+          background: linear-gradient(180deg, #1f6feb 0%, #11449e 100%);
+          border: 0;
+          border-right: 1px solid #4895d9;
+          box-shadow: inset 0 1px 0 rgba(186, 234, 255, 0.55);
           color: #ffffff;
         }
 
         .sd-guest-bar :global(.sd-guest-bar__signup:hover) {
-          filter: brightness(1.08);
+          filter: brightness(1.1);
         }
 
         .sd-guest-bar :global(.sd-guest-bar__login) {
-          background: #060d1a;
-          border: 1px solid rgba(148, 184, 224, 0.28);
-          color: #38bdf8;
+          background: linear-gradient(180deg, #14273c 0%, #091524 100%);
+          border: 0;
+          border-right: 1px solid #2b4560;
+          color: #86daff;
         }
 
         .sd-guest-bar :global(.sd-guest-bar__login:hover) {
-          border-color: rgba(56, 189, 248, 0.65);
-          background: #081121;
+          color: #ffffff;
+          background: linear-gradient(180deg, #1b3450 0%, #0e2034 100%);
         }
 
         .sd-guest-bar__dismiss {
@@ -304,35 +358,34 @@ export default function GuestConversionBar() {
           width: 44px;
           height: 44px;
           padding: 0;
-          border-radius: 8px;
-          border: 1px solid rgba(148, 184, 224, 0.28);
-          background: #060d1a;
-          color: #94a3b8;
+          border-radius: 0;
+          border: 0;
+          background: #071321;
+          color: #bdd0e2;
           font-size: 20px;
           font-weight: 600;
           line-height: 1;
           cursor: pointer;
           flex: 0 0 auto;
-          transition: color 140ms ease, border-color 140ms ease, background-color 140ms ease;
+          transition: color 140ms ease, background-color 140ms ease;
         }
 
         .sd-guest-bar__dismiss:hover {
           color: #ffffff;
-          border-color: rgba(56, 189, 248, 0.55);
-          background: #081121;
+          background: #10243a;
         }
 
         .sd-guest-bar :global(.sd-guest-bar__signup:focus-visible),
         .sd-guest-bar :global(.sd-guest-bar__login:focus-visible),
         .sd-guest-bar__dismiss:focus-visible {
-          outline: 2px solid #38bdf8;
-          outline-offset: 2px;
+          outline: 2px solid #86daff;
+          outline-offset: -2px;
         }
 
         @media (max-width: 640px) {
           .sd-guest-bar__inner {
-            padding: 5px 10px;
-            gap: 6px 8px;
+            padding: 4px 8px;
+            gap: 6px;
           }
 
           .sd-guest-bar__copy {
@@ -341,7 +394,6 @@ export default function GuestConversionBar() {
 
           .sd-guest-bar__actions {
             width: 100%;
-            justify-content: space-between;
           }
 
           .sd-guest-bar :global(.sd-guest-bar__signup) {

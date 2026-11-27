@@ -1,0 +1,71 @@
+{
+  "id": "mtt-023",
+  "name": "Registration Edge",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:00.052Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Registration Edge.\nSubject: Registration Edge: a tournament entry ticket arriving through a chrome slot just before a mechanical gate closes, with shorter and taller starting stacks beyond\nCamera: tight diagonal view from the registration counter toward the table\nComposition: The blank ticket cuts boldly through lower left; the nearly closing entry slot divides foreground from an out-of-focus tournament stack comparison on the right. Urgency from the spatial narrowing, no text, no numbers, no ring-shaped clock.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Registration Edge: a tournament entry ticket arriving through a chrome slot just before a mechanical gate closes, with shorter and taller starting stacks beyond",
+  "camera": "tight diagonal view from the registration counter toward the table",
+  "composition": "The blank ticket cuts boldly through lower left; the nearly closing entry slot divides foreground from an out-of-focus tournament stack comparison on the right. Urgency from the spatial narrowing, no text, no numbers, no ring-shaped clock.",
+  "source": {
+    "fileName": "exec-146e9a44-b6b9-4516-9b3a-da4348ef500f.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2220660,
+    "sha256": "d3744d278a942629b3567f8cf0b15e05895271f41bfc8211aaa7496d29567dc4"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-023.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 35096,
+      "sha256": "5f551d9b34273c7081d30b838dbf7455badf547a74d5386c06bfac0824826e6e"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-023.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 29215,
+      "sha256": "f733ff00ca8b624be4332cbcf86eb2a55ed6898577c34402e7bf69de5dc33bdb"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-023.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 64512,
+      "sha256": "08c9426163fc320c4e6d6ba9e1d6e8e55ad95925d7a6d01c9761e26733d7af76"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-023.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 51392,
+      "sha256": "d29653a9f8663e479d7d66badd36ff9592b6f96b85054c872da0c011f37a205e"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-023.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 119020,
+      "sha256": "13770889b6e5e9315741140f7d4e3a78f0ee8b09aaed1885130eea506b400ed9"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-023.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 84865,
+      "sha256": "6f87affd03117194603fba85621cd9a15b552c65e017e8b23706fca0dac46627"
+    }
+  ]
+}

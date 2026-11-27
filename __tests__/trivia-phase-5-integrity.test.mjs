@@ -8,6 +8,7 @@ const ROOT = process.cwd();
 const read = file => readFileSync(join(ROOT, file), 'utf8');
 
 const lobby = read('src/components/trivia/TriviaLobby.jsx');
+const lobbyCss = read('src/components/trivia/TriviaLobby.module.css');
 const hub = read('pages/hub/trivia/index.js');
 const menus = read('src/config/hamburgerMenus.js');
 const start = read('pages/api/trivia/session-start.js');
@@ -20,7 +21,7 @@ const atomicEntry = read('supabase/migrations/20260827190500_trivia_atomic_sessi
 const verifiedScores = read('supabase/migrations/20260827191000_trivia_verified_scores.sql');
 const replaySettlement = read('supabase/migrations/20260827231000_trivia_phase6_settlement_replay.sql');
 
-test('lobby exposes every public game and uses recoverable, prefetched routes', () => {
+test('lobby keeps established recoverable, prefetched game routes', () => {
     assert.ok(TRIVIA_MIDDLE_MODES.some(mode => mode.id === 'time-attack'));
     assert.ok(existsSync(join(ROOT, 'public/images/trivia/modes-console-v1/time-attack.webp')));
     assert.match(lobby, /await router\.push\(getModeRoute\(modeId\)\)/);
@@ -30,8 +31,8 @@ test('lobby exposes every public game and uses recoverable, prefetched routes', 
 
 test('lobby routes directly to authoritative pregame without double-modal friction while keeping accessible targets', () => {
     assert.doesNotMatch(lobby, /showChargePopup/);
-    assert.match(lobby, /@media \(forced-colors: active\)/);
-    assert.match(lobby, /min-height: 44px/);
+    assert.match(lobbyCss, /@media \(forced-colors: active\)/);
+    assert.match(lobbyCss, /min-height: 44px/);
 });
 
 test('hamburger shortcuts resolve to real routes and the hub uses one preference schema', () => {

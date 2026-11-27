@@ -13,6 +13,7 @@ import {
 import { formatStoreUsd } from '../../../src/lib/store/wholeDollarPrice.mjs';
 import { getVipBenefitsForPlan, VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
 import { breadcrumbSchema } from '../../../src/lib/seo/hubPageSchema';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
 /* Monthly, Yearly, Lifetime (Dan 2026-09-05). Was daily/monthly/annual - with
@@ -156,6 +157,13 @@ export default function VipComparePage() {
           },
         ]}
       />
+      <div style={{ marginTop: 24 }}>
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context="vip-membership-compare"
+          redirectPath="/hub/vip-membership/compare"
+        />
+      </div>
     </MarketplaceDetailExperience>
   );
 }

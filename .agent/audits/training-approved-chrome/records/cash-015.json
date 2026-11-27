@@ -1,0 +1,71 @@
+{
+  "id": "cash-015",
+  "name": "Overbetting",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:53:17.893Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Overbetting.\nSubject: A wager dramatically larger than the existing pot, shown through extreme scale contrast. A dense rectangular wall of cobalt chips advances toward a small loose cluster of black-and-silver pot chips.\nCamera: Almost vertical aerial crop, offset toward the oversized wager.\nComposition: The large bet occupies the right two-thirds as an imposing rectangular mass; the small pot is isolated in the upper-left, with a narrow strip of felt between. One sharp shadow stretches from the bet toward the pot. Do not place the small pot in a bowl or put either group on a stage.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A wager dramatically larger than the existing pot, shown through extreme scale contrast. A dense rectangular wall of cobalt chips advances toward a small loose cluster of black-and-silver pot chips.",
+  "camera": "Almost vertical aerial crop, offset toward the oversized wager.",
+  "composition": "The large bet occupies the right two-thirds as an imposing rectangular mass; the small pot is isolated in the upper-left, with a narrow strip of felt between. One sharp shadow stretches from the bet toward the pot. Do not place the small pot in a bowl or put either group on a stage.",
+  "source": {
+    "fileName": "exec-7c12f802-3c4b-41e4-a69f-f1282f7a427c.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2663435,
+    "sha256": "b854ad83866253e0664fb576a243a3983872b54508c65f95af33acbb3d732912"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-015.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 48304,
+      "sha256": "7227ec73d2acc222dbbd2621703085f9d311c7b0e5296499004a7afe76260655"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-015.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 48437,
+      "sha256": "3505766793e8808edb6890519edcf743ff6bd3aa250140491cfe7cdc74a37b45"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-015.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 94070,
+      "sha256": "49618f5ca98da5f527a2f7ec7baffafd380ba3d79001662192c346ca56b776be"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-015.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 87755,
+      "sha256": "249c8bd5d767c2a340a8609412baae4e38b9c154f4e87b320a320eec1b012093"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-015.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 180820,
+      "sha256": "c9e99d156a1c10fa7d49a614c46ac51f093cd50ecc352cb3418453b3251799d7"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-015.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 146419,
+      "sha256": "b8e44009a1a99342302db278b677d34ac624996564c449234b0ac997bfe404fe"
+    }
+  ]
+}

@@ -65,6 +65,33 @@ import { US_COUNTRY, NON_US_COUNTRIES } from '../../src/lib/countries';
 // Where a player with no club invite continues after the welcome package offer.
 const CLUB_LOBBY_PATH = '/hub/club-arena/';
 
+function formatUnlockPromise(rawUnlock) {
+  const key = String(rawUnlock || '').trim().toLowerCase();
+  if (!key) return 'Free Account Unlock Ready: Complete Below To Continue Immediately';
+  if (key.includes('solver') || key.includes('hand') || key.includes('preflop') || key.includes('range')) {
+    return 'Unlocking Free: Full Multi-Position GTO Solver Matrix & 107 Drills';
+  }
+  if (key.includes('venue') || key.includes('pnm') || key.includes('room') || key.includes('series') || key.includes('tour') || key.includes('calendar') || key.includes('weekend')) {
+    return 'Unlocking Free: Live Waitlists, Peak Hours & Tournament Seat Alerts';
+  }
+  if (key.includes('tool') || key.includes('calc') || key.includes('icm') || key.includes('odds')) {
+    return 'Unlocking Free: Cloud Scenario Saves, CSV Exports & GTO Drills';
+  }
+  if (key.includes('video') || key.includes('watch') || key.includes('channel')) {
+    return 'Unlocking Free: Interactive Video Hand Quizzes & Pro Bookmarks';
+  }
+  if (key.includes('research') || key.includes('press') || key.includes('compare') || key.includes('dataset') || key.includes('facts')) {
+    return 'Unlocking Free: Full Interactive Filter Matrix & Cloud Dataset Exports';
+  }
+  if (key.includes('wire') || key.includes('magazine') || key.includes('news') || key.includes('article')) {
+    return 'Unlocking Free: Interactive Weekly GTO Polls, Archives & Pro Alerts';
+  }
+  if (key.includes('masthead')) {
+    return 'Unlocking Free: Full Smarter.Poker Pro Console, GTO Games & Live Intel';
+  }
+  return 'Unlocking Free: Study Deck Bookmarks, Cheat Sheets & 107 GTO Games';
+}
+
 // US States for dropdown
 const US_STATES = [
   'AL',
@@ -554,6 +581,10 @@ export default function SignUpPage() {
     if (!router.isReady) return;
 
     const one = (v) => (Array.isArray(v) ? v[0] : v);
+    const emailParam = one(router.query.email);
+    if (typeof emailParam === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailParam.trim())) {
+      setFormData((prev) => (prev.email && prev.email.trim() ? prev : { ...prev, email: emailParam.trim().toLowerCase() }));
+    }
     const codeRaw = one(router.query.authError);
     const providerRaw = one(router.query.provider);
     const provider =
@@ -1506,7 +1537,7 @@ export default function SignUpPage() {
                 }}
               />
 
-                            {/* Dynamic Blank Space Form Area */}
+              {/* Dynamic Blank Space Form Area */}
               <div
                 style={{
                   position: "absolute",
@@ -1522,6 +1553,24 @@ export default function SignUpPage() {
                   boxSizing: "border-box",
                 }}
               >
+                {typeof router?.query?.unlock === 'string' && router.query.unlock.trim() && (
+                  <div
+                    data-testid="signup-unlock-context-desktop"
+                    style={{
+                      padding: '6px 10px',
+                      border: '1px solid #3a7fbd',
+                      background: 'linear-gradient(180deg, #12406f 0%, #082341 100%)',
+                      color: '#86daff',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      letterSpacing: '0.03em',
+                      textAlign: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {formatUnlockPromise(router.query.unlock)}
+                  </div>
+                )}
                 <style dangerouslySetInnerHTML={{ __html: `
                   /* Scrollbar styling for the form area */
                   .dynamic-auth-form div::-webkit-scrollbar {
@@ -1584,6 +1633,12 @@ export default function SignUpPage() {
                   select.auth-input-styled {
                     appearance: auto !important;
                     cursor: pointer;
+                  }
+                  @media (min-width: 769px) {
+                    select.auth-input-styled {
+                      font-size: 13px !important;
+                      padding: 0 4px !important;
+                    }
                   }
                   /* United States / Outside The US: buttons, not inputs, so the
                      16px iOS-zoom floor does not apply; keep each label on one line. */
@@ -1813,6 +1868,24 @@ export default function SignUpPage() {
           <form onSubmit={handleSignUp} style={phoneStyles.panel}>
             {/* #SMARTERDESIGN Trust Strip & Primary 1-Tap Google CTA */}
             <div style={phoneStyles.quickStartCard}>
+              {typeof router?.query?.unlock === 'string' && router.query.unlock.trim() && (
+                <div
+                  data-testid="signup-unlock-context"
+                  style={{
+                    marginBottom: 8,
+                    padding: '6px 10px',
+                    border: '1px solid #3a7fbd',
+                    background: 'linear-gradient(180deg, #12406f 0%, #082341 100%)',
+                    color: '#86daff',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                    textAlign: 'center',
+                  }}
+                >
+                  {formatUnlockPromise(router.query.unlock)}
+                </div>
+              )}
               <div style={phoneStyles.trustStrip}>
                 100% Free Account • 107 GTO Training Games • 715+ Live Poker Rooms
               </div>
@@ -1849,6 +1922,24 @@ export default function SignUpPage() {
                   />
                 </svg>
                 <span>{oauthLoading === 'google' ? 'Connecting To Google...' : 'Continue With Google'}</span>
+              </button>
+              <button
+                type="button"
+                className="sp-facebook-cta"
+                onClick={() => handleOAuthSignIn('facebook')}
+                disabled={!!oauthLoading}
+                data-testid="signup-mobile-facebook-cta"
+                style={{
+                  ...phoneStyles.googlePrimaryCta,
+                  marginTop: 8,
+                  background: 'linear-gradient(180deg, #172b42 0%, #0b1827 100%)',
+                  border: '1px solid #3f5d7b',
+                  color: '#f2f7ff',
+                  opacity: oauthLoading ? 0.7 : 1,
+                  cursor: oauthLoading ? 'wait' : 'pointer',
+                }}
+              >
+                <span>{oauthLoading === 'facebook' ? 'Connecting To Facebook...' : 'Continue With Facebook'}</span>
               </button>
               <div style={phoneStyles.orDivider}>
                 <span style={phoneStyles.orLine} />

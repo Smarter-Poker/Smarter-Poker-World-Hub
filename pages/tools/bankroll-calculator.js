@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -192,7 +193,7 @@ export default function BankrollCalculatorPage({
           gap: 20,
           marginBottom: 36,
         }}>
-          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: 24 }}>
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 0, padding: 24 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 16px 0' }}>
               1. Bankroll &amp; Variance Parameters
             </h2>
@@ -208,7 +209,7 @@ export default function BankrollCalculatorPage({
                 min="0.5"
                 value={winrate}
                 onChange={(e) => setWinrate(Number(e.target.value))}
-                style={{ width: '100%', padding: '10px 12px', background: '#070b14', border: '1px solid #334155', borderRadius: 8, color: '#f8fafc', fontSize: 16, fontWeight: 700 }}
+                style={{ width: '100%', padding: '10px 12px', background: '#070b14', border: '1px solid #334155', borderRadius: 0, color: '#f8fafc', fontSize: 16, fontWeight: 700 }}
               />
             </div>
 
@@ -223,7 +224,7 @@ export default function BankrollCalculatorPage({
                 max="250"
                 value={stdDev}
                 onChange={(e) => setStdDev(Number(e.target.value))}
-                style={{ width: '100%', padding: '10px 12px', background: '#070b14', border: '1px solid #334155', borderRadius: 8, color: '#f8fafc', fontSize: 16, fontWeight: 700 }}
+                style={{ width: '100%', padding: '10px 12px', background: '#070b14', border: '1px solid #334155', borderRadius: 0, color: '#f8fafc', fontSize: 16, fontWeight: 700 }}
               />
             </div>
 
@@ -238,7 +239,7 @@ export default function BankrollCalculatorPage({
                 max="500"
                 value={buyIns}
                 onChange={(e) => setBuyIns(Number(e.target.value))}
-                style={{ width: '100%', padding: '10px 12px', background: '#070b14', border: '1px solid #334155', borderRadius: 8, color: '#f8fafc', fontSize: 16, fontWeight: 700 }}
+                style={{ width: '100%', padding: '10px 12px', background: '#070b14', border: '1px solid #334155', borderRadius: 0, color: '#f8fafc', fontSize: 16, fontWeight: 700 }}
               />
             </div>
 
@@ -252,12 +253,12 @@ export default function BankrollCalculatorPage({
                 min="10"
                 value={buyInDollars}
                 onChange={(e) => setBuyInDollars(Number(e.target.value))}
-                style={{ width: '100%', padding: '10px 12px', background: '#070b14', border: '1px solid #334155', borderRadius: 8, color: '#f8fafc', fontSize: 16, fontWeight: 700 }}
+                style={{ width: '100%', padding: '10px 12px', background: '#070b14', border: '1px solid #334155', borderRadius: 0, color: '#f8fafc', fontSize: 16, fontWeight: 700 }}
               />
             </div>
           </div>
 
-          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: 24 }}>
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 0, padding: 24 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 16px 0' }}>
               2. Risk Of Ruin &amp; Capital Output
             </h2>
@@ -271,13 +272,21 @@ export default function BankrollCalculatorPage({
           </div>
         </section>
 
+        <div style={{ marginBottom: 32 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="tools-bankroll-calculator"
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         {/* Reference Table */}
         <section style={{ marginBottom: 36 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Standard Deviation &amp; Buy-In Requirements By Poker Format
           </h2>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Empirical Variance Benchmarks And Recommended Bankroll Depths Across Major Poker Formats
               </caption>
@@ -306,24 +315,24 @@ export default function BankrollCalculatorPage({
         </section>
 
         {/* Cross-Link Navigation */}
-        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 12, border: '1px solid #1e293b' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 0, border: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Related Smarter.Poker Calculators &amp; Research Studies
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/hub/bankroll-manager" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/hub/bankroll-manager" style={{ padding: '8px 14px', background: '#1f6feb', color: '#fff', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Open Full Bankroll &amp; Tax Tracker
             </Link>
-            <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Pot Odds &amp; MDF Calculator
             </Link>
-            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Tournament ICM Calculator
             </Link>
-            <Link href="/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Research: Equity Variance &amp; Bankroll Risk Of Ruin Study
             </Link>
-            <Link href="/learn/risk-of-ruin" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/risk-of-ruin" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Lesson: Bankroll Management &amp; Risk Of Ruin
             </Link>
           </div>

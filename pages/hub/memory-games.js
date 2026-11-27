@@ -29,6 +29,7 @@ import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
 import PreflopReference from '../../src/components/seo/PreflopReference';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 // AEO phase 3 (2026-09-17). This module serves /hub/preflop-charts, which
 // pages/hub/preflop-charts.js re-exports, so the canonical and the schema
@@ -212,6 +213,7 @@ import {
   VipSeal,
   vipIntroPlateProps,
   vipKitStyles as vipKit,
+  VipPhoneOfferGate,
 } from '../../src/components/vip/VipKit';
 import { VIP_INTRO_OFFER } from '../../src/lib/store/vipIntroOffer.mjs';
 import { leaveForCheckout } from '../../src/lib/store/leaveForCheckout.mjs';
@@ -2856,7 +2858,10 @@ export default function MemoryGamesPage() {
                   )}
 
                   {/* VIP Upsell - only for confirmed non-VIP users */}
+                  {/* Phone verification reward first (Dan, 2026-11-27); Skip
+                      shows the VIP upsell below unchanged. */}
                   {isVIP === false && (
+                    <VipPhoneOfferGate accountId={userId || null} className="preflop-vip-upgrade">
                     <section
                       className={`${vipKit.kit} ${vipKit.frame} ${vipKit.prompt} preflop-vip-upgrade`}
                       aria-labelledby="preflop-vip-title"
@@ -2912,6 +2917,7 @@ export default function MemoryGamesPage() {
                         </div>
                       )}
                     </section>
+                    </VipPhoneOfferGate>
                   )}
                 </div>
               </PullToRefresh>
@@ -3429,6 +3435,13 @@ export default function MemoryGamesPage() {
     <HubPageSummary page="preflop-charts" as="h1" />
     {/* The charts themselves, in words, for the reader and the engine that
         never run the lab above (AEO phase 3, 2026-09-19). */}
+    <div style={{ maxWidth: 1100, margin: '0 auto 24px', padding: '0 20px' }}>
+      <SmarterAccountUnlockGate
+        variant="solver-matrix"
+        context="hub-preflop-charts"
+        redirectPath="/hub/preflop-charts"
+      />
+    </div>
     <PreflopReference />
     <FaqSection faqs={MEMORY_GAMES_FAQS} />
     </>

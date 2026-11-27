@@ -18,6 +18,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -515,6 +516,14 @@ export default function ShotClockPage() {
             })}
           </div>
         </section>
+
+        <div style={{ marginBottom: 32 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="tools-shot-clock"
+            redirectPath={canonicalPath}
+          />
+        </div>
 
         <SmarterConversionCta
           compact

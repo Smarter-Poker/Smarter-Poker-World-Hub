@@ -1,0 +1,71 @@
+{
+  "id": "spins-004",
+  "name": "SNG Endgame",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:49:20.413Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: SNG Endgame.\nSubject: The last two opponents face one another across a compact poker table, while the now-empty third seat is pushed back and falls into darkness. Two unequal remaining stacks and a tight contested pot suggest a decisive heads-up endgame.\nCamera: Eye-level view from the empty third seat, centered between the final opponents.\nComposition: The empty seat's dark back partly frames the bottom edge. Two active players in cool monochrome occupy opposite sides, and their hands converge on the small lit felt. The chrome rail forms a shallow horizontal arc. No blades, heroic pedestal or decorative card pair.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "The last two opponents face one another across a compact poker table, while the now-empty third seat is pushed back and falls into darkness. Two unequal remaining stacks and a tight contested pot suggest a decisive heads-up endgame.",
+  "camera": "Eye-level view from the empty third seat, centered between the final opponents.",
+  "composition": "The empty seat's dark back partly frames the bottom edge. Two active players in cool monochrome occupy opposite sides, and their hands converge on the small lit felt. The chrome rail forms a shallow horizontal arc. No blades, heroic pedestal or decorative card pair.",
+  "source": {
+    "fileName": "exec-b13bc3d0-0c0f-4dd4-9c33-1cf27c7f1c56.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2056320,
+    "sha256": "097c9c2b8b10a284b51220064cfb567958f552c2c7ad85ecd9c13455a0b8422d"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-004.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 25878,
+      "sha256": "e32cc3f45b73bfaae00faa6ed8d85221b5f9ce8dec34f96e199af5462e016a45"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-004.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 22732,
+      "sha256": "91949c2f42cf46e35bd6fd83c7083585e94fd7de4f658a4d91749e98a5aaccb0"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-004.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 48980,
+      "sha256": "a048983082bf35fe2fbe1ac863b6dce4338497f41a856b7cb6e39da0dba59762"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-004.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 41451,
+      "sha256": "0dbb530e8f0f292385b351ee6c5622d2a3bf744bc85eabe8375d9c8a511a33ff"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-004.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 91594,
+      "sha256": "321ef841a7f9cd39318d064ba1dd68febaf7d0d059807710785dba2f8dba222f"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-004.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 72033,
+      "sha256": "2ee57c69db74a4214ab5be872d91082bdc1080602f2c8c9fd55b4df233c79304"
+    }
+  ]
+}

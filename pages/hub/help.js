@@ -10,14 +10,15 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import BusinessHubGuide from '../../src/components/help/BusinessHubGuide';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 const C = {
-    bg: '#0a1628',
-    card: '#1a2332',
-    border: 'rgba(255,255,255,0.1)',
-    text: '#fff',
-    textSec: 'rgba(255,255,255,0.7)',
-    accent: '#00D4FF',
+    bg: '#071321',
+    card: '#0d1f33',
+    border: '#2b4663',
+    text: '#f2f7ff',
+    textSec: '#bdd0e2',
+    accent: '#38bdf8',
 };
 
 export default function HelpPage() {
@@ -171,7 +172,7 @@ export default function HelpPage() {
                         textDecoration: 'none',
                         background: C.card,
                         border: `1px solid ${C.border}`,
-                        borderRadius: 12,
+                        borderRadius: 0,
                         padding: 20,
                         display: 'flex',
                         alignItems: 'center',
@@ -181,7 +182,7 @@ export default function HelpPage() {
                         <div style={{
                             width: 48,
                             height: 48,
-                            borderRadius: '50%',
+                            borderRadius: 0,
                             background: 'linear-gradient(135deg, #10b981, #059669)',
                             display: 'flex',
                             alignItems: 'center',
@@ -204,7 +205,7 @@ export default function HelpPage() {
                         textDecoration: 'none',
                         background: C.card,
                         border: `1px solid ${C.border}`,
-                        borderRadius: 12,
+                        borderRadius: 0,
                         padding: 20,
                         display: 'flex',
                         alignItems: 'center',
@@ -214,7 +215,7 @@ export default function HelpPage() {
                         <div style={{
                             width: 48,
                             height: 48,
-                            borderRadius: '50%',
+                            borderRadius: 0,
                             background: 'linear-gradient(135deg, #00D4FF, #0088cc)',
                             display: 'flex',
                             alignItems: 'center',
@@ -266,7 +267,7 @@ export default function HelpPage() {
                                         style={{
                                             background: C.card,
                                             border: `1px solid ${C.border}`,
-                                            borderRadius: 8,
+                                            borderRadius: 0,
                                             marginBottom: 12,
                                             overflow: 'hidden',
                                         }}
@@ -334,7 +335,7 @@ export default function HelpPage() {
                     <div style={{
                         background: C.card,
                         border: `1px solid ${C.border}`,
-                        borderRadius: 12,
+                        borderRadius: 0,
                         padding: 20,
                     }}>
                         <div style={{ marginBottom: 16 }}>
@@ -384,6 +385,14 @@ export default function HelpPage() {
                             </Link>
                         </div>
                     </div>
+                </div>
+
+                <div style={{ padding: '0 20px 40px', maxWidth: 1080, margin: '0 auto' }}>
+                    <SmarterAccountUnlockGate
+                        variant="study-deck"
+                        context="help-center"
+                        redirectPath="/hub/help"
+                    />
                 </div>
             </div>
           {/* Server rendered: measured on production this page returned

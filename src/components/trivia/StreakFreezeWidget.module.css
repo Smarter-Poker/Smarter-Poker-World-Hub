@@ -6,12 +6,13 @@
     display: grid;
     gap: 12px;
     min-width: 0;
-    padding: 14px;
-    background: #0a1829;
-    border: 1px solid #445e77;
-    box-shadow: inset 0 1px 0 rgb(228 231 236 / 18%);
+    padding: 16px;
+    background: var(--sd-navy, #0a1829);
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 16 / 4px stretch;
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 14%);
     color: #bdd0e2;
-    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-family: var(--sd-type, 'Arial Narrow', 'Roboto Condensed', Inter, system-ui, sans-serif);
     font-variant-numeric: tabular-nums lining-nums;
 }
 
@@ -202,20 +203,22 @@
 
 .actionButton {
     min-height: 44px;
-    padding: 8px 14px;
-    border: 1px solid #86daff;
-    background: #040d18;
-    color: #86daff;
-    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    padding: 8px 16px;
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+    background: var(--sd-cobalt, #0c4ea9);
+    color: #f2f7ff;
+    font-family: var(--sd-type, 'Arial Narrow', 'Roboto Condensed', Inter, system-ui, sans-serif);
     font-size: 13px;
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     cursor: pointer;
     touch-action: manipulation;
 }
 
 .actionButton:disabled {
-    border-color: #445e77;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+    background: var(--sd-control, #0e2236);
     color: #9ab0c7;
     cursor: not-allowed;
 }

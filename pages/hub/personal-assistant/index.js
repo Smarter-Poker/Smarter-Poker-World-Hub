@@ -15,15 +15,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
   AlertTriangle,
-  CheckCircle2,
   ChevronRight,
   RotateCw,
-  Settings,
-  Target,
 } from 'lucide-react';
 
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -44,6 +42,7 @@ import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssi
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import styles from '../../../src/styles/worlds/PersonalAssistantHub.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
+import { APPROVED_LANDING_SPRITE, ApprovedChrome, ApprovedIllustration, ApprovedTitleLight } from '../../../src/components/personal-assistant/ApprovedLandingArt';
 
 const LiveSpotQuickEntry = dynamic(
   () => import('../../../src/components/personal-assistant/LiveSpotQuickEntry'),
@@ -221,12 +220,10 @@ export default function PersonalAssistantPage() {
           const payload = await savedRes.value.json().catch(() => null);
           if (!cancelled && activeUserIdRef.current === expectedUserId) {
             if (payload?.success && Array.isArray(payload.hands)) {
-              const total = Number.isFinite(Number(payload.totalCount))
-                ? Number(payload.totalCount)
-                : payload.hands.length;
-              const unreviewed = Number.isFinite(Number(payload.unreviewedCount))
-                ? Number(payload.unreviewedCount)
-                : payload.hands.filter((h) => (h?.review?.status || h?.hand_data?.review?.status) !== 'reviewed').length;
+              const countsComplete = payload.countsComplete !== false
+                && Number.isFinite(payload.totalCount) && Number.isFinite(payload.unreviewedCount);
+              const total = countsComplete ? payload.totalCount : null;
+              const unreviewed = countsComplete ? payload.unreviewedCount : null;
               setSavedHandsCount(total);
               setUnreviewedHandsCount(unreviewed);
             } else {
@@ -327,8 +324,8 @@ export default function PersonalAssistantPage() {
         : savedHandsCount === 0
           ? 'No Saved Hands Yet'
           : (unreviewedHandsCount ?? 0) > 0
-            ? `${savedHandsCount.toLocaleString()} ${savedHandsCount === 1 ? 'Saved Hand' : 'Saved Hands'} · ${unreviewedHandsCount.toLocaleString()} Unreviewed`
-            : `${savedHandsCount.toLocaleString()} ${savedHandsCount === 1 ? 'Saved Hand' : 'Saved Hands'} · All Reviewed`;
+            ? `${unreviewedHandsCount.toLocaleString()} ${unreviewedHandsCount === 1 ? 'Review' : 'Reviews'} Ready`
+            : 'All Saved Hands Reviewed';
 
   const leaksSummaryText = isSignedOut
     ? 'Sign In To Inspect Your Patterns'
@@ -348,6 +345,7 @@ export default function PersonalAssistantPage() {
 
   return (
     <PageTransition disableInitialAnimation>
+      <Head><link rel="preload" as="image" href={APPROVED_LANDING_SPRITE} fetchpriority="high" /></Head>
       <SEOHead
         title="Personal Assistant - Smarter.Poker"
         description="Review Your Saved Hands, Explore Scenarios In Virtual Sandbox, And Fix Leaks Inside Personal Assistant On Smarter.Poker."
@@ -376,7 +374,9 @@ export default function PersonalAssistantPage() {
               {/* First-frame server-rendered hero header (no data-dependent values) */}
               <section className={`${styles.frame} ${styles.hero}`} aria-labelledby="assistant-title" data-tutorial="nav">
                 <div className={styles.landingHeader}>
+                  <ApprovedTitleLight className={styles.titleLight} />
                   <div className={styles.landingTitleBlock}>
+                    <ApprovedChrome kind="title" className={styles.chromeOverlay} />
                     <h1 id="assistant-title" className={styles.landingTitle}>Personal Assistant</h1>
                   </div>
                   <button
@@ -386,7 +386,8 @@ export default function PersonalAssistantPage() {
                     title="Review Settings"
                     onClick={() => openInternalRoute('/hub/personal-assistant/leaks?settings=1')}
                   >
-                    <Settings size={25} strokeWidth={2.5} aria-hidden="true" />
+                    <ApprovedChrome kind="settings" className={styles.chromeOverlay} />
+                    <ApprovedIllustration kind="settings" className={styles.settingsIcon} />
                     <span>Review Settings</span>
                   </button>
                 </div>
@@ -422,16 +423,18 @@ export default function PersonalAssistantPage() {
                       className={`${styles.featureCard} ${styles.featureCardPrimary}`}
                       aria-labelledby="card-review-title"
                       data-tutorial="mission"
+                      data-card-href="/hub/personal-assistant/review"
+                      onClick={(event) => {
+                        if (event.target instanceof Element && event.target.closest('a, button')) return;
+                        openInternalRoute('/hub/personal-assistant/review');
+                      }}
                     >
+                      <ApprovedChrome kind="review" className={styles.chromeOverlay} />
                       <div className={styles.featureArtWrap}>
-                        <img
-                          src="/images/personal-assistant/review-my-play-chrome.webp"
-                          alt="Review My Play Featuring Ace Of Spades And King Of Spades With Magnifying Glass"
+                        <ApprovedIllustration
+                          kind="review"
+                          label="Review My Play Featuring Ace Of Spades And King Of Spades With Magnifying Glass"
                           className={styles.featureArt}
-                          width={1600}
-                          height={900}
-                          loading="eager"
-                          fetchpriority="high"
                         />
                       </div>
                       <div className={styles.featureBody}>
@@ -441,7 +444,7 @@ export default function PersonalAssistantPage() {
                           {topFocusTitle ? `Focus: ${topFocusTitle}` : 'Your Saved Hands. Your Next Improvement.'}
                         </p>
                         <p className={styles.featureMeta} aria-live="polite">
-                          <Target size={27} aria-hidden="true" />
+                          <ApprovedIllustration kind="target" className={styles.statusIcon} />
                           <span>{readyToReviewText}</span>
                         </p>
                         <div className={styles.featureActions}>
@@ -453,7 +456,8 @@ export default function PersonalAssistantPage() {
                               openInternalRoute('/hub/personal-assistant/review');
                             }}
                           >
-                            Start Review
+                            <ApprovedChrome kind="primaryButton" className={styles.chromeOverlay} />
+                            <span>Start Review</span>
                           </Link>
                         </div>
                       </div>
@@ -464,14 +468,18 @@ export default function PersonalAssistantPage() {
                       className={`${styles.featureCard} ${styles.featureCardSandbox}`}
                       aria-labelledby="card-sandbox-title"
                       data-tutorial="systems"
+                      data-card-href="/hub/personal-assistant/sandbox"
+                      onClick={(event) => {
+                        if (event.target instanceof Element && event.target.closest('a, button')) return;
+                        openInternalRoute('/hub/personal-assistant/sandbox');
+                      }}
                     >
+                      <ApprovedChrome kind="sandbox" className={styles.chromeOverlay} />
                       <div className={styles.featureArtWrap}>
-                        <img
-                          src="/images/personal-assistant/virtual-sandbox-chrome.webp"
-                          alt="Virtual Sandbox Poker Table Displaying Ace Of Hearts, Four Of Spades, And Five Of Spades"
+                        <ApprovedIllustration
+                          kind="sandbox"
+                          label="Virtual Sandbox Poker Table Displaying Ace Of Hearts, Four Of Spades, And Five Of Spades"
                           className={styles.featureArt}
-                          width={1600}
-                          height={672}
                         />
                       </div>
                       <div className={styles.featureBody}>
@@ -488,7 +496,8 @@ export default function PersonalAssistantPage() {
                               openInternalRoute('/hub/personal-assistant/sandbox');
                             }}
                           >
-                            Open Sandbox
+                            <ApprovedChrome kind="secondaryButton" className={styles.chromeOverlay} />
+                            <span>Open Sandbox</span>
                           </Link>
                         </div>
                       </div>
@@ -499,15 +508,18 @@ export default function PersonalAssistantPage() {
                       className={`${styles.featureCard} ${styles.featureCardLeaks}`}
                       aria-labelledby="card-leaks-title"
                       data-tutorial="stats"
+                      data-card-href="/hub/personal-assistant/leaks"
+                      onClick={(event) => {
+                        if (event.target instanceof Element && event.target.closest('a, button')) return;
+                        openInternalRoute('/hub/personal-assistant/leaks');
+                      }}
                     >
+                      <ApprovedChrome kind="leaks" className={styles.chromeOverlay} />
                       <div className={styles.featureArtWrap}>
-                        <img
-                          src="/images/personal-assistant/my-leaks-chrome.webp"
-                          alt="My Leaks Magnifying Glass Over King Of Hearts And Queen Of Hearts"
+                        <ApprovedIllustration
+                          kind="leaks"
+                          label="My Leaks Magnifying Glass Over King Of Hearts And Queen Of Hearts"
                           className={styles.featureArt}
-                          width={1600}
-                          height={533}
-                          loading="lazy"
                         />
                       </div>
                       <div className={styles.featureBody}>
@@ -530,11 +542,10 @@ export default function PersonalAssistantPage() {
                         </div>
                       </div>
                       <p className={styles.featureStatusRow} aria-live="polite">
-                        <CheckCircle2 size={29} aria-hidden="true" />
+                        <ApprovedIllustration kind="check" className={styles.statusIcon} />
                         {resolvedLeakCount !== null && activeLeakCount !== null ? (
                           <span>
-                            <strong>{resolvedLeakCount.toLocaleString()} Leaks Fixed</strong>
-                            <small>{activeLeakCount.toLocaleString()} Open</small>
+                            <strong title={`${activeLeakCount.toLocaleString()} Open`}>{resolvedLeakCount.toLocaleString()} Leaks Fixed</strong>
                           </span>
                         ) : <span className={styles.statusMessage}>{leaksSummaryText}</span>}
                       </p>
@@ -550,7 +561,7 @@ export default function PersonalAssistantPage() {
                       onClick={openLiveSpot}
                     >
                       <span className={styles.utilityIcon} aria-hidden="true">
-                        <img src="/images/personal-assistant/log-a-hand.webp" alt="" width={512} height={512} />
+                        <ApprovedIllustration kind="log" className={styles.utilityArt} />
                       </span>
                       <span className={styles.utilityCopy}>
                         <strong>Log A Hand</strong>
@@ -567,7 +578,7 @@ export default function PersonalAssistantPage() {
                       }}
                     >
                       <span className={styles.utilityIcon} aria-hidden="true">
-                        <img src="/images/personal-assistant/coaching-plan.webp" alt="" width={512} height={512} />
+                        <ApprovedIllustration kind="coaching" className={styles.utilityArt} />
                       </span>
                       <span className={styles.utilityCopy}>
                         <strong>My Coaching Plan</strong>

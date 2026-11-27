@@ -17,6 +17,7 @@ import SEOHead from '../src/components/seo/SEOHead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 import { HAND_MATCHUPS, matchupPath } from '../src/content/learn/matchups';
 import { POKER_RULES, rulePath } from '../src/content/rules/rules';
 import { POKER_VARIANTS, gameVariantPath } from '../src/content/games/variants';
@@ -1299,6 +1300,14 @@ export default function UniversalPokerSearchPage() {
             </div>
           </section>
         ))}
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="universal-search"
+            redirectPath="/search"
+          />
+        </div>
 
         <CitationBacklinkBox
           title="Smarter.Poker Universal Poker Search & Command Directory"

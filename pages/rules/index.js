@@ -19,6 +19,8 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import {
   POKER_RULES,
   RULE_CATEGORIES,
@@ -158,18 +160,33 @@ export default function PokerRulesIndexPage() {
           <span style={styles.crumbCurrent}>Official Poker Rules &amp; Floor Rulings</span>
         </nav>
 
-        <header style={styles.heroPlate}>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="rules"
+            eyebrow="Official Poker TDA & RROP Rulebook"
+            title="Official Poker Rules, Tournament TDA Standards & Live Floor Rulings Encyclopedia"
+            lead="Every Binding Action, Showdown Priority, Side Pot Split & Cardroom Floor Ruling Indexed For Live & Club Play."
+            stats={[
+              { label: 'Official Rulings', value: `${POKER_RULES.length} Rules` },
+              { label: 'Standards', value: 'TDA & RROP' },
+              { label: 'Club Tools', value: 'Free Clocks' },
+              { label: 'Access', value: '100% Free' },
+            ]}
+            redirectPath="/rules"
+            unlockKey="masthead-rules"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/tools/side-pot-calculator"
+            secondaryLabel="Side Pot Calculator"
+          />
+        </div>
+
+        <section aria-label="Official Poker Rules Filter Bar" style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.primaryBadge}>OFFICIAL TDA &amp; RROP STANDARD</span>
             <span style={styles.cyanBadge}>30 AUTHORITATIVE FLOOR RULINGS</span>
             <a href="/rules.md" style={styles.mdBadge}>
               RAW MARKDOWN (/RULES.MD)
             </a>
           </div>
-
-          <h1 style={styles.h1}>
-            Official Poker Rules, Tournament TDA Standards &amp; Live Floor Rulings Encyclopedia
-          </h1>
 
           <p style={styles.lead}>
             Every Binding Action, Showdown Priority, Side Pot Calculation, And Cardroom Procedure Governed By The
@@ -236,7 +253,7 @@ export default function PokerRulesIndexPage() {
               marginTop: '14px',
               padding: '10px 14px',
               background: '#081118',
-              border: '1px solid #1e293b',
+              border: '1px solid #2b4663',
               borderRadius: '2px',
               display: 'flex',
               flexWrap: 'wrap',
@@ -267,7 +284,7 @@ export default function PokerRulesIndexPage() {
               </div>
             </div>
           </div>
-        </header>
+        </section>
 
         <style
           dangerouslySetInnerHTML={{
@@ -278,7 +295,7 @@ export default function PokerRulesIndexPage() {
             }
             body, main, div, article, section, header, table, th, td {
               background: #ffffff !important;
-              color: #0f172a !important;
+              color: #0d1f33 !important;
               border-color: #cbd5e1 !important;
             }
           }
@@ -489,6 +506,14 @@ export default function PokerRulesIndexPage() {
           slug="official-poker-rules-encyclopedia"
           doi="10.5281/zenodo.24115454"
         />
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="study-deck"
+            context="rules-index"
+            redirectPath="/rules"
+          />
+        </div>
 
         <AiPromptLauncher
           title="Official Poker Rules & Tournament TDA Floor Rulings Encyclopedia"
@@ -766,7 +791,7 @@ const styles = {
   },
   cardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
     gap: '14px',
   },
   cardPlate: {
@@ -839,7 +864,7 @@ const styles = {
   },
   hubLinkGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))',
     gap: '12px',
   },
   hubCard: {

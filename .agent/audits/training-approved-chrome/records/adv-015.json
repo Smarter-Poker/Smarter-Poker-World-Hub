@@ -1,0 +1,71 @@
+{
+  "id": "adv-015",
+  "name": "Population Reads",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:59:02.649Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Population Reads.\nSubject: Population Reads: a mosaic of many dark poker-seat silhouettes reveals a few coherent cobalt clusters seen through a large analytical glass lens\nCamera: bird's-eye view over a broad softly curved table map\nComposition: The field of small seat silhouettes fills the left two-thirds; the oversized chrome-rimmed lens enters from the right edge and reveals a distinctly grouped blue tendency underneath. Collective behavior, no individual portraits, cards, text or pedestal.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Population Reads: a mosaic of many dark poker-seat silhouettes reveals a few coherent cobalt clusters seen through a large analytical glass lens",
+  "camera": "bird's-eye view over a broad softly curved table map",
+  "composition": "The field of small seat silhouettes fills the left two-thirds; the oversized chrome-rimmed lens enters from the right edge and reveals a distinctly grouped blue tendency underneath. Collective behavior, no individual portraits, cards, text or pedestal.",
+  "source": {
+    "fileName": "exec-60530146-738f-4434-8c1d-bc63c26890c8.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2255280,
+    "sha256": "5b01ed509fc4facb170f2184f0509d9082df873548f62403ecbf32ff059b03d0"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-015.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 43198,
+      "sha256": "adb32216f3d402587b4748e063e8f5a7d4be6a7cc7e58397722a0759e8130f84"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-015.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 39556,
+      "sha256": "0a517812bf020cfcc2fef507251871c4b1d0297f78104e2b4ab7cf9cd8ccda73"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-015.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 76028,
+      "sha256": "d4e59783396a44fc9a37d8126dd6be109f16eb85ccc9972ed38fb367e3002520"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-015.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 65143,
+      "sha256": "8cc7da8cc7c3e8e0f226b15b6cbd115fecca616f6c35d0fcc47b151b3b9437d2"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-015.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 128678,
+      "sha256": "516fa5e2df9ed484b7118b7a6beffe8c0ed0775e6dcd940e67b8c89993c7f1b7"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-015.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 101374,
+      "sha256": "831ffd6a3ad05d3c4f4ef54a28c0b7ea52d497808bded0b0434b9e4bb2accb25"
+    }
+  ]
+}

@@ -235,3 +235,162 @@ for (const [route, override] of Object.entries(registry.routes)) {
     expect(measured.jsHeapMb, `${route} p75 JS heap ${measured.jsHeapMb.toFixed(1)}MB`).toBeLessThanOrEqual(budget.jsHeapMb);
   });
 }
+
+test('Approved Trivia gallery keeps two mobile columns and accessible search and Help', async ({ browser }, testInfo) => {
+  test.setTimeout(90_000);
+  const expectedModes = [
+    'pvp', 'tournaments', 'gto', 'mtt', 'cash', 'icm',
+    'history', 'pro', 'rules', 'survival', 'endless', 'time-attack',
+  ];
+  const context = await browser.newContext({
+    ...pixel5Context,
+    viewport: { width: 375, height: 812 },
+    serviceWorkers: 'block',
+    storageState: { cookies: [], origins: [] },
+  });
+  const attachView = async (page: Page, name: string, fullPage = false) => {
+    await testInfo.attach(name, {
+      body: await page.screenshot({ fullPage, animations: 'disabled', scale: 'css' }),
+      contentType: 'image/png',
+    });
+  };
+
+  try {
+    const page = await context.newPage();
+    const response = await page.goto(new URL('/hub/trivia', baseUrl).toString(), { waitUntil: 'load' });
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('heading', { name: 'Poker Trivia', exact: true })).toBeVisible();
+    await expect(page.locator('.lobby-metrics')).toContainText('Sign In');
+    await page.evaluate(async () => { await document.fonts.ready; });
+
+    const cards = page.locator('#trivia-game-grid > [data-mode-id]');
+    await expect(cards).toHaveCount(12);
+    expect(await cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-mode-id')))).toEqual(expectedModes);
+    await expect(cards.nth(0).getByRole('heading')).toHaveText('1v1 Battle');
+    await expect(cards.nth(1).getByRole('heading')).toHaveText('Daily Tournament');
+
+    // Every quick-access tile label must stay on one clean line at 375px with zero clipping.
+    const utilityLabels = await page.locator('.lobby-utility-bar a span:last-child').evaluateAll(nodes =>
+      nodes.map(node => ({
+        text: (node.textContent || '').trim(),
+        scrollWidth: node.scrollWidth,
+        clientWidth: node.clientWidth,
+        height: node.getBoundingClientRect().height,
+      })),
+    );
+    expect(utilityLabels.map(item => item.text)).toEqual(['Leaderboards', 'Stats', 'Achievements', 'Settings']);
+    for (const label of utilityLabels) {
+      expect(label.scrollWidth, `${label.text} must not clip at 375px`).toBeLessThanOrEqual(label.clientWidth + 1);
+      expect(label.height, `${label.text} must remain single-line at 375px`).toBeLessThanOrEqual(22);
+    }
+
+    // Load the real lazy artwork before retaining the full-gallery review.
+    for (let index = 0; index < expectedModes.length; index += 2) {
+      await cards.nth(index).scrollIntoViewIfNeeded();
+      for (const cardIndex of [index, index + 1]) {
+        await expect.poll(() => cards.nth(cardIndex).locator('img').evaluate((image: HTMLImageElement) => (
+          image.complete && image.naturalWidth > 0 && image.currentSrc.includes('/trivia/approved-chrome/')
+        ))).toBe(true);
+      }
+    }
+
+    const boxes = await cards.evaluateAll(nodes => nodes.map(node => {
+      const { x, y, width, right, bottom } = node.getBoundingClientRect();
+      return { x, y, width, right, bottom };
+    }));
+    for (let index = 0; index < boxes.length; index += 2) {
+      const left = boxes[index];
+      const right = boxes[index + 1];
+      expect(Math.abs(left.y - right.y), 'Each pair must share a row at 375px').toBeLessThanOrEqual(1);
+      expect(Math.abs(left.width - right.width), 'Both mobile columns must have equal width').toBeLessThanOrEqual(1);
+      expect(right.x).toBeGreaterThan(left.right);
+      expect(left.x).toBeGreaterThanOrEqual(0);
+      expect(right.right).toBeLessThanOrEqual(375);
+      if (index > 0) expect(left.y).toBeGreaterThanOrEqual(boxes[index - 2].bottom);
+    }
+    expect(await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth))
+      .toBeLessThanOrEqual(1);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await attachView(page, 'trivia-mobile-375-top');
+    await attachView(page, 'trivia-mobile-375-full-page', true);
+
+    const search = page.getByRole('searchbox', { name: 'Search Trivia Games' });
+    await search.fill('cash');
+    // The solver description also includes cash, so both relevant games remain.
+    await expect(cards).toHaveCount(2);
+    expect(await cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-mode-id')))).toEqual(['gto', 'cash']);
+    await search.fill('not-a-poker-mode');
+    await expect(cards).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'No Games Found', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Show All Games', exact: true }).click();
+    await expect(search).toHaveValue('');
+    await expect(search).toBeFocused();
+    await expect(cards).toHaveCount(12);
+    await expect(page.getByRole('heading', { name: 'No Games Found', exact: true })).toHaveCount(0);
+
+    const help = page.getByRole('button', { name: 'Poker Trivia Help', exact: true });
+    const dialog = page.getByRole('dialog', { name: 'How To Play', exact: true });
+    const closeHelp = dialog.getByRole('button', { name: 'Close Help', exact: true });
+    // About Poker Trivia summary lives inside the "?" Help modal, never below the 12-card grid.
+    await expect(page.getByText('About Poker Trivia')).toHaveCount(0);
+    await help.click();
+    await expect(help).toHaveAttribute('aria-expanded', 'true');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('About Poker Trivia');
+    await expect(closeHelp).toBeFocused();
+    await expect(closeHelp).toBeInViewport({ ratio: 1 });
+    await attachView(page, 'trivia-help-portrait');
+    await closeHelp.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(help).toBeFocused();
+    await expect(help).toHaveAttribute('aria-expanded', 'false');
+    await help.click();
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(help).toBeFocused();
+
+    await page.setViewportSize({ width: 812, height: 375 });
+    await help.click();
+    await expect(dialog).toBeVisible();
+    await expect(closeHelp).toBeFocused();
+    await expect(closeHelp).toBeInViewport({ ratio: 1 });
+    const closeBox = await closeHelp.boundingBox();
+    expect(closeBox?.height).toBeGreaterThanOrEqual(44);
+    await attachView(page, 'trivia-help-landscape');
+    await closeHelp.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(help).toBeFocused();
+  } finally {
+    await context.close();
+  }
+
+  const desktopContext = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block',
+    storageState: { cookies: [], origins: [] },
+  });
+  try {
+    const desktop = await desktopContext.newPage();
+    const response = await desktop.goto(new URL('/hub/trivia', baseUrl).toString(), { waitUntil: 'load' });
+    expect(response?.status()).toBe(200);
+    await expect(desktop.locator('#trivia-game-grid > [data-mode-id]')).toHaveCount(12);
+    await desktop.evaluate(async () => { await document.fonts.ready; });
+    await expect.poll(() => desktop.locator('#trivia-game-grid img').evaluateAll(images => images.slice(0, 2).every(image => (
+      (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
+    )))).toBe(true);
+    await attachView(desktop, 'trivia-desktop-1280');
+
+    // Clicking anywhere on a game card (including its artwork image) opens the game.
+    const gtoCard = desktop.locator('#trivia-game-grid > [data-mode-id="gto"]');
+    await gtoCard.scrollIntoViewIfNeeded();
+    const gtoCardArt = gtoCard.locator('img');
+    await expect(gtoCardArt).toBeVisible();
+    await Promise.all([
+      desktop.waitForURL(/\/hub\/trivia\/gto(?:\?|$)/),
+      gtoCardArt.click(),
+    ]);
+  } finally {
+    await desktopContext.close();
+  }
+});

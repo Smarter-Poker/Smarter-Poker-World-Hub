@@ -421,7 +421,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
 
                     {stats.scoredHands > 0 && stats.scoredHands < stats.totalHands && (
                         <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                            Accuracy Is Based On {stats.scoredHands} Coached hand{stats.scoredHands === 1 ? '' : 's'} Of {stats.totalHands}.
+                            {`Accuracy Is Based On ${stats.scoredHands} Coached ${stats.scoredHands === 1 ? 'Hand' : 'Hands'} Of ${stats.totalHands}.`}
                         </p>
                     )}
 
@@ -430,7 +430,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                             {stats.evSum >= 0 ? '+' : ''}{stats.evSum.toFixed(2)} BB Total
                         </span>
                         <span style={pill('neutral')}>Avg {stats.avgEvDelta} BB</span>
-                        <span style={pill('neutral')}>{stats.evCount} Scored spot{stats.evCount === 1 ? '' : 's'}</span>
+                        <span style={pill('neutral')}>{`${stats.evCount} Scored ${stats.evCount === 1 ? 'Spot' : 'Spots'}`}</span>
                     </div>
 
                     {stats.posEntries.length > 0 && (
