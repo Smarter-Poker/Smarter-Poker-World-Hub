@@ -1101,16 +1101,21 @@ test('MAG LAW 13: magazineCompiler.mjs and MagazineSpreadRenderer.js guarantee z
     assert.equal(new Set(platTitles).size, platTitles.length, `Duplicate platform updates prohibited on pp. 18-19: ${platTitles.join(', ')}`);
 
     // 3. Kings Club Champions non-zero Chips & POY Page 21 Rank #25 (13 rows)
+    // MAG LAW 26: with no real completed events in the vault the board is empty,
+    // never padded with invented tournaments; every real row carries real Chips.
     const kingsRows = [24, 25].flatMap((n) => pageByNum(n)?.standings || []);
-    assert.ok(kingsRows.length >= 2);
     for (const row of kingsRows) {
         const numericChips = Number(row.prizePoolChips ?? row.prizeChips ?? 0);
         assert.ok(numericChips > 0, `Kings Club row "${row.name}" must carry non-zero prizeChips, got ${numericChips}`);
     }
 
+    // MAG LAW 26: without a real POY feed the pages carry no invented points table.
+    const page20 = pageByNum(20);
     const page21Rows = pageByNum(21)?.standings || [];
-    assert.equal(page21Rows.length, 13, 'Page 21 POY Standings (Ranks 13-25) must contain all 13 rows');
-    assert.equal(page21Rows[12]?.rank, 25, 'Page 21 POY Standings must include Rank #25');
+    assert.ok(page21Rows.length <= 13, 'Page 21 holds at most ranks 13-25');
+    for (const row of [...(page20?.standings || []), ...page21Rows]) {
+        assert.ok(!/^(Adrian Mateos|Alex Foxen|Stephen Chidwick)$/.test(String(row.playerName || '')), 'No invented POY names');
+    }
 
     // 4. Strategy Setup vs Verdict split (pp. 26-31)
     for (const [setupPage, verdictPage] of [[26, 27], [28, 29], [30, 31]]) {
@@ -1598,7 +1603,11 @@ test('MAG LAW 17: competitor online-poker promos/outlets never leak into vault o
         sourceName: 'Poker.org',
         category: 'Tournament',
     });
-    assert.equal(isEchoingOrEmptyBlurb('WSOP Paradise 2026 A 50M Monster And A 250K Battle Of The Brains', nonEchoDeck), false);
+    // MAG LAW 26: a deck with no real copy is empty, never a templated sentence.
+    assert.ok(
+        nonEchoDeck === '' ||
+            isEchoingOrEmptyBlurb('WSOP Paradise 2026 A 50M Monster And A 250K Battle Of The Brains', nonEchoDeck) === false
+    );
 
     const vaultedWeb = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/law17-web.jpg';
     const vaultedMaster = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/law17-master.jpg';
@@ -2638,4 +2647,85 @@ test('MAG LAW 25: decks and paragraphs clip on a full sentence, never mid-word, 
     for (const sel of ['img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]):not(.spm-sheet *)', 'h1:not(.spm-sheet *)', 'h2:not(.spm-sheet *)', 'h3:not(.spm-sheet *)', 'a:not(.spm-sheet *)']) {
         assert.ok(phone.includes(sel), `The phone reset must skip magazine sheets: ${sel}`);
     }
+});
+
+test('MAG LAW 26: the issue builder never invents standings, results or filler decks, and a hand-finished issue is never regenerated', async () => {
+    const harvester = await import('../src/lib/magazine/vaultHarvester.mjs');
+    const compiler = await import('../src/lib/magazine/magazineCompiler.mjs');
+    const harvesterSrc = read('src/lib/magazine/vaultHarvester.mjs');
+    const compilerSrc = read('src/lib/magazine/magazineCompiler.mjs');
+
+    // 1. No templated filler decks anywhere.
+    assert.ok(!/headlines this month's \$\{/.test(harvesterSrc), 'No templated "headlines this month" deck');
+    assert.ok(!/examining field turnouts, tournament structures/.test(harvesterSrc), 'No templated breakdown deck');
+    assert.equal(harvester.buildCleanNonEchoingDeck({ title: 'Ryan Brown Wins Main', rawSummary: '', paragraphs: [] }), '');
+    assert.equal(
+        harvester.isTemplatedFillerDeck(
+            "X headlines this month's news coverage via PokerNews, tracking key shifts in tournament fields, prize structures, and top-level competitive storylines."
+        ),
+        true
+    );
+    assert.equal(
+        harvester.buildCleanNonEchoingDeck({
+            title: 'X',
+            rawSummary: "X headlines this month's news coverage via PokerNews, tracking key shifts in tournament fields, prize structures, and top-level competitive storylines.",
+        }),
+        ''
+    );
+
+    // 2. No invented POY names or Kings Club events in the compiler.
+    assert.ok(!/buildFallbackPoyStandings|buildFallbackKingsClubResults/.test(compilerSrc));
+    assert.ok(!/Adrian Mateos|Kings Club Sunday Major Championship/.test(compilerSrc));
+    assert.ok(!/Circle In Chips/.test(compilerSrc), 'Cover line reads like English');
+
+    const empty = compiler.buildMagazineManifestFromVault({ issuePeriod: '2026-11', vaultItems: [] });
+    const p20 = empty.pages.find((p) => p.pageNumber === 20);
+    assert.equal(p20.kicker, 'Champions Board');
+    assert.equal(p20.standingsLabels.value, 'Source');
+    assert.equal([24, 25].flatMap((n) => empty.pages.find((p) => p.pageNumber === n).standings).length, 0);
+    for (const line of empty.meta?.coverLines || []) assert.ok(!/In Chips \(p\./.test(line), line);
+
+    // 3. Real vault rows drive both boards.
+    const vault = [
+        { id: 'a', issue_period: '2026-11', section: 'feature_story', source_type: 'poker_news', headline: 'Ryan Brown Wins Caesars New Orleans WSOP Circuit Main Event', summary: 'Brown won the $1,700 Main Event over 370 entries.', metadata_json: { byline: 'WSOP' } },
+        { id: 'b', issue_period: '2026-11', section: 'news_brief', source_type: 'poker_news', headline: 'EPT Prague To Debut New Formats', summary: 'Two mixed formats join the schedule.', metadata_json: { byline: 'PokerNews' } },
+        { id: 'c', issue_period: '2026-11', section: 'tournament_result', source_type: 'kings_club_tournament', headline: 'Sunday 200 Deep Stack', metadata_json: { name: 'Sunday 200 Deep Stack', gameType: 'NLH', buyInChips: 180, prizePoolChips: 97920, players: 326 } },
+    ];
+    const real = compiler.buildMagazineManifestFromVault({ issuePeriod: '2026-11', vaultItems: vault });
+    const board = real.pages.find((p) => p.pageNumber === 20).standings;
+    assert.ok(board.some((r) => /Ryan Brown Wins/.test(r.playerName)), 'Champions Board uses the real win headline');
+    assert.ok(!board.some((r) => /EPT Prague/.test(r.playerName)), 'Previews are not title wins');
+    const kc = real.pages.find((p) => p.pageNumber === 24).standings;
+    assert.equal(kc[0].name, 'Sunday 200 Deep Stack');
+    assert.equal(kc[0].players, 326);
+    assert.equal(kc[0].prizePoolChips, 97920);
+
+    // 4. Harvester reads Kings Club and the Midway Union, with real field sizes.
+    assert.ok(/\.in\('club_id', \[KINGS_CLUB_UUID, MIDWAY_UNION_CLUB_UUID\]\)/.test(harvesterSrc));
+    assert.ok(/from\('tournament_payouts'\)/.test(harvesterSrc));
+
+    // 5. A hand-finished issue is never regenerated by the monthly run.
+    assert.equal(compiler.isEditoriallyLockedIssue({ manifest_json: { meta: { editorialLock: true } } }), true);
+    assert.equal(compiler.isEditoriallyLockedIssue({ manifest_json: { meta: {} } }), false);
+    const locked = { id: 'issue-1', issue_period: '2026-11', status: 'published', manifest_json: { meta: { editorialLock: true }, pages: [{ pageNumber: 1, headline: 'Hand Edited' }] } };
+    let writes = 0;
+    const chain = (rows) => {
+        const q = {
+            select: () => q, eq: () => q, order: () => q, limit: () => q, in: () => q,
+            update: () => { writes += 1; return q; }, insert: () => { writes += 1; return q; }, upsert: () => { writes += 1; return q; },
+            single: () => q, maybeSingle: () => q,
+            then: (res, rej) => Promise.resolve({ data: rows, error: null }).then(res, rej),
+        };
+        return q;
+    };
+    const fake = { from: (t) => chain(t === 'magazine_issues' ? [locked] : []) };
+    const out = await compiler.compileMonthlyMagazineIssue(fake, { issuePeriod: '2026-11' });
+    assert.equal(out.editorialLocked, true);
+    assert.equal(out.manifest.pages[0].headline, 'Hand Edited');
+    assert.equal(writes, 0, 'A locked issue is not rewritten');
+    assert.ok(/force: body\.force === true/.test(read('pages/api/news/magazine.js')), 'Only an explicit admin force overrides the lock');
+
+    // 6. Standings pages carry their own labels into print.
+    const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
+    assert.ok(/page\?\.standingsLabels/.test(renderer) && /cleanText\(page\?\.kicker\)/.test(renderer));
 });

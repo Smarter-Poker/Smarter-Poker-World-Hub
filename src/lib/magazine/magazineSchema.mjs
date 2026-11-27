@@ -674,6 +674,15 @@ export function normalizeIssueManifest(raw = {}, fallbackIssue = {}) {
                     : 'photo',
               imageCaption: stripMagazineDashes(p?.imageCaption || ''),
               imageCredit: stripMagazineDashes(p?.imageCredit || ''),
+              kicker: stripMagazineDashes(p?.kicker || ''),
+              standingsLabels:
+                  p?.standingsLabels && typeof p.standingsLabels === 'object'
+                      ? {
+                            rank: stripMagazineDashes(p.standingsLabels.rank || ''),
+                            player: stripMagazineDashes(p.standingsLabels.player || ''),
+                            value: stripMagazineDashes(p.standingsLabels.value || ''),
+                        }
+                      : null,
               leadItemIndex: Number.isInteger(p?.leadItemIndex) ? p.leadItemIndex : 0,
           }))
         : [];

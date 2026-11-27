@@ -322,46 +322,44 @@ function buildFallbackNewsBriefs(periodLabel) {
     ];
 }
 
-function buildFallbackPoyStandings(year) {
-    const names = [
-        ['Adrian Mateos', 4420],
-        ['Alex Foxen', 4285],
-        ['Stephen Chidwick', 4190],
-        ['Jesse Lonis', 4115],
-        ['Seth Davies', 3980],
-        ['Isaac Haxton', 3910],
-        ['Kristen Foxen', 3845],
-        ['Bin Weng', 3790],
-        ['Jeremy Ausmus', 3725],
-        ['Jason Koon', 3680],
-        ['Artur Martirosian', 3610],
-        ['Michael Watson', 3565],
-        ['Dan Smith', 3510],
-        ['Brian Rast', 3460],
-        ['Mikita Badziakouski', 3415],
-        ['Chris Brewer', 3370],
-        ['Nick Petrangelo', 3325],
-        ['Ren Lin', 3280],
-        ['David Peters', 3240],
-        ['Erik Seidel', 3195],
-        ['Shannon Shorr', 3150],
-        ['Punnat Punsri', 3110],
-        ['Daniel Dvoress', 3075],
-        ['Jonathan Jaffe', 3035],
-        ['Sam Soverel', 2995],
-    ];
-    return names.map(([playerName, points], i) => ({
-        rank: i + 1,
-        playerName,
-        points,
-        year,
-        tour: `${year} Global POY Contender`,
-        source: 'standings_snapshot',
-    }));
+export function isEditoriallyLockedIssue(issue) {
+    const meta = issue?.manifest_json?.meta;
+    return Boolean(meta && meta.editorialLock === true);
+}
+
+const TITLE_WIN_HEADLINE_RE =
+    /\b(wins?|won|seizes|hauls|captures|claims|takes down|denied by|ends\b.*\bdrought|crowned|champion)\b/i;
+
+/**
+ * Real fallback for the standings pages: one row per title-winning headline in
+ * this month's vault, with its outlet. No invented names, points or prizes.
+ */
+export function buildChampionsBoardFromVault(vaultItems = []) {
+    const rows = [];
+    const seen = new Set();
+    for (const item of Array.isArray(vaultItems) ? vaultItems : []) {
+        if (item?.is_excluded) continue;
+        if (item?.source_type !== 'poker_news') continue;
+        const headline = stripMagazineDashes(item?.headline || '');
+        if (!headline || !TITLE_WIN_HEADLINE_RE.test(headline)) continue;
+        const key = normalizeDedupeKey(headline);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const meta = readItemMeta(item);
+        rows.push({
+            rank: rows.length + 1,
+            playerName: headline,
+            points: stripMagazineDashes(meta.byline || item?.author_byline || item?.source_name || 'Tour Desk'),
+            detail: '',
+            source: 'vault_headline',
+        });
+        if (rows.length >= 25) break;
+    }
+    return rows;
 }
 
 function buildKingsClubRow({ rank, name, gameType, buyInChips, prizePoolChips, players }) {
-    const safePrize = Number.isFinite(Number(prizePoolChips)) && Number(prizePoolChips) > 0 ? Math.round(Number(prizePoolChips)) : 50000;
+    const safePrize = Number.isFinite(Number(prizePoolChips)) && Number(prizePoolChips) > 0 ? Math.round(Number(prizePoolChips)) : 0;
     const safeBuyIn = Number.isFinite(Number(buyInChips)) && Number(buyInChips) > 0 ? Math.round(Number(buyInChips)) : 0;
     const safePlayers = Math.max(0, Math.round(Number(players || 0)));
     const cleanName = stripDollarForChips(name || 'Kings Club Championship').split(' - ')[0];
@@ -384,59 +382,6 @@ function buildKingsClubRow({ rank, name, gameType, buyInChips, prizePoolChips, p
         eventDetail,
         eventName: eventDetail,
     };
-}
-
-function buildFallbackKingsClubResults() {
-    return [
-        buildKingsClubRow({
-            rank: 1,
-            name: 'Kings Club Sunday Major Championship',
-            gameType: 'NLH',
-            buyInChips: 500,
-            prizePoolChips: 50000,
-            players: 118,
-        }),
-        buildKingsClubRow({
-            rank: 2,
-            name: 'Kings Club High-Action PLO4 Deepstack',
-            gameType: 'PLO4',
-            buyInChips: 300,
-            prizePoolChips: 25000,
-            players: 89,
-        }),
-        buildKingsClubRow({
-            rank: 3,
-            name: 'Midweek Progressive Bounty Showdown',
-            gameType: 'NLH PKO',
-            buyInChips: 200,
-            prizePoolChips: 18000,
-            players: 102,
-        }),
-        buildKingsClubRow({
-            rank: 4,
-            name: 'Friday Night 6-Max Turbo Championship',
-            gameType: 'NLH 6-Max',
-            buyInChips: 150,
-            prizePoolChips: 12000,
-            players: 84,
-        }),
-        buildKingsClubRow({
-            rank: 5,
-            name: 'PLO5 Five-Card Pot-Limit Classic',
-            gameType: 'PLO5',
-            buyInChips: 250,
-            prizePoolChips: 15000,
-            players: 64,
-        }),
-        buildKingsClubRow({
-            rank: 6,
-            name: 'Kings Club New Member Welcome Freeroll',
-            gameType: 'NLH',
-            buyInChips: 0,
-            prizePoolChips: 5000,
-            players: 210,
-        }),
-    ];
 }
 
 function buildSpotModel(catalogSpot, vaultSpotItem) {
@@ -674,8 +619,14 @@ export function buildMagazineManifestFromVault({
                 url: resolvePokerNewsArticleUrl(item, siteOrigin),
             };
         });
+    // Briefs with real copy lead; a brief with no deck only fills a slot when
+    // nothing better exists (MAG LAW 26).
+    const vaultBriefsByCopy = [
+        ...vaultNewsBriefs.filter((b) => String(b.summary || '').trim()),
+        ...vaultNewsBriefs.filter((b) => !String(b.summary || '').trim()),
+    ];
     const combinedBriefs = dedupeByKey(
-        [...vaultNewsBriefs, ...buildFallbackNewsBriefs(periodLabel)],
+        [...vaultBriefsByCopy, ...buildFallbackNewsBriefs(periodLabel)],
         (item) => normalizeDedupeKey(item.headline)
     ).slice(0, 12);
 
@@ -790,23 +741,25 @@ export function buildMagazineManifestFromVault({
     // POY Standings (pp. 20-21)
     const poyVault = bySection('poy_snapshot')[0];
     const poyMeta = readItemMeta(poyVault);
-    const rawStandings =
-        Array.isArray(poyMeta.standings) && poyMeta.standings.length >= 5
-            ? poyMeta.standings
-            : buildFallbackPoyStandings(yearNum);
-    const poyStandings = rawStandings.slice(0, 25).map((s, idx) => ({
-        rank: Number(s.rank || idx + 1),
-        playerName: stripMagazineDashes(s.playerName || s.player_name || `Player #${idx + 1}`),
-        points: Math.round(Number(s.points || 0) * 100) / 100,
-        year: Number(s.year || yearNum),
-        tour: stripMagazineDashes(s.tour || `${yearNum} Global POY Contender`),
-    }));
+    // Real standings only (MAG LAW 26). Without a real feed these pages become a
+    // Champions Board built from this month's real title-winning headlines,
+    // never a made-up points table.
+    const hasRealPoy = Array.isArray(poyMeta.standings) && poyMeta.standings.length >= 5;
+    const poyStandings = hasRealPoy
+        ? poyMeta.standings.slice(0, 25).map((s, idx) => ({
+              rank: Number(s.rank || idx + 1),
+              playerName: stripMagazineDashes(s.playerName || s.player_name || `Player #${idx + 1}`),
+              points: Math.round(Number(s.points || 0) * 100) / 100,
+              year: Number(s.year || yearNum),
+              tour: stripMagazineDashes(s.tour || `${yearNum} Player Of The Year`),
+          }))
+        : buildChampionsBoardFromVault(vaultItems);
 
     // Kings Club 25450 Champions (pp. 24-25) - strictly Chips, ZERO `$`
     const kcVaultItems = bySection('tournament_result').map((item, idx) => {
         const meta = readItemMeta(item);
         const rawPrize = Number(meta.prizePoolChips ?? meta.prizeChips ?? meta.prize_pool ?? 0);
-        const prizeChips = Number.isFinite(rawPrize) && rawPrize > 0 ? Math.round(rawPrize) : 50000;
+        const prizeChips = Number.isFinite(rawPrize) && rawPrize > 0 ? Math.round(rawPrize) : 0;
         const rawBuyIn = Number(meta.buyInChips ?? meta.buy_in_amount ?? 0);
         const buyInChips = Number.isFinite(rawBuyIn) && rawBuyIn > 0 ? Math.round(rawBuyIn) : 0;
         const players = Math.max(0, Math.round(Number(meta.players ?? meta.current_players ?? 0)));
@@ -819,8 +772,9 @@ export function buildMagazineManifestFromVault({
             players,
         });
     });
+    // Real completed events only (MAG LAW 26): no invented tournaments.
     const kingsClubList = dedupeByKey(
-        [...kcVaultItems, ...buildFallbackKingsClubResults()],
+        kcVaultItems.filter((r) => Number(r.prizePoolChips) > 0),
         (r) => normalizeDedupeKey(r.name)
     )
         .slice(0, 6)
@@ -1028,15 +982,22 @@ export function buildMagazineManifestFromVault({
     const issueStats = [
         { label: 'Print & Digital Pages', value: '44', detail: '11 Four-Page Signatures' },
         { label: 'Pro Poker Calculators', value: '42', detail: '100% Free Browser Suite' },
-        { label: 'POY Contenders Tracked', value: 'Top 25', detail: `${yearNum} Global Standings` },
+        hasRealPoy
+            ? { label: 'POY Contenders Tracked', value: 'Top 25', detail: `${yearNum} Standings` }
+            : { label: 'Title Winners Tracked', value: String(poyStandings.length || 0), detail: `${periodLabel} Champions Board` },
         { label: 'Specialty GTO Labs', value: '16+', detail: 'NLH, ICM, PLO4 & PLO5' },
         { label: 'Kings Club Welcome', value: '25 Chips', detail: 'Plus 30d VIP & 500 Diamonds' },
         { label: 'Live Series Horizon', value: '60 Days', detail: 'Coast-To-Coast Radar' },
     ];
 
+    const monthName = periodLabel.split(' ')[0] || periodLabel;
     const coverLines = [
-        `Global POY Top 25: ${poyStandings[0]?.playerName || 'Leader'} Sets The Pace (p. 20)`,
-        `Kings Club 25450 Monthly Champions Circle In Chips (p. 24)`,
+        hasRealPoy
+            ? `Player Of The Year: ${poyStandings[0]?.playerName || 'The Leader'} Sets The Pace (p. 20)`
+            : `Champions Board: ${monthName}'s Title Winners (p. 20)`,
+        kingsClubList.length
+            ? `Kings Club 25450: ${monthName}'s Biggest Prize Pools (p. 24)`
+            : `Kings Club 25450: Join The Midway Union Schedule (p. 24)`,
         `The Strategy Lab: NLH Overbets, Final-Table ICM & PLO Wraps (p. 26)`,
     ];
 
@@ -1047,9 +1008,9 @@ export function buildMagazineManifestFromVault({
         makeTocEntry({ pageNumber: 12, endPageNumber: 15, title: coverHeadline, subtitle: 'Four-page Cover Story investigation & key numbers', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'cover_feature' }),
         makeTocEntry({ pageNumber: 16, endPageNumber: 17, title: secondaryHeadline, subtitle: 'Live circuit deep dive & field dynamics', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'secondary_feature' }),
         makeTocEntry({ pageNumber: 18, endPageNumber: 19, title: 'Inside Smarter.Poker: New Upgrades Shipped', subtitle: 'Latest trainers, calculators & Club Arena features', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'platform_feature' }),
-        makeTocEntry({ pageNumber: 20, endPageNumber: 21, title: `${yearNum} Global Player Of The Year Top 25`, subtitle: 'Official standings & monthly mover spotlights', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'poy_standings' }),
+        makeTocEntry({ pageNumber: 20, endPageNumber: 21, title: hasRealPoy ? `${yearNum} Player Of The Year Top 25` : `Champions Board: ${monthName}'s Title Winners`, subtitle: hasRealPoy ? 'Official standings & monthly mover spotlights' : "The month's tournament champions at a glance", group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'poy_standings' }),
         makeTocEntry({ pageNumber: 22, endPageNumber: 23, title: 'Final Table: Major Circuit Results', subtitle: 'Championship storylines & trophy winners', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'final_table_live' }),
-        makeTocEntry({ pageNumber: 24, endPageNumber: 25, title: 'Kings Club 25450 Champions Circle', subtitle: 'Completed Club Arena majors & Chips prize pools', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'kings_club_champions' }),
+        makeTocEntry({ pageNumber: 24, endPageNumber: 25, title: 'Kings Club 25450 Results', subtitle: 'Completed Club Arena majors & Chips prize pools', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'kings_club_champions' }),
         makeTocEntry({ pageNumber: 26, endPageNumber: 27, title: `NLH Solver Lab: ${nlhSpot.title}`, subtitle: 'Deep-stack geometry, EVs & community vote split', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_nlh' }),
         makeTocEntry({ pageNumber: 28, endPageNumber: 29, title: `Tournament ICM Lab: ${icmSpot.title}`, subtitle: 'Pay-jump bubble factors & deal calculator math', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_icm' }),
         makeTocEntry({ pageNumber: 30, endPageNumber: 31, title: `Pot-Limit Omaha Lab: ${ploSpot.title}`, subtitle: 'PLO4/PLO5 nut blockers, wraps & equity realization', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_plo' }),
@@ -1346,44 +1307,47 @@ export function buildMagazineManifestFromVault({
                 ],
             };
         }),
-        // pp. 20-21: poy_standings (2 pages)
-        {
-            pageNumber: 20,
-            kind: 'poy_standings',
-            department: 'Departments, POY & Final Table',
-            tocGroup: 'departments',
-            runningHeader: `${yearNum} Global POY • Ranks 1-12`,
-            headline: `${yearNum} Global Player Of The Year Standings (Ranks 1-12)`,
-            subheadline: `${poyStandings[0]?.playerName || 'Leader'} Holds #1 Entering ${periodLabel}`,
-            byline: 'Global Standings Desk',
-            imageUrl: IMAGE_VAULT_FALLBACK_URL,
-            masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
-            ctaLabel: 'View Live POY Leaderboard',
-            ctaUrl: '/hub/leaderboards',
-            qrUrl: `${siteOrigin}/hub/leaderboards`,
-            standings: poyStandings.slice(0, 12),
-            items: poyStandings.slice(0, 12),
-        },
-        {
-            pageNumber: 21,
-            kind: 'poy_standings',
-            department: 'Departments, POY & Final Table',
-            tocGroup: 'departments',
-            runningHeader: `${yearNum} Global POY • Ranks 13-25 & Movers`,
-            headline: `${yearNum} Global Player Of The Year Standings (Ranks 13-25)`,
-            subheadline: 'Contenders Within Striking Distance As Championship Series Heat Up',
-            byline: 'Global Standings Desk',
-            imageUrl: IMAGE_VAULT_FALLBACK_URL,
-            masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
-            ctaLabel: 'Follow Live POY Standings',
-            ctaUrl: '/hub/leaderboards',
-            qrUrl: `${siteOrigin}/hub/leaderboards`,
-            standings: poyStandings.slice(12, 25),
-            items: poyStandings.slice(12, 25),
-            paragraphs: [
-                `Consistency across high-roller festivals and massive main-event fields separates the ${yearNum} Top 25 leaderboard contenders, with narrow point margins from #5 through #25.`,
-            ],
-        },
+        // pp. 20-21: poy_standings (2 pages). Real standings when a feed exists,
+        // otherwise the Champions Board of real title-winning headlines.
+        ...[0, 1].map((idx) => {
+            const rows = poyStandings.slice(idx * 12, idx * 12 + (idx === 0 ? 12 : 13));
+            const common = {
+                pageNumber: 20 + idx,
+                kind: 'poy_standings',
+                department: 'Departments, POY & Final Table',
+                tocGroup: 'departments',
+                imageUrl: IMAGE_VAULT_FALLBACK_URL,
+                masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
+                standings: rows,
+                items: rows,
+            };
+            if (hasRealPoy) {
+                return {
+                    ...common,
+                    kicker: 'Player Of The Year',
+                    standingsLabels: { rank: 'Rank', player: 'Player', value: 'Points' },
+                    runningHeader: `${yearNum} POY • Ranks ${idx === 0 ? '1-12' : '13-25'}`,
+                    headline: `${yearNum} Player Of The Year Standings (Ranks ${idx === 0 ? '1-12' : '13-25'})`,
+                    subheadline: idx === 0 ? `${poyStandings[0]?.playerName || 'The Leader'} Holds #1 Entering ${periodLabel}` : '',
+                    byline: 'Standings Desk',
+                    ctaLabel: 'View The Leaderboard',
+                    ctaUrl: '/hub/leaderboards',
+                    qrUrl: `${siteOrigin}/hub/leaderboards`,
+                };
+            }
+            return {
+                ...common,
+                kicker: 'Champions Board',
+                standingsLabels: { rank: '#', player: 'Title Winner', value: 'Source' },
+                runningHeader: `Champions Board • Page ${idx + 1} Of 2`,
+                headline: idx === 0 ? `Champions Board: ${monthName}'s Title Winners` : 'Champions Board: More Title Winners',
+                subheadline: idx === 0 ? `Every Major Title Reported In ${periodLabel}` : '',
+                byline: 'Tour Results Desk',
+                ctaLabel: 'Read The News Hub',
+                ctaUrl: '/hub/news',
+                qrUrl: `${siteOrigin}/hub/news`,
+            };
+        }),
         // pp. 22-23: final_table_live (2 pages)
         ...[0, 1].map((idx) => {
             const ftSlice = finalTableItems.slice(idx * 2, idx * 2 + 2);
@@ -1453,9 +1417,13 @@ export function buildMagazineManifestFromVault({
                 runningHeader: `Kings Club 25450 • Page ${idx + 1} Of 2`,
                 headline:
                     idx === 0
-                        ? 'Kings Club 25450 Monthly Champions Circle'
-                        : 'Club Arena Completed Majors & Freeroll Standouts',
-                subheadline: 'Official Completed Tournament Prize Pools In Kings Club (Code 25450)',
+                        ? `Kings Club 25450: ${monthName}'s Biggest Prize Pools`
+                        : 'More Completed Majors On The Midway Union Schedule',
+                subheadline:
+                    idx === 0
+                        ? `Completed Club Arena Events Open To Kings Club Players In ${periodLabel}`
+                        : '',
+                kicker: 'Kings Club 25450',
                 byline: 'Club Arena Competition Desk',
                 imageUrl: IMAGE_VAULT_FALLBACK_URL,
                 masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
@@ -2085,6 +2053,7 @@ export async function compileMonthlyMagazineIssue(
         editorNote = '',
         pinnedVaultItemId = '',
         siteUrl = MAGAZINE_SITE_URL,
+        force = false,
     } = {}
 ) {
     const client = await getSupabaseClient(sb);
@@ -2103,6 +2072,17 @@ export async function compileMonthlyMagazineIssue(
     }
 
     let existingIssue = await readExistingIssueByPeriod(client, period);
+    // An issue an editor finished by hand is never regenerated from the vault
+    // (the 1st-of-month run recompiles the month just ended), unless the
+    // caller explicitly forces it (MAG LAW 26).
+    if (!force && isEditoriallyLockedIssue(existingIssue)) {
+        return {
+            issue: existingIssue,
+            manifest: existingIssue.manifest_json,
+            vaultItemCount: vaultItems.length,
+            editorialLocked: true,
+        };
+    }
     const hasExplicitHeadline = Boolean(String(coverHeadline || '').trim());
     const hasExplicitSubheadline = Boolean(String(coverSubheadline || '').trim());
     const hasNewPin = Boolean(String(pinnedVaultItemId || '').trim());

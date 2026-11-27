@@ -20,6 +20,7 @@ import { assertFetchableUrl, fetchGuarded } from '../security/fetchableUrl.js';
 import { isCompetitorSponsoredPost, normalizeEditorialTitle } from '../newsletter/editorialCleaners.mjs';
 import {
     KINGS_CLUB_UUID,
+    MIDWAY_UNION_CLUB_UUID,
     areSameStoryline,
     isEchoingOrEmptyBlurb,
     isLowValueScheduleStub,
@@ -158,6 +159,15 @@ export function clipAtSentence(text, max = 280) {
     return `${words}\u2026`;
 }
 
+// Templated decks the old harvester wrote when it had no real copy. Stored
+// vault rows still carry them, so they are rejected wherever a deck is chosen.
+const TEMPLATED_FILLER_DECK_RE =
+    /\bheadlines this month's\b[\s\S]*\bcoverage via\b|\bbreakdown via\b[\s\S]*\bexamining field turnouts\b|\btracking key shifts in tournament fields\b/i;
+
+export function isTemplatedFillerDeck(text) {
+    return TEMPLATED_FILLER_DECK_RE.test(String(text || ''));
+}
+
 export function buildCleanNonEchoingDeck({ title = '', rawSummary = '', rawExcerpt = '', paragraphs = [], sourceName = '', category = '' } = {}) {
     const cleanTitle = stripMagazineDashes(title);
     const candidates = [
@@ -168,16 +178,18 @@ export function buildCleanNonEchoingDeck({ title = '', rawSummary = '', rawExcer
 
     for (const cand of candidates) {
         if (!cand || cand.length < 32) continue;
+        if (isTemplatedFillerDeck(cand)) continue;
         if (!isEchoingOrEmptyBlurb(cleanTitle, cand)) {
             return clipAtSentence(cand, 280);
         }
     }
 
-    const outlet = stripMagazineDashes(sourceName || 'Smarter.Poker News Desk');
-    const cat = stripMagazineDashes(category || 'World Poker').toLowerCase();
-    return stripMagazineDashes(
-        `Full ${cat} breakdown via ${outlet}, examining field turnouts, tournament structures, and championship storylines.`
-    ).slice(0, 280);
+    // No real copy means no deck. A templated sentence that only restates the
+    // headline reads as filler in print, so the compiler skips decked slots
+    // that have nothing real to say (MAG LAW 26).
+    void sourceName;
+    void category;
+    return '';
 }
 
 function isBoilerplateParagraph(text) {
@@ -346,14 +358,8 @@ function buildSynthesizedEditorialParagraphs(row, normalizedTitle) {
         out.push(rawSummary);
     }
 
-    if (out.length < 2) {
-        const outlet = stripMagazineDashes(row?.source_name || 'World Poker Desk');
-        const category = stripMagazineDashes(row?.category || 'Tournament & Industry Report');
-        out.push(
-            `${normalizedTitle} headlines this month's ${category.toLowerCase()} coverage via ${outlet}, tracking key shifts in tournament fields, prize structures, and top-level competitive storylines.`
-        );
-    }
-
+    // Never pad with a templated sentence (MAG LAW 26): an item with no real
+    // copy stays short and the compiler prefers items that have some.
     return out.slice(0, 6);
 }
 
@@ -691,9 +697,9 @@ export async function harvestMonthlyMagazineVault(
             paragraphs = String(existing.body_text)
                 .split('\n\n')
                 .map((p) => stripScraperBylinePrefix(p))
-                .filter((p) => p.length >= 36 && !isEchoingOrEmptyBlurb(cleanTitle, p));
+                .filter((p) => p.length >= 36 && !isTemplatedFillerDeck(p) && !isEchoingOrEmptyBlurb(cleanTitle, p));
         }
-        if (paragraphs.length < 2 && Date.now() < externalDeadlineMs - 600 && row.source_url && idx < 10) {
+        if (paragraphs.length < 2 && Date.now() < externalDeadlineMs - 600 && row.source_url) {
             paragraphs = await extractArticleBodySafe(row.source_url, { deadlineMs: externalDeadlineMs });
             paragraphs = paragraphs
                 .map((p) => stripScraperBylinePrefix(p))
@@ -865,23 +871,53 @@ export async function harvestMonthlyMagazineVault(
         let kcQuery = client
             .from('tournaments')
             .select('id, name, club_id, game_type, buy_in_amount, buy_in_fee, prize_pool, guaranteed_prize, current_players, start_time, status')
-            .eq('club_id', KINGS_CLUB_UUID)
+            // Kings Club players play the Midway Union schedule, so the union's
+            // completed events are Kings Club results too (MAG LAW 26).
+            .in('club_id', [KINGS_CLUB_UUID, MIDWAY_UNION_CLUB_UUID])
             .eq('status', 'COMPLETED')
             .gte('start_time', lookbackStartIso)
             .lt('start_time', bounds.endIso);
         if (typeof kcQuery.gt === 'function') {
             kcQuery = kcQuery.gt('prize_pool', 0);
         }
-        const { data: kcRows } = await kcQuery.order('prize_pool', { ascending: false }).limit(12);
+        const { data: kcRows } = await kcQuery.order('prize_pool', { ascending: false }).limit(40);
+        // Completed rows report current_players as 0, so the real field size
+        // comes from the settled payouts.
+        const fieldById = new Map();
+        try {
+            const ids = (kcRows || []).map((r) => r.id).filter(Boolean);
+            if (ids.length) {
+                const { data: payRows } = await client
+                    .from('tournament_payouts')
+                    .select('tournament_id, field_size')
+                    .in('tournament_id', ids);
+                for (const pr of payRows || []) {
+                    const n = Math.round(Number(pr?.field_size || 0));
+                    if (n > (fieldById.get(pr.tournament_id) || 0)) fieldById.set(pr.tournament_id, n);
+                }
+            }
+        } catch {
+            /* field size stays from the tournament row */
+        }
+        // One row per event name (its biggest run), so a nightly event does not
+        // fill the whole board.
+        const seenNames = new Set();
+        const kcBest = [];
+        for (const r of kcRows || []) {
+            const key = String(r?.name || '').trim().toLowerCase();
+            if (!key || seenNames.has(key)) continue;
+            seenNames.add(key);
+            kcBest.push(r);
+        }
 
-        for (const row of (kcRows || []).filter((r) => Number(r?.prize_pool || 0) > 0).slice(0, 10)) {
+        for (const row of kcBest.filter((r) => Number(r?.prize_pool || 0) > 0).slice(0, 10)) {
             const cleanTourneyName = stripMagazineDashes(String(row.name || 'Kings Club Championship').replace(/\$/g, ''));
             if (!cleanTourneyName) continue;
             const prizeLabel = formatChipsOnly(row.prize_pool);
             const buyInLabel =
                 Number(row.buy_in_amount || 0) > 0 ? formatChipsOnly(row.buy_in_amount) : 'Freeroll (0 Chips)';
             const gameType = stripMagazineDashes(String(row.game_type || 'NLH').replace(/\$/g, ''));
-            const players = Math.max(0, Math.round(Number(row.current_players || 0)));
+            const players = Math.max(0, Math.round(Number(fieldById.get(row.id) || row.current_players || 0)));
 
             stagedRows.push(
                 mergePreservedFlags(
