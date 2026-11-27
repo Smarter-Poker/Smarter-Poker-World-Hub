@@ -641,3 +641,36 @@
     transition: none;
   }
 }
+
+/* ── Phone verification welcome offer (Dan, 2026-11-27) ─────────────────
+   Shown before the VIP price to an account that has not claimed it. Same
+   rim, seal, price plate and painted plates as every other prompt; only the
+   diamond bonus row is new, and it is a printed readout on the plate. */
+.phoneBonus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 14px 4px 8px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 9 / 4px stretch;
+  background: linear-gradient(180deg, #0d2c4d, #061628);
+  box-shadow:
+    inset 0 1px 0 rgb(134 218 255 / 30%),
+    0 0 14px rgb(45 157 255 / 28%);
+  color: var(--vk-text);
+  font: 800 17px/1.1 var(--vk-type);
+  letter-spacing: 0.04em;
+}
+.phoneBonus img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgb(88 196 255 / 75%));
+}
+.phoneSkip {
+  margin: 0;
+  color: var(--vk-silver);
+  font: 600 12px/1.4 var(--vk-body);
+  text-align: center;
+}

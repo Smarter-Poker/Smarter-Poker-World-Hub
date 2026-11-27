@@ -13,15 +13,30 @@
 import React from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
-import { VipDialog, VipGhost, VipIntroPrice, VipMonthlyCta, vipKitStyles as kit } from '../vip/VipKit';
+import { VipDialog, VipGhost, VipIntroPrice, VipMonthlyCta, VipPhoneOfferBody, usePhoneOfferStep, vipKitStyles as kit } from '../vip/VipKit';
 
 function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false, userId = null }) {
     useModalHistory(!!isOpen, onClose);
     const scrim = useScrimDismiss(onClose);
+    // Phone verification reward first (Dan, 2026-11-27): an eligible account
+    // sees the free month and welcome diamonds before the VIP price; Skip
+    // shows the popup below unchanged.
+    const phoneStep = usePhoneOfferStep(userId, { enabled: !!isOpen && !isVIP });
 
     if (!isOpen) return null;
 
     const sellVip = !isVIP;
+
+    if (sellVip && phoneStep.show) {
+        return (
+            <VipDialog open onClose={onClose} scrim={scrim} parent="Diamond Entry" title="Claim Your Free VIP Month" closeLabel="Close">
+                <p className={kit.dialogLead}>
+                    You Need <strong>{gameCost} Diamonds</strong> To Play This Game. Verify Your Phone Number To Play Free With VIP.
+                </p>
+                <VipPhoneOfferBody offer={phoneStep.offer} onSkip={phoneStep.skip} compact={false} />
+            </VipDialog>
+        );
+    }
 
     return (
         <VipDialog
