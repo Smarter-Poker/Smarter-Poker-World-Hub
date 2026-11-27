@@ -58,6 +58,7 @@ function drawCard(results, scenario, equity, villainRange) {
     ctx.fillRect(0, 0, W, H);
 
     // ── Header ────────────────────────────────────────────────
+    const hasVerifiedResult = !!(results?.optimalAction?.label);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = C.text;
@@ -65,7 +66,7 @@ function drawCard(results, scenario, equity, villainRange) {
     ctx.fillText('Smarter.Poker', 40, 62);
     ctx.fillStyle = C.dim;
     ctx.font = font(15);
-    ctx.fillText('GTO Analysis · Virtual Sandbox', 40, 86);
+    ctx.fillText(hasVerifiedResult ? 'GTO Analysis · Virtual Sandbox' : 'Virtual Sandbox · Ungraded Study', 40, 86);
 
     ctx.textAlign = 'right';
     ctx.fillStyle = C.accent;
@@ -109,27 +110,50 @@ function drawCard(results, scenario, equity, villainRange) {
         ctx.fillText('Preflop', bx, 196);
     }
 
-    // ── Optimal action ────────────────────────────────────────
-    ctx.fillStyle = 'rgba(77,224,165,0.10)';
-    roundRect(ctx, 40, 260, W - 80, 108, 12);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(77,224,165,0.35)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    // ── Verified action OR honest ungraded scenario summary ───
+    if (hasVerifiedResult) {
+        ctx.fillStyle = 'rgba(77,224,165,0.10)';
+        roundRect(ctx, 40, 260, W - 80, 108, 12);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(77,224,165,0.35)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
 
-    ctx.fillStyle = C.sub;
-    ctx.font = font(13, '700');
-    ctx.fillText('OPTIMAL ACTION', 60, 288);
-    ctx.fillStyle = C.success;
-    ctx.font = font(30, '800');
-    ctx.fillText(String(results?.optimalAction?.label || 'N/A'), 60, 326);
-    ctx.fillStyle = C.sub;
-    ctx.font = font(14);
-    const freq = results?.optimalAction?.frequency;
-    ctx.fillText(
-        `${freq != null ? `${Math.round(Number(freq))}% frequency` : 'Frequency n/a'}   ·   EV ${results?.ev?.heroDisplay || 'N/A'}`,
-        60, 352
-    );
+        ctx.fillStyle = C.sub;
+        ctx.font = font(13, '700');
+        ctx.fillText('VERIFIED ACTION', 60, 288);
+        ctx.fillStyle = C.success;
+        ctx.font = font(30, '800');
+        ctx.fillText(String(results.optimalAction.label), 60, 326);
+        ctx.fillStyle = C.sub;
+        ctx.font = font(14);
+        const freq = results?.optimalAction?.frequency;
+        ctx.fillText(
+            `${freq != null ? `${Math.round(Number(freq))}% frequency` : 'Frequency n/a'}   ·   EV ${results?.ev?.heroDisplay || 'N/A'}`,
+            60, 352
+        );
+    } else {
+        ctx.fillStyle = 'rgba(8,124,250,0.12)';
+        roundRect(ctx, 40, 260, W - 80, 108, 12);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(99,231,255,0.38)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = C.accent;
+        ctx.font = font(13, '700');
+        ctx.fillText('AUTHORED SCENARIO · UNGRADED STUDY', 60, 288);
+        ctx.fillStyle = C.text;
+        ctx.font = font(24, '800');
+        const potTxt = scenario?.pot != null ? `Pot ${Number(scenario.pot).toFixed(1)} BB` : 'Custom Pot';
+        const stackTxt = scenario?.stack != null ? `${Math.round(Number(scenario.stack))} BB Eff.` : '100 BB Eff.';
+        const streetTxt = scenario?.street ? String(scenario.street).toUpperCase() : (boardCards.length >= 5 ? 'RIVER' : boardCards.length === 4 ? 'TURN' : boardCards.length >= 3 ? 'FLOP' : 'PREFLOP');
+        ctx.fillText(`${streetTxt}  ·  ${potTxt}  ·  ${stackTxt}`, 60, 324);
+        ctx.fillStyle = C.sub;
+        ctx.font = font(14);
+        const actionLine = scenario?.actionLine ? `Line: ${scenario.actionLine}` : 'No Solver Grade Or EV Manufactured On Authored Spots';
+        wrapText(ctx, actionLine, 60, 350, W - 120, 18, 1);
+    }
 
     // ── Equity bar ────────────────────────────────────────────
     let y = 400;
@@ -138,13 +162,13 @@ function drawCard(results, scenario, equity, villainRange) {
         const barW = W - 80;
         ctx.fillStyle = C.sub;
         ctx.font = font(13, '700');
-        ctx.fillText('HERO EQUITY', 40, y);
+        ctx.fillText('HERO EQUITY (MONTE CARLO)', 40, y);
         y += 14;
         ctx.fillStyle = 'rgba(255,255,255,0.08)';
         roundRect(ctx, 40, y, barW, 18, 9);
         ctx.fill();
         const pct = Math.max(0, Math.min(100, heroEq));
-        ctx.fillStyle = pct >= 55 ? C.success : pct >= 45 ? C.warn : C.danger;
+        ctx.fillStyle = pct >= 55 ? C.success : pct >= 45 ? C.accent : C.danger;
         roundRect(ctx, 40, y, Math.max(18, barW * (pct / 100)), 18, 9);
         ctx.fill();
         ctx.fillStyle = C.text;
@@ -234,7 +258,7 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
         }
     }, [build, scenario, onExport]);
 
-    if (!results) return null;
+    if (!results && !scenario) return null;
 
     return (
         <>
@@ -243,11 +267,11 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
                 type="button"
                 className="pa-btn"
                 onClick={openPreview}
-                aria-label="Preview and export this analysis as an image"
+                aria-label="Preview and export this scenario as an image"
                 style={{ ...btn('secondary', { block: true }), marginBottom: S.sm }}
             >
                 <ImageIcon size={18} strokeWidth={2} />
-                Export As Image
+                Export Scenario Image
             </button>
 
             <BottomSheet

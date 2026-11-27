@@ -166,14 +166,13 @@ test('9. [P1 #8] LeakDetail and CoachingWorkspace never fabricate BTN or Preflop
   assert.match(coaching, /overflowModule\.representativeHand\?\.heroPosition \|\| 'All Positions'/);
 });
 
-test('10. [P1 #9, P2 #15, Cross-App P2-7] Home page tracks coachingStatus for Drills Due, avoids nested <main>, and forwards ?handId= / ?leak= / ?tab=', () => {
+test('10. [P1 #9, P2 #15, Cross-App P2-7] Home page tracks saved hands & coaching overview, avoids nested <main>, and forwards ?handId= / ?leak= / ?tab=', () => {
   const home = read('pages/hub/personal-assistant/index.js');
 
-  assert.match(home, /const \[coachingStatus, setCoachingStatus\] = useState\('loading'\)/);
-  assert.match(home, /const drillsDueLoading = !isSignedOut && coachingStatus === 'loading'/);
-  assert.match(home, /coachingStatus === 'error' \? 'Retry To Load' : unavailableLabel/);
+  assert.match(home, /const \[savedHandsCount, setSavedHandsCount\] = useState\(null\)/);
+  assert.match(home, /const \[coachingSnapshot, setCoachingSnapshot\] = useState\(null\)/);
   assert.doesNotMatch(home, /<main className=\{styles\.main\}/, 'Home must not nest <main> inside HubPageShell');
-  assert.match(home, /<div className=\{styles\.main\} id="overview">/);
+  assert.match(home, /id="overview"/);
   assert.match(home, /router\?\.query\?\.handId/);
   assert.match(home, /readParam\('leak'\)/);
   assert.match(home, /readParam\('tab'\)/);
@@ -214,6 +213,7 @@ test('11. [P1 #10, #12 & Cross-App P0-1, P1-4, P1-5, P2-7, P2-8, P2-9] Leak Find
   assert.match(liveSpot, /returnTo:\s*'\/hub\/personal-assistant\/leaks'/);
   assert.match(liveSpot, /setTab\('paste'\);\s*\/\/ Single chunk shortcut\s*if \(chunks\.length === 1\) \{\s*if \(text\.length > MAX_PASTE_CHARS\)/);
 
-  // sandbox.js uses source=personal-assistant-sandbox-retired for Club Arena hand-history
-  assert.match(sandbox, /\/hub\/club-arena\/hand-history\?source=personal-assistant-sandbox-retired/);
+  // sandbox.js preserves verified destination links back to Personal Assistant Review & Leaks
+  assert.match(sandbox, /\/hub\/personal-assistant\/leaks\?source=personal-assistant-sandbox/);
+  assert.match(sandbox, /data-training-authority="authored-sandbox-ungraded"/);
 });

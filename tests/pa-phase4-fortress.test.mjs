@@ -261,10 +261,12 @@ test('fortress: notify() guards Branch B web push against 23505 duplicate notifi
 });
 
 // 7. UI wiring, SSR share honesty, and smoke filter scoping
-test('fortress: PA Home recap wires &drill=1 and cooldown check, ShareHandPage exports SSR getServerSideProps, and smoke script scopes format buttons', () => {
+test('fortress: PA Home wires internal PA destinations without Training redirects, ShareHandPage exports SSR getServerSideProps, and smoke script scopes format buttons', () => {
   const home = read('pages/hub/personal-assistant/index.js');
-  assert.match(home, /!sessionDebrief\?\.liveTableActive\s*&&\s*!sessionDebrief\?\.cooldownActive/);
-  assert.match(home, /\/hub\/personal-assistant\/leaks\?hand=\$\{encodeURIComponent\(recapDrillHandId\)\}&drill=1/);
+  assert.match(home, /\/hub\/personal-assistant\/review/);
+  assert.match(home, /\/hub\/personal-assistant\/sandbox/);
+  assert.match(home, /\/hub\/personal-assistant\/leaks/);
+  assert.doesNotMatch(home, /\/hub\/training/);
 
   const share = read('pages/share/hand.js');
   assert.match(share, /export async function getServerSideProps\(/);

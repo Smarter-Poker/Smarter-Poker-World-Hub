@@ -1316,7 +1316,19 @@ test('Section 5.4 [Route Cleanliness & Retired Endpoints]: retired Sandbox & set
     '../../../../src/lib/personal-assistant/serverTiming.mjs': { attachPersonalAssistantTiming() {} },
   });
   const equityMod = compileRoute('pages/api/sandbox/_routes/equity-snapshot.js');
-  const saveHandMod = compileRoute('pages/api/sandbox/_routes/save-hand.js');
+  const saveHandMod = compileRoute('pages/api/sandbox/_routes/save-hand.js', {
+    '../../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
+    '../../../../src/lib/serverAuth': { getServerUserWithFallback: async () => ({ user: null, status: 200 }) },
+    '../../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {}, write: {} } },
+    '../../../../src/lib/apiErrorHandler': { reportApiError() {} },
+    '../../../../src/lib/personal-assistant/persistenceContract': {
+      persistedResult: (d, extra = {}) => ({ success: true, persisted: true, data: d, ...extra }),
+      persistenceFailure: (e, reason) => ({ success: false, persisted: false, error: e, reason }),
+    },
+    '../../../../src/lib/personal-assistant/contextAuthority': {
+      checkSandboxAccess: async () => ({ allowed: true }),
+    },
+  });
   const setupDbMod = compileRoute('pages/api/assistant/setup-database.js');
   const createShareMod = compileRoute('pages/api/sandbox/_routes/create-share.js', {
     '../../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
@@ -1335,7 +1347,6 @@ test('Section 5.4 [Route Cleanliness & Retired Endpoints]: retired Sandbox & set
   for (const [label, handler, method] of [
     ['sandbox/analyze', analyzeMod.default, 'POST'],
     ['sandbox/equity-snapshot', equityMod.default, 'POST'],
-    ['sandbox/save-hand', saveHandMod.default, 'POST'],
     ['assistant/setup-database', setupDbMod.default, 'POST'],
     ['sandbox/create-share POST', createShareMod.default, 'POST'],
     ['sandbox/create-share PATCH', createShareMod.default, 'PATCH'],
@@ -1344,4 +1355,11 @@ test('Section 5.4 [Route Cleanliness & Retired Endpoints]: retired Sandbox & set
     await handler({ method, headers: {}, query: {}, body: {} }, res);
     assert.equal(res.statusCode, 410, `${label} must return 410 Gone`);
   }
+
+  // Restored save-hand fails closed with 401 when unauthenticated and emits private no-store headers
+  const saveRes = mockRes();
+  await saveHandMod.default({ method: 'POST', headers: {}, query: {}, body: {} }, saveRes);
+  assert.equal(saveRes.statusCode, 401, 'sandbox/save-hand must require authentication');
+  assert.equal(saveRes.headers['cache-control'], 'private, no-store, max-age=0');
+  assert.equal(saveRes.headers.vary, 'Authorization');
 });

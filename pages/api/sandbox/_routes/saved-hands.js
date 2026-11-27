@@ -7,6 +7,7 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
+import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
 
 let _supabase = null;
 function getSupabase() {
@@ -42,6 +43,20 @@ export default async function handler(req, res) {
 
           if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
 
+          // Fail-closed live-table / active-play gate
+          const contextAccess = await checkSandboxAccess(supabase, userId);
+          if (!contextAccess.allowed) {
+              return res.status(403).json({
+                  success: false,
+                  blocked: true,
+                  code: 'SANDBOX_BLOCKED_LIVE_PLAY',
+                  contextState: contextAccess.contextState,
+                  accessLevel: contextAccess.accessLevel,
+                  error: contextAccess.message || 'Sandbox is unavailable during live play.',
+                  hands: [],
+              });
+          }
+
           const { data, error } = await supabase
               .from('sandbox_saved_hands')
               .select('*')
@@ -59,7 +74,15 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
-          return res.status(200).json({ success: true, hands: data || [] });
+          return res.status(200).json({
+              success: true,
+              hands: data || [],
+              access: {
+                  allowed: true,
+                  contextState: contextAccess.contextState,
+                  accessLevel: contextAccess.accessLevel,
+              },
+          });
       } catch (err) {
           console.warn('[saved-hands] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });

@@ -146,7 +146,7 @@ test('Personal Assistant surfaces align to approved MTT lobby design tokens, opt
     assert.match(css, /#040d18/i, `${name} must use approved #040d18 MTT lobby canvas`);
   }
   assert.match(hubCss, /min\(600px/, 'Home must use 600px MTT lobby interior');
-  assert.match(sandboxSrc, /min\(100% - 12px, 600px\)/, 'Sandbox boundary must use 600px MTT lobby interior');
+  assert.match(sandboxSrc, /className="sandbox-workspace"/, 'Sandbox workspace must frame the native table');
   assert.match(hubCss, /#087cfa/, 'Home primary CTA / active tab must use MTT lobby royal blue');
   assert.match(coachCss, /#087cfa/, 'Coaching Workspace primary CTA / active tab must use MTT lobby royal blue');
 
@@ -160,8 +160,8 @@ test('Personal Assistant surfaces align to approved MTT lobby design tokens, opt
   assert.match(leaksSrc, /Analysis Settings/, 'Leak Finder must expose Analysis Settings');
   assert.match(leaksSrc, /Reset To Defaults/, 'Leak Finder must provide Reset To Defaults');
   assert.match(leaksSrc, /autorunTriggeredRef/, 'autorun handoff must clear query param and guard against reload duplicates');
-  assert.match(homeSrc, /resolveHomePrimaryState/, 'Home must use centralized state resolver');
-  assert.match(homeSrc, /<details className=\{styles\.disclosure\}>/, 'Home must tuck secondary sections behind native details');
+  assert.match(homeSrc, /\/hub\/personal-assistant\/review/, 'Home must lead with Review My Play');
+  assert.match(homeSrc, /\/hub\/personal-assistant\/sandbox/, 'Home must open Virtual Sandbox');
 
   // Swarm audit hardening: zero display:none, >= 12px range font, opt-in reduced motion, strict format separation, no legacy neon grid/banner
   assert.doesNotMatch(paKitSrc, /::-webkit-details-marker\s*\{\s*display:\s*none/, 'paKit disclosure marker must not use display: none');
@@ -273,9 +273,9 @@ test('Phase 3 anti-regression fortress: every audited bug is hard-coded fixed an
   assert.match(useAssistantSrc, /formatScope:\s*inferLeakFormatScope/, 'formatLeak must classify formatScope');
 
   const homeSrc = fs.readFileSync(path.resolve('pages/hub/personal-assistant/index.js'), 'utf8');
-  assert.match(homeSrc, /coachingSnapshot\?\.summary\?\.due/, 'Home must read summary.due (not non-existent reviewsDue)');
   assert.doesNotMatch(homeSrc, /reviewsDue/, 'Home must not read dead reviewsDue field');
   assert.doesNotMatch(homeSrc, /dailyHand\.position \|\| 'BTN'/, 'Home must not fabricate BTN when daily hand position is missing');
+  assert.doesNotMatch(homeSrc, /\/hub\/training/, 'Home landing body must not redirect to Training Games');
 
   const leaksSrc = fs.readFileSync(path.resolve('pages/hub/personal-assistant/leaks.js'), 'utf8');
   assert.match(leaksSrc, /if \(!hasExplicitUrlFmt\)/, 'leaks.js must not let localStorage overwrite explicit URL ?format=');

@@ -46,11 +46,10 @@ test('stats and leak refreshes cancel superseded network work', () => {
   }
 });
 
-test('retired Sandbox cannot expose God Mode output or score quizzes', () => {
+test('restored Sandbox cannot expose God Mode output or manufacture GTO grades', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
-  assert.match(sandbox, /data-training-authority="verified-evidence-required"/);
-  assert.match(sandbox, /Approximate Analysis Retired/);
-  assert.doesNotMatch(sandbox, /forcedMode|GodModePanel|gradeAction|optimalAction/);
+  assert.match(sandbox, /data-training-authority="authored-sandbox-ungraded"/);
+  assert.doesNotMatch(sandbox, /forcedMode|GodModePanel|gradeAction|optimalAction|\/api\/assistant\/sandbox\/analyze/);
 });
 
 test('assistant data waits for the canonical auth identity before loading', () => {
@@ -64,8 +63,9 @@ test('assistant data waits for the canonical auth identity before loading', () =
   assert.match(hub, /ready: !authInitializing/);
   assert.match(leaks, /useAvatar\(\)/);
   assert.match(leaks, /useLeaks\(null, \{ userId, ready: !authInitializing \}\)/);
-  assert.doesNotMatch(sandbox, /useStudyDeck|useAvatar|assistantAuth/);
-  assert.match(sandbox, /verified-evidence-required/);
+  assert.match(sandbox, /useAvatar\(\)/);
+  assert.match(sandbox, /getFreshAccessToken/);
+  assert.match(sandbox, /authored-sandbox-ungraded/);
 });
 
 test('sandbox analysis is retired before client requests can create side effects', () => {
@@ -75,16 +75,16 @@ test('sandbox analysis is retired before client requests can create side effects
   assert.match(api, /status\(410\)/);
   assert.match(api, /SANDBOX_ANALYSIS_REQUIRES_VERIFIED_EVIDENCE/);
   assert.doesNotMatch(api, /\.from\s*\(|createClient|getGrokClient/);
-  assert.doesNotMatch(sandbox, /useSandboxAnalysis|skipCoachGrade|gradeAction|session-complete/);
+  assert.doesNotMatch(sandbox, /useSandboxAnalysis|skipCoachGrade|gradeAction|session-complete|\/api\/assistant\/sandbox\/analyze/);
 });
 
-test('retired sandbox does not load or fabricate saved analysis history', () => {
+test('restored sandbox does not fabricate graded analysis results or training progress', () => {
   const hooks = read('src/hooks/useAssistant.js');
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
 
   assert.match(hooks, /return \{ bookmarks, isLoading, error, refetch: fetchBookmarks \}/);
-  assert.match(sandbox, /Recorded Here[\s\S]*Nothing/);
-  assert.doesNotMatch(sandbox, /useRecentSessions|useBookmarks|sandbox_sessions|sandbox_results/);
+  assert.match(sandbox, /data-training-authority="authored-sandbox-ungraded"/);
+  assert.doesNotMatch(sandbox, /useRecentSessions|sandbox_sessions|sandbox_results|session-complete/);
 });
 
 test('study replay does not depend on a missing PostgREST relationship', () => {

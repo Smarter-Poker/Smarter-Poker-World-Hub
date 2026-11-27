@@ -72,13 +72,11 @@ test('the hub page is built on the phase 0a foundation', () => {
   assert.match(src, /const requireOnline = useCallback/, 'has an offline guard');
 });
 
-test('the retry and the daily reload are guarded when the browser is offline', () => {
+test('the retry and leak detection are guarded when the browser is offline', () => {
   const src = read(HUB_PAGE);
   // retryAssistantData is the one network action on the hub page.
   assert.match(src, /const retryAssistantData = useCallback\(async \(\) => \{\s*if \(isRetrying\) return;\s*if \(!requireOnline\(\)\) return;/,
     'retryAssistantData checks requireOnline before firing');
-  assert.match(src, /if \(!requireOnline\(\)\) return;\s*haptic\('light'\);\s*setDailyHandReloadKey/,
-    'the daily-hand retry checks requireOnline before firing');
   // Leak detection reads hand history and writes user_leaks.
   assert.match(read(LEAKS_PAGE), /const handleRunDetection = useCallback\(async \(\) => \{\s*if \(!requireOnline\(\)\) return;/,
     'leak detection checks requireOnline before firing');

@@ -159,8 +159,10 @@ test('wiring guards keep retired sandbox analysis closed while live stats remain
   assert.match(hooks, /resultsBySession/);
   assert.match(stats, /dataSources:[\s\S]+live_count/);
   const dailyContract = fs.readFileSync(new URL('../src/lib/personal-assistant/dailyHandContract.mjs', import.meta.url), 'utf8');
-  assert.match(hub, /normalizeDailyHandPayload/);
   assert.match(dailyContract, /payload\?\.hand \|\| payload\?\.question/);
   assert.match(dailyContract, /resolveDailyHeroHand\(raw, scenario\)/);
   assert.doesNotMatch(hub, /raw\.heroCards\.slice\(0, 2\)\.join\(''\)/);
+  assert.match(hub, /\/hub\/personal-assistant\/review/);
+  assert.match(hub, /\/hub\/personal-assistant\/sandbox/);
+  assert.match(hub, /\/hub\/personal-assistant\/leaks/);
 });

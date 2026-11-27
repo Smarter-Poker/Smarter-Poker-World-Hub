@@ -3,13 +3,13 @@
 Generated from the physical Pages Router tree and `src/config/world-footer-navigation.json`.
 Dynamic routes are shown using their source parameter names. Runtime verification uses representative reachable parameters where authentication or data is required.
 
-**Total applicable physical routes: 201.**
+**Total applicable physical routes: 202.**
 
 ## Coverage summary
 
 | Product family | Routes | Approved artwork | Desktop | Mobile |
 | --- | ---: | --- | --- | --- |
-| Personal Assistant | 3 | `footer-personal-assistant-v2.png` | PASS | PASS |
+| Personal Assistant | 4 | `footer-personal-assistant-v2.png` | PASS | PASS |
 | Training Games | 98 | `footer-training-games-v2.png` | PASS | PASS |
 | Poker News | 3 | `footer-poker-news-v2.png` | PASS | PASS |
 | Poker Trivia | 17 | `footer-poker-trivia-v2.png` | PASS | PASS |
@@ -29,6 +29,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | --- | --- | --- | --- | --- | --- |
 | `/hub/personal-assistant` | Personal Assistant | App-shell legacy/generic footer | `footer-personal-assistant-v2.png` | PASS | PASS |
 | `/hub/personal-assistant/leaks` | Personal Assistant | App-shell legacy/generic footer | `footer-personal-assistant-v2.png` | PASS | PASS |
+| `/hub/personal-assistant/review` | Personal Assistant | App-shell legacy/generic footer | `footer-personal-assistant-v2.png` | PASS | PASS |
 | `/hub/personal-assistant/sandbox` | Personal Assistant | App-shell legacy/generic footer | `footer-personal-assistant-v2.png` | PASS | PASS |
 | `/hub/gto-trainer` | Training Games | App-shell legacy/generic footer | `footer-training-games-v2.png` | PASS | PASS |
 | `/hub/poker-brain` | Training Games | App-shell legacy/generic footer | `footer-training-games-v2.png` | PASS | PASS |

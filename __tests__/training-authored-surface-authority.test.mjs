@@ -74,17 +74,17 @@ test('sandbox analysis fails closed without legacy reads, approximate matches, o
   assert.doesNotMatch(source, /\.from\s*\(|createClient|getGrokClient|optimalAction|solver_approx|ai_approx|normalizeStack\s*\(/);
 });
 
-test('the reachable Sandbox UI exposes only verified destinations and records nothing locally', () => {
+test('the restored Virtual Sandbox stays strictly ungraded and preserves disclosed limits', () => {
   const source = read(FILES.sandboxPage);
-  assert.match(source, /data-training-authority="verified-evidence-required"/);
-  assert.match(source, /\/hub\/training\?source=assistant-sandbox-retired/);
-  assert.match(source, /spot-trainer\?source=assistant-sandbox-retired/);
-  assert.match(source, /hand-history-upload\?source=assistant-sandbox-retired/);
-  assert.match(source, /No Answer, Frequency, EV, Accuracy, Streak, Reward, Study Record, Or Progress Is Created/);
-  assert.doesNotMatch(source, /localSolve|gradeAction|correct_action|optimalAction|truthLevel|setSrs|setStreak|Forced override/);
+  assert.match(source, /data-training-authority="authored-sandbox-ungraded"/);
+  assert.match(source, /\/hub\/personal-assistant\/leaks\?source=personal-assistant-sandbox/);
+  assert.match(source, /Multiway Equity Is Available/i);
+  assert.match(source, /Original Action Builder Is Heads-Up/i);
+  assert.match(source, /Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes/i);
+  assert.doesNotMatch(source, /localSolve|gradeAction|correct_action|optimalAction|truthLevel|setSrs|setStreak|Forced override|\/api\/assistant\/sandbox\/analyze/);
 });
 
-test('direct Sandbox navigation no longer promises unavailable analysis authority', () => {
+test('direct Sandbox navigation stays honest and preserves locked global footer', () => {
   const hub = read(FILES.assistantHub);
   const menus = read(FILES.hamburgerMenus);
   const video = read(FILES.videoLibrary);
@@ -92,10 +92,11 @@ test('direct Sandbox navigation no longer promises unavailable analysis authorit
   const assistantFooter = footer.worlds.find((world) => world.id === 'personal-assistant');
   const sandboxFooterItem = assistantFooter?.items?.find((item) => item.href === '/hub/personal-assistant/sandbox');
 
-  assert.match(hub, /Scenario Analysis Archive/);
-  assert.match(hub, /Training Pipeline Connected/);
-  assert.match(hub, /\/hub\/training\?source=personal-assistant-hero/);
-  assert.doesNotMatch(hub, /solver-verified strategy|Solver Connected|Start New Scenario|Load In Sandbox|Virtual Sandbox/i);
+  assert.match(hub, /Review My Play/);
+  assert.match(hub, /Virtual Sandbox/);
+  assert.match(hub, /My Leaks/);
+  assert.doesNotMatch(hub, /\/hub\/training/, 'Personal Assistant landing body must not redirect to Training Games');
+  assert.doesNotMatch(hub, /solver-verified strategy|Solver Connected/i);
 
   assert.match(menus, /GTO Sandbox/);
   assert.deepEqual(sandboxFooterItem, {
