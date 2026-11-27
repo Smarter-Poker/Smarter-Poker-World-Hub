@@ -26,6 +26,8 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import casinoStyles from '../../../src/styles/training/challenges-casino.module.css';
+import sd from '../../../src/styles/training/training-smarterdesign.module.css';
+import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
 
 
 
@@ -42,15 +44,6 @@ const ICON_PROPS = {
   'aria-hidden': true,
 };
 
-function TargetIcon({ size = 22 }) {
-  return (
-    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
-  );
-}
 function CalendarIcon({ size = 14 }) {
   return (
     <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
@@ -74,19 +67,26 @@ function CalendarMonthIcon({ size = 14 }) {
   );
 }
 
+const GOALS_HELP = (
+  <>
+    <p>Live Challenge Tracking And Rewards Are Paused Pending Verified Settlement.</p>
+    <p>Review Historical Weekly And Monthly Challenge Definitions And Access Daily Solver Assignments. A Historical Snapshot Shows Progress Recorded Before Tracking Was Paused.</p>
+  </>
+);
+
 function SubpageNavigation() {
   return (
-    <nav className={casinoStyles.subpageNav} aria-label="Daily Challenges Subpages">
-      <Link href="/hub/training/daily-challenge" className={casinoStyles.navPlate}>
+    <nav className={`${casinoStyles.subpageNav} ${sd.chips}`} aria-label="Daily Challenges Subpages">
+      <Link href="/hub/training/daily-challenge" className="sd-button">
         Hand Of The Day
       </Link>
-      <Link href="/hub/training/daily-goals" className={casinoStyles.navPlate}>
+      <Link href="/hub/training/daily-goals" className="sd-button">
         Daily Goals Vault
       </Link>
-      <Link href="/hub/training/challenges" className={`${casinoStyles.navPlate} ${casinoStyles.navPlateActive}`}>
+      <Link href="/hub/training/challenges" className="sd-button" aria-current="page">
         Weekly &amp; Monthly Goals
       </Link>
-      <Link href="/hub/training" className={casinoStyles.navPlate}>
+      <Link href="/hub/training" className="sd-button">
         Training Arena
       </Link>
     </nav>
@@ -155,22 +155,9 @@ export default function ChallengesPage() {
   const renderBrainPanel = () => (
     <>
       {!isOnline && (
-        <div
-          role="status"
-          data-offline-banner="true"
-          style={{
-            marginBottom: 16,
-            padding: '10px 14px',
-            borderRadius: 0,
-            border: '1px solid rgba(251, 191, 36, 0.4)',
-            background: 'rgba(251, 191, 36, 0.08)',
-            color: '#86daff',
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
+        <p role="status" data-offline-banner="true" className={sd.offline}>
           Offline. Challenge Ledger Sync Will Resume After Reconnection.
-        </div>
+        </p>
       )}
     </>
   );
@@ -185,34 +172,19 @@ export default function ChallengesPage() {
         />
         <div className={casinoStyles.shell}>
           <UniversalHeader pageDepth={2} />
-          <header className={`sp-command-header ${casinoStyles.marquee}`}>
-            <div className={casinoStyles.marqueeArtwork} aria-hidden="true" />
-            <div className={casinoStyles.marqueeContent}>
-              <div className={casinoStyles.titleBlock}>
-                <span className={casinoStyles.eyebrow}>Casino Realism Command · Verified Ledger</span>
-                <h1>
-                  <span style={{ display: 'inline-flex', color: '#25c8ff' }} aria-hidden>
-                    <TargetIcon size={32} />
-                  </span>
-                  Training Challenges
-                </h1>
-                <p>Review Historical Weekly And Monthly Challenge Definitions And Access Daily Solver Assignments.</p>
-                <SubpageNavigation />
-              </div>
+          <div className={sd.page}>
+            <div className={casinoStyles.marquee}>
+              <BankrollImageHeader art="training-goals" title="Training Challenges" section="training-goals" helpContent={GOALS_HELP} />
             </div>
-          </header>
-          <div className={`sp-training-command sp-training-command--challenges sp-command-main ${casinoStyles.commandDeck}`}>
+            <SubpageNavigation />
             {renderBrainPanel()}
-            <div className={casinoStyles.signInVault}>
-              <span style={{ display: 'inline-flex', color: '#25c8ff' }} aria-hidden>
-                <TargetIcon size={48} />
-              </span>
-              <h2>Sign In To Track Goals</h2>
-              <p>Sign In To Review Challenge Availability And Historical Snapshots.</p>
-              <Link href="/auth/login?redirect=/hub/training/challenges" className={casinoStyles.primaryButton}>
+            <section className={`sd-panel ${sd.panel} ${sd.state}`} aria-labelledby="goals-sign-in-title">
+              <h2 id="goals-sign-in-title" className={sd.sectionTitle}>Sign In To Track Goals</h2>
+              <p className={sd.copy}>Sign In To Review Challenge Availability And Historical Snapshots.</p>
+              <Link href="/auth/login?redirect=/hub/training/challenges" className={`sd-button sd-primary ${casinoStyles.primaryButton}`}>
                 Sign In
               </Link>
-            </div>
+            </section>
           </div>
         </div>
         <HubPageSummary page="training-challenges" as="h1" />
@@ -233,40 +205,25 @@ export default function ChallengesPage() {
         <div className={casinoStyles.shell}>
           <UniversalHeader pageDepth={2} />
 
-          <header className={`sp-command-header ${casinoStyles.marquee}`}>
-            <div className={casinoStyles.marqueeArtwork} aria-hidden="true" />
-            <div className={casinoStyles.marqueeContent}>
-              <div className={casinoStyles.titleBlock}>
-                <span className={casinoStyles.eyebrow}>Casino Realism Command · Verified Ledger</span>
-                <h1>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center', color: '#25c8ff' }}>
-                    <TargetIcon size={30} />
-                    Your Goals
-                  </span>
-                </h1>
-                <p>Live Challenge Tracking And Rewards Are Paused Pending Verified Settlement</p>
-                <SubpageNavigation />
-              </div>
+          <div className={sd.page}>
+            <div className={casinoStyles.marquee}>
+              <BankrollImageHeader art="training-goals" title="Your Goals" section="training-goals" helpContent={GOALS_HELP} />
             </div>
-          </header>
-
-          <div className={`sp-training-command sp-training-command--challenges sp-command-main ${casinoStyles.commandDeck}`}>
+            <SubpageNavigation />
             {renderBrainPanel()}
-            <section className={casinoStyles.telemetryBar} aria-label="Challenge Ledger Summary">
-              <div className={casinoStyles.telemetryCell}>
-                <span>Weekly Definitions</span>
-                <strong>{weeklyCount}</strong>
-                <small>Cataloged</small>
+
+            <section className={sd.metrics} aria-label="Challenge Ledger Summary">
+              <div className={`sd-metric ${sd.metric}`}>
+                <span className={sd.metricLabel}>Weekly Goals</span>
+                <strong className={sd.metricValue}>{weeklyCount}</strong>
               </div>
-              <div className={casinoStyles.telemetryCell}>
-                <span>Monthly Definitions</span>
-                <strong>{monthlyCount}</strong>
-                <small>Cataloged</small>
+              <div className={`sd-metric ${sd.metric}`}>
+                <span className={sd.metricLabel}>Monthly Goals</span>
+                <strong className={sd.metricValue}>{monthlyCount}</strong>
               </div>
-              <div className={`${casinoStyles.telemetryCell} ${casinoStyles.telemetryGold}`}>
-                <span>Settlement State</span>
-                <strong>Paused</strong>
-                <small>Audit Lock</small>
+              <div className={`sd-metric ${sd.metric}`}>
+                <span className={sd.metricLabel}>Live Tracking</span>
+                <strong className={sd.metricValue} data-tone="ice">Paused</strong>
               </div>
             </section>
 
@@ -281,45 +238,43 @@ export default function ChallengesPage() {
                 <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
               </div>
             ) : challenges.length === 0 ? (
-              <TrainerEmptyState
-                variant="no-data"
-                title="No active goals right now"
-                message="Check back soon for new challenges!"
-              />
+              swrError ? null : (
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No Active Goals Right Now"
+                  message="Check Back Soon For New Challenges."
+                />
+              )
             ) : (
-              <div className={`sp-command-grid sp-command-grid--challenges ${casinoStyles.challengeGrid}`}>
+              <div className={sd.cardGrid}>
                 {challenges.map((challenge, i) => {
                   const progress = getProgressPercent(challenge);
                   const isWeekly = challenge.period === 'weekly';
 
                   return (
-                    <motion.div
+                    <motion.article
                       key={challenge.id}
-                      className={`sp-command-card ${casinoStyles.challengeCard} ${!isWeekly ? casinoStyles.challengeCardMonthly : ''}`}
-                      initial={{ opacity: 0, y: 20 }}
+                      className={`sd-panel ${sd.goalCard}`}
+                      initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
+                      transition={{ delay: Math.min(i, 6) * 0.05, duration: MOTION.standard }}
                     >
-                      <div className={casinoStyles.cardHeader}>
-                        <div className={`${casinoStyles.typeBadge} ${!isWeekly ? casinoStyles.typeBadgeMonthly : ''}`}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            {isWeekly ? <CalendarIcon size={12} /> : <CalendarMonthIcon size={12} />}
-                            {isWeekly ? 'Weekly' : 'Monthly'}
-                          </span>
-                        </div>
+                      <div className={sd.goalMeta}>
+                        <span className={`${sd.tag} ${!isWeekly ? sd.tagMonthly : ''}`}>
+                          {isWeekly ? <CalendarIcon size={13} /> : <CalendarMonthIcon size={13} />}
+                          {isWeekly ? 'Weekly' : 'Monthly'}
+                        </span>
                         {challenge.periodKey && (
-                          <span className={casinoStyles.periodCode}>{challenge.periodKey}</span>
+                          <span className={sd.periodCode}>{challenge.periodKey}</span>
                         )}
                       </div>
 
-                      {/* Title */}
-                      <h3 className={casinoStyles.challengeTitle}>{challenge.title}</h3>
-                      <p className={casinoStyles.challengeDesc}>{challenge.description}</p>
+                      <h3 className={sd.goalTitle}>{challenge.title}</h3>
+                      <p className={sd.copy}>{challenge.description}</p>
 
-                      {/* Progress Bar */}
-                      <div className={casinoStyles.progressContainer}>
+                      <div className={sd.goalProgress}>
                         <div
-                          className={casinoStyles.progressTrack}
+                          className={sd.track}
                           role="progressbar"
                           aria-label={`${challenge.title} progress`}
                           aria-valuenow={Math.round(progress)}
@@ -327,29 +282,25 @@ export default function ChallengesPage() {
                           aria-valuemax={100}
                         >
                           <motion.div
-                            className={casinoStyles.progressFill}
+                            className={`${sd.fill} ${sd.fillIcm}`}
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
-                            transition={{ duration: MOTION.slow, delay: i * 0.1 }}
+                            transition={{ duration: MOTION.slow, delay: Math.min(i, 6) * 0.05 }}
                           />
                         </div>
-                        <div className={casinoStyles.progressText}>
-                          {challenge.progress} / {challenge.goal}
-                        </div>
+                        <span className={sd.goalCount}>{challenge.progress} / {challenge.goal}</span>
                       </div>
 
                       {/* Authority status */}
-                      <div className={casinoStyles.rewardRow}>
-                        <span className={casinoStyles.statusStamp}>
-                          Tracking Paused
-                        </span>
+                      <div className={sd.status}>
+                        <span className={sd.statusPill}>Tracking Paused</span>
                         {Number(challenge.historicalProgress) > 0 && (
-                          <span className={casinoStyles.snapshotStamp}>
+                          <span className={sd.statusPill} data-tone="ice">
                             Historical Snapshot: {challenge.historicalProgress} / {challenge.goal}
                           </span>
                         )}
                       </div>
-                    </motion.div>
+                    </motion.article>
                   );
                 })}
               </div>

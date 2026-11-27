@@ -6,7 +6,6 @@ import path from 'node:path';
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const routes = [
-  'challenges',
   'daily-challenge',
   'pvp-lobby',
   'coach-mode',
@@ -16,7 +15,17 @@ const routes = [
   'tournament-prep',
 ];
 
-test('all eight Phase 11 routes adopt the shared command-deck surface', () => {
+test('the Goals page is rebuilt on #SMARTERDESIGN with its own image header (2026-11-27)', () => {
+  const source = read('pages/hub/training/challenges.js');
+  assert.match(source, /<BankrollImageHeader art="training-goals" title="Your Goals"/);
+  assert.match(source, /training-smarterdesign\.module\.css/);
+  assert.match(source, /className=\{sd\.page\}/);
+  // The retired command-deck shell repainted every button border and drew a
+  // second frame and an amber strip around the image header.
+  assert.doesNotMatch(source, /sp-training-command|sp-command-header/);
+});
+
+test('the remaining Phase 11 routes adopt the shared command-deck surface', () => {
   for (const route of routes) {
     const source = read(`pages/hub/training/${route}.js`);
     assert.match(source, /sp-training-command/, `${route} is missing the Phase 11 shell`);
@@ -135,10 +144,12 @@ test('study groups and training feed use persisted, authenticated activity', () 
 });
 
 test('the global header stays outside every scoped Phase 11 redesign', () => {
-  for (const route of ['challenges', 'study-group', 'tournament-prep']) {
+  for (const route of ['study-group', 'tournament-prep']) {
     const source = read(`pages/hub/training/${route}.js`);
     assert.ok(source.indexOf('<UniversalHeader') < source.lastIndexOf('sp-training-command'));
   }
+  const goals = read('pages/hub/training/challenges.js');
+  assert.ok(goals.indexOf('<UniversalHeader') < goals.lastIndexOf('<BankrollImageHeader'));
   const css = read('src/styles/worlds/training.css');
   assert.doesNotMatch(css, /\.universal-header[^\n]*sp-training-command/);
 });

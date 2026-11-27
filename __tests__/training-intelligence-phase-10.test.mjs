@@ -9,9 +9,17 @@ const routes = [
   'reports',
   'gto-reports',
   'session-dashboard',
-  'leaderboard',
   'community-leaderboard',
 ];
+
+test('the Training Leaderboard is rebuilt on #SMARTERDESIGN with its own image header (2026-11-27)', () => {
+  const source = read('pages/hub/training/leaderboard.js');
+  assert.match(source, /<BankrollImageHeader\s+art="training-leaderboard"/);
+  assert.match(source, /training-smarterdesign\.module\.css/);
+  // The intelligence rail repainted every button border with a 1px line,
+  // which erased the chrome rims of the console buttons.
+  assert.doesNotMatch(source, /sp-training-intelligence/);
+});
 
 test('the complete reporting family adopts one intelligence-rail shell', () => {
   for (const route of routes) {
@@ -66,6 +74,6 @@ test('the global header remains outside the leaderboard intelligence scope', () 
   const leaderboard = read('pages/hub/training/leaderboard.js');
   const css = read('src/styles/worlds/training.css');
 
-  assert.ok(leaderboard.indexOf('<UniversalHeader') < leaderboard.indexOf('sp-training-intelligence--leaderboard'));
+  assert.ok(leaderboard.indexOf('<UniversalHeader') < leaderboard.indexOf('<BankrollImageHeader'));
   assert.doesNotMatch(css, /\.universal-header[^\n]*sp-training-intelligence/);
 });

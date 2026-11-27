@@ -8,6 +8,7 @@ export default function BankrollImageHeader({
   parent,
   children,
   helpContent,
+  faqs,
   onTutorial,
   section = art,
   heading: Heading = 'h1',
@@ -28,7 +29,7 @@ export default function BankrollImageHeader({
         </Heading>
         {children}
       </div>
-      <BankrollHelp title={title} section={section} onTutorial={onTutorial}>
+      <BankrollHelp title={title} section={section} faqs={faqs} onTutorial={onTutorial}>
         {helpContent}
       </BankrollHelp>
     </header>

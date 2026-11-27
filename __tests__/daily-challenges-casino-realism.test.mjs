@@ -48,7 +48,10 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
   assert.match(memoryCss, /body\.world-preflop-charts \.preflop-daily-card/);
   assert.match(personalQuiz, /daily-personal-quiz-casino\.module\.css/);
 
-  for (const css of [trainingCss, goalsCss, challengesCss, personalQuizCss, memoryCss]) {
+  // The Goals page moved to #SMARTERDESIGN on 2026-11-27, which forbids gold
+  // and amber anywhere; its module keeps only the shell and hooks.
+  assert.doesNotMatch(challengesCss, /#f2b84b|#f4c44e|#ffc65b|gold|amber/i);
+  for (const css of [trainingCss, goalsCss, personalQuizCss, memoryCss]) {
     assert.match(css, /#25c8ff/i, 'Electric cyan token is required');
     assert.match(css, /#f2b84b|#f4c44e/i, 'Vault gold token is required');
     assert.match(css, /border-radius:\s*2px/i, 'Physical straight-edged controls are required');

@@ -60,7 +60,7 @@ test('pressed analysis filters are accessible and carry the cyan instrument stat
   assert.doesNotMatch(sources['performance-heatmap'], /derivePositions|deriveStreets|generateMistakePatterns/);
   assert.match(trainingCss, /button\[aria-pressed='true'\][\s\S]*?#a7f2ff/);
   assert.match(sources['risk-analyzer'], /className="sp-analysis-primary-action"/);
-  assert.match(sources['icm-calculator'], /className="sp-analysis-primary-action"/);
+  assert.match(sources['icm-calculator'], /className=\{`sp-analysis-primary-action sd-button sd-primary /);
   assert.match(trainingCss, /\.sp-analysis-primary-action:not\(:disabled\)[\s\S]*?#baf6ff/);
 });
 

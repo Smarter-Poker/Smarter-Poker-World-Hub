@@ -4503,3 +4503,160 @@ body.world-preflop-charts .preflop-review-panel :is(button, [role='tabpanel']):f
 @media (prefers-reduced-motion: reduce) {
     .preflop-subpage *, .preflop-subpage *::before, .preflop-subpage *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   #SMARTERDESIGN - Preflop Charts lobby (2026-11-27)
+   One continuous steel rim per surface (the shared chrome border-image assets
+   from styles/smarterdesign.css), ink-navy fills, cobalt selected controls,
+   white titles, silver copy, ice emphasis. No gold, amber, yellow, purple,
+   violet, pink or magenta text: the per-mode accent colours authored in
+   memory-games.js are repainted to ice here, at the lobby's source layer.
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.world-preflop-charts .preflop-menu {
+    --sd-rim: url('/images/smarterdesign/chrome-readout.webp');
+    --sd-row: url('/images/smarterdesign/chrome-row.webp');
+    --sd-active: url('/images/smarterdesign/chrome-active.webp');
+    display: grid;
+    gap: 14px;
+}
+
+body.world-preflop-charts .preflop-menu > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+
+body.world-preflop-charts .preflop-menu [style*='--mode-accent'] { --mode-accent: #86daff !important; }
+body.world-preflop-charts .preflop-menu [style*='--launch-color'] {
+    --launch-color: #86daff !important;
+    --launch-from: #13314d !important;
+    --launch-to: #061220 !important;
+}
+
+/* Surfaces */
+body.world-preflop-charts .preflop-menu :is(
+    .preflop-daily-card, .preflop-smart-practice, .preflop-suggestions, .preflop-launch-card,
+    .preflop-board-panel, .preflop-level-toolbar, .preflop-mastery-gate, .preflop-vip-panel,
+    .preflop-primer, .preflop-recent, .preflop-subpage-nav
+) {
+    border: 5px solid transparent !important;
+    border-image: var(--sd-rim) 21 / 8px stretch !important;
+    border-radius: 0 !important;
+    background: var(--sd-navy, linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38) !important;
+}
+
+body.world-preflop-charts .preflop-menu :is(
+    .preflop-daily-card, .preflop-smart-practice, .preflop-suggestions, .preflop-launch-card,
+    .preflop-board-panel, .preflop-level-toolbar, .preflop-mastery-gate, .preflop-vip-panel,
+    .preflop-primer, .preflop-recent
+)::before { display: none !important; }
+
+/* Type */
+body.world-preflop-charts .preflop-menu :is(h2, h3, .preflop-launch-title, .preflop-board-heading h2, .preflop-daily-card-copy h2, .preflop-smart-copy h2) {
+    color: #f2f7ff !important;
+    -webkit-text-fill-color: currentColor;
+    font-family: var(--sd-type, 'Arial Narrow'), sans-serif !important;
+    text-shadow: 0 2px 0 #040d18 !important;
+}
+
+body.world-preflop-charts .preflop-menu :is(p, .preflop-mode-desc, .preflop-launch-desc, .preflop-board-heading p, .preflop-weak-row, .preflop-suggestion-row > span:first-child) {
+    color: #bdd0e2 !important;
+}
+
+body.world-preflop-charts .preflop-menu :is(
+    .preflop-panel-kicker, .preflop-daily-card-copy > span, .preflop-suggestions-title, .preflop-weak-label,
+    .preflop-board-kicker, .preflop-launch-stats span, .preflop-launch-best span, .preflop-board-rank span,
+    .preflop-daily-card-metrics small, .preflop-launch-difficulty
+) {
+    color: #86daff !important;
+    -webkit-text-fill-color: currentColor;
+}
+
+body.world-preflop-charts .preflop-menu :is(.preflop-daily-card-metrics strong, .preflop-launch-stats strong, .preflop-launch-best strong, .preflop-board-rank strong, .preflop-daily-card-streak strong) {
+    color: #f2f7ff !important;
+}
+
+body.world-preflop-charts .preflop-menu :is(.preflop-daily-card-mark, .preflop-daily-card-metrics svg, .preflop-mode-icon, .preflop-launch-icon, .preflop-board-heading svg, .preflop-launch-best svg, .preflop-daily-card-streak) {
+    color: #86daff !important;
+    border-color: rgba(134, 218, 255, 0.45) !important;
+}
+
+body.world-preflop-charts .preflop-menu .preflop-launch-difficulty {
+    border: 2px solid transparent !important;
+    border-image: var(--sd-row) 13 / 3px stretch !important;
+    background: var(--sd-control, #0e2236) !important;
+}
+
+body.world-preflop-charts .preflop-menu .preflop-launch-best em {
+    color: #f2f7ff !important;
+    background: #0c4ea9 !important;
+}
+
+body.world-preflop-charts .preflop-menu .preflop-daily-card-metrics > div,
+body.world-preflop-charts .preflop-menu .preflop-launch-stats > div,
+body.world-preflop-charts .preflop-menu .preflop-weak-spots {
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+    background: #071422 !important;
+}
+
+/* Controls */
+body.world-preflop-charts .preflop-menu :is(
+    .preflop-mode-card, .preflop-quick-button, .preflop-tool-button, .preflop-suggestion-row,
+    .preflop-board-modes button, .preflop-board-actions button, .preflop-subpage-nav a
+) {
+    border: 3px solid transparent !important;
+    border-image: var(--sd-row) 13 / 4px stretch !important;
+    border-radius: 0 !important;
+    background: var(--sd-control, linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c)) !important;
+    color: #f2f7ff !important;
+    box-shadow: none !important;
+}
+
+body.world-preflop-charts .preflop-menu :is(
+    .preflop-mode-card, .preflop-quick-button, .preflop-tool-button, .preflop-board-modes button, .preflop-subpage-nav a
+):is(.is-active, [aria-pressed='true'], [aria-current='page']) {
+    border-image: var(--sd-active) 11 / 4px stretch !important;
+    background: var(--sd-cobalt, linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba)) !important;
+    color: #fff !important;
+}
+
+body.world-preflop-charts .preflop-menu :is(.preflop-mode-card, .preflop-quick-button):is(.is-active, [aria-pressed='true']) :is(.preflop-mode-desc, .preflop-mode-icon, svg) {
+    color: #e6f4ff !important;
+}
+
+body.world-preflop-charts .preflop-menu .preflop-mode-card::after { display: none !important; }
+
+body.world-preflop-charts .preflop-menu :is(.preflop-primary-cta, .preflop-launch-button, .preflop-board-start, .preflop-daily-card > button) {
+    min-height: 48px;
+    border: 3px solid transparent !important;
+    border-image: var(--sd-active) 11 / 4px stretch !important;
+    border-radius: 0 !important;
+    background: var(--sd-cobalt, linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba)) !important;
+    color: #fff !important;
+    text-shadow: 0 1px 2px #021022 !important;
+    box-shadow: 0 0 16px rgba(25, 129, 236, 0.3) !important;
+}
+
+body.world-preflop-charts .preflop-menu :is(.preflop-primary-cta, .preflop-launch-button, .preflop-board-start, .preflop-daily-card > button) * {
+    color: inherit !important;
+}
+
+body.world-preflop-charts .preflop-menu :is(.preflop-suggestion-row > span:last-child) {
+    color: #86daff !important;
+}
+
+body.world-preflop-charts .preflop-menu .preflop-jarvis-medallion {
+    background: conic-gradient(from 25deg, #6d94b1, #d8e7f3 12%, #3c5369 23%, #0d263b 35%, #a6c8e0 50%, #465d72 64%, #f4f9ff 78%, #234968 90%, #6d94b1) !important;
+    box-shadow: 0 0 0 1px #09121c, 0 0 0 2px #92aac0, 0 2px 9px #01060fbb !important;
+}
+
+body.world-preflop-charts .preflop-menu .preflop-subpage-nav {
+    padding: 6px !important;
+}
+
+body.world-preflop-charts .preflop-menu .preflop-grade-chip {
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+    background: #071422 !important;
+    color: #f2f7ff !important;
+}
+
+body.world-preflop-charts .preflop-menu .preflop-grade-chip span:first-child { color: #86daff !important; }
