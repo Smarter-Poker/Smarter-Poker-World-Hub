@@ -218,32 +218,27 @@ export default function PokerRoomsMasterHubPage() {
           <span style={styles.crumbCurrent}>Live Poker Room Guides &amp; Geographic Hubs</span>
         </nav>
 
-        <header style={styles.heroPlate}>
-          <div style={styles.badgeRow}>
-            <span style={styles.cyanBadge}>715+ VERIFIED LIVE VENUES &amp; 8 GEO DIRECTORIES</span>
-            <span style={styles.emeraldBadge}>CORRIDORS, GAME FORMATS, RAKE, TAX &amp; FLOOR RULINGS</span>
-          </div>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="poker-rooms"
+            eyebrow="Smarter.Poker Live Room Intelligence"
+            title="Live Poker Room Guides, Border Travel Corridors & Game-Format Directories"
+            lead="Verified Live Cash Games, Rake Benchmarks, State Legality Profiles & Travel Corridors Across 715+ Poker Rooms."
+            stats={[
+              { label: 'Live Venues', value: '715+ Rooms' },
+              { label: 'US State Guides', value: '51 Profiles' },
+              { label: 'Metro Markets', value: '12 Guides' },
+              { label: 'Waitlist Alerts', value: 'Free Account' },
+            ]}
+            redirectPath="/poker-rooms"
+            unlockKey="masthead-poker-rooms"
+            primaryCtaLabel="Unlock Live Room Intel"
+            secondaryHref="/hub/poker-near-me/lobby"
+            secondaryLabel="Open Live Map"
+          />
+        </div>
 
-          <div style={{ marginBottom: 18 }}>
-            <SmarterSeoMasthead
-              vertical="poker-rooms"
-              eyebrow="Smarter.Poker Live Room Intelligence"
-              title="Live Poker Room Guides, Border Travel Corridors & Game-Format Directories"
-              lead="Verified Live Cash Games, Rake Benchmarks, State Legality Profiles & Travel Corridors Across 715+ Poker Rooms."
-              stats={[
-                { label: 'Live Venues', value: '715+ Rooms' },
-                { label: 'US State Guides', value: '51 Profiles' },
-                { label: 'Metro Markets', value: '12 Guides' },
-                { label: 'Waitlist Alerts', value: 'Free Account' },
-              ]}
-              redirectPath="/poker-rooms"
-              unlockKey="masthead-poker-rooms"
-              primaryCtaLabel="Unlock Live Room Intel"
-              secondaryHref="/hub/poker-near-me/lobby"
-              secondaryLabel="Open Live Map"
-            />
-          </div>
-
+        <section aria-label="Poker Rooms Quick Navigation" style={styles.heroPlate}>
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Smarter.Poker Provides The Most Comprehensive Quantitative Live Poker Intelligence Network On The Web: Compare <strong>10 Border-State &amp; Airport Travel Corridors</strong>, <strong>6 National Game-Format Venue Directories (PLO, Bomb Pots, Dailies, Bad Beat Jackpots, Time-Rake Clubs, And High-Stakes Cash)</strong>, <strong>12 US Regional Metro Guides</strong>, <strong>51 US State &amp; DC Tax &amp; Legality Profiles</strong>, <strong>10 International Poker Capitals</strong>, A <strong>12-Month Seasonal Migration Calendar</strong>, And <strong>Live Casino Floor Security &amp; Dispute Protocols</strong>.
           </p>
@@ -265,7 +260,7 @@ export default function PokerRoomsMasterHubPage() {
               Interactive Live Venue Map
             </Link>
           </div>
-        </header>
+        </section>
 
         <div style={{ marginBottom: 24 }}>
           <MagazineNewsstandBanner variant="cardrooms" />

@@ -1,0 +1,71 @@
+{
+  "id": "cash-003",
+  "name": "Defense Matrix",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:49:53.360Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Defense Matrix.\nSubject: An incoming stream of cobalt chips reaches a defensive decision wall made of three broad hinged chrome shutters. One shutter absorbs the pressure, one opens a narrow continuation route, and one redirects the flow. It is a visual metaphor for choosing a response to aggression, not a cage around a chip stack.\nCamera: Three-quarter cutaway from below the left edge, looking through the staggered shutters.\nComposition: A strong zigzag fills the full width: incoming chips at upper left, three overlapping shutters through the center, and a single open lane exiting at lower right. Use large dark negative shapes between shutters, with precise bright edges. No circular object, chip tower, pedestal or card overlay.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "An incoming stream of cobalt chips reaches a defensive decision wall made of three broad hinged chrome shutters. One shutter absorbs the pressure, one opens a narrow continuation route, and one redirects the flow. It is a visual metaphor for choosing a response to aggression, not a cage around a chip stack.",
+  "camera": "Three-quarter cutaway from below the left edge, looking through the staggered shutters.",
+  "composition": "A strong zigzag fills the full width: incoming chips at upper left, three overlapping shutters through the center, and a single open lane exiting at lower right. Use large dark negative shapes between shutters, with precise bright edges. No circular object, chip tower, pedestal or card overlay.",
+  "source": {
+    "fileName": "exec-6bc0ae7c-e41e-4806-8d5f-f196108e1e5d.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2367224,
+    "sha256": "fb0a5c5188e4868d1d99fd178c3f07ee34c76b717c9e61ccccce6f702a9151e2"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-003.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 40996,
+      "sha256": "373bc86f933de404abe6b7a0ceef72877e55b7f9d03779c1b412117914f9b008"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-003.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 36451,
+      "sha256": "93709e9243c81f60087fd8fbbb1b097c65d18d0c919532eef13a769c572388de"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-003.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 77750,
+      "sha256": "b7f3c1cc8f4721ffbb50ce518f74545fe0a4c44e1987817e6c40f8e503c5d63a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-003.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 60623,
+      "sha256": "cd4a14d36c32006d19ce31ad191558cb3418c33268b66384116b10bef2462d88"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-003.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 137954,
+      "sha256": "c30ac5ce75d23cc8040fa7daf1c4636c7f8ba5f49baea3e6931fdd41b047437f"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-003.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 96929,
+      "sha256": "69b5c3e2c2e6247c21bade841467b9d80d04a8a532eef715d488442b87400072"
+    }
+  ]
+}

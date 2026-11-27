@@ -129,32 +129,27 @@ export default function PokerSeriesGuidesIndexPage() {
           <span style={styles.crumbCurrent}>Major Series Strategy Guides</span>
         </nav>
 
-        <header style={styles.heroPlate}>
-          <div style={styles.badgeRow}>
-            <span style={styles.cyanBadge}>10 PREMIER LIVE FESTIVAL BLUEPRINTS</span>
-            <span style={styles.emeraldBadge}>VERIFIED STRUCTURE &amp; BANKROLL ANALYTICS</span>
-          </div>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="series"
+            eyebrow="Major North American Live Poker Tours"
+            title="Major Live Poker Series, Tour & Festival Strategy Guides"
+            lead="Complete Bankroll, Structure, Late-Reg & Satellite Strategy Guides For WSOP, WPT, WSOPC, MSPT, RGPS & SHRPO."
+            stats={[
+              { label: 'Major Series', value: `${SERIES_GUIDES.length} Guides` },
+              { label: 'Weekly MTTs', value: '4,500+ Events' },
+              { label: 'Live Venues', value: '715+ Rooms' },
+              { label: 'Schedule Sync', value: 'Free Account' },
+            ]}
+            redirectPath="/poker-series/guides"
+            unlockKey="masthead-series"
+            primaryCtaLabel="Unlock Live Series Alerts"
+            secondaryHref="/hub/poker-series"
+            secondaryLabel="Live Series Calendar"
+          />
+        </div>
 
-          <div style={{ marginBottom: 18 }}>
-            <SmarterSeoMasthead
-              vertical="series"
-              eyebrow="Major North American Live Poker Tours"
-              title="Major Live Poker Series, Tour & Festival Strategy Guides"
-              lead="Complete Bankroll, Structure, Late-Reg & Satellite Strategy Guides For WSOP, WPT, WSOPC, MSPT, RGPS & SHRPO."
-              stats={[
-                { label: 'Major Series', value: `${SERIES_GUIDES.length} Guides` },
-                { label: 'Weekly MTTs', value: '4,500+ Events' },
-                { label: 'Live Venues', value: '715+ Rooms' },
-                { label: 'Schedule Sync', value: 'Free Account' },
-              ]}
-              redirectPath="/poker-series/guides"
-              unlockKey="masthead-series"
-              primaryCtaLabel="Unlock Live Series Alerts"
-              secondaryHref="/hub/poker-series"
-              secondaryLabel="Live Series Calendar"
-            />
-          </div>
-
+        <section aria-label="Series Guides Quick Filter" style={styles.heroPlate}>
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Maximizing Return On Investment (ROI) At A Major Live Poker Festival Requires Matching Your Bankroll And Schedule To Each Venue&apos;S Exact Blind Structure, Late-Registration Window, Milestone Satellite Format, And Cash Game Spillover. Explore Our <strong>10 Comprehensive Poker Series Strategy Guides</strong> Covering The <strong>WSOP</strong>, <strong>WPT World Championship</strong>, <strong>WSOP Circuit</strong>, <strong>MSPT</strong>, <strong>RunGood (RGPS)</strong>, <strong>Seminole Hard Rock (SHRPO)</strong>, <strong>Borgata</strong>, <strong>Wynn</strong>, <strong>Venetian</strong>, And <strong>Texas Major Card Club Championships</strong>.
           </p>
@@ -185,7 +180,7 @@ export default function PokerSeriesGuidesIndexPage() {
               25 All-In Hand Matchups
             </Link>
           </div>
-        </header>
+        </section>
 
         <section aria-label="Search Series Guides" style={styles.filterPlate}>
           <label htmlFor="series-search" style={styles.searchLabel}>

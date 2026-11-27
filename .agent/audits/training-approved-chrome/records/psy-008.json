@@ -1,0 +1,71 @@
+{
+  "id": "psy-008",
+  "name": "Confidence Builder",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:53:54.670Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Confidence Builder.\nSubject: Confidence Builder: a firm human hand in a dark sleeve places one decisive cobalt poker chip cleanly across a silver betting line\nCamera: close cinematic table-level view of hand and chip\nComposition: The hand enters from upper left, the chip lands near lower right in a bright white reflection, and the background rail disappears into navy. Precise, calm action with natural anatomy and a single focal gesture; no faces or generated cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Confidence Builder: a firm human hand in a dark sleeve places one decisive cobalt poker chip cleanly across a silver betting line",
+  "camera": "close cinematic table-level view of hand and chip",
+  "composition": "The hand enters from upper left, the chip lands near lower right in a bright white reflection, and the background rail disappears into navy. Precise, calm action with natural anatomy and a single focal gesture; no faces or generated cards.",
+  "source": {
+    "fileName": "exec-784a57e1-1123-463b-9de3-49a8fd2ad58b.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2360250,
+    "sha256": "f547291079e3544bbf683a65bb25df4d886645ab9357d81958a0ab440dd51a41"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-008.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 25906,
+      "sha256": "62c3ff0634b414cca8a6af4d346b5d9be61ebde4099324404694454e3bf15396"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-008.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 21334,
+      "sha256": "ddeabe9a9470efaf9cfe45fb6149d4363e50812f7c79d4d97008cb542cfefd6c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-008.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 58214,
+      "sha256": "f92f47a06ef9bae0df82e3ed8cab80327e88476d3a97c94255257c3134da43db"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-008.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 48412,
+      "sha256": "9930a7bf066cc11b9c910a193abcbc22a3cd653f1d43b1f1cd24fc5dbe248fff"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-008.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 122644,
+      "sha256": "ef6a40afb8944375a125bd47f9602b3ba2495e18fbaba3c590dbdade09c7c1e7"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-008.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 93369,
+      "sha256": "dd38f9844db0be4c9ade89e1fd2c97614563a15e32b3cc39745ca12308ecda2b"
+    }
+  ]
+}

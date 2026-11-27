@@ -1,5 +1,5 @@
 /**
- * One bespoke #SmarterCasinoRealism render for every training game.
+ * One individual #SMARTERDESIGN game-cover scene for every training game.
  *
  * The asset filename intentionally matches the canonical game id. Keeping the
  * contract this small prevents future catalog additions from quietly falling
@@ -8,7 +8,9 @@
 
 import { TRAINING_LIBRARY } from './TRAINING_LIBRARY';
 
-export const TRAINING_ART_ROOT = '/images/training/casino-realism';
+// Legacy casino-realism files remain available to unrelated historical uses.
+// The Training Games catalog consumes the owner's approved chrome direction.
+export const TRAINING_ART_ROOT = '/images/training/approved-chrome';
 
 export const GAME_IMAGES = Object.freeze(
     Object.fromEntries(
@@ -27,7 +29,7 @@ export const getGameImageSources = (gameId) => {
         avifSrcSet: [
             `${TRAINING_ART_ROOT}/640/${id}.avif 640w`,
             `${TRAINING_ART_ROOT}/960/${id}.avif 960w`,
-            `${TRAINING_ART_ROOT}/1440/${id}.avif 1440w`,
+            `${TRAINING_ART_ROOT}/${id}.avif 1440w`,
         ].join(', '),
         webpSrcSet: [
             `${TRAINING_ART_ROOT}/640/${id}.webp 640w`,

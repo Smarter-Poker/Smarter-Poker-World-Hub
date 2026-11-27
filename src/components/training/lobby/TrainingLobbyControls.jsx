@@ -1,9 +1,15 @@
-/** Direct game search, mode and category selection for the Arena lobby. */
 import { Search, SlidersHorizontal, Star, X } from 'lucide-react';
-import {
-  LOBBY_CATEGORY_META,
-  countAdvancedFilters,
-} from '../../../lib/training/trainingLobbyFilter.mjs';
+import { LOBBY_CATEGORY_META, countAdvancedFilters } from '../../../lib/training/trainingLobbyFilter.mjs';
+import styles from './TrainingLobby.module.css';
+
+const CATEGORIES = [
+  { id: 'ALL', label: 'All Games' },
+  { id: 'CASH', label: 'Cash Games' },
+  { id: 'MTT', label: 'Tournaments' },
+  { id: 'ADVANCED', label: 'Strategy' },
+  { id: 'PSYCHOLOGY', label: 'Mental Games' },
+  { id: 'SPINS', label: 'Spins' },
+];
 
 export default function TrainingLobbyControls({
   filters,
@@ -19,32 +25,25 @@ export default function TrainingLobbyControls({
   headingRef,
 }) {
   const advancedCount = countAdvancedFilters(filters);
-
-  // Sub-category buttons adapt cleanly to Tier 1 while keeping every category
-  // reachable in one tap when viewing All Games.
-  const subCategories =
-    filters.group === 'DRILLS'
-      ? ['ALL', 'MTT', 'CASH', 'SPINS']
-      : filters.group === 'LABS'
-        ? ['ALL', 'ADVANCED', 'PSYCHOLOGY']
-        : ['ALL', 'MTT', 'CASH', 'SPINS', 'ADVANCED', 'PSYCHOLOGY'];
+  const hasAnyActiveFilter = filters.group !== 'ALL' || filters.category !== 'ALL'
+    || filters.favoritesOnly || Boolean(filters.query?.trim()) || advancedCount > 0;
 
   const handleGroupToggle = (groupId) => {
-    const nextGroup = filters.group === groupId ? 'ALL' : groupId;
     onUpdateFilters({
-      group: nextGroup,
+      group: filters.group === groupId ? 'ALL' : groupId,
       category: 'ALL',
       favoritesOnly: false,
     });
   };
-
-  const handleCategorySelect = (catId) => {
+  const handleCategorySelect = (category) => {
+    // All categories stay visible. Selecting one changes its owning mode too,
+    // so switching directly from a drill category to a lab never yields a false empty result.
     onUpdateFilters({
-      category: catId,
+      category,
+      group: category === 'ALL' ? 'ALL' : LOBBY_CATEGORY_META[category].group,
       favoritesOnly: false,
     });
   };
-
   const handleFavoritesToggle = () => {
     const nextFav = !filters.favoritesOnly;
     onUpdateFilters({
@@ -53,144 +52,71 @@ export default function TrainingLobbyControls({
     });
   };
 
-  const hasAnyActiveFilter =
-    filters.group !== 'ALL'
-    || filters.category !== 'ALL'
-    || filters.favoritesOnly
-    || Boolean(filters.query?.trim())
-    || advancedCount > 0;
-
   return (
-    <div className="sp-arena-deck" ref={controlsRef} id="training-lobby-controls">
-      <div className="sp-arena-browse-shortcuts">
-        <h2 ref={headingRef} id="lib-h" className="sp-arena-keyboard-shortcut" tabIndex={-1}>
-          Find Your Game
-        </h2>
-        <a className="sp-arena-keyboard-shortcut" href="#training-results" aria-live="polite">
-          {filteredCount == null ? 'Favorites' : filteredCount === totalCount
-            ? `View ${totalCount} Games`
-            : `View ${filteredCount} Of ${totalCount}`}
-        </a>
+    <div className={styles.controls} ref={controlsRef} id="training-lobby-controls">
+      <div className={styles.keyboardShortcuts}>
+        <h2 ref={headingRef} id="lib-h" tabIndex={-1}>Find Your Game</h2>
+        <a href="#training-results">{filteredCount == null ? 'View Favorites' : `View ${filteredCount} Games`}</a>
       </div>
-
-      {/* Compact Inline Search Well */}
-      <div className="sp-toolbar sp-arena-search-row" data-tutorial="search">
-        <label className="sp-search sp-arena-search">
-          <Search size={16} aria-hidden="true" />
+      <div className={styles.searchRow} data-tutorial="search">
+        <div className={styles.searchWell}>
+          <Search size={24} aria-hidden="true" />
+          <label htmlFor="training-lobby-search" className={styles.srOnly}>Search Games</label>
           <input
+            id="training-lobby-search"
             ref={searchInputRef}
             type="search"
-            aria-label="Search Games"
-            placeholder="Search Games, e.g. ICM or 3-Bet"
+            placeholder="Search All Games"
             value={filters.query}
-            onChange={(e) => onUpdateFilters({ query: e.target.value })}
+            onChange={(event) => onUpdateFilters({ query: event.target.value })}
           />
           {filters.query && (
-            <button
-              type="button"
-              className="sp-arena-search__clear"
-              aria-label="Clear Search"
-              onClick={() => onUpdateFilters({ query: '' })}
-            >
-              <X size={15} aria-hidden="true" />
+            <button type="button" className={styles.clearSearch} aria-label="Clear Search" onClick={() => onUpdateFilters({ query: '' })}>
+              <X size={20} aria-hidden="true" />
             </button>
           )}
-        </label>
-
+        </div>
         <button
           type="button"
-          className={`sp-arena-pill sp-arena-pill--filters${advancedCount > 0 ? ' active' : ''}`}
+          className={`${styles.chromeButton} ${styles.filtersButton}`}
           data-open-filters-sheet="true"
           aria-haspopup="dialog"
           onClick={onOpenFiltersSheet}
         >
-          <SlidersHorizontal size={14} aria-hidden="true" />
+          <SlidersHorizontal size={22} aria-hidden="true" />
           <span>Filters{advancedCount > 0 ? ` (${advancedCount})` : ''}</span>
         </button>
-
-        {hasAnyActiveFilter && (
-          <button
-            type="button"
-            className="sp-arena-reset-btn sd-button"
-            onClick={onResetFilters}
-          >
-            Reset
-          </button>
-        )}
       </div>
 
-      {/* Primary Game Modes And Saved Favorites */}
-      <div className="sp-arena-primary-plates" role="group" aria-label="Training Mode">
-        <button
-          type="button"
-          className="sp-arena-plate"
-          data-group-plate="DRILLS"
-          aria-pressed={filters.group === 'DRILLS'}
-          onClick={() => handleGroupToggle('DRILLS')}
-        >
-          <span className="sp-arena-plate__well">
-            <span className="sp-arena-plate__title">Game Drills</span>
-          </span>
-        </button>
+      <div className={styles.categoryGrid} role="group" aria-label="Training Game Categories" data-tutorial="categories">
+        {CATEGORIES.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            className={styles.chromeButton}
+            data-category-tab={id.toLowerCase()}
+            aria-pressed={filters.category === id && !filters.favoritesOnly}
+            aria-label={`${label}, ${id === 'ALL' ? totalCount : counts?.[id] ?? 0} Games`}
+            onClick={() => handleCategorySelect(id)}
+          >{label}</button>
+        ))}
+      </div>
 
-        <button
-          type="button"
-          className="sp-arena-plate"
-          data-group-plate="LABS"
-          aria-pressed={filters.group === 'LABS'}
-          onClick={() => handleGroupToggle('LABS')}
-        >
-          <span className="sp-arena-plate__well">
-            <span className="sp-arena-plate__title">Strategy Labs</span>
-          </span>
-        </button>
-        <button
-          type="button"
-          className="sp-arena-favorites-btn"
-          data-favorites-toggle="true"
-          aria-pressed={filters.favoritesOnly}
-          onClick={handleFavoritesToggle}
-        >
-          <Star
-            size={14}
-            aria-hidden="true"
-            fill={filters.favoritesOnly ? 'currentColor' : 'none'}
-          />
+      <div className={styles.modeGrid} role="group" aria-label="Training Mode">
+        <button type="button" className={styles.chromeButton} data-group-plate="DRILLS" aria-pressed={filters.group === 'DRILLS'} onClick={() => handleGroupToggle('DRILLS')}>Game Drills</button>
+        <button type="button" className={styles.chromeButton} data-group-plate="LABS" aria-pressed={filters.group === 'LABS'} onClick={() => handleGroupToggle('LABS')}>Strategy Labs</button>
+        <button type="button" className={styles.chromeButton} data-favorites-toggle="true" aria-pressed={filters.favoritesOnly} onClick={handleFavoritesToggle}>
+          <Star size={20} aria-hidden="true" fill={filters.favoritesOnly ? 'currentColor' : 'none'} />
           <span>Favorites{favoriteCount > 0 ? ` (${favoriteCount})` : ''}</span>
         </button>
       </div>
-
-      {/* Tier 2: Sub-Category Tabs (Inline zero-reload filter, always wraps cleanly) */}
-      <div
-        className="sp-cat-chips sp-arena-subtabs"
-        role="group"
-        aria-label="Training Game Categories"
-        data-tutorial="categories"
-      >
-        {subCategories.map((catId) => {
-          const label = catId === 'ALL'
-            ? (filters.group === 'DRILLS' ? 'All Drills' : filters.group === 'LABS' ? 'All Labs' : 'All Games')
-            : LOBBY_CATEGORY_META[catId]?.shortLabel || catId;
-          const catCount = catId === 'ALL'
-            ? (filters.group === 'ALL' ? totalCount : counts[filters.group])
-            : counts[catId];
-          const active = filters.category === catId && !filters.favoritesOnly;
-
-          return (
-            <button
-              key={catId}
-              type="button"
-              className="sp-cat-chip sp-arena-subtab"
-              data-category-tab={catId.toLowerCase()}
-              aria-pressed={active}
-              aria-label={`${label}, ${catCount} Games`}
-              onClick={() => handleCategorySelect(catId)}
-            >
-              <span>{label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {hasAnyActiveFilter && (
+        <div className={styles.activeFilters}>
+          {filters.variant !== 'ALL' && <span>{filters.variant.toUpperCase()}</span>}
+          {filters.query && <span>Search: {filters.query}</span>}
+          <button type="button" className={styles.textButton} onClick={onResetFilters}><X size={15} aria-hidden="true" /> Reset Filters</button>
+        </div>
+      )}
     </div>
   );
 }

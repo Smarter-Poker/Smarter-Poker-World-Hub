@@ -1,0 +1,71 @@
+{
+  "id": "tournament-prep",
+  "name": "Tournament Prep",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:46:31.148Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Tournament Prep.\nSubject: Tournament Prep: a real working poker strategy desk with a carefully organized chip tray, chrome stopwatch, open blank notebook and a translucent blue tournament structure model\nCamera: cozy overhead editorial still life\nComposition: Objects occupy different diagonals on a rectangular navy desktop; the notebook lies open at lower left, the chip tray at upper right, and a small stepped structure model links them. Practical planning atmosphere, no printed words or glowing control-room screens.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Tournament Prep: a real working poker strategy desk with a carefully organized chip tray, chrome stopwatch, open blank notebook and a translucent blue tournament structure model",
+  "camera": "cozy overhead editorial still life",
+  "composition": "Objects occupy different diagonals on a rectangular navy desktop; the notebook lies open at lower left, the chip tray at upper right, and a small stepped structure model links them. Practical planning atmosphere, no printed words or glowing control-room screens.",
+  "source": {
+    "fileName": "exec-2e586afa-78b1-4735-9b9e-e954dc3f8987.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2869801,
+    "sha256": "2d31e8369e82c6b00d6a4325c884d885252ed3297fa11dd0f7ea98eec0916c6a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/tournament-prep.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 45222,
+      "sha256": "11ce632bd99c49852055b0766d916c9931eaec8efa0dceb72a71e54ed6b33e63"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/tournament-prep.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 42404,
+      "sha256": "1b724741796e973c099667dd58b9aa1b1023e0e09271b1c095c3d5f0549b9bc3"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/tournament-prep.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 92850,
+      "sha256": "589bfae7137be5d97d6e7c6c63eda6f8ac17c961891af487ae892c964f4c5a99"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/tournament-prep.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 82908,
+      "sha256": "2f19f05d7ae5b0c5aab39af778639d6f8591d780b6c3705b5b0917cc9cc2f5c7"
+    },
+    {
+      "path": "/images/training/approved-chrome/tournament-prep.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 185918,
+      "sha256": "a9eb0318622fe9887b05fc79a74f85c086f67861320d0dd61bafed7c29da166e"
+    },
+    {
+      "path": "/images/training/approved-chrome/tournament-prep.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 149260,
+      "sha256": "c454395a63ccd2951dff8c5d9ec1e51f91bb39524f25362b5e7bfa4e62042da7"
+    }
+  ]
+}

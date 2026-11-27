@@ -1,0 +1,572 @@
+[
+  {
+    "id": "mtt-002",
+    "subject": "ICM Fundamentals: chip quantity and tournament prize value balanced on a polished mechanical scale, a tall cobalt stack on the nearer pan and three differently sized silver prize ingots on the far pan",
+    "camera": "tight three-quarter eye-level product photograph with the balance beam running diagonally across the frame",
+    "composition": "The scale fills the entire horizontal frame, cropped close to both pans; black felt below and a blurred navy tournament rail behind. Asymmetrical, tactile and immediately readable, without a display pedestal.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-004",
+    "subject": "Final Table ICM: an escalating payout staircase physically integrated into the arc of a final poker table, with the remaining seats represented by a few unequal chip stacks",
+    "camera": "high oblique view looking across the curved table edge",
+    "composition": "The table cuts a sweeping diagonal from lower left to upper right; three silver payout steps rise along the right rear rail, while the low stack in front faces the largest step. Large objects, no central trophy, no symmetrical stage.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-005",
+    "subject": "PKO Bounty Hunter: a large silver bounty medallion being split into two halves over a black poker felt, one half feeding the pot and the other attaching to a growing bounty stack",
+    "camera": "extreme overhead macro action still",
+    "composition": "A dynamic diagonal trail of cobalt bounty chips from top left to bottom right; the split medallion dominates the middle and its two destination piles are unequal. Bright chrome fracture seam and freeze-frame flying chips. No skull, ring, pedestal or shooting target.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-006",
+    "subject": "Satellite Survival: one last empty cobalt tournament seat beyond a narrow admission gate, with equal silver entry tokens already allocated to the neighboring chairs",
+    "camera": "low seat-height perspective looking along the final row",
+    "composition": "The open chair is close and large on the right, the gate crosses the left foreground, and a short queue of black chip stacks stops just before the threshold. Finite seats and survival are the story; quiet, tense cinematic lighting.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-007",
+    "subject": "Deep Stack MTT: two immense columns of cobalt poker chips seen from table level, dwarfing a fresh compact opening pot between them",
+    "camera": "dramatic low-angle macro with a wide lens close to the felt",
+    "composition": "Chip towers rise out of frame on opposite diagonal planes, leaving a visible valley of deep black felt between them. Chips fill the foreground and show real edge textures; strong depth without a circular platform.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-008",
+    "subject": "Short Stack Ninja: a tiny disciplined group of twelve cobalt chips threading a narrow opening between two much larger black chip formations",
+    "camera": "close overhead tactical still life",
+    "composition": "A precise zigzag route in silver light passes between large cropped obstacles; the short stack sits off-center on the decisive opening. Broad angular shadows on matte navy felt, very graphic and spare, no ninja character or weapons.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-009",
+    "subject": "Resteal Wars: an initial line of small black chips is intercepted by a forceful opposing stream of cobalt chips across a live poker betting line",
+    "camera": "table-height freeze-frame with strong left-to-right depth",
+    "composition": "Two distinct chip motions cross at an oblique angle; the cobalt shove occupies the near right and overtakes the small opening bet toward left rear. Felt, rail and crisp flying edges tell the counterattack story; no arrows or separate stands.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-010",
+    "subject": "Squeeze Master: three player contributions compressed into one contested pot by a large raised cobalt chip stack entering from the rear",
+    "camera": "top-down view of a triangular three-way betting situation",
+    "composition": "Three directions of action form an irregular triangle on black felt; the small opening and calling piles occupy bottom corners and the forceful squeeze stack leans into the upper center. A single silver betting arc cuts through the scene. No mechanical jaws.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-011",
+    "subject": "Ante Theft: a small ring of unattended ante chips being swept from the center of a tournament table by a swift silver chip rake",
+    "camera": "close bird's-eye view with slight rotational motion",
+    "composition": "The rake enters from lower right, an incomplete arc of small cobalt antes curves on the left, and gathered chips skid into a compact pile. Active negative space and motion, no pedestal or floating token.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-012",
+    "subject": "Big Stack Bully: an overwhelming wall of cobalt poker chips advancing into the territory of three visibly shorter black stacks",
+    "camera": "very low angle from the small stacks' perspective",
+    "composition": "Three short stacks sit large in the extreme foreground, casting sharp shadows toward the towering blue chip wall that fills the back two thirds. A long diagonal betting boundary adds pressure. Moody readable scale contrast.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-013",
+    "subject": "Ladder Jump: a solitary silver poker chip pauses before a steep series of payout steps while two competing stacks below fall away into shadow",
+    "camera": "side-on architectural cutaway",
+    "composition": "One elegant zigzag staircase spans the full width from lower left to upper right, with the surviving chip on a broad middle landing. The composition is horizontal, graphic and patient, in brushed steel and matte cobalt rather than glossy piles.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-014",
+    "subject": "3-Max Blitz: a compact triangular poker table with exactly three energized player positions and chips racing toward the center",
+    "camera": "steep tilted overhead with the triangular table corner facing the camera",
+    "composition": "The three rail sections crop boldly against the image edges, each position has an unequal stack, and cobalt motion streaks travel along the table's triangle. A fast aggressive composition with no central trophy or platform.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-015",
+    "subject": "Heads Up Duel: the final two tournament seats face each other across a narrow black poker table with unequal cobalt chip stacks and a distant silver winner's cup",
+    "camera": "cinematic first-person seated viewpoint over the near rail",
+    "composition": "The opposing chair is large on the right back half; chips flank the narrow table and the trophy stays small behind it. Keep a natural dark felt patch at lower left for two real Arena hole cards added by the app. Strong human-scale duel atmosphere, not an object stage.",
+    "cards": [
+      "Ah",
+      "Ks"
+    ],
+    "placement": "left"
+  },
+  {
+    "id": "mtt-016",
+    "subject": "Chip & Chair: one lone cobalt chip on the felt in front of a single empty black tournament chair, with a distant mountain of rival chips softly out of focus",
+    "camera": "intimate low table-level portrait of the last chip",
+    "composition": "The lone chip is oversized in the lower-left foreground, the chair rises off-center right, and a focused silver light connects them. Minimal resilient mood, shallow depth, no stage or additional hero ornament.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-017",
+    "subject": "Blind Defense MTT: a short cobalt big-blind stack protected at the curved table rail as a larger incoming wager crosses the betting line",
+    "camera": "tight player's-eye view along the right-hand poker rail",
+    "composition": "A thick silver table edge sweeps diagonally behind the protected stack on the left, incoming chips come from upper right. Leave a natural quiet felt area on the lower right for two native cards. Show positional tension with actual poker objects, no shield icon.",
+    "cards": [
+      "Ad",
+      "Jh"
+    ],
+    "placement": "right"
+  },
+  {
+    "id": "mtt-018",
+    "subject": "Button Warfare: a large chrome dealer button on black felt with several curved betting paths radiating toward adjacent stacks",
+    "camera": "extreme macro from directly above",
+    "composition": "The dealer button is cropped into the lower-left corner and its brushed metal face has no writing; a fan of fine cobalt routes spreads right across the table toward varied stacks. The route network, not an isolated token, fills the composition.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-019",
+    "subject": "Stop & Go: a short chip stack held behind a raised metal betting gate, while the next section of table opens into a clear shove lane",
+    "camera": "oblique close-up through the gate from the side",
+    "composition": "Two unmistakable spatial phases: a tight shadowed waiting pocket at left and a bright open cobalt lane extending right. A few chips are frozen just as the gate lifts. The action spans the scene, no clock, arrows or pedestal.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-020",
+    "subject": "Multi-way Bounty: three separate silver bounty medallions and three unequal chip commitments converge into one contested tournament pot",
+    "camera": "overhead fisheye-like close poker-table view",
+    "composition": "The pot is an irregular spread near upper right, with three sharply angled streams entering from different edges. One medallion remains caught between two stacks to suggest competing incentives. No geometric platform; real textured felt and busy but legible poker objects.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-021",
+    "subject": "Check-Shove Power: a low quiet checking position transforms into a powerful forward surge of cobalt chips over the betting line",
+    "camera": "dynamic near-table slow-motion perspective",
+    "composition": "A clean dark left foreground contrasts with a broad fan of chips exploding forward from the right stack, metallic edges in focus and controlled motion blur toward the far rail. No lightning weapon, lever or central stage.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-022",
+    "subject": "Clock Management: a precision chrome tournament timebank with a large analog sweep hand, beside a finite ordered row of small timebank chips",
+    "camera": "editorial close-up from slightly above, asymmetrical crop",
+    "composition": "The clock fills the left two-thirds, its face has only clean tick marks and no numbers or writing; timebank chips recede along the felt toward the right. Cool calm control, crisp white reflections, no decorative orbit or platform.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-023",
+    "subject": "Registration Edge: a tournament entry ticket arriving through a chrome slot just before a mechanical gate closes, with shorter and taller starting stacks beyond",
+    "camera": "tight diagonal view from the registration counter toward the table",
+    "composition": "The blank ticket cuts boldly through lower left; the nearly closing entry slot divides foreground from an out-of-focus tournament stack comparison on the right. Urgency from the spatial narrowing, no text, no numbers, no ring-shaped clock.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-024",
+    "subject": "Triple Barrel: three successive waves of cobalt betting chips grow in size across three connected sections of a poker table",
+    "camera": "long low perspective along a diagonal sequence",
+    "composition": "A small first wager at lower left, medium second wager in center, and a large final shove at upper right create a clearly escalating rhythm. Three silver seams in the black felt separate the streets. No guns, cylinders, arrows or podiums.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "tournament-prep",
+    "subject": "Tournament Prep: a real working poker strategy desk with a carefully organized chip tray, chrome stopwatch, open blank notebook and a translucent blue tournament structure model",
+    "camera": "cozy overhead editorial still life",
+    "composition": "Objects occupy different diagonals on a rectangular navy desktop; the notebook lies open at lower left, the chip tray at upper right, and a small stepped structure model links them. Practical planning atmosphere, no printed words or glowing control-room screens.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "final-table-sim",
+    "subject": "Final Table Sim: a complete final poker table rendered as a precise cutaway model, with remaining seat stacks and silver equity ribbons of unequal height rising from each position",
+    "camera": "wide isometric architectural model view",
+    "composition": "An oval black table stretches left to right and nearly fills the picture; a few empty seats are dark while the active stacks emit simple transparent cobalt vertical ribbons. This is a living tournament simulation cover, no trophy and no circular display stand.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "mtt-025",
+    "subject": "MTT Champion: a victorious tournament trophy on the final poker table under a dramatic arena spotlight, with the winning stack gathered around its base",
+    "camera": "low cinematic winner's-eye view with the trophy high on the right",
+    "composition": "A tall sculpted silver cup dominates the right half; the curved black tournament rail sweeps through the foreground and a long cobalt chip trail leads in from left. Sparse silver confetti frozen in the light, no generic plinth, no gold.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-002",
+    "subject": "Timing Discipline: a chrome metronome keeping one consistent beat beside a calm disciplined line of poker chips",
+    "camera": "close side profile with a long horizontal focal plane",
+    "composition": "The metronome occupies the left third and its pendulum is captured at a precise angle; equally spaced cobalt chips extend right along black felt. Soft repeated silver highlights show steady rhythm, no round pedestal or brain.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-003",
+    "subject": "Cooler Cage: a single cobalt chip remains intact inside an angular protective steel cage while a wave of shattered ice crashes outside",
+    "camera": "dramatic low oblique action close-up",
+    "composition": "The cage is off-center right and partially cropped; ice shards sweep from left to upper right around the safe chip. Black and blue ice textures, resilient controlled mood, no circular platform or glowing ring.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-004",
+    "subject": "Pressure Chamber: a clear thick glass pressure vessel holds one perfectly steady cobalt poker chip while massive silver press walls close around it",
+    "camera": "tight frontal crop with strong vertical lines",
+    "composition": "The chip is small but sharply focused inside a bright glass square; broad chrome pressure plates intrude from top and bottom, filling the frame with tension. Dark navy atmosphere and one clean blue pulse. Rectangular industrial composition, not a dome on a stage.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-005",
+    "subject": "Patience Master: a silver hourglass slowly releases a few cobalt grains beside one carefully untouched poker chip",
+    "camera": "intimate side-on macro with shallow depth of field",
+    "composition": "The hourglass is tall and cropped at upper left; its falling grain stream is sharply visible, while the lone chip rests in clear space at lower right. Warmth comes only from soft white light, with restrained matte navy and brushed metal.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-006",
+    "subject": "Focus Flow: one sharp cobalt beam travels cleanly through a series of offset optical apertures while diffuse light fades harmlessly around it",
+    "camera": "long diagonal macro perspective along an optical workbench",
+    "composition": "A close large lens is cropped at left and progressively smaller chrome apertures recede toward the upper right. One perfectly crisp beam links them, surrounded by deep black negative space. Optical concentration, no brain, chips, pedestal, or central symmetrical orb.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-007",
+    "subject": "Result Detachment: two diverging paths leave the same careful poker decision, one carrying rising chips and one scattered losses, while a polished process compass stays steady at the fork",
+    "camera": "overhead branching still life",
+    "composition": "A wide Y-shaped brushed-steel route on black felt fills the scene; the calm compass is lower center and blue chips diverge toward the two upper corners. No writing or arrows. The composition emphasizes one good process and two uncertain outcomes.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-008",
+    "subject": "Confidence Builder: a firm human hand in a dark sleeve places one decisive cobalt poker chip cleanly across a silver betting line",
+    "camera": "close cinematic table-level view of hand and chip",
+    "composition": "The hand enters from upper left, the chip lands near lower right in a bright white reflection, and the background rail disappears into navy. Precise, calm action with natural anatomy and a single focal gesture; no faces or generated cards.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-009",
+    "subject": "Fear Eraser: a solid cobalt poker chip breaks through a thin fogged-glass barrier, opening a clean view of the table beyond",
+    "camera": "extreme close-up at a diagonal impact angle",
+    "composition": "The pane spans the left two thirds, with a small clean break and suspended silver-edged fragments; the blue chip passes confidently toward the clearer right side. Controlled courage, no violent person, ring, stage or weapon.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-010",
+    "subject": "Ego Killer: a polished silver crown is set aside beside an open unmarked study notebook and one humble stack of cobalt chips",
+    "camera": "honest overhead editorial still life",
+    "composition": "The crown is partly cropped and resting sideways in the upper-left corner, while the notebook and chips occupy the brighter center-right. Learning takes visual priority over status. Matte navy desk, soft daylight-style silver reflections, no podium.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-011",
+    "subject": "Session Stamina: a long ordered path of poker chips advances through alternating pools of dark and cobalt light toward a steady silver finish marker",
+    "camera": "very low tracking perspective along the table rail",
+    "composition": "The chip path starts huge at lower left and recedes across the frame to upper right, with a few fatigue gaps near the middle and a restored even rhythm at the far end. Endurance and pacing, no battery icon or repeated ring.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-012",
+    "subject": "Snap Decision: a fingertip sends one silver-edged cobalt chip through a rapidly closing split-second opening",
+    "camera": "ultra-fast macro freeze frame with strong directional motion",
+    "composition": "Finger and chip enter from right foreground, two blurred chrome shutters form a narrow left-side gate, and the successful trajectory is crisp. Clean minimal navy field and precise physical timing, no clock or floating brain.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-013",
+    "subject": "Tell Blindness: a reflective dark poker visor filters a chaotic field of misleading silhouettes into one clean focused reflection of the betting chips",
+    "camera": "close portrait crop of visor and table reflection, no identifiable face",
+    "composition": "The visor angles across the upper half, reflecting a clear cobalt chip commitment; surrounding blurred hand gestures dissolve into darkness. Emphasize objective action over ambiguous gestures. No cards, text or sinister mask.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-014",
+    "subject": "Bankroll Mind: poker chips are methodically divided into several transparent budgeting compartments, with a separate small playable stack kept outside",
+    "camera": "top-down practical workstation view",
+    "composition": "A rectangular clear organizer spans the left two thirds, equal silver dividers separate cobalt reserves, and a modest session stack sits alone on the right. Clean orderly money discipline, no currency symbols, vault doors or pedestal.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-015",
+    "subject": "Winners Tilt: an exuberant leaning tower of poker chips is being steadied by a precise chrome spirit level across its top",
+    "camera": "tight upward three-quarter view",
+    "composition": "The unstable stack leans from lower left toward upper right; the level counters it horizontally and one chip is caught just before sliding. Controlled restraint after success, black felt background, no confetti or central ring.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-016",
+    "subject": "Variance Zen: smooth alternating cobalt and silver waves pass beneath a calm balanced poker chip resting on a flat stone",
+    "camera": "serene wide low horizon shot, tactile sculptural illustration",
+    "composition": "The stone and chip sit off-center left, waves curve gently across the frame toward the right horizon, and soft navy mist keeps the scene uncluttered. Meditative acceptance, matte materials, no literal water splash, brain or chrome display stage.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-017",
+    "subject": "Study Habits: a thoughtfully used poker study desk with an open blank notebook, neat chrome pen, arranged chips, and a small focused task lamp",
+    "camera": "over-the-shoulder desk-level editorial view without a person",
+    "composition": "The lamp's cone illuminates the notebook in the right half, chips form a simple exercise on the left, and the rest fades to deep navy. Tangible repeated practice, no letters, charts with labels or computer UI.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-018",
+    "subject": "Table Image: one empty poker chair appears as three different silhouettes in angled polished mirror panels around the table",
+    "camera": "cinematic oblique view at seat height",
+    "composition": "The real chair stands near left center, three narrow mirror facets fan across the right, each reflection changes only the scale and posture suggested by the chair. Cobalt table lighting ties them together. Perception and reputation, no faces or cards.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-019",
+    "subject": "Autopilot Escape: a monotonous conveyor of identical poker-chip motions is interrupted by one deliberately lifted cobalt chip taking a new route",
+    "camera": "top-down industrial tabletop composition",
+    "composition": "Repeated dark chips run on a straight track from left to right; a single bright blue chip rises off the track near the right third toward a clean open direction. The departure is the focal point, no robot, arrows or glowing brain.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "psy-020",
+    "subject": "Mind Master: a serene seated poker competitor seen from behind at a dark table, with a balanced field of blue decision lights reflected in the polished rail",
+    "camera": "medium cinematic rear portrait, slightly above shoulder height",
+    "composition": "A calm dark silhouette sits in the left third; the table opens broadly to the right with a controlled orderly chip stack and delicate arcs of silver light. The human composure is the hero, no visible face, trophy, brain ornament or text.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-001",
+    "subject": "Solver Mimicry: a physical poker-chip arrangement and its precise mirrored counterpart align across a thin sheet of blue glass",
+    "camera": "high oblique analytical still life",
+    "composition": "The original chip pattern fills the lower left and the silver-cobalt mirror pattern appears upper right across a diagonal glass partition. Near-perfect matching with one intentional calibration point, not a screen or graph. No numbers or generated cards.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-002",
+    "subject": "Blocker Logic: a polished mechanical combination grid with several routes visibly closed by two strategically placed silver blockers",
+    "camera": "tight overhead puzzle-board view",
+    "composition": "A large black-and-cobalt grid fills the right side, with blocked recesses and clean open channels. Reserve a small natural clear area on the lower left for two real Arena card faces added by the app; do not draw any cards. Strong forensic logic theme, no central stage.",
+    "cards": [
+      "As",
+      "Kd"
+    ],
+    "placement": "left"
+  },
+  {
+    "id": "adv-003",
+    "subject": "Node Locking: a branching chrome decision tree suspended across black space, one pivotal blue node physically clamped in place while the other branches reroute around it",
+    "camera": "dramatic close side view with shallow perspective",
+    "composition": "The tree enters from lower left and fans across the image, the large locking clamp sits on the upper right branch, and a bright cobalt alternative route curves underneath. Open architectural wire sculpture with depth, no pedestal, chips, grid screen or circular hub.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-004",
+    "subject": "Range Construction: an incomplete mosaic of brushed-steel and cobalt tiles being assembled into a coherent poker range on a drafting table",
+    "camera": "close overhead craftsman's view",
+    "composition": "A broad square matrix occupies the left two thirds; several large tiles hover just above their matching recesses at the right edge, with a chrome drafting tool along the bottom. Physical building process, no text, suit marks, numbers or repeated chip stacks.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-005",
+    "subject": "Frequency Math: a precise mechanical distributor splits an incoming line of cobalt beads into differently sized streams of silver and blue outcomes",
+    "camera": "side-on cutaway of a compact mechanism",
+    "composition": "One intake at left branches into three clear output chutes on the right, each carrying a visibly different proportion. Transparent glass casing, brushed chrome internals, dark navy backdrop. Conceptual proportions without labels or exact chart data.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-006",
+    "subject": "EV Calculations: a silver balance beam compares a weighted potential reward with a smaller certain cost, connected by elegant translucent probability blocks",
+    "camera": "low oblique macro of an analytical desk setup",
+    "composition": "The weighted reward sits large on the right, the cost is close at lower left, and suspended blue glass blocks connect the diagonal reasoning path. Distinct from a traditional two-pan scale; use a cantilever and visible pivot, no equations or currency.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-007",
+    "subject": "Indifference Theory: two equal paths for a single cobalt poker chip sit in perfect balance on opposite ends of a slim chrome seesaw",
+    "camera": "precisely side-on minimalist studio still life",
+    "composition": "A single horizontal beam nearly spans the frame with two equal receiving pockets; the decision chip balances exactly over the central pivot. Vast matte navy background, restrained white light, no platform, rings or busy decoration.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-008",
+    "subject": "Range Advantage: two broad fields of cobalt and silver equity blocks overlap, one field consistently rising above the other across a textured poker workbench",
+    "camera": "wide diagonal close-up of physical data sculpture",
+    "composition": "Unequal rows of low rectangular blocks create a rolling landscape from left foreground to right background, with cobalt holding the higher terrain. This is a large tactile distribution, not a literal chart, no labels, axes, chips or cards.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-009",
+    "subject": "Nut Advantage: one rare immaculate silver pinnacle rises far above a broad field of ordinary cobalt strategy pieces",
+    "camera": "low macro looking up through the surrounding pieces",
+    "composition": "The dominant pinnacle sits off-center right, its sharp polished peak catches a white highlight, and the many low pieces form a wide shallow field below. Powerful top-end strength rather than average strength, no crown, pedestal or text.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-010",
+    "subject": "Board Coverage: a flexible silver mesh conforms over several very different cobalt terrain surfaces without leaving a gap",
+    "camera": "top-down diagonal materials study",
+    "composition": "Three adjacent surface textures run from upper left to lower right: smooth, stepped and jagged. One continuous fine metal mesh drapes across them and is clearly visible against the dark base. Strategy coverage metaphor, no display stand or cards.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-011",
+    "subject": "SPR Mastery: an exceptionally clear close comparison of a tall remaining chip stack against a shallow central pot, connected by a precision chrome proportional divider",
+    "camera": "direct side profile at felt level",
+    "composition": "The tall stack dominates the left, a wide shallow pool of chips extends right, and the proportional divider bridges their heights without any numbers. Crisp tactile blue and black chips, rectangular felt surface, no circular podium.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-012",
+    "subject": "MDF Defender: a calibrated line of defensive cobalt blocks retains just enough coverage while a stream of silver pressure pieces approaches",
+    "camera": "top-down tactical tabletop view",
+    "composition": "The defending barrier is broken into deliberate sections across the right half; approaching pieces fan from the left, with only selected safe gaps. Clear minimum-defense idea in an asymmetric composition, no shield icon, ring or playing cards.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-013",
+    "subject": "Combo Counting: an elegant black felt counting tray with paired silver and cobalt markers arranged in small, unambiguous combinations",
+    "camera": "tight overhead educational still life",
+    "composition": "The grouped markers occupy the right two-thirds, each pair separated with space, while a quiet dark patch at lower left receives two genuine Arena hole cards in the app. Use only small physical counting pieces, no printed formula, numbers or generated cards.",
+    "cards": [
+      "Ah",
+      "Ad"
+    ],
+    "placement": "left"
+  },
+  {
+    "id": "adv-014",
+    "subject": "Bet Sizing Theory: an expanding geometric sequence of poker wagers is measured by a flexible polished chrome divider across the felt",
+    "camera": "high oblique macro with a strong diagonal rhythm",
+    "composition": "Four low chip commitments grow from lower left to upper right, each clearly larger, while a graceful metal measuring arc follows their expansion. Make it feel like precise poker geometry, with no numerals, labels, cylinder cannons or platform.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-015",
+    "subject": "Population Reads: a mosaic of many dark poker-seat silhouettes reveals a few coherent cobalt clusters seen through a large analytical glass lens",
+    "camera": "bird's-eye view over a broad softly curved table map",
+    "composition": "The field of small seat silhouettes fills the left two-thirds; the oversized chrome-rimmed lens enters from the right edge and reveals a distinctly grouped blue tendency underneath. Collective behavior, no individual portraits, cards, text or pedestal.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-016",
+    "subject": "Exploit Ladder: a precise cobalt route deviates from a regular chrome strategy lattice to climb through a series of exposed weaknesses",
+    "camera": "diagonal architectural close-up of a vertical lattice",
+    "composition": "Regular silver rungs fill the left and background, while the bright blue route cuts an unexpected stepped ascent from bottom right toward upper center. A few weak joints are visibly open. No arrows, chip stacks, central orb or literal chart.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "quiz-gauntlet",
+    "subject": "Quiz Gauntlet: a rapid series of chrome decision gates extends across a dark poker-training track, one cobalt chip racing through the correct openings",
+    "camera": "fast low perspective from just behind the moving chip",
+    "composition": "Three differently shaped gate apertures stagger diagonally into the distance; the nearest gate is cropped large and the chip leaves a short blue motion trail. A clear challenge sequence, no text, letters, question-mark signs, cards or pedestal.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-017",
+    "subject": "Capped Ranges: a broad field of low rectangular cobalt range blocks and short poker-chip columns is constrained by a strict horizontal glass ceiling, while one much taller polished silver column rises beyond that limit.",
+    "camera": "side-on analytical sculpture close-up",
+    "composition": "The glass ceiling spans the left three quarters, keeping every cobalt block and short chip column below the same maximum; a single tall silver column stands beyond the cap on the right. Strong simple height contrast, matte black background and crisp cobalt edges. Use only plain geometric blocks and poker chips. Absolutely no chess pieces, pawns, kings, queens, knights, chessboard, crown, pedestal or text.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-018",
+    "subject": "Polarity Index: a dispersed stream of poker chips separates sharply into two strong poles while the middle becomes empty",
+    "camera": "direct overhead graphic still life",
+    "composition": "Dense cobalt chips collect in upper left and polished silver chips in lower right, with a sweeping clean black diagonal gap between them and a few transitional chips peeling away. Abstract but tactile range splitting, no magnets, rings or platform.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-019",
+    "subject": "Solver Scripts: layers of transparent blue simulation plates reveal a hidden decision structure when aligned under a chrome reading arm",
+    "camera": "close oblique view of a physical research instrument",
+    "composition": "Three rectangular glass layers are staggered from lower right to upper left; the reading arm casts a sharp silver line through the stack and exposes a branched route. No computer monitor, code, letters or numbers; precision interpretation is the story.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "hand-lab",
+    "subject": "Hand Lab V2: a poker-analysis light table with a precise clear glass equity prism and several adjustable chrome sliders",
+    "camera": "near overhead working-laboratory close-up",
+    "composition": "The prism and sliders occupy the right half, refracting a controlled cobalt beam onto the felt; keep the lower-left work area naturally clear for two actual Arena cards added by the app. Real experiment bench, no generated card outlines, equations or UI.",
+    "cards": [
+      "As",
+      "Kh"
+    ],
+    "placement": "left"
+  },
+  {
+    "id": "bluff-catcher",
+    "subject": "Bluff Catcher: a large investigative chrome lens reveals the hollow interior of an imposing wager-chip stack",
+    "camera": "close player's-eye macro view across a poker table",
+    "composition": "The lens and suspect stack dominate the right side; the hollow core is clearly visible through glass while the outside looks solid. Reserve a dark felt patch on the lower left for native Arena hole cards. Forensic hand-reading, no faces, question marks or pedestal.",
+    "cards": [
+      "Ks",
+      "Qh"
+    ],
+    "placement": "left"
+  },
+  {
+    "id": "mixed-strategy-lab",
+    "subject": "Mixed Strategy Lab: two transparent blue mixing channels weave around a chrome probability wheel and emerge as a deliberately varied sequence of poker chips",
+    "camera": "top-down laboratory process composition",
+    "composition": "The wheel is cropped into the upper-left corner, channels curl in an asymmetric S across the frame, and alternating chip outcomes exit at lower right. Distinct movement and mixed frequencies, no text, axes, cards or centered stage.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "study-group",
+    "subject": "Study Group: several different hands in dark sleeves gather around a shared black poker study table, each arranging a different part of the same chip exercise",
+    "camera": "warm collaborative overhead scene, tightly cropped to hands and tabletop",
+    "composition": "Hands enter naturally from three sides, a shared cobalt chip problem sits slightly right of center, and blank notebooks occupy corners. Candid human collaboration with natural hand anatomy, no visible faces, generated cards or writing.",
+    "cards": [],
+    "placement": "none"
+  },
+  {
+    "id": "adv-020",
+    "subject": "GTO Apex: a complex black-and-chrome strategy landscape converges into one precise silver summit under a narrow cobalt light",
+    "camera": "dramatic wide low-angle sculptural landscape view",
+    "composition": "Many irregular branching ridges flow from both lower corners toward an off-center summit in the upper right; illuminated blue paths meet cleanly near the peak. Large bold geometry and premium metal surfaces, no trophy, central ring, chips, text or pedestal.",
+    "cards": [],
+    "placement": "none"
+  }
+]

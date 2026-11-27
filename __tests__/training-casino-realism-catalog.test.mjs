@@ -11,9 +11,9 @@ const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 const librarySource = read('src/data/TRAINING_LIBRARY.js');
 const libraryBlock = librarySource.match(/export const TRAINING_LIBRARY = \[([\s\S]*?)\n\];/)?.[1] || '';
 const gameIds = [...libraryBlock.matchAll(/\{\s*id:\s*'([^']+)'/g)].map((match) => match[1]);
-const artDirectory = join(ROOT, 'public/images/training/casino-realism');
+const artDirectory = join(ROOT, 'public/images/training/approved-chrome');
 
-test('all 107 canonical games have exactly one bespoke casino-realism render', () => {
+test('all 107 canonical games have exactly one bespoke approved chrome render', () => {
     assert.equal(gameIds.length, 107);
     assert.equal(new Set(gameIds).size, 107);
 
@@ -33,7 +33,7 @@ test('all 107 canonical games have exactly one bespoke casino-realism render', (
 test('every catalog surface consumes the canonical artwork contract', () => {
     const imageMap = read('src/data/GAME_IMAGES.js');
     assert.match(imageMap, /TRAINING_LIBRARY\.map\(\(\{ id \}\)/);
-    assert.match(imageMap, /casino-realism/);
+    assert.match(imageMap, /approved-chrome/);
 
     const hub = read('pages/hub/training.js');
     const category = read('pages/hub/training/category/[categoryId].js');

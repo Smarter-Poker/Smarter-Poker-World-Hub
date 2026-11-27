@@ -1,0 +1,71 @@
+{
+  "id": "adv-014",
+  "name": "Bet Sizing Theory",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:59:02.519Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Bet Sizing Theory.\nSubject: Bet Sizing Theory: an expanding geometric sequence of poker wagers is measured by a flexible polished chrome divider across the felt\nCamera: high oblique macro with a strong diagonal rhythm\nComposition: Four low chip commitments grow from lower left to upper right, each clearly larger, while a graceful metal measuring arc follows their expansion. Make it feel like precise poker geometry, with no numerals, labels, cylinder cannons or platform.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Bet Sizing Theory: an expanding geometric sequence of poker wagers is measured by a flexible polished chrome divider across the felt",
+  "camera": "high oblique macro with a strong diagonal rhythm",
+  "composition": "Four low chip commitments grow from lower left to upper right, each clearly larger, while a graceful metal measuring arc follows their expansion. Make it feel like precise poker geometry, with no numerals, labels, cylinder cannons or platform.",
+  "source": {
+    "fileName": "exec-f2731c9d-0f74-4f8c-ad3b-7b359b90d4f3.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2552512,
+    "sha256": "479f6f43b8e9df1ba69260405988141161c9aa7ff10cc84972277c4ca1f703d6"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-014.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 47466,
+      "sha256": "7c8dcfe9332c3ae3b4823254fae92b937d7b7a2c75cc5aaf48008d7d8b53c452"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-014.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 43801,
+      "sha256": "03087cd66f8865114471a5e1718f849d267218749e3f203fc6ab877e92da499a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-014.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 94406,
+      "sha256": "863faac2f7742d8f5ae9a6d7b819b8068e5c000fdf4410a89ff51f0ffe53a4b0"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-014.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 81259,
+      "sha256": "75bdd65da48a29e1ed48ed45094ea13d23a609cf4c9789861c56c0f7cd592665"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-014.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 173352,
+      "sha256": "19ae65b835f5546dd038b776d764cb168b54e61f03959d9ad60e7cacbe0a42eb"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-014.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 131945,
+      "sha256": "331ae9ff715e4fa3444366e0c4e8151ee912aa4208f385ff12eebfa901cea417"
+    }
+  ]
+}

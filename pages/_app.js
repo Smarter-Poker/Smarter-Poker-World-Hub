@@ -164,6 +164,7 @@ import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import GuestConversionBar from '../src/components/seo/GuestConversionBar';
 import SmarterQuickSignupSheet from '../src/components/seo/SmarterQuickSignupSheet';
+import SmarterEngagedConversionPrompt from '../src/components/seo/SmarterEngagedConversionPrompt';
 import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
 import ActivePokerSeatLink from '../src/components/ui/ActivePokerSeatLink';
@@ -1249,6 +1250,7 @@ export default function App({ Component, pageProps }) {
                                 <HubErrorBoundary name="Guest Conversion Bar" fallback={<></>}>
                                   <GuestConversionBar />
                                   <SmarterQuickSignupSheet />
+                                  <SmarterEngagedConversionPrompt />
                                 </HubErrorBoundary>
                               )}
                               <PageErrorBoundary key={pageErrorBoundaryKey}>

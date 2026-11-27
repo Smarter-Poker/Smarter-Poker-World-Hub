@@ -1,0 +1,71 @@
+{
+  "id": "cash-001",
+  "name": "Preflop Blueprint",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:47:13.154Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Preflop Blueprint.\nSubject: An open dark drafting folio containing a large tactile six-max opening-range plan: six distinct seat sectors, stepped clusters of cobalt and silver square tiles, and a chrome drafting compass resting across one corner. The tiles are blank, showing varying range breadth without pretending to be a readable chart.\nCamera: True overhead, flat and architectural, with the folio tilted slightly within the landscape frame.\nComposition: The open folio fills nearly the entire image. Broad blocks of tiles occupy the left two-thirds; six seat sectors fan across the right. Use matte blueprint paper, satin metal, crisp shadows and a restrained blue edge light. No round stage, pedestal, distant room, card space or chip towers.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "An open dark drafting folio containing a large tactile six-max opening-range plan: six distinct seat sectors, stepped clusters of cobalt and silver square tiles, and a chrome drafting compass resting across one corner. The tiles are blank, showing varying range breadth without pretending to be a readable chart.",
+  "camera": "True overhead, flat and architectural, with the folio tilted slightly within the landscape frame.",
+  "composition": "The open folio fills nearly the entire image. Broad blocks of tiles occupy the left two-thirds; six seat sectors fan across the right. Use matte blueprint paper, satin metal, crisp shadows and a restrained blue edge light. No round stage, pedestal, distant room, card space or chip towers.",
+  "source": {
+    "fileName": "exec-8d588cca-297c-497b-bcbd-a21c3303d3b8.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2794024,
+    "sha256": "b16cfc9c4b55f946bda9f15549a56fd22c9f5519f8de765cb89184afc518461b"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-001.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 59706,
+      "sha256": "9bc2f75a1ac04f3690d140cabdd46a965d09c82d00339855a93fb76f8e0cde72"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-001.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 56186,
+      "sha256": "049df8b0d4f0bb27e1228cff05b5bd6ed0fb72ee4d7b97c760677f851c3d6993"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-001.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 116370,
+      "sha256": "78e0321209131942e95fa0f2931a4002273c23045f802b274ed1a6c188c66661"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-001.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 103679,
+      "sha256": "38a0a42862106a267e4bacacbafe10921b4bac044b1531dcfa46bb195372ba7b"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-001.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 227136,
+      "sha256": "24974a34e084fbcab8ce6906513c6a01af5c702fc33da9ed56afbbd56226d898"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-001.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 180622,
+      "sha256": "ec1449917f29b00583e629cf4a1318f49366f6845afdd1b783465ad3a847fe54"
+    }
+  ]
+}

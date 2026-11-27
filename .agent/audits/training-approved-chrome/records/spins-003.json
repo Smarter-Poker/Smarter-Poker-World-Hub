@@ -1,0 +1,90 @@
+{
+  "id": "spins-003",
+  "name": "Button Limp",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:03:42.605Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Button Limp.\nSubject: A deliberately modest single-chip entry from the button conceals a strong holding and a much deeper reserve in shadow. A plain chrome dealer disc lies beside the entry, while native pocket aces make the trap readable.\nCamera: Close overhead crop rotated diagonally, with the button corner nearest the viewer.\nComposition: The small limp chip sits just across the betting line at center. The plain dealer disc is close at lower right; the strong native cards occupy a compact lower-left hand area; the reserve disappears into the upper-right shadow. This is a quiet tactical scene with no trapdoor, mechanical jaws or podium.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "A deliberately modest single-chip entry from the button conceals a strong holding and a much deeper reserve in shadow. A plain chrome dealer disc lies beside the entry, while native pocket aces make the trap readable.",
+  "camera": "Close overhead crop rotated diagonally, with the button corner nearest the viewer.",
+  "composition": "The small limp chip sits just across the betting line at center. The plain dealer disc is close at lower right; the strong native cards occupy a compact lower-left hand area; the reserve disappears into the upper-right shadow. This is a quiet tactical scene with no trapdoor, mechanical jaws or podium.",
+  "source": {
+    "fileName": "exec-a023aa35-b41b-4f37-a6d7-78be16b795d3.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2602715,
+    "sha256": "dbd81b559c8e7c0a5923813b6a3d72fa623ececf13250cad90066b718ef83d78"
+  },
+  "nativeCards": [
+    "As",
+    "Ah"
+  ],
+  "placement": "left",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-003.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 35226,
+      "sha256": "900c482c1ff6ee62817d45aa2bc1db98610b55ba0977c74f0c9bd82188efe76b"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-003.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 31143,
+      "sha256": "111182e4ac1233501ce099aac1fa30510854670ba06003dbc943d93bb0998df3"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-003.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 79600,
+      "sha256": "1d2b30d5df003d56439bcafc14c0d3995195dbf93c8fa2bee35437575a00ec04"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-003.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 69309,
+      "sha256": "e2f5d7292da0a93c42b87d652504f465c5ea3b55d82d18a7ee4792c412d49067"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-003.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 161424,
+      "sha256": "35300e6aa8b32ba2ee1c2122db464e435aa7c29988fd5e0dcbb0595bba2235e4"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-003.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 124084,
+      "sha256": "2a4b7dc4c7e2c3e719d89483c879165ae9967c95334e4db085ca8b0a7f76b4be"
+    }
+  ],
+  "imagegenCorrection": {
+    "id": "spins-003",
+    "tool": "imagegen",
+    "sourceInput": "/workspace/scratch/c868e812eb6b/generated_images/exec-88ed0cd5-4102-4e97-8431-8fed0b3e7467.png",
+    "sourceOutput": "/workspace/scratch/c868e812eb6b/generated_images/exec-a023aa35-b41b-4f37-a6d7-78be16b795d3.png",
+    "prompt": "Edit the provided existing poker-table image with a precise cleanup only. Remove BOTH overlapping white blank playing-card rectangles in the LOWER-LEFT corner, including every card edge, outline, shadow and white pixel belonging to those rectangles. Fill their former area seamlessly with uninterrupted dark navy poker felt matching the surrounding weave and lighting. Preserve the single cobalt limp chip at center, the diagonal white betting line, the plain silver dealer disc at lower right, the shadowed chip reserves at upper right, the table rail and all camera framing exactly. Do not add any new objects. The finished scene must contain NO playing cards of any kind, NO blank white rectangles, NO card backs or faces, NO suits or ranks, and NO printed text. Source-exact real cards will be layered by application code later, so render no cards. Preserve original image dimensions and quality.",
+    "generatedAt": "2026-11-27T19:03:42.605Z",
+    "supersededRecord": ".agent/audits/training-approved-chrome/corrections/spins-003/superseded-v2-source-record.json"
+  },
+  "overlay": {
+    "left": 22,
+    "bottom": 4,
+    "width": 32,
+    "height": 43
+  },
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

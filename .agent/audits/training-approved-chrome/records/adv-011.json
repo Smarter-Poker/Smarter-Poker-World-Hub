@@ -1,0 +1,71 @@
+{
+  "id": "adv-011",
+  "name": "SPR Mastery",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:58:32.249Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: SPR Mastery.\nSubject: SPR Mastery: an exceptionally clear close comparison of a tall remaining chip stack against a shallow central pot, connected by a precision chrome proportional divider\nCamera: direct side profile at felt level\nComposition: The tall stack dominates the left, a wide shallow pool of chips extends right, and the proportional divider bridges their heights without any numbers. Crisp tactile blue and black chips, rectangular felt surface, no circular podium.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "SPR Mastery: an exceptionally clear close comparison of a tall remaining chip stack against a shallow central pot, connected by a precision chrome proportional divider",
+  "camera": "direct side profile at felt level",
+  "composition": "The tall stack dominates the left, a wide shallow pool of chips extends right, and the proportional divider bridges their heights without any numbers. Crisp tactile blue and black chips, rectangular felt surface, no circular podium.",
+  "source": {
+    "fileName": "exec-5c178012-553b-4d2f-b4c3-dc72e3c0bbed.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1983451,
+    "sha256": "81a01ef0be86d35052307f108f822fc7269a107c89fe2019ab0d83c252035917"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-011.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 27664,
+      "sha256": "f617fc0fb848078367953f2c7ec313c0abfe01206ba7918358acb0f6d5ef3a6e"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-011.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 24299,
+      "sha256": "17e30b8650faf8ff1a0b9078f29240ac14a3bf3d666ebc1f1c7ef7f7a21df611"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-011.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 49904,
+      "sha256": "a8665f743e6e3dd8a8ba3ef4a3967eedfe0fedaf66ddc65f16cec6c8c9304d87"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-011.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 41571,
+      "sha256": "28b04dea9223014d7ee74cdadf44da4710f00242648019e6e982e3578467d754"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-011.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 91626,
+      "sha256": "9f69664ad4b536b3fbac7df7ddb415c40633551232086059305e806e478234ab"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-011.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 70004,
+      "sha256": "081de5c262dc7079546c58e201193d9b30cbf87c3f6d33712739304d1ae45749"
+    }
+  ]
+}

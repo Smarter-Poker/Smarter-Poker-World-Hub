@@ -1,0 +1,71 @@
+{
+  "id": "adv-010",
+  "name": "Board Coverage",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:58:32.249Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Board Coverage.\nSubject: Board Coverage: a flexible silver mesh conforms over several very different cobalt terrain surfaces without leaving a gap\nCamera: top-down diagonal materials study\nComposition: Three adjacent surface textures run from upper left to lower right: smooth, stepped and jagged. One continuous fine metal mesh drapes across them and is clearly visible against the dark base. Strategy coverage metaphor, no display stand or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Board Coverage: a flexible silver mesh conforms over several very different cobalt terrain surfaces without leaving a gap",
+  "camera": "top-down diagonal materials study",
+  "composition": "Three adjacent surface textures run from upper left to lower right: smooth, stepped and jagged. One continuous fine metal mesh drapes across them and is clearly visible against the dark base. Strategy coverage metaphor, no display stand or cards.",
+  "source": {
+    "fileName": "exec-a92540a5-6b77-4e18-8d0c-0a46c281fd80.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 3019198,
+    "sha256": "822043625f971043e364b3b0cc53c1e8ae14dde6a302a31a6afc7e01188fc48a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-010.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 77432,
+      "sha256": "efeaab527f6d3399b30c36a4d3e07ee93990864e20d533a6f6e01f85e7b90ac8"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-010.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 84569,
+      "sha256": "a763fe97c536eaf4057f58dbf0c2db01cc702822c822916afc9bd45e73b62b44"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-010.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 142226,
+      "sha256": "ad83dcb07fb852a0b2c3b277cad0166fd0613d278c13814136f190d9abffdb47"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-010.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 141371,
+      "sha256": "df107ca9a558a3109e9d756d46985f9fc0733f3cd2222c235db4ebfbb94e9452"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-010.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 248808,
+      "sha256": "d06f09ccc60b901969220eae852ac0c27e71c3b20b8615ecf19b91c9984faeab"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-010.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 221334,
+      "sha256": "3f93020433feef9b1001937a0c39525b3f1c75aee49ccc83e170b8e309c15a80"
+    }
+  ]
+}

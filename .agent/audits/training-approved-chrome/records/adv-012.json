@@ -1,0 +1,71 @@
+{
+  "id": "adv-012",
+  "name": "MDF Defender",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:58:32.249Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: MDF Defender.\nSubject: MDF Defender: a calibrated line of defensive cobalt blocks retains just enough coverage while a stream of silver pressure pieces approaches\nCamera: top-down tactical tabletop view\nComposition: The defending barrier is broken into deliberate sections across the right half; approaching pieces fan from the left, with only selected safe gaps. Clear minimum-defense idea in an asymmetric composition, no shield icon, ring or playing cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "MDF Defender: a calibrated line of defensive cobalt blocks retains just enough coverage while a stream of silver pressure pieces approaches",
+  "camera": "top-down tactical tabletop view",
+  "composition": "The defending barrier is broken into deliberate sections across the right half; approaching pieces fan from the left, with only selected safe gaps. Clear minimum-defense idea in an asymmetric composition, no shield icon, ring or playing cards.",
+  "source": {
+    "fileName": "exec-61bc276b-2695-4fe9-becc-89c81977aea7.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2672165,
+    "sha256": "7300f971c7fc36a623038716251695b48b144e2eb43e36813c2a06a44d178554"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-012.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 30508,
+      "sha256": "92217c1409639d4245993d4b13a3a67eb5d663a035e2ec5e16d4dbc972a7f22f"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-012.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 27525,
+      "sha256": "5ab1fd8c0668ed7446873f2002d11786e9243f0745df20fe13b20f5b6cdbbcb3"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-012.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 64384,
+      "sha256": "54c36aaa75fc6476621943c4b8d11b90bcc14e24bc5101568f38287b84819970"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-012.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 55951,
+      "sha256": "26939a959079b128688b61ee76b36c6d4913da9e634b9a9cffa2499f5a16b056"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-012.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 136662,
+      "sha256": "c37f9af0ed2ecac86a9de612e30873fdb38f57dfb2703a175d52895ebbd32a5b"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-012.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 108308,
+      "sha256": "8e86d04e5b16915eb5caf2fe6e0dab5276625ee0c52903846cbfec5c490410fd"
+    }
+  ]
+}

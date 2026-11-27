@@ -1,0 +1,82 @@
+{
+  "id": "cash-022",
+  "name": "Texture Reading",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:59:09.632Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Texture Reading.\nSubject: A real three-card flop floats just above a tactile split surface: one side smooth and dry, the other interconnected by dense cobalt channels. The actual suited K-spade and Q-spade beside the 7-heart provide a useful board-reading example.\nCamera: Frontal tabletop close-up with a shallow downward angle, keeping the board large and readable.\nComposition: The actual three-card board crosses the upper-middle band. Below it, the smooth black plane on the left transitions into a connected blue-and-chrome relief on the right. The physical surface fills the lower half instead of adding chip stacks. No generated cards, letters, rank symbols or blank-card placeholders.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "A real three-card flop floats just above a tactile split surface: one side smooth and dry, the other interconnected by dense cobalt channels. The actual suited K-spade and Q-spade beside the 7-heart provide a useful board-reading example.",
+  "camera": "Frontal tabletop close-up with a shallow downward angle, keeping the board large and readable.",
+  "composition": "The actual three-card board crosses the upper-middle band. Below it, the smooth black plane on the left transitions into a connected blue-and-chrome relief on the right. The physical surface fills the lower half instead of adding chip stacks. No generated cards, letters, rank symbols or blank-card placeholders.",
+  "source": {
+    "fileName": "exec-93bb08c9-1f3a-44d2-b68e-e00f993b9e1f.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2675470,
+    "sha256": "c464e5b6e82d35da451a024e1c67eee9398922c8ce2133ce4adfa48d61eb9e87"
+  },
+  "nativeCards": [
+    "Ks",
+    "Qs",
+    "7h"
+  ],
+  "placement": "center",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-022.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 27500,
+      "sha256": "fee3d3289361cfc74fae9e84f66259ed186569402de204f6664ba1ef0cba36fe"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-022.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 22857,
+      "sha256": "45c546f17852c84b1509cc425e25216bf7bf7ca76a9e37a47efe57dc08d4f668"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-022.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 63304,
+      "sha256": "5c615580e46f41dbb79d14a13cd3cc6346d6fd07982c6db2356e93364dc7fae0"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-022.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 49714,
+      "sha256": "d354cc20f25759998b0085c68bedcad4ba3166e73bf8c252e0f589006f21a1f3"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-022.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 146638,
+      "sha256": "665c3b1b5881c60d859fe2261184ae554a996c738d2f5c1619a850594306ec22"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-022.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 105365,
+      "sha256": "61218fe085dc4701ee4e9b6dcf2af3eb1cb925d8fad811424c7491cfc8770cae"
+    }
+  ],
+  "overlay": {
+    "left": 50,
+    "bottom": 20,
+    "width": 56,
+    "height": 52
+  },
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

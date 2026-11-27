@@ -1,0 +1,71 @@
+{
+  "id": "spins-008",
+  "name": "Aggression Mode",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:01:32.448Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Aggression Mode.\nSubject: Successive waves of betting chips relentlessly push across a compact table, forcing a smaller opponent reserve toward the rail. The scene shows sustained repeated pressure rather than one isolated all-in.\nCamera: Fast low tracking angle along the chip movement, with controlled long-exposure traces.\nComposition: Three broad overlapping chip waves surge from left foreground to right background. The opponent's compact reserve is squeezed into a narrow far-right wedge. Cobalt traces follow the movement over real dark felt; silver edges remain crisp on the nearest wave. No accelerator machine, circular base or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Successive waves of betting chips relentlessly push across a compact table, forcing a smaller opponent reserve toward the rail. The scene shows sustained repeated pressure rather than one isolated all-in.",
+  "camera": "Fast low tracking angle along the chip movement, with controlled long-exposure traces.",
+  "composition": "Three broad overlapping chip waves surge from left foreground to right background. The opponent's compact reserve is squeezed into a narrow far-right wedge. Cobalt traces follow the movement over real dark felt; silver edges remain crisp on the nearest wave. No accelerator machine, circular base or cards.",
+  "source": {
+    "fileName": "exec-b7a53e3c-fa06-4b52-b094-fbb975f84dcf.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2465587,
+    "sha256": "4e5e54e0b02321ea309d56106708a3b9e4f634c9a7059fc855d2152f24983387"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-008.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 47404,
+      "sha256": "bc190c5fcbb0fbbd9cdf450dc872fed313cdb18dd3a1c1e4e2857edcb4b695a4"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-008.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 45567,
+      "sha256": "680a48d76849b45a60c517f4d4736e37456f8798bfeaa9322a39ee9f1f0dff9a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-008.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 90804,
+      "sha256": "ea49bc5ca8356677f566759c82922489fae64ece5d6968fc4ce17eba7e8c94e8"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-008.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 79264,
+      "sha256": "a798f190543ab68914da9a22b86ee8444cf355fe5d0273d6a2dc19e1955ae2cd"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-008.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 160862,
+      "sha256": "82a009691d6274b77c6ff77ed76683bfad7d8bbee09f1cc686d44bfc91321df7"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-008.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 127237,
+      "sha256": "1d150e831c7fa7b8b182c7908d77cb0d3bb97f41abf3e8f09e8d8d423463c0de"
+    }
+  ]
+}

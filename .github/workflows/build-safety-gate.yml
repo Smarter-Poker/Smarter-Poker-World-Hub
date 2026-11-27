@@ -358,6 +358,13 @@ jobs:
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
 
+      - name: Training Featured Lobby Interactions And Catalog
+        run: >-
+          node --experimental-vm-modules --test
+          __tests__/training-approved-lobby-interactions.test.mjs
+          __tests__/training-approved-art.test.mjs
+          __tests__/training-casino-realism-catalog.test.mjs
+
       - name: Training Phase 6 Public Certificate Safety
         run: node --test __tests__/training-phase6-public-certificate.test.mjs
 

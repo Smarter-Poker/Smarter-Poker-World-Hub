@@ -1,0 +1,71 @@
+{
+  "id": "study-group",
+  "name": "Study Group",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:01:52.626Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Study Group.\nSubject: Study Group: several different hands in dark sleeves gather around a shared black poker study table, each arranging a different part of the same chip exercise\nCamera: warm collaborative overhead scene, tightly cropped to hands and tabletop\nComposition: Hands enter naturally from three sides, a shared cobalt chip problem sits slightly right of center, and blank notebooks occupy corners. Candid human collaboration with natural hand anatomy, no visible faces, generated cards or writing.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Study Group: several different hands in dark sleeves gather around a shared black poker study table, each arranging a different part of the same chip exercise",
+  "camera": "warm collaborative overhead scene, tightly cropped to hands and tabletop",
+  "composition": "Hands enter naturally from three sides, a shared cobalt chip problem sits slightly right of center, and blank notebooks occupy corners. Candid human collaboration with natural hand anatomy, no visible faces, generated cards or writing.",
+  "source": {
+    "fileName": "exec-abf4841d-d3fb-4c5e-9e30-2cdb24ded1cf.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2630092,
+    "sha256": "70812a330806acbd998d7668e8dad02b039a69ceb64b150f3a62807537fd578f"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/study-group.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 33596,
+      "sha256": "281fbef71854a2674893b7f6d0cd2f3f940f70881c8b3231480ed408242c5525"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/study-group.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 30583,
+      "sha256": "6839cb2e6d1ababe3d511e4809e0bf585b53c3681e5e6b91870d7b6cf94928f3"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/study-group.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 68010,
+      "sha256": "ea25a2a409ae34f64712c673850529af41da4d9dd0f3e316fb0ffd30a2697df4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/study-group.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 59388,
+      "sha256": "9721e737239e95381030a95e87184c7c63a76651909bd17e05357c830581457b"
+    },
+    {
+      "path": "/images/training/approved-chrome/study-group.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 136096,
+      "sha256": "510179eb80c7dcca234783e30a987af2802b0654aa86c379e1f78d4d494789f8"
+    },
+    {
+      "path": "/images/training/approved-chrome/study-group.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 107879,
+      "sha256": "b40bb9711a726d09ac5eb561988ea05068a60aaaee059db967c6526300864acb"
+    }
+  ]
+}
