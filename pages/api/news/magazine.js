@@ -826,6 +826,8 @@ export default async function handler(req, res) {
                 coverSubheadline: body.coverSubheadline || '',
                 editorNote: body.editorNote || '',
                 pinnedVaultItemId: body.pinnedVaultItemId || '',
+                // Only an admin compile can override an editorial lock, and only on purpose.
+                force: body.force === true,
                 siteUrl,
             });
             const emailPreview = renderMonthlyMagazineCoverEmail({

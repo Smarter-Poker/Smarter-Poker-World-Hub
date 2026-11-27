@@ -41,7 +41,7 @@ export const MAGAZINE_SECTIONS = Object.freeze([
 
 export const MAGAZINE_TOC_GROUPS = Object.freeze([
     { key: 'features', label: 'Features & Cover Stories' },
-    { key: 'departments', label: 'Departments, POY & Final Table' },
+    { key: 'departments', label: 'Departments, Standings & Final Table' },
     { key: 'strategy', label: 'The Strategy Lab' },
 ]);
 
@@ -325,7 +325,12 @@ export function normalizeSignaturePageCount(rawCount, min = 36, max = 48) {
 export function formatChipsOnly(amount) {
     const num = Number(amount || 0);
     if (!Number.isFinite(num) || num <= 0) return '0 Chips';
-    return `${Math.round(num).toLocaleString('en-US')} Chips`;
+    // Club Arena buy-ins and pools can carry cents (31.50, 15,507.50), so a
+    // fractional amount keeps two decimals instead of rounding to a false total.
+    const text = Number.isInteger(num)
+        ? num.toLocaleString('en-US')
+        : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${text} Chips`;
 }
 
 /** Generic image the email-image route draws when a page has no real artwork. */
@@ -647,7 +652,7 @@ export function normalizeIssueManifest(raw = {}, fallbackIssue = {}) {
         ? m.pages.map((p, idx) => ({
               pageNumber: Number(p?.pageNumber) || idx + 1,
               kind: String(p?.kind || 'news_rail'),
-              department: stripMagazineDashes(p?.department || 'Departments, POY & Final Table'),
+              department: stripMagazineDashes(p?.department || 'Departments, Standings & Final Table'),
               tocGroup: p?.tocGroup || 'departments',
               runningHeader: stripMagazineDashes(p?.runningHeader || MAGAZINE_MASTHEAD),
               headline: stripMagazineDashes(p?.headline || ''),
@@ -674,6 +679,15 @@ export function normalizeIssueManifest(raw = {}, fallbackIssue = {}) {
                     : 'photo',
               imageCaption: stripMagazineDashes(p?.imageCaption || ''),
               imageCredit: stripMagazineDashes(p?.imageCredit || ''),
+              kicker: stripMagazineDashes(p?.kicker || ''),
+              standingsLabels:
+                  p?.standingsLabels && typeof p.standingsLabels === 'object'
+                      ? {
+                            rank: stripMagazineDashes(p.standingsLabels.rank || ''),
+                            player: stripMagazineDashes(p.standingsLabels.player || ''),
+                            value: stripMagazineDashes(p.standingsLabels.value || ''),
+                        }
+                      : null,
               leadItemIndex: Number.isInteger(p?.leadItemIndex) ? p.leadItemIndex : 0,
           }))
         : [];

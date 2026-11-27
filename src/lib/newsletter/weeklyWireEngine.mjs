@@ -113,6 +113,8 @@ export const KINGS_CLUB_UPCOMING_STATUSES = Object.freeze(['ANNOUNCED', 'REGISTE
 
 /** Kings Club (Club Code 25450) club row id in `public.clubs` / `public.tournaments.club_id`. */
 export const KINGS_CLUB_UUID = 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4';
+// Kings Club (25450) is a member of the Midway Union; its players enter the union's tournaments.
+export const MIDWAY_UNION_CLUB_UUID = 'fade0000-0000-0000-0000-000000000001';
 
 export async function loadRecentKingsClubWinners(sb, { nowMs = Date.now(), limit = 3 } = {}) {
     try {
