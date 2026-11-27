@@ -736,13 +736,16 @@ test('Stripe VIP webhook admits, atomically projects, reconciles, and only then 
     'a denied acquisition must confirm the full refund before cancellation'
   );
 
+  // Invoice events arrive in the account's API version, so the handlers read
+  // the subscription id from either event shape and hand the membership
+  // pipeline the invoice re-read through the pinned client (2026-11-27).
   assert.match(
     webhook,
-    /async function handleInvoicePaymentSucceeded\(invoice\)[\s\S]*handleStripeSubscriptionEvent\(invoice\.subscription, \{ triggerInvoice: invoice \}\)/
+    /async function handleInvoicePaymentSucceeded\(eventInvoice\)[\s\S]*const invoice = await pinnedEventInvoice\(eventInvoice\);[\s\S]*handleStripeSubscriptionEvent\(subscriptionId, \{ triggerInvoice: invoice \}\)/
   );
   assert.match(
     webhook,
-    /async function handleInvoicePaymentFailed\(invoice\)[\s\S]*handleStripeSubscriptionEvent\(invoice\.subscription\)/
+    /async function handleInvoicePaymentFailed\(eventInvoice\)[\s\S]*handleStripeSubscriptionEvent\(subscriptionId\)/
   );
   assert.match(
     webhook,
