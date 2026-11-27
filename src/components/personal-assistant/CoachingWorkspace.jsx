@@ -90,9 +90,9 @@ function Progress({ value, label }) {
   const bounded = Math.max(0, Math.min(100, number(value)));
   return (
     <div className={styles.progressWrap}>
-      <div className={styles.progressMeta}><span>{label}</span><strong>{bounded}%</strong></div>
-      <div className={styles.progressTrack} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={bounded}>
-        <span style={{ width: `${bounded}%` }} />
+      <div className={styles.progressMeta}><span>{label}</span><strong>{Math.round(bounded)}%</strong></div>
+      <div className={styles.progressTrack} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(bounded)}>
+        <span style={{ transform: `scaleX(${bounded / 100})` }} />
       </div>
     </div>
   );
@@ -824,7 +824,7 @@ export default function CoachingWorkspace({
                     disabled={saving}
                     onChange={(event) => toggleWeeklyDigest(event.target.checked)}
                     aria-label="Weekly Coaching Digest"
-                    style={{ width: 20, height: 20, minHeight: 20, margin: 0, cursor: 'pointer' }}
+                    style={{ width: 20, height: 20, minHeight: 20, margin: 0, cursor: 'pointer', accentColor: '#087cfa' }}
                   />
                   <span style={{ color: '#f1f5fc', fontSize: 13, fontWeight: 700 }}>
                     Weekly Coaching Digest
@@ -1190,7 +1190,11 @@ export default function CoachingWorkspace({
                   const basisKey = advice.evidenceBasis || 'general_coaching';
                   const rep = advice.representativeHand || {};
                   const samples = advice.sampleCounts || {};
-                  const rateOrNull = (value) => (value === null || value === undefined || !Number.isFinite(Number(value)) ? null : Number(value));
+                  const rateOrNull = (value) => {
+                    if (value === null || value === undefined || !Number.isFinite(Number(value))) return null;
+                    const rate = Number(value);
+                    return Number(rate.toFixed(1));
+                  };
                   const postRate = rateOrNull(mod.tableVerification?.postMistakeRate ?? mod.tableVerification?.postBaselineErrorRate);
                   const preRate = rateOrNull(mod.tableVerification?.preMistakeRate ?? mod.tableVerification?.preBaselineErrorRate);
                   const isVerifiedFixed = mod.tableVerification?.status === 'confirmed_fixed_at_tables';
@@ -1542,14 +1546,10 @@ export default function CoachingWorkspace({
                   </button>
                   {coverageGapsCopyState && (
                     <span
+                      className="pa-vh"
                       role="status"
                       aria-live="polite"
                       data-testid="copy-coverage-gaps-status"
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: coverageGapsCopyState === 'copied' ? '#4de0a5' : '#ff8290',
-                      }}
                     >
                       {coverageGapsCopyState === 'copied' ? 'Copied Harvest Queue' : 'Copy Failed'}
                     </span>

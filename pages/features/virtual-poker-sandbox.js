@@ -21,7 +21,7 @@ export default function VirtualPokerSandboxPage() {
       description: 'Connect Directly With Personal Assistant Leak Finder And Verified GTO Training To Audit Completed Hands With Anonymized Stateless Hand Review.',
     },
     {
-      title: 'Zero Download Web GL Engine',
+      title: 'Zero Download WebGL Engine',
       description: 'Runs Fluidly In All Modern Desktop And Mobile Web Browsers Without Installing Native Executables Or Heavy Desktop Plugins.',
     },
     {
@@ -59,7 +59,7 @@ export default function VirtualPokerSandboxPage() {
 
   const faqs = [
     {
-      question: 'Can I Run Multiway All-In Scenarios in The Sandbox?',
+      question: 'Can I Run Multiway All-In Scenarios In The Sandbox?',
       answer: 'Yes. The Sandbox Handles Multiway Hands With Up To 9 Players, Accurately Segmenting Main Pots And Side Pots While Computing Exact Equities.',
     },
     {
@@ -127,6 +127,23 @@ export default function VirtualPokerSandboxPage() {
           max-width: 100%;
           overflow-wrap: anywhere;
           word-break: break-word;
+        }
+        .virtual-sandbox-lander header a {
+          display: inline-flex !important;
+          align-items: center;
+          justify-content: center;
+          min-height: 44px;
+        }
+        .virtual-sandbox-lander button,
+        .virtual-sandbox-lander [aria-label="Solved Spot Permalink And Instant Share Bar"] a,
+        .virtual-sandbox-lander section[aria-label="Cite Or Link To This Research"] button,
+        .virtual-sandbox-lander section[aria-label="Cite Or Link To This Research"] a {
+          font-size: 12px !important;
+        }
+        .virtual-sandbox-lander a:focus-visible,
+        .virtual-sandbox-lander button:focus-visible {
+          outline: 2px solid #83deff;
+          outline-offset: 2px;
         }
         @media (max-width: 768px) {
           .virtual-sandbox-lander article {

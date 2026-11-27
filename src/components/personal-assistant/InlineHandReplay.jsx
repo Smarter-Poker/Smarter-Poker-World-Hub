@@ -25,7 +25,7 @@ const STREET_TAB_LABELS = Object.freeze({
 const SWIPE_THRESHOLD_PX = 48;
 
 const SUITS = { c: '♣', d: '♦', h: '♥', s: '♠' };
-const SUIT_COLORS = { c: '#2ECC71', d: '#3498DB', h: '#E74C3C', s: '#ECF0F1' };
+const SUIT_COLORS = { c: '#4DE0A5', d: '#56D8FF', h: '#FF6B7A', s: '#F1F5FC' };
 
 function parseCard(cardStr) {
   if (!cardStr || typeof cardStr !== 'string' || cardStr.length < 2) return null;
@@ -142,9 +142,10 @@ export function buildSolverFrequencyComparison(decision, { strategySupported = t
   };
 }
 
-function CardBadge({ card }) {
+function CardBadge({ card, variant = 'board' }) {
   const parsed = parseCard(card);
   if (!parsed) return null;
+  const isHero = variant === 'hero';
   return (
     <span
       style={{
@@ -155,10 +156,13 @@ function CardBadge({ card }) {
         minWidth: 32,
         height: 36,
         padding: '0 6px',
-        borderRadius: 4,
-        background: '#07111C',
-        border: '1px solid rgba(140, 161, 180, 0.24)',
-        borderTopColor: '#aec0d0',
+        borderRadius: 5,
+        background: isHero
+          ? 'linear-gradient(165deg, #0D1E32 0%, #07111C 72%, #040B13 100%)'
+          : 'linear-gradient(165deg, #0A1828 0%, #07111C 72%, #040A11 100%)',
+        border: isHero ? '1px solid rgba(86, 216, 255, 0.34)' : '1px solid rgba(140, 161, 180, 0.28)',
+        borderTopColor: isHero ? '#56d8ff' : '#aec0d0',
+        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.36)',
         color: parsed.color,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
         fontWeight: 800,
@@ -166,6 +170,7 @@ function CardBadge({ card }) {
         letterSpacing: -0.5,
       }}
       data-card={card}
+      data-card-variant={isHero ? 'hero' : 'board'}
     >
       <span>{parsed.rank}</span>
       <span style={{ fontSize: 13 }}>{parsed.suit}</span>
@@ -688,10 +693,14 @@ export default function InlineHandReplay({
                               }}
                             >
                               <div
+                                className="pa-progress-fill"
                                 data-testid="replay-optimal-frequency-fill"
                                 style={{
-                                  width: `${freqComparison.optimalFrequencyPct}%`,
+                                  width: '100%',
+                                  '--pa-target-width': `${freqComparison.optimalFrequencyPct}%`,
                                   height: '100%',
+                                  transform: `scaleX(${Math.max(0, Math.min(1, freqComparison.optimalFrequencyPct / 100))})`,
+                                  transformOrigin: 'left center',
                                   background: 'linear-gradient(90deg, #087cfa 0%, #56d8ff 100%)',
                                   borderRadius: 999,
                                 }}
@@ -722,10 +731,14 @@ export default function InlineHandReplay({
                                 }}
                               >
                                 <div
+                                  className="pa-progress-fill"
                                   data-testid="replay-hero-frequency-fill"
                                   style={{
-                                    width: `${freqComparison.heroFrequencyPct}%`,
+                                    width: '100%',
+                                    '--pa-target-width': `${freqComparison.heroFrequencyPct}%`,
                                     height: '100%',
+                                    transform: `scaleX(${Math.max(0, Math.min(1, freqComparison.heroFrequencyPct / 100))})`,
+                                    transformOrigin: 'left center',
                                     background: divergent
                                       ? 'linear-gradient(90deg, #d99b38 0%, #ffc66d 100%)'
                                       : 'linear-gradient(90deg, #1fa97c 0%, #4de0a5 100%)',
@@ -767,11 +780,11 @@ export default function InlineHandReplay({
             {streetBoard.length > 0 ? (
               <div style={{ display: 'flex', gap: 4 }}>
                 {streetBoard.map((c, i) => (
-                  <CardBadge key={`${c}-${i}`} card={c} />
+                  <CardBadge key={`${c}-${i}`} card={c} variant="board" />
                 ))}
               </div>
             ) : (
-              <span style={{ fontSize: 13, color: '#688299' }}>
+              <span style={{ fontSize: 13, color: '#9eb4c8' }}>
                 {activeStreet === 'preflop' ? 'None (Preflop)' : 'Board Not Recorded'}
               </span>
             )}
@@ -785,7 +798,7 @@ export default function InlineHandReplay({
               </span>
               <div style={{ display: 'flex', gap: 4 }}>
                 {heroCards.map((c, i) => (
-                  <CardBadge key={`hero-${c}-${i}`} card={c} />
+                  <CardBadge key={`hero-${c}-${i}`} card={c} variant="hero" />
                 ))}
               </div>
             </div>
@@ -876,6 +889,7 @@ export default function InlineHandReplay({
                 }}
                 type="button"
                 role="tab"
+                className="pa-btn pa-replay-tab"
                 id={`${baseId}-tab-${street}`}
                 data-street={street}
                 aria-selected={isSelected}

@@ -13,6 +13,7 @@
  * paKit BottomSheet so there is exactly one dialog implementation across Personal Assistant.
  */
 import React, { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { BottomSheet, PAStyles, Segmented } from '../sandbox/paKit';
 import { T, F, S, R, DISPLAY_FONT, btn, pill } from '../sandbox/paTokens';
@@ -161,6 +162,7 @@ function AuditResult({ result, onDismiss }) {
         Your Live Spots And Imported Hands Are Saved To Your Own Account.
         <a
           href="/auth/login"
+          className="pa-btn"
           style={{ ...btn('primary', { block: true }), marginTop: 10, textDecoration: 'none' }}
         >
           Sign In
@@ -191,7 +193,7 @@ function AuditResult({ result, onDismiss }) {
         {summary.unsupportedCount > 0 && (
           <span style={pill('warn')}>{summary.unsupportedCount} Unsupported</span>
         )}
-        <button type="button" onClick={onDismiss} style={{ ...btn('ghost'), marginLeft: 'auto', minHeight: 44 }} aria-label="Dismiss Audit Result">
+        <button type="button" className="pa-btn" onClick={onDismiss} style={{ ...btn('ghost'), marginLeft: 'auto', minHeight: 44 }} aria-label="Dismiss Audit Result">
           Dismiss
         </button>
       </div>
@@ -221,7 +223,7 @@ function AuditResult({ result, onDismiss }) {
         <p style={noteStyle}>This Audit Stopped Early. Run It Again To Finish Checking Every Decision.</p>
       )}
       {summary.drillHref && (
-        <a href={summary.drillHref} style={{ ...btn('secondary', { block: true }), textDecoration: 'none' }}>
+        <a href={summary.drillHref} className="pa-btn" style={{ ...btn('secondary', { block: true }), textDecoration: 'none' }}>
           Drill This Spot
         </a>
       )}
@@ -721,7 +723,8 @@ export default function LiveSpotQuickEntry({
         type="file"
         accept=".txt,.hh,.log"
         onChange={handleFileChange}
-        style={{ display: 'none' }}
+        className="pa-vh"
+        tabIndex={-1}
         id={id('file-input')}
         aria-label="Upload Hand History File"
       />
@@ -757,6 +760,7 @@ export default function LiveSpotQuickEntry({
               </strong>
               <button
                 type="button"
+                className="pa-btn"
                 onClick={handleCancelBulk}
                 style={{ ...btn('ghost'), minHeight: 44, color: T.danger }}
                 aria-label="Cancel Bulk Audit"
@@ -773,11 +777,14 @@ export default function LiveSpotQuickEntry({
               style={{ width: '100%', height: 6, background: '#06111e', borderRadius: 3, overflow: 'hidden' }}
             >
               <div
+                className="pa-progress-fill"
+                data-testid="live-spot-bulk-progress-fill"
                 style={{
-                  width: `${Math.round(((bulkProgress.completedBatches ?? 0) / bulkProgress.totalBatches) * 100)}%`,
+                  width: '100%',
                   height: '100%',
                   background: 'linear-gradient(90deg, #087cfa, #56d8ff)',
-                  transition: 'width 0.2s ease',
+                  transform: `scaleX(${Math.max(0, Math.min(1, (bulkProgress.completedBatches ?? 0) / Math.max(1, bulkProgress.totalBatches)))})`,
+                  transformOrigin: 'left center',
                 }}
               />
             </div>
@@ -857,6 +864,7 @@ export default function LiveSpotQuickEntry({
                       id={id('stack')}
                       type="text"
                       inputMode="decimal"
+                      placeholder="100"
                       value={spot.stackBb}
                       onChange={(event) => update({ stackBb: event.target.value.replace(/[^\d.]/g, '') })}
                       style={controlStyle}
@@ -955,7 +963,8 @@ export default function LiveSpotQuickEntry({
                     disabled={running || bulkProgress?.active}
                     style={{ ...btn('primary', { block: true, disabled: running || bulkProgress?.active }), minHeight: 48, fontFamily: DISPLAY_FONT }}
                   >
-                    <span>Review &amp; Action -&gt;</span>
+                    <span>Review &amp; Action</span>
+                    <ChevronRight size={16} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -1104,6 +1113,7 @@ export default function LiveSpotQuickEntry({
               </span>
               <button
                 type="button"
+                className="pa-btn"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={running || bulkProgress?.active}
                 style={{ ...btn('secondary'), minHeight: 44, padding: '8px 16px', cursor: 'pointer' }}
@@ -1157,7 +1167,7 @@ export default function LiveSpotQuickEntry({
                 borderTop: '1px solid rgba(140, 161, 180, 0.24)',
               }}
             >
-              <button type="submit" disabled={pasteBlocked || running || bulkProgress?.active} style={{ ...btn('primary', { block: true, disabled: pasteBlocked || running || bulkProgress?.active }), minHeight: 48, fontFamily: DISPLAY_FONT }}>
+              <button type="submit" className="pa-btn" disabled={pasteBlocked || running || bulkProgress?.active} style={{ ...btn('primary', { block: true, disabled: pasteBlocked || running || bulkProgress?.active }), minHeight: 48, fontFamily: DISPLAY_FONT }}>
                 {running ? 'Analyzing…' : 'Analyze Hand History'}
               </button>
             </div>

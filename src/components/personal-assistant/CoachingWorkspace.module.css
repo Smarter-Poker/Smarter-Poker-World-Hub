@@ -50,6 +50,7 @@
 .settingsGearBtn:focus-visible { outline: 2px solid #83deff; outline-offset: 2px; }
 
 .searchBar { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
+.searchBar:focus-within { border-color: #56d8ff; outline: 2px solid #83deff; outline-offset: 1px; }
 .searchBar svg { color: #9eb4c8; flex: none; }
 .searchBar input { min-height: 44px; border: 0; outline: 0; background: transparent; color: #f1f5fc; width: 100%; font: inherit; font-size: 16px; min-width: 0; }
 .searchBar input::placeholder { color: #9eb4c8; }
@@ -57,7 +58,7 @@
 .viewNav { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
 .viewNav button { position: relative; min-height: 44px; border: 0; border-right: 1px solid rgba(140, 161, 180, 0.16); border-bottom: 1px solid rgba(140, 161, 180, 0.16); background: linear-gradient(180deg, #152639 0%, #06111e 65%); color: #dce5ef; display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding: 6px 8px; font: 700 12px/1.15 "Rajdhani", "Roboto Condensed", "Arial Narrow", Arial, sans-serif; text-align: center; cursor: pointer; }
 .viewNav button:last-child { border-right: 0; }
-.viewNav button:focus-visible, .primaryButton:focus-visible, .secondaryButton:focus-visible, .priorityList > li > button:focus-visible, .leakPicker button:focus-visible, .overflowBtn:focus-visible { outline: 2px solid #83deff; outline-offset: -2px; }
+.viewNav button:focus-visible, .primaryButton:focus-visible, .secondaryButton:focus-visible, .priorityList > li > button:focus-visible, .leakPicker button:focus-visible, .overflowBtn:focus-visible, .goalList button:focus-visible, .removeDataButton:focus-visible, .claimButton:focus-visible, .sheetActionBtn:focus-visible, .inlineNotice button:focus-visible, .depthControl select:focus-visible { outline: 2px solid #83deff; outline-offset: -2px; }
 .viewNav .activeView { color: #ffffff; background: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%); }
 .viewNav .activeView::after { content: ""; position: absolute; inset: auto 6px 0; border-block-end: 3px solid #83deff; pointer-events: none; }
 .status { border: 1px solid rgba(77, 224, 165, .5); border-radius: 6px; padding: 10px 12px; background: rgba(77, 224, 165, .1); color: #68efb3; font-size: 13px; }
@@ -68,12 +69,6 @@
 
 .coachGrid, .evidenceGrid, .goalsGrid, .dataGrid, .progressReport { display: grid; gap: 12px; }
 .panel { padding: 14px; min-width: 0; }
-.hairlineSection {
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(140, 161, 180, 0.16);
-  min-width: 0;
-}
-.hairlineSection:last-child { border-bottom: 0; }
 
 .nextAction { border-color: rgba(86, 216, 255, 0.45); border-top-color: #b3eaff; background: radial-gradient(ellipse at 90% -40%, rgba(8, 124, 250, 0.22), transparent 60%), linear-gradient(180deg, #0b1929 0%, #05080c 100%); }
 .nextAction > strong { display: block; font-size: 17px; color: #ffffff; margin: 4px 0; }
@@ -234,7 +229,7 @@
 .progressWrap { margin: 10px 0; }
 .progressMeta { display: flex; justify-content: space-between; gap: 10px; color: #b6c8d6; font-size: 12px; }
 .progressTrack { height: 7px; margin-top: 5px; background: #040d18; border: 1px solid rgba(140, 161, 180, 0.24); border-radius: 999px; overflow: hidden; }
-.progressTrack span { display: block; height: 100%; background: linear-gradient(90deg, #087cfa, #4de0a5); }
+.progressTrack span { display: block; width: 100%; height: 100%; transform-origin: left center; background: linear-gradient(90deg, #087cfa, #4de0a5); }
 .reasonList li { display: flex; gap: 8px; align-items: flex-start; color: #b6c8d6; font-size: 13px; line-height: 1.4; }
 .reasonList svg { color: #4de0a5; flex: none; margin-top: 2px; }
 .evidenceChain { display: grid; gap: 0; margin-top: 10px; border-top: 1px solid rgba(140, 161, 180, 0.16); }
@@ -336,8 +331,89 @@
   flex-wrap: wrap;
   margin-top: 8px;
 }
+
+.primaryButton:hover:not(:disabled),
+.claimButton:hover:not(:disabled) {
+  border-color: #83deff;
+  filter: brightness(1.08);
+}
+
+.secondaryButton:hover:not(:disabled),
+.settingsGearBtn:hover:not(:disabled),
+.overflowBtn:hover:not(:disabled),
+.sheetActionBtn:hover:not(:disabled),
+.inlineNotice button:hover:not(:disabled),
+.priorityList > li > button:hover:not(:disabled),
+.leakPicker button:hover:not(:disabled),
+.depthControl select:hover:not(:disabled) {
+  border-color: rgba(86, 216, 255, 0.55);
+  color: #ffffff;
+}
+
+.goalList button:hover:not(:disabled) {
+  border-color: #68efb3;
+  background: rgba(77, 224, 165, 0.18);
+}
+
+.goalList .removeGoal:hover:not(:disabled),
+.removeDataButton:hover:not(:disabled) {
+  border-color: #ff9aa5;
+  background: rgba(255, 107, 122, 0.22);
+}
+
+.alertAction:hover {
+  color: #ffffff;
+  background: rgba(86, 216, 255, 0.08);
+}
+
+.goalList button:disabled,
+.sheetActionBtn:disabled,
+.inlineNotice button:disabled,
+.settingsGearBtn:disabled,
+.overflowBtn:disabled,
+.priorityList > li > button:disabled,
+.leakPicker button:disabled,
+.depthControl select:disabled,
+.alertAction:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .spin { animation: coach-spin 1s linear infinite; }
+  .progressTrack span {
+    transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .goalList button,
+  .removeDataButton,
+  .claimButton,
+  .sheetActionBtn,
+  .inlineNotice button,
+  .depthControl select,
+  .primaryButton,
+  .secondaryButton,
+  .settingsGearBtn,
+  .overflowBtn,
+  .priorityList > li > button,
+  .leakPicker button,
+  .alertAction {
+    transition: transform 0.12s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease, filter 0.14s ease;
+  }
+  .goalList button:active:not(:disabled),
+  .removeDataButton:active:not(:disabled),
+  .claimButton:active:not(:disabled),
+  .sheetActionBtn:active:not(:disabled),
+  .inlineNotice button:active:not(:disabled),
+  .depthControl select:active:not(:disabled),
+  .primaryButton:active:not(:disabled),
+  .secondaryButton:active:not(:disabled),
+  .settingsGearBtn:active:not(:disabled),
+  .overflowBtn:active:not(:disabled),
+  .priorityList > li > button:active:not(:disabled),
+  .leakPicker button:active:not(:disabled),
+  .alertAction:active:not(:disabled) {
+    transform: scale(0.985);
+  }
 }
 @keyframes coach-spin { to { transform: rotate(360deg); } }
 
@@ -349,7 +425,7 @@
   .goalActions { display: grid; grid-template-columns: 1fr; }
   .actionRow > * { width: 100%; }
   .reportMetrics { grid-template-columns: 1fr; }
-  .panel {
+  .panel:not(.dangerPanel) {
     border-left: 0;
     border-right: 0;
     border-top: 0;

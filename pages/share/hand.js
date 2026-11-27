@@ -1,7 +1,7 @@
 /**
  * Share Hand Landing Page
  * /share/hand?hero=Ah,Kh&board=Qh,Jh,Th&result=Won&amount=+$1250&...
- * 
+ *
  * Displays the OG image as a card with CTA to sign up / explore more.
  * Includes proper OG meta tags for social sharing.
  *
@@ -12,16 +12,62 @@
  */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const SUITS = { c: '♣', d: '♦', h: '♥', s: '♠' };
-const SUIT_COLORS = { c: '#2ECC71', d: '#3498DB', h: '#E74C3C', s: '#ECF0F1' };
+const SUIT_COLORS = { c: '#4DE0A5', d: '#56D8FF', h: '#FF6B7A', s: '#F1F5FC' };
 
 function parseCard(str) {
     if (!str || str.length < 2) return null;
     const rank = str.slice(0, -1).replace('T', '10');
     const s = str.slice(-1).toLowerCase();
-    return { rank, suit: SUITS[s] || '?', color: SUIT_COLORS[s] || '#fff' };
+    return { rank, suit: SUITS[s] || '?', color: SUIT_COLORS[s] || '#F1F5FC' };
+}
+
+function PlayingCard({ card, variant = 'hero' }) {
+    const isBoard = variant === 'board';
+    return (
+        <div
+            data-playing-card={variant}
+            style={{
+                width: isBoard ? 48 : 64,
+                height: isBoard ? 68 : 90,
+                borderRadius: isBoard ? 8 : 10,
+                background: isBoard
+                    ? 'linear-gradient(155deg, #0c1b2c 0%, #06101b 100%)'
+                    : 'linear-gradient(155deg, #102235 0%, #07111c 100%)',
+                border: isBoard
+                    ? '1px solid rgba(140, 161, 180, 0.28)'
+                    : '1px solid rgba(86, 216, 255, 0.36)',
+                borderTopColor: isBoard ? '#aec0d0' : '#b3eaff',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: isBoard
+                    ? '0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
+                    : '0 8px 20px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
+            }}
+        >
+            <span style={{
+                fontSize: isBoard ? 20 : 26,
+                fontWeight: isBoard ? 800 : 900,
+                color: card.color,
+                lineHeight: 1.05,
+                fontVariantNumeric: 'tabular-nums',
+            }}>
+                {card.rank}
+            </span>
+            <span style={{
+                fontSize: isBoard ? 16 : 22,
+                color: card.color,
+                marginTop: isBoard ? -2 : -4,
+                lineHeight: 1,
+            }}>
+                {card.suit}
+            </span>
+        </div>
+    );
 }
 
 const REVIEW_CARD = /^(?:10|[2-9TJQKA])[shdc]$/i;
@@ -84,6 +130,8 @@ export default function ShareHandPage({ initialQuery = {} }) {
     const position = scalarParam(resolvedQuery.position);
     const anon = scalarParam(resolvedQuery.anon);
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const imgRef = useRef(null);
     const isReview = view === 'review';
 
     // Review links: explicit parameters only. Hole cards show only when exactly two valid cards were passed.
@@ -140,12 +188,56 @@ export default function ShareHandPage({ initialQuery = {} }) {
         ? (reviewDetails.length ? `${reviewTitle} (${reviewDetails.join(', ')})` : reviewTitle)
         : `${player || 'Player'}'s poker hand`;
 
+    useEffect(() => {
+        setImageError(false);
+        if (imgRef.current?.complete) {
+            if (imgRef.current.naturalWidth > 0) {
+                setImageLoaded(true);
+            } else {
+                setImageLoaded(true);
+            }
+        }
+    }, [ogImageUrl]);
+
     const title = isReview
         ? `${reviewTitle} | Smarter.Poker`
         : `${player || 'Player'} ${result || 'played'} at ${venue || 'Poker'} - ${amount || ''} | Smarter.Poker`;
     const description = isReview
         ? `Read-only poker hand review${reviewDetails.length ? ` - ${reviewDetails.join(' - ')}` : ''}. Analyze your own hands with the Smarter.Poker Personal Assistant.`
         : `${hand ? hand + ' - ' : ''}${stakes || 'Cash Game'} at ${venue || 'Live Poker'}. Pot: ${pot || '?'}. See the full hand analysis on Smarter.Poker!`;
+
+    const primaryCtaStyle = {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '12px 28px',
+        minHeight: 44,
+        borderRadius: 10,
+        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%)',
+        border: '1px solid #56d8ff',
+        borderTopColor: '#b3eaff',
+        color: '#ffffff',
+        fontWeight: 800,
+        fontSize: 16,
+        textDecoration: 'none',
+        boxShadow: '0 8px 24px rgba(8, 124, 250, 0.32)',
+    };
+
+    const secondaryCtaStyle = {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '12px 28px',
+        minHeight: 44,
+        borderRadius: 10,
+        background: 'linear-gradient(180deg, #152639 0%, #06111e 65%)',
+        border: '1px solid rgba(140, 161, 180, 0.28)',
+        borderTopColor: '#aec0d0',
+        color: '#dce5ef',
+        fontWeight: 700,
+        fontSize: 16,
+        textDecoration: 'none',
+    };
 
     return (
         <>
@@ -167,63 +259,95 @@ export default function ShareHandPage({ initialQuery = {} }) {
                 <meta key="viewport" name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
                 {isReview && <meta key="robots" name="robots" content="noindex,nofollow" />}
             </Head>
-            <div style={{
-                minHeight: '100vh',
-                background: 'linear-gradient(135deg, #0a0a1e 0%, #1a1a3e 40%, #0d0d2e 100%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '24px 16px',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            }}>
+            <main
+                className="share-hand-page"
+                style={{
+                    minHeight: '100dvh',
+                    overflowX: 'clip',
+                    background: 'linear-gradient(180deg, #05080c 0%, #040d18 48%, #020407 100%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '24px 16px',
+                    paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+                    color: '#f1f5fc',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                }}
+            >
                 {/* Logo */}
                 <div style={{
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: 800,
-                    color: '#FFD700',
-                    letterSpacing: 1,
-                    marginBottom: 32,
+                    color: '#f1f5fc',
+                    letterSpacing: '0.08em',
+                    marginBottom: 24,
                     textAlign: 'center',
                 }}>
                     SMARTER.POKER
                 </div>
 
                 {/* Card Image */}
-                <div style={{
-                    maxWidth: 520,
-                    width: '100%',
-                    borderRadius: 16,
-                    overflow: 'hidden',
-                    boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 0 1px rgba(255,215,0,0.3)',
-                    border: '1px solid rgba(255,215,0,0.2)',
-                    marginBottom: 32,
-                    opacity: imageLoaded ? 1 : 0.5,
-                    transition: 'opacity 0.3s ease',
-                }}>
-                    <img
-                        src={ogImageUrl}
-                        alt={imageAlt}
-                        style={{ width: '100%', height: 'auto', display: 'block' }}
-                        onLoad={() => setImageLoaded(true)}
-                    />
+                <div
+                    className="share-cardFrame"
+                    style={{
+                        maxWidth: 520,
+                        width: '100%',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        background: 'linear-gradient(145deg, #091727, #05080c 74%)',
+                        boxShadow: '0 24px 64px rgba(0, 0, 0, 0.65), 0 0 1px rgba(86, 216, 255, 0.28)',
+                        border: '1px solid rgba(140, 161, 180, 0.28)',
+                        borderTopColor: '#aec0d0',
+                        marginBottom: 28,
+                        opacity: imageLoaded || imageError ? 1 : 0.78,
+                        transition: 'opacity 0.25s ease',
+                    }}
+                >
+                    {!imageError ? (
+                        <img
+                            ref={imgRef}
+                            src={ogImageUrl}
+                            alt={imageAlt}
+                            style={{ width: '100%', height: 'auto', display: 'block' }}
+                            onLoad={() => setImageLoaded(true)}
+                            onError={() => {
+                                setImageError(true);
+                                setImageLoaded(true);
+                            }}
+                        />
+                    ) : (
+                        <div
+                            data-testid="share-image-fallback"
+                            style={{
+                                padding: '24px 16px',
+                                textAlign: 'center',
+                                color: '#b6c8d6',
+                                fontSize: 13,
+                                fontWeight: 700,
+                            }}
+                        >
+                            Hand Preview Card
+                        </div>
+                    )}
                 </div>
 
                 {/* Hand details text */}
-                <div style={{ textAlign: 'center', marginBottom: 32, maxWidth: 500 }}>
-                    <div style={{
+                <div style={{ textAlign: 'center', marginBottom: 28, maxWidth: 500 }}>
+                    <h1 style={{
                         fontSize: 22,
-                        fontWeight: 700,
-                        color: '#E4E6EB',
-                        marginBottom: 8,
+                        fontWeight: 800,
+                        color: '#f1f5fc',
+                        margin: '0 0 8px',
+                        lineHeight: 1.2,
                     }}>
                         {isReview ? reviewTitle : `${player || 'A Smarter Player'} ${isWin ? 'Won' : 'Played'} ${amount || ''}`}
-                    </div>
+                    </h1>
                     {!isReview && hand && (
                         <div style={{
                             fontSize: 16,
-                            color: '#FFD700',
-                            fontWeight: 600,
+                            color: '#83deff',
+                            fontWeight: 700,
                             marginBottom: 4,
                         }}>
                             {hand}
@@ -231,7 +355,7 @@ export default function ShareHandPage({ initialQuery = {} }) {
                     )}
                     <div style={{
                         fontSize: 14,
-                        color: 'rgba(255,255,255,0.5)',
+                        color: '#b6c8d6',
                     }}>
                         {isReview
                             ? (reviewDetails.join(' · ') || 'Details Not Shared')
@@ -242,44 +366,26 @@ export default function ShareHandPage({ initialQuery = {} }) {
                 {/* Review links: explicit cards only, opponents anonymized */}
                 {isReview && (
                     <div
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 40, maxWidth: 500, textAlign: 'center' }}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 36, maxWidth: 500, textAlign: 'center' }}
                         data-share-review="true"
                     >
                         {heroCards.length > 0 ? (
                             <div style={{ display: 'flex', gap: 8 }} aria-label="Hole Cards">
                                 {heroCards.map((c, i) => (
-                                    <div key={i} style={{
-                                        width: 64, height: 90, borderRadius: 10,
-                                        background: 'linear-gradient(135deg, #1a1a3e, #2a2a5e)',
-                                        border: '2px solid rgba(255,215,0,0.3)',
-                                        display: 'flex', flexDirection: 'column',
-                                        alignItems: 'center', justifyContent: 'center',
-                                    }}>
-                                        <span style={{ fontSize: 26, fontWeight: 900, color: c.color }}>{c.rank}</span>
-                                        <span style={{ fontSize: 22, color: c.color, marginTop: -4 }}>{c.suit}</span>
-                                    </div>
+                                    <PlayingCard key={i} card={c} variant="hero" />
                                 ))}
                             </div>
                         ) : (
-                            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>Hole Cards Hidden By The Player</div>
+                            <div style={{ fontSize: 14, color: '#dce5ef' }}>Hole Cards Hidden By The Player</div>
                         )}
                         {boardCards.length > 0 && (
                             <div style={{ display: 'flex', gap: 6 }} aria-label="Board">
                                 {boardCards.map((c, i) => (
-                                    <div key={i} style={{
-                                        width: 48, height: 68, borderRadius: 8,
-                                        background: 'linear-gradient(135deg, #0d0d2e, #1a1a3e)',
-                                        border: '1px solid rgba(255,255,255,0.12)',
-                                        display: 'flex', flexDirection: 'column',
-                                        alignItems: 'center', justifyContent: 'center',
-                                    }}>
-                                        <span style={{ fontSize: 20, fontWeight: 800, color: c.color }}>{c.rank}</span>
-                                        <span style={{ fontSize: 16, color: c.color, marginTop: -2 }}>{c.suit}</span>
-                                    </div>
+                                    <PlayingCard key={i} card={c} variant="board" />
                                 ))}
                             </div>
                         )}
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ fontSize: 13, color: '#9eb4c8' }}>
                             {reviewAnonymized ? 'Opponents: Anonymized Villain' : 'Opponent Names Are Not Included In This Link'}
                         </div>
                     </div>
@@ -290,41 +396,22 @@ export default function ShareHandPage({ initialQuery = {} }) {
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 24,
-                        marginBottom: 40,
+                        gap: 20,
+                        marginBottom: 36,
                         flexWrap: 'wrap',
                         justifyContent: 'center',
                     }}>
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 8 }} aria-label="Hole Cards">
                             {heroCards.map((c, i) => (
-                                <div key={i} style={{
-                                    width: 64, height: 90, borderRadius: 10,
-                                    background: 'linear-gradient(135deg, #1a1a3e, #2a2a5e)',
-                                    border: '2px solid rgba(255,215,0,0.3)',
-                                    display: 'flex', flexDirection: 'column',
-                                    alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-                                }}>
-                                    <span style={{ fontSize: 26, fontWeight: 900, color: c.color }}>{c.rank}</span>
-                                    <span style={{ fontSize: 22, color: c.color, marginTop: -4 }}>{c.suit}</span>
-                                </div>
+                                <PlayingCard key={i} card={c} variant="hero" />
                             ))}
                         </div>
                         {boardCards.length > 0 && (
                             <>
-                                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }}>Vs</div>
-                                <div style={{ display: 'flex', gap: 6 }}>
+                                <div style={{ color: '#9eb4c8', fontSize: 18, fontWeight: 700 }}>Vs</div>
+                                <div style={{ display: 'flex', gap: 6 }} aria-label="Board">
                                     {boardCards.map((c, i) => (
-                                        <div key={i} style={{
-                                            width: 48, height: 68, borderRadius: 8,
-                                            background: 'linear-gradient(135deg, #0d0d2e, #1a1a3e)',
-                                            border: '1px solid rgba(255,255,255,0.12)',
-                                            display: 'flex', flexDirection: 'column',
-                                            alignItems: 'center', justifyContent: 'center',
-                                        }}>
-                                            <span style={{ fontSize: 20, fontWeight: 800, color: c.color }}>{c.rank}</span>
-                                            <span style={{ fontSize: 16, color: c.color, marginTop: -2 }}>{c.suit}</span>
-                                        </div>
+                                        <PlayingCard key={i} card={c} variant="board" />
                                     ))}
                                 </div>
                             </>
@@ -337,69 +424,78 @@ export default function ShareHandPage({ initialQuery = {} }) {
                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
                         <a
                             href="/hub/personal-assistant"
-                            style={{
-                                padding: '14px 32px',
-                                minHeight: 44,
-                                borderRadius: 12,
-                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                                color: '#000',
-                                fontWeight: 800,
-                                fontSize: 16,
-                                textDecoration: 'none',
-                                boxShadow: '0 4px 20px rgba(255,215,0,0.3)',
-                            }}
+                            className="share-ctaPrimary"
+                            style={primaryCtaStyle}
                         >
                             Analyze Your Own Hands
                         </a>
                     </div>
                 ) : (
-                <>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <a
-                        href="https://smarter.poker/hub"
-                        style={{
-                            padding: '14px 32px',
-                            borderRadius: 12,
-                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                            color: '#000',
-                            fontWeight: 800,
-                            fontSize: 16,
-                            textDecoration: 'none',
-                            boxShadow: '0 4px 20px rgba(255,215,0,0.3)',
-                            transition: 'transform 0.2s ease',
-                        }}
-                    >
-                        Join Smarter.Poker
-                    </a>
-                    <a
-                        href="https://smarter.poker/hub/poker-near-me/lobby"
-                        style={{
-                            padding: '14px 32px',
-                            borderRadius: 12,
-                            background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            color: '#E4E6EB',
-                            fontWeight: 700,
-                            fontSize: 16,
-                            textDecoration: 'none',
-                        }}
-                    >
-                        Find Games Near You
-                    </a>
-                </div>
-                </>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <a
+                            href="https://smarter.poker/hub"
+                            className="share-ctaPrimary"
+                            style={primaryCtaStyle}
+                        >
+                            Join Smarter.Poker
+                        </a>
+                        <a
+                            href="https://smarter.poker/hub/poker-near-me/lobby"
+                            className="share-ctaSecondary"
+                            style={secondaryCtaStyle}
+                        >
+                            Find Games Near You
+                        </a>
+                    </div>
                 )}
 
                 {/* Footer */}
                 <div style={{
                     marginTop: 48,
                     fontSize: 12,
-                    color: 'rgba(255,255,255,0.2)',
+                    color: '#9eb4c8',
                     textAlign: 'center',
                 }}>
                     The #1 Poker Intelligence Platform - Track, Train, Dominate.
                 </div>
-            </div>
+            </main>
+            <style jsx>{`
+                .share-ctaPrimary,
+                .share-ctaSecondary {
+                    transition: transform 0.14s ease, filter 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+                }
+                .share-ctaPrimary:hover {
+                    filter: brightness(1.1);
+                    box-shadow: 0 10px 28px rgba(86, 216, 255, 0.36);
+                }
+                .share-ctaSecondary:hover {
+                    border-color: #56d8ff !important;
+                    color: #ffffff !important;
+                    filter: brightness(1.08);
+                }
+                @media (prefers-reduced-motion: no-preference) {
+                    .share-ctaPrimary:active,
+                    .share-ctaSecondary:active {
+                        transform: scale(0.985);
+                    }
+                }
+                .share-ctaPrimary:focus-visible,
+                .share-ctaSecondary:focus-visible {
+                    outline: 2px solid #83deff;
+                    outline-offset: 2px;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .share-ctaPrimary,
+                    .share-ctaSecondary,
+                    .share-cardFrame {
+                        transition: none !important;
+                    }
+                    .share-ctaPrimary:active,
+                    .share-ctaSecondary:active {
+                        transform: none !important;
+                    }
+                }
+            `}</style>
         </>
     );
 }
