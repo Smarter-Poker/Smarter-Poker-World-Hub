@@ -350,16 +350,15 @@ test('Personal Assistant landing page satisfies optimize-image-priority LCP stan
   assert.equal(getJsxAttrStringValue(subjectSvg, 'preserveAspectRatio'), 'xMidYMid meet', 'subjects cannot scale their axes independently');
   const artBoxes = variableInitializer(artSource, 'ART');
   assert.deepEqual(new Function(`return (${artSource.slice(artBoxes.start, artBoxes.end)});`)(), {
-    review: [89, 220, 489, 238], sandbox: [89, 490, 507, 164], leaks: [89, 681, 391, 94],
+    review: [0, 0, 960, 540], sandbox: [89, 490, 507, 164], leaks: [0, 0, 960, 540],
     log: [137, 797, 153, 113], coaching: [666, 792, 123, 119], settings: [955, 155, 35, 35],
     target: [604, 330, 34, 34], check: [940, 708, 38, 38],
-  }, 'illustrations use the actual approved-reference coordinates');
-  for (const image of getJsxElementsByName(artSource, 'image')) {
-    assert.equal(getJsxAttrStringValue(image, 'width'), '1249');
-    assert.equal(getJsxAttrStringValue(image, 'height'), '1061');
-  }
-  assert.match(artSource, /kind === 'sandbox' \|\| kind === 'leaks' \? CARDS : APPROVED_LANDING_SPRITE/);
+  }, 'illustrations use standalone 960x540 cards for review/leaks and approved-reference coordinates for sprite subjects');
+  assert.match(artSource, /review-my-play-art\.webp/);
+  assert.match(artSource, /my-leaks-art\.webp/);
   assert.match(artSource, /approved-card-edit-sprite\.webp/);
+  assert.ok(fs.existsSync(path.join(ROOT, 'public/images/personal-assistant/review-my-play-art.webp')), 'review-my-play-art.webp exists');
+  assert.ok(fs.existsSync(path.join(ROOT, 'public/images/personal-assistant/my-leaks-art.webp')), 'my-leaks-art.webp exists');
   const sprite = fs.readFileSync(path.join(ROOT, 'public/images/personal-assistant/approved-layout-sprite.webp'));
   assert.equal(createHash('sha256').update(sprite).digest('hex'), '30ea73e7b35c12906fd44aa59ce6b34fe3bf49889df9b1442f5b07a811016655', 'unchanged approved-reference artwork identity');
   assert.match(src, /Ace Of Hearts, Four Of Spades, And Five Of Spades/);

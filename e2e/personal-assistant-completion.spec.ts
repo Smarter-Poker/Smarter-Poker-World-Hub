@@ -68,10 +68,15 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
   await expect.poll(() => footer.evaluate(element => ({ position: getComputedStyle(element).position, bottom: Math.round(element.getBoundingClientRect().bottom - innerHeight) }))).toEqual({ position: 'fixed', bottom: 0 });
   const sprite = '/images/personal-assistant/approved-layout-sprite.webp';
   const cardSprite = '/images/personal-assistant/approved-card-edit-sprite.webp';
+  const reviewArt = '/images/personal-assistant/review-my-play-art.webp';
+  const leaksArt = '/images/personal-assistant/my-leaks-art.webp';
   await expect(page.locator(`link[rel="preload"][as="image"][href="${sprite}"]`)).toHaveAttribute('fetchpriority', 'high');
-  for (const [kind, viewBox, source] of [
-    ['review', '89 220 489 238', sprite], ['sandbox', '89 490 507 164', cardSprite],
-    ['leaks', '89 681 391 94', cardSprite], ['log', '137 797 153 113', sprite], ['coaching', '666 792 123 119', sprite],
+  for (const [kind, viewBox, source, canvasW, canvasH, intrinsicSize] of [
+    ['review', '0 0 960 540', reviewArt, '960', '540', { width: 960, height: 540 }],
+    ['sandbox', '89 490 507 164', cardSprite, '1249', '1061', { width: 1360, height: 1156 }],
+    ['leaks', '0 0 960 540', leaksArt, '960', '540', { width: 960, height: 540 }],
+    ['log', '137 797 153 113', sprite, '1249', '1061', { width: 1249, height: 1061 }],
+    ['coaching', '666 792 123 119', sprite, '1249', '1061', { width: 1249, height: 1061 }],
   ] as const) {
     const art = main.locator(`svg[data-approved-illustration="${kind}"]`);
     await art.scrollIntoViewIfNeeded();
@@ -80,8 +85,8 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
     await expect(art).toHaveAttribute('preserveAspectRatio', 'xMidYMid meet');
     const image = art.locator('image');
     await expect(image).toHaveAttribute('href', source);
-    await expect(image).toHaveAttribute('width', '1249');
-    await expect(image).toHaveAttribute('height', '1061');
+    await expect(image).toHaveAttribute('width', canvasW);
+    await expect(image).toHaveAttribute('height', canvasH);
     await expect(image).toHaveAttribute('clip-path', /^url\(#.+\)$/);
     const [vx, vy, vw, vh] = viewBox.split(' ');
     const clipRect = art.locator('clipPath rect');
@@ -89,7 +94,6 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
     await expect(clipRect).toHaveAttribute('y', vy);
     await expect(clipRect).toHaveAttribute('width', vw);
     await expect(clipRect).toHaveAttribute('height', vh);
-    const intrinsicSize = source === cardSprite ? { width: 1360, height: 1156 } : { width: 1249, height: 1061 };
     await expect.poll(() => image.evaluate(async (element: SVGImageElement) => {
       const decoded = new Image();
       decoded.src = element.href.baseVal;
@@ -132,6 +136,16 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
   await expect(page.getByRole('region', { name: 'Poker Table', exact: true })).toBeVisible();
   await expect(page.locator('[data-arena-table="true"]')).toBeVisible();
   await expect(page.locator('img[data-arena-table-skin="true"]')).toHaveAttribute('src', /\/hub\/table-theme\/tables\/skin_/);
+  await expect(page.locator('[data-arena-pot="true"]')).toBeVisible();
+  await expect(page.locator('[data-arena-board="true"]')).toBeVisible();
+  await expect(page.locator('[data-arena-hero-cards="true"]')).toBeVisible();
+  await expect(page.locator('[data-arena-dealer-button="true"]')).toBeVisible();
+  const actionBar = page.locator('[data-arena-action-bar="true"]');
+  await expect(actionBar).toBeVisible();
+  const potBefore = await page.locator('[data-arena-pot="true"]').innerText();
+  await activate(actionBar.getByRole('button', { name: /^Bet\b/ }));
+  await expect(page.locator('[data-arena-seat-bet="hero"]')).toBeVisible();
+  await expect.poll(() => page.locator('[data-arena-pot="true"]').innerText()).not.toEqual(potBefore);
   await activate(main.getByRole('link', { name: 'Back To Personal Assistant', exact: true }));
 
   await activate(main.locator('svg[data-approved-illustration="leaks"]'));
@@ -142,6 +156,7 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
   await activate(main.getByRole('link', { name: /^My Coaching Plan/ }));
   await expect(page).toHaveURL(/\/hub\/personal-assistant\/leaks\?tab=plan$/);
   await expect(page.locator('#leak-coaching')).toBeVisible();
+  await page.waitForTimeout(200);
   await openLanding(page);
 
   await activate(main.getByRole('button', { name: 'Review Settings', exact: true }));

@@ -81,6 +81,7 @@
 }
 .featureCtaPrimary { min-height: 74px; background: linear-gradient(180deg, #08a6ff 0%, #0051fa 18%, #0020c8 47%, #00053d 83%, #093477 100%); }
 .featureCtaSecondary { background: linear-gradient(180deg, #555d61 0%, #0c1216 22%, #000 65%, #101820 100%); }
+.featureCardPrimary .featureArtWrap { border-radius: 12px; overflow: hidden; background: #040a12; }
 .featureCardSandbox .featureArtWrap { margin: 12px -18px 9px 11px; }
 .featureCardSandbox .featureBody { padding: 9px 28px 19px 38px; }
 .featureCardSandbox .featureTitle { letter-spacing: 0.025em; }
@@ -88,7 +89,7 @@
 .featureCardSandbox .featureActions { margin-right: 17px; }
 .featureCardSandbox .featureActions { margin-top: 10px; }
 .featureCardLeaks .featureBody { padding: 3px 0 3px 15px; gap: 0; }
-.featureCardLeaks .featureArtWrap { margin: 11px 0 12px 11px; }
+.featureCardLeaks .featureArtWrap { margin: 11px 0 12px 11px; border-radius: 12px; overflow: hidden; background: #040a12; }
 .featureCardLeaks .featureTitle { font-size: clamp(1.75rem, 3.1vw, 2.4375rem); }
 .featureCardLeaks .featureSubtitle { font-size: clamp(0.875rem, 1.5vw, 1.15625rem); white-space: nowrap; }
 .featureCardLeaks .featureActions { margin: 0; }
@@ -204,7 +205,7 @@
   .featureCard { grid-template-columns: minmax(0, 1fr); }
   .featureArtWrap { margin: 0 5px; aspect-ratio: 2.15 / 1; }
   .featureArtWrap::after { top: auto; left: 8%; right: 8%; bottom: 0; width: auto; height: 2px; transform: none; background: linear-gradient(90deg, transparent, #688e9c, #0ad6ff, #688e9c, transparent); box-shadow: 0 2px 9px #00bbef38; }
-  .featureCardPrimary .featureArtWrap { aspect-ratio: 2 / 1; }
+  .featureCardPrimary .featureArtWrap { aspect-ratio: 16 / 9; margin: 10px 10px 0; border-radius: 14px; overflow: hidden; background: #040a12; }
   .featureCardSandbox .featureArtWrap { aspect-ratio: 2.65 / 1; }
   .featureBody { padding: 13px 17px 18px; gap: 5px; }
   .featureCardSandbox .featureBody { padding: 13px 17px 18px; }
@@ -217,7 +218,7 @@
   .featureActions { margin: 8px 0 0; }
   .page .featureCtaPrimary, .page .featureCtaSecondary { min-height: 56px; font-size: 1.75rem; }
   .featureCardLeaks { grid-template-columns: minmax(0, 1fr); }
-  .featureCardLeaks .featureArtWrap { grid-row: auto; aspect-ratio: 3.2 / 1; margin: 0 5px; }
+  .featureCardLeaks .featureArtWrap { grid-row: auto; aspect-ratio: 16 / 9; margin: 10px 10px 0; border-radius: 14px; overflow: hidden; background: #040a12; }
   .featureCardLeaks .featureBody { padding: 10px 17px 0; gap: 3px; }
   .page .featureCardLeaks .featureTitle { font-size: 1.75rem !important; }
   .featureCardLeaks .featureSubtitle { font-size: 0.875rem; }

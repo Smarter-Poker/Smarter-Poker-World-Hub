@@ -5,11 +5,18 @@ import { useId } from 'react';
 // controls. The separate card edit changes only the requested card faces.
 export const APPROVED_LANDING_SPRITE = '/images/personal-assistant/approved-layout-sprite.webp';
 const CARDS = '/images/personal-assistant/approved-card-edit-sprite.webp';
+export const REVIEW_PLAY_ART = '/images/personal-assistant/review-my-play-art.webp';
+export const MY_LEAKS_ART = '/images/personal-assistant/my-leaks-art.webp';
+
+const STANDALONE_ART = {
+  review: { href: REVIEW_PLAY_ART, width: 960, height: 540 },
+  leaks: { href: MY_LEAKS_ART, width: 960, height: 540 },
+};
 
 const ART = {
-  review: [89, 220, 489, 238],
+  review: [0, 0, 960, 540],
   sandbox: [89, 490, 507, 164],
-  leaks: [89, 681, 391, 94],
+  leaks: [0, 0, 960, 540],
   log: [137, 797, 153, 113],
   coaching: [666, 792, 123, 119],
   settings: [955, 155, 35, 35],
@@ -20,6 +27,10 @@ const ART = {
 export function ApprovedIllustration({ kind, className, label }) {
   const clipId = useId();
   const [x, y, width, height] = ART[kind];
+  const standalone = STANDALONE_ART[kind];
+  const href = standalone ? standalone.href : (kind === 'sandbox' ? CARDS : APPROVED_LANDING_SPRITE);
+  const imgWidth = standalone ? standalone.width : 1249;
+  const imgHeight = standalone ? standalone.height : 1061;
   return (
     <svg
       className={className}
@@ -37,9 +48,9 @@ export function ApprovedIllustration({ kind, className, label }) {
         </clipPath>
       </defs>
       <image
-        href={kind === 'sandbox' || kind === 'leaks' ? CARDS : APPROVED_LANDING_SPRITE}
-        width="1249"
-        height="1061"
+        href={href}
+        width={imgWidth}
+        height={imgHeight}
         clipPath={`url(#${clipId})`}
       />
     </svg>
