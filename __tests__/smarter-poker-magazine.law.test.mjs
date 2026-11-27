@@ -2812,3 +2812,12 @@ test('MAG LAW 30: printed strategy spots are card-accurate (no duplicate cards, 
         assert.match(spot.situation, new RegExp(`${wrap[1]}-out wrap`, 'i'), `${spot.slug}: the situation text matches the title's out count`);
     }
 });
+
+test('MAG LAW 31: the Strategy Lab table art fills the space left on the page and is left out, never squeezed, when the page is full', () => {
+    const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
+    const css = read('src/components/magazine/magazine-print.css');
+    assert.match(renderer, /<Figure src=\{spotCard\} mode=\{mode\} fill contain /, 'the spot art is a fill figure');
+    assert.doesNotMatch(renderer, /<Figure src=\{spotCard\}[^>]*ratio=/, 'the spot art never forces a fixed ratio that a full page crushes');
+    assert.match(css, /\.spm-figure--fill \{[^}]*container-type: size;/, 'a fill figure is a size container');
+    assert.match(css, /@container \(min-aspect-ratio: 9 \/ 2\) \{\s*\.spm-figure--fill \.spm-figure__frame \{\s*display: none;/, 'a too-shallow fill figure is hidden instead of printed as a strip');
+});
