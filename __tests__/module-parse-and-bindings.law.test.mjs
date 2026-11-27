@@ -368,6 +368,15 @@ test('strict:false race closure: agent-autopilot.yml validates read-only merge-t
   assert.match(autopilotYml, /--merge-only/);
   assert.match(autopilotYml, /\^\[0-9a-f\]\{40\}\$/);
 
+  // Cache-miss auth hardening: on a lockfile bump miss, npm ci must authenticate
+  // to GitHub Packages and never mutate the shared nm-wh-noscripts cache.
+  assert.match(autopilotYml, /packages:\s*read/);
+  assert.match(autopilotYml, /registry-url:\s*'https:\/\/npm\.pkg\.github\.com'/);
+  assert.match(autopilotYml, /scope:\s*'@smarter-poker'/);
+  assert.match(autopilotYml, /uses:\s*actions\/cache\/restore@v4/);
+  assert.match(autopilotYml, /NODE_AUTH_TOKEN:\s*\$\{\{\s*secrets\.NPM_AUTH_TOKEN\s*\}\}/);
+  assert.match(autopilotYml, /NPM_TOKEN:\s*\$\{\{\s*secrets\.NPM_AUTH_TOKEN\s*\}\}/);
+
   // Pre-Deploy Safety Checks must re-fetch origin/$BASE_BRANCH and re-run --merge-only right before finishing.
   const safetyStart = ciYml.indexOf('\n  safety-checks:');
   const notifyStart = ciYml.indexOf('\n  notify-failure:', safetyStart);

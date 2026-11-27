@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
   pull-requests: write
 
 concurrency:
@@ -47,16 +48,22 @@ jobs:
         with:
           node-version: '24.12.0'
           cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
 
       - name: Restore node_modules
         id: nm-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: node_modules
           key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: npm ci --ignore-scripts
 
       # Close the strict:false parallel-PR merge-tree race window BEFORE minting
