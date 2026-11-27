@@ -20,6 +20,7 @@ import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { firstThatFits, fitMetaDescription } from '../../../src/lib/seo/titleFit.js';
 import {
   SITE_URL,
@@ -243,7 +244,7 @@ export default function StartingHandDetailPage({ hand }) {
   const metaDescription = fitMetaDescription(hand.summary, 158);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#060d1a', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#071321', color: '#f2f7ff', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title={metaTitle}
         description={metaDescription}
@@ -252,21 +253,21 @@ export default function StartingHandDetailPage({ hand }) {
       />
 
       <main style={{ maxWidth: 880, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#38bdf8', textDecoration: 'none' }}>Smarter.Poker</Link>
+        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#bdd0e2', marginBottom: 18 }}>
+          <Link href="/" style={{ color: '#86daff', textDecoration: 'none' }}>Smarter.Poker</Link>
           {' / '}
-          <Link href="/learn" style={{ color: '#38bdf8', textDecoration: 'none' }}>Poker Strategy Lessons</Link>
+          <Link href="/learn" style={{ color: '#86daff', textDecoration: 'none' }}>Poker Strategy Lessons</Link>
           {' / '}
-          <Link href="/learn/hands" style={{ color: '#38bdf8', textDecoration: 'none' }}>Starting Hand Encyclopedia</Link>
+          <Link href="/learn/hands" style={{ color: '#86daff', textDecoration: 'none' }}>Starting Hand Encyclopedia</Link>
           {' / '}
           <span>{hand.name} ({hand.code})</span>
         </nav>
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#ffffff', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f2f7ff', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           How To Play {hand.name} ({hand.code}) In No-Limit Texas Hold&apos;Em
         </h1>
 
-        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 26px 0' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#bdd0e2', margin: '0 0 26px 0' }}>
           {hand.summary}
         </p>
 
@@ -275,15 +276,15 @@ export default function StartingHandDetailPage({ hand }) {
           style={{
             marginBottom: 28,
             padding: 20,
-            background: 'linear-gradient(180deg, #0b1628 0%, #081121 100%)',
-            borderRadius: 12,
-            border: '1px solid rgba(148, 184, 224, 0.28)',
+            background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+            borderRadius: 0,
+            border: '1px solid #2b4663',
           }}
         >
-          <div style={{ fontSize: 11.5, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.06em', marginBottom: 6 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 800, color: '#86daff', letterSpacing: '0.06em', marginBottom: 6 }}>
             Interactive Solver &amp; Equity Quick-Launch For {hand.code}
           </div>
-          <h2 style={{ fontSize: 19, fontWeight: 800, color: '#ffffff', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 19, fontWeight: 800, color: '#f2f7ff', margin: '0 0 12px 0' }}>
             Test {hand.name} ({hand.code}) In Smarter.Poker Live Solvers &amp; Calculators
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
@@ -296,9 +297,10 @@ export default function StartingHandDetailPage({ hand }) {
                 alignItems: 'center',
                 minHeight: 44,
                 padding: '10px 16px',
-                borderRadius: 8,
+                borderRadius: 0,
                 background: '#0284c7',
-                color: '#ffffff',
+                border: '1px solid #38bdf8',
+                color: '#f2f7ff',
                 fontWeight: 700,
                 fontSize: 13,
                 textDecoration: 'none',
@@ -313,10 +315,10 @@ export default function StartingHandDetailPage({ hand }) {
                 alignItems: 'center',
                 minHeight: 44,
                 padding: '10px 16px',
-                borderRadius: 8,
-                background: '#0f1d33',
-                color: '#38bdf8',
-                border: '1px solid rgba(148, 184, 224, 0.28)',
+                borderRadius: 0,
+                background: '#0a1a2b',
+                color: '#86daff',
+                border: '1px solid #2b4663',
                 fontWeight: 700,
                 fontSize: 13,
                 textDecoration: 'none',
@@ -331,10 +333,10 @@ export default function StartingHandDetailPage({ hand }) {
                 alignItems: 'center',
                 minHeight: 44,
                 padding: '10px 16px',
-                borderRadius: 8,
-                background: '#0f1d33',
-                color: '#e2e8f0',
-                border: '1px solid rgba(148, 184, 224, 0.28)',
+                borderRadius: 0,
+                background: '#0a1a2b',
+                color: '#f2f7ff',
+                border: '1px solid #2b4663',
                 fontWeight: 700,
                 fontSize: 13,
                 textDecoration: 'none',
@@ -349,10 +351,10 @@ export default function StartingHandDetailPage({ hand }) {
                 alignItems: 'center',
                 minHeight: 44,
                 padding: '10px 16px',
-                borderRadius: 8,
-                background: '#0f1d33',
-                color: '#e2e8f0',
-                border: '1px solid rgba(148, 184, 224, 0.28)',
+                borderRadius: 0,
+                background: '#0a1a2b',
+                color: '#f2f7ff',
+                border: '1px solid #2b4663',
                 fontWeight: 700,
                 fontSize: 13,
                 textDecoration: 'none',
@@ -363,11 +365,11 @@ export default function StartingHandDetailPage({ hand }) {
           </div>
         </section>
 
-        <section style={{ marginBottom: 32, padding: 20, background: '#081121', borderRadius: 12, border: '1px solid rgba(148, 184, 224, 0.28)' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#ffffff', margin: '0 0 14px 0' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0a1a2b', borderRadius: 0, border: '1px solid #2b4663' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f2f7ff', margin: '0 0 14px 0' }}>
             Combinatoric Fact Sheet For {hand.name} ({hand.code})
           </h2>
-          <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8, color: '#cbd5e1' }}>
+          <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8, color: '#bdd0e2' }}>
             <li><strong>Hand Notation:</strong> {hand.code} ({hand.nickname})</li>
             <li><strong>Category:</strong> {hand.category}</li>
             <li><strong>Combinations In 52-Card Deck:</strong> {hand.combinations} Out Of 1,326 ({hand.probability})</li>
@@ -378,7 +380,7 @@ export default function StartingHandDetailPage({ hand }) {
             style={{
               marginTop: 14,
               paddingTop: 12,
-              borderTop: '1px solid rgba(148, 184, 224, 0.2)',
+              borderTop: '1px solid #2b4663',
               display: 'flex',
               flexWrap: 'wrap',
               alignItems: 'center',
@@ -386,7 +388,7 @@ export default function StartingHandDetailPage({ hand }) {
               gap: 8,
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#bdd0e2' }}>
               Share {hand.code} Preflop Equity &amp; GTO Fact Card:
             </span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -399,9 +401,9 @@ export default function StartingHandDetailPage({ hand }) {
                   fontSize: 12.5,
                   fontWeight: 700,
                   background: copiedHandCard === 'discord' ? '#047857' : '#0284c7',
-                  color: '#ffffff',
-                  border: '1px solid rgba(148, 184, 224, 0.28)',
-                  borderRadius: 8,
+                  color: '#f2f7ff',
+                  border: '1px solid #2b4663',
+                  borderRadius: 0,
                   cursor: 'pointer',
                 }}
               >
@@ -417,10 +419,10 @@ export default function StartingHandDetailPage({ hand }) {
                   padding: '8px 14px',
                   fontSize: 12.5,
                   fontWeight: 700,
-                  background: copiedHandCard === 'reddit' ? '#047857' : '#060d1a',
-                  color: copiedHandCard === 'reddit' ? '#ffffff' : '#38bdf8',
-                  border: '1px solid rgba(148, 184, 224, 0.28)',
-                  borderRadius: 8,
+                  background: copiedHandCard === 'reddit' ? '#047857' : '#071321',
+                  color: copiedHandCard === 'reddit' ? '#f2f7ff' : '#86daff',
+                  border: '1px solid #2b4663',
+                  borderRadius: 0,
                   cursor: 'pointer',
                 }}
               >
@@ -433,16 +435,16 @@ export default function StartingHandDetailPage({ hand }) {
         </section>
 
         <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f2f7ff', margin: '0 0 12px 0' }}>
             6-Max 100BB GTO Opening Strategy By Position
           </h2>
           <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
-            <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0a1a2b', border: '1px solid #2b4663', borderRadius: 0 }}>
+            <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#bdd0e2' }}>
               Solver Raise-First-In (RFI) Action By Seat For {hand.code}
             </caption>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e293b', color: '#38bdf8', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '1px solid #2b4663', background: '#0d1f33', color: '#86daff', textAlign: 'left' }}>
                 <th scope="col" style={{ padding: '10px 14px' }}>Table Position</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>100BB GTO Action</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Positional Range Chart</th>
@@ -450,13 +452,13 @@ export default function StartingHandDetailPage({ hand }) {
             </thead>
             <tbody>
               {Object.entries(hand.rfiByPosition).map(([pos, act]) => (
-                <tr key={pos} style={{ borderBottom: '1px solid #1e293b' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{pos}</td>
-                  <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{act}</td>
+                <tr key={pos} style={{ borderBottom: '1px solid #2b4663' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f2f7ff' }}>{pos}</td>
+                  <td style={{ padding: '10px 14px', color: '#bdd0e2' }}>{act}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <Link
                       href={`/tools/preflop-ranges/${pos.toLowerCase()}`}
-                      style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}
+                      style={{ color: '#86daff', textDecoration: 'none', fontWeight: 600 }}
                     >
                       View {pos} 13x13 GTO Chart
                     </Link>
@@ -469,28 +471,28 @@ export default function StartingHandDetailPage({ hand }) {
         </section>
 
         <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f2f7ff', margin: '0 0 12px 0' }}>
             3-Bet Response And Postflop Execution Playbook
           </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 12px 0' }}>
+          <p style={{ fontSize: 15, lineHeight: 1.65, color: '#bdd0e2', margin: '0 0 12px 0' }}>
             <strong>Facing A 3-Bet:</strong> {hand.vs3Bet}
           </p>
-          <p style={{ fontSize: 15, lineHeight: 1.65, color: '#cbd5e1', margin: 0 }}>
+          <p style={{ fontSize: 15, lineHeight: 1.65, color: '#bdd0e2', margin: 0 }}>
             <strong>Postflop Strategy:</strong> {hand.postflopPlaybook}
           </p>
         </section>
 
         <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f2f7ff', margin: '0 0 12px 0' }}>
             Head-To-Head Preflop Equity Matchups
           </h2>
           <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
-            <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0a1a2b', border: '1px solid #2b4663', borderRadius: 0 }}>
+            <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#bdd0e2' }}>
               All-In Preflop Equity Benchmarks For {hand.code} Across Key Holdings
             </caption>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e293b', color: '#38bdf8', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '1px solid #2b4663', background: '#0d1f33', color: '#86daff', textAlign: 'left' }}>
                 <th scope="col" style={{ padding: '10px 14px' }}>Opposing Hand</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>{hand.code} Equity</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Opponent Equity</th>
@@ -500,10 +502,10 @@ export default function StartingHandDetailPage({ hand }) {
             </thead>
             <tbody>
               {getExpandedHandMatchups(hand).map((m) => (
-                <tr key={m.villain} style={{ borderBottom: '1px solid #1e293b' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#f8fafc' }}>
+                <tr key={m.villain} style={{ borderBottom: '1px solid #2b4663' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#f2f7ff' }}>
                     {m.villainSlug ? (
-                      <Link href={`/learn/hands/${m.villainSlug}`} style={{ color: '#f8fafc', textDecoration: 'none' }}>
+                      <Link href={`/learn/hands/${m.villainSlug}`} style={{ color: '#f2f7ff', textDecoration: 'none' }}>
                         {m.villain}
                       </Link>
                     ) : (
@@ -511,14 +513,14 @@ export default function StartingHandDetailPage({ hand }) {
                     )}
                   </td>
                   <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{m.heroEquity}</td>
-                  <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{m.villainEquity}</td>
-                  <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{m.tie}</td>
+                  <td style={{ padding: '10px 14px', color: '#bdd0e2' }}>{m.villainEquity}</td>
+                  <td style={{ padding: '10px 14px', color: '#bdd0e2' }}>{m.tie}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <Link
                       href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)}&hand2=${encodeURIComponent(m.villainCode)}`}
                       rel="nofollow"
                       prefetch={false}
-                      style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}
+                      style={{ color: '#86daff', textDecoration: 'none', fontWeight: 600 }}
                     >
                       Simulate {hand.code} Vs {m.villainCode}
                     </Link>
@@ -531,7 +533,7 @@ export default function StartingHandDetailPage({ hand }) {
         </section>
 
         <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f2f7ff', margin: '0 0 12px 0' }}>
             Head-To-Head Pre-Flop Matchups Featuring This Hand
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
@@ -541,9 +543,9 @@ export default function StartingHandDetailPage({ hand }) {
                 href={matchupPath(m.slug)}
                 style={{
                   padding: '12px 14px',
-                  background: '#0f172a',
-                  border: '1px solid #1e293b',
-                  borderRadius: 8,
+                  background: '#0a1a2b',
+                  border: '1px solid #2b4663',
+                  borderRadius: 0,
                   textDecoration: 'none',
                   display: 'flex',
                   flexDirection: 'column',
@@ -553,7 +555,7 @@ export default function StartingHandDetailPage({ hand }) {
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#34d399' }}>
                   {m.handA} ({m.handAEquity.toFixed(1)}%) Vs {m.handB} ({m.handBEquity.toFixed(1)}%)
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8' }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#86daff' }}>
                   {m.title}
                 </span>
               </Link>
@@ -566,15 +568,15 @@ export default function StartingHandDetailPage({ hand }) {
           style={{
             marginBottom: 32,
             padding: 22,
-            background: 'linear-gradient(180deg, #0b1628 0%, #081121 100%)',
-            border: '1px solid rgba(148, 184, 224, 0.28)',
-            borderRadius: 12,
+            background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+            border: '1px solid #2b4663',
+            borderRadius: 0,
           }}
         >
-          <div style={{ fontSize: 11.5, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.06em', marginBottom: 6 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 800, color: '#86daff', letterSpacing: '0.06em', marginBottom: 6 }}>
             GTO Preflop Spot Check · 6-Max 100BB
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#ffffff', margin: '0 0 14px 0', lineHeight: 1.35 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#f2f7ff', margin: '0 0 14px 0', lineHeight: 1.35 }}>
             Quick GTO Spot Check: You Are Dealt {hand.code} On The Button At 100BB (Folded To You). What Is The Solver Play?
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
@@ -590,12 +592,12 @@ export default function StartingHandDetailPage({ hand }) {
                     minHeight: 44,
                     minWidth: 128,
                     padding: '10px 18px',
-                    borderRadius: 8,
-                    background: isSelected ? '#1d4ed8' : '#0f1d33',
-                    color: '#ffffff',
+                    borderRadius: 0,
+                    background: isSelected ? '#1d4ed8' : '#0a1a2b',
+                    color: '#f2f7ff',
                     border: isSelected
                       ? '1px solid #38bdf8'
-                      : '1px solid rgba(148, 184, 224, 0.28)',
+                      : '1px solid #2b4663',
                     fontSize: 14,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -614,8 +616,8 @@ export default function StartingHandDetailPage({ hand }) {
               style={{
                 marginTop: 16,
                 padding: 16,
-                background: '#060d1a',
-                borderRadius: 10,
+                background: '#071321',
+                borderRadius: 0,
                 border: `1px solid ${spotResult.isCorrect ? 'rgba(52, 211, 153, 0.45)' : 'rgba(248, 113, 113, 0.45)'}`,
               }}
             >
@@ -629,7 +631,7 @@ export default function StartingHandDetailPage({ hand }) {
               >
                 {spotResult.verdict} · Exact Button Frequency: {spotResult.btnAction}
               </div>
-              <p style={{ fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: '0 0 14px 0' }}>
+              <p style={{ fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: '0 0 14px 0' }}>
                 {spotResult.explanation}
               </p>
               <Link
@@ -639,13 +641,13 @@ export default function StartingHandDetailPage({ hand }) {
                   alignItems: 'center',
                   minHeight: 44,
                   padding: '10px 18px',
-                  borderRadius: 8,
+                  borderRadius: 0,
                   background: '#1d4ed8',
-                  color: '#ffffff',
+                  color: '#f2f7ff',
                   fontSize: 14,
                   fontWeight: 700,
                   textDecoration: 'none',
-                  border: '1px solid rgba(56, 189, 248, 0.45)',
+                  border: '1px solid #38bdf8',
                 }}
               >
                 Drill {hand.code} Free In GTO Training
@@ -654,8 +656,17 @@ export default function StartingHandDetailPage({ hand }) {
           )}
         </section>
 
-        <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context={`learn-hand-${hand.slug}`}
+          title="See Full Multi-Position Solver Frequencies (UTG Through BB) & Drill Free"
+          subtitle={`Unlock Complete 6-Max & 9-Max Solver Splits, 3-Bet/4-Bet Responses, And Unlimited Interactive GTO Drills For ${hand.name} (${hand.code}) With A Free Account.`}
+          ctaLabel={`Unlock Full ${hand.code} Solver Matrix Free`}
+          redirectPath={path}
+        />
+
+        <section style={{ marginBottom: 32, marginTop: 32 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f2f7ff', margin: '0 0 12px 0' }}>
             Practice {hand.name} On Smarter.Poker
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
@@ -663,25 +674,25 @@ export default function StartingHandDetailPage({ hand }) {
               href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)}`}
               rel="nofollow"
               prefetch={false}
-              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0284c7', color: '#ffffff', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0284c7', border: '1px solid #38bdf8', color: '#f2f7ff', borderRadius: 0, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
             >
               Simulate {hand.code} In Odds Calculator
             </Link>
             <Link
               href="/tools/preflop-ranges"
-              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0f1d33', color: '#e2e8f0', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0a1a2b', color: '#f2f7ff', border: '1px solid #2b4663', borderRadius: 0, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
             >
               Open Full 13x13 GTO Range Matrix
             </Link>
             <Link
               href="/learn/hands"
-              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0f1d33', color: '#e2e8f0', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0a1a2b', color: '#f2f7ff', border: '1px solid #2b4663', borderRadius: 0, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
             >
               Browse All {STARTING_HANDS.length} Starting Hands
             </Link>
             <Link
               href="/tools/pot-odds-calculator"
-              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0f1d33', color: '#38bdf8', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0a1a2b', color: '#86daff', border: '1px solid #2b4663', borderRadius: 0, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
             >
               Pot Odds &amp; MDF Calculator
             </Link>

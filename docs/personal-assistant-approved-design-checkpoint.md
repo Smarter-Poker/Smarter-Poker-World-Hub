@@ -1,5 +1,18 @@
 # Personal Assistant Approved Design Correction
 
+## November 27 Antigravity Completion Pickup
+
+Picked up from PR #3174 (`6d91e5dc3cb7ee2a44ddce0fdee1584401e231a1`) on owned branch `agent/antigravity/pa-approved-1to1-clone-and-clip-fix` in SSD2 worktree `/Volumes/SmarterWork/agent-work/extreme-capacity/pa-completion-ecd14ca4` without competing on the Codex branch. Fresh policy 2.9 reader receipt: `2026-11-27T21:10:27.746Z`, manifest `e78254a8d7b401b5e9f8fdcefa1f6f36088fa1a7128e1c2d18622c2a952ac2cb` (verified byte-identical against `/Users/smarter.poker/Documents`).
+
+Changes on top of `6d91e5dc3cb`:
+- Resolved the `origin/main` (`490056c2284`, PR #3175) merge conflict in `.agent/audits/2026-08-31-training-phase-2-inventory.json` by integrating current `main` and regenerating the inventory cleanly (`training-surface-inventory.mjs --check` passes).
+- Fixed a real tablet/mobile visual defect caught via 4-viewport production screenshots (`1249x1061`, `1440x900`, `768x1024`, `390x844`): `ApprovedIllustration` in `src/components/personal-assistant/ApprovedLandingArt.jsx` now clips its sprite `<image>` to an explicit `<clipPath><rect x={x} y={y} width={width} height={height} /></clipPath>` matching its `viewBox`, eliminating adjacent sprite text/row bleed when card art containers letterbox on tablet and mobile viewports. Added static (`tests/pa-phase9-share-and-hub-visual.test.mjs`) and Playwright DOM (`e2e/personal-assistant-completion.spec.ts`) clip-path regression guards.
+
+Local verification on this candidate:
+- `node --test tests/pa-*.test.mjs tests/personal-assistant-*.test.mjs __tests__/pa-*.test.mjs __tests__/unbatched-in-lists-guard.test.mjs`: 599/599 passed, 0 failed, 0 skipped.
+- `node scripts/ci/pa-browser-smoke.mjs --check-only` and `node scripts/training-surface-inventory.mjs --check`: passed.
+- Scoped production build + 12/12 local Chromium browser cases (`pa-chromium1440`, `pa-mobile-chromium390`) passed; visual captures under `/Volumes/SmarterArchives/agent-evidence/extreme-archive/pa-ecd14ca4/visual-audit/` prove 1:1 reference geometry (`1249x1061`, `x=78, w=1100, y=207/478/670, h=262/185/117`) and zero sprite bleed or overflow across `1440`, `768`, and `390`. Hosted `Global Footer E2E` step 12 validates the matched 18-case Chromium + WebKit matrix.
+
 ## November 27 Completion Follow-Up
 
 The actual d29cb52967fb37643ed23c8b07ffd5b43970a776 candidate passed ordinary pre-push on treeea817b15740c419c6502128c4fca3521390fc591 and advanced the existingPR3174 with an expected-head fast-forward. Full required references were freshly read on resumption at2026-11-27T21:17:56.838Z, policy2.9 and the unchanged hashes below; this continuation receipt is also in the existing PR report. Its final-head hosted unit gate passed411/411 on merge4c1e922bd19b956a65f30136ee019a130810083c. Hosted webpack parity and the full Footer production build passed. Footer run46069479458/job140742704852 then passed the strict18-case PA browser qualifier, including WebKit. Its later Video Library assertion still fails independently; it is not counted as a green full workflow.

@@ -16,6 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
   BOARD_TEXTURES,
   BOARD_TEXTURE_CATEGORIES,
@@ -173,7 +174,7 @@ export default function BoardTexturesIndexPage() {
           <h2 style={styles.h2}>
             All 12 Canonical Flop Archetypes: Range Advantage, C-Bet % &amp; Optimal Sizing
           </h2>
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
             <table style={styles.table}>
               <thead>
                 <tr style={styles.trHead}>
@@ -282,6 +283,13 @@ export default function BoardTexturesIndexPage() {
             ))}
           </div>
         </section>
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context="learn-board-textures-index"
+          title="Unlock All 12 Flop Board Texture Solver Matrices & C-Bet Drills Free"
+          redirectPath={BOARD_TEXTURES_BASE_PATH}
+        />
+
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>
@@ -320,8 +328,8 @@ export default function BoardTexturesIndexPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#050811',
-    color: '#e2e8f0',
+    background: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
   },
   container: {
@@ -334,16 +342,16 @@ const styles = {
     flexWrap: 'wrap',
     gap: 8,
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginBottom: 18,
   },
   crumbLink: { color: '#38bdf8', textDecoration: 'none' },
-  crumbSep: { color: '#475569' },
-  crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
+  crumbSep: { color: '#2b4663' },
+  crumbCurrent: { color: '#bdd0e2', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #0a1a2b 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 28,
   },
@@ -353,7 +361,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -363,7 +371,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -371,63 +379,63 @@ const styles = {
   h1: {
     fontSize: 'clamp(26px, 3.6vw, 36px)',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     lineHeight: 1.2,
     margin: '0 0 14px 0',
   },
   lead: {
     fontSize: 16,
     lineHeight: 1.68,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 20px 0',
   },
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   crossBtnCyan: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#38bdf8',
-    color: '#04131d',
+    color: '#071321',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#10b981',
-    color: '#04131d',
+    color: '#071321',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   crossBtnOutline: {
     padding: '9px 15px',
-    borderRadius: 8,
-    background: '#0f172a',
+    borderRadius: 0,
+    background: '#0d1f33',
     color: '#38bdf8',
-    border: '1px solid #334155',
+    border: '1px solid #2b4663',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   sectionPlate: {
-    background: '#0b1120',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px 22px',
     marginBottom: 28,
   },
-  h2: { fontSize: 22, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px 0' },
+  h2: { fontSize: 22, fontWeight: 800, color: '#f2f7ff', margin: '0 0 16px 0' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13.5 },
-  trHead: { borderBottom: '1px solid #1e293b', textAlign: 'left', color: '#38bdf8' },
+  trHead: { borderBottom: '1px solid #2b4663', textAlign: 'left', color: '#38bdf8' },
   th: { padding: '10px 12px', fontWeight: 700 },
-  trBody: { borderBottom: '1px solid #1e293b' },
+  trBody: { borderBottom: '1px solid #2b4663' },
   tdTitle: { padding: '11px 12px', fontWeight: 700 },
-  tdCode: { padding: '11px 12px', color: '#f8fafc', fontFamily: 'monospace', fontWeight: 700 },
-  td: { padding: '11px 12px', color: '#cbd5e1' },
+  tdCode: { padding: '11px 12px', color: '#f2f7ff', fontFamily: 'monospace', fontWeight: 700 },
+  td: { padding: '11px 12px', color: '#bdd0e2' },
   tdCyan: { padding: '11px 12px', color: '#38bdf8', fontWeight: 700 },
   tdEmerald: { padding: '11px 12px', color: '#34d399', fontWeight: 700 },
-  tableLink: { color: '#f8fafc', textDecoration: 'none' },
+  tableLink: { color: '#f2f7ff', textDecoration: 'none' },
   smallActionLink: { color: '#38bdf8', textDecoration: 'none', fontWeight: 700 },
   filterBar: {
     display: 'flex',
@@ -440,30 +448,30 @@ const styles = {
   filterPills: { display: 'flex', flexWrap: 'wrap', gap: 8 },
   pill: {
     padding: '6px 13px',
-    borderRadius: 999,
-    border: '1px solid #334155',
-    background: '#0f172a',
-    color: '#cbd5e1',
+    borderRadius: 0,
+    border: '1px solid #2b4663',
+    background: '#0d1f33',
+    color: '#bdd0e2',
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
   },
   pillActive: {
     padding: '6px 13px',
-    borderRadius: 999,
+    borderRadius: 0,
     border: '1px solid #38bdf8',
     background: '#38bdf8',
-    color: '#04131d',
+    color: '#071321',
     fontSize: 13,
     fontWeight: 700,
     cursor: 'pointer',
   },
   searchInput: {
     padding: '8px 14px',
-    borderRadius: 8,
-    border: '1px solid #334155',
-    background: '#050811',
-    color: '#f8fafc',
+    borderRadius: 0,
+    border: '1px solid #2b4663',
+    background: '#071321',
+    color: '#f2f7ff',
     fontSize: 13.5,
     minWidth: 260,
   },
@@ -473,9 +481,9 @@ const styles = {
     gap: 18,
   },
   card: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 20,
     display: 'flex',
     flexDirection: 'column',
@@ -491,39 +499,39 @@ const styles = {
     fontSize: 12,
     fontWeight: 800,
     padding: '3px 9px',
-    borderRadius: 5,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.16)',
     color: '#38bdf8',
     fontFamily: 'monospace',
   },
-  cardCatBadge: { fontSize: 11, fontWeight: 700, color: '#94a3b8' },
+  cardCatBadge: { fontSize: 11, fontWeight: 700, color: '#bdd0e2' },
   cardTitle: { fontSize: 18, fontWeight: 800, margin: '0 0 8px 0' },
-  cardTitleLink: { color: '#f8fafc', textDecoration: 'none' },
+  cardTitleLink: { color: '#f2f7ff', textDecoration: 'none' },
   cardSummary: {
     fontSize: 13.5,
     lineHeight: 1.58,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 14px 0',
   },
   statMiniGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: 8,
-    background: '#070b14',
+    background: '#071321',
     padding: 10,
-    borderRadius: 8,
-    border: '1px solid #1e293b',
+    borderRadius: 0,
+    border: '1px solid #2b4663',
   },
   statMiniBox: { display: 'flex', flexDirection: 'column', gap: 2 },
-  statMiniLabel: { fontSize: 10, fontWeight: 700, color: '#94a3b8' },
+  statMiniLabel: { fontSize: 10, fontWeight: 700, color: '#bdd0e2' },
   statMiniValCyan: { fontSize: 12, fontWeight: 800, color: '#38bdf8' },
   statMiniValEmerald: { fontSize: 12, fontWeight: 800, color: '#34d399' },
   cardCtaBtn: {
     display: 'inline-block',
     padding: '8px 13px',
-    borderRadius: 7,
+    borderRadius: 0,
     background: '#38bdf8',
-    color: '#04131d',
+    color: '#071321',
     fontSize: 12.5,
     fontWeight: 700,
     textDecoration: 'none',
@@ -531,8 +539,8 @@ const styles = {
   cardOutlineBtn: {
     display: 'inline-block',
     padding: '8px 13px',
-    borderRadius: 7,
-    background: '#070b14',
+    borderRadius: 0,
+    background: '#071321',
     color: '#34d399',
     border: '1px solid #10b981',
     fontSize: 12.5,
@@ -541,11 +549,11 @@ const styles = {
   },
   faqList: { display: 'grid', gap: 14 },
   faqItem: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px 18px',
   },
-  faqQ: { fontSize: 16, fontWeight: 700, color: '#f8fafc', margin: '0 0 6px 0' },
-  faqA: { fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: 0 },
+  faqQ: { fontSize: 16, fontWeight: 700, color: '#f2f7ff', margin: '0 0 6px 0' },
+  faqA: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: 0 },
 };

@@ -13,6 +13,8 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../../src/components/seo/SmarterSeoMasthead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   SERIES_GUIDES,
@@ -133,9 +135,25 @@ export default function PokerSeriesGuidesIndexPage() {
             <span style={styles.emeraldBadge}>VERIFIED STRUCTURE &amp; BANKROLL ANALYTICS</span>
           </div>
 
-          <h1 style={styles.h1}>
-            Major Live Poker Series, Tour &amp; Festival Strategy Guides
-          </h1>
+          <div style={{ marginBottom: 18 }}>
+            <SmarterSeoMasthead
+              vertical="series"
+              eyebrow="Major North American Live Poker Tours"
+              title="Major Live Poker Series, Tour & Festival Strategy Guides"
+              lead="Complete Bankroll, Structure, Late-Reg & Satellite Strategy Guides For WSOP, WPT, WSOPC, MSPT, RGPS & SHRPO."
+              stats={[
+                { label: 'Major Series', value: `${SERIES_GUIDES.length} Guides` },
+                { label: 'Weekly MTTs', value: '4,500+ Events' },
+                { label: 'Live Venues', value: '715+ Rooms' },
+                { label: 'Schedule Sync', value: 'Free Account' },
+              ]}
+              redirectPath="/poker-series/guides"
+              unlockKey="masthead-series"
+              primaryCtaLabel="Unlock Live Series Alerts"
+              secondaryHref="/hub/poker-series"
+              secondaryLabel="Live Series Calendar"
+            />
+          </div>
 
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Maximizing Return On Investment (ROI) At A Major Live Poker Festival Requires Matching Your Bankroll And Schedule To Each Venue&apos;S Exact Blind Structure, Late-Registration Window, Milestone Satellite Format, And Cash Game Spillover. Explore Our <strong>10 Comprehensive Poker Series Strategy Guides</strong> Covering The <strong>WSOP</strong>, <strong>WPT World Championship</strong>, <strong>WSOP Circuit</strong>, <strong>MSPT</strong>, <strong>RunGood (RGPS)</strong>, <strong>Seminole Hard Rock (SHRPO)</strong>, <strong>Borgata</strong>, <strong>Wynn</strong>, <strong>Venetian</strong>, And <strong>Texas Major Card Club Championships</strong>.
@@ -285,6 +303,15 @@ export default function PokerSeriesGuidesIndexPage() {
           </div>
         </section>
 
+        <div style={{ margin: '24px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={"poker-series-guides-index"}
+            title={"Track Major Live Poker Series Schedules, Buy-Ins & Seat Alerts Free"}
+            redirectPath={"/poker-series/guides"}
+          />
+        </div>
+
         <CitationBacklinkBox
           title="Major Live Poker Series, Tour & Festival Strategy Guides"
           canonicalUrl={SERIES_GUIDES_URL}
@@ -310,7 +337,7 @@ export default function PokerSeriesGuidesIndexPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     color: '#e2e8f0',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
@@ -341,9 +368,9 @@ const styles = {
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -360,7 +387,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -370,7 +397,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
@@ -397,7 +424,7 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
@@ -406,23 +433,23 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
     color: '#e2e8f0',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   filterPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '20px',
     marginBottom: '24px',
   },
@@ -435,18 +462,18 @@ const styles = {
   },
   searchInput: {
     width: '100%',
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '11px 14px',
     color: '#f8fafc',
     fontSize: '14px',
     boxSizing: 'border-box',
   },
   tablePlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '22px',
     marginBottom: '28px',
   },
@@ -475,7 +502,7 @@ const styles = {
     fontSize: '13.5px',
   },
   trHead: {
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     borderBottom: '2px solid #00d4ff',
     textAlign: 'left',
   },
@@ -486,7 +513,7 @@ const styles = {
     fontSize: '12px',
   },
   trBody: {
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #2b4663',
   },
   tdTitle: {
     padding: '12px',
@@ -516,14 +543,14 @@ const styles = {
   },
   cardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(500px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(500px, 100%), 1fr))',
     gap: '18px',
     marginTop: '16px',
   },
   cardPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '22px',
     display: 'flex',
     flexDirection: 'column',
@@ -541,10 +568,10 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     color: '#00d4ff',
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
     padding: '4px 9px',
-    borderRadius: '4px',
+    borderRadius: 0,
   },
   cardRatingBadge: {
     fontSize: '11px',
@@ -565,9 +592,9 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, 1fr)',
     gap: '10px',
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '12px',
     marginBottom: '14px',
   },
@@ -597,7 +624,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTop: '1px solid #1e293b',
+    borderTop: '1px solid #2b4663',
     paddingTop: '12px',
   },
   readGuideLink: {
@@ -613,9 +640,9 @@ const styles = {
     textDecoration: 'none',
   },
   faqPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '28px',
   },
@@ -625,9 +652,9 @@ const styles = {
     marginTop: '16px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {

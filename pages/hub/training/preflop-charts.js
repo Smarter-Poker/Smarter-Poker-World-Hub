@@ -13,6 +13,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
@@ -812,6 +813,13 @@ export default function PreflopCharts() {
         featureName="Advanced Preflop Charts"
       />
       <ConnectionToast />
+      <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context="training-preflop-charts"
+          redirectPath="/hub/training/preflop-charts"
+        />
+      </div>
       <HubPageSummary page="training-preflop-charts" />
     </>
   );

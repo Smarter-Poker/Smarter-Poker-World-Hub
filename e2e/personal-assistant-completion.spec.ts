@@ -82,6 +82,13 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
     await expect(image).toHaveAttribute('href', source);
     await expect(image).toHaveAttribute('width', '1249');
     await expect(image).toHaveAttribute('height', '1061');
+    await expect(image).toHaveAttribute('clip-path', /^url\(#.+\)$/);
+    const [vx, vy, vw, vh] = viewBox.split(' ');
+    const clipRect = art.locator('clipPath rect');
+    await expect(clipRect).toHaveAttribute('x', vx);
+    await expect(clipRect).toHaveAttribute('y', vy);
+    await expect(clipRect).toHaveAttribute('width', vw);
+    await expect(clipRect).toHaveAttribute('height', vh);
     const intrinsicSize = source === cardSprite ? { width: 1360, height: 1156 } : { width: 1249, height: 1061 };
     await expect.poll(() => image.evaluate(async (element: SVGImageElement) => {
       const decoded = new Image();

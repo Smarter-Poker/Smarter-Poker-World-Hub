@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 const COMPARISON_ROWS = [
   {
@@ -211,7 +212,7 @@ export default function OnlineVsLivePokerGuidePage() {
           <h2 style={styles.h2}>
             7-Point Structural Comparison: Online 6-Max Vs. Live Casino Cash Games
           </h2>
-          <div style={{ overflowX: 'auto', marginTop: '14px' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch', marginTop: '14px' }}>
             <table style={styles.table}>
               <thead>
                 <tr style={styles.trHead}>
@@ -254,6 +255,13 @@ export default function OnlineVsLivePokerGuidePage() {
             ))}
           </div>
         </section>
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context="learn-online-vs-live-poker"
+          title="Unlock Online Vs Live Strategy Drills, Range Charts & Bankroll Tracker Free"
+          redirectPath={canonicalPath}
+        />
+
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>
@@ -293,8 +301,8 @@ export default function OnlineVsLivePokerGuidePage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
   container: {
@@ -308,25 +316,25 @@ const styles = {
     flexWrap: 'wrap',
     gap: '8px',
     fontSize: '13px',
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginBottom: '20px',
   },
   crumbLink: {
-    color: '#00d4ff',
+    color: '#38bdf8',
     textDecoration: 'none',
     fontWeight: 600,
   },
   crumbSep: {
-    color: '#475569',
+    color: '#2b4663',
   },
   crumbCurrent: {
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -338,12 +346,12 @@ const styles = {
   },
   cyanBadge: {
     backgroundColor: 'rgba(0, 212, 255, 0.12)',
-    border: '1px solid #00d4ff',
-    color: '#00d4ff',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -353,20 +361,20 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
     fontSize: '31px',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 14px',
     lineHeight: 1.2,
   },
   lead: {
     fontSize: '15.5px',
     lineHeight: 1.65,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 22px',
   },
   quickCrossLinks: {
@@ -375,44 +383,44 @@ const styles = {
     gap: '10px',
   },
   crossBtnCyan: {
-    backgroundColor: '#00d4ff',
-    color: '#0a0f18',
+    backgroundColor: '#38bdf8',
+    color: '#071321',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
     backgroundColor: '#10b981',
-    color: '#0a0f18',
+    color: '#071321',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    color: '#f2f7ff',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '26px',
   },
   h2: {
     fontSize: '21px',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: 0,
   },
   table: {
@@ -421,27 +429,27 @@ const styles = {
     fontSize: '13.5px',
   },
   trHead: {
-    backgroundColor: '#0a0f18',
-    borderBottom: '2px solid #00d4ff',
+    backgroundColor: '#071321',
+    borderBottom: '2px solid #38bdf8',
     textAlign: 'left',
   },
   th: {
     padding: '11px 12px',
-    color: '#00d4ff',
+    color: '#38bdf8',
     fontWeight: 700,
     fontSize: '12px',
   },
   trBody: {
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #2b4663',
   },
   tdBold: {
     padding: '12px',
-    color: '#f8fafc',
+    color: '#f2f7ff',
     fontWeight: 700,
   },
   tdCyan: {
     padding: '12px',
-    color: '#00d4ff',
+    color: '#38bdf8',
     fontWeight: 600,
   },
   tdEmerald: {
@@ -451,7 +459,7 @@ const styles = {
   },
   tdCell: {
     padding: '12px',
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     lineHeight: 1.5,
   },
   pillarGrid: {
@@ -461,22 +469,22 @@ const styles = {
     marginTop: '14px',
   },
   pillarCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '20px',
   },
   pillarTag: {
     fontSize: '11px',
     fontWeight: 800,
-    color: '#00d4ff',
+    color: '#38bdf8',
     marginBottom: '6px',
     letterSpacing: '0.05em',
   },
   h3: {
     fontSize: '17px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 12px',
   },
   bulletList: {
@@ -488,7 +496,7 @@ const styles = {
   bulletItem: {
     fontSize: '13.5px',
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
   },
   faqList: {
     display: 'grid',
@@ -496,21 +504,21 @@ const styles = {
     marginTop: '14px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {
     fontSize: '15.5px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
     margin: '0 0 8px',
   },
   faqA: {
     fontSize: '14px',
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
 };

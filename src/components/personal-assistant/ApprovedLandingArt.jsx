@@ -18,11 +18,12 @@ const ART = {
 };
 
 export function ApprovedIllustration({ kind, className, label }) {
-  const box = ART[kind];
+  const clipId = useId();
+  const [x, y, width, height] = ART[kind];
   return (
     <svg
       className={className}
-      viewBox={box.join(' ')}
+      viewBox={`${x} ${y} ${width} ${height}`}
       preserveAspectRatio="xMidYMid meet"
       role={label ? 'img' : undefined}
       aria-label={label}
@@ -30,7 +31,17 @@ export function ApprovedIllustration({ kind, className, label }) {
       focusable="false"
       data-approved-illustration={kind}
     >
-      <image href={kind === 'sandbox' || kind === 'leaks' ? CARDS : APPROVED_LANDING_SPRITE} width="1249" height="1061" />
+      <defs>
+        <clipPath id={clipId}>
+          <rect x={x} y={y} width={width} height={height} />
+        </clipPath>
+      </defs>
+      <image
+        href={kind === 'sandbox' || kind === 'leaks' ? CARDS : APPROVED_LANDING_SPRITE}
+        width="1249"
+        height="1061"
+        clipPath={`url(#${clipId})`}
+      />
     </svg>
   );
 }

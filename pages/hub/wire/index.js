@@ -7,6 +7,7 @@ import { buildSignedEmailImageUrl } from '../../../src/lib/newsletter/emailImage
 import * as wireCatalog from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import NewsletterCaptureBar from '../../../src/components/news/NewsletterCaptureBar';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 
 const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FALLBACK_THUMB_SRC = '/api/news/email-image?fallback=1&m=thumb';
@@ -332,7 +333,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                         style={{
                             background: '#0b1118',
                             border: '1px solid #1b2c3d',
-                            borderRadius: '18px',
+                            borderRadius: 0,
                             padding: '32px 28px',
                             marginBottom: '26px',
                         }}
@@ -367,7 +368,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                         gap: '6px',
                                         color: '#05070a',
                                         background: '#4fc1b3',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                         padding: '4px 13px',
                                         fontSize: '12.5px',
                                         fontWeight: 800,
@@ -397,7 +398,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                         color: '#e2e8f0',
                                         background: '#101a24',
                                         border: '1px solid #1b2c3d',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                         padding: '3px 12px',
                                         fontSize: '12.5px',
                                         fontWeight: 700,
@@ -448,7 +449,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                 background: '#101a24',
                                 border: '1px solid #1b2c3d',
                                 borderLeft: '4px solid #4fc1b3',
-                                borderRadius: '16px',
+                                borderRadius: 0,
                                 padding: '24px 24px',
                                 marginBottom: '28px',
                             }}
@@ -484,7 +485,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                         fontSize: '13px',
                                         fontWeight: 800,
                                         padding: '8px 16px',
-                                        borderRadius: '8px',
+                                        borderRadius: 0,
                                     }}
                                 >
                                     Open Live Web Edition &rarr;
@@ -508,7 +509,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                         width: '112px',
                                         height: '78px',
                                         objectFit: 'cover',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                         border: '1px solid #1b2c3d',
                                         background: '#0b1520',
                                         flexShrink: 0,
@@ -580,7 +581,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                     flex: '1 1 260px',
                                     background: '#0b1118',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '10px',
+                                    borderRadius: 0,
                                     padding: '11px 16px',
                                     color: '#ffffff',
                                     fontSize: '14px',
@@ -595,7 +596,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                         background: '#101a24',
                                         border: '1px solid #1b2c3d',
                                         color: '#60a5fa',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                         padding: '11px 16px',
                                         fontSize: '13.5px',
                                         fontWeight: 800,
@@ -612,7 +613,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                 style={{
                                     background: '#0b1118',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '14px',
+                                    borderRadius: 0,
                                     padding: '28px 24px',
                                     color: '#b7cadc',
                                     fontSize: '14.5px',
@@ -630,7 +631,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                         background: '#4fc1b3',
                                         border: 'none',
                                         color: '#05070a',
-                                        borderRadius: '8px',
+                                        borderRadius: 0,
                                         padding: '9px 18px',
                                         fontSize: '13px',
                                         fontWeight: 800,
@@ -652,7 +653,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                             alignItems: 'flex-start',
                                             background: '#0b1118',
                                             border: '1px solid #1b2c3d',
-                                            borderRadius: '14px',
+                                            borderRadius: 0,
                                             padding: '18px 20px',
                                             textDecoration: 'none',
                                             color: '#ffffff',
@@ -674,7 +675,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                                 width: '112px',
                                                 height: '78px',
                                                 objectFit: 'cover',
-                                                borderRadius: '8px',
+                                                borderRadius: 0,
                                                 border: '1px solid #1b2c3d',
                                                 background: '#0b1520',
                                                 flexShrink: 0,
@@ -725,7 +726,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                             marginTop: '34px',
                             background: '#0b1118',
                             border: '1px solid #1b2c3d',
-                            borderRadius: '16px',
+                            borderRadius: 0,
                             padding: '24px',
                             display: 'flex',
                             alignItems: 'center',
@@ -754,7 +755,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                     fontWeight: 800,
                                     fontSize: '13.5px',
                                     padding: '10px 16px',
-                                    borderRadius: '8px',
+                                    borderRadius: 0,
                                 }}
                             >
                                 Explore All 42 Tools
@@ -769,13 +770,20 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                     fontWeight: 800,
                                     fontSize: '13.5px',
                                     padding: '10px 18px',
-                                    borderRadius: '8px',
+                                    borderRadius: 0,
                                 }}
                             >
                                 Play In Club Arena
                             </Link>
                         </div>
                     </section>
+                    <div style={{ marginTop: 28 }}>
+                        <SmarterAccountUnlockGate
+                            variant="editorial-wire"
+                            context="wire-index"
+                            redirectPath="/hub/wire"
+                        />
+                    </div>
                 </div>
             </main>
         </>

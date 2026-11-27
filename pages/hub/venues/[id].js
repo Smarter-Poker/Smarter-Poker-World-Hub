@@ -6,6 +6,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import { redactPublicVenue } from '../../../src/lib/poker-near-me/publicVenuePrivacy.mjs';
 import Head from 'next/head';
@@ -760,7 +761,7 @@ function VenueTypeBadge({ type }) {
         .venue-type-badge {
           display: inline-block;
           padding: 4px 14px;
-          border-radius: 20px;
+          border-radius: 0;
           font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.5px;
@@ -1987,7 +1988,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
       update: { bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa' },
       announcement: { bg: 'rgba(0, 212, 255, 0.12)', border: 'rgba(0, 212, 255, 0.25)', color: '#00D4FF' },
       promotion: { bg: 'rgba(34, 197, 94, 0.12)', border: 'rgba(34, 197, 94, 0.25)', color: '#4ade80' },
-      result: { bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.25)', color: '#a78bfa' },
+      result: { bg: 'rgba(56, 189, 248, 0.12)', border: 'rgba(56, 189, 248, 0.25)', color: '#86daff' },
     };
     return styles[type] || styles.update;
   };
@@ -2285,7 +2286,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             <PokerNearMeRecentRail currentHref={'/hub/venues/' + encodeURIComponent(String(id))} />
 
             {locationConflict && (
-              <section className="venue-location-integrity" role="status" aria-label="Venue location under review">
+              <section className="venue-location-integrity" role="status" aria-label="Venue Location Under Review">
                 <span className="venue-location-integrity__signal" aria-hidden="true" />
                 <div>
                   <strong>Location Signal Held For Review</strong>
@@ -2356,7 +2357,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 padding: '12px 14px',
                 background: 'rgba(0, 212, 255, 0.04)',
                 border: '1px solid rgba(0, 212, 255, 0.15)',
-                borderRadius: '8px',
+                borderRadius: 0,
                 fontSize: '13px',
                 lineHeight: '1.5',
                 color: '#cbd5e1'
@@ -2451,12 +2452,18 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               {friendNotice && (
                 <div className="venue-action-notice" role="status">
                   <span>{friendNotice}</span>
-                  <button type="button" onClick={() => setFriendNotice('')} aria-label="Dismiss friend request notice">Dismiss</button>
+                  <button type="button" onClick={() => setFriendNotice('')} aria-label="Dismiss Friend Request Notice">Dismiss</button>
                 </div>
               )}
             </PokerNearMePanelShell>
 
-            <div style={{ margin: '18px 0' }}>
+            <div style={{ margin: '18px 0', display: 'grid', gap: 18 }}>
+              <SmarterAccountUnlockGate
+                variant="live-venue-intel"
+                context={`venue-${String(id || 'detail')}`}
+                title={`See Live Waitlists, Peak Hours & Seat Alerts At ${venue?.name || 'This Poker Room'} Free`}
+                redirectPath={`/hub/venues/${id || ''}`}
+              />
               <SmarterConversionCta
                 eyebrow="Free Live Poker Room Companion"
                 title="Check In Live, Track Waitlists & Log Sessions Free"
@@ -2508,13 +2515,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                             : ' Running')}
                     </span>
                     {allCountsSimulated && (
-                      <span className="bravo-live-count" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}
-                            title="Modeled from historical activity patterns, not a live observation">
+                      <span className="bravo-live-count" style={{ background: 'rgba(56, 189, 248,0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248,0.4)' }}
+                            title="Modeled From Historical Activity Patterns, Not A Live Observation">
                         Modeled
                       </span>
                     )}
                     {mixedCounts && (
-                      <span className="bravo-live-count" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}>
+                      <span className="bravo-live-count" style={{ background: 'rgba(56, 189, 248,0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248,0.4)' }}>
                         Mixed Sources
                       </span>
                     )}
@@ -2534,7 +2541,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                         <div className="bravo-game-name">{g.game}</div>
                         <div className="bravo-game-stats">
                           <span className="bravo-game-tables">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={catalogOnly ? '#d8e4ec' : (allCountsSimulated || mixedCounts ? '#f59e0b' : '#4ade80')} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={catalogOnly ? '#d8e4ec' : (allCountsSimulated || mixedCounts ? '#38bdf8' : '#4ade80')} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
                               <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
                             </svg>
@@ -2542,7 +2549,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                           </span>
                           {waiting > 0 && (
                             <span className="bravo-game-waiting">
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
                               </svg>
@@ -2556,15 +2563,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 </div>
                 {waitlistOnly.length > 0 && (
                   <div style={{ padding: '8px 16px 4px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(245,158,11,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Waitlist Only</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(56, 189, 248,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Waitlist Only</div>
                     <div className="bravo-live-games-grid">
                       {waitlistOnly.map(function (g, idx) {
                         return (
-                          <div key={'wl-' + idx} className="bravo-live-game-card" style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
+                          <div key={'wl-' + idx} className="bravo-live-game-card" style={{ borderColor: 'rgba(56, 189, 248,0.15)' }}>
                             <div className="bravo-game-name">{g.game}</div>
                             <div className="bravo-game-stats">
                               <span className="bravo-game-waiting">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                   <circle cx="12" cy="12" r="10" />
                                   <polyline points="12 6 12 12 16 14" />
                                 </svg>
@@ -2611,7 +2618,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             )}
 
             {/* Contact & Info Section */}
-            <section className="info-section" aria-label="Venue Quick Facts and Contact Information">
+            <section className="info-section" aria-label="Venue Quick Facts And Contact Information">
               <h2 className="section-title">Contact &amp; Quick Facts</h2>
               <dl className="info-grid">
                 {/* Address */}
@@ -2774,7 +2781,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
 
               {/* Structured Amenities & Services Comparative Matrix Table */}
               <div className="venue-amenities-matrix-wrap" style={{ marginTop: '20px', overflowX: 'auto' }}>
-                <table className="venue-amenities-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
+                <table className="venue-amenities-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: 0, overflow: 'hidden' }}>
                   <caption className="sr-only">
                     Venue Amenities, Stakes, And Services Matrix For {venue.name || 'Poker Venue'}
                   </caption>
@@ -2836,7 +2843,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                     <details key={qIdx} style={{
                       background: 'rgba(255, 255, 255, 0.03)',
                       border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
+                      borderRadius: 0,
                       padding: '12px 14px',
                       color: '#e2e8f0'
                     }}>
@@ -2876,7 +2883,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                   </h2>
                 </div>
                 <div className="tournament-schedule-table-wrap" style={{ marginTop: '12px', overflowX: 'auto' }}>
-                  <table className="tournament-matrix-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
+                  <table className="tournament-matrix-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: 0, overflow: 'hidden' }}>
                     <caption className="sr-only">
                       Upcoming Poker Tournaments Schedule At {venue.name || 'This Venue'}
                     </caption>
@@ -3017,7 +3024,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               <PokerNearMePanelShell as="section" id="tournaments-section" className="tournaments-section venue-console-body">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-table-matrix-wrap" style={{ overflowX: 'auto', marginTop: '12px' }}>
-                  <table className="daily-tournaments-matrix-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
+                  <table className="daily-tournaments-matrix-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: 0, overflow: 'hidden' }}>
                     <caption className="sr-only">
                       Daily Recurring Tournament Schedule At {venue.name || 'This Venue'}
                     </caption>
@@ -3257,7 +3264,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="e.g. 1/2, 2/5"
+                        placeholder="Example: 1/2, 2/5"
                         value={reportForm.stakes}
                         onChange={function (e) { setReportForm(Object.assign({}, reportForm, { stakes: e.target.value })); }}
                         required
@@ -3301,7 +3308,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                   {reportError && (
                     <div role="alert" style={{
                       background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
-                      borderRadius: 8, padding: '10px 14px', marginBottom: 12,
+                      borderRadius: 0, padding: '10px 14px', marginBottom: 12,
                       color: '#ef4444', fontSize: 13, fontWeight: 600,
                     }}>
                       {reportError}
@@ -3397,7 +3404,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
                   background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)',
-                  borderRadius: 10, marginBottom: 12
+                  borderRadius: 0, marginBottom: 12
                 }}>
                   <div style={{ display: 'flex' }}>
                     {whosHere.people.slice(0, 4).map(function(p, i) {
@@ -3449,7 +3456,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                     onClick={function() { router.push('/hub/social-media?checkin_venue=' + encodeURIComponent(venue?.name || '') + '&checkin_id=' + id); }}
                     style={{
                       background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.3)',
-                      borderRadius: 6, padding: '4px 10px', color: '#00D4FF',
+                      borderRadius: 0, padding: '4px 10px', color: '#00D4FF',
                       fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
                     }}
                   >
@@ -3523,7 +3530,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               {checkinError && (
                 <div style={{
                   background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
-                  borderRadius: 8, padding: '10px 14px', marginTop: 12,
+                  borderRadius: 0, padding: '10px 14px', marginTop: 12,
                   color: '#ef4444', fontSize: 13, fontWeight: 600,
                   display: 'flex', alignItems: 'center', gap: 8
                 }}>
@@ -3537,9 +3544,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             {/* VENUE LEADERBOARD                           */}
             {/* ============================================ */}
             {venueLeaderboard.length > 0 && (
-              <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
+              <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 0, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
                 <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
                   Top Check-In Players
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -3548,8 +3555,8 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                     return (
                       <div key={leader.user_id} style={{
                         display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-                        borderRadius: 8, background: idx < 3 ? 'rgba(245,158,11,0.06)' : 'transparent',
-                        border: idx < 3 ? '1px solid rgba(245,158,11,0.15)' : '1px solid rgba(255,255,255,0.05)'
+                        borderRadius: 0, background: idx < 3 ? 'rgba(56, 189, 248,0.06)' : 'transparent',
+                        border: idx < 3 ? '1px solid rgba(56, 189, 248,0.15)' : '1px solid rgba(255,255,255,0.05)'
                       }}>
                         <div style={{
                           width: 28, height: 28, borderRadius: '50%', background: medal,
@@ -3569,7 +3576,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                           </div>
                           {leader.username && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>@{leader.username}</div>}
                         </div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b' }}>{leader.count}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8' }}>{leader.count}</div>
                       </div>
                     );
                   })}
@@ -3581,7 +3588,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             {/* 7-DAY ACTIVITY CHART                        */}
             {/* ============================================ */}
             {venueActivity.days.length > 0 && venueActivity.days.some(function(d) { return d.count > 0; }) && (
-              <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
+              <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 0, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
                 <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
                   7-Day Check-In Activity
@@ -3608,9 +3615,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             {/* ============================================ */}
             {/* POPULAR HOURS (REPLACED WITH PeakHoursHeatmap) */}
             {/* ============================================ */}
-            <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16, position: 'relative' }}>
+            <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 0, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16, position: 'relative' }}>
               <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Popular Times Heatmap
               </h3>
               
@@ -3633,7 +3640,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                       className="peak-analytics-upgrade"
                       style={{
                         background: 'linear-gradient(90deg, #2563eb, #1d4ed8)',
-                        color: '#ffffff', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: 8, padding: '10px 20px',
+                        color: '#ffffff', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: 0, padding: '10px 20px',
                         fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 15px rgba(37, 99, 235, 0.35)'
                       }}
                     >
@@ -3893,7 +3900,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .cash-game-schedule-section {
           background: var(--metal-bg, #0d1117);
           border: 1px solid rgba(0, 212, 255, 0.12);
-          border-radius: 16px;
+          border-radius: 0;
           padding: 20px;
           margin: 0 16px 20px;
         }
@@ -3906,7 +3913,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .game-schedule-day {
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid rgba(255, 255, 255, 0.06);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 12px 16px;
           transition: all 0.2s;
         }
@@ -3948,7 +3955,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           gap: 10px;
           padding: 8px 12px;
           background: rgba(255, 255, 255, 0.03);
-          border-radius: 8px;
+          border-radius: 0;
           border: 1px solid rgba(255, 255, 255, 0.04);
           flex-wrap: wrap;
         }
@@ -3989,7 +3996,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .game-schedule-empty p { margin: 0 0 12px; }
         .game-schedule-delete-btn {
           padding: 4px 10px;
-          border-radius: 6px;
+          border-radius: 0;
           border: 1px solid rgba(239, 68, 68, 0.3);
           background: rgba(239, 68, 68, 0.1);
           color: #ef4444;
@@ -4009,7 +4016,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 16px;
           background: rgba(0, 212, 255, 0.04);
           border: 1px solid rgba(0, 212, 255, 0.15);
-          border-radius: 12px;
+          border-radius: 0;
         }
         .editor-subtitle {
           font-size: 14px;
@@ -4029,7 +4036,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         }
         .schedule-add-btn {
           padding: 10px 24px;
-          border-radius: 10px;
+          border-radius: 0;
           border: 1px solid rgba(0, 212, 255, 0.3);
           background: rgba(0, 212, 255, 0.12);
           color: #00D4FF;
@@ -4121,7 +4128,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 10px 24px;
           background: rgba(0, 212, 255, 0.15);
           border: 1px solid #00D4FF;
-          border-radius: 8px;
+          border-radius: 0;
           color: #00D4FF;
           font-size: 14px;
           font-weight: 600;
@@ -4183,7 +4190,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .featured-badge {
           display: inline-block;
           padding: 3px 12px;
-          border-radius: 20px;
+          border-radius: 0;
           font-size:12px;
           font-weight: 700;
           letter-spacing: 0.5px;
@@ -4197,7 +4204,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           align-items: center;
           gap: 4px;
           padding: 3px 12px;
-          border-radius: 20px;
+          border-radius: 0;
           font-size:12px;
           font-weight: 700;
           letter-spacing: 0.5px;
@@ -4272,7 +4279,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           align-items: center;
           gap: 8px;
           padding: 10px 20px;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
@@ -4310,7 +4317,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           min-width: 20px;
           height: 20px;
           padding: 0 6px;
-          border-radius: 10px;
+          border-radius: 0;
           background: rgba(0, 212, 255, 0.2);
           font-size:12px;
           font-weight: 700;
@@ -4342,7 +4349,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .section-action-btn {
           flex-shrink: 0;
           padding: 8px 18px;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
@@ -4411,7 +4418,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 14px 16px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 10px;
+          border-radius: 0;
           backdrop-filter: blur(12px);
           transition: border-color 0.2s;
         }
@@ -4426,7 +4433,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           align-items: center;
           justify-content: center;
           background: rgba(0, 212, 255, 0.08);
-          border-radius: 8px;
+          border-radius: 0;
         }
         .info-content {
           display: flex;
@@ -4479,7 +4486,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .day-group {
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
           backdrop-filter: blur(12px);
         }
@@ -4507,7 +4514,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           text-transform: uppercase;
           letter-spacing: 0.5px;
           padding: 2px 10px;
-          border-radius: 10px;
+          border-radius: 0;
           background: rgba(0, 212, 255, 0.15);
           border: 1px solid rgba(0, 212, 255, 0.3);
           color: #00D4FF;
@@ -4522,7 +4529,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 10px 14px;
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
+          border-radius: 0;
           transition: border-color 0.2s;
         }
         .schedule-card:hover {
@@ -4557,7 +4564,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           font-weight: 600;
           padding: 3px 10px;
-          border-radius: 6px;
+          border-radius: 0;
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
@@ -4567,9 +4574,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           border: 1px solid rgba(59, 130, 246, 0.2);
         }
         .detail-chip.format {
-          background: rgba(139, 92, 246, 0.12);
-          color: #a78bfa;
-          border: 1px solid rgba(139, 92, 246, 0.2);
+          background: rgba(56, 189, 248, 0.12);
+          color: #86daff;
+          border: 1px solid rgba(56, 189, 248, 0.2);
         }
         .detail-chip.guaranteed {
           background: rgba(34, 197, 94, 0.12);
@@ -4590,7 +4597,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 32px 24px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
         }
         .empty-tournaments p {
           color: #64748b;
@@ -4617,7 +4624,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           color: #22c55e;
           background: rgba(34, 197, 94, 0.06);
           border: 1px solid rgba(34, 197, 94, 0.2);
-          border-radius: 8px;
+          border-radius: 0;
           text-align: center;
           font-weight: 500;
         }
@@ -4636,7 +4643,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .venue-news-card {
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
           transition: border-color 0.2s, transform 0.2s;
         }
@@ -4693,7 +4700,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .inline-form {
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(0, 212, 255, 0.2);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 20px;
           margin-bottom: 16px;
           display: flex;
@@ -4724,7 +4731,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 10px 14px;
           background: rgba(15, 23, 42, 0.8);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
+          border-radius: 0;
           color: #e2e8f0;
           font-size: 14px;
           font-family: inherit;
@@ -4754,7 +4761,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 10px 24px;
           background: rgba(0, 212, 255, 0.15);
           border: 1px solid #00D4FF;
-          border-radius: 8px;
+          border-radius: 0;
           color: #00D4FF;
           font-size: 14px;
           font-weight: 600;
@@ -4778,7 +4785,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 10px 20px;
           background: transparent;
           border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 8px;
+          border-radius: 0;
           color: #94a3b8;
           font-size: 14px;
           font-weight: 600;
@@ -4799,7 +4806,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 40px 24px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -4825,7 +4832,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           display: flex;
           gap: 0;
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
           background: rgba(10, 22, 40, 0.8);
         }
@@ -4907,7 +4914,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.06em;
-          border-radius: 8px;
+          border-radius: 0;
           text-decoration: none;
           transition: all 0.2s ease;
         }
@@ -4935,7 +4942,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           display: inline-block;
           margin-left: 10px;
           padding: 2px 10px;
-          border-radius: 10px;
+          border-radius: 0;
           font-size:12px;
           font-weight: 700;
           text-transform: uppercase;
@@ -4954,7 +4961,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 16px 18px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(0, 212, 255, 0.15);
-          border-radius: 12px;
+          border-radius: 0;
           backdrop-filter: blur(12px);
           transition: border-color 0.2s;
         }
@@ -5038,7 +5045,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           align-items: center;
           gap: 6px;
           padding: 6px 14px;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 13px;
           font-weight: 600;
           background: rgba(34, 197, 94, 0.1);
@@ -5054,7 +5061,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 12px 16px;
           background: rgba(34, 197, 94, 0.08);
           border: 1px solid rgba(34, 197, 94, 0.2);
-          border-radius: 10px;
+          border-radius: 0;
           color: #4ade80;
           font-size: 14px;
           font-weight: 500;
@@ -5072,7 +5079,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 12px 16px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 10px;
+          border-radius: 0;
           transition: border-color 0.2s;
         }
         .checkin-item:hover {
@@ -5132,7 +5139,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 20px 24px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
           margin-bottom: 16px;
         }
         .rating-overview {
@@ -5210,7 +5217,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 16px 18px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
           transition: border-color 0.2s;
         }
         .review-card:hover {
@@ -5232,14 +5239,14 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: rgba(139, 92, 246, 0.15);
-          border: 1px solid rgba(139, 92, 246, 0.3);
+          background: rgba(56, 189, 248, 0.15);
+          border: 1px solid rgba(56, 189, 248, 0.3);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 13px;
           font-weight: 700;
-          color: #a78bfa;
+          color: #86daff;
           flex-shrink: 0;
         }
         .review-name {
@@ -5286,7 +5293,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 16px 18px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
           transition: border-color 0.2s;
         }
         .activity-card:hover {
@@ -5302,7 +5309,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .activity-type-badge {
           display: inline-block;
           padding: 3px 10px;
-          border-radius: 6px;
+          border-radius: 0;
           font-size:12px;
           font-weight: 700;
           text-transform: uppercase;
@@ -5340,7 +5347,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .claim-cta-card {
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(0, 212, 255, 0.15);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 28px 24px;
           text-align: center;
         }
@@ -5371,7 +5378,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 12px 28px;
           background: rgba(0, 212, 255, 0.12);
           border: 1px solid #00D4FF;
-          border-radius: 8px;
+          border-radius: 0;
           color: #00D4FF;
           font-size: 15px;
           font-weight: 700;
@@ -5391,7 +5398,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           align-items: center;
           gap: 16px;
           padding: 20px 24px;
-          border-radius: 12px;
+          border-radius: 0;
         }
         .claim-verified-card {
           background: rgba(34, 197, 94, 0.06);
@@ -5449,7 +5456,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 0 24px;
         }
         .venue-map-wrapper {
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
           border: 1px solid rgba(255, 255, 255, 0.08);
         }
@@ -5472,7 +5479,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 10px 24px;
           background: rgba(0, 212, 255, 0.12);
           border: 1px solid #00D4FF;
-          border-radius: 8px;
+          border-radius: 0;
           color: #00D4FF;
           font-size: 14px;
           font-weight: 700;
@@ -5494,7 +5501,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 8px 16px;
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(148, 163, 184, 0.2);
-          border-radius: 8px;
+          border-radius: 0;
           color: rgba(148, 163, 184, 0.7);
           font-size: 13px;
           font-weight: 600;
@@ -5534,7 +5541,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 16px 18px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(0, 212, 255, 0.12);
-          border-radius: 12px;
+          border-radius: 0;
           transition: border-color 0.2s;
         }
         .promo-card:hover {
@@ -5550,7 +5557,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .promo-badge {
           display: inline-block;
           padding: 3px 10px;
-          border-radius: 6px;
+          border-radius: 0;
           font-size:12px;
           font-weight: 700;
           text-transform: uppercase;
@@ -5596,7 +5603,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 14px 18px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
           text-decoration: none;
           transition: all 0.2s;
           cursor: pointer;
@@ -5673,7 +5680,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 14px 18px;
           background: rgba(15, 23, 42, 0.5);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: 0;
           text-decoration: none;
           transition: all 0.2s;
           cursor: pointer;
@@ -5728,7 +5735,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .bravo-live-banner > * {
           background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(0, 212, 255, 0.06) 100%);
           border: 1px solid rgba(34, 197, 94, 0.25);
-          border-radius: 16px;
+          border-radius: 0;
           box-shadow: 0 0 24px rgba(34, 197, 94, 0.08), 0 4px 16px rgba(0, 0, 0, 0.3);
         }
         .bravo-live-banner {
@@ -5740,7 +5747,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 16px 20px 12px;
           background: linear-gradient(135deg, rgba(34, 197, 94, 0.10) 0%, rgba(0, 212, 255, 0.06) 100%);
           border: 1px solid rgba(34, 197, 94, 0.28);
-          border-radius: 16px 16px 0 0;
+          border-radius: 0 16px 0 0;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -5781,7 +5788,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           background: rgba(34, 197, 94, 0.2);
           border: 1px solid rgba(34, 197, 94, 0.35);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: 0;
           letter-spacing: 0.3px;
         }
         .bravo-live-updated {
@@ -5802,7 +5809,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 10px 14px;
           background: rgba(34, 197, 94, 0.06);
           border: 1px solid rgba(34, 197, 94, 0.15);
-          border-radius: 10px;
+          border-radius: 0;
           transition: all 0.2s;
         }
         .bravo-live-game-card:hover {
@@ -5840,7 +5847,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           gap: 4px;
           font-size: 12px;
           font-weight: 600;
-          color: #f59e0b;
+          color: #38bdf8;
         }
         .bravo-live-footer {
           padding: 10px 16px;
@@ -5870,7 +5877,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           padding: 6px 14px;
           background: rgba(0, 212, 255, 0.12);
           border: 1px solid rgba(0, 212, 255, 0.25);
-          border-radius: 8px;
+          border-radius: 0;
           color: #00D4FF;
           font-size: 12px;
           font-weight: 700;

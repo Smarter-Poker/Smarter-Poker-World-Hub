@@ -20,6 +20,7 @@ import {
     stripMagazineDashes,
 } from '../../../src/lib/magazine/magazineSchema.mjs';
 import { firstThatFits } from '../../../src/lib/seo/titleFit.js';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 
 const SLUG_SHAPE_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/i;
 
@@ -404,7 +405,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
             style={{
                 background: '#0b1520',
                 border: '1px solid #1b2c3d',
-                borderRadius: '16px',
+                borderRadius: 0,
                 padding: '22px',
                 marginBottom: '18px',
             }}
@@ -437,7 +438,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                         background: '#102131',
                         border: '1px solid #1b2c3d',
                         color: '#60a5fa',
-                        borderRadius: '999px',
+                        borderRadius: 0,
                         padding: '4px 12px',
                         fontSize: '12px',
                         fontWeight: 800,
@@ -476,7 +477,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
             )}
 
             {showHeroImage && (
-                <div style={{ marginBottom: '14px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #1b2c3d' }}>
+                <div style={{ marginBottom: '14px', borderRadius: 0, overflow: 'hidden', border: '1px solid #1b2c3d' }}>
                     <img
                         src={readerPicture || FALLBACK_MAGAZINE_IMAGE}
                         alt={stripMagazineDashes(page.headline || `Magazine Page ${page.pageNumber}`)}
@@ -510,7 +511,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                         padding: '12px 16px',
                         borderLeft: '4px solid #4fc1b3',
                         background: '#05070a',
-                        borderRadius: '0 10px 10px 0',
+                        borderRadius: 0,
                         fontSize: '16px',
                         fontWeight: 800,
                         fontStyle: 'italic',
@@ -536,7 +537,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                             style={{
                                 background: '#05070a',
                                 border: '1px solid #1b2c3d',
-                                borderRadius: '10px',
+                                borderRadius: 0,
                                 padding: '10px 12px',
                             }}
                         >
@@ -561,7 +562,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                     style={{
                         background: '#05070a',
                         border: '1px solid #1b2c3d',
-                        borderRadius: '12px',
+                        borderRadius: 0,
                         padding: '14px',
                         marginBottom: '14px',
                     }}
@@ -597,7 +598,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                                                     gap: '10px',
                                                     textAlign: 'left',
                                                     padding: '10px 12px',
-                                                    borderRadius: '8px',
+                                                    borderRadius: 0,
                                                     position: 'relative',
                                                     overflow: 'hidden',
                                                     background: showRight
@@ -688,7 +689,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                             display: 'inline-block',
                             background: '#4fc1b3',
                             color: '#05070a',
-                            borderRadius: '8px',
+                            borderRadius: 0,
                             padding: '9px 16px',
                             fontSize: '13px',
                             fontWeight: 900,
@@ -713,7 +714,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                                 style={{
                                     background: '#05070a',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '10px',
+                                    borderRadius: 0,
                                     padding: '14px',
                                 }}
                             >
@@ -733,7 +734,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                                                 style={{
                                                     textAlign: 'left',
                                                     padding: '10px 12px',
-                                                    borderRadius: '8px',
+                                                    borderRadius: 0,
                                                     background:
                                                         picked && isRight
                                                             ? '#102131'
@@ -799,7 +800,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                                 style={{
                                     background: '#05070a',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '10px',
+                                    borderRadius: 0,
                                     padding: '12px 14px',
                                 }}
                             >
@@ -850,7 +851,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                 <div
                     style={{
                         border: '1px solid #1b2c3d',
-                        borderRadius: '10px',
+                        borderRadius: 0,
                         overflow: 'hidden',
                         marginBottom: '12px',
                     }}
@@ -1571,7 +1572,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 background: viewMode === 'flipbook' ? '#4fc1b3' : '#102131',
                                 color: viewMode === 'flipbook' ? '#05070a' : '#ffffff',
                                 border: '1px solid #1b2c3d',
-                                borderRadius: '8px',
+                                borderRadius: 0,
                                 padding: '7px 12px',
                                 fontSize: '12.5px',
                                 fontWeight: 800,
@@ -1587,7 +1588,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 background: viewMode === 'reader' ? '#4fc1b3' : '#102131',
                                 color: viewMode === 'reader' ? '#05070a' : '#ffffff',
                                 border: '1px solid #1b2c3d',
-                                borderRadius: '8px',
+                                borderRadius: 0,
                                 padding: '7px 12px',
                                 fontSize: '12.5px',
                                 fontWeight: 800,
@@ -1605,7 +1606,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                     background: zoomed ? '#60a5fa' : '#05070a',
                                     color: zoomed ? '#05070a' : '#9fb3c8',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '8px',
+                                    borderRadius: 0,
                                     padding: '7px 11px',
                                     fontSize: '12.5px',
                                     fontWeight: 800,
@@ -1624,7 +1625,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 background: isCurrentPageBookmarked ? '#102131' : '#05070a',
                                 color: isCurrentPageBookmarked ? '#4fc1b3' : '#ffffff',
                                 border: `1px solid ${isCurrentPageBookmarked ? '#4fc1b3' : '#1b2c3d'}`,
-                                borderRadius: '8px',
+                                borderRadius: 0,
                                 padding: '7px 11px',
                                 fontSize: '12.5px',
                                 fontWeight: 800,
@@ -1648,7 +1649,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                     background: audioStatus === 'playing' ? '#4fc1b3' : '#05070a',
                                     color: audioStatus === 'playing' ? '#05070a' : '#60a5fa',
                                     border: '1px solid #60a5fa',
-                                    borderRadius: '8px',
+                                    borderRadius: 0,
                                     padding: '7px 11px',
                                     fontSize: '12.5px',
                                     fontWeight: 800,
@@ -1666,7 +1667,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 background: '#05070a',
                                 color: shareCopied ? '#4fc1b3' : '#ffffff',
                                 border: `1px solid ${shareCopied ? '#4fc1b3' : '#1b2c3d'}`,
-                                borderRadius: '8px',
+                                borderRadius: 0,
                                 padding: '7px 11px',
                                 fontSize: '12.5px',
                                 fontWeight: 800,
@@ -1683,7 +1684,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 background: '#05070a',
                                 color: '#60a5fa',
                                 border: '1px solid #60a5fa',
-                                borderRadius: '8px',
+                                borderRadius: 0,
                                 padding: '7px 12px',
                                 fontSize: '12.5px',
                                 fontWeight: 800,
@@ -1699,7 +1700,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 background: '#05070a',
                                 color: '#4fc1b3',
                                 border: '1px solid #4fc1b3',
-                                borderRadius: '8px',
+                                borderRadius: 0,
                                 padding: '7px 11px',
                                 fontSize: '12.5px',
                                 fontWeight: 800,
@@ -1715,7 +1716,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 background: '#102131',
                                 color: '#4fc1b3',
                                 border: '1px solid #4fc1b3',
-                                borderRadius: '8px',
+                                borderRadius: 0,
                                 padding: '7px 12px',
                                 fontSize: '12.5px',
                                 fontWeight: 800,
@@ -1761,7 +1762,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                     minWidth: 0,
                                     background: '#05070a',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '8px',
+                                    borderRadius: 0,
                                     padding: '7px 12px',
                                     color: '#ffffff',
                                     fontSize: '16px',
@@ -1776,7 +1777,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                         background: '#102131',
                                         border: '1px solid #1b2c3d',
                                         color: '#4fc1b3',
-                                        borderRadius: '8px',
+                                        borderRadius: 0,
                                         padding: '7px 11px',
                                         fontSize: '12px',
                                         fontWeight: 800,
@@ -1797,7 +1798,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                         background: '#4fc1b3',
                                         color: '#05070a',
                                         border: 'none',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                         padding: '6px 14px',
                                         fontSize: '12px',
                                         fontWeight: 900,
@@ -1822,7 +1823,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                                 background: bPage === activePageNumber ? '#4fc1b3' : '#102131',
                                                 color: bPage === activePageNumber ? '#05070a' : '#4fc1b3',
                                                 border: '1px solid #4fc1b3',
-                                                borderRadius: '999px',
+                                                borderRadius: 0,
                                                 padding: '4px 10px',
                                                 fontSize: '11.5px',
                                                 fontWeight: 800,
@@ -1855,7 +1856,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                             background: '#0b1520',
                                             border: '1px solid #60a5fa',
                                             color: '#ffffff',
-                                            borderRadius: '999px',
+                                            borderRadius: 0,
                                             padding: '5px 11px',
                                             fontSize: '12px',
                                             fontWeight: 800,
@@ -1881,7 +1882,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 gap: '10px',
                                 background: '#0b1520',
                                 border: '1px solid #1b2c3d',
-                                borderRadius: '10px',
+                                borderRadius: 0,
                                 padding: '8px 12px',
                             }}
                         >
@@ -1895,7 +1896,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                         letterSpacing: '1.2px',
                                         textTransform: 'uppercase',
                                         padding: '3px 8px',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                     }}
                                 >
                                     Audio Issue
@@ -1917,7 +1918,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                         background: '#102131',
                                         color: boundedAudioChapterIdx === 0 ? '#9fb3c8' : '#ffffff',
                                         border: '1px solid #1b2c3d',
-                                        borderRadius: '6px',
+                                        borderRadius: 0,
                                         padding: '5px 10px',
                                         fontSize: '12px',
                                         fontWeight: 800,
@@ -1934,7 +1935,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                         background: '#4fc1b3',
                                         color: '#05070a',
                                         border: 'none',
-                                        borderRadius: '6px',
+                                        borderRadius: 0,
                                         padding: '5px 12px',
                                         fontSize: '12px',
                                         fontWeight: 900,
@@ -1958,7 +1959,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                                 ? '#9fb3c8'
                                                 : '#ffffff',
                                         border: '1px solid #1b2c3d',
-                                        borderRadius: '6px',
+                                        borderRadius: 0,
                                         padding: '5px 10px',
                                         fontSize: '12px',
                                         fontWeight: 800,
@@ -1978,7 +1979,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                         background: '#05070a',
                                         color: '#f87171',
                                         border: '1px solid #1b2c3d',
-                                        borderRadius: '6px',
+                                        borderRadius: 0,
                                         padding: '5px 10px',
                                         fontSize: '12px',
                                         fontWeight: 800,
@@ -2020,7 +2021,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                     background: '#102131',
                                     border: '1px solid #1b2c3d',
                                     color: '#ffffff',
-                                    borderRadius: '6px',
+                                    borderRadius: 0,
                                     padding: '4px 10px',
                                     fontSize: '12px',
                                     fontWeight: 800,
@@ -2049,7 +2050,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                             textAlign: 'left',
                                             background: '#05070a',
                                             border: '1px solid #1b2c3d',
-                                            borderRadius: '8px',
+                                            borderRadius: 0,
                                             padding: '9px 12px',
                                             color: '#ffffff',
                                             cursor: 'pointer',
@@ -2099,7 +2100,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                     gridTemplateColumns: currentSpread.pages.length === 2 ? '1fr 1fr' : '1fr',
                                     gap: '0px',
                                     boxShadow: '0 24px 64px rgba(0, 0, 0, 0.8)',
-                                    borderRadius: '10px',
+                                    borderRadius: 0,
                                     overflow: 'hidden',
                                     border: '1px solid #1b2c3d',
                                     position: 'relative',
@@ -2132,7 +2133,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                     marginTop: '20px',
                                     background: '#0b1520',
                                     border: '1px solid #1b2c3d',
-                                    borderRadius: '14px',
+                                    borderRadius: 0,
                                     padding: '14px 18px',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -2156,7 +2157,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                             background: boundedSpreadIndex === 0 ? '#05070a' : '#102131',
                                             color: boundedSpreadIndex === 0 ? '#9fb3c8' : '#ffffff',
                                             border: '1px solid #1b2c3d',
-                                            borderRadius: '8px',
+                                            borderRadius: 0,
                                             padding: '9px 16px',
                                             fontSize: '13px',
                                             fontWeight: 800,
@@ -2179,7 +2180,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                             background: boundedSpreadIndex >= spreads.length - 1 ? '#05070a' : '#4fc1b3',
                                             color: boundedSpreadIndex >= spreads.length - 1 ? '#9fb3c8' : '#05070a',
                                             border: '1px solid #1b2c3d',
-                                            borderRadius: '8px',
+                                            borderRadius: 0,
                                             padding: '9px 16px',
                                             fontSize: '13px',
                                             fontWeight: 900,
@@ -2222,7 +2223,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                 background: '#0b1520',
                                 border: '1px solid #1b2c3d',
                                 borderLeft: '4px solid #4fc1b3',
-                                borderRadius: '16px',
+                                borderRadius: 0,
                                 padding: '24px',
                                 marginBottom: '26px',
                             }}
@@ -2292,6 +2293,13 @@ export default function SmarterPokerMagazineIssueReaderPage({
                         })}
                     </main>
                 )}
+                <div style={{ maxWidth: '1080px', margin: '28px auto 0', padding: '0 20px' }}>
+                    <SmarterAccountUnlockGate
+                        variant="editorial-wire"
+                        context="magazine-issue"
+                        redirectPath={`/hub/magazine/${issue?.slug || ''}`}
+                    />
+                </div>
             </div>
         </>
     );

@@ -18,6 +18,7 @@ import GeoCitationCapsule, { geoClaimSchema } from '../../../src/components/seo/
 import GeoFollowUpChain from '../../../src/components/seo/GeoFollowUpChain';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
   POKER_FORMULAS,
   FORMULAS_AS_OF,
@@ -206,6 +207,13 @@ export default function PokerFormulaDetailPage({ formula, allFormulas = [] }) {
             ))}
           </div>
         </section>
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context={`learn-formula-${formula.slug}`}
+          title={`Save ${formula.name} Formula Sheet & Drill Live EV Spots Free`}
+          redirectPath={canonicalPath}
+        />
+
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>
@@ -311,19 +319,19 @@ export async function getServerSideProps({ params, req, res, query }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#050811',
-    color: '#e2e8f0',
+    background: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
   },
   container: { maxWidth: 1060, margin: '0 auto', padding: '32px 20px 80px' },
-  breadcrumbs: { display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 13, color: '#94a3b8', marginBottom: 18 },
+  breadcrumbs: { display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 13, color: '#bdd0e2', marginBottom: 18 },
   crumbLink: { color: '#38bdf8', textDecoration: 'none' },
-  crumbSep: { color: '#475569' },
-  crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
+  crumbSep: { color: '#2b4663' },
+  crumbCurrent: { color: '#bdd0e2', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #0a1a2b 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -333,7 +341,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -343,46 +351,46 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
   },
-  h1: { fontSize: 'clamp(25px, 3.5vw, 35px)', fontWeight: 800, color: '#f8fafc', lineHeight: 1.22, margin: '0 0 14px 0' },
-  lead: { fontSize: 16, lineHeight: 1.66, color: '#cbd5e1', margin: '0 0 18px 0' },
+  h1: { fontSize: 'clamp(25px, 3.5vw, 35px)', fontWeight: 800, color: '#f2f7ff', lineHeight: 1.22, margin: '0 0 14px 0' },
+  lead: { fontSize: 16, lineHeight: 1.66, color: '#bdd0e2', margin: '0 0 18px 0' },
   equationCard: {
-    background: '#050811',
+    background: '#071321',
     border: '1px solid #38bdf8',
-    borderRadius: 10,
+    borderRadius: 0,
     padding: '16px 18px',
     marginBottom: 20,
   },
   eqLabel: { fontSize: 11, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.07em', marginBottom: 6 },
-  eqPlain: { fontSize: 16, fontWeight: 800, color: '#f8fafc', fontFamily: 'monospace', marginBottom: 6 },
-  eqLatex: { fontSize: 12.5, color: '#94a3b8', fontFamily: 'monospace' },
+  eqPlain: { fontSize: 16, fontWeight: 800, color: '#f2f7ff', fontFamily: 'monospace', marginBottom: 6 },
+  eqLatex: { fontSize: 12.5, color: '#bdd0e2', fontFamily: 'monospace' },
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
-  crossBtnCyan: { padding: '9px 15px', borderRadius: 8, background: '#38bdf8', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
-  crossBtnEmerald: { padding: '9px 15px', borderRadius: 8, background: '#10b981', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
-  crossBtnOutline: { padding: '9px 15px', borderRadius: 8, background: '#0f172a', color: '#38bdf8', border: '1px solid #334155', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
-  sectionPlate: { background: '#0b1120', border: '1px solid #1e293b', borderRadius: 12, padding: '24px 22px', marginBottom: 26 },
-  h2: { fontSize: 21, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0' },
-  h3: { fontSize: 17, fontWeight: 700, color: '#f8fafc', margin: '6px 0 10px 0' },
-  bodyText: { fontSize: 14.5, lineHeight: 1.65, color: '#cbd5e1', margin: 0 },
+  crossBtnCyan: { padding: '9px 15px', borderRadius: 0, background: '#38bdf8', color: '#071321', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
+  crossBtnEmerald: { padding: '9px 15px', borderRadius: 0, background: '#10b981', color: '#071321', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
+  crossBtnOutline: { padding: '9px 15px', borderRadius: 0, background: '#0d1f33', color: '#38bdf8', border: '1px solid #2b4663', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
+  sectionPlate: { background: '#0a1a2b', border: '1px solid #2b4663', borderRadius: 0, padding: '24px 22px', marginBottom: 26 },
+  h2: { fontSize: 21, fontWeight: 800, color: '#f2f7ff', margin: '0 0 14px 0' },
+  h3: { fontSize: 17, fontWeight: 700, color: '#f2f7ff', margin: '6px 0 10px 0' },
+  bodyText: { fontSize: 14.5, lineHeight: 1.65, color: '#bdd0e2', margin: 0 },
   varGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 },
-  varBox: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: '14px 16px' },
+  varBox: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: '14px 16px' },
   varSymbol: { fontSize: 14, fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace', marginBottom: 4 },
-  varMeaning: { fontSize: 13.5, color: '#cbd5e1', lineHeight: 1.5 },
+  varMeaning: { fontSize: 13.5, color: '#bdd0e2', lineHeight: 1.5 },
   twoColGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 18 },
-  colBox: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: 18 },
+  colBox: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: 18 },
   tagCyan: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.05em' },
-  tagAlert: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#e2e8f0', letterSpacing: '0.05em' },
+  tagAlert: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#f2f7ff', letterSpacing: '0.05em' },
   peerGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 },
-  peerCard: { display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', borderRadius: 10, background: '#0f172a', border: '1px solid #1e293b', textDecoration: 'none' },
+  peerCard: { display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', borderRadius: 0, background: '#0d1f33', border: '1px solid #2b4663', textDecoration: 'none' },
   peerCode: { fontSize: 11, fontWeight: 800, color: '#38bdf8' },
-  peerName: { fontSize: 14.5, fontWeight: 700, color: '#f8fafc' },
+  peerName: { fontSize: 14.5, fontWeight: 700, color: '#f2f7ff' },
   peerStats: { fontSize: 12, color: '#34d399' },
   faqList: { display: 'grid', gap: 14 },
-  faqItem: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: '16px 18px' },
-  faqQ: { fontSize: 16, fontWeight: 700, color: '#f8fafc', margin: '0 0 6px 0' },
-  faqA: { fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: 0 },
+  faqItem: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: '16px 18px' },
+  faqQ: { fontSize: 16, fontWeight: 700, color: '#f2f7ff', margin: '0 0 6px 0' },
+  faqA: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: 0 },
 };

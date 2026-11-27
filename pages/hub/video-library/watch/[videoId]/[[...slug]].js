@@ -41,6 +41,7 @@ import { useYouTubeErrorManager } from '../../../../../src/hooks/useYouTubeError
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../../src/components/video-library/VideoLibrarySEOHead';
 import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../../../../src/components/seo/SmarterAccountUnlockGate';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
 import { getMenuConfig } from '../../../../../src/config/hamburgerMenus';
@@ -472,6 +473,13 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                         {views && <div><dt>Views On YouTube</dt><dd>{views.replace(/\s*Views$/i, '')}</dd></div>}
                                     </dl>
                                 </section>
+                                <div style={{ marginTop: 18 }}>
+                                    <SmarterAccountUnlockGate
+                                        variant="video-drill"
+                                        context="video-library-watch"
+                                        redirectPath={watchPath(video)}
+                                    />
+                                </div>
                                 <div style={{ marginTop: 18 }}>
                                     <SmarterConversionCta
                                         compact

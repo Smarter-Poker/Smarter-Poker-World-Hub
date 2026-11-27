@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 
@@ -106,7 +107,7 @@ const CHIP_DENOMINATIONS = [
   },
   {
     colorName: 'Pink Or Sky Blue',
-    hex: '#f472b6',
+    hex: '#38bdf8',
     denomination: '$2 Or $2.50',
     stack20Value: '$40 Or $50 Per Stack',
     usage: 'Used In $2/$3 California Games, $4/$8 Limit Games, And Blackjack Snappers.',
@@ -134,14 +135,14 @@ const CHIP_DENOMINATIONS = [
   },
   {
     colorName: 'Purple ("Barneys")',
-    hex: '#a855f7',
+    hex: '#64748b',
     denomination: '$500',
     stack20Value: '$10,000 Per Stack ($50,000 Full Rack)',
     usage: 'High-Limit Cash Games ($10/$20, $25/$50+) And High-Roller Cage Transactions.',
   },
   {
     colorName: 'Yellow / Gold ("Bananas" Or "Pumpkins")',
-    hex: '#eab308',
+    hex: '#cbd5e1',
     denomination: '$1,000',
     stack20Value: '$20,000 Per Stack ($100,000 Full Rack)',
     usage: 'Nosebleed Cash Games ($50/$100+) And High-Stakes Bobby\'s Room / Ivey Room Play.',
@@ -525,6 +526,15 @@ export default function FirstTimeCasinoPokerGuidePage() {
           </div>
         </section>
 
+        <div style={{ margin: '24px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={"poker-rooms-first-time-guide"}
+            title={"Find Beginner-Friendly Live Poker Rooms & Waitlists Near You Free"}
+            redirectPath={"/poker-rooms/first-time-guide"}
+          />
+        </div>
+
         <CitationBacklinkBox
           title="First-Time Casino Live Poker Room Guide & Dealer Tipping Calculator"
           canonicalUrl={canonicalUrl}
@@ -550,7 +560,7 @@ export default function FirstTimeCasinoPokerGuidePage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     color: '#e2e8f0',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
@@ -581,9 +591,9 @@ const styles = {
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -600,7 +610,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -610,7 +620,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
@@ -637,7 +647,7 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
@@ -646,23 +656,23 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
     color: '#e2e8f0',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
   },
@@ -686,7 +696,7 @@ const styles = {
     color: '#10b981',
     border: '1px solid #10b981',
     padding: '4px 9px',
-    borderRadius: '4px',
+    borderRadius: 0,
   },
   sectionSub: {
     fontSize: '14px',
@@ -711,9 +721,9 @@ const styles = {
     color: '#00d4ff',
   },
   numInput: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '10px 12px',
     color: '#f8fafc',
     fontSize: '15px',
@@ -725,9 +735,9 @@ const styles = {
     gap: '14px',
   },
   outputCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px',
   },
   outputLabel: {
@@ -759,9 +769,9 @@ const styles = {
     marginTop: '14px',
   },
   stepCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px',
   },
   stepBadge: {
@@ -790,7 +800,7 @@ const styles = {
     fontSize: '13.5px',
   },
   trHead: {
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     borderBottom: '2px solid #00d4ff',
     textAlign: 'left',
   },
@@ -801,7 +811,7 @@ const styles = {
     fontSize: '12px',
   },
   trBody: {
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #2b4663',
   },
   tdRule: {
     padding: '12px',
@@ -852,9 +862,9 @@ const styles = {
     marginTop: '14px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {

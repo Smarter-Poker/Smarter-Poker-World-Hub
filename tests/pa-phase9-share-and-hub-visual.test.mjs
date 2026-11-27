@@ -88,6 +88,8 @@ test('2. PA Home keeps opt-in skeleton motion, accessible live controls, proport
   // Exact approved subjects use proportional SVG viewports at every card size.
   const art = read('src/components/personal-assistant/ApprovedLandingArt.jsx');
   assert.match(art, /preserveAspectRatio="xMidYMid meet"/);
+  assert.match(art, /<clipPath id=\{clipId\}>\s*<rect x=\{x\} y=\{y\} width=\{width\} height=\{height\} \/>\s*<\/clipPath>/, 'ApprovedIllustration must clip sprite image to viewBox bounds so adjacent sprite rows cannot bleed on tablet/mobile viewports');
+  assert.match(art, /clipPath=\{`url\(#\$\{clipId\}\)`\}/);
   assert.match(home, /<ApprovedIllustration\s+kind="review"/);
   assert.match(home, /<ApprovedIllustration\s+kind="sandbox"/);
   assert.match(home, /<ApprovedIllustration\s+kind="leaks"/);

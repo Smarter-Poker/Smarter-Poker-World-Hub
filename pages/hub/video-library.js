@@ -24,6 +24,7 @@ import { buildWatchDescription } from '../../src/lib/videoLibraryWatch.mjs';
 import SEOHead from '../../src/components/video-library/VideoLibrarySEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import VideoLibraryWorkspaceHeader from '../../src/components/video-library/VideoLibraryWorkspaceHeader';
 
 // AEO phase 3 & 4 (2026-10-29).
@@ -3187,6 +3188,13 @@ export default function VideoLibraryPage() {
             only body copy a crawler that runs no JavaScript ever sees here. */}
         {/* as="h1" while the body did not server-render and this was the only
             heading a crawler saw. The body renders now and brings its own. */}
+        <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+            <SmarterAccountUnlockGate
+                variant="video-drill"
+                context="video-library-index"
+                redirectPath="/hub/video-library"
+            />
+        </div>
         <HubPageSummary page="video-library" />
         </>
     );
