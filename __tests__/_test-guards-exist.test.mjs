@@ -934,6 +934,7 @@ import './seo-aeo-geo-phase7-20261126.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';
 import './trivia-ops-perf-timeout-laws.test.mjs';
+import './trivia-wave5-stats-calendar-laws.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
