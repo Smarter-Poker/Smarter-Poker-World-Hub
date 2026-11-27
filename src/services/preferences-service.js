@@ -101,8 +101,11 @@ export const friendPreferences = {
           .eq('id', userId)
           .maybeSingle();
 
-        if (data?.friend_preferences) {
-          return data.friend_preferences;
+        // The column holds only the keys a player has changed (the RPC merges
+        // each save), so a missing key keeps its default instead of reading
+        // as false.
+        if (data?.friend_preferences && typeof data.friend_preferences === 'object') {
+          return { ...local, ...data.friend_preferences };
         }
       }
 
@@ -117,8 +120,23 @@ export const friendPreferences = {
     }
   },
 
+  // A signed-in player's setting is saved to their account first, and this
+  // browser's copy changes only once the account has it. Writing localStorage
+  // first (as this did until 2026-10-20) made a refused save look saved here
+  // and nowhere else. A failure throws, so the caller can say so.
   async update(userId, preferences) {
     try {
+      let saved = preferences;
+      if (userId) {
+        const { data, error } = await supabase.rpc('update_friend_preferences', {
+          p_user_id: userId,
+          p_preferences: preferences,
+        });
+
+        if (error) throw error;
+        saved = data || preferences;
+      }
+
       if (preferences.allowRequests !== undefined) {
         localStorage.setItem('friends-allow-requests', preferences.allowRequests.toString());
       }
@@ -128,18 +146,7 @@ export const friendPreferences = {
       if (preferences.friendSuggestions !== undefined) {
         localStorage.setItem('friends-suggestions', preferences.friendSuggestions.toString());
       }
-
-      if (userId) {
-        const { data, error } = await supabase.rpc('update_friend_preferences', {
-          p_user_id: userId,
-          p_preferences: preferences,
-        });
-
-        if (error) throw error;
-        return data;
-      }
-
-      return preferences;
+      return saved;
     } catch (error) {
       console.warn('[Preferences] Error updating friend preferences:', error);
       throw error;
@@ -199,8 +206,8 @@ export const storePreferences = {
           .eq('id', userId)
           .maybeSingle();
 
-        if (data?.store_preferences) {
-          return data.store_preferences;
+        if (data?.store_preferences && typeof data.store_preferences === 'object') {
+          return { ...local, ...data.store_preferences };
         }
       }
 
@@ -216,13 +223,7 @@ export const storePreferences = {
 
   async update(userId, preferences) {
     try {
-      if (preferences.emailReceipts !== undefined) {
-        localStorage.setItem('store-email-receipts', preferences.emailReceipts.toString());
-      }
-      if (preferences.promotionalEmails !== undefined) {
-        localStorage.setItem('store-promotional-emails', preferences.promotionalEmails.toString());
-      }
-
+      let saved = preferences;
       if (userId) {
         const { data, error } = await supabase.rpc('update_store_preferences', {
           p_user_id: userId,
@@ -230,10 +231,16 @@ export const storePreferences = {
         });
 
         if (error) throw error;
-        return data;
+        saved = data || preferences;
       }
 
-      return preferences;
+      if (preferences.emailReceipts !== undefined) {
+        localStorage.setItem('store-email-receipts', preferences.emailReceipts.toString());
+      }
+      if (preferences.promotionalEmails !== undefined) {
+        localStorage.setItem('store-promotional-emails', preferences.promotionalEmails.toString());
+      }
+      return saved;
     } catch (error) {
       console.warn('[Preferences] Error updating store preferences:', error);
       throw error;

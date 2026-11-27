@@ -430,10 +430,18 @@ function FriendsPage() {
     }, [user]);
 
     // Preference update handler with Supabase sync
+    // The toggle moves at once; if the account refuses the save it moves back
+    // and says so, instead of an unhandled rejection that left the setting
+    // living in this browser only.
     const updatePreference = async (key, value) => {
-        const updated = { ...preferences, [key]: value };
-        setPreferences(updated);
-        await friendPreferences.update(user?.id, { [key]: value });
+        const previous = preferences[key];
+        setPreferences(prev => ({ ...prev, [key]: value }));
+        try {
+            await friendPreferences.update(user?.id, { [key]: value });
+        } catch (error) {
+            setPreferences(prev => ({ ...prev, [key]: previous }));
+            toast.error('Could not save that setting. Please try again.');
+        }
     };
 
     // Menu config
