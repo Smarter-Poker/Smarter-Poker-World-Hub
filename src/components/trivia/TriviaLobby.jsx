@@ -307,13 +307,43 @@ export default function TriviaLobby({
     setActiveFilter(rawRequested.trim().toLowerCase() || 'all');
   }, [router.isReady, router.query.tab, router.query.filter]);
 
-  const prefetchMode = (modeId) => {
-    if (!availabilityFor(modeId).enabled) return;
-    const route = getModeRoute(modeId);
-    if (prefetchedRoutesRef.current.has(route)) return;
+  const prefetchRoute = useCallback((route) => {
+    if (!route || prefetchedRoutesRef.current.has(route)) return;
     prefetchedRoutesRef.current.add(route);
     router.prefetch(route).catch(() => prefetchedRoutesRef.current.delete(route));
+  }, [router]);
+
+  const prefetchMode = (modeId) => {
+    if (!availabilityFor(modeId).enabled) return;
+    prefetchRoute(getModeRoute(modeId));
   };
+
+  // Polite post-load idle prefetch for the 5 Trivia subpages (delayed well past cold perf budgets).
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const subpages = [
+      '/hub/trivia/study',
+      '/hub/trivia/leaderboard',
+      '/hub/trivia/stats',
+      '/hub/trivia/achievements',
+      '/hub/trivia/settings',
+    ];
+    let idleId = null;
+    const timer = window.setTimeout(() => {
+      const run = () => subpages.forEach((route) => prefetchRoute(route));
+      if (typeof window.requestIdleCallback === 'function') {
+        idleId = window.requestIdleCallback(run, { timeout: 2500 });
+      } else {
+        run();
+      }
+    }, 3500);
+    return () => {
+      window.clearTimeout(timer);
+      if (idleId !== null && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [prefetchRoute]);
 
   const routeToMode = async (modeId, { autostart = false } = {}) => {
     if (routingRef.current) return;
@@ -465,7 +495,7 @@ export default function TriviaLobby({
             </div>
           </dd>
         </div>
-        <div className={styles.metric}>
+        <div className={styles.metric} title={currentStreak > 0 && !dailyCompleted ? 'Play Daily Trivia To Keep Your Streak Alive' : undefined}>
           <dt className={styles.srOnly}>Day Streak</dt>
           <dd className={styles.metricValue}>
             <TriviaBodyIcon name="streak" className={styles.metricIcon} />
@@ -478,6 +508,9 @@ export default function TriviaLobby({
                     : Number(currentStreak || 0).toLocaleString('en-US')}
               </strong>
               <span aria-hidden="true">Day Streak</span>
+              {!playerDataLoading && currentStreak > 0 && !dailyCompleted ? (
+                <span className={styles.streakCue} aria-hidden="true" />
+              ) : null}
             </div>
           </dd>
         </div>
@@ -522,7 +555,12 @@ export default function TriviaLobby({
       ) : null}
 
       <div className={styles.discoveryRow}>
-        <Link href="/hub/trivia/study" className={`${styles.button} ${styles.studyButton}`}>
+        <Link
+          href="/hub/trivia/study"
+          className={`${styles.button} ${styles.studyButton}`}
+          onPointerDown={() => prefetchRoute('/hub/trivia/study')}
+          onFocus={() => prefetchRoute('/hub/trivia/study')}
+        >
           <TriviaBodyIcon name="study" className={styles.discoveryIcon} />
           <span>Study My Misses</span>
         </Link>
@@ -542,19 +580,39 @@ export default function TriviaLobby({
       </div>
 
       <nav className={`lobby-utility-bar ${styles.utilityBar}`} aria-label="Trivia Quick Access">
-        <Link href="/hub/trivia/leaderboard" className={styles.utilityLink}>
+        <Link
+          href="/hub/trivia/leaderboard"
+          className={styles.utilityLink}
+          onPointerDown={() => prefetchRoute('/hub/trivia/leaderboard')}
+          onFocus={() => prefetchRoute('/hub/trivia/leaderboard')}
+        >
           <TriviaBodyIcon name="leaderboards" className={styles.utilityIcon} />
           <span>Leaderboards</span>
         </Link>
-        <Link href="/hub/trivia/stats" className={styles.utilityLink}>
+        <Link
+          href="/hub/trivia/stats"
+          className={styles.utilityLink}
+          onPointerDown={() => prefetchRoute('/hub/trivia/stats')}
+          onFocus={() => prefetchRoute('/hub/trivia/stats')}
+        >
           <TriviaBodyIcon name="stats" className={styles.utilityIcon} />
           <span>Stats</span>
         </Link>
-        <Link href="/hub/trivia/achievements" className={styles.utilityLink}>
+        <Link
+          href="/hub/trivia/achievements"
+          className={styles.utilityLink}
+          onPointerDown={() => prefetchRoute('/hub/trivia/achievements')}
+          onFocus={() => prefetchRoute('/hub/trivia/achievements')}
+        >
           <TriviaBodyIcon name="achievements" className={styles.utilityIcon} />
           <span>Achievements</span>
         </Link>
-        <Link href="/hub/trivia/settings" className={styles.utilityLink}>
+        <Link
+          href="/hub/trivia/settings"
+          className={styles.utilityLink}
+          onPointerDown={() => prefetchRoute('/hub/trivia/settings')}
+          onFocus={() => prefetchRoute('/hub/trivia/settings')}
+        >
           <TriviaBodyIcon name="settings" className={styles.utilityIcon} />
           <span>Settings</span>
         </Link>
@@ -589,6 +647,25 @@ export default function TriviaLobby({
               ? `+${mode.diamondReward}${mode.perfectBonus ? ` / +${mode.perfectBonus} Perfect` : ''}`
               : printTitle(mode.diamondReward);
             const canOpenCard = !isRouting && !playerDataLoading && !unavailable;
+            const isRecoverableCard = Boolean(activeSoloRecovery?.mode === mode.id);
+            let cardBadgeText = '';
+            let cardBadgeHighlight = false;
+            if (!unavailable) {
+              if (isRecoverableCard) {
+                cardBadgeText = 'Resume';
+                cardBadgeHighlight = true;
+              } else if (mode.id === 'tournaments') {
+                cardBadgeText = '8 PM CT';
+                cardBadgeHighlight = true;
+              } else if (mode.id === 'pvp' && pvpEloBadge) {
+                cardBadgeText = `${printTitle(pvpEloBadge.tier)} ${pvpEloBadge.elo.toLocaleString('en-US')}`;
+              } else if (costText === 'Free' || costText === 'VIP Free' || costText === '1 Free Entry Ticket') {
+                cardBadgeText = costText === '1 Free Entry Ticket' ? 'Free Ticket' : costText;
+                cardBadgeHighlight = true;
+              } else if (costText !== 'Checking Access' && costText !== 'Verified At Entry' && costText !== 'Variable') {
+                cardBadgeText = costText;
+              }
+            }
             return (
               <article
                 key={mode.id}
@@ -606,6 +683,10 @@ export default function TriviaLobby({
                 <TriviaModeArt mode={mode} priority={index < 2} />
                 {unavailable ? (
                   <span className={styles.maintenanceBadge}>Maintenance</span>
+                ) : cardBadgeText ? (
+                  <span className={`${styles.cardBadge}${cardBadgeHighlight ? ` ${styles.cardBadgeCobalt}` : ''}`} aria-hidden="true">
+                    {cardBadgeText}
+                  </span>
                 ) : null}
                 <div className={styles.cardContent}>
                   <h3 id={`trivia-card-${mode.id}`} className={styles.cardTitle}>{modeName}</h3>

@@ -8,9 +8,11 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
+import TriviaCardText from '../../../src/components/trivia/TriviaCardText';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
-import { TRIVIA_INTRO_ART } from '../../../src/config/triviaIntroArt.mjs';
+import useTriviaKeyboardControls from '../../../src/hooks/useTriviaKeyboardControls';
+import { TRIVIA_STUDY_ART } from '../../../src/config/triviaStudyArt.mjs';
 import {
     getTrainingSpotForCategory,
     TRAINING_SPOT_MAP,
@@ -292,6 +294,18 @@ export default function TriviaStudyDeck() {
     };
 
     const currentDrillCard = drillActive && !drillCompleted ? (drillQuestions[drillIndex] || null) : null;
+    useTriviaKeyboardControls({
+        enabled: !isLoading && Boolean(userId) && (Boolean(currentDrillCard) || (!drillActive && Boolean(activeCard))),
+        optionCount: currentDrillCard ? (currentDrillCard.options?.length || 0) : 0,
+        canSelect: Boolean(currentDrillCard) && drillSelectedOption === null,
+        canAdvance: Boolean(currentDrillCard && drillSelectedOption !== null) || Boolean(!drillActive && activeCard),
+        onSelectOption: currentDrillCard ? handleDrillAnswer : undefined,
+        onAdvance: currentDrillCard
+            ? handleDrillNext
+            : () => setIsFlipped((prev) => !prev),
+        onPrev: !drillActive && activeCard ? handlePrev : undefined,
+        onNext: !drillActive && activeCard ? handleNext : undefined,
+    });
     const drillCorrectCount = useMemo(
         () => drillResults.filter((r) => r.correct).length,
         [drillResults],
@@ -372,7 +386,7 @@ export default function TriviaStudyDeck() {
                                         ? { label: 'Sign In', onClick: () => router.push('/auth/login?redirect=/hub/trivia/study') }
                                         : { label: 'Play Trivia', onClick: () => router.push('/hub/trivia') }}
                             >
-                                <ResponsiveModeArt art={TRIVIA_INTRO_ART.stats} priority />
+                                <ResponsiveModeArt art={TRIVIA_STUDY_ART} priority />
 
                                 <div className="study-stage-container" style={{ minHeight: '460px' }}>
                                 {isLoading ? (
@@ -460,7 +474,7 @@ export default function TriviaStudyDeck() {
                                                     </span>
                                                 </header>
 
-                                                <h2 className="study-card__question">{currentDrillCard.question}</h2>
+                                                <h2 className="study-card__question"><TriviaCardText text={currentDrillCard.question} /></h2>
 
                                                 <div className="study-drill__options" role="group" aria-label="Practice Drill Answer Choices">
                                                     {currentDrillCard.options.map((optText, idx) => {
@@ -661,7 +675,7 @@ export default function TriviaStudyDeck() {
                                                     <span>Last Missed {formatDate(activeCard.lastMissedAt)}</span>
                                                 </div>
 
-                                                <h2 className="study-card__question">{activeCard.question}</h2>
+                                                <h2 className="study-card__question"><TriviaCardText text={activeCard.question} /></h2>
 
                                                 <ol className="study-options">
                                                     {activeCard.options.map((optText, idx) => {

@@ -32,6 +32,7 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
 import ReportQuestionButton from './ReportQuestionButton';
+import TriviaQuestionProgress from './TriviaQuestionProgress';
 import TriviaNetworkBanner from './TriviaNetworkBanner';
 import TriviaSkeleton from './TriviaSkeleton';
 import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
@@ -1270,6 +1271,11 @@ export default function StrategyTrivia({ mode }) {
                                 </ul>
                             )}
 
+                            <TriviaQuestionProgress
+                                total={questions.length}
+                                currentIndex={currentQuestionIndex}
+                                label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
+                            />
                             <section className="strategy-context" aria-labelledby="strategy-context-heading">
                                 <h2 id="strategy-context-heading" className="strategy-context__heading tc-label">
                                     {currentContext.heading}

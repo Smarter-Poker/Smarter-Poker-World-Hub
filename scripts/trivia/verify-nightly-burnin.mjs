@@ -108,6 +108,8 @@ export function gradeNightlyBurnIn(rows = [], options = {}) {
 
         const horseTarget = isFiniteNumber(row.horse_target) ? Number(row.horse_target) : null;
         const horsesEntered = isFiniteNumber(row.horses_entered) ? Number(row.horses_entered) : null;
+        const humansEntered = isFiniteNumber(row.humans_entered) ? Number(row.humans_entered) : 0;
+        const bracketCapacity = isFiniteNumber(row.bracket_capacity) ? Number(row.bracket_capacity) : null;
         const startDelay = isFiniteNumber(row.start_delay_seconds) ? Number(row.start_delay_seconds) : null;
         const chargedEntrants = isFiniteNumber(row.charged_entrants) ? Number(row.charged_entrants) : null;
         const excludedCharged = isFiniteNumber(row.excluded_charged_entrants) ? Number(row.excluded_charged_entrants) : null;
@@ -127,9 +129,16 @@ export function gradeNightlyBurnIn(rows = [], options = {}) {
         const horseTargetInRange = horseTarget !== null
             && horseTarget >= PHASE12_BURNIN_SLOS.horseTargetMin
             && horseTarget <= PHASE12_BURNIN_SLOS.horseTargetMax;
+        const fullBracketHorseFill = horsesEntered !== null
+            && horseTarget !== null
+            && horsesEntered >= horseTarget
+            && bracketCapacity !== null
+            && (humansEntered + horsesEntered) === bracketCapacity;
         const slo1 = {
-            passed: horseTargetInRange && horsesEntered === horseTarget,
-            detail: `${horsesEntered ?? '-'}/${horseTarget ?? '-'} horses (target 70-140)`,
+            passed: horseTargetInRange && (horsesEntered === horseTarget || fullBracketHorseFill),
+            detail: fullBracketHorseFill
+                ? `${horsesEntered}/${bracketCapacity} horses (full bracket fill, target ${horseTarget ?? '-'})`
+                : `${horsesEntered ?? '-'}/${horseTarget ?? '-'} horses (target 70-140)`,
         };
         const slo2 = {
             passed: startDelay !== null

@@ -19,6 +19,8 @@ import { busEmit } from '../../engine/EventBus';
 import HintButtons, { applyHint } from './HintButtons';
 import GhostOpponent from './GhostOpponent';
 import TriviaAnswerOption from './TriviaAnswerOption';
+import TriviaCardText from './TriviaCardText';
+import TriviaQuestionProgress from './TriviaQuestionProgress';
 import TriviaNetworkBanner from './TriviaNetworkBanner';
 import ReportQuestionButton from './ReportQuestionButton';
 import { toTitleCase } from '../../lib/trivia/titleCase';
@@ -166,6 +168,7 @@ export default function TriviaGame({
     // ══ NEW: Game active state for ghost opponent ══
     const [isGameActive, setIsGameActive] = useState(true);
     const [correctCount, setCorrectCount] = useState(recoveredCorrectCount);
+    const [questionOutcomes, setQuestionOutcomes] = useState([]);
 
     // ══ NEW: Audio mute ══
     const [muted, setMuted] = useState(audio.isMuted());
@@ -375,6 +378,11 @@ export default function TriviaGame({
     // one. Factored out so the server path replays exactly the same effects
     // once the verdict arrives instead of duplicating this block.
     const applyVerdict = (correct, index, newAnswers) => {
+        setQuestionOutcomes((prev) => {
+            const next = [...prev];
+            next[currentIndex] = correct ? 'correct' : 'wrong';
+            return next;
+        });
         if (correct) {
             // ── CORRECT ──
             audio.correctChime();
@@ -891,6 +899,12 @@ export default function TriviaGame({
             </div>
 
             {/* ════ Question ════ */}
+            <TriviaQuestionProgress
+                total={questions.length}
+                currentIndex={currentIndex}
+                outcomes={questionOutcomes}
+                label={`Question ${currentIndex + 1} Of ${questions.length}`}
+            />
             <div key={currentIndex} className="question-card">
                 <div className="question-meta">
                     <span className="category tc-label">{getCategoryName(currentQuestion.category)}</span>
@@ -905,7 +919,9 @@ export default function TriviaGame({
                 </div>
 
                 {/* Question Text */}
-                <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
+                <h2 className="question-text">
+                    <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} />
+                </h2>
 
                 {/* Answer Options: the shared console answer control, so every
                     Trivia surface prints selected, correct, incorrect and

@@ -9,13 +9,16 @@ import { TRIVIA_RULE_VERSIONS, CURRENT_RULES, canonicalJson } from '../../src/li
 
 const q = s => `'${String(s).replace(/'/g, "''")}'`;
 
+export function rulesVersionTupleSql(v) {
+    const canonical = canonicalJson(v.rules);
+    const sha = crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
+    return `  (${q(v.id)}, ${q(v.rulesKey)}, ${v.version}, ${q(v.family)}, ${q(v.mode)}, ${v.provisional}, ${q(v.approvalSource)}, ${q(canonical)}, ${q(sha)})`;
+}
+
 export function rulesSeedSql() {
-    const rows = TRIVIA_RULE_VERSIONS.map(v => {
-        const canonical = canonicalJson(v.rules);
-        const sha = crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
-        return `  (${q(v.id)}, ${q(v.rulesKey)}, ${v.version}, ${q(v.family)}, ${q(v.mode)}, ${v.provisional}, ${q(v.approvalSource)}, ${q(canonical)}, ${q(sha)})`;
-    });
-    const current = Object.entries(CURRENT_RULES).map(([k, id]) => `  (${q(k)}, ${q(id)}, 'Phase 2 registry seed')`);
+    const v1Versions = TRIVIA_RULE_VERSIONS.filter(v => v.version === 1);
+    const rows = v1Versions.map(rulesVersionTupleSql);
+    const current = v1Versions.map(v => `  (${q(v.rulesKey)}, ${q(v.id)}, 'Phase 2 registry seed')`);
     return [
         '-- BEGIN GENERATED RULES SEED (scripts/trivia/rules-seed-sql.mjs)',
         'INSERT INTO public.trivia_rules_versions (id, rules_key, version, family, mode, provisional, approval_source, rules_canonical, rules_sha256) VALUES',

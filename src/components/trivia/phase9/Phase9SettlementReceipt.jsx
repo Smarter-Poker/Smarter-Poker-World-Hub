@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { formatTriviaDisplayNumber } from '../../../lib/trivia/formatTriviaDisplayNumber';
 import ShareResultCardModal from '../ShareResultCardModal';
 import PostSettlementReviewDrawer from '../PostSettlementReviewDrawer';
@@ -126,6 +127,14 @@ export default function Phase9SettlementReceipt({
                         >
                             Review Answers
                         </button>
+                        {total > correct ? (
+                            <Link
+                                href="/hub/trivia/study"
+                                className="tc-word tc-ink--blue phase9-settlement__action"
+                            >
+                                Study Your Misses
+                            </Link>
+                        ) : null}
                     </div>
                     <ShareResultCardModal
                         open={shareCardOpen}

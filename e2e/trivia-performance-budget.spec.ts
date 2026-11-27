@@ -331,8 +331,30 @@ test('Approved Trivia gallery keeps two mobile columns and accessible search and
     const help = page.getByRole('button', { name: 'Poker Trivia Help', exact: true });
     const dialog = page.getByRole('dialog', { name: 'How To Play', exact: true });
     const closeHelp = dialog.getByRole('button', { name: 'Close Help', exact: true });
-    // About Poker Trivia summary lives inside the "?" Help modal, never below the 12-card grid.
+    // About Poker Trivia summary lives inside the "?" Help modal, never below the 12-card grid,
+    // while its JSON-LD structured data stays emitted in <head>.
     await expect(page.getByText('About Poker Trivia')).toHaveCount(0);
+    const ldJsonCount = await page.locator('head script[type="application/ld+json"]').count();
+    expect(ldJsonCount).toBeGreaterThanOrEqual(1);
+
+    // All 4 boxes below Play Daily Trivia must have identical width and height (<= 1px delta).
+    const mobileFourBoxes = await page.evaluate(() => {
+      const items = [
+        ...Array.from(document.querySelectorAll('.trivia-lobby .lobby-metrics > div')),
+        document.querySelector('.trivia-lobby a[href="/hub/trivia/study"]'),
+        document.querySelector('.trivia-lobby input[type="search"]')?.closest('label'),
+      ].filter(Boolean) as HTMLElement[];
+      return items.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { w: r.width, h: r.height };
+      });
+    });
+    expect(mobileFourBoxes).toHaveLength(4);
+    for (const box of mobileFourBoxes.slice(1)) {
+      expect(Math.abs(box.w - mobileFourBoxes[0].w)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.h - mobileFourBoxes[0].h)).toBeLessThanOrEqual(1);
+    }
+
     await help.click();
     await expect(help).toHaveAttribute('aria-expanded', 'true');
     await expect(dialog).toBeVisible();
@@ -380,6 +402,24 @@ test('Approved Trivia gallery keeps two mobile columns and accessible search and
       (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
     )))).toBe(true);
     await attachView(desktop, 'trivia-desktop-1280');
+
+    // Desktop 4 boxes below Play Daily Trivia must also match width and height (<= 1px delta).
+    const desktopFourBoxes = await desktop.evaluate(() => {
+      const items = [
+        ...Array.from(document.querySelectorAll('.trivia-lobby .lobby-metrics > div')),
+        document.querySelector('.trivia-lobby a[href="/hub/trivia/study"]'),
+        document.querySelector('.trivia-lobby input[type="search"]')?.closest('label'),
+      ].filter(Boolean) as HTMLElement[];
+      return items.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { w: r.width, h: r.height };
+      });
+    });
+    expect(desktopFourBoxes).toHaveLength(4);
+    for (const box of desktopFourBoxes.slice(1)) {
+      expect(Math.abs(box.w - desktopFourBoxes[0].w)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.h - desktopFourBoxes[0].h)).toBeLessThanOrEqual(1);
+    }
 
     // Clicking anywhere on a game card (including its artwork image) opens the game.
     const gtoCard = desktop.locator('#trivia-game-grid > [data-mode-id="gto"]');

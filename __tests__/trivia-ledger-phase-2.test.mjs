@@ -70,16 +70,17 @@ test('the rules registry has one current version per rules key and canonical, in
     assert.equal(TRIVIA_RULES_CONTRACT, 'trivia-rules/1');
     const ids = TRIVIA_RULE_VERSIONS.map(v => v.id);
     assert.equal(new Set(ids).size, ids.length, 'rules version ids are unique');
-    assert.equal(TRIVIA_RULE_VERSIONS.length, SOLO_MODES.length + 2);
+    assert.equal(Object.keys(CURRENT_RULES).length, SOLO_MODES.length + 2);
     for (const v of TRIVIA_RULE_VERSIONS) {
         assert.equal(v.id, `${v.rulesKey}@${v.version}`);
         assert.equal(v.rules.contract, TRIVIA_RULES_CONTRACT);
         assert.equal(v.rules.family, v.family);
         assert.doesNotThrow(() => canonicalJson(v.rules), `${v.id} is canonical`);
-        assert.equal(CURRENT_RULES[v.rulesKey], v.id);
         assert.equal(rulesKeyForMode(v.mode), v.rulesKey);
         assert.ok(Object.isFrozen(v));
     }
+    assert.equal(CURRENT_RULES['pvp.standard'], 'pvp.standard@2');
+    assert.deepEqual(currentRules('pvp.standard').rules.horse.fallback_wait_seconds, { min: 15, max: 30 });
     assert.equal(canonicalJson({ b: 1, a: [true, null, 'x'] }), '{"a":[true,null,"x"],"b":1}');
     assert.throws(() => canonicalJson({ rate: 0.1 }), /integers only/);
     assert.equal(currentRules('pvp.standard').provisional, false);
@@ -90,9 +91,11 @@ test('the migration seed is exactly the output of the rules generator', () => {
     const seed = rulesSeedSql();
     assert.match(seed, /^-- BEGIN GENERATED RULES SEED/m);
     assert.ok(FOUNDATION.includes(seed), 'regenerate the seed with scripts/trivia/rules-seed-sql.mjs and rebuild the migration');
-    for (const v of TRIVIA_RULE_VERSIONS) {
-        assert.ok(seed.includes(`'${v.id}'`), `${v.id} is seeded`);
+    for (const v of TRIVIA_RULE_VERSIONS.filter(entry => entry.version === 1)) {
+        assert.ok(seed.includes(`'${v.id}'`), `${v.id} is seeded in Phase 2 foundation`);
     }
+    const pvpV2Migration = migration('trivia_pvp_30s_horse_and_full_nightly_bracket');
+    assert.ok(pvpV2Migration.includes("'pvp.standard@2'"), 'pvp.standard@2 is seeded in its forward migration');
 });
 
 test('every paid solo mode is seeded exactly as it is priced, capped and sized today', () => {

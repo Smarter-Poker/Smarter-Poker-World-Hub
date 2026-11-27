@@ -1,16 +1,16 @@
 /**
  * Trivia PvP v2 (Phase 5) transport policy.
  *
- * The database owns every PvP rule: the queue ticket, the stable 20-45 second
+ * The database owns every PvP rule: the queue ticket, the stable 15-30 second
  * Smarter Horse deadline, human-first matching, escrow, sessions and
- * settlement all live in the trivia_pvp_*_v2 service RPCs. This module only
+ * settlement all live in the trivia_pvp_*_v2/v3 service RPCs. This module only
  * validates transport shapes and re-sanitizes the database DTO through an
  * allowlist, so a column added later can never reach a browser by accident.
  * It never computes a winner, an amount or a deadline.
  */
 export const PVP_V2_STAKES = Object.freeze([10, 25, 50, 100]);
-export const PVP_HORSE_WAIT_MIN_SECONDS = 20;
-export const PVP_HORSE_WAIT_MAX_SECONDS = 45;
+export const PVP_HORSE_WAIT_MIN_SECONDS = 15;
+export const PVP_HORSE_WAIT_MAX_SECONDS = 30;
 /** A status poll this close to the stored horse deadline waits for it server-side. */
 export const PVP_DEADLINE_ALIGN_MAX_MS = 6000;
 export const PVP_STATES = Object.freeze([
