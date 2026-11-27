@@ -238,7 +238,32 @@ export function pushHealthNotices({ notify, notifyAdmins }) {
   });
 }
 
-const errorText = (error) => String(error?.message || error || 'unknown error').slice(0, 300);
+/**
+ * The text of a read failure, never "[object Object]" (incident 283044,
+ * 2026-10-27). A count read sent as HEAD (`{ count: 'exact', head: true }`)
+ * that fails has no response body, so postgrest-js returns its error as
+ * `{ message: '' }`: the empty message fell through to `String(error)`, and
+ * the store and the admins were told "could not observe PushDeliveryFailing:
+ * [object Object]" with every detail lost. An object now says what it
+ * carries (message, code, details, hint, status), and one that carries
+ * nothing says that, so the reader knows it was an empty error body.
+ */
+export const errorText = (error) => {
+  if (error === null || error === undefined || error === '') return 'unknown error';
+  if (typeof error !== 'object') return String(error).slice(0, 300);
+  const part = (value) => (value === null || value === undefined ? '' : String(value).trim());
+  const parts = [];
+  const message = part(error.message);
+  if (message) parts.push(message);
+  for (const key of ['code', 'details', 'hint', 'status', 'statusText']) {
+    const value = part(error[key]);
+    if (value && value !== message) parts.push(`${key} ${value}`);
+  }
+  if (parts.length) return parts.join('; ').slice(0, 300);
+  const name = part(error.name);
+  return `${name && name !== 'Error' ? `${name} ` : ''}error with no message (empty error body; a failed HEAD count read returns this)`
+    .slice(0, 300);
+};
 const READ_ONLY = 'push-health problems are reported through pushHealthObservations(), '
   + 'which records each one for the Production Alerts store';
 
