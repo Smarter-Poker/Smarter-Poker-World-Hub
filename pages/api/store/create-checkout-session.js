@@ -13,12 +13,16 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 import { vipStripePriceMismatch } from '../../../src/lib/store/vipStripePrice.mjs';
 import {
+  VIP_INTRO_CHECKOUT_LIMITS,
   VIP_INTRO_OFFER,
   vipIntroCouponMismatch,
   vipIntroCouponParams,
   vipIntroOfferAppliesToPlan,
 } from '../../../src/lib/store/vipIntroOffer.mjs';
-import { readVipIntroEligibility } from '../../../src/lib/store/vipIntroEligibility';
+import {
+  consumeVipIntroCheckoutAllowance,
+  resolveVipIntroOffer,
+} from '../../../src/lib/store/vipIntroEligibility';
 import {
   BLOCKING_RECURRING_VIP_STATUSES,
   STRIPE_VIP_AUTHORITY,
@@ -197,6 +201,26 @@ async function ensureVipIntroCoupon() {
   }
   return coupon;
 }
+
+/* Why an account that reviewed the $1 first month is not getting it. Each is
+   a 409: the member reviews the regular price and confirms again. */
+const VIP_INTRO_REFUSALS = Object.freeze({
+  offer_off: Object.freeze({
+    code: 'VIP_INTRO_OFFER_ENDED',
+    message:
+      'The $1 First Month Is Not Available Right Now. VIP Monthly Is $20/Month. Review And Confirm Again.',
+  }),
+  verify_contact: Object.freeze({
+    code: 'VIP_INTRO_VERIFY_CONTACT',
+    message:
+      'Verify Your Email Address To Unlock The $1 First Month. Until Then VIP Monthly Is $20/Month. Review And Confirm Again.',
+  }),
+  default: Object.freeze({
+    code: 'VIP_INTRO_OFFER_USED',
+    message:
+      'The $1 First Month Is For First-Time Subscribers. VIP Monthly Is $20/Month For This Account. Review And Confirm Again.',
+  }),
+});
 
 /**
  * Resolve a client plan key ('monthly' | 'yearly', with an optional 'vip-'
@@ -1846,22 +1870,33 @@ export default async function handler(req, res) {
       }
       /* THE $1 FIRST MONTH (Dan, 2026-11-26). Decided here, on the server,
          before the offer is built: the offer the member confirmed must name
-         the same amount due today that Stripe will charge. Eligibility that
-         cannot be read is unknown, and unknown stops the checkout - it never
-         falls through to either price. */
+         the same amount due today that Stripe will charge.
+
+         resolveVipIntroOffer is the ONE decision (off switch, first Card
+         subscription, verified contact) that the membership status route also
+         reads, so what a member is shown and what they are charged cannot
+         disagree. An answer that could not be read is unknown, and unknown
+         stops the checkout - it never falls through to either price. */
       if (type === 'subscription' && vipIntroOfferAppliesToPlan(preparedCheckout.plan)) {
-        const introEligible = await readVipIntroEligibility(getSupabase(), user.id);
-        if (introEligible === null) {
+        const introDecision = await resolveVipIntroOffer(getSupabase(), user);
+        const confirmedIntro = Boolean(
+          rawOfferConfirmation &&
+            Object.prototype.hasOwnProperty.call(rawOfferConfirmation, 'introCents')
+        );
+        if (introDecision.eligible === null) {
+          const switchUnknown = introDecision.reason === 'switch_unknown';
           return res.status(503).json({
             success: false,
             retryable: true,
             error: {
-              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
-              message: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+              code: switchUnknown ? 'VIP_INTRO_OFFER_UNAVAILABLE' : 'VIP_ELIGIBILITY_UNAVAILABLE',
+              message: switchUnknown
+                ? 'The VIP First Month Offer Could Not Be Verified. Please Try Again.'
+                : 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
             },
           });
         }
-        if (introEligible) {
+        if (introDecision.eligible === true) {
           const introCoupon = await ensureVipIntroCoupon();
           if (!introCoupon) {
             return res.status(503).json({
@@ -1876,10 +1911,7 @@ export default async function handler(req, res) {
             firstPeriodCents: VIP_INTRO_OFFER.firstPeriodCents,
             couponId: introCoupon.id,
           };
-          if (
-            rawOfferConfirmation &&
-            !Object.prototype.hasOwnProperty.call(rawOfferConfirmation, 'introCents')
-          ) {
+          if (!confirmedIntro) {
             /* A page loaded before the offer existed still confirms $20. It is
                never charged $20 here: every first month is $1, so the member
                is told to reload and confirm the price they are owed. */
@@ -1892,18 +1924,13 @@ export default async function handler(req, res) {
               },
             });
           }
-        } else if (
-          rawOfferConfirmation &&
-          Object.prototype.hasOwnProperty.call(rawOfferConfirmation, 'introCents')
-        ) {
-          return res.status(409).json({
-            success: false,
-            error: {
-              code: 'VIP_INTRO_OFFER_USED',
-              message:
-                'The $1 First Month Is For First-Time Subscribers. VIP Monthly Is $20/Month For This Account. Review And Confirm Again.',
-            },
-          });
+        } else if (confirmedIntro) {
+          /* The member reviewed $1 and this account does not get $1. Say why,
+             and make them confirm the regular price before anything is
+             charged. A confirmation without `introCents` falls through to the
+             ordinary $20 checkout below. */
+          const refusal = VIP_INTRO_REFUSALS[introDecision.reason] || VIP_INTRO_REFUSALS.default;
+          return res.status(409).json({ success: false, error: refusal });
         }
       }
       let checkoutOffer = buildCheckoutOffer(type, preparedCheckout, user.id);
@@ -2285,6 +2312,36 @@ export default async function handler(req, res) {
               message: 'A VIP subscription checkout is already open for this account.',
             },
           });
+        }
+
+        /* CARD-TESTING LIMIT. A $1 charge is what stolen-card testers look
+           for, so the number of NEW $1 Checkout Sessions one account (and one
+           network) may open in a day is bounded by the durable limiter. A
+           request that is only re-reading its own open session
+           (`matchingSession`) opens nothing and is not counted. This runs
+           before the claim so a refusal leaves no claim behind. */
+        if (preparedCheckout.intro && !matchingSession) {
+          const allowance = await consumeVipIntroCheckoutAllowance(getSupabase(), user.id, req);
+          if (allowance === 'unavailable') {
+            return res.status(503).json({
+              success: false,
+              retryable: true,
+              error: {
+                code: 'CHECKOUT_PROTECTION_UNAVAILABLE',
+                message: 'Checkout Protection Is Temporarily Unavailable. Please Try Again.',
+              },
+            });
+          }
+          if (allowance !== 'allowed') {
+            res.setHeader('Retry-After', String(VIP_INTRO_CHECKOUT_LIMITS.account.windowSeconds));
+            return res.status(429).json({
+              success: false,
+              error: {
+                code: 'VIP_INTRO_CHECKOUT_LIMIT',
+                message: 'Too Many VIP Checkout Attempts Today. Please Try Again Tomorrow.',
+              },
+            });
+          }
         }
 
         const { data: claim, error: claimError } = await getSupabase().rpc(
