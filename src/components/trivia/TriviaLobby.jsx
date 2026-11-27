@@ -15,8 +15,6 @@ import {
   TRIVIA_FEATURED_MODE,
   TRIVIA_MIDDLE_MODES as MODE_CARDS,
   TRIVIA_MODE_BY_ID,
-  TRIVIA_MODE_FILTER_COUNTS as MODE_FILTER_COUNTS,
-  TRIVIA_MODE_FILTERS as MODE_FILTERS,
   TRIVIA_QUICK_STAKES_MODE,
   getTriviaModeRoute as getModeRoute,
   resolveTriviaModeAvailability,
@@ -36,6 +34,50 @@ function getEntryCost(modeId) {
 
 /** Modes whose entry price is a stake / tournament fee rather than fixed. */
 const VARIABLE_COST_MODES = new Set(['pvp', 'tournaments']);
+
+/** Strictly FREE (cost === 0) modes eligible for safe 1-tap ?autostart=1 from the Lobby. */
+const FREE_AUTOSTART_MODES = Object.freeze(new Set(['daily', 'history', 'rules', 'pro']));
+
+/** MTT-density category tabs for single-screen phone browsing. */
+const LOBBY_CATEGORY_TABS = Object.freeze([
+  Object.freeze({
+    id: 'featured',
+    label: 'Featured & Free',
+    modeIds: Object.freeze(['daily', 'history', 'rules', 'pro']),
+    aliases: Object.freeze(['featured', 'free', 'knowledge']),
+  }),
+  Object.freeze({
+    id: 'strategy',
+    label: 'Strategy',
+    modeIds: Object.freeze(['mtt', 'cash', 'icm', 'gto', 'mixed']),
+    aliases: Object.freeze(['strategy']),
+  }),
+  Object.freeze({
+    id: 'timed',
+    label: 'Timed & Survival',
+    modeIds: Object.freeze(['arcade', 'time-attack', 'endless', 'survival']),
+    aliases: Object.freeze(['timed', 'survival', 'challenge']),
+  }),
+  Object.freeze({
+    id: 'competitive',
+    label: 'Competitive',
+    modeIds: Object.freeze(['pvp', 'tournaments']),
+    aliases: Object.freeze(['competitive']),
+  }),
+  Object.freeze({
+    id: 'all',
+    label: 'All',
+    modeIds: null,
+    aliases: Object.freeze(['all']),
+  }),
+]);
+
+const LOBBY_TAB_COUNTS = Object.freeze(Object.fromEntries(
+  LOBBY_CATEGORY_TABS.map((tab) => [
+    tab.id,
+    tab.modeIds ? tab.modeIds.length : (MODE_CARDS.length + 2),
+  ]),
+));
 
 /** Solo modes scanned for active, non-expired recoverable runs. */
 const SOLO_RECOVERY_MODES = Object.freeze([
@@ -135,7 +177,10 @@ export default function TriviaLobby({
   onRetryPlayerData,
 }) {
   const router = useRouter();
-  const [activeFilter, setActiveFilter] = useState('all');
+  // Default to Featured & Free so mobile (< 900px) renders compactly without layout shift;
+  // desktop (>= 900px) expands to All on mount unless a tab query param or user click sets one.
+  const [activeFilter, setActiveFilter] = useState('featured');
+  const userSelectedTabRef = useRef(false);
   const filterRailRef = useRef(null);
   const filterButtonRefs = useRef([]);
   const routingRef = useRef(false);
@@ -144,6 +189,15 @@ export default function TriviaLobby({
   const [routeError, setRouteError] = useState('');
   const [pvpEloBadge, setPvpEloBadge] = useState(null);
   const [activeSoloRecovery, setActiveSoloRecovery] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || userSelectedTabRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') || params.get('filter')) return;
+    if (window.matchMedia && !window.matchMedia('(max-width: 899px)').matches) {
+      setActiveFilter('all');
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -206,10 +260,13 @@ export default function TriviaLobby({
     };
   }, [accountKey, authState]);
 
+  const activeTabDef = LOBBY_CATEGORY_TABS.find((tab) => tab.id === activeFilter) || LOBBY_CATEGORY_TABS[0];
   const filteredModes =
-    activeFilter === 'all'
+    activeFilter === 'all' || !activeTabDef.modeIds
       ? MODE_CARDS
-      : MODE_CARDS.filter((mode) => mode.category === activeFilter);
+      : MODE_CARDS.filter((mode) => activeTabDef.modeIds.includes(mode.id));
+  const showQuickStakes = activeFilter === 'all' || activeFilter === 'timed';
+  const showCompetitiveBriefing = activeFilter === 'all' || activeFilter === 'competitive';
   const availabilityFor = (modeId) => resolveTriviaModeAvailability(modeId, modeAvailability);
   const liveModeCount = filteredModes.filter((mode) => availabilityFor(mode.id).enabled).length;
   const maintenanceModeCount = filteredModes.length - liveModeCount;
@@ -241,6 +298,7 @@ export default function TriviaLobby({
   };
 
   const selectFilter = (filterId, filterIndex, options) => {
+    userSelectedTabRef.current = true;
     setActiveFilter(filterId);
     revealFilter(filterIndex, options);
   };
@@ -252,8 +310,11 @@ export default function TriviaLobby({
       ? router.query.tab
       : (typeof router.query.filter === 'string' ? router.query.filter : '');
     const requested = rawRequested.trim().toLowerCase();
-    const filterIndex = MODE_FILTERS.findIndex((filter) => filter.id === requested);
-    if (filterIndex >= 0) selectFilter(requested, filterIndex);
+    if (!requested) return;
+    const filterIndex = LOBBY_CATEGORY_TABS.findIndex(
+      (tab) => tab.id === requested || tab.aliases.includes(requested),
+    );
+    if (filterIndex >= 0) selectFilter(LOBBY_CATEGORY_TABS[filterIndex].id, filterIndex);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query.tab, router.query.filter]);
 
@@ -261,22 +322,22 @@ export default function TriviaLobby({
     let nextIndex;
     switch (event.key) {
       case 'ArrowRight':
-        nextIndex = (currentIndex + 1) % MODE_FILTERS.length;
+        nextIndex = (currentIndex + 1) % LOBBY_CATEGORY_TABS.length;
         break;
       case 'ArrowLeft':
-        nextIndex = (currentIndex - 1 + MODE_FILTERS.length) % MODE_FILTERS.length;
+        nextIndex = (currentIndex - 1 + LOBBY_CATEGORY_TABS.length) % LOBBY_CATEGORY_TABS.length;
         break;
       case 'Home':
         nextIndex = 0;
         break;
       case 'End':
-        nextIndex = MODE_FILTERS.length - 1;
+        nextIndex = LOBBY_CATEGORY_TABS.length - 1;
         break;
       default:
         return;
     }
     event.preventDefault();
-    selectFilter(MODE_FILTERS[nextIndex].id, nextIndex, { focus: true });
+    selectFilter(LOBBY_CATEGORY_TABS[nextIndex].id, nextIndex, { focus: true });
   };
 
   const prefetchMode = (modeId) => {
@@ -287,13 +348,23 @@ export default function TriviaLobby({
     router.prefetch(route).catch(() => prefetchedRoutesRef.current.delete(route));
   };
 
-  const routeToMode = async (modeId) => {
+  const routeToMode = async (modeId, { autostart = false } = {}) => {
     if (routingRef.current) return;
     routingRef.current = true;
     setRouteError('');
     setIsRouting(true);
     try {
-      const didNavigate = await router.push(getModeRoute(modeId));
+      // ZERO SILENT SPENDING: ?autostart=1 is strictly restricted to FREE (cost === 0) modes
+      // with no active solo recovery session blocking it.
+      const allowAutostart = Boolean(
+        autostart
+        && FREE_AUTOSTART_MODES.has(modeId)
+        && getEntryCost(modeId) === 0
+        && activeSoloRecovery?.mode !== modeId
+      );
+      const didNavigate = allowAutostart
+        ? await router.push(`${getModeRoute(modeId)}?autostart=1`)
+        : await router.push(getModeRoute(modeId));
       if (didNavigate === false) throw new Error('Navigation was cancelled');
     } catch (error) {
       console.warn('[TriviaLobby] Could not open mode:', error?.message || error);
@@ -319,7 +390,10 @@ export default function TriviaLobby({
         return;
       }
       if (modeId === 'daily' && dailyCompleted) return;
-      void routeToMode(modeId);
+      const shouldAutostart = FREE_AUTOSTART_MODES.has(modeId)
+        && getEntryCost(modeId) === 0
+        && activeSoloRecovery?.mode !== modeId;
+      void routeToMode(modeId, { autostart: shouldAutostart });
     } finally {
       setTimeout(() => {
         _startModeInFlightRef.current = false;
@@ -533,33 +607,35 @@ export default function TriviaLobby({
         <div
           ref={filterRailRef}
           className="sd-tabs mode-filters"
-          role="toolbar"
-          aria-label="Filter Trivia Modes"
+          role="tablist"
+          aria-label="Trivia Mode Categories"
         >
-          {MODE_FILTERS.map((filter, filterIndex) => (
+          {LOBBY_CATEGORY_TABS.map((filter, filterIndex) => (
             <button
               key={filter.id}
               ref={(node) => {
                 filterButtonRefs.current[filterIndex] = node;
               }}
               type="button"
+              role="tab"
+              data-lobby-tab={filter.id}
               className={`sd-button mode-filter${activeFilter === filter.id ? ' active' : ''}`}
               onClick={() => selectFilter(filter.id, filterIndex)}
               onKeyDown={(event) => handleFilterKeyDown(event, filterIndex)}
               tabIndex={activeFilter === filter.id ? 0 : -1}
-              aria-pressed={activeFilter === filter.id}
+              aria-selected={activeFilter === filter.id}
               aria-controls="trivia-mode-grid"
-              aria-label={`${printTitle(filter.label)}, ${MODE_FILTER_COUNTS[filter.id]} Modes`}
+              aria-label={`${printTitle(filter.label)}, ${LOBBY_TAB_COUNTS[filter.id]} Modes`}
             >
               <span>{printTitle(filter.label)}</span>
               <span className="mode-filter__count" aria-hidden="true">
-                {MODE_FILTER_COUNTS[filter.id]}
+                {LOBBY_TAB_COUNTS[filter.id]}
               </span>
             </button>
           ))}
         </div>
 
-        <div className="modes-grid" id="trivia-mode-grid">
+        <div className="modes-grid" id="trivia-mode-grid" role="tabpanel">
           {filteredModes.map((mode) => {
             const availability = availabilityFor(mode.id);
             const unavailable = !availability.enabled;
@@ -637,45 +713,49 @@ export default function TriviaLobby({
       </section>
 
       {/* Quick Stakes Featured Panel */}
-      <section className="sd-panel quick-stakes-card" aria-labelledby="quick-stakes-title">
-        <div className="quick-stakes-card__copy">
-          <span className="tc-label">Featured Timed Mode</span>
-          <h2 id="quick-stakes-title" className="quick-stakes-card__title">
-            {TRIVIA_QUICK_STAKES_MODE.name}
-          </h2>
-          <p className="quick-stakes-card__desc">
-            {TRIVIA_QUICK_STAKES_MODE.description}. 20 Questions In 3 Minutes, Cash Out After 6 Correct.
-          </p>
-          <p className="quick-stakes-card__entry">
-            Entry: <strong className={quickStakesCostText === 'VIP Free' || quickStakesCostText === '1 Free Entry Ticket' ? 'tc-ink--green' : 'tc-ink--blue'}>{quickStakesCostText}</strong>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="sd-button sd-primary quick-stakes-card__action"
-          onClick={() => startMode(TRIVIA_QUICK_STAKES_MODE.id)}
-          onPointerDown={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
-          onFocus={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
-          disabled={isRouting || playerDataLoading || !quickStakesAvailability.enabled}
-          aria-label={
-            playerDataLoading
-              ? 'Checking Quick Stakes Access'
-              : quickStakesAvailability.enabled
-                ? `Play ${TRIVIA_QUICK_STAKES_MODE.name}. Entry ${quickStakesCostText}.`
-                : quickStakesAvailability.message
-          }
-        >
-          {quickStakesAvailability.enabled ? 'Play Quick Stakes' : 'Maintenance'}
-        </button>
-      </section>
+      {showQuickStakes ? (
+        <section className="sd-panel quick-stakes-card" aria-labelledby="quick-stakes-title">
+          <div className="quick-stakes-card__copy">
+            <span className="tc-label">Featured Timed Mode</span>
+            <h2 id="quick-stakes-title" className="quick-stakes-card__title">
+              {TRIVIA_QUICK_STAKES_MODE.name}
+            </h2>
+            <p className="quick-stakes-card__desc">
+              {TRIVIA_QUICK_STAKES_MODE.description}. 20 Questions In 3 Minutes, Cash Out After 6 Correct.
+            </p>
+            <p className="quick-stakes-card__entry">
+              Entry: <strong className={quickStakesCostText === 'VIP Free' || quickStakesCostText === '1 Free Entry Ticket' ? 'tc-ink--green' : 'tc-ink--blue'}>{quickStakesCostText}</strong>
+            </p>
+          </div>
+          <button
+            type="button"
+            className="sd-button sd-primary quick-stakes-card__action"
+            onClick={() => startMode(TRIVIA_QUICK_STAKES_MODE.id)}
+            onPointerDown={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
+            onFocus={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
+            disabled={isRouting || playerDataLoading || !quickStakesAvailability.enabled}
+            aria-label={
+              playerDataLoading
+                ? 'Checking Quick Stakes Access'
+                : quickStakesAvailability.enabled
+                  ? `Play ${TRIVIA_QUICK_STAKES_MODE.name}. Entry ${quickStakesCostText}.`
+                  : quickStakesAvailability.message
+            }
+          >
+            {quickStakesAvailability.enabled ? 'Play Quick Stakes' : 'Maintenance'}
+          </button>
+        </section>
+      ) : null}
 
       {/* Competitive Briefing (Nightly Tournament & 1v1 Head To Head) */}
-      <CompetitiveLobbyBriefing
-        key={`competitive-lobby:${accountKey || 'no-account'}`}
-        authState={authState}
-        accountKey={accountKey}
-        modeAvailability={modeAvailability}
-      />
+      {showCompetitiveBriefing ? (
+        <CompetitiveLobbyBriefing
+          key={`competitive-lobby:${accountKey || 'no-account'}`}
+          authState={authState}
+          accountKey={accountKey}
+          modeAvailability={modeAvailability}
+        />
+      ) : null}
 
       {routeError && (
         <p className="route-error tc-ink--red" role="alert">

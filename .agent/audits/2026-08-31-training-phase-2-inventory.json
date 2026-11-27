@@ -14,9 +14,9 @@
     "dependencyFiles": 402,
     "componentFiles": 62,
     "hookFiles": 16,
-    "ctas": 541,
+    "ctas": 542,
     "dialogs": 19,
-    "persistenceFiles": 93,
+    "persistenceFiles": 94,
     "realtimeFiles": 6,
     "tests": 194,
     "markerCandidates": 391,
@@ -1024,21 +1024,23 @@
         "loading": true,
         "empty": false,
         "error": true,
-        "retry": false,
+        "retry": true,
         "offline": false,
         "stale": true,
         "success": false,
         "authExpiry": true
       },
-      "ctaCount": 8,
+      "ctaCount": 9,
       "dialogCount": 0,
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/assistant/leaks/review"
+      ],
       "persistenceWrites": {
         "localStorage": 0,
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
-        "deletes": 0,
+        "deletes": 3,
         "rpc": 0
       },
       "realtime": {
@@ -5548,6 +5550,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -6626,6 +6629,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
@@ -7014,6 +7018,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -7341,6 +7346,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -9992,6 +9998,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -10453,6 +10460,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -11105,6 +11113,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -12137,6 +12146,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -13307,6 +13317,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -15008,6 +15019,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -15709,6 +15721,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -16262,6 +16275,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -16701,6 +16715,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -17459,6 +17474,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -17936,6 +17952,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -18263,6 +18280,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -20133,6 +20151,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -20601,6 +20620,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -22879,6 +22899,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -24322,6 +24343,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -26019,6 +26041,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/arena/[gameId].js",
             "src/components/training/ErrorBanner.js",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -32003,7 +32026,9 @@
         "/hub/training/play/",
         "/hub/training/pvp-lobby?duelToken="
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/assistant/leaks/review"
+      ],
       "apiReferencePrefixes": [],
       "ctas": [
         {
@@ -32019,8 +32044,18 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 367,
+          "line": 446,
           "handler": "() => router.replace('/hub/training')",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Retry Save",
+          "line": 558,
+          "handler": "() => {\n                                            void handleComplete(leakReviewSync.lastResults);\n                                        }",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -32029,7 +32064,7 @@
         {
           "element": "a",
           "name": "← Return To Personal Assistant",
-          "line": 446,
+          "line": 581,
           "handler": null,
           "destination": "personalAssistantReturnHref",
           "type": null,
@@ -32039,7 +32074,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 488,
+          "line": 623,
           "handler": null,
           "destination": "syncedHandReturnHref",
           "type": null,
@@ -32049,7 +32084,7 @@
         {
           "element": "a",
           "name": "Customize Pack In Drill Builder →",
-          "line": 524,
+          "line": 659,
           "handler": null,
           "destination": "/hub/training/drill-builder",
           "type": null,
@@ -32059,7 +32094,7 @@
         {
           "element": "a",
           "name": "Return To Coach Broadcast →",
-          "line": 561,
+          "line": 696,
           "handler": null,
           "destination": "/hub/training/coach-mode",
           "type": null,
@@ -32069,7 +32104,7 @@
         {
           "element": "a",
           "name": "View Club Leaderboard →",
-          "line": 597,
+          "line": 732,
           "handler": null,
           "destination": "/hub/training/leaderboard",
           "type": null,
@@ -32079,7 +32114,7 @@
         {
           "element": "a",
           "name": "View Verified Two-Player Scoreboard →",
-          "line": 632,
+          "line": 767,
           "handler": null,
           "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
           "type": null,
@@ -32096,7 +32131,7 @@
         "loading": true,
         "empty": false,
         "error": true,
-        "retry": false,
+        "retry": true,
         "offline": false,
         "stale": true,
         "success": false,
@@ -32107,7 +32142,7 @@
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
-        "deletes": 0,
+        "deletes": 3,
         "rpc": 0
       },
       "realtime": {
@@ -32135,7 +32170,7 @@
         },
         {
           "name": "onSyncedHand",
-          "line": 145,
+          "line": 151,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -83980,6 +84015,17 @@
       }
     },
     {
+      "file": "pages/hub/training/arena/[gameId].js",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 3,
+        "rpc": 0
+      }
+    },
+    {
       "file": "pages/hub/training/drill-builder.js",
       "writes": {
         "localStorage": 0,
@@ -84929,11 +84975,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:367:2",
+      "id": "pages/hub/training/arena/[gameId].js:446:2",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 367,
+      "line": 446,
       "handler": "() => router.replace('/hub/training')",
       "destination": null,
       "type": "button",
@@ -84942,11 +84988,24 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:446:3",
+      "id": "pages/hub/training/arena/[gameId].js:558:3",
+      "file": "pages/hub/training/arena/[gameId].js",
+      "element": "button",
+      "name": "Retry Save",
+      "line": 558,
+      "handler": "() => {\n                                            void handleComplete(leakReviewSync.lastResults);\n                                        }",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/arena/[gameId].js"
+    },
+    {
+      "id": "pages/hub/training/arena/[gameId].js:581:4",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "← Return To Personal Assistant",
-      "line": 446,
+      "line": 581,
       "handler": null,
       "destination": "personalAssistantReturnHref",
       "type": null,
@@ -84955,11 +85014,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:488:4",
+      "id": "pages/hub/training/arena/[gameId].js:623:5",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "<dynamic>",
-      "line": 488,
+      "line": 623,
       "handler": null,
       "destination": "syncedHandReturnHref",
       "type": null,
@@ -84968,11 +85027,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:524:5",
+      "id": "pages/hub/training/arena/[gameId].js:659:6",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Customize Pack In Drill Builder →",
-      "line": 524,
+      "line": 659,
       "handler": null,
       "destination": "/hub/training/drill-builder",
       "type": null,
@@ -84981,11 +85040,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:561:6",
+      "id": "pages/hub/training/arena/[gameId].js:696:7",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Return To Coach Broadcast →",
-      "line": 561,
+      "line": 696,
       "handler": null,
       "destination": "/hub/training/coach-mode",
       "type": null,
@@ -84994,11 +85053,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:597:7",
+      "id": "pages/hub/training/arena/[gameId].js:732:8",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Club Leaderboard →",
-      "line": 597,
+      "line": 732,
       "handler": null,
       "destination": "/hub/training/leaderboard",
       "type": null,
@@ -85007,11 +85066,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:632:8",
+      "id": "pages/hub/training/arena/[gameId].js:767:9",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Verified Two-Player Scoreboard →",
-      "line": 632,
+      "line": 767,
       "handler": null,
       "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
       "type": null,
@@ -96286,6 +96345,7 @@
         "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
+        "/api/assistant/leaks/review",
         "/api/training/analytics",
         "/api/training/batch-preload",
         "/api/training/challenges",
@@ -96301,6 +96361,17 @@
         "/api/training/save-session"
       ],
       "persistence": [
+        {
+          "file": "pages/hub/training/arena/[gameId].js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 3,
+            "rpc": 0
+          }
+        },
         {
           "file": "src/components/poker/PokerSoundManager.js",
           "writes": {
