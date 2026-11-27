@@ -1,0 +1,71 @@
+{
+  "id": "adv-009",
+  "name": "Nut Advantage",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:58:14.795Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Nut Advantage.\nSubject: Nut Advantage: one rare immaculate silver pinnacle rises far above a broad field of ordinary cobalt strategy pieces\nCamera: low macro looking up through the surrounding pieces\nComposition: The dominant pinnacle sits off-center right, its sharp polished peak catches a white highlight, and the many low pieces form a wide shallow field below. Powerful top-end strength rather than average strength, no crown, pedestal or text.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Nut Advantage: one rare immaculate silver pinnacle rises far above a broad field of ordinary cobalt strategy pieces",
+  "camera": "low macro looking up through the surrounding pieces",
+  "composition": "The dominant pinnacle sits off-center right, its sharp polished peak catches a white highlight, and the many low pieces form a wide shallow field below. Powerful top-end strength rather than average strength, no crown, pedestal or text.",
+  "source": {
+    "fileName": "exec-217c72e5-ecc4-4c69-aa7d-7862daf97cad.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1830593,
+    "sha256": "94343a3d2c608d8ff5b46fc0ac3fa3a034a4a3d322eda4389a78815bf252e1d7"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-009.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 19690,
+      "sha256": "f6a97818cc2766d6861f4a1c37e76b8e47ba943549d93f5e32b3f4c9781f0d3d"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-009.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 15551,
+      "sha256": "99c40dc0ae2d886b06ec712c6933c5d52b97b15bb79d686577219e6889d0f827"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-009.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 33482,
+      "sha256": "44ed3e5b3d635b967c7389bc2cd0ea01b8caf4400411a5c40b35b0f3dd877322"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-009.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 24067,
+      "sha256": "982cc4ca5726736d82b143ae37be2c1985fe0ccc03e1267f27ac730dd64b1097"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-009.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 60048,
+      "sha256": "84bed83f6ce43a00957c16bc40c5884df76acb32c8ce523a3b2741c26158d685"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-009.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 37949,
+      "sha256": "6d9a905ceeb08306a0c058116198d28c4d473b1d3d4fa53b1867bdfebc2eb517"
+    }
+  ]
+}

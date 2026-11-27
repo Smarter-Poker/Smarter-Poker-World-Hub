@@ -1,0 +1,71 @@
+{
+  "id": "adv-016",
+  "name": "Exploit Ladder",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:59:44.136Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Exploit Ladder.\nSubject: Exploit Ladder: a precise cobalt route deviates from a regular chrome strategy lattice to climb through a series of exposed weaknesses\nCamera: diagonal architectural close-up of a vertical lattice\nComposition: Regular silver rungs fill the left and background, while the bright blue route cuts an unexpected stepped ascent from bottom right toward upper center. A few weak joints are visibly open. No arrows, chip stacks, central orb or literal chart.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Exploit Ladder: a precise cobalt route deviates from a regular chrome strategy lattice to climb through a series of exposed weaknesses",
+  "camera": "diagonal architectural close-up of a vertical lattice",
+  "composition": "Regular silver rungs fill the left and background, while the bright blue route cuts an unexpected stepped ascent from bottom right toward upper center. A few weak joints are visibly open. No arrows, chip stacks, central orb or literal chart.",
+  "source": {
+    "fileName": "exec-6afe4377-44f4-49f7-97fe-f867c613a593.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1872675,
+    "sha256": "3ab148578b6897442723a4799d49174b1ef0e0983015d55f378562fc64323dbb"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-016.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 34244,
+      "sha256": "a9a71104eea0e940a09bc1e9994e44f392ffed2188832229d46b2f967898608b"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-016.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 27188,
+      "sha256": "946340bc98c77b533e947f9af97dae828b13514b94de35424eb089e7e49b1fac"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-016.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 56984,
+      "sha256": "bc2459f9b4c7460f0a72d6c76c8f450e523a3fc8711eb289179db9962f07c94b"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-016.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 39938,
+      "sha256": "d1b5d4df14748e91b6571603c04b5347f843a3f49b7f982877c7737f0099fdda"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-016.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 92366,
+      "sha256": "4954aa3dc74159000445452a51d0bfc4150de6fc2c8804f9823574e4cab6ebd5"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-016.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 57739,
+      "sha256": "e3e519155c7b91ef342cb21463f51882e91adc6482949b365cd79c4638f4f8d1"
+    }
+  ]
+}

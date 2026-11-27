@@ -1,0 +1,71 @@
+{
+  "id": "cash-020",
+  "name": "Table Selection",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:56:05.838Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Table Selection.\nSubject: A compact overhead casino-floor study of three large cash-table sections: one crowded with imposing reserves, one nearly empty, and one with a clear inviting seat beside modest uneven stacks. A focused cobalt light picks out the strategically attractive seat.\nCamera: High bird's-eye architectural view, with three partial tables large enough to read as distinct situations.\nComposition: The three cropped table shapes make an offset mosaic rather than a row of miniature objects. The promising seat lies near the lower-middle and connects visually to an open aisle. Black upholstery and silver table edging establish the brand. No podiums, trophy, magnifying glass or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A compact overhead casino-floor study of three large cash-table sections: one crowded with imposing reserves, one nearly empty, and one with a clear inviting seat beside modest uneven stacks. A focused cobalt light picks out the strategically attractive seat.",
+  "camera": "High bird's-eye architectural view, with three partial tables large enough to read as distinct situations.",
+  "composition": "The three cropped table shapes make an offset mosaic rather than a row of miniature objects. The promising seat lies near the lower-middle and connects visually to an open aisle. Black upholstery and silver table edging establish the brand. No podiums, trophy, magnifying glass or cards.",
+  "source": {
+    "fileName": "exec-e452909b-ecb5-4f0f-9c25-ccea898294fe.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2582933,
+    "sha256": "33cd5819b62f76eb533e161fd26a88fa2d782d61e14a2eff4646039929fc23e1"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-020.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 35962,
+      "sha256": "af90f646b1429076087319a1a51a5e2448ebd24c1b5fd957225678b60092cec4"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-020.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 34557,
+      "sha256": "bbd1665ec04992856acff676c9cf92d72d8ea8246debabf270c4f956bbf4311a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-020.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 72198,
+      "sha256": "558a56200430214655003b36d959906c6333a4384fabf378565d86b04659ef39"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-020.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 65502,
+      "sha256": "b32222255e529626592c4d70aa36791faf3996e02d3ffdefc7965e7bb26c0521"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-020.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 146392,
+      "sha256": "5b4a7e310dfb3612ecbad2d8e52701218904136b63986da1f62d319ca0475533"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-020.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 121421,
+      "sha256": "ce53c0786422a1ade5c80554f5510c53f1cf9eacfb6327de1960474d0d2e927e"
+    }
+  ]
+}

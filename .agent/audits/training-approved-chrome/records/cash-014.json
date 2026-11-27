@@ -1,0 +1,71 @@
+{
+  "id": "cash-014",
+  "name": "Check-Raise Art",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:51.246Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Check-Raise Art.\nSubject: A restrained first bet path makes a sharp return and rises into a much larger counter-wager. The visual is a sculptural poker-action U-turn: a small line of chips passes a recessed quiet zone and is met by a forceful returning wave.\nCamera: High three-quarter view of a broad S-shaped action path across felt.\nComposition: The small incoming line runs left to right along the upper third; a sweeping chrome turn carries the much larger cobalt counter-wager back across the lower third. The two movements occupy distinct planes and nearly cross. Use a bold graphic silhouette and no generic ramp on a pedestal.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A restrained first bet path makes a sharp return and rises into a much larger counter-wager. The visual is a sculptural poker-action U-turn: a small line of chips passes a recessed quiet zone and is met by a forceful returning wave.",
+  "camera": "High three-quarter view of a broad S-shaped action path across felt.",
+  "composition": "The small incoming line runs left to right along the upper third; a sweeping chrome turn carries the much larger cobalt counter-wager back across the lower third. The two movements occupy distinct planes and nearly cross. Use a bold graphic silhouette and no generic ramp on a pedestal.",
+  "source": {
+    "fileName": "exec-2351de72-6a4a-46a1-b440-c7171393aac3.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2619113,
+    "sha256": "0d60ece599d4d30e1471053d66843198cb7758ffab0dcfa96eaad22b270336e3"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-014.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 39722,
+      "sha256": "d206a2de3eb75157d980be3d23fd0f43b09c44baf69a796596859a85493b8ba0"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-014.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 36514,
+      "sha256": "d2f21c58d72347dc7a8abc8b53a344d1fc239f07f0dc089acc486a906df9fea2"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-014.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 82678,
+      "sha256": "79d00db877379a91acf61cba5b0a73f6b29f1798f07bb87faecad18a9763ed92"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-014.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 74457,
+      "sha256": "b2d589025bfc1d4802fd8f85f297ca7c7d1fee30d241bcd3d8661a57493b4fa3"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-014.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 167980,
+      "sha256": "58fdcb83bbf2fc0529beeac3e0d9b0752a910d1f64bae5ed9954191961d6f92c"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-014.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 130555,
+      "sha256": "b12a52a604ac17f88bb87ac183f13d34e7f5e0616c0efca597450f3b76fdf55b"
+    }
+  ]
+}

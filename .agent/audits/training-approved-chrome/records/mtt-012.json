@@ -1,0 +1,71 @@
+{
+  "id": "mtt-012",
+  "name": "Big Stack Bully",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:49:41.488Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Big Stack Bully.\nSubject: Big Stack Bully: an overwhelming wall of cobalt poker chips advancing into the territory of three visibly shorter black stacks\nCamera: very low angle from the small stacks' perspective\nComposition: Three short stacks sit large in the extreme foreground, casting sharp shadows toward the towering blue chip wall that fills the back two thirds. A long diagonal betting boundary adds pressure. Moody readable scale contrast.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Big Stack Bully: an overwhelming wall of cobalt poker chips advancing into the territory of three visibly shorter black stacks",
+  "camera": "very low angle from the small stacks' perspective",
+  "composition": "Three short stacks sit large in the extreme foreground, casting sharp shadows toward the towering blue chip wall that fills the back two thirds. A long diagonal betting boundary adds pressure. Moody readable scale contrast.",
+  "source": {
+    "fileName": "exec-5ac57a5d-3650-4f32-a6c9-af83bec20590.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2411271,
+    "sha256": "cd674bd907794b1cc81d0559c0f9a9ef6e8aa5b85021e1184896784d02926be6"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-012.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 49840,
+      "sha256": "5f61280a192830e5402d665c1d64cb18205c07c3a5a0b33e0b47fd8d77c3d523"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-012.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 53622,
+      "sha256": "d6abcf8f8ca3d5271aa75d368978ecac18ab03663a975eb1184c01ded80d525e"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-012.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 95936,
+      "sha256": "a0b0bfa4d0aea928af53922d477799e0e235b7583975ea3e62bc3016a97d2d45"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-012.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 94222,
+      "sha256": "a0bca9f35236444293e890e2c2d31cfedb5f9e0b3cd432ae319a3059645017d0"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-012.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 180138,
+      "sha256": "e5ea93f9bf0c46766b9d54f3f86a5694ed8e31fe394cd373d609c5109158f3e3"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-012.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 157926,
+      "sha256": "e1dd0ff4fbfa18a83e03de215573d88473d197c1a003058a5621c6b4768fbc28"
+    }
+  ]
+}

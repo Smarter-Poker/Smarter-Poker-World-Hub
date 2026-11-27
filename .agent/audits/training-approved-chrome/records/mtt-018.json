@@ -1,0 +1,71 @@
+{
+  "id": "mtt-018",
+  "name": "Button Warfare",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:49.099Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Button Warfare.\nSubject: Button Warfare: a large chrome dealer button on black felt with several curved betting paths radiating toward adjacent stacks\nCamera: extreme macro from directly above\nComposition: The dealer button is cropped into the lower-left corner and its brushed metal face has no writing; a fan of fine cobalt routes spreads right across the table toward varied stacks. The route network, not an isolated token, fills the composition.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Button Warfare: a large chrome dealer button on black felt with several curved betting paths radiating toward adjacent stacks",
+  "camera": "extreme macro from directly above",
+  "composition": "The dealer button is cropped into the lower-left corner and its brushed metal face has no writing; a fan of fine cobalt routes spreads right across the table toward varied stacks. The route network, not an isolated token, fills the composition.",
+  "source": {
+    "fileName": "exec-3041f24a-f1b9-41b1-a930-4d53f086abc8.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2801495,
+    "sha256": "f774014903871b978b80656c381d4b7fecc12ce4306a1df7c24bf760a3fb4959"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-018.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 38860,
+      "sha256": "7888be75e51f845badf3d8cbc08f5efe102c35284f7833551a801327fbba177f"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-018.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 32689,
+      "sha256": "288d0d24a5f9ecaf7fd1a96900cc7c17d597ccb89502a9607e8a9c4126b59754"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-018.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 80696,
+      "sha256": "ced185b98a6fcd4592d3403e849fc428652c967e46b87b5ffecc02ca4e726e45"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-018.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 67624,
+      "sha256": "74f1d53b4f2bfb82a3603f51a5be10752df0fed07d59d6bb30a46752394fd9b7"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-018.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 164246,
+      "sha256": "31244045de0dc5e15d2d5199d613a72c468e578154af47159d9d4b94f6b107ac"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-018.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 125758,
+      "sha256": "4327f499bacc669cb783b1014c282569e3074529852872921433d9d4a8495145"
+    }
+  ]
+}

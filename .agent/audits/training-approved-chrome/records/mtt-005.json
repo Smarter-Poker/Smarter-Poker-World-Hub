@@ -1,0 +1,71 @@
+{
+  "id": "mtt-005",
+  "name": "PKO Bounty Hunter",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:47:55.020Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: PKO Bounty Hunter.\nSubject: PKO Bounty Hunter: a large silver bounty medallion being split into two halves over a black poker felt, one half feeding the pot and the other attaching to a growing bounty stack\nCamera: extreme overhead macro action still\nComposition: A dynamic diagonal trail of cobalt bounty chips from top left to bottom right; the split medallion dominates the middle and its two destination piles are unequal. Bright chrome fracture seam and freeze-frame flying chips. No skull, ring, pedestal or shooting target.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "PKO Bounty Hunter: a large silver bounty medallion being split into two halves over a black poker felt, one half feeding the pot and the other attaching to a growing bounty stack",
+  "camera": "extreme overhead macro action still",
+  "composition": "A dynamic diagonal trail of cobalt bounty chips from top left to bottom right; the split medallion dominates the middle and its two destination piles are unequal. Bright chrome fracture seam and freeze-frame flying chips. No skull, ring, pedestal or shooting target.",
+  "source": {
+    "fileName": "exec-cad796c7-7e61-4731-bc98-c78740b916dd.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2985782,
+    "sha256": "14e1e23b19fbc3bf8d21e8b27cc74d88faf0aa0589995b7aaf0387d0c6ab461a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-005.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 56982,
+      "sha256": "cb28f5fc7579fe59de9ab991df556d03210c087c5b372ef0473a5ab499262e60"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-005.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 52865,
+      "sha256": "f7024c8e9a0f2720084d39c652f5838b0a68df778605e350ea9f397e09f72db4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-005.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 113024,
+      "sha256": "0521abd46275dbeb173369b23ca5bf118b5a8a47d8bb184bb6c8c96df34fe16a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-005.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 101506,
+      "sha256": "f42e89c568a58b744bb9d0e6e87183a0a61f3ac214f046c20bea60751fbd9f77"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-005.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 212862,
+      "sha256": "967bf39e7a9ed7fcd2c79dfb564181a41028d6c37d6876d178ce695cb22486a6"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-005.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 175102,
+      "sha256": "d8fbf8e07d97081dbdc50c7c52c0f7908b41b3ddb41cf9b913a0f2f9d979dd35"
+    }
+  ]
+}

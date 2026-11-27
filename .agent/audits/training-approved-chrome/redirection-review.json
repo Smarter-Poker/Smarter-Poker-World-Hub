@@ -1,0 +1,13 @@
+{
+  "version": "approved-chrome-v2",
+  "ownerDirection": "Each image should reflect the actual game, not the same template repeated over and over.",
+  "retained": [
+    "mtt-001",
+    "mtt-003",
+    "psy-001"
+  ],
+  "replacedCompleted": 16,
+  "newOrReplacementNeeded": 104,
+  "originalRecords": "superseded-v1/records",
+  "strategy": "Distinct subjects, camera angles, environments and composition; native cards only when meaningful."
+}

@@ -5,10 +5,9 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUTPUT = join(ROOT, '.agent/audits/2026-08-31-training-phase-3-hub-media.json');
-const ART_ROOT = join(ROOT, 'public/images/training/casino-realism');
+const OUTPUT = join(ROOT, '.agent/audits/2026-11-27-training-approved-lobby-media.json');
+const ART_ROOT = join(ROOT, 'public/images/training/approved-chrome');
 const read = (relativePath) => readFileSync(join(ROOT, relativePath), 'utf8');
-const bytes = (relativePath) => statSync(join(ROOT, relativePath)).size;
 const hash = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
 
 const librarySource = read('src/data/TRAINING_LIBRARY.js');
@@ -23,7 +22,7 @@ const variants = [
   { key: 'webp640', path: (id) => join(ART_ROOT, '640', `${id}.webp`) },
   { key: 'avif960', path: (id) => join(ART_ROOT, '960', `${id}.avif`) },
   { key: 'webp960', path: (id) => join(ART_ROOT, '960', `${id}.webp`) },
-  { key: 'avif1440', path: (id) => join(ART_ROOT, '1440', `${id}.avif`) },
+  { key: 'avif1440', path: (id) => join(ART_ROOT, `${id}.avif`) },
 ];
 
 const missing = [];
@@ -45,35 +44,28 @@ assert.equal(new Set(rootHashes).size, 107, 'every canonical game must retain un
 
 const pageSource = read('pages/hub/training.js');
 const artSource = read('src/components/training/TrainingGameArt.jsx');
+const cardSource = read('src/components/training/lobby/TrainingGameCard.jsx');
+const imageMapSource = read('src/data/GAME_IMAGES.js');
 const sourceContracts = {
   hubUsesResponsiveArt: /<TrainingGameArt/.test(pageSource),
+  lobbyCardsUseResponsiveArt: /<TrainingGameArt/.test(cardSource),
+  canonicalApprovedArtwork: /TRAINING_ART_ROOT\s*=\s*['"]\/images\/training\/approved-chrome['"]/.test(imageMapSource),
   hubDoesNotImportDirectImage: !/import \{ getGameImage \}/.test(pageSource),
   responsiveAvif: /type="image\/avif"/.test(artSource),
   responsiveWebp: /type="image\/webp"/.test(artSource),
-  responsiveSizes: /calc\(100vw - 24px\)/.test(pageSource),
-  modernHero: /training-orb-hero\.avif/.test(pageSource) && /training-orb-hero\.webp/.test(pageSource),
-  modernHud: /training-card-hud-overlay\.avif/.test(pageSource) && /training-card-hud-overlay\.webp/.test(pageSource),
+  largeResponsiveCardSizes: /sizes="\(max-width: 600px\) 88vw, \(max-width: 1000px\) 46vw, 400px"/.test(cardSource),
+  lazyArtworkBelowFirstShelf: /loading=\{index < 3 \? 'eager' : 'lazy'\}/.test(cardSource),
   noScanline: !/sp-card-scanline|sp-card-scan/.test(pageSource),
 };
 assert.ok(Object.values(sourceContracts).every(Boolean), 'Training Hub responsive media source contract failed');
-
-const supportingAssets = Object.fromEntries(
-  ['training-orb-hero', 'training-card-hud-overlay'].map((name) => {
-    const sizes = {
-      png: bytes(`public/images/training/${name}.png`),
-      webp: bytes(`public/images/training/${name}.webp`),
-      avif: bytes(`public/images/training/${name}.avif`),
-    };
-    assert.ok(sizes.webp < sizes.png, `${name}.webp must be smaller than PNG`);
-    assert.ok(sizes.avif < sizes.png, `${name}.avif must be smaller than PNG`);
-    return [name, sizes];
-  }),
-);
+assert.ok(totals.avif640 < totals.rootWebp, 'phone-sized AVIF scenes must be smaller than full-size WebP scenes');
+assert.ok(totals.webp640 < totals.rootWebp, 'phone-sized WebP scenes must be smaller than full-size WebP scenes');
 
 const pctSaved = (baseline, optimized) => Math.round((1 - optimized / baseline) * 1000) / 10;
 const report = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedBy: 'scripts/training-hub-media-audit.mjs',
+  artworkRoot: '/images/training/approved-chrome',
   canonicalGames: gameIds.length,
   responsiveVariantFiles: gameIds.length * variants.length,
   uniqueCanonicalArtworks: new Set(rootHashes).size,
@@ -83,7 +75,6 @@ const report = {
     avif640VsRootWebp: pctSaved(totals.rootWebp, totals.avif640),
     avif960VsRootWebp: pctSaved(totals.rootWebp, totals.avif960),
   },
-  supportingAssets,
   missingVariants: missing,
 };
 

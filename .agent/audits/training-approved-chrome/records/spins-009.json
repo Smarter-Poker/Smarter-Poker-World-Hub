@@ -1,0 +1,71 @@
+{
+  "id": "spins-009",
+  "name": "Chip Lead Lock",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:01:57.465Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Chip Lead Lock.\nSubject: A dominant chip reserve forms a controlled defensive boundary around the player's side of a three-player table, leaving only a narrow deliberate betting lane open. Two smaller opposing reserves remain outside that boundary.\nCamera: High-angle close crop over the chip leader's side, with the opponents' smaller reserves beyond.\nComposition: The leader's reserve fills a broad L-shape across the left and bottom edges, occupying most of the frame. A narrow gap opens toward the opponents at upper right, where one measured bet sits. A slim chrome table seam marks control. No literal padlock, tower on a pedestal or decorative cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A dominant chip reserve forms a controlled defensive boundary around the player's side of a three-player table, leaving only a narrow deliberate betting lane open. Two smaller opposing reserves remain outside that boundary.",
+  "camera": "High-angle close crop over the chip leader's side, with the opponents' smaller reserves beyond.",
+  "composition": "The leader's reserve fills a broad L-shape across the left and bottom edges, occupying most of the frame. A narrow gap opens toward the opponents at upper right, where one measured bet sits. A slim chrome table seam marks control. No literal padlock, tower on a pedestal or decorative cards.",
+  "source": {
+    "fileName": "exec-65c5fcda-9f8b-4bde-9470-1fea370bca33.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2686559,
+    "sha256": "d75a13139db5951a18f03c70de3c851afb36f5b1a9d8ea0a20a7f80c3b607951"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-009.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 51666,
+      "sha256": "f26dc497e685ae241a8c376f88a32ed0d9ede43572e133aa7506a826b3b5ff00"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-009.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 51622,
+      "sha256": "850c40f4c3cd48bf7162ec6637b86f9836466d4e9de7edbb9391d3edec7a8470"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-009.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 104206,
+      "sha256": "cd820f8450eb584773f1362300b6fd1308361623ff113ad9d42457f2759d04b6"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-009.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 98141,
+      "sha256": "4afa5a2a70a6c0b495183da87a5c217c3778a81e5641a6db77715c7a8cbe592b"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-009.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 197266,
+      "sha256": "46f535e0af7f9ccdebde7ce5d51a34de4021a0c26ec42eb58f6d80f6d468e201"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-009.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 161645,
+      "sha256": "1a2311767be1731c7f53b31b5b7ea73c7478007dcf1e54c479d61696fd6405d6"
+    }
+  ]
+}

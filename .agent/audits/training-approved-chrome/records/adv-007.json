@@ -1,0 +1,71 @@
+{
+  "id": "adv-007",
+  "name": "Indifference Theory",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:57:45.317Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Indifference Theory.\nSubject: Indifference Theory: two equal paths for a single cobalt poker chip sit in perfect balance on opposite ends of a slim chrome seesaw\nCamera: precisely side-on minimalist studio still life\nComposition: A single horizontal beam nearly spans the frame with two equal receiving pockets; the decision chip balances exactly over the central pivot. Vast matte navy background, restrained white light, no platform, rings or busy decoration.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Indifference Theory: two equal paths for a single cobalt poker chip sit in perfect balance on opposite ends of a slim chrome seesaw",
+  "camera": "precisely side-on minimalist studio still life",
+  "composition": "A single horizontal beam nearly spans the frame with two equal receiving pockets; the decision chip balances exactly over the central pivot. Vast matte navy background, restrained white light, no platform, rings or busy decoration.",
+  "source": {
+    "fileName": "exec-207299ac-d77c-4cd7-8220-5cd0f6d4b9c4.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1717688,
+    "sha256": "ebd8a694064c92ea14715aaeda3a6a25207f233c7096d7c56a7bf7d67e237035"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-007.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 8876,
+      "sha256": "0072aa0fe16dfd909c7e4f486a8e4767f9b896342f27ee1cb7b9b441516d4853"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-007.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 7141,
+      "sha256": "c2c72cc7818d20a704fdf509a8c723682beb81f98f7905f5682bc4c23491b6ff"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-007.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 15962,
+      "sha256": "7c2ea62ece407b9f92a12255c0f8240936eec78bd0b2bb919d8e765f8f19b398"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-007.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 11476,
+      "sha256": "a24ab808e421bd25e8f53f3418db109fc7d7395fe30a3a6ac531ae9de9d52af1"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-007.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 29102,
+      "sha256": "38196bd4fd8f5c252cd0ebdbf4b86dbc9f3cedca07efc2ac24ca27d9d9103ddb"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-007.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 18229,
+      "sha256": "aa6ede9a786dfcaea56df9fbb630a18ec846bd70e1b4bbe2fb6e921001608fce"
+    }
+  ]
+}

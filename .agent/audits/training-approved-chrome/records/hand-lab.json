@@ -1,0 +1,81 @@
+{
+  "id": "hand-lab",
+  "name": "Hand Lab V2",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:01:08.367Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Hand Lab V2.\nSubject: Hand Lab V2: a poker-analysis light table with a precise clear glass equity prism and several adjustable chrome sliders\nCamera: near overhead working-laboratory close-up\nComposition: The prism and sliders occupy the right half, refracting a controlled cobalt beam onto the felt; keep the lower-left work area naturally clear for two actual Arena cards added by the app. Real experiment bench, no generated card outlines, equations or UI.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "Hand Lab V2: a poker-analysis light table with a precise clear glass equity prism and several adjustable chrome sliders",
+  "camera": "near overhead working-laboratory close-up",
+  "composition": "The prism and sliders occupy the right half, refracting a controlled cobalt beam onto the felt; keep the lower-left work area naturally clear for two actual Arena cards added by the app. Real experiment bench, no generated card outlines, equations or UI.",
+  "source": {
+    "fileName": "exec-71cfbdba-7451-43f0-9889-6ac77c798a5e.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2430811,
+    "sha256": "3e964a82a74aac9a3c457a99a494a4666fa8b4c7367b48a6e7b28b8f45c8acca"
+  },
+  "nativeCards": [
+    "As",
+    "Kh"
+  ],
+  "placement": "left",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/hand-lab.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 32654,
+      "sha256": "428cb291013f3a5f0c3dda19cd57bd936bd4d38334f4010cbcedb05ced865d21"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/hand-lab.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 28882,
+      "sha256": "81bb2bb5577a35ac99aca48b93d65d57c6b72a26876d6c4bbf06c04bdb379e76"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/hand-lab.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 65932,
+      "sha256": "962ed614a4c112505b33347eda18dd0b32cebbfb683fe6ea2d539fcaf0871d81"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/hand-lab.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 55282,
+      "sha256": "f842b262c3557fdfe72f91045950bb0f8bd65745adccdc64605c5a409cf1203a"
+    },
+    {
+      "path": "/images/training/approved-chrome/hand-lab.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 133004,
+      "sha256": "14acccc1a9d4cb6846db58db33152fbc0238b0224b68b1d2942b87790eda03aa"
+    },
+    {
+      "path": "/images/training/approved-chrome/hand-lab.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 99943,
+      "sha256": "9dee1332b9fbceeb001ea4c7c395646709a3f37322afb85fe09237ec222733fc"
+    }
+  ],
+  "overlay": {
+    "left": 26,
+    "bottom": 17,
+    "width": 36,
+    "height": 58
+  },
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

@@ -1,0 +1,16 @@
+/* Geometry belongs to the complete artwork surface. Caller classes such as
+ * TrainingGameEntry's .art, lobby cardArt and previewArt override these defaults
+ * without fighting inline dimensions or separating the scene from its cards. */
+:where(.surface) {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: inherit;
+  aspect-ratio: 16 / 9;
+  isolation: isolate;
+  overflow: hidden;
+  background: #030a15;
+  line-height: 0;
+  pointer-events: none;
+}

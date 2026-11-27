@@ -1,0 +1,71 @@
+{
+  "id": "psy-018",
+  "name": "Table Image",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:56:17.753Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Table Image.\nSubject: Table Image: one empty poker chair appears as three different silhouettes in angled polished mirror panels around the table\nCamera: cinematic oblique view at seat height\nComposition: The real chair stands near left center, three narrow mirror facets fan across the right, each reflection changes only the scale and posture suggested by the chair. Cobalt table lighting ties them together. Perception and reputation, no faces or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Table Image: one empty poker chair appears as three different silhouettes in angled polished mirror panels around the table",
+  "camera": "cinematic oblique view at seat height",
+  "composition": "The real chair stands near left center, three narrow mirror facets fan across the right, each reflection changes only the scale and posture suggested by the chair. Cobalt table lighting ties them together. Perception and reputation, no faces or cards.",
+  "source": {
+    "fileName": "exec-a98a1c93-931a-4975-a43b-f3d117d87686.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2152357,
+    "sha256": "2cedb0d2fc676d7814e4ea449eda521ba48e5cf5269f2ac54f824959f1d35554"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-018.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 31766,
+      "sha256": "c3fc775023567f49eeae96654ed656c1adbfe69f2d0c2e07671e99d4cea53533"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-018.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 25581,
+      "sha256": "7dfb0f1934884f784fce60cad05b8c9554479142d39014d3524b155a6199e3d4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-018.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 58422,
+      "sha256": "f29aa519d0b0965b218c32e4249b5813333b12bb9f8586e6fdfef897790f04dd"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-018.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 44234,
+      "sha256": "f306b2367aafe240cd87dfcc7d68e3b21523356868b705e9582165d07984a492"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-018.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 111088,
+      "sha256": "a05903d41ca1e4ed13f0cf4becb2a707f75603535c86441df660b6e1faf24a13"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-018.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 77781,
+      "sha256": "33db9a75c7ef7516971a6ad80e127f52c73c6782c1ff6541439404f901c36bb8"
+    }
+  ]
+}

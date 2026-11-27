@@ -1,0 +1,71 @@
+{
+  "id": "quiz-gauntlet",
+  "name": "Quiz Gauntlet",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:00:02.216Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Quiz Gauntlet.\nSubject: Quiz Gauntlet: a rapid series of chrome decision gates extends across a dark poker-training track, one cobalt chip racing through the correct openings\nCamera: fast low perspective from just behind the moving chip\nComposition: Three differently shaped gate apertures stagger diagonally into the distance; the nearest gate is cropped large and the chip leaves a short blue motion trail. A clear challenge sequence, no text, letters, question-mark signs, cards or pedestal.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Quiz Gauntlet: a rapid series of chrome decision gates extends across a dark poker-training track, one cobalt chip racing through the correct openings",
+  "camera": "fast low perspective from just behind the moving chip",
+  "composition": "Three differently shaped gate apertures stagger diagonally into the distance; the nearest gate is cropped large and the chip leaves a short blue motion trail. A clear challenge sequence, no text, letters, question-mark signs, cards or pedestal.",
+  "source": {
+    "fileName": "exec-f9160cc7-5e23-4670-8e4c-3a96480647f7.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2166902,
+    "sha256": "bd0a9bc72f29f66adcffe655b8b9f3c5022096a3a0809e190c6bb16244ce6a22"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/quiz-gauntlet.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 36310,
+      "sha256": "6d1ba4d2f637425cb421629d113fcf1ae6fc3a467984316c459af59f731ae1d8"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/quiz-gauntlet.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 30537,
+      "sha256": "ad3a83cea0cb0a4df05075d376f8f68f558b992cb5e19facd269040929aa3549"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/quiz-gauntlet.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 62310,
+      "sha256": "de647df376721de42a87a14d72632a355f8b12303a8d2fb99d1147909418e7eb"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/quiz-gauntlet.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 48336,
+      "sha256": "f479bf9c294a3a9d4f5b14fb28826068a23a84de9ff4088ca09ea886b693418a"
+    },
+    {
+      "path": "/images/training/approved-chrome/quiz-gauntlet.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 108958,
+      "sha256": "dd6e7e74d8ab9ca28b4cbed03dee4b5552da52817e9e341674e86107c26fc372"
+    },
+    {
+      "path": "/images/training/approved-chrome/quiz-gauntlet.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 74554,
+      "sha256": "61b27ba5ead235439b60f11033eb28c824a5c6dfc78d47af119abcd4698fcc33"
+    }
+  ]
+}

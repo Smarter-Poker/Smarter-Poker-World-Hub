@@ -1,0 +1,71 @@
+{
+  "id": "psy-016",
+  "name": "Variance Zen",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:55:37.390Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Variance Zen.\nSubject: Variance Zen: smooth alternating cobalt and silver waves pass beneath a calm balanced poker chip resting on a flat stone\nCamera: serene wide low horizon shot, tactile sculptural illustration\nComposition: The stone and chip sit off-center left, waves curve gently across the frame toward the right horizon, and soft navy mist keeps the scene uncluttered. Meditative acceptance, matte materials, no literal water splash, brain or chrome display stage.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Variance Zen: smooth alternating cobalt and silver waves pass beneath a calm balanced poker chip resting on a flat stone",
+  "camera": "serene wide low horizon shot, tactile sculptural illustration",
+  "composition": "The stone and chip sit off-center left, waves curve gently across the frame toward the right horizon, and soft navy mist keeps the scene uncluttered. Meditative acceptance, matte materials, no literal water splash, brain or chrome display stage.",
+  "source": {
+    "fileName": "exec-a37fb511-091b-453f-a756-a17889bba801.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2100518,
+    "sha256": "a078f17c8a62533ca6a131cfac65e3c65e3caa307f1779d81bc2a1b5b98a03ff"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-016.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 20242,
+      "sha256": "b704a0bae39d3a727673bfcf17f32e0cead0b617a0001118bb129393efb5285c"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-016.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 14887,
+      "sha256": "a3978185cd5d8dd5f39ba41b2fc69d727a852fe0cd8bc49dba345273077bcbb4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-016.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 39988,
+      "sha256": "a494916031c949efbb6ed8d225353776f153b14683048c1984ede8f4ba624bbd"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-016.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 28769,
+      "sha256": "3bbfb7181a960287e050e2e23214cfb13ae2cfc79e17d202adcdc8eb2e9c635e"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-016.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 81340,
+      "sha256": "3be2db7e870eec43b94680fe15d5810be797c2014d331f314558ecbaae9e3c22"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-016.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 55565,
+      "sha256": "e93cb6ae042fc884f66cee127b886d9eef7cb085a7c65669020c8d4630d8e865"
+    }
+  ]
+}

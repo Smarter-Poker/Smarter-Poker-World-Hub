@@ -1,0 +1,422 @@
+{
+  "version": "approved-chrome-v2",
+  "scope": "25 CASH and 10 SPINS canonical training-game artworks",
+  "reviewMethod": "Every final 640x360 optimized asset opened individually with view_image. Original imagegen inputs for the three clean-plate edits were also inspected at full size. Checks cover game meaning, scene/camera variety, large mobile-readable focus, no repeated template, and no visible generated playing cards or text. Native-card overlay geometry is inferred from source pixels and the component dimensions; root performs hosted UI checks.",
+  "reviewedAt": "2026-11-27T19:04:59.424Z",
+  "summary": {
+    "expectedGames": 35,
+    "reviewedGames": 35,
+    "artworkPasses": 35,
+    "optimizedVariantCount": 210,
+    "totalOptimizedBytes": 16018286,
+    "uniqueSourceHashes": 35,
+    "uniquePreviewHashes": 35,
+    "coverageOrHashFailures": [],
+    "imagegenCleanPlateCorrections": [
+      "cash-012",
+      "spins-003",
+      "spins-006"
+    ],
+    "compositionDirectionRevisions": [
+      "cash-009",
+      "spins-001"
+    ],
+    "nativeCardScenes": [
+      "cash-002",
+      "cash-011",
+      "cash-012",
+      "cash-022",
+      "spins-003"
+    ],
+    "allNativeGroupsSortedDescending": true,
+    "remainingArtworkIssues": [],
+    "hostedNativeOverlayFitReview": "Root-owned follow-up; per-scene fit notes below."
+  },
+  "reviews": [
+    {
+      "id": "cash-001",
+      "status": "pass",
+      "notes": "Overhead range-drafting folio; clear six-seat strategy meaning. Full-frame flat composition differs from other scenes. No generated playing cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-001.webp",
+      "reviewedAssetSha256": "9bc2f75a1ac04f3690d140cabdd46a965d09c82d00339855a93fb76f8e0cde72",
+      "sourceFile": "exec-8d588cca-297c-497b-bcbd-a21c3303d3b8.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-002",
+      "status": "pass-overlay-fit-check",
+      "notes": "Oblique real-felt sizing comparison: pot, small wager and two measuring dividers read clearly. No generated cards or text.",
+      "overlayReview": "Natural lower-left felt is appropriate for the native three-card board. Current height52%/bottom17% may overlap the front pot and sizing divider; lower the board roughly10% of scene height and slightly reduce height, then confirm in hosted UI.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-002.webp",
+      "reviewedAssetSha256": "bd81c1686c33b8fc5e30d6681b980e7f7f55476b577730725c3e759be83ee972",
+      "sourceFile": "exec-27f26bff-c1a3-4277-bd7a-0fd604f00d27.png",
+      "nativeCards": [
+        "As",
+        "7h",
+        "2c"
+      ],
+      "placement": "left"
+    },
+    {
+      "id": "cash-003",
+      "status": "pass",
+      "notes": "Three staggered chrome shutters redirect an incoming chip stream, filling the frame with an angular defense-action scene. No circular pedestal, cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-003.webp",
+      "reviewedAssetSha256": "373bc86f933de404abe6b7a0ceef72877e55b7f9d03779c1b412117914f9b008",
+      "sourceFile": "exec-6bc0ae7c-e41e-4806-8d5f-f196108e1e5d.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-004",
+      "status": "pass",
+      "notes": "Felt-level finger/chip macro makes the final thin-value contribution the large focal point. No product pedestal, cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-004.webp",
+      "reviewedAssetSha256": "dc4c7ae5057394727aa08daafc006f48d22cd913216fed790123b4b50e175de5",
+      "sourceFile": "exec-8ca4c38f-cda0-4377-bba9-869d970b9da7.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-005",
+      "status": "pass-overlay-removed",
+      "notes": "Strong cinematic monochrome eye/poised-call composition. Large focused subject, no generated cards or text.",
+      "overlayReview": "Right-side native pair would hide the poised calling hand/chip. Parent agreed to remove this overlay centrally; retain this scene without cards.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-005.webp",
+      "reviewedAssetSha256": "d2462d39093c5ed344a3e2b0d63062361deec8cd5cefbf31bf4a96c70e224f7e",
+      "sourceFile": "exec-5c14b6a1-d637-4c57-92a4-058dfd00ddd8.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-006",
+      "status": "pass",
+      "notes": "Long rail-level table view makes the near obstructing seat and far button position distinct. Large upholstered forms, clear game environment, no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-006.webp",
+      "reviewedAssetSha256": "4122ed1abcf05a6c284c44d7977d5d9a67a25c69a1fa9343e16c0b49eb9668b6",
+      "sourceFile": "exec-351a487d-14f9-4b51-ac54-ad77d9735565.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-007",
+      "status": "pass",
+      "notes": "Large irregular contested pot dominates several converging action tracks, with smaller reserves around it. Elevated-pot meaning reads; no rings, display pedestal, cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-007.webp",
+      "reviewedAssetSha256": "20473fcf569cc426666b8aa09c3ddf8d63664f71d307745260d72d7119954fe5",
+      "sourceFile": "exec-5bf54360-7e18-439a-848f-1b524fd08b5b.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-008",
+      "status": "pass",
+      "notes": "Opposing escalating wager lines collide diagonally across actual felt. Large sharp chip action, distinct from the static pot and reserve scenes; no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-008.webp",
+      "reviewedAssetSha256": "99dcf054c716f08beb15bc9c2497f85f92db0b3d6e9efb015572ca6ab2bc9133",
+      "sourceFile": "exec-d5c424f4-0bb6-4a89-a91a-ba75131f2d64.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-009",
+      "status": "pass-replaced",
+      "notes": "Re-render uses a steep high player-side view with two transparent reserve racks, visible chip tops and a hand peeling a wager. It removes the canyon collision with mtt-007. No generated cards or text.",
+      "replacementSource": "/workspace/scratch/c868e812eb6b/generated_images/exec-38e6cb0d-8184-4769-b3fc-54624662b454.png",
+      "replacementAudit": ".agent/audits/training-approved-chrome/corrections/cash-009/",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-009.webp",
+      "reviewedAssetSha256": "61b94969d2a01b2b4b3be959e67a4b6a27e3226e18484f48c3a1f2018e3873f3",
+      "sourceFile": "exec-38e6cb0d-8184-4769-b3fc-54624662b454.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-010",
+      "status": "pass",
+      "notes": "Dynamic gunmetal rat carrying a compact chip take along the table rail. Distinct character vignette, large readable subject, no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-010.webp",
+      "reviewedAssetSha256": "508ddbe5ebb7ab621df2819c97dcca4f3beaf8307d377d299f077e064961ef76",
+      "sourceFile": "exec-2f2af49d-e8c2-4be9-b295-e54d69921902.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-011",
+      "status": "pass-overlay-fit-check",
+      "notes": "Near-side hand pushes an unexpected leading wager across felt toward the far reserve. Large action and clear perspective, no generated cards or text.",
+      "overlayReview": "Right-side native pair belongs in lower-right felt. Move bottom from17% toward5% so the top of the pair clears the far reserve; no need to obscure the leading hand.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-011.webp",
+      "reviewedAssetSha256": "535596dd21c1f3a7f80ab7456dd41b115979cf566ec9fa00d6c390029c199364",
+      "sourceFile": "exec-4081251d-538f-4196-a2d1-d8bedac7c295.png",
+      "nativeCards": [
+        "Ah",
+        "Qs"
+      ],
+      "placement": "right"
+    },
+    {
+      "id": "cash-012",
+      "status": "pass-corrected",
+      "notes": "Clean-plate imagegen edit completely removed all five white rectangles. Pot, paused call hand, rail and navy felt remain intact; source now contains no generated cards or text.",
+      "overlayReview": "Clear central felt band supports the native five-card row. Keep the row above the call hand; root checks the actual hosted overlay.",
+      "correctedSource": "/workspace/scratch/c868e812eb6b/generated_images/exec-5233132e-2bb8-498b-b201-21d3594ca7ca.png",
+      "correctionAudit": ".agent/audits/training-approved-chrome/corrections/cash-012/",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-012.webp",
+      "reviewedAssetSha256": "feb3ef9f11db31c4cd34181ebcf52b824625d56cd17bd9f675b6d7947ae44a84",
+      "sourceFile": "exec-5233132e-2bb8-498b-b201-21d3594ca7ca.png",
+      "nativeCards": [
+        "As",
+        "Kd",
+        "Jh",
+        "8c",
+        "3s"
+      ],
+      "placement": "center"
+    },
+    {
+      "id": "cash-013",
+      "status": "pass",
+      "notes": "Opening player advances a new bet while the opponent's hand withdraws. Probe initiative reads as a table scene; no card/text artifacts or product stage.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-013.webp",
+      "reviewedAssetSha256": "0018797a6d994a9af577a28dcab4b4d428d21a01eb1025897b7cc615df4407eb",
+      "sourceFile": "exec-80e6bc01-eb18-4e54-81a9-be1427e611b7.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-014",
+      "status": "pass",
+      "notes": "Broad physical U-turn contrasts a small incoming wager with a large returning raise. Clear action metaphor and distinct sweeping composition, no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-014.webp",
+      "reviewedAssetSha256": "d206a2de3eb75157d980be3d23fd0f43b09c44baf69a796596859a85493b8ba0",
+      "sourceFile": "exec-2351de72-6a4a-46a1-b440-c7171393aac3.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-015",
+      "status": "pass",
+      "notes": "Imposing rectangular mass of betting chips dwarfs the small pot at opposite corner. Strong scale contrast makes overbetting clear; no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-015.webp",
+      "reviewedAssetSha256": "7227ec73d2acc222dbbd2621703085f9d311c7b0e5296499004a7afe76260655",
+      "sourceFile": "exec-7c12f802-3c4b-41e4-a69f-f1282f7a427c.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-016",
+      "status": "pass",
+      "notes": "Four large hands approach an irregular shared pot from four corners. Clearly multi-way, with mobile-readable action and no generated cards/text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-016.webp",
+      "reviewedAssetSha256": "12e038185a8f52025d00a31f3200a2d99a77dcd7a445374b23b63c81bb5abb1d",
+      "sourceFile": "exec-f1d98cd8-bf8d-4192-9b5f-b8f888878ac2.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-017",
+      "status": "pass",
+      "notes": "Large table-edge rake-slot cutaway with one chip visibly entering the separate tray. Distinct cross-section, clear game meaning, no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-017.webp",
+      "reviewedAssetSha256": "a898c89bdbadf1202af430aaa284c5bb015b3ab87c411007d406465c3871758b",
+      "sourceFile": "exec-458a7e50-c684-4e17-8839-4a07dc5fda01.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-018",
+      "status": "pass",
+      "notes": "Two nearby seat edges and wagers face across the same table elbow. Adjacent blind positions read clearly; no generated cards, text or display pedestal.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-018.webp",
+      "reviewedAssetSha256": "03caf25c3e21fae36425a0f5ecce4fb80c19fa0c7bce02256df4eec4ca01b833",
+      "sourceFile": "exec-e52b44cc-56f4-41a6-8a24-4b82b1f8a08d.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-019",
+      "status": "pass",
+      "notes": "Low lateral view makes the third forced bet much larger than the first two; plain marker and stitched felt boundary reinforce the straddle. Large foreground subject, no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-019.webp",
+      "reviewedAssetSha256": "337ecd66ce8fdf1725ed9b69a83efc79246130e6455b89cb34e31a1e456b4f52",
+      "sourceFile": "exec-a3d0bf6b-c0ac-4960-8953-e57379309381.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-020",
+      "status": "pass",
+      "notes": "Three large partial tables show contrasting reserve density and one highlighted open seat. Distinct floor-selection view with clear seat choice; no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-020.webp",
+      "reviewedAssetSha256": "af90f646b1429076087319a1a51a5e2448ebd24c1b5fd957225678b60092cec4",
+      "sourceFile": "exec-e452909b-ecb5-4f0f-9c25-ccea898294fe.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-021",
+      "status": "pass",
+      "notes": "Rectangular randomizer cutaway routes identical chips through broad baffles into uneven action trays. Distinct full-frame frequency metaphor, no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-021.webp",
+      "reviewedAssetSha256": "e990658bbb23546a1876e3206bdd8f88242d9a183b5f7f89f198e3f6094cc847",
+      "sourceFile": "exec-e13aded3-79e9-455e-980a-315e82534b72.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-022",
+      "status": "pass-overlay-fit-check",
+      "notes": "Generated scene contains only the smooth/connected split analysis surface and dark natural band; no cards, blank rectangles or text. Actual generation launched before the preventive wording update but clean output already matches it.",
+      "overlayReview": "Center three-card native board fits the natural upper-middle band; retain visible connected relief toward lower right. Root verifies hosted source-exact row geometry.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-022.webp",
+      "reviewedAssetSha256": "fee3d3289361cfc74fae9e84f66259ed186569402de204f6664ba1ef0cba36fe",
+      "sourceFile": "exec-93bb08c9-1f3a-44d2-b68e-e00f993b9e1f.png",
+      "nativeCards": [
+        "Ks",
+        "Qs",
+        "7h"
+      ],
+      "placement": "center"
+    },
+    {
+      "id": "cash-023",
+      "status": "pass",
+      "notes": "Large angular shutter cuts off incoming cobalt draw paths before the pot. Strong protection-bet metaphor; no generated cards, text or product stage.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-023.webp",
+      "reviewedAssetSha256": "a566bf744ecf17a7593348aa44c2f106aecb7b022652a9b10fff03b8f4ceaba3",
+      "sourceFile": "exec-5fe024f3-0c92-4ac0-9c90-79f0233543fa.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-024",
+      "status": "pass",
+      "notes": "Restraining hand stops additional chips at a low transparent limit while a manageable pot remains beyond. Clear pot-control decision; no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-024.webp",
+      "reviewedAssetSha256": "2c895998fe16e57f2979c3347bb6db1f0cb00570a3bd2a2c81a3c6b240b0acff",
+      "sourceFile": "exec-5a5e0672-b793-46b3-8dec-918051e406f6.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "cash-025",
+      "status": "pass",
+      "notes": "Seasoned player organizes full chip racks at the end of a session under a cobalt desk lamp. Distinct human endurance/mastery scene with large focal subject; no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/cash-025.webp",
+      "reviewedAssetSha256": "aa55ac5fe80969c4f7e915a06a6780bd4a8d6cc8d7eef33173890c6e351b0acd",
+      "sourceFile": "exec-4943baa8-8cbd-4795-9616-c1c68bb7ea44.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-001",
+      "status": "pass",
+      "notes": "Seated over-shoulder opening wager with two opponents across the table clearly establishes three-max early play. Natural player perspective replaces the tilted geometry collision. Large hand/wager focus, no generated cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-001.webp",
+      "reviewedAssetSha256": "67eef3c73ad0e9fc53d4f51446d77f8472174328efaff17055f883461816e7a5",
+      "sourceFile": "exec-ffb67645-a003-4b84-8248-b5c6a5d3c475.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-002",
+      "status": "pass",
+      "notes": "Three tense players sit below an exaggerated wall of jackpot chips, making multiplier pressure distinct and readable. No cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-002.webp",
+      "reviewedAssetSha256": "edd8bec855369a3422feaa49b074c9b23484aed97b64609413b145e05743de63",
+      "sourceFile": "exec-3e8628ac-abe4-490b-889b-bee79f9627be.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-003",
+      "status": "pass-corrected-overlay-fit-check",
+      "notes": "Imagegen clean-plate edit completely removed both blank white card rectangles. Single limp chip, dealer disc, reserve, betting line and felt remain intact. No generated cards or text.",
+      "overlayReview": "Place native pair low and left to preserve the single entry chip. Suggested approximate geometry: center22%, width32%, bottom4%, height43%; root verifies actual proportions in hosted UI.",
+      "correctedSource": "/workspace/scratch/c868e812eb6b/generated_images/exec-a023aa35-b41b-4f37-a6d7-78be16b795d3.png",
+      "correctionAudit": ".agent/audits/training-approved-chrome/corrections/spins-003/",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-003.webp",
+      "reviewedAssetSha256": "900c482c1ff6ee62817d45aa2bc1db98610b55ba0977c74f0c9bd82188efe76b",
+      "sourceFile": "exec-a023aa35-b41b-4f37-a6d7-78be16b795d3.png",
+      "nativeCards": [
+        "As",
+        "Ah"
+      ],
+      "placement": "left"
+    },
+    {
+      "id": "spins-004",
+      "status": "pass",
+      "notes": "Final two opponents face each other across compact felt; empty third seat in foreground establishes the endgame. Distinct human scene, no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-004.webp",
+      "reviewedAssetSha256": "e32cc3f45b73bfaae00faa6ed8d85221b5f9ce8dec34f96e199af5462e016a45",
+      "sourceFile": "exec-b13bc3d0-0c0f-4dd4-9c33-1cf27c7f1c56.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-005",
+      "status": "pass",
+      "notes": "Three descending felt layers and shrinking reserves clearly express stack-depth transitions. Full-width architectural diagonal, no circular stage, cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-005.webp",
+      "reviewedAssetSha256": "55e325fe5ff474b25bfbdd2965e4ecc356a27fffc603b73e850cd22a2e1a6cd8",
+      "sourceFile": "exec-46e8d3b3-3a07-46fe-a36f-5f9d4e2a66b7.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-006",
+      "status": "pass-corrected-overlay-removed",
+      "notes": "Imagegen clean-plate edit completely removed the invented queen/jack faces and all white card surfaces. All three chip contributions, rails and felt remain intact. No generated cards or text.",
+      "overlayReview": "Parent agreed to remove the native pair so the matching return wager stays visible; current scene should render without cards.",
+      "correctedSource": "/workspace/scratch/c868e812eb6b/generated_images/exec-b367b929-b3b9-4ec5-a000-0e81864344cf.png",
+      "correctionAudit": ".agent/audits/training-approved-chrome/corrections/spins-006/",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-006.webp",
+      "reviewedAssetSha256": "1ee9aef25aa5ea2803181099359b63dba4f5bac65547813e5f532eea02c67424",
+      "sourceFile": "exec-b367b929-b3b9-4ec5-a000-0e81864344cf.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-007",
+      "status": "pass",
+      "notes": "Small intact stack at a risky gap and two safe payout ledges express survival pressure. Large simple ledges, clear depth and no cards/text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-007.webp",
+      "reviewedAssetSha256": "5d7ee26de8c000118b2123cf1844cd6f77de5634094e0ed69b207e709b407f87",
+      "sourceFile": "exec-dabc8024-9e12-4ae7-8af2-6f636b3d3545.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-008",
+      "status": "pass",
+      "notes": "Several sweeping waves of chips pressure a compact opponent reserve at the rail. Strong directional motion, large focal action and distinct sustained-pressure meaning. No cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-008.webp",
+      "reviewedAssetSha256": "bc190c5fcbb0fbbd9cdf450dc872fed313cdb18dd3a1c1e4e2857edcb4b695a4",
+      "sourceFile": "exec-b7a53e3c-fa06-4b52-b094-fbb975f84dcf.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-009",
+      "status": "pass",
+      "notes": "Dominant L-shaped reserve controls the foreground while a measured bet faces two smaller opposing reserves. Clear lead-protection scene, no literal padlock, cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-009.webp",
+      "reviewedAssetSha256": "f26dc497e685ae241a8c376f88a32ed0d9ede43572e133aa7506a826b3b5ff00",
+      "sourceFile": "exec-65c5fcda-9f8b-4bde-9470-1fea370bca33.png",
+      "nativeCards": [],
+      "placement": "none"
+    },
+    {
+      "id": "spins-010",
+      "status": "pass",
+      "notes": "Three large overlapping snapshots show three seats, then two, then one collected winner's reserve. Complete-spin progression reads clearly at mobile scale; no cards or text.",
+      "reviewedAsset": "/images/training/approved-chrome/640/spins-010.webp",
+      "reviewedAssetSha256": "9212f1385d94a7c63c180b28a49d40c8dae4147886bc3cafb35267cbe5e89d50",
+      "sourceFile": "exec-64c39ad7-ddae-4a6e-80a0-117a29f11a04.png",
+      "nativeCards": [],
+      "placement": "none"
+    }
+  ]
+}

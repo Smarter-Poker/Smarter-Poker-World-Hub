@@ -1,0 +1,71 @@
+{
+  "id": "adv-005",
+  "name": "Frequency Math",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:57:26.107Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Frequency Math.\nSubject: Frequency Math: a precise mechanical distributor splits an incoming line of cobalt beads into differently sized streams of silver and blue outcomes\nCamera: side-on cutaway of a compact mechanism\nComposition: One intake at left branches into three clear output chutes on the right, each carrying a visibly different proportion. Transparent glass casing, brushed chrome internals, dark navy backdrop. Conceptual proportions without labels or exact chart data.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Frequency Math: a precise mechanical distributor splits an incoming line of cobalt beads into differently sized streams of silver and blue outcomes",
+  "camera": "side-on cutaway of a compact mechanism",
+  "composition": "One intake at left branches into three clear output chutes on the right, each carrying a visibly different proportion. Transparent glass casing, brushed chrome internals, dark navy backdrop. Conceptual proportions without labels or exact chart data.",
+  "source": {
+    "fileName": "exec-57c8333d-f9c3-4ae0-b2c3-804d1ea37f6d.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2140320,
+    "sha256": "70271276899be47bcb34e946b09c6806212a69e2c157165c22d9e00eb223181c"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-005.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 37224,
+      "sha256": "94a70f963cc557dd312bcada2dd6262f190f6338a3d77e6c5778ba1bede38160"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-005.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 35776,
+      "sha256": "9c07bd69665d875d67264fe3b58792ab5d870a77c35a32c4ba4002641259c5fa"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-005.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 66570,
+      "sha256": "43c324892e06470f0e534cae4886ee1006d0763fb264e02e103d9dd63f4859ce"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-005.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 59337,
+      "sha256": "5ec3de2611d3faf2e71afef21d77b6ea83c4ccaecf50674cb9a1bd62b6591ead"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-005.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 115302,
+      "sha256": "694e24823b73d2e1928e82028d8632037fc098e9633631fe77075044adcc7aae"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-005.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 95212,
+      "sha256": "a6f2847aae8b0535d957f71d8a8b8fd9362a58aad0744c54ee3666d9d5bf52a6"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "id": "mtt-002",
+  "name": "ICM Fundamentals",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:46:31.144Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: ICM Fundamentals.\nSubject: ICM Fundamentals: chip quantity and tournament prize value balanced on a polished mechanical scale, a tall cobalt stack on the nearer pan and three differently sized silver prize ingots on the far pan\nCamera: tight three-quarter eye-level product photograph with the balance beam running diagonally across the frame\nComposition: The scale fills the entire horizontal frame, cropped close to both pans; black felt below and a blurred navy tournament rail behind. Asymmetrical, tactile and immediately readable, without a display pedestal.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "ICM Fundamentals: chip quantity and tournament prize value balanced on a polished mechanical scale, a tall cobalt stack on the nearer pan and three differently sized silver prize ingots on the far pan",
+  "camera": "tight three-quarter eye-level product photograph with the balance beam running diagonally across the frame",
+  "composition": "The scale fills the entire horizontal frame, cropped close to both pans; black felt below and a blurred navy tournament rail behind. Asymmetrical, tactile and immediately readable, without a display pedestal.",
+  "source": {
+    "fileName": "exec-08a85800-29f7-4d31-9875-1aafe274e0eb.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2285390,
+    "sha256": "18f4bfff45ea4965cf36d1e04459ffad9eb0cf111e4c3f1ae5bd64c2c7951012"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-002.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 40716,
+      "sha256": "defd1f5a58897281ecd918d4357e27e6011b54b61deae875846937ef7bafc688"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-002.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 35983,
+      "sha256": "e6dd1eaca404dd72864f491cc1801595636f479b489842bbc0314bde20ce8dcc"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-002.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 72340,
+      "sha256": "1565a3af6455f5026a67dc4dfc7bc350de5198cedc9efd70c59664525daf124c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-002.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 59182,
+      "sha256": "35a3c43a4c19f630d59ca71283c8278cef33061c41bd361b2d551581866ec22e"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-002.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 126048,
+      "sha256": "5a78368cbe6b7384965458250b2ed64adc40ae4f266d210a7019fb704809ace6"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-002.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 94185,
+      "sha256": "4daced8d9d58fe4051271b276c62543de8fb10257b99f25bcfc94cfcf6b9f434"
+    }
+  ]
+}

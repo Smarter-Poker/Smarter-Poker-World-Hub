@@ -1,0 +1,71 @@
+{
+  "id": "spins-007",
+  "name": "50/50 Survival",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:01:31.166Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: 50/50 Survival.\nSubject: A short poker-chip stack pauses just before a risky gap while two equal silver payout ledges remain safely within reach. A few loose chips tumble into the dark gap, emphasizing survival over marginal accumulation.\nCamera: Steep downward cinematic view over the edge of the gap, with strong foreground depth.\nComposition: The intact short stack sits large on the near-left felt ledge. Two equally sized illuminated safe ledges occupy the far-right, divided from the player by a sharp dark void. Keep the forms simple, tactile and legible. No balance scale, podium, trophy or playing cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A short poker-chip stack pauses just before a risky gap while two equal silver payout ledges remain safely within reach. A few loose chips tumble into the dark gap, emphasizing survival over marginal accumulation.",
+  "camera": "Steep downward cinematic view over the edge of the gap, with strong foreground depth.",
+  "composition": "The intact short stack sits large on the near-left felt ledge. Two equally sized illuminated safe ledges occupy the far-right, divided from the player by a sharp dark void. Keep the forms simple, tactile and legible. No balance scale, podium, trophy or playing cards.",
+  "source": {
+    "fileName": "exec-dabc8024-9e12-4ae7-8af2-6f636b3d3545.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2204527,
+    "sha256": "4b1670f3e4a556122b713c349f8ce6dc72385c3f45065ef49e374c01f87e49ab"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-007.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 34258,
+      "sha256": "5d7ee26de8c000118b2123cf1844cd6f77de5634094e0ed69b207e709b407f87"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-007.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 29189,
+      "sha256": "ef540a023b790d7b26a031089a4ef8005d69b12cf02c8e0f3f4947036e971f7a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-007.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 65036,
+      "sha256": "7ee984ffb0d36acae85598ee6865891d71f04f592dbdb4ff5a04e93a5e8558f3"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-007.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 51692,
+      "sha256": "41fc8e3b7e18101a1ee36221894f6f3e13faea9fe0d2a538118bbd6463e66586"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-007.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 118958,
+      "sha256": "41cca7c35f73be06131d57d83e9399148ce355b28a07a165af58cc77e1795cdc"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-007.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 86847,
+      "sha256": "2257aa0b3a2ffb7b16e4116f0eab5d2707d602067df8e790d6a9d44621c58584"
+    }
+  ]
+}

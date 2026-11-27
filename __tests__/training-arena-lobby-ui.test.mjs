@@ -165,49 +165,63 @@ test('game-favorites API, hook, and SQL migration enforce JWT auth, idempotency,
   assert.match(sql, /auth\.uid\(\) = user_id/);
 });
 
-test('Arena Lobby CSS & dialogs obey #SMARTERDESIGN, mobile 12px floor, and modern <dialog> rules', () => {
-  const css = read('src/styles/worlds/training-lobby-arena.css');
+test('approved lobby keeps chrome controls, readable mobile text, and native accessible dialogs', () => {
+  const css = read('src/components/training/lobby/TrainingLobby.module.css');
   const filtersSheet = read('src/components/training/lobby/TrainingFiltersSheet.jsx');
   const previewSheet = read('src/components/training/lobby/TrainingGamePreviewSheet.jsx');
-  const row = read('src/components/training/lobby/TrainingLobbyRow.jsx');
+  const dialog = read('src/components/training/lobby/TrainingLobbyDialog.jsx');
+  const card = read('src/components/training/lobby/TrainingGameCard.jsx');
+  const hub = read('pages/hub/training.js');
 
-  for (const file of ['arena-mode.webp', 'arena-filter.webp', 'arena-row-rim.webp']) {
-    const url = '/images/training/lobby/' + file;
-    assert.ok(css.includes(url), `Missing Arena skin on live controls: ${file}`);
-    const asset = fs.readFileSync(path.join(ROOT, 'public', url));
-    assert.equal(asset.toString('ascii', 8, 12), 'WEBP');
-  }
+  assert.match(css, /--training-chrome:\s*linear-gradient/);
+  assert.match(css, /--training-blue:\s*linear-gradient/);
+  assert.match(css, /\.chromeButton\s*\{[\s\S]*?min-height:\s*48px/);
+  assert.match(css, /:focus-visible/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.equal(countAdvancedFilters({ ...DEFAULT_LOBBY_FILTERS, quickFilter: 'BEGINNER' }), 1);
   assert.match(filtersSheet, /data-quick-filter=\{pill.id.toLowerCase\(\)\}/);
 
-  // Native <dialog closedby="any"> + showModal() + Safari pointer fallback + scroll containment
+  // One shared native dialog owns focus containment, Escape, backdrop, and scroll cleanup.
   for (const sheet of [filtersSheet, previewSheet]) {
-    assert.match(sheet, /<dialog/);
-    assert.match(sheet, /closedby="any"/);
-    assert.match(sheet, /showModal/);
-    assert.match(sheet, /'closedBy' in HTMLDialogElement\.prototype/);
+    assert.match(sheet, /<TrainingLobbyDialog\s+open=/);
     assert.doesNotMatch(sheet, /role="dialog"|aria-modal/);
   }
-  assert.match(css, /dialog\.sp-arena-sheet\[open\]/);
-  assert.match(css, /dialog\.sp-arena-sheet:modal[\s\S]*?overscroll-behavior:\s*contain/);
-  assert.match(css, /dialog\.sp-arena-sheet::backdrop[\s\S]*?overflow:\s*hidden;[\s\S]*?overscroll-behavior:\s*contain/);
+  assert.match(dialog, /<dialog/);
+  assert.match(dialog, /dialog\.showModal\(\)/);
+  assert.match(dialog, /dialog\.addEventListener\('close', handleClose\)/);
+  assert.match(dialog, /pressedOutside\.current && outside\(event\)/);
+  assert.match(dialog, /acquireScrollLock\('training-lobby-dialog'\)/);
+  assert.match(dialog, /if \(dialog.open\) dialog.close\(\)/);
+  assert.match(css, /overscroll-behavior:\s*contain/);
+  assert.match(css, /\.dialog::backdrop/);
+  assert.match(card, /loading=\{index < 3 \? 'eager' : 'lazy'\}/);
 
-  // Below-the-fold rendering deferral paired with contain-intrinsic-size
-  assert.match(row, /index >= 6 \? ' sp-arena-row--deferred' : ''/);
-  assert.match(css, /\.sp-arena-row--deferred[\s\S]*?content-visibility:\s*auto;[\s\S]*?contain-intrinsic-size:/);
-
-  // Zero display: none outside print, zero forbidden breakpoints
+  // Poker formats remain inside Filters; the rejected standalone rail cannot return.
+  assert.doesNotMatch(hub, /data-variant-filter-bar|VARIANT_FILTERS/);
+  for (const variant of ['nlh', 'plo4', 'plo5', 'plo6', 'plo8']) {
+    assert.ok(filtersSheet.includes(`id: '${variant}'`));
+  }
   const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  assert.doesNotMatch(cssCode, /display:\s*none/i);
-  const allowed = new Set(['900', '768', '600']);
-  for (const m of cssCode.matchAll(/@media[^{]*\(max-width:\s*(\d+)px\)/g)) {
-    assert.ok(allowed.has(m[1]), `Disallowed breakpoint ${m[1]}px in training-lobby-arena.css`);
+  for (const match of cssCode.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) {
+    assert.ok(Number(match[1]) >= 12, `Unreadable mobile font size: ${match[1]}px`);
   }
 
   // Zero forbidden text colors (#SMARTERDESIGN: no yellow/gold/amber/purple/violet/pink/magenta text)
   for (const forbidden of [/#f3b151/i, /#ffe16a/i, /#facc15/i, /#ffd700/i, /#c084fc/i, /#c99cff/i, /#f59e0b/i, /#fb923c/i]) {
-    assert.doesNotMatch(cssCode, forbidden, `Forbidden accent color ${forbidden} in training-lobby-arena.css`);
+    assert.doesNotMatch(cssCode, forbidden, `Forbidden accent color ${forbidden} in TrainingLobby.module.css`);
   }
+
+  // Legacy global training.css rules must exclude the approved chrome lobby shell,
+  // Jarvis head crop must defeat mobile img max-width: 100%, LCP artwork is preloaded,
+  // and the temporary preview harness stays removed.
+  const worldCss = read('src/styles/worlds/training.css');
+  assert.match(worldCss, /:where\(button, \[role='button'\], \.sp-card, \.sp-card-sm, \.sp-card-lg\):not\([^)]*\.sp-arena-lobby-shell \*\)/);
+  assert.match(worldCss, /:where\(button, \[role='button'\]\):not\([^)]*\.sp-arena-lobby-shell \*\)/);
+  assert.match(worldCss, /:where\(\.sp-card, \.sp-card-sm, \.sp-card-lg, article, fieldset\):not\([^)]*\.sp-arena-lobby-shell \*\)/);
+  assert.match(worldCss, /:where\(input, textarea, select\):not\([^)]*\.sp-arena-lobby-shell \*\)/);
+  assert.match(css, /\.jarvisPortrait img\s*\{[^}]*max-width:\s*none !important/);
+  assert.match(hub, /rel="preload"[\s\S]{0,200}approved-chrome\/640\/mtt-001\.avif/);
+  assert.equal(fs.existsSync(path.join(ROOT, 'public/__training_review_c868.html')), false);
 });
 
 test('guest favorites survive lobby re-entry in the same tab and report storage failures', () => {
@@ -228,7 +242,7 @@ test('preview follows current favorite state on both entry points while preservi
     assert.ok(read(page).includes('isFavorite={favoriteIds.has(previewItem?.game.id)}'));
   }
   const preview = read('src/components/training/lobby/TrainingGamePreviewSheet.jsx');
-  assert.ok(preview.includes('aria-pressed={isFavorite}'));
+  assert.ok(preview.includes('aria-pressed={Boolean(isFavorite)}'));
   assert.ok(preview.includes('[item, defaultVariant]'));
   assert.ok(!preview.includes('item.isFavorite'));
   const header = read('src/components/training/lobby/TrainingLobbyHeader.jsx');

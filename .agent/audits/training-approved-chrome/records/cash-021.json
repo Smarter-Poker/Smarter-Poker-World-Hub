@@ -1,0 +1,71 @@
+{
+  "id": "cash-021",
+  "name": "Mixed Strategies",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:58:45.987Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Mixed Strategies.\nSubject: A physical randomizer sorts identical poker chips into two action channels in an uneven but controlled mixture. Broad chrome baffles and dark branching paths make the distribution visible without numbers or a fabricated chart.\nCamera: Straight-on cutaway of a tall rectangular mechanism, tilted a few degrees for depth.\nComposition: A single narrow feed enters from upper left, crosses a staggered field of large baffles, then splits into two broad lower trays of different fullness. The device fills the frame edge to edge. Use a layered editorial illustration with matte ink navy and satin chrome, not a polished circular product stage.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A physical randomizer sorts identical poker chips into two action channels in an uneven but controlled mixture. Broad chrome baffles and dark branching paths make the distribution visible without numbers or a fabricated chart.",
+  "camera": "Straight-on cutaway of a tall rectangular mechanism, tilted a few degrees for depth.",
+  "composition": "A single narrow feed enters from upper left, crosses a staggered field of large baffles, then splits into two broad lower trays of different fullness. The device fills the frame edge to edge. Use a layered editorial illustration with matte ink navy and satin chrome, not a polished circular product stage.",
+  "source": {
+    "fileName": "exec-e13aded3-79e9-455e-980a-315e82534b72.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2287749,
+    "sha256": "fa99b66914d62a0c8e8d6cfa1b202333296ada0b11e2e4a8e16d44c9290ea9b0"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-021.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 38152,
+      "sha256": "e990658bbb23546a1876e3206bdd8f88242d9a183b5f7f89f198e3f6094cc847"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-021.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 36091,
+      "sha256": "4b65832d099cfca2ab64e43a2be6fd9755df3e36b06932948430102882b2aee9"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-021.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 70362,
+      "sha256": "5d6e835b7f610a9d6884028f26d72fb869d41a96f51f566255d92047a13a51e8"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-021.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 59861,
+      "sha256": "aba63307c07eccdf8a25da91e7a326661f60d4bb4fbe3d77f65bab8fc0a0931a"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-021.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 127674,
+      "sha256": "67f62d946236c5f129bc62fe595c6ff7a03d578d2997355a0f4cb14889768339"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-021.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 99322,
+      "sha256": "adc71a13635414209833feb3dcaa10b8aeba9b2115286bbbaf2f3495b9fab125"
+    }
+  ]
+}

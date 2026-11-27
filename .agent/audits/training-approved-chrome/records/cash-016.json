@@ -1,0 +1,71 @@
+{
+  "id": "cash-016",
+  "name": "Multi-way Pots",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:53:46.280Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Multi-way Pots.\nSubject: Four players' distinct betting motions meet in one contested poker pot. Black sleeves and cool monochrome hands approach from four edges; each player contributes a different-sized chip group.\nCamera: Bird's-eye close crop directly over the pot and hands.\nComposition: The irregular shared pot sits off center, and four incoming bets form unequal spokes. Hands and cuffs occupy the four corners, creating a lively interlocking shape rather than a symmetric diagram. Keep the hands large and the chip groups legible on mobile. No player portraits, rings, pedestal or decorative cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Four players' distinct betting motions meet in one contested poker pot. Black sleeves and cool monochrome hands approach from four edges; each player contributes a different-sized chip group.",
+  "camera": "Bird's-eye close crop directly over the pot and hands.",
+  "composition": "The irregular shared pot sits off center, and four incoming bets form unequal spokes. Hands and cuffs occupy the four corners, creating a lively interlocking shape rather than a symmetric diagram. Keep the hands large and the chip groups legible on mobile. No player portraits, rings, pedestal or decorative cards.",
+  "source": {
+    "fileName": "exec-f1d98cd8-bf8d-4192-9b5f-b8f888878ac2.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2767448,
+    "sha256": "f1ae30a4ab4ba7a137bb21efca9a21682332e50a15a77e582965ac51defffd3a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-016.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 34228,
+      "sha256": "12e038185a8f52025d00a31f3200a2d99a77dcd7a445374b23b63c81bb5abb1d"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-016.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 31995,
+      "sha256": "f7ba1019d1f26e9469051e6138e605e34e734e69902871841837e5e18683153a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-016.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 77508,
+      "sha256": "776375b5a0840ca501eb694718882dfa48039448a66870430fb32f89084ec86a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-016.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 69622,
+      "sha256": "17190b193131621d1a1906ef8cf8c8e02c363f0e1c0d70e3fe58a04768b69261"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-016.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 164430,
+      "sha256": "9e83d7be4b1fd6992e001828576b47dee6e514d031045f50f0d744f1af621a45"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-016.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 132342,
+      "sha256": "960b9b150604c06e2b7f3f050eea9fc4eb25893e79d46341ba9c45b8cdbc58b7"
+    }
+  ]
+}

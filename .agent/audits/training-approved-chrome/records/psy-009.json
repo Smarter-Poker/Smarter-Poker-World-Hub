@@ -1,0 +1,71 @@
+{
+  "id": "psy-009",
+  "name": "Fear Eraser",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:54:18.392Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Fear Eraser.\nSubject: Fear Eraser: a solid cobalt poker chip breaks through a thin fogged-glass barrier, opening a clean view of the table beyond\nCamera: extreme close-up at a diagonal impact angle\nComposition: The pane spans the left two thirds, with a small clean break and suspended silver-edged fragments; the blue chip passes confidently toward the clearer right side. Controlled courage, no violent person, ring, stage or weapon.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Fear Eraser: a solid cobalt poker chip breaks through a thin fogged-glass barrier, opening a clean view of the table beyond",
+  "camera": "extreme close-up at a diagonal impact angle",
+  "composition": "The pane spans the left two thirds, with a small clean break and suspended silver-edged fragments; the blue chip passes confidently toward the clearer right side. Controlled courage, no violent person, ring, stage or weapon.",
+  "source": {
+    "fileName": "exec-73530e42-1542-4c71-8247-6665a3941f9c.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 3275157,
+    "sha256": "7fee3f50a70ed73dae50afd37c0efee396b61637a23b10b008a0530a76d0a57f"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-009.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 64468,
+      "sha256": "d77487e36cbad7aef574ba3383945941a75241606b2aef75a8ed9b2f4528c708"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-009.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 60272,
+      "sha256": "9d412f65759852ac74f776be3ad71d5e806d82883ab750e47f7fa56896694612"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-009.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 137252,
+      "sha256": "24fef879bf2eab62d78ec1875634e34faeea1d43dce4a0ebadec7f0843e2aa3c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-009.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 126635,
+      "sha256": "62b50e140a10b064f8ad14352c5f8b46f7e03d0b7c4ab2753c77c1202a9c5088"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-009.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 275314,
+      "sha256": "57585f01db0ddb3b6cea97719dc7d1a06391da9d63d03a007d657eff4ba7b2ca"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-009.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 228545,
+      "sha256": "3f37db932f9d898effcaa5a40ab4eaf0ad2947ac1d737e3623163a2a4d08f188"
+    }
+  ]
+}

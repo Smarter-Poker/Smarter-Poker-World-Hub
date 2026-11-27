@@ -1,0 +1,71 @@
+{
+  "id": "adv-006",
+  "name": "EV Calculations",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:57:40.588Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: EV Calculations.\nSubject: EV Calculations: a silver balance beam compares a weighted potential reward with a smaller certain cost, connected by elegant translucent probability blocks\nCamera: low oblique macro of an analytical desk setup\nComposition: The weighted reward sits large on the right, the cost is close at lower left, and suspended blue glass blocks connect the diagonal reasoning path. Distinct from a traditional two-pan scale; use a cantilever and visible pivot, no equations or currency.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "EV Calculations: a silver balance beam compares a weighted potential reward with a smaller certain cost, connected by elegant translucent probability blocks",
+  "camera": "low oblique macro of an analytical desk setup",
+  "composition": "The weighted reward sits large on the right, the cost is close at lower left, and suspended blue glass blocks connect the diagonal reasoning path. Distinct from a traditional two-pan scale; use a cantilever and visible pivot, no equations or currency.",
+  "source": {
+    "fileName": "exec-d98dc815-eb3e-4268-8edc-bdf446c758e6.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2097251,
+    "sha256": "598fa7b56da21cb81db9fa304c08641727e9c1645d809dc4f7c63b02b4ce183a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-006.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 31190,
+      "sha256": "9d7e4d004d34a8ed1185512b436f06ad08cc1229cf868110144e3e868033346c"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-006.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 27346,
+      "sha256": "e124860f631bc79456507924d71d502aef0428a339fc7105c7511e4550168f69"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-006.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 57522,
+      "sha256": "1141c39442dc77b530e46791fe6d64b93c03fe2dc7c48acd71199a697122eac8"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-006.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 46481,
+      "sha256": "21ffad020b6bfc292808dc977776b089aa73675b27778ca8c4798e3bce053b9f"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-006.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 103538,
+      "sha256": "678ec808c08523046ee84c9a350918ebfb813504e3e974451a9b0b9a6c8a2134"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-006.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 75792,
+      "sha256": "1ac17f9267f3cd8228f389b975a5b9acf2c2cd0c756d29c7facd2643f6698b1b"
+    }
+  ]
+}

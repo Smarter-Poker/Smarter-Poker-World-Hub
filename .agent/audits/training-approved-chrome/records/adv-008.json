@@ -1,0 +1,71 @@
+{
+  "id": "adv-008",
+  "name": "Range Advantage",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:57:45.317Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Range Advantage.\nSubject: Range Advantage: two broad fields of cobalt and silver equity blocks overlap, one field consistently rising above the other across a textured poker workbench\nCamera: wide diagonal close-up of physical data sculpture\nComposition: Unequal rows of low rectangular blocks create a rolling landscape from left foreground to right background, with cobalt holding the higher terrain. This is a large tactile distribution, not a literal chart, no labels, axes, chips or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Range Advantage: two broad fields of cobalt and silver equity blocks overlap, one field consistently rising above the other across a textured poker workbench",
+  "camera": "wide diagonal close-up of physical data sculpture",
+  "composition": "Unequal rows of low rectangular blocks create a rolling landscape from left foreground to right background, with cobalt holding the higher terrain. This is a large tactile distribution, not a literal chart, no labels, axes, chips or cards.",
+  "source": {
+    "fileName": "exec-bf455d76-86b7-40b1-ad3a-fa426fb3b97e.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2171352,
+    "sha256": "fa28350609895324fcd4336d17d3c8d616114fe456884299839c0401a1d8eb08"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-008.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 35404,
+      "sha256": "04c80fc4eefc89b973f6d07dbc6dcd0907678053b81a3060475b50291467b8c4"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-008.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 30693,
+      "sha256": "6158dc5c2860abb55b96f24b16bf068b53aa3b4160c2c19476dec35f62eda9ef"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-008.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 65794,
+      "sha256": "21782f73e81be7d5ed802509019c425982fb48bf8f27dd720b7a4f0d8739df26"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-008.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 54202,
+      "sha256": "2ad9708fd88b00c104b428dedfc855b0f4d19404aac729aef344030a0bc93c5a"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-008.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 120828,
+      "sha256": "ea4fc897c46e59b2f936c362c66545fb67388ba5def5685b00462eee9e5fb93d"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-008.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 89495,
+      "sha256": "188ccba241a87a4b303c042c48e7ac833a191d106eedeb93b44d135d0b944725"
+    }
+  ]
+}

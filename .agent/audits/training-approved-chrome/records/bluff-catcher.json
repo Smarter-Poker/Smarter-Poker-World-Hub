@@ -1,0 +1,81 @@
+{
+  "id": "bluff-catcher",
+  "name": "Bluff Catcher",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:01:11.752Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Bluff Catcher.\nSubject: Bluff Catcher: a large investigative chrome lens reveals the hollow interior of an imposing wager-chip stack\nCamera: close player's-eye macro view across a poker table\nComposition: The lens and suspect stack dominate the right side; the hollow core is clearly visible through glass while the outside looks solid. Reserve a dark felt patch on the lower left for native Arena hole cards. Forensic hand-reading, no faces, question marks or pedestal.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "Bluff Catcher: a large investigative chrome lens reveals the hollow interior of an imposing wager-chip stack",
+  "camera": "close player's-eye macro view across a poker table",
+  "composition": "The lens and suspect stack dominate the right side; the hollow core is clearly visible through glass while the outside looks solid. Reserve a dark felt patch on the lower left for native Arena hole cards. Forensic hand-reading, no faces, question marks or pedestal.",
+  "source": {
+    "fileName": "exec-512fd7b5-4070-4cf3-b127-354be5064377.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2423626,
+    "sha256": "b0f0cf73e5ebaa988497ded6321c32761fd6087c84559ec17fe209419d4e026a"
+  },
+  "nativeCards": [
+    "Ks",
+    "Qh"
+  ],
+  "placement": "left",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/bluff-catcher.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 36944,
+      "sha256": "856f1a06603287a954869eba5fa05068b25ccb4d9ec57189c73e5ec5af45bae3"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/bluff-catcher.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 31391,
+      "sha256": "6347e3eadada24d0ce7a8e768dd72ddceefcd85717cee4622725d33ac2ade660"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/bluff-catcher.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 72630,
+      "sha256": "22c470bd37b0fe2bc8fc16847fc50028ef6b3b3efbd796854d2d4400d7e9b288"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/bluff-catcher.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 60329,
+      "sha256": "186c0ba01b64593f5d1696daa2d294285611a7e17c059f96ae851d7cbe3f3725"
+    },
+    {
+      "path": "/images/training/approved-chrome/bluff-catcher.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 139648,
+      "sha256": "6647a9bcf63b50a9ac730c54abe7c73bc01424d5b0958dae734abde96d531300"
+    },
+    {
+      "path": "/images/training/approved-chrome/bluff-catcher.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 107097,
+      "sha256": "0465f938d573656b4e8278ace64fc352c6a975407194cf810f5f25b0230b93ad"
+    }
+  ],
+  "overlay": {
+    "left": 26,
+    "bottom": 17,
+    "width": 36,
+    "height": 58
+  },
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

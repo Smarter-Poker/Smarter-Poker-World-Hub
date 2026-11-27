@@ -1,0 +1,71 @@
+{
+  "id": "mtt-013",
+  "name": "Ladder Jump",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:03.410Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Ladder Jump.\nSubject: Ladder Jump: a solitary silver poker chip pauses before a steep series of payout steps while two competing stacks below fall away into shadow\nCamera: side-on architectural cutaway\nComposition: One elegant zigzag staircase spans the full width from lower left to upper right, with the surviving chip on a broad middle landing. The composition is horizontal, graphic and patient, in brushed steel and matte cobalt rather than glossy piles.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Ladder Jump: a solitary silver poker chip pauses before a steep series of payout steps while two competing stacks below fall away into shadow",
+  "camera": "side-on architectural cutaway",
+  "composition": "One elegant zigzag staircase spans the full width from lower left to upper right, with the surviving chip on a broad middle landing. The composition is horizontal, graphic and patient, in brushed steel and matte cobalt rather than glossy piles.",
+  "source": {
+    "fileName": "exec-c20d4f8d-264e-4163-9ac5-dda2365f0937.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1759999,
+    "sha256": "5167b3e71bf946cf6b085b73ba3db4d805e0859f5179122523ab84b482d9c526"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-013.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 12706,
+      "sha256": "986691dd55e5f1abf52db2e542b47365fed003275eff59fa57e9b3cc11e3dc32"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-013.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 9626,
+      "sha256": "b076afd97d7eed38264ee9b06fde55eef6af712331d3b29f0ff5400794e15fc4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-013.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 22356,
+      "sha256": "6058193293192397ee2d8d7598a885bc5e9a39d53b0f1e6aa911103bb95d9545"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-013.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 15846,
+      "sha256": "13a7fb0932de7a1ce6dda2fd9e35dcb6c996287309f257db8e6a3cb0601c82ec"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-013.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 42884,
+      "sha256": "c1ac01dd4e78fdd5bc39c7a50add4c526d70f9e8d48bfdd7e6be507bf46e2d1d"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-013.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 30291,
+      "sha256": "50c2aac5d8f6c06de58d9d3da1d4d9dc29b6bf1029938c5e63ad87f0a9ac215e"
+    }
+  ]
+}

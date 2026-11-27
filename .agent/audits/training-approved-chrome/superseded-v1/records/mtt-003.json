@@ -1,0 +1,72 @@
+{
+  "id": "mtt-003",
+  "name": "Bubble Pressure",
+  "category": "MTT",
+  "version": "approved-chrome-v1",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:34:39.758Z",
+  "prompt": "Use case: stylized-concept. Create one premium 3D studio illustration for a Smarter.Poker poker training game, landscape 16:9, ideally 1536x864. The approved #SMARTERDESIGN look is glossy black and deep ink navy, polished mirror CHROME AND SILVER, rich COBALT and controlled electric-blue rim lighting. Render large tactile hero objects on a close-up black mirrored circular studio platform with beautiful realistic reflections and sculpted chrome edges, crisp high-definition product-photography quality. No wide room, no distant environment, no tiny details, no text or typography, no logo, no UI, no frames surrounding the picture, no watermarks. NO PLAYING CARDS OF ANY KIND, NO CARD BACKS OR CARD FACES, NO SUIT/RANK MARKINGS, NO LETTERS OR NUMBERS. Real card faces will be composited by the application later. No gold, yellow, orange, purple or pink accent lighting. Black, blue, silver and clear glass only. Keep important objects inside 8% safe margins. Objects must fill the image and remain easily readable in a mobile game card. Subject: A large clear glass pressure dome on a blue-lit circular chrome base, empty inside, flanked by black and cobalt chip stacks. Reserve a quiet empty dark central area spanning x=29% to 70%, y=18% to 79% for two REAL playing-card asset overlays. Arrange the specified hero objects to the sides and at the low foreground; the overlay zone is in front of the scene and must not obscure important objects. A clear glass dome may surround this space if specified, but its center must stay empty. Do not draw placeholders or blank cards in this area. Preserve clean true object proportions and ensure the lighting is bright enough to recognize all central objects. The artwork should feel like an exquisite collectible game cover in a chrome-and-cobalt poker training lobby.",
+  "subject": "A large clear glass pressure dome on a blue-lit circular chrome base, empty inside, flanked by black and cobalt chip stacks",
+  "source": {
+    "fileName": "exec-18e7e7e4-a699-4076-923d-245bb392fd51.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1874806,
+    "sha256": "04529ddc97d07f1c755f3e3a65b0dcb45346301db90d60c792220759e21a12af"
+  },
+  "nativeCards": [
+    "Ks",
+    "Qh"
+  ],
+  "placement": "center",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-003.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 33918,
+      "sha256": "743010d63768f296396ba50fdb6655e7ed3c282e37f43cdd04dd8c9a20a15ae4"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-003.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 33927,
+      "sha256": "cdf53e293e91b7c7e7af9244e9fee11f6714b22f2c726b0cfa33bd8720bc4591"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-003.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 60570,
+      "sha256": "ccb02da4a1cd335fc14699efe78ddb54b53440f14af5215aabee8bcc3320b2f2"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-003.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 55403,
+      "sha256": "ece9f9929caa8db51f79ea82d4e6cf0ce5170260eed8c1325085845563893bc7"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-003.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 107038,
+      "sha256": "39504243ee89bcd97b68e17085813d9ea3d7d572fde23db547a26a20053546f8"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-003.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 86889,
+      "sha256": "fd8a6bcc03ffa50fa0af12af1120cae6ce50a20da70a80e6fff39be6ade706ec"
+    }
+  ]
+}
