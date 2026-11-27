@@ -308,6 +308,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/magazine/[issue]',
   '/hub/magazine/poker-rooms',
   '/hub/magazine/print/[issue]',
+  '/hub/magazine/table-tent',
   '/hub/marketplace',
   '/hub/messenger/document-designs',
   '/hub/my-tournaments',
