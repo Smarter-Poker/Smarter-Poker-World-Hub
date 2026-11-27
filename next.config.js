@@ -1409,6 +1409,66 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: '/hub/video-library/watch/IGYA_OwBpYY/how-to-play-live-101',
+        destination: '/poker-rooms/first-time-guide',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/IGYA_OwBpYY',
+        destination: '/poker-rooms/first-time-guide',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/JVVD7d59zuE/ben-vs-gig-em-gage-all-in-for-a-10k-pot',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/JVVD7d59zuE',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/Qz2tz1JkvfI/garrett-adelstein-calls-out-daniel-negreanu',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/Qz2tz1JkvfI',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/7X5iF4ERDcE/can-the-sickest-fool-make-the-sickest-fold',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/7X5iF4ERDcE',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/bWtzp1aDAUk/doni-and-pat-go-heads-up-for-an-11k-pot',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/bWtzp1aDAUk',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/xjqzhy4XgkU/kings-vs-world-champion-in-all-in-pot',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/xjqzhy4XgkU',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
         source: '/research/plo4-plo5-plo6-equity-and-variance-study.md',
         destination: '/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.md',
         permanent: true,

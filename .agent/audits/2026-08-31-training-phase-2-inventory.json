@@ -18,7 +18,7 @@
     "dialogs": 21,
     "persistenceFiles": 96,
     "realtimeFiles": 7,
-    "tests": 197,
+    "tests": 198,
     "markerCandidates": 393,
     "possibleUnwiredFunctions": 483,
     "routeStateCells": 752,
@@ -5107,6 +5107,7 @@
         "pages/hub/training/hand-history-upload.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engines/HandHistoryParser.js",
@@ -5211,6 +5212,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/hand-history-upload.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -5239,6 +5241,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -5771,6 +5774,7 @@
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -6102,6 +6106,7 @@
           "evidence": [
             "src/components/gates/FeatureGatePopup.jsx",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -6157,6 +6162,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -6321,6 +6327,7 @@
         "src/components/poker/PokerSoundManager.js",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/BlockerScorePanel.jsx",
@@ -6703,6 +6710,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -6763,10 +6771,12 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/hooks/useGTOTrainer.js",
@@ -6800,6 +6810,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -7064,6 +7075,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -7100,9 +7112,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -7128,6 +7142,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -7392,6 +7407,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -7428,9 +7444,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -7786,6 +7804,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -8019,6 +8038,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -8078,6 +8098,7 @@
           "evidence": [
             "pages/hub/training/challenges.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -8351,6 +8372,7 @@
         "pages/hub/training/coach-mode.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ErrorBanner.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
@@ -8438,6 +8460,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/training/trainingPresets.mjs"
           ],
@@ -8465,7 +8488,8 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
@@ -8497,6 +8521,7 @@
         "pages/hub/training/community-leaderboard.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/ui/SkeletonLoader.jsx",
@@ -8575,6 +8600,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -8597,6 +8623,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -8622,6 +8649,7 @@
         "pages/hub/training/custom-rake.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
@@ -8692,16 +8720,15 @@
           ]
         },
         "stale": {
-          "status": "not-applicable",
+          "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/custom-rake.js"
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
-          ],
-          "rationale": "Rake Results Are Derived Immediately From Local Controls"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -8717,7 +8744,8 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -8745,6 +8773,7 @@
         "pages/hub/training/custom-solve.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
@@ -8902,6 +8931,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
@@ -8937,6 +8967,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
@@ -8974,6 +9005,7 @@
         "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/DailyPersonalQuiz.jsx",
@@ -9095,6 +9127,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/daily-challenge.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -9133,6 +9166,7 @@
           "evidence": [
             "pages/hub/training/daily-challenge.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/TrainingSignInPrompt.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
@@ -9308,6 +9342,7 @@
         "pages/hub/training/drill-builder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -9391,6 +9426,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/training/trainingPresets.mjs"
           ],
           "tests": [
@@ -9417,7 +9453,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/drill-builder.js",
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/a-refused-websocket-never-crashes-the-app.law.test.mjs",
@@ -9785,6 +9822,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -10049,6 +10087,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -10085,9 +10124,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -10111,6 +10152,7 @@
         "pages/hub/training/famous-finals.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -10182,16 +10224,15 @@
           ]
         },
         "stale": {
-          "status": "not-applicable",
+          "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/famous-finals.js"
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
-          ],
-          "rationale": "The Archive Notice And Its Navigation Links Are Static"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -10208,7 +10249,8 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -10238,6 +10280,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -10517,6 +10560,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -10559,9 +10603,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -10592,6 +10638,7 @@
         "src/components/poker/ProgressStrip.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
@@ -10732,6 +10779,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/flashcards.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
@@ -10759,6 +10807,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
@@ -10785,6 +10834,7 @@
         "pages/hub/training/focus-timer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -10853,6 +10903,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/focus-timer.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -10873,6 +10924,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -10900,6 +10952,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -11164,6 +11217,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -11200,9 +11254,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -11386,6 +11442,7 @@
         "pages/hub/training/gto-news.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
@@ -11461,6 +11518,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/gto-news.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -11481,6 +11539,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -11506,6 +11565,7 @@
         "pages/hub/training/gto-preloader.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/engines/DifficultyEngine.js",
         "src/engines/positionOrder.js",
         "src/hooks/useTrainingBus.js",
@@ -11599,6 +11659,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/idbCacheStore.js",
             "src/lib/supabaseKeys.js"
@@ -11626,6 +11687,7 @@
           "evidence": [
             "pages/hub/training/gto-preloader.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -11933,6 +11995,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -12197,6 +12260,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -12233,9 +12297,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -12259,6 +12325,7 @@
         "pages/hub/training/hand-comparison.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -12309,7 +12376,8 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/hand-comparison.js"
+            "pages/hub/training/hand-comparison.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": []
         },
@@ -12323,7 +12391,8 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": []
         }
@@ -12343,6 +12412,7 @@
         "pages/hub/training/hand-history-upload.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engines/HandHistoryParser.js",
@@ -12465,6 +12535,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/hand-history-upload.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -12501,6 +12572,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -12547,6 +12619,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -12773,6 +12846,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -12831,6 +12905,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -13096,6 +13171,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -13370,6 +13446,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -13410,9 +13487,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -13440,6 +13519,7 @@
         "pages/hub/training/icm-simulator.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
@@ -13590,6 +13670,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
@@ -13623,6 +13704,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
@@ -13657,6 +13739,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -13866,6 +13949,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -13914,6 +13998,7 @@
           "evidence": [
             "pages/hub/training/jarvis.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -13952,6 +14037,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -14200,6 +14286,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/leaderboard.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -14263,6 +14350,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -14798,6 +14886,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -15062,6 +15151,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -15098,9 +15188,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -15126,6 +15218,7 @@
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -15415,6 +15508,7 @@
           "evidence": [
             "pages/hub/training/multi-table.js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -15462,6 +15556,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -15500,6 +15595,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -15764,6 +15860,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -15800,9 +15897,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -15826,6 +15925,7 @@
         "pages/hub/training/multiway-preflop.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/ui/BottomSheet.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -15892,15 +15992,14 @@
           ]
         },
         "stale": {
-          "status": "not-applicable",
+          "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/multiway-preflop.js"
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
-          ],
-          "rationale": "The Preflop Examples Are Read-Only Authored References"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -15915,7 +16014,8 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -16054,6 +16154,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -16318,6 +16419,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -16354,9 +16456,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -17262,6 +17366,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -17536,6 +17641,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -17576,9 +17682,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -17606,6 +17714,7 @@
         "pages/hub/training/position-mastery.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingSignInPrompt.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
@@ -17689,6 +17798,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -17714,6 +17824,7 @@
           "evidence": [
             "pages/hub/training/position-mastery.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/TrainingSignInPrompt.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
@@ -17746,6 +17857,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -18010,6 +18122,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -18046,9 +18159,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -18074,6 +18189,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -18338,6 +18454,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -18374,9 +18491,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -18400,6 +18519,7 @@
         "pages/hub/training/preflop-charts.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/PreflopChartStats.jsx",
@@ -18529,6 +18649,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useVIP.js",
             "src/lib/authUtils.js",
@@ -18561,6 +18682,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
@@ -19258,6 +19380,7 @@
         "pages/hub/training/qre-explorer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
@@ -19274,6 +19397,7 @@
             "pages/hub/training/qre-explorer.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ],
           "rationale": "The Reference Curve Updates From Local Controls"
@@ -19285,6 +19409,7 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
@@ -19294,6 +19419,7 @@
             "pages/hub/training/qre-explorer.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ],
           "rationale": "The Reference Curve Updates From Local Controls"
@@ -19304,6 +19430,7 @@
             "pages/hub/training/qre-explorer.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ],
           "rationale": "The Reference Curve Updates From Local Controls"
@@ -19314,18 +19441,19 @@
             "pages/hub/training/qre-explorer.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
         "stale": {
-          "status": "not-applicable",
+          "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/qre-explorer.js"
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
-          ],
-          "rationale": "The Reference Curve Updates From Local Controls"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -19333,20 +19461,24 @@
             "src/components/seo/HubPageSummary.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         }
       },
       "existingTests": [
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/training-authored-model-honesty.test.mjs"
       ],
       "uncoveredStates": []
@@ -19365,6 +19497,7 @@
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -19645,6 +19778,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -19688,6 +19822,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
@@ -19720,6 +19855,7 @@
         "pages/hub/training/quiz-builder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -19775,6 +19911,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -19807,6 +19944,7 @@
             "src/utils/v2Matrix.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -19830,6 +19968,7 @@
             "src/utils/trainingApiUtils.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -19846,6 +19985,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -19864,6 +20004,7 @@
             "src/lib/training/solverMatrixTrust.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -19873,6 +20014,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/quiz-builder.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
@@ -19884,6 +20026,7 @@
             "src/utils/v2Matrix.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -19896,6 +20039,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -19905,11 +20049,13 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -19917,6 +20063,7 @@
         }
       },
       "existingTests": [
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20311,6 +20458,7 @@
         "pages/hub/training/rake-solutions.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
@@ -20371,14 +20519,13 @@
           ]
         },
         "stale": {
-          "status": "not-applicable",
+          "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/rake-solutions.js"
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs"
-          ],
-          "rationale": "The Explicitly Authored Rake Curve Is Calculated Locally"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -20392,7 +20539,8 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs"
@@ -20418,6 +20566,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -20682,6 +20831,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -20718,9 +20868,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -20884,6 +21036,7 @@
         "pages/hub/training/range-explorer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/PreflopChartStats.jsx",
@@ -21000,6 +21153,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useVIP.js",
             "src/lib/authUtils.js",
@@ -21026,6 +21180,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
@@ -21415,6 +21570,7 @@
         "pages/hub/training/risk-analyzer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -21480,7 +21636,8 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/risk-analyzer.js"
+            "pages/hub/training/risk-analyzer.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -21501,7 +21658,8 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/components/seo/HubPageSummary.js"
+            "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -21530,6 +21688,7 @@
         "src/components/poker/QuizAnswer.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/ui/BottomSheet.jsx",
         "src/hooks/useTrainingBus.js",
         "src/hooks/useTrainingFeedback.js",
@@ -21604,6 +21763,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
@@ -21625,6 +21785,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -21916,6 +22077,7 @@
         "pages/hub/training/session-warmup.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -21984,6 +22146,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/session-warmup.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -22004,6 +22167,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -22031,6 +22195,7 @@
         "src/components/poker/QuizAnswer.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/components/ui/BottomSheet.jsx",
         "src/hooks/useTrainingBus.js",
@@ -22106,6 +22271,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
@@ -22127,6 +22293,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -22306,6 +22473,7 @@
         "pages/hub/training/solutions.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/Card.tsx",
         "src/components/training/ConnectionToast.js",
@@ -22444,6 +22612,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/hooks/usePersistedFilters.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
@@ -22485,6 +22654,7 @@
           "evidence": [
             "pages/hub/training/solutions.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -22528,6 +22698,7 @@
         "pages/hub/training/spot-trainer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/lib/authUtils.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -22644,6 +22815,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs"
@@ -22681,6 +22853,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -22724,6 +22897,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -22998,6 +23172,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -23038,9 +23213,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -23649,6 +23826,7 @@
         "pages/hub/training/study-group-finder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ErrorBanner.js",
         "src/components/training/TrainerEmptyState.jsx",
         "src/components/training/TrainingSignInPrompt.jsx",
@@ -23733,6 +23911,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -23757,6 +23936,7 @@
           "evidence": [
             "pages/hub/training/study-group-finder.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/TrainingSignInPrompt.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
@@ -24168,6 +24348,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -24432,6 +24613,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -24468,9 +24650,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -24494,6 +24678,7 @@
         "pages/hub/training/tilt-guard.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/ui/SkeletonLoader.jsx",
@@ -24571,6 +24756,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -24592,6 +24778,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -24619,6 +24806,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -24809,6 +24997,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -24854,6 +25043,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -24971,6 +25161,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -25004,6 +25195,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -25044,6 +25236,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -25070,6 +25263,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -25104,6 +25298,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -25142,6 +25337,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -25161,6 +25357,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -25187,6 +25384,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -25201,6 +25399,7 @@
       "existingTests": [
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-dynamic-og-cards.test.mjs",
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
@@ -25226,6 +25425,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -25473,6 +25673,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/tournaments.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -25538,6 +25739,7 @@
           "evidence": [
             "pages/hub/training/tournaments.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/TrainingSignInPrompt.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -25712,6 +25914,7 @@
         "pages/hub/training/training-feed.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/training/TrainerEmptyState.jsx",
@@ -25808,6 +26011,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -25836,6 +26040,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -25869,6 +26074,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -26133,6 +26339,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GTOQuestionCard.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/games/UniversalDynamicTable.jsx",
@@ -26169,9 +26376,11 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/components/training/GodModeArena.jsx",
             "src/components/training/SessionHistoryList.jsx",
             "src/components/training/StudyStreakMap.jsx",
+            "src/components/training/TrainingGameEntry.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
@@ -26195,6 +26404,7 @@
         "pages/hub/training/weakness-scanner.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/training/TrainerEmptyState.jsx",
@@ -26286,6 +26496,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -26309,6 +26520,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -39832,7 +40044,7 @@
           "line": 324,
           "handler": "() => setSelectedSpot(key)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         }
@@ -40038,7 +40250,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 500,
+          "line": 501,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -40102,7 +40314,7 @@
         },
         {
           "name": "addQuestion",
-          "line": 416,
+          "line": 417,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40110,7 +40322,7 @@
         },
         {
           "name": "removeQuestion",
-          "line": 420,
+          "line": 421,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40118,7 +40330,7 @@
         },
         {
           "name": "updateQuestion",
-          "line": 425,
+          "line": 426,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40126,7 +40338,7 @@
         },
         {
           "name": "saveQuiz",
-          "line": 431,
+          "line": 432,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40134,7 +40346,7 @@
         },
         {
           "name": "deleteQuiz",
-          "line": 462,
+          "line": 463,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40163,7 +40375,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 580,
+          "line": 581,
           "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -46281,6 +46493,7 @@
     {
       "file": "src/components/seo/HubPageSummary.js",
       "imports": [
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/lib/seo/summarySchema.js"
       ],
       "links": [
@@ -46330,7 +46543,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1621,
+          "line": 1632,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -46340,7 +46553,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 1632,
+          "line": 1643,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -46350,7 +46563,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 1635,
+          "line": 1646,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -46390,7 +46603,7 @@
       "functions": [
         {
           "name": "usesConsoleDress",
-          "line": 1558,
+          "line": 1559,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -46398,7 +46611,7 @@
         },
         {
           "name": "lookupHubSummaryEntry",
-          "line": 1563,
+          "line": 1564,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -46406,7 +46619,7 @@
         },
         {
           "name": "HubPageSummary",
-          "line": 1589,
+          "line": 1590,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -46419,7 +46632,7 @@
       "markers": [
         {
           "kind": "SIMULATE",
-          "line": 116,
+          "line": 117,
           "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -46427,7 +46640,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 1258,
+          "line": 1259,
           "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -46435,7 +46648,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 1460,
+          "line": 1461,
           "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -46443,7 +46656,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 1463,
+          "line": 1464,
           "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -49436,6 +49649,7 @@
       "file": "src/components/training/TrainingGameEntry.jsx",
       "imports": [
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx"
       ],
       "links": [
@@ -49447,7 +49661,7 @@
         {
           "element": "link",
           "name": "Training Games",
-          "line": 24,
+          "line": 25,
           "handler": null,
           "destination": "/hub/training",
           "type": null,
@@ -49457,7 +49671,7 @@
         {
           "element": "link",
           "name": "Play",
-          "line": 33,
+          "line": 34,
           "handler": null,
           "destination": "gameHref",
           "type": null,
@@ -49478,7 +49692,7 @@
         "offline": false,
         "stale": false,
         "success": false,
-        "authExpiry": false
+        "authExpiry": true
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -49497,7 +49711,7 @@
       "functions": [
         {
           "name": "TrainingGameEntry",
-          "line": 8,
+          "line": 9,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -83078,6 +83292,10 @@
     },
     {
       "from": "src/components/seo/HubPageSummary.js",
+      "to": "src/components/seo/SmarterConversionCta.jsx"
+    },
+    {
+      "from": "src/components/seo/HubPageSummary.js",
       "to": "src/lib/seo/summarySchema.js"
     },
     {
@@ -83451,6 +83669,10 @@
     {
       "from": "src/components/training/TrainingGameEntry.jsx",
       "to": "src/components/seo/SEOHead.js"
+    },
+    {
+      "from": "src/components/training/TrainingGameEntry.jsx",
+      "to": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
       "from": "src/components/training/TrainingGameEntry.jsx",
@@ -84597,6 +84819,7 @@
     "__tests__/aeo-freerolls-global-wiring.test.mjs",
     "__tests__/aeo-tool-schemas.test.mjs",
     "__tests__/aeo-traffic-expansion-master.test.mjs",
+    "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
     "__tests__/backlink-embed-citation-engine.test.mjs",
     "__tests__/business-hub-guide-render.test.mjs",
     "__tests__/business-hub-guide.test.mjs",
@@ -88247,7 +88470,7 @@
       "line": 324,
       "handler": "() => setSelectedSpot(key)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/qre-explorer.js"
@@ -88266,11 +88489,11 @@
       "effectRef": "pages/hub/training/quick-warmup.js"
     },
     {
-      "id": "pages/hub/training/quiz-builder.js:500:1",
+      "id": "pages/hub/training/quiz-builder.js:501:1",
       "file": "pages/hub/training/quiz-builder.js",
       "element": "button",
       "name": "←",
-      "line": 500,
+      "line": 501,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -89878,11 +90101,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1621:1",
+      "id": "src/components/seo/HubPageSummary.js:1632:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1621,
+      "line": 1632,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -89891,11 +90114,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1632:2",
+      "id": "src/components/seo/HubPageSummary.js:1643:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 1632,
+      "line": 1643,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -89904,11 +90127,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1635:3",
+      "id": "src/components/seo/HubPageSummary.js:1646:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 1635,
+      "line": 1646,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -90814,11 +91037,11 @@
       "effectRef": "src/components/training/TrainerEmptyState.jsx"
     },
     {
-      "id": "src/components/training/TrainingGameEntry.jsx:24:1",
+      "id": "src/components/training/TrainingGameEntry.jsx:25:1",
       "file": "src/components/training/TrainingGameEntry.jsx",
       "element": "link",
       "name": "Training Games",
-      "line": 24,
+      "line": 25,
       "handler": null,
       "destination": "/hub/training",
       "type": null,
@@ -90827,11 +91050,11 @@
       "effectRef": "src/components/training/TrainingGameEntry.jsx"
     },
     {
-      "id": "src/components/training/TrainingGameEntry.jsx:33:2",
+      "id": "src/components/training/TrainingGameEntry.jsx:34:2",
       "file": "src/components/training/TrainingGameEntry.jsx",
       "element": "link",
       "name": "Play",
-      "line": 33,
+      "line": 34,
       "handler": null,
       "destination": "gameHref",
       "type": null,
@@ -97781,6 +98004,7 @@
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -98244,6 +98468,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/TrainingGameArt.jsx",
@@ -98579,6 +98804,7 @@
       "reachableFiles": [
         "pages/hub/training/bluff-catcher.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -98596,6 +98822,7 @@
       "reachableFiles": [
         "pages/hub/training/bounty-trainer.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -99017,6 +99244,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -99699,6 +99927,7 @@
         "pages/hub/training/coach-mode.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ErrorBanner.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
@@ -99752,6 +99981,7 @@
         "pages/hub/training/community-leaderboard.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/ui/SkeletonLoader.jsx",
@@ -99809,6 +100039,7 @@
         "pages/hub/training/custom-rake.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
@@ -99832,6 +100063,7 @@
         "pages/hub/training/custom-solve.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
@@ -100022,6 +100254,7 @@
         "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/DailyPersonalQuiz.jsx",
@@ -100157,6 +100390,7 @@
         "pages/hub/training/drill-builder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -100429,6 +100663,7 @@
       "reachableFiles": [
         "pages/hub/training/ev-trainer.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -100447,6 +100682,7 @@
         "pages/hub/training/famous-finals.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -100470,6 +100706,7 @@
       "reachableFiles": [
         "pages/hub/training/final-table-sim.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -100491,6 +100728,7 @@
         "src/components/poker/ProgressStrip.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
@@ -100685,6 +100923,7 @@
         "pages/hub/training/focus-timer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -100748,6 +100987,7 @@
       "reachableFiles": [
         "pages/hub/training/frequency-locking.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -100831,6 +101071,7 @@
         "pages/hub/training/gto-news.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
@@ -100897,6 +101138,7 @@
         "pages/hub/training/gto-preloader.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/engines/DifficultyEngine.js",
         "src/engines/positionOrder.js",
         "src/hooks/useTrainingBus.js",
@@ -101046,6 +101288,7 @@
       "reachableFiles": [
         "pages/hub/training/gto-vs-exploitative.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -101064,6 +101307,7 @@
         "pages/hub/training/hand-comparison.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -101085,6 +101329,7 @@
         "pages/hub/training/hand-history-upload.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engines/HandHistoryParser.js",
@@ -101166,6 +101411,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -101569,6 +101815,7 @@
       "reachableFiles": [
         "pages/hub/training/icm-final-table.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -101589,6 +101836,7 @@
         "pages/hub/training/icm-simulator.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
@@ -101774,6 +102022,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -102127,6 +102376,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -102932,6 +103182,7 @@
       "reachableFiles": [
         "pages/hub/training/mixed-strategy-lab.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -102952,6 +103203,7 @@
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -103320,6 +103572,7 @@
       "reachableFiles": [
         "pages/hub/training/multiway-postflop.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -103338,6 +103591,7 @@
         "pages/hub/training/multiway-preflop.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/ui/BottomSheet.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -103418,6 +103672,7 @@
       "reachableFiles": [
         "pages/hub/training/nodelocking.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -103849,6 +104104,7 @@
       "reachableFiles": [
         "pages/hub/training/player-profiles.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -103867,6 +104123,7 @@
         "pages/hub/training/position-mastery.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingSignInPrompt.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
@@ -103922,6 +104179,7 @@
       "reachableFiles": [
         "pages/hub/training/pot-geometry.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -103939,6 +104197,7 @@
       "reachableFiles": [
         "pages/hub/training/preflop-advisor.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -103957,6 +104216,7 @@
         "pages/hub/training/preflop-charts.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/PreflopChartStats.jsx",
@@ -104814,6 +105074,7 @@
         "pages/hub/training/qre-explorer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
@@ -104827,6 +105088,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/training-authored-model-honesty.test.mjs"
       ]
     },
@@ -104838,6 +105100,7 @@
         "src/components/poker/PokerSoundManager.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/EVGraph.jsx",
@@ -105193,6 +105456,7 @@
         "pages/hub/training/quiz-builder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -105391,6 +105655,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -105417,6 +105682,7 @@
         "pages/hub/training/rake-solutions.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
@@ -105438,6 +105704,7 @@
       "reachableFiles": [
         "pages/hub/training/range-advisor.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -105660,6 +105927,7 @@
         "pages/hub/training/risk-analyzer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -105686,6 +105954,7 @@
         "src/components/poker/QuizAnswer.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/ui/BottomSheet.jsx",
         "src/hooks/useTrainingBus.js",
         "src/hooks/useTrainingFeedback.js",
@@ -105877,6 +106146,7 @@
         "pages/hub/training/session-warmup.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -105943,6 +106213,7 @@
         "src/components/poker/QuizAnswer.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/components/ui/BottomSheet.jsx",
         "src/hooks/useTrainingBus.js",
@@ -106073,6 +106344,7 @@
         "pages/hub/training/solutions.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/Card.tsx",
         "src/components/training/ConnectionToast.js",
@@ -106167,6 +106439,7 @@
         "pages/hub/training/spot-trainer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/Card.tsx",
         "src/lib/authUtils.js",
         "src/lib/freerolls/freeBuySchedule.mjs",
@@ -106226,6 +106499,7 @@
       "reachableFiles": [
         "pages/hub/training/spr-trainer.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -106587,6 +106861,7 @@
         "pages/hub/training/study-group-finder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ErrorBanner.js",
         "src/components/training/TrainerEmptyState.jsx",
         "src/components/training/TrainingSignInPrompt.jsx",
@@ -107371,6 +107646,7 @@
       "reachableFiles": [
         "pages/hub/training/three-way-postflop.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -107389,6 +107665,7 @@
         "pages/hub/training/tilt-guard.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/ui/SkeletonLoader.jsx",
@@ -107448,6 +107725,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -108121,6 +108399,7 @@
       "tests": [
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-dynamic-og-cards.test.mjs",
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
@@ -108139,6 +108418,7 @@
         "src/components/sandbox/paTokens.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -108553,6 +108833,7 @@
         "pages/hub/training/training-feed.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/training/TrainerEmptyState.jsx",
@@ -108613,6 +108894,7 @@
       "reachableFiles": [
         "pages/hub/training/villain-range.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -108631,6 +108913,7 @@
         "pages/hub/training/weakness-scanner.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/training/TrainerEmptyState.jsx",
@@ -108943,7 +109226,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs"
+      ]
     },
     {
       "file": "src/components/seo/CitationBacklinkBox.js",
@@ -108964,6 +109249,7 @@
       "file": "src/components/seo/HubPageSummary.js",
       "reachableFiles": [
         "src/components/seo/HubPageSummary.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/quizStructuredData.mjs",
@@ -108974,6 +109260,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs"
       ]
@@ -110326,6 +110613,7 @@
       "file": "src/components/training/TrainingGameEntry.jsx",
       "reachableFiles": [
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/training/TrainingGameEntry.jsx",
         "src/data/GAME_IMAGES.js",
@@ -110336,7 +110624,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs"
+      ]
     },
     {
       "file": "src/components/training/TrainingQuestionReport.jsx",
@@ -116912,6 +117202,7 @@
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/business-hub-guide.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
@@ -117676,7 +117967,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 580,
+        "line": 581,
         "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -117987,7 +118278,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 116,
+        "line": 117,
         "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -117996,7 +118287,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 1258,
+        "line": 1259,
         "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -118005,7 +118296,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1460,
+        "line": 1461,
         "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -118014,7 +118305,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1463,
+        "line": 1464,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -122757,7 +123048,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1589,
+        "line": 1590,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -122904,6 +123195,7 @@
           "pages/hub/training/range-builder.js",
           "pages/hub/training/skill-tree.js",
           "pages/hub/venues/[id].js",
+          "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
           "pages/learn/[topic].js",
           "pages/learn/best-poker-players.js",
           "pages/learn/category/[category].js",
@@ -122974,7 +123266,9 @@
           "pages/tools/warmup-cooldown-routine.js",
           "pages/tools/who-wins-calculator.js",
           "pages/tools/winrate-confidence-calculator.js",
-          "src/components/features/FeatureLanderLayout.js"
+          "src/components/features/FeatureLanderLayout.js",
+          "src/components/seo/HubPageSummary.js",
+          "src/components/training/TrainingGameEntry.jsx"
         ]
       },
       {
@@ -123155,7 +123449,7 @@
       {
         "file": "src/components/training/TrainingGameEntry.jsx",
         "name": "TrainingGameEntry",
-        "line": 8,
+        "line": 9,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -129176,7 +129470,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 580,
+        "line": 581,
         "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -129487,7 +129781,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 116,
+        "line": 117,
         "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -129496,7 +129790,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 1258,
+        "line": 1259,
         "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -129505,7 +129799,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1460,
+        "line": 1461,
         "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -129514,7 +129808,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1463,
+        "line": 1464,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -134257,7 +134551,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1589,
+        "line": 1590,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -134404,6 +134698,7 @@
           "pages/hub/training/range-builder.js",
           "pages/hub/training/skill-tree.js",
           "pages/hub/venues/[id].js",
+          "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
           "pages/learn/[topic].js",
           "pages/learn/best-poker-players.js",
           "pages/learn/category/[category].js",
@@ -134474,7 +134769,9 @@
           "pages/tools/warmup-cooldown-routine.js",
           "pages/tools/who-wins-calculator.js",
           "pages/tools/winrate-confidence-calculator.js",
-          "src/components/features/FeatureLanderLayout.js"
+          "src/components/features/FeatureLanderLayout.js",
+          "src/components/seo/HubPageSummary.js",
+          "src/components/training/TrainingGameEntry.jsx"
         ]
       },
       {
@@ -134655,7 +134952,7 @@
       {
         "file": "src/components/training/TrainingGameEntry.jsx",
         "name": "TrainingGameEntry",
-        "line": 8,
+        "line": 9,
         "references": 1,
         "exported": true,
         "defaultExport": true,

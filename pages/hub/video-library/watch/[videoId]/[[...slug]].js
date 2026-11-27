@@ -40,6 +40,7 @@ import WatchPlaybackTools, { WatchDescription, subscribeWatchPlayer } from '../.
 import { useYouTubeErrorManager } from '../../../../../src/hooks/useYouTubeErrorManager';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../../src/components/video-library/VideoLibrarySEOHead';
+import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
 import { getMenuConfig } from '../../../../../src/config/hamburgerMenus';
 import {
@@ -460,6 +461,18 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                         {views && <div><dt>Views On YouTube</dt><dd>{views.replace(/\s*Views$/i, '')}</dd></div>}
                                     </dl>
                                 </section>
+                                <div style={{ marginTop: 18 }}>
+                                    <SmarterConversionCta
+                                        compact
+                                        eyebrow="Free Smarter.Poker Account"
+                                        title="Save Poker Study Playlists, Track Watched Hands & Drill GTO Free"
+                                        description="Join Smarter.Poker Free To Bookmark Strategy Videos, Earn Watch Rewards, And Practice 107 Interactive GTO Training Games."
+                                        primaryLabel="Create Free Account"
+                                        primaryHref={`/auth/signup?redirect=${encodeURIComponent(watchPath(video))}&src=video-watch`}
+                                        secondaryLabel="Sign In"
+                                        secondaryHref={`/auth/login?redirect=${encodeURIComponent(watchPath(video))}`}
+                                    />
+                                </div>
                             </div>
 
                             <aside className="vl-watch-page-side">

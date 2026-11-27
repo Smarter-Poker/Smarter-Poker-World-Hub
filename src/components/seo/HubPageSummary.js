@@ -32,6 +32,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { summarySchema } from '../../lib/seo/summarySchema';
+import SmarterConversionCta from './SmarterConversionCta';
 
 
 /**
@@ -1615,6 +1616,16 @@ export default function HubPageSummary({ page, path, as = 'h2' }) {
         {entry.heading}
       </Heading>
       <p style={styles.lead}>{entry.lead}</p>
+      <SmarterConversionCta
+        compact
+        eyebrow="Free Smarter.Poker Account"
+        title="Save Progress, Track Sessions & Unlock 107 Free GTO Games"
+        description="Create Your Free Account In Seconds To Save Custom Ranges, Bookmark Live Poker Rooms, Track Your Bankroll, And Earn Daily Rewards."
+        primaryLabel="Create Free Account"
+        primaryHref={`/auth/signup?redirect=${encodeURIComponent(String(page || '/hub').startsWith('/') ? String(page) : `/hub/${String(page || '')}`)}&src=hub-summary`}
+        secondaryLabel="Sign In"
+        secondaryHref="/auth/login"
+      />
       <ul style={styles.list}>
         {entry.links.map((link) => (
           <li key={link.href} style={styles.item}>
