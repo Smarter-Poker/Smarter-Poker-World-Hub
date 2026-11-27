@@ -66,7 +66,6 @@ function readDismissed() {
 const STATIC_HEADER_PREFIXES = [
   '/hub',
   '/authors',
-  '/compare',
   '/facts',
   '/freerolls',
   '/games',
@@ -93,7 +92,13 @@ const STATIC_HEADER_PREFIXES = [
   '/learn/tournament-stages',
 ];
 
+const STATIC_HEADER_EXACT = [
+  '/compare',
+  '/compare/decision-matrix',
+];
+
 function routeMountsApprovedHeader(path) {
+  if (STATIC_HEADER_EXACT.includes(path)) return true;
   return STATIC_HEADER_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 

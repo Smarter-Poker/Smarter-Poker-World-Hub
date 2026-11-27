@@ -102,3 +102,30 @@ test('venues and series detail pages contain zero banned purple, pink, or gold a
   assert.ok(!series.includes('stat-value gold'), 'series/[id].js must not render stat-value gold');
   assert.ok(!/#d4a853/i.test(series), 'series/[id].js must not contain banned gold #d4a853');
 });
+
+test('desktop homepage hero hydrates immediately when img is already complete (no blank opacity:0 box)', () => {
+  const idx = read('pages/index.js');
+  assert.ok(idx.includes('heroImgRef.current?.complete'), 'pages/index.js must check heroImgRef.current?.complete on mount');
+  assert.ok(idx.includes('overlayImgRef.current?.complete'), 'pages/index.js must check overlayImgRef.current?.complete');
+  assert.ok(idx.includes('onError={() => setHeroLoaded(true)}'), 'pages/index.js must fail open on hero image error');
+});
+
+test('swarm live QA hardening: /compare/[slug] no blank top strip, PeakHoursHeatmap zero gold, valid venue trophy SVG, zero qre purple tint, VIP plan CTA', () => {
+  const bar = read('src/components/seo/GuestConversionBar.jsx');
+  assert.ok(bar.includes('STATIC_HEADER_EXACT'), 'GuestConversionBar must isolate exact /compare routes from /compare/[slug]');
+  const prefixBlock = bar.slice(bar.indexOf('const STATIC_HEADER_PREFIXES'), bar.indexOf('const STATIC_HEADER_EXACT'));
+  assert.ok(!prefixBlock.includes("'/compare'"), 'STATIC_HEADER_PREFIXES must not include /compare prefix');
+
+  const heatmap = read('src/components/poker/PeakHoursHeatmap.js');
+  assert.ok(!/#ffd700/i.test(heatmap), 'PeakHoursHeatmap must not contain banned gold #FFD700');
+  assert.ok(!/rgba\(\s*255\s*,\s*215\s*,\s*0/i.test(heatmap), 'PeakHoursHeatmap must not contain banned gold rgba(255,215,0)');
+
+  const venues = read('pages/hub/venues/[id].js');
+  assert.ok(!venues.includes('0-5C7 4 7 7 7"'), 'venues/[id].js must not contain truncated 5-arg SVG cubic path');
+
+  const qre = read('pages/hub/training/qre-explorer.js');
+  assert.ok(!/167\s*,\s*139\s*,\s*250/.test(qre), 'qre-explorer.js must not contain banned purple rgba(167,139,250)');
+
+  const vipPlan = read('pages/hub/vip-membership/[plan].js');
+  assert.ok(vipPlan.includes('SmarterConversionCta'), 'vip-membership/[plan].js must render SmarterConversionCta');
+});

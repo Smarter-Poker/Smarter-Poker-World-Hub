@@ -3,7 +3,7 @@
    Full-width hero image with clickable hotspot overlays + haptic feedback
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
@@ -153,14 +153,25 @@ export default function LandingPage() {
   const [overlay, setOverlay] = useState(null); // { image, overlayKey }
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [overlayLoaded, setOverlayLoaded] = useState(false);
+  const heroImgRef = useRef(null);
+  const overlayImgRef = useRef(null);
 
   useEffect(() => {
+    if (heroImgRef.current?.complete && heroImgRef.current.naturalWidth > 0) {
+      setHeroLoaded(true);
+    }
     const handleKey = (e) => {
       if (e.key === 'Escape') setOverlay(null);
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
+
+  useEffect(() => {
+    if (overlay && overlayImgRef.current?.complete && overlayImgRef.current.naturalWidth > 0) {
+      setOverlayLoaded(true);
+    }
+  }, [overlay]);
 
   const handleHotspotClick = (spot) => {
     triggerHaptic();
@@ -234,6 +245,7 @@ export default function LandingPage() {
           <picture className="landing-desktop-art">
             <source media="(max-width: 480px)" srcSet="/images/landing-hero-v3.webp" />
             <img
+            ref={heroImgRef}
             src="/images/landing-hero-v3.webp"
             srcSet="/images/landing-hero-v3-640.webp 640w, /images/landing-hero-v3.webp 937w"
             sizes="(max-width: 937px) 100vw, 937px"
@@ -249,6 +261,7 @@ export default function LandingPage() {
             height={1678}
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
             onLoad={() => setHeroLoaded(true)}
+            onError={() => setHeroLoaded(true)}
             // The hero IS the largest contentful paint; lazy-loading it told the
             // browser to fetch it last (AEO phase 1, 2026-09-17).
             loading="eager"
@@ -301,6 +314,7 @@ export default function LandingPage() {
               <picture className="landing-desktop-art">
                 <source media="(max-width: 480px)" srcSet={overlay.image} />
                 <img
+                ref={overlayImgRef}
                 src={overlay.image}
                 srcSet={`${overlay.image.replace('.webp', '-640.webp')} 640w, ${overlay.image} ${overlay.width}w`}
                 sizes={`(max-width: ${overlay.width}px) 100vw, ${overlay.width}px`}
@@ -309,6 +323,7 @@ export default function LandingPage() {
                 alt={`${overlay.label} Detail View`}
                 style={{ ...styles.overlayImg, opacity: overlayLoaded ? 1 : 0 }}
                 onLoad={() => setOverlayLoaded(true)}
+                onError={() => setOverlayLoaded(true)}
                 loading="lazy"
                 draggable={false}
                 />
