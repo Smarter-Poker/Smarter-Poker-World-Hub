@@ -18,7 +18,7 @@ import { POKER_MARKET_GUIDES, marketGuidePath } from '../src/content/guides/mark
 import { LESSONS } from '../src/content/learn/lessons';
 import { RESEARCH_REPORTS, researchPath } from '../src/content/research/reports';
 import { POKER_RULES, rulePath } from '../src/content/rules/rules';
-import { POKER_VARIANTS, variantPath } from '../src/content/games/variants';
+import { POKER_VARIANTS, gameVariantPath } from '../src/content/games/variants';
 import { COMPARE_PAGES, comparePath } from '../src/content/compare/pages';
 import { SITE_URL, ORGANIZATION_ID } from '../src/lib/learn/learnSite.js';
 
@@ -102,7 +102,7 @@ export async function getStaticProps() {
       lessons: LESSONS.map((l) => ({ href: `/learn/${l.slug}`, label: l.title })),
       reports: RESEARCH_REPORTS.map((r) => ({ href: researchPath(r.slug), label: r.shortTitle })),
       rules: POKER_RULES.map((r) => ({ href: rulePath(r.slug), label: r.shortTitle || r.title })),
-      variants: POKER_VARIANTS.map((v) => ({ href: variantPath(v.slug), label: v.name || v.title })),
+      variants: POKER_VARIANTS.map((v) => ({ href: gameVariantPath(v.slug), label: v.name || v.title })),
       comparisons: COMPARE_PAGES.map((c) => ({ href: comparePath(c.slug), label: c.title })),
     },
   };
