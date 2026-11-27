@@ -74,14 +74,14 @@ export async function readInitialInvoiceCardFingerprint(stripe, invoice) {
   return fingerprint;
 }
 
-async function recordOnce(supabase, table, row, conflictColumn, keyColumn, keyValue, columns) {
-  const write = await supabase
-    .from(table)
-    .upsert(row, { onConflict: conflictColumn, ignoreDuplicates: true });
-  if (write?.error) throw new Error(`${table} write failed: ${write.error.message || 'unknown'}`);
-  const read = await supabase.from(table).select(columns).eq(keyColumn, keyValue).maybeSingle();
+/* `table` is a function returning a fresh query builder, so each table name
+   stays a literal `.from('...')` that the phantom-table check can see. */
+async function recordOnce(table, row, conflictColumn, keyColumn, keyValue, columns) {
+  const write = await table().upsert(row, { onConflict: conflictColumn, ignoreDuplicates: true });
+  if (write?.error) throw new Error(`ledger write failed: ${write.error.message || 'unknown'}`);
+  const read = await table().select(columns).eq(keyColumn, keyValue).maybeSingle();
   if (read?.error || !read?.data) {
-    throw new Error(`${table} could not be read back; Stripe will retry`);
+    throw new Error('ledger row could not be read back; Stripe will retry');
   }
   return read.data;
 }
@@ -124,8 +124,7 @@ export async function vipDiscountedAdmissionDecision({
 
   if (comeback) {
     const recorded = await recordOnce(
-      supabase,
-      'vip_comeback_redemptions',
+      () => supabase.from('vip_comeback_redemptions'),
       { user_id: userId, stripe_subscription_id: subscriptionId },
       'user_id',
       'user_id',
@@ -139,8 +138,7 @@ export async function vipDiscountedAdmissionDecision({
 
   const fingerprint = await readInitialInvoiceCardFingerprint(stripe, paymentContext.invoice);
   const recorded = await recordOnce(
-    supabase,
-    'vip_intro_card_fingerprints',
+    () => supabase.from('vip_intro_card_fingerprints'),
     { fingerprint, first_user_id: userId, first_subscription_id: subscriptionId },
     'fingerprint',
     'fingerprint',

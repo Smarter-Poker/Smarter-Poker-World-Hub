@@ -65,8 +65,8 @@ COMMENT ON TABLE public.vip_comeback_redemptions IS
 ALTER TABLE public.vip_intro_card_fingerprints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vip_comeback_redemptions ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON public.vip_intro_card_fingerprints FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON public.vip_comeback_redemptions FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.vip_intro_card_fingerprints FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON public.vip_comeback_redemptions FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT, INSERT ON public.vip_intro_card_fingerprints TO service_role;
 GRANT SELECT, INSERT ON public.vip_comeback_redemptions TO service_role;
 
