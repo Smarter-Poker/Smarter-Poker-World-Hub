@@ -9,11 +9,11 @@
  */
 
 import { useRouter } from 'next/router';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
-import { getAuthUser } from '../../../../src/lib/authUtils';
+import { getAuthUser, getFreshAccessToken } from '../../../../src/lib/authUtils';
 import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
 import ErrorBanner from '../../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../../src/components/training/ConnectionToast';
@@ -139,6 +139,12 @@ export default function TrainingArenaPage() {
     const [fetchError, setFetchError] = useState(null);
     const [resolvedSessionId, setResolvedSessionId] = useState(null);
     const [serverSyncedHand, setServerSyncedHand] = useState(null);
+    const [leakReviewSync, setLeakReviewSync] = useState({
+        status: 'idle',
+        message: null,
+        lastResults: null,
+    });
+    const submittedLeakOpsRef = useRef(new Set());
 
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
@@ -353,10 +359,83 @@ export default function TrainingArenaPage() {
     }, [router, gameId, game, startsWithPreset]);
 
     // Handle session complete
-    const handleComplete = useCallback((results) => {
-        // GodModeArena handles its own review screen
-        // User will use the exit button from within the review
-    }, []);
+    const handleComplete = useCallback(async (results) => {
+        const leakId = typeof router.query?.leak === 'string' ? router.query.leak.trim() : '';
+        if (!leakId || !results || typeof results !== 'object') return null;
+
+        const questionsAnswered = Number(results.questionsAnswered);
+        if (!Number.isFinite(questionsAnswered) || questionsAnswered <= 0) return null;
+
+        const operationId = `arena:${resolvedSessionId || gameId}:${results.level || level}:${results.questionsAnswered}:${results.questionsCorrect}`;
+        if (submittedLeakOpsRef.current.has(operationId)) return null;
+
+        const accessToken = await getFreshAccessToken();
+        if (!accessToken) return null;
+        if (submittedLeakOpsRef.current.has(operationId)) return null;
+        submittedLeakOpsRef.current.add(operationId);
+
+        setLeakReviewSync({
+            status: 'saving',
+            message: 'Saving Leak Progress...',
+            lastResults: results,
+        });
+
+        try {
+            const res = await fetch('/api/assistant/leaks/review', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    leakId,
+                    correct: Number(results.questionsCorrect),
+                    total: Number(results.questionsAnswered),
+                    operationId: `arena:${resolvedSessionId || gameId}:${results.level || level}:${results.questionsAnswered}:${results.questionsCorrect}`,
+                    source: 'training_arena',
+                    gameId,
+                    sessionId: resolvedSessionId,
+                }),
+            });
+            const json = await res.json().catch(() => null);
+            if (res.status === 403 || json?.blocked === true) {
+                submittedLeakOpsRef.current.delete(operationId);
+                setLeakReviewSync({
+                    status: 'rta_blocked',
+                    message: 'Leak Progress Paused During Live Play Or Cooldown',
+                    lastResults: results,
+                });
+                return json;
+            }
+            if (res.ok && json?.persisted === true) {
+                setLeakReviewSync({
+                    status: 'saved',
+                    message: 'Leak Mastery Synced',
+                    lastResults: results,
+                });
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('pa-leak-review-updated'));
+                    window.dispatchEvent(new Event('pa-data-updated'));
+                }
+                return json;
+            }
+            submittedLeakOpsRef.current.delete(operationId);
+            setLeakReviewSync({
+                status: 'error',
+                message: 'Leak Sync Failed',
+                lastResults: results,
+            });
+            return json;
+        } catch (err) {
+            submittedLeakOpsRef.current.delete(operationId);
+            setLeakReviewSync({
+                status: 'error',
+                message: 'Leak Sync Failed',
+                lastResults: results,
+            });
+            return null;
+        }
+    }, [router.query?.leak, resolvedSessionId, gameId, level]);
 
     if (router.isReady && gameId && (!game || customLaunch.error)) {
         return (
@@ -392,7 +471,7 @@ export default function TrainingArenaPage() {
     const queryFrom = typeof router.query.from === 'string' ? router.query.from.trim() : '';
     const querySource = typeof router.query.source === 'string' ? router.query.source.trim() : '';
     const queryLeak = typeof router.query.leak === 'string' ? router.query.leak.trim() : '';
-    const isPersonalAssistantOrigin = queryFrom === 'leak-finder' || querySource === 'leak-finder' || querySource.startsWith('personal-assistant');
+    const isPersonalAssistantOrigin = queryFrom === 'leak-finder' || querySource === 'leak-finder' || querySource.startsWith('personal-assistant') || Boolean(queryLeak);
     const personalAssistantReturnHref = validatedReturnTo || (
         queryLeak
             ? `/hub/personal-assistant/leaks?leak=${encodeURIComponent(queryLeak)}`
@@ -440,9 +519,65 @@ export default function TrainingArenaPage() {
                         zIndex: 50,
                     }}
                 >
-                    <span>
-                        ◆ Focused Personal Assistant Leak Drill Active
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span>
+                            ◆ Focused Personal Assistant Leak Drill Active
+                        </span>
+                        {leakReviewSync.status !== 'idle' && (
+                            <span
+                                data-testid="pa-leak-review-sync-pill"
+                                data-sync-status={leakReviewSync.status}
+                                role="status"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    padding: '3px 10px',
+                                    borderRadius: 999,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    background: leakReviewSync.status === 'saved'
+                                        ? 'rgba(16, 185, 129, 0.2)'
+                                        : leakReviewSync.status === 'error' || leakReviewSync.status === 'rta_blocked'
+                                            ? 'rgba(239, 68, 68, 0.2)'
+                                            : 'rgba(14, 165, 233, 0.2)',
+                                    border: leakReviewSync.status === 'saved'
+                                        ? '1px solid rgba(52, 211, 153, 0.5)'
+                                        : leakReviewSync.status === 'error' || leakReviewSync.status === 'rta_blocked'
+                                            ? '1px solid rgba(248, 113, 113, 0.5)'
+                                            : '1px solid rgba(103, 232, 249, 0.45)',
+                                    color: leakReviewSync.status === 'saved'
+                                        ? '#6ee7b7'
+                                        : leakReviewSync.status === 'error' || leakReviewSync.status === 'rta_blocked'
+                                            ? '#fca5a5'
+                                            : '#bae6fd',
+                                }}
+                            >
+                                <span>{leakReviewSync.message}</span>
+                                {leakReviewSync.status === 'error' && leakReviewSync.lastResults && (
+                                    <button
+                                        type="button"
+                                        data-testid="pa-leak-review-retry-btn"
+                                        onClick={() => {
+                                            void handleComplete(leakReviewSync.lastResults);
+                                        }}
+                                        style={{
+                                            background: 'rgba(248, 113, 113, 0.22)',
+                                            color: '#fecaca',
+                                            border: '1px solid rgba(248, 113, 113, 0.6)',
+                                            borderRadius: 999,
+                                            padding: '2px 8px',
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Retry Save
+                                    </button>
+                                )}
+                            </span>
+                        )}
+                    </div>
                     <a
                         href={personalAssistantReturnHref}
                         style={{
