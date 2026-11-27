@@ -23,6 +23,8 @@ import { setPublicSeoHtmlCache } from '../src/lib/seo/edgeCacheHeaders.mjs';
 import { tourSchema } from '../src/lib/seo/tourPageSeo.js';
 import { seriesSchema } from '../src/lib/poker-near-me/seriesSeo.mjs';
 import { LEARN_PAGES, STATIC_PAGES } from '../src/lib/seo/sitemapBuilders.mjs';
+import { POKER_VARIANTS, gameVariantPath } from '../src/content/games/variants.js';
+import { POKER_RULES, rulePath } from '../src/content/rules/rules.js';
 
 const ROOT = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -105,7 +107,11 @@ test('4. HTML /sitemap directory is linked from footers, registered in sitemap-c
   assert.match(sitemapPageSrc, /US_POKER_STATES/);
   assert.match(sitemapPageSrc, /POKER_MARKET_GUIDES/);
   assert.match(sitemapPageSrc, /RESEARCH_REPORTS/);
+  assert.match(sitemapPageSrc, /gameVariantPath/);
+  assert.doesNotMatch(sitemapPageSrc, /\bvariantPath\b/);
   assert.match(sitemapPageSrc, /'@type':\s*'CollectionPage'/);
+  assert.ok(POKER_VARIANTS.length > 0 && gameVariantPath(POKER_VARIANTS[0].slug).startsWith('/games/'));
+  assert.ok(POKER_RULES.length > 0 && rulePath(POKER_RULES[0].slug).startsWith('/rules/'));
   assert.ok(STATIC_PAGES.some((p) => p.path === '/sitemap'), 'sitemap-core must include /sitemap');
 
   assert.match(read('src/components/landing/LandingProductSummary.js'), /href="\/sitemap"/);
