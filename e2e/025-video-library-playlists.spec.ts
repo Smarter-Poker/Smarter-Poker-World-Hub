@@ -14,8 +14,10 @@ const VIDEO = IDS.map((videoId, index) => ({ videoId, id: videoId, title: `Playl
 test.describe('Phase 6 Playlist Browsing', () => {
   test('playlist sign-in destination and private indexing stay scoped', async ({ page }) => {
     await page.goto(PATH, { waitUntil: 'commit' });
-    await expect(page.getByRole('heading', { name: 'Sign In To Open Your Playlist' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sign In', exact: true })).toHaveAttribute('href', `/auth/login?redirect=${encodeURIComponent(PATH)}`);
+    const playlistPage = page.locator('article.vl-playlist-page');
+    await expect(playlistPage.getByRole('heading', { name: 'Sign In To Open Your Playlist' })).toBeVisible();
+    // The global account bar has its own Sign In link; this contract owns the playlist destination.
+    await expect(playlistPage.getByRole('link', { name: 'Sign In', exact: true })).toHaveAttribute('href', `/auth/login?redirect=${encodeURIComponent(PATH)}`);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
   });
   test('owner playlist reorder persists, stale write requires reload, and Play All/Shuffle create session-only queues', async ({ page }) => {
