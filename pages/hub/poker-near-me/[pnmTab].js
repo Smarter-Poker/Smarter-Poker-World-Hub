@@ -62,9 +62,7 @@ import { PokerNearMePanelShell } from '../../../src/components/poker-near-me/Pok
 import {
   EVENT_SECTIONS,
   PRIMARY_SECTIONS,
-  isForeignScroll,
   scrollToSection,
-  sectionAnchorDelta,
   sectionForSlug,
   sectionId,
 } from '../../../src/components/poker-near-me/pnmSections';
@@ -3077,30 +3075,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // screens away from the viewport. Keep the requested section anchored for a
   // short, bounded hydration window, but stop immediately when the visitor
   // expresses scroll/navigation intent so the page never fights them.
-  //
-  // Intent is not only wheel/touch/pointer/key input. A scrollbar drag,
-  // find-in-page, an anchor link, assistive technology or another script
-  // moves the document with none of those events, and the hold used to drag
-  // the document straight back for up to 6.4 seconds. In WebKit that fight
-  // also displaced the fixed global header far below the screen
-  // (isForeignScroll in pnmSections.js explains why), so every scroll is
-  // checked: one that moved both the position and the held section ends the
-  // hold before the next realignment can run.
   useEffect(() => {
     if (loading || !landingSectionRef.current || typeof window === 'undefined') return undefined;
     const key = landingSectionRef.current;
     let cancelled = false;
     let resizeTimer = null;
     let observer = null;
-    let heldY = window.scrollY;
     const timers = [];
-
-    const visitorMoved = () => isForeignScroll({
-      heldY,
-      scrollY: window.scrollY,
-      anchorDelta: sectionAnchorDelta(key),
-      viewportHeight: window.innerHeight,
-    });
 
     const cleanup = () => {
       if (cancelled) return;
@@ -3113,29 +3094,12 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       window.removeEventListener('touchstart', cleanup, true);
       window.removeEventListener('pointerdown', cleanup, true);
       window.removeEventListener('keydown', cleanup, true);
-      window.removeEventListener('scroll', onDocumentScroll);
     };
 
-    // The hold's own corrections and browser scroll anchoring keep the
-    // section anchored, so they only move the baseline forward.
-    function onDocumentScroll() {
-      if (cancelled) return;
-      if (visitorMoved()) {
-        cleanup();
-        return;
-      }
-      heldY = window.scrollY;
-    }
-
     const realign = () => {
-      if (cancelled || landingSectionRef.current !== key) return;
-      // A timer can fire before the scroll event of a foreign scroll is
-      // dispatched; read the document directly instead of waiting for it.
-      if (visitorMoved()) {
-        cleanup();
-        return;
+      if (!cancelled && landingSectionRef.current === key) {
+        scrollToSurface(key, { behavior: 'auto' });
       }
-      scrollToSurface(key, { behavior: 'auto' });
     };
 
     [0, 140, 360, 760, 1400, 2400, 3800, 5600].forEach((delay) => {
@@ -3155,7 +3119,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     window.addEventListener('touchstart', cleanup, { capture: true, passive: true });
     window.addEventListener('pointerdown', cleanup, { capture: true, passive: true });
     window.addEventListener('keydown', cleanup, true);
-    window.addEventListener('scroll', onDocumentScroll, { passive: true });
 
     return cleanup;
   }, [loading, scrollToSurface]);

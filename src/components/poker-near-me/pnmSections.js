@@ -77,46 +77,6 @@ function headerOffsetPx() {
 }
 
 /**
- * How far, in CSS px, a section's top sits from the place scrollToSection
- * would put it (just under the header). Null when the section is not mounted.
- */
-export function sectionAnchorDelta(key, { extraOffset = 0 } = {}) {
-  if (typeof document === 'undefined') return null;
-  const el = document.getElementById(sectionId(key));
-  if (!el) return null;
-  return el.getBoundingClientRect().top - headerOffsetPx() - extraOffset;
-}
-
-/**
- * Did something other than the page's own deep-link anchor hold move the
- * document? The hold remembers the scroll position it last produced
- * (`heldY`). Three things can change the picture while it waits:
- *
- * - late content above the section pushes the section down, but the scroll
- *   position does not move (the hold must correct this);
- * - browser scroll anchoring moves the scroll position, but keeps the
- *   section where it was (also fine);
- * - the visitor, the scrollbar, find-in-page, an anchor link, assistive
- *   technology or any script scrolls the document: the position AND the
- *   section both move. Only this is a foreign scroll, and the hold must stop
- *   at once instead of dragging the document back.
- *
- * Fighting a foreign scroll was not only rude: the hold's jump back, issued
- * while WebKit was still settling the visitor's jump, left WebKit's layout
- * viewport (which places every `position: fixed` element, including the
- * approved global header) out of step with the visual viewport, so WebKit's
- * own render geometry put the header almost 2000px below the screen until
- * the fight ended (e2e/024, Poker Near Me deep Series route, WebKit only).
- */
-export function isForeignScroll({ heldY, scrollY, anchorDelta, viewportHeight = 0 }) {
-  if (!Number.isFinite(heldY) || !Number.isFinite(scrollY)) return false;
-  if (Math.abs(scrollY - heldY) <= 2) return false;
-  if (anchorDelta === null || anchorDelta === undefined || !Number.isFinite(anchorDelta)) return true;
-  const tolerance = Math.max(64, (Number(viewportHeight) || 0) * 0.25);
-  return Math.abs(anchorDelta) > tolerance;
-}
-
-/**
  * Scroll a section's top under the sticky header. Uses scrollIntoView with
  * `block: 'start'` (the standard) and then corrects for the header and the
  * anchor row by the published --sp-header-height. Returns true when the
