@@ -850,6 +850,8 @@ import './club-invite-figures.test.mjs';
 import './messenger-preview-is-plain-text.test.mjs';
 import './messenger-calls-work.law.test.mjs';
 import './messenger-calls-live-safety.test.mjs';
+// Dan 2026-11-27: Jarvis out of Messenger; one row per accounting issuer.
+import './messenger-one-row-per-issuer.law.test.mjs';
 import './messenger-calls-device-safety.test.mjs';
 import './messenger-typed-text-is-white.law.test.mjs';
 import './digest-figures-carry-separators.test.mjs';

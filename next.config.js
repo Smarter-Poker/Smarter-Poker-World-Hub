@@ -1449,7 +1449,7 @@ const nextConfig = {
       { source: '/legal/privacy', destination: '/privacy', permanent: true },
       { source: '/legal/terms', destination: '/terms', permanent: true },
       // Live help → messenger with Jarvis
-      { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
+      { source: '/hub/live-help', destination: '/hub/messenger', permanent: false },
       // Club Arena — /hub/club-arena IS the lobby (the SPA). The native lobby.js was removed.
       { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
       // Push producers still emit /table/<id>; keep their seat alert click live.
