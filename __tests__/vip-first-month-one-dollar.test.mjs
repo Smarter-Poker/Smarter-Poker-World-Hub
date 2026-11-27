@@ -165,7 +165,7 @@ test('the one dollar month does not earn the monthly Diamond stipend', async () 
 });
 
 test('every surface that sells monthly VIP states the first month price', async () => {
-  const [store, cards, gate, memory, compare, status, catalog] = await Promise.all([
+  const [store, cards, gate, memory, compare, status, catalog, kit] = await Promise.all([
     read('pages/hub/diamond-store.js'),
     read('src/components/store/StoreCards.js'),
     read('src/components/gates/OutOfDiamondsModal.jsx'),
@@ -173,17 +173,35 @@ test('every surface that sells monthly VIP states the first month price', async 
     read('pages/hub/vip-membership/compare.js'),
     read('pages/api/store/vip-membership-status.js'),
     read('pages/api/club-arena/store-catalog.js'),
+    read('src/components/vip/VipKit.jsx'),
   ]);
   assert.match(store, /Subscribe With Card: \$1 First Month, Then \$/);
   assert.match(store, /introCents: VIP_INTRO_OFFER\.firstPeriodCents/);
   assert.match(store, /introOffer=\{vipIntro\.display\}/);
   assert.match(cards, /\{intro \? '\$1' : regularPrice\}/);
-  assert.match(gate, /\$1<span> First Month<\/span>/);
-  assert.match(gate, /Then \$20\/Month\. Cancel Anytime\./);
-  assert.doesNotMatch(gate, /\$20<span>\/Month<\/span>/);
-  assert.match(memory, /Go VIP - \$1 First Month, Then \$20\/Month/);
+  // The popup prints the account-aware readout and one-tap action from the VIP kit.
+  assert.match(gate, /<VipIntroPrice accountId=\{userId\} enabled=\{sellVip\} \/>/);
+  assert.match(gate, /<VipMonthlyCta accountId=\{userId\} enabled=\{sellVip\} \/>/);
+  assert.match(kit, /amount: '\$1', unit: 'First Month', note: 'Then \$20\/Month\. Cancel Anytime\.'/);
+  assert.match(memory, /Go VIP - \$1 First Month/);
+  assert.match(memory, /vipIntro.display\s*\? 'intro'/);
   assert.match(memory, /introCents: VIP_INTRO_OFFER\.firstPeriodCents/);
-  assert.match(compare, /New Subscribers: \$1 First Month/);
+  assert.match(compare, /plan\.interval === 'month' && cardReady \? \(\s*<VipIntroPrice \/>/);
   assert.match(status, /introOffer: \{\s*\.\.\.vipIntroOfferPublicTerms\(\),\s*eligible: introDecision\.eligible,/);
   assert.match(catalog, /vipIntroOffer: vipIntroOfferCatalogTerms\(\),/);
+});
+
+test('a visitor is shown $1 only while the public catalog publishes the offer', async () => {
+  const { parseVipIntroCatalogOffer, vipIntroPromptState } = await import('../src/lib/store/vipIntroPrompt.mjs');
+  assert.equal(parseVipIntroCatalogOffer(true, { success: true, vipIntroOffer: { plan: 'monthly' } }), true);
+  assert.equal(parseVipIntroCatalogOffer(true, { success: true, vipIntroOffer: null }), false);
+  assert.equal(parseVipIntroCatalogOffer(false, null), null);
+  assert.equal(parseVipIntroCatalogOffer(true, { success: true }), null);
+  assert.equal(vipIntroPromptState({ accountId: null, publicOffer: true }), 'intro');
+  assert.equal(vipIntroPromptState({ accountId: null, publicOffer: false }), 'regular');
+  assert.equal(vipIntroPromptState({ accountId: null, publicOffer: null }), 'regular');
+  assert.equal(vipIntroPromptState({ accountId: null, publicOffer: true, sessionKnown: false }), 'regular');
+  assert.equal(vipIntroPromptState({ accountId: 'a', eligible: false, reason: 'offer_off' }), 'regular');
+  assert.equal(vipIntroPromptState({ accountId: 'a', eligible: false, reason: 'verify_contact' }), 'verify');
+  assert.equal(vipIntroPromptState({ accountId: 'a', eligible: true }), 'intro');
 });

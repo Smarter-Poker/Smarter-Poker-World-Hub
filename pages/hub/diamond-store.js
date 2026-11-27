@@ -3748,7 +3748,7 @@ export default function DiamondStorePage({
                       <VIPCard plan={VIP_MEMBERSHIP.yearly} isSelected={selectedVIP === 'vip-yearly'} onSelect={setSelectedVIP} />
                       <VIPCard plan={VIP_MEMBERSHIP.lifetime} isSelected={selectedVIP === 'vip-lifetime'} onSelect={setSelectedVIP} />
                     </div>
-                    <p className={vipStyles.termsNote}>{['monthly', 'yearly', 'lifetime'].map((plan) => <span key={plan}>{vipMembershipTerms(plan)}</span>)}</p>
+                    <p className={vipStyles.termsNote}><span>{vipMembershipTerms('monthly')}</span> <span>{vipMembershipTerms('yearly')}</span> <span>{vipMembershipTerms('lifetime')}</span></p>
                     <nav className={vipStyles.tools} aria-label="Individual VIP Membership Pages">
                       {Object.entries(VIP_TERMS).map(([plan, term]) => <Link key={plan} href={vipProductPath(plan)} className={vipStyles.action}>{term.label} VIP Details</Link>)}
                     </nav>
@@ -3756,15 +3756,16 @@ export default function DiamondStorePage({
                     <div className={vipStyles.checkout}>
                       <div className={vipStyles.selectedTerm} aria-live="polite" aria-atomic="true">
                         <strong>Your Plan: {marketplaceCopy(selectedVIPPlan.name)}</strong>
-                        {/* The price this account pays for the selected plan, as one readout. */}
+                        {/* The price this account pays for the selected plan, as one readout,
+                            with its renewal terms as the line under the figure. */}
                         <VipPricePlate
                           {...(selectedVIPPlan.interval === 'month'
                             ? vipIntroPlateProps(selectedVipIntro ? 'intro' : vipIntro.reason === VIP_INTRO_VERIFY_REASON ? 'verify' : 'regular')
                             : selectedVIPPlan.oneTime
-                              ? { amount: `$${formatStoreUsd(selectedVIPPlan.price)}`, unit: 'One Payment', note: 'Never Expires. No Renewal.' }
-                              : { amount: `$${formatStoreUsd(selectedVIPPlan.price)}`, unit: '/Year', note: 'Cancel Anytime.' })}
+                              ? { amount: `$${formatStoreUsd(selectedVIPPlan.price)}`, unit: 'One Payment' }
+                              : { amount: `$${formatStoreUsd(selectedVIPPlan.price)}`, unit: '/Year' })}
+                          note={selectedVIPPlan.oneTime ? 'One Payment. No Renewal.' : selectedVipIntro ? `$1 Today For Your First Month. Then $${formatStoreUsd(selectedVIPPlan.price)} Every Month. Cancel Anytime.` : `Renews Every ${selectedVIPPlan.interval === 'year' ? 'Year' : 'Month'}. Cancel Anytime.`}
                         />
-                        <span>{selectedVIPPlan.oneTime ? 'One Payment. No Renewal.' : selectedVipIntro ? `$1 Today For Your First Month. Then $${formatStoreUsd(selectedVIPPlan.price)} Every Month. Cancel Anytime.` : `Renews Every ${selectedVIPPlan.interval === 'year' ? 'Year' : 'Month'}. Cancel Anytime.`}</span>
                         {selectedVIP === 'vip-yearly' && VIP_MEMBERSHIP.yearly.savings > 0 && (
                           <span className={vipStyles.savings}>Save ${formatStoreUsd(VIP_MEMBERSHIP.yearly.savings)} A Year Compared With Monthly.</span>
                         )}

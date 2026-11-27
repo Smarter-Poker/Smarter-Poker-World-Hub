@@ -1,8 +1,16 @@
-import Link from 'next/link';
-
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
-import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
 import styles from './compare.module.css';
+import {
+  VipCta,
+  VipFacts,
+  VipGhost,
+  VipIntroPrice,
+  VipLead,
+  VipMasthead,
+  VipPlanPanel,
+  VipPricePlate,
+} from '../../../src/components/vip/VipKit';
+import { formatStoreUsd } from '../../../src/lib/store/wholeDollarPrice.mjs';
 import { getVipBenefitsForPlan, VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
 import { breadcrumbSchema } from '../../../src/lib/seo/hubPageSchema';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
@@ -46,90 +54,108 @@ export default function VipComparePage() {
       breadcrumbs={breadcrumbs}
       status="All Diamond Plans Live"
       presentation="membership"
-      actions={
-        <>
-          <Link href="/hub/vip-membership">Choose A Plan</Link>
-          <Link href="/hub/vip-membership/manage">Manage Membership</Link>
-        </>
+      masthead={
+        <div>
+          <VipMasthead
+            parent="Smarter.Poker VIP"
+            title="Compare VIP Plans"
+            helpHref="/hub/vip-membership#vip-faq"
+            helpLabel="VIP Plans Help And Frequently Asked Questions"
+          />
+          <VipLead
+            actions={
+              <>
+                <VipGhost href="/hub/vip-membership">Choose A Plan</VipGhost>
+                <VipGhost href="/hub/vip-membership/manage">Manage Membership</VipGhost>
+              </>
+            }
+          >
+            Three Terms, One Membership Across Smarter.Poker And Club Arena. Pay By Card Or With
+            Diamonds.
+          </VipLead>
+        </div>
       }
       structuredData={schema}
     >
-      <div className={detailStyles.detailGrid}>
+      <div className={styles.planGrid}>
         {PLANS.map((plan) => {
           /* Every plan is priced in USD now, so the isDiamondCost branch this
              used to carry (for the retired Daily Pass) is gone. 100 diamonds
              per dollar throughout. */
           const diamondCost = Math.round(Number(plan.price) * 100);
-          const cardEquivalent = Number(plan.price).toFixed(2);
           const lifetime = plan.interval === 'lifetime';
           const cardReady = plan.cardCheckoutReady === true;
           const benefits = getVipBenefitsForPlan(plan.interval);
+          const perks = [
+            lifetime
+              ? 'Permanent Full VIP Access'
+              : `${plan.interval === 'year' ? '365 Days' : '30 Days'} Of Full VIP Access`,
+            ...(!lifetime ? ['Extends Existing Access Instead Of Replacing It'] : []),
+            ...(lifetime
+              ? [
+                  'Never Renews And Never Expires',
+                  'One-Time Card Or 50,000 Diamond Checkout',
+                  'Unlimited Throwables, Rabbit Hunts, And Standard Time Banks',
+                  'Every Cataloged Digital Table Skin, Background, Card Back, And Dealer Button Included',
+                  'Every VIP Avatar, Frame, Aura, And Safe Digital Feature Pack Included',
+                ]
+              : []),
+            `Includes All ${benefits.length} Included Benefits For This Plan`,
+            ...(plan.savings > 0 ? [`Saves $${Number(plan.savings).toFixed(2)} Against Monthly Billing`] : []),
+          ];
+          /* The monthly card price is the account-aware readout: a new
+             subscriber reads the $1 first month as the headline, a member the
+             server says is not eligible (or while the offer is off) reads
+             $20/Month. Checkout decides again on the server. */
+          const price =
+            plan.interval === 'month' && cardReady ? (
+              <VipIntroPrice />
+            ) : (
+              <VipPricePlate
+                amount={cardReady ? `$${formatStoreUsd(plan.price)}` : `${diamondCost.toLocaleString()}`}
+                unit={cardReady ? (lifetime ? 'One Payment' : plan.interval === 'year' ? '/Year' : '/Month') : 'Diamonds'}
+                note={lifetime ? 'Never Expires. No Renewal.' : 'Cancel Anytime.'}
+              />
+            );
           return (
-            <section className={detailStyles.detailCard} key={plan.id}>
-              <h2>{marketplaceCopy(plan.name)}</h2>
-              <p>
-                {cardReady ? (
-                  <>
-                    <strong>${cardEquivalent}</strong> By Card Or{' '}
-                  </>
-                ) : null}
-                <strong>{diamondCost.toLocaleString()} Diamonds</strong>
-                {cardReady ? '.' : ' With The Atomic Diamond Settlement Path.'}
-              </p>
-              {plan.interval === 'month' ? (
-                <p>
-                  <strong>New Subscribers: $1 First Month</strong> By Card, Then ${cardEquivalent}
-                  /Month. Cancel Anytime.
-                </p>
-              ) : null}
-              <ul>
-                <li>
-                  {lifetime
-                    ? 'Permanent Full VIP Access'
-                    : `${plan.interval === 'year' ? '365 Days' : '30 Days'} Of Full VIP Access`}
-                </li>
-                {!lifetime && <li>Extends Existing Access Instead Of Replacing It</li>}
-                {lifetime && <li>Never Renews And Never Expires</li>}
-                {lifetime && <li>One-Time Card Or 50,000 Diamond Checkout</li>}
-                {lifetime && <li>Unlimited Throwables, Rabbit Hunts, And Standard Time Banks</li>}
-                {lifetime && (
-                  <li>
-                    Every Cataloged Digital Table Skin, Background, Card Back, And Dealer Button
-                    Included
-                  </li>
-                )}
-                {lifetime && (
-                  <li>Every VIP Avatar, Frame, Aura, And Safe Digital Feature Pack Included</li>
-                )}
-                <li>Includes All {benefits.length} Included Benefits For This Plan</li>
-                {plan.savings > 0 && (
-                  <li>Saves ${Number(plan.savings).toFixed(2)} Against Monthly Billing</li>
-                )}
-              </ul>
-              <Link className={styles.planAction} href={`/hub/vip-membership?plan=${plan.id}`}>
-                Select {marketplaceCopy(plan.name)}
-              </Link>
-            </section>
+            <VipPlanPanel
+              key={plan.id}
+              name={marketplaceCopy(plan.name)}
+              featured={plan.interval === 'month'}
+              price={price}
+              diamondLine={
+                cardReady
+                  ? `Or ${diamondCost.toLocaleString()} Diamonds ${lifetime ? 'Once' : plan.interval === 'year' ? 'For 365 Days' : 'For 30 Days'}`
+                  : 'Settles With The Atomic Diamond Settlement Path.'
+              }
+              perks={perks}
+              action={
+                <VipCta href={`/hub/vip-membership?plan=${plan.id}`}>
+                  Select {marketplaceCopy(plan.name)}
+                </VipCta>
+              }
+            />
           );
         })}
       </div>
-      <div className={detailStyles.assuranceGrid}>
-        <div>
-          <strong>Card</strong>
-          <span>
-            Stripe Checkout Verifies Monthly, Yearly, And One-Time Lifetime Payments. Refund And
-            Dispute Changes Reconcile Through Server-Owned Purchase Records.
-          </span>
-        </div>
-        <div>
-          <strong>Diamonds</strong>
-          <span>Every Term, Lifetime Included, Settles Against Your Verified Diamond Wallet.</span>
-        </div>
-        <div>
-          <strong>Entitlements</strong>
-          <span>Access Expiry, Tier, And Benefits Are Updated From Server-Owned Records.</span>
-        </div>
-      </div>
+      <VipFacts
+        className={styles.facts}
+        label="How VIP Is Paid And Kept"
+        items={[
+          {
+            title: 'Card',
+            text: 'Stripe Checkout Verifies Monthly, Yearly, And One-Time Lifetime Payments. Refund And Dispute Changes Reconcile Through Server-Owned Purchase Records.',
+          },
+          {
+            title: 'Diamonds',
+            text: 'Every Term, Lifetime Included, Settles Against Your Verified Diamond Wallet.',
+          },
+          {
+            title: 'Entitlements',
+            text: 'Access Expiry, Tier, And Benefits Are Updated From Server-Owned Records.',
+          },
+        ]}
+      />
     </MarketplaceDetailExperience>
   );
 }

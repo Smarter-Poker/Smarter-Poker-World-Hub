@@ -5,6 +5,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { VipUpgradePrompt } from '../../../src/components/vip/VipKit';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -724,8 +725,14 @@ export default function MixedModePage() {
                                     <h2 id="mixed-diamonds-title">Not Enough Diamonds</h2>
                                     <p>
                                         Each Game Costs {formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds.
-                                        Get More Diamonds Or Upgrade To VIP For Unlimited Access. New Subscribers: $1 First Month, Then $20/Month. Cancel Anytime.
+                                        Get More Diamonds Or Upgrade To VIP For Unlimited Access.
                                     </p>
+                                    <VipUpgradePrompt
+                                        accountId={userId}
+                                        enabled={showOutOfDiamonds}
+                                        title="Play Unlimited With VIP"
+                                        copy="VIP Members Play Every Trivia Mode Free."
+                                    />
                                 </section>
                             )}
 

@@ -6,6 +6,7 @@
 
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { VipUpgradePrompt } from '../../src/components/vip/VipKit';
 import { useState, useEffect } from 'react';
 import Switch from '../../src/components/ui/Switch';
 // useTheme removed — unused (DarkModeToggle handles theme internally)
@@ -1792,38 +1793,11 @@ export default function SettingsPage() {
                                                     )}
                                                 </>
                                             ) : (
-                                                <>
-                                                    <div style={{
-                                                        display: 'flex', alignItems: 'center', gap: 16,
-                                                        padding: 20, background: '#3a3b3c', borderRadius: 10,
-                                                    }}>
-                                                        <div style={{
-                                                            width: 52, height: 52, borderRadius: 12,
-                                                            background: '#4e4f50',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            fontSize: 22, color: '#65676b',
-                                                        }}>-</div>
-                                                        <div style={{ flex: 1 }}>
-                                                            <div style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb' }}>No Active Membership</div>
-                                                            <div style={{ fontSize: 13, color: '#65676b', marginTop: 4 }}>
-                                                                Upgrade To VIP For Premium Benefits. New Subscribers: $1 First Month, Then $20/Month. Cancel Anytime.
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => router.push('/hub/diamond-store')}
-                                                        style={{
-                                                            marginTop: 20, width: '100%',
-                                                            padding: '12px 20px',
-                                                            background: '#2374e1',
-                                                            border: 'none', borderRadius: 8,
-                                                            color: '#fff', fontSize: 14, fontWeight: 600,
-                                                            cursor: 'pointer', transition: 'all 0.2s ease',
-                                                        }}
-                                                    >
-                                                        Upgrade To VIP
-                                                    </button>
-                                                </>
+                                                <VipUpgradePrompt
+                                                    accountId={user?.id || null}
+                                                    title="No Active Membership"
+                                                    copy="Upgrade To VIP For Premium Benefits Across Smarter.Poker And Club Arena."
+                                                />
                                             )}
                                         </div>
 

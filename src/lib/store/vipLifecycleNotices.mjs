@@ -264,9 +264,9 @@ export function buildVipPaymentFailedNotice({ subscription, invoice, status } = 
         lines: [
             `We Could Not Charge Your Card ${amount} For Your Smarter.Poker VIP Renewal, So The VIP Access From This Subscription Is Off Until The Payment Succeeds.`,
             retryLine,
-            'To Put A New Card On File, Contact Support At support@smarter.poker. VIP Returns As Soon As The Payment Goes Through.',
+            'Open Your VIP Command Center And Choose Update Payment Card To Fix It. VIP Returns As Soon As The Payment Goes Through.',
         ],
-        ctaLabel: 'Open VIP Command Center',
+        ctaLabel: 'Update Payment Card',
         finePrint: FINE_PRINT,
         data: {
             source: 'vip_lifecycle',

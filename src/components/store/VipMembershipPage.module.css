@@ -216,3 +216,4 @@
 @media (prefers-reduced-motion: reduce) {
   .action, .heroAction { transition: none; }
 }
+.membershipLabel { display: block; color: var(--vip-ice); font: 700 12px/1.2 var(--vip-type); letter-spacing: 0.08em; }

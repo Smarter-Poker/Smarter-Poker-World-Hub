@@ -9,10 +9,13 @@ import { VIP_INTRO_OFFER } from './vipIntroOffer.mjs';
  * $1 first month to an account the server will charge $20.
  *
  * Three answers, never two:
- *   intro    a signed-out visitor, or a member the server confirmed eligible
+ *   intro    a signed-out visitor while the public catalog publishes the
+ *            offer, or a member the server confirmed eligible
  *   verify   the server said not eligible because a contact is unverified
- *   regular  the server said not eligible, or the answer is not known yet
- *            (including before the page has read whether anyone is signed in)
+ *   regular  the server said not eligible (including 'offer_off'), the
+ *            public catalog publishes no offer (the off switch), or the
+ *            answer is not known yet (including before the page has read
+ *            whether anyone is signed in or what the catalog says)
  *
  * This is display only. Checkout decides again on the server.
  */
@@ -43,10 +46,20 @@ export function parseVipIntroOfferStatus(ok, body) {
   return { eligible: offer.eligible, reason };
 }
 
-export function vipIntroPromptState({ accountId = null, eligible = null, reason = null, sessionKnown = true } = {}) {
-  // No account: a visitor sees the offer, but only once the page knows there
-  // is no signed-in session. Before that the answer is unknown.
-  if (!accountId) return sessionKnown ? 'intro' : 'regular';
+/**
+ * Read the public catalog's answer to "is the offer on?". The catalog sends
+ * the offer terms when the switch is on and null when it is off; anything
+ * unreadable is unknown (null), which displays the regular price.
+ */
+export function parseVipIntroCatalogOffer(ok, body) {
+  if (ok !== true || body?.success !== true || !('vipIntroOffer' in (body || {}))) return null;
+  return body.vipIntroOffer && typeof body.vipIntroOffer === 'object' ? true : false;
+}
+
+export function vipIntroPromptState({ accountId = null, eligible = null, reason = null, sessionKnown = true, publicOffer = null } = {}) {
+  // No account: a visitor sees the offer only once the page knows there is no
+  // signed-in session AND the public catalog says the offer is on.
+  if (!accountId) return sessionKnown && publicOffer === true ? 'intro' : 'regular';
   if (eligible === true) return 'intro';
   if (eligible === false && reason === VIP_INTRO_VERIFY_REASON) return 'verify';
   return 'regular';

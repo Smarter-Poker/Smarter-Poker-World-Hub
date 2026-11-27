@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAuthUser } from '../authUtils';
 import { getVerifiedCheckoutAuthorization } from './checkoutAuthorization';
-import { parseVipIntroOfferStatus, vipIntroPromptCopy, vipIntroPromptState } from './vipIntroPrompt.mjs';
+import { parseVipIntroCatalogOffer, parseVipIntroOfferStatus, vipIntroPromptCopy, vipIntroPromptState } from './vipIntroPrompt.mjs';
 
 /* Several prompts on one page ask the same question. They share one request
    per account for a short time; an explicit refresh() always asks again. */
@@ -36,6 +36,35 @@ function sharedIntroOffer(accountId, force) {
   return entry.promise;
 }
 
+/* The public catalog says whether the offer is on at all (the off switch).
+   One read per page load is shared by every prompt; an unknown answer is not
+   remembered, so the next prompt asks again. */
+let publicOfferRead = null;
+function readPublicIntroOffer() {
+  if (publicOfferRead) return publicOfferRead;
+  const read = fetch('/api/club-arena/store-catalog', { headers: { Accept: 'application/json' }, cache: 'no-store' })
+    .then(async (response) => parseVipIntroCatalogOffer(response.ok, await response.json().catch(() => null)))
+    .catch(() => null)
+    .then((on) => {
+      if (on === null && publicOfferRead === read) publicOfferRead = null;
+      return on;
+    });
+  publicOfferRead = read;
+  return read;
+}
+
+/** Whether the public catalog publishes the $1 offer: true, false, or null (unknown). */
+export function usePublicVipIntroOffer(enabled = true) {
+  const [on, setOn] = useState(null);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    let live = true;
+    readPublicIntroOffer().then((value) => { if (live) setOn(value); });
+    return () => { live = false; };
+  }, [enabled]);
+  return on;
+}
+
 /**
  * Whether the $1 first VIP month applies to the signed-in account.
  *
@@ -55,6 +84,8 @@ function sharedIntroOffer(accountId, force) {
 export function useVipIntroOffer(accountId, { enabled = true } = {}) {
   const [state, setState] = useState({ accountId: null, eligible: null, reason: null });
   const requestRef = useRef(0);
+  // A visitor (no account) is shown the offer only while the catalog has it on.
+  const publicOffer = usePublicVipIntroOffer(enabled && !accountId);
 
   const load = useCallback(async (force) => {
     const requestId = ++requestRef.current;
@@ -76,7 +107,7 @@ export function useVipIntroOffer(accountId, { enabled = true } = {}) {
   const current = state.accountId === accountId;
   const eligible = current ? state.eligible : null;
   const reason = current && eligible === false ? state.reason : null;
-  return { eligible, reason, display: accountId ? eligible === true : true, refresh };
+  return { eligible, reason, publicOffer, display: accountId ? eligible === true : publicOffer === true, refresh };
 }
 
 /**
@@ -102,6 +133,7 @@ export function useVipIntroPrompt(accountId, { enabled = true } = {}) {
     eligible: offer.eligible,
     reason: offer.reason,
     sessionKnown: Boolean(accountId) || storedId !== undefined,
+    publicOffer: offer.publicOffer,
   };
   return { state: vipIntroPromptState(input), copy: vipIntroPromptCopy(input), accountId: resolvedId };
 }

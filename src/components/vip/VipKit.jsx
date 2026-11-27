@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useEffect, useId, useRef } from 'react';
+import { forwardRef, useEffect, useId, useRef } from 'react';
 import { useVipIntroPrompt } from '../../lib/store/useVipIntroOffer';
 import { VIP_MONTHLY_PURCHASE_PATH } from '../../lib/store/vipIntroPrompt.mjs';
 import styles from './VipKit.module.css';
@@ -20,6 +20,7 @@ import styles from './VipKit.module.css';
  */
 
 export const VIP_SEAL_SRC = '/images/smarterdesign/headers/vip-seal.webp';
+export const VIP_CREST_SRC = '/images/smarterdesign/headers/vip-crest.webp';
 export const VIP_SCENE_SRC = '/images/smarterdesign/headers/vip-scene.webp';
 export const VIP_DIAMOND_MONTH_LINE = 'Or 2,000 Diamonds For 30 Days';
 
@@ -96,7 +97,7 @@ export function VipIntroPrice({ accountId = null, enabled = true, compact = fals
   return <VipPricePlate {...vipIntroPlateProps(state)} state={state} compact={compact} className={className} />;
 }
 
-function Plate({ variant, href, sub, children, className = '', ...rest }) {
+const Plate = forwardRef(function Plate({ variant, href, sub, children, className = '', ...rest }, ref) {
   const names = cx(variant === 'ghost' ? styles.ghost : styles.cta, className);
   const body = (
     <>
@@ -105,18 +106,18 @@ function Plate({ variant, href, sub, children, className = '', ...rest }) {
     </>
   );
   if (href) {
-    return <Link href={href} className={names} {...rest}>{body}</Link>;
+    return <Link ref={ref} href={href} className={names} {...rest}>{body}</Link>;
   }
-  return <button type="button" className={names} {...rest}>{body}</button>;
-}
+  return <button ref={ref} type="button" className={names} {...rest}>{body}</button>;
+});
 
-export function VipCta(props) {
-  return <Plate variant="cta" {...props} />;
-}
+export const VipCta = forwardRef(function VipCta(props, ref) {
+  return <Plate ref={ref} variant="cta" {...props} />;
+});
 
-export function VipGhost(props) {
-  return <Plate variant="ghost" {...props} />;
-}
+export const VipGhost = forwardRef(function VipGhost(props, ref) {
+  return <Plate ref={ref} variant="ghost" {...props} />;
+});
 
 /** One tap to the monthly VIP purchase page, worded for this account. */
 export function VipMonthlyCta({ accountId = null, enabled = true, onNavigate, className = '' }) {
@@ -164,6 +165,62 @@ export function VipUpgradePrompt({
       <VipMonthlyCta accountId={accountId} enabled={enabled} onNavigate={onNavigate} />
       {children}
     </section>
+  );
+}
+
+/** The approved painted VIP crest (Club Arena top-vip master), as a mark. */
+export function VipCrest({ className = '' }) {
+  return (
+    <span className={cx(styles.crest, className)} aria-hidden="true">
+      <img src={VIP_CREST_SRC} alt="" width="168" height="132" decoding="async" />
+    </span>
+  );
+}
+
+/**
+ * One plan as one framed panel: crest and name, the price readout, the
+ * Diamond route as its own line, what the plan includes, one action.
+ */
+export function VipPlanPanel({ name, heading: Heading = 'h2', price, diamondLine, perks = [], action, featured = false, className = '' }) {
+  return (
+    <section className={cx(styles.kit, styles.frame, styles.planPanel, featured && styles.planFeatured, className)}>
+      <div className={styles.planHead}>
+        <VipCrest />
+        <Heading className={styles.planName}>{name}</Heading>
+      </div>
+      {price}
+      {diamondLine && <p className={styles.diamondLine}>{diamondLine}</p>}
+      {perks.length > 0 && (
+        <ul className={styles.checks}>
+          {perks.map((perk) => <li key={perk}>{perk}</li>)}
+        </ul>
+      )}
+      {action}
+    </section>
+  );
+}
+
+/** A framed band of short labelled facts (assurances, terms). */
+export function VipFacts({ items, label, className = '' }) {
+  return (
+    <div className={cx(styles.kit, styles.frame, styles.facts, className)} role="list" aria-label={label}>
+      {items.map(({ title, text }) => (
+        <div key={title} role="listitem">
+          <strong>{title}</strong>
+          <span>{text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The lead under a masthead: one line, then the page's two actions. */
+export function VipLead({ children, actions }) {
+  return (
+    <div className={cx(styles.kit, styles.lead)}>
+      {children && <p className={styles.leadText}>{children}</p>}
+      {actions && <div className={styles.leadActions}>{actions}</div>}
+    </div>
   );
 }
 
