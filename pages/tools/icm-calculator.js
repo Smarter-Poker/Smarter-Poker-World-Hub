@@ -8,6 +8,7 @@
 
 import ICMCalculatorPage from '../hub/training/icm-calculator';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export async function getServerSideProps({ req, res, query }) {
@@ -38,9 +39,19 @@ export default function ICMCalculatorLander() {
             <ICMCalculatorPage />
             <section
                 aria-label="Free Smarter.Poker Account Unlock"
-                style={{ background: '#070b14', padding: '0 20px 48px' }}
+                style={{ background: '#070b14', padding: '8px 20px 48px' }}
             >
                 <div style={{ maxWidth: 1020, margin: '0 auto' }}>
+                    <SmarterCalculatorSaveBar
+                        toolSlug="icm-calculator"
+                        toolName="Tournament ICM Calculator"
+                        eyebrow="Free ICM Spot Sync"
+                        title="Save This Final-Table ICM Bubble Spot Free"
+                        description="Store Final-Table Payout Structures, Compare Deal Chop Equity & Practice Live Bubble Drills."
+                        ctaLabel="Save ICM Spot Free"
+                        summaryText="Final-Table ICM Equity & Bubble Factor Spot"
+                        redirectPath="/tools/icm-calculator"
+                    />
                     <SmarterAccountUnlockGate
                         variant="calculator-pro"
                         context="tools-icm-calculator"

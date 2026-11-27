@@ -8,6 +8,7 @@
 
 import PokerToolsPage from '../hub/poker-tools';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export async function getServerSideProps({ req, res, query }) {
@@ -40,9 +41,19 @@ export default function PokerOddsCalculatorLander() {
             <PokerToolsPage />
             <section
                 aria-label="Free Smarter.Poker Account Unlock"
-                style={{ background: '#070b14', padding: '0 20px 48px' }}
+                style={{ background: '#070b14', padding: '8px 20px 48px' }}
             >
                 <div style={{ maxWidth: 1020, margin: '0 auto' }}>
+                    <SmarterCalculatorSaveBar
+                        toolSlug="poker-odds-calculator"
+                        toolName="Poker Odds Calculator"
+                        eyebrow="Free Equity Cloud Sync"
+                        title="Save This Equity Matchup To Your Free Cloud Account"
+                        description="Keep Multiway Hold'Em, PLO4, PLO5 & Short Deck Equity Simulations Synced Across Phone & Desktop."
+                        ctaLabel="Save Odds Spot Free"
+                        summaryText="Multiway Hold'Em, PLO4 & PLO5 Equity Matchup"
+                        redirectPath="/tools/poker-odds-calculator"
+                    />
                     <SmarterAccountUnlockGate
                         variant="calculator-pro"
                         context="tools-poker-odds-calculator"

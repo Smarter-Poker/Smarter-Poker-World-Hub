@@ -24,6 +24,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
+import { promotePendingSeoUnlock } from '../../src/components/seo/SmarterUnlockedWelcomeBanner';
 import {
     claimInvite,
     clearPendingInvite,
@@ -502,6 +503,10 @@ export default function AuthCallback() {
                 try {
                     if (typeof window !== 'undefined') {
                         window.sessionStorage.setItem('just_authenticated', 'true');
+                        const rawUnlock = Array.isArray(router.query.unlock) ? router.query.unlock[0] : router.query.unlock;
+                        if (typeof promotePendingSeoUnlock === 'function') {
+                            promotePendingSeoUnlock(rawUnlock);
+                        }
                     }
                 } catch (_ssErr) { /* ignore */ }
 
