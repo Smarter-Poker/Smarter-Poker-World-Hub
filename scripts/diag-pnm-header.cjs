@@ -2,6 +2,8 @@
 // of the approved global header on /hub/poker-near-me/series after the same
 // document scroll that e2e/024 performs, in WebKit and Chromium.
 const { webkit, chromium, devices } = require('@playwright/test');
+const { PNG } = require('pngjs');
+const strip = (buf) => { const png = PNG.sync.read(buf); const rows = []; for (let y = 0; y < 40; y += 4) { let r = 0, g = 0, b = 0; for (let x = 40; x < png.width - 40; x++) { const i = (png.width * y + x) * 4; r += png.data[i]; g += png.data[i + 1]; b += png.data[i + 2]; } const n = png.width - 80; rows.push([Math.round(r / n), Math.round(g / n), Math.round(b / n)].join(',')); } return rows.join(' | '); };
 
 const BASE = process.env.BASE_URL;
 const RUNS = Number(process.env.RUNS || 10);
@@ -82,7 +84,16 @@ async function once(browserType, name, i) {
     }
     const b = await snapshot(page, 'scrolled');
     const pwBox = await page.locator('[data-world-menu-trigger="approved-header"]').boundingBox();
-    await page.waitForTimeout(2500);
+    const shot1 = strip(await page.screenshot());
+    const hit1 = await page.evaluate(() => { const t = document.querySelector('[data-world-menu-trigger="approved-header"]'); const r = t.getBoundingClientRect(); const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { hitIsTrigger: el === t || t.contains(el), hit: el ? el.tagName + '.' + String(el.className).slice(0, 40) : null, scrollY: Math.round(scrollY), docH: document.documentElement.scrollHeight }; });
+    const series = [];
+    for (let t = 0; t < 12; t++) { const bb = await page.locator('[data-world-menu-trigger="approved-header"]').boundingBox(); const sy = await page.evaluate(() => [Math.round(scrollY), document.documentElement.scrollHeight]); series.push(`${t * 200}ms:y=${bb && Math.round(bb.y)} sY=${sy[0]} dH=${sy[1]}`); await page.waitForTimeout(200); }
+    const shot2 = strip(await page.screenshot());
+    console.log('SHOT ' + name + ' #' + i + ' at-measure: ' + shot1);
+    console.log('SHOT ' + name + ' #' + i + ' settled:    ' + shot2);
+    console.log('HIT ' + name + ' #' + i + ' ' + JSON.stringify(hit1));
+    console.log('SERIES ' + name + ' #' + i + ' ' + series.join(' ; '));
+    await page.waitForTimeout(100);
     const c = await snapshot(page, 'scrolled+2.5s');
     const pwBox2 = await page.locator('[data-world-menu-trigger="approved-header"]').boundingBox();
     const fail = !pwBox || pwBox.y + pwBox.height > 813 || pwBox.y < 0;
@@ -97,6 +108,6 @@ async function once(browserType, name, i) {
 (async () => {
   for (let i = 0; i < RUNS; i++) {
     await once(webkit, 'webkit', i);
-    if (i % 3 === 0) await once(chromium, 'chromium', i);
+    if (i % 6 === 0) await once(chromium, 'chromium', i);
   }
 })();
