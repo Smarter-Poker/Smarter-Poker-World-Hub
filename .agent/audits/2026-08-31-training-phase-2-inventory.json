@@ -14,11 +14,11 @@
     "dependencyFiles": 420,
     "componentFiles": 68,
     "hookFiles": 16,
-    "ctas": 555,
+    "ctas": 558,
     "dialogs": 21,
     "persistenceFiles": 99,
     "realtimeFiles": 7,
-    "tests": 202,
+    "tests": 203,
     "markerCandidates": 406,
     "possibleUnwiredFunctions": 506,
     "routeStateCells": 752,
@@ -7633,6 +7633,7 @@
             "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -7667,6 +7668,7 @@
             "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -7707,6 +7709,7 @@
             "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -7732,6 +7735,7 @@
             "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -7764,6 +7768,7 @@
             "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -7801,6 +7806,7 @@
             "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -7816,6 +7822,7 @@
             "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -7837,6 +7844,7 @@
             "__tests__/training-arena-lobby-ui.test.mjs",
             "__tests__/training-card-visual-contract.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -7847,6 +7855,7 @@
         "__tests__/training-arena-lobby-ui.test.mjs",
         "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8473,6 +8482,7 @@
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8489,6 +8499,7 @@
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8505,6 +8516,7 @@
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8519,6 +8531,7 @@
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8533,6 +8546,7 @@
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8550,6 +8564,7 @@
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8564,6 +8579,7 @@
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8579,6 +8595,7 @@
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -8588,6 +8605,7 @@
       "existingTests": [
         "__tests__/training-coach-local-practice-authority.test.mjs",
         "__tests__/training-community-phase-11.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -17419,6 +17437,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
@@ -17459,6 +17478,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
@@ -17509,6 +17529,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
@@ -17542,6 +17563,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
@@ -17585,6 +17607,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
@@ -17630,6 +17653,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
@@ -17655,6 +17679,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
@@ -17686,6 +17711,7 @@
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-hub-progressive-grid.test.mjs",
             "__tests__/training-level-launch-authority.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
@@ -17706,6 +17732,7 @@
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
@@ -33670,7 +33697,7 @@
         {
           "element": "button",
           "name": "All Training Games",
-          "line": 169,
+          "line": 177,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -33680,7 +33707,7 @@
         {
           "element": "button",
           "name": "Play Now",
-          "line": 198,
+          "line": 206,
           "handler": "() => playGame(featuredGame)",
           "destination": null,
           "type": "button",
@@ -33690,7 +33717,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 233,
+          "line": 241,
           "handler": "() => updateFilters({ query: '' })",
           "destination": null,
           "type": "button",
@@ -33700,7 +33727,7 @@
         {
           "element": "button",
           "name": "Favorite Games",
-          "line": 243,
+          "line": 252,
           "handler": "() => updateFilters({ favoritesOnly: !favoritesOnly })",
           "destination": null,
           "type": "button",
@@ -33710,7 +33737,7 @@
         {
           "element": "button",
           "name": "Filters",
-          "line": 246,
+          "line": 261,
           "handler": "() => setFiltersOpen(true)",
           "destination": null,
           "type": "button",
@@ -33720,7 +33747,7 @@
         {
           "element": "button",
           "name": "Reset Filters",
-          "line": 303,
+          "line": 324,
           "handler": "resetFilters",
           "destination": null,
           "type": "button",
@@ -33785,7 +33812,7 @@
         {
           "name": "playGame",
           "line": 130,
-          "references": 5,
+          "references": 6,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -33797,7 +33824,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 228,
+          "line": 236,
           "excerpt": "placeholder={`Search ${category.title}…`}",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -34090,7 +34117,7 @@
         {
           "element": "button",
           "name": "Back To Training Hub",
-          "line": 663,
+          "line": 672,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -34100,7 +34127,7 @@
         {
           "element": "button",
           "name": "Start A Study Room",
-          "line": 693,
+          "line": 702,
           "handler": "() => router.push(coopStudyRoomHref)",
           "destination": null,
           "type": "button",
@@ -34110,7 +34137,7 @@
         {
           "element": "button",
           "name": "Copy Study Room Link",
-          "line": 697,
+          "line": 706,
           "handler": "handleCopyCoopStudyRoom",
           "destination": null,
           "type": "button",
@@ -34223,7 +34250,7 @@
         {
           "name": "startLesson",
           "line": 411,
-          "references": 3,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -49695,7 +49722,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 595,
+          "line": 603,
           "handler": "handleBack",
           "destination": null,
           "type": "button",
@@ -49705,7 +49732,7 @@
         {
           "element": "button",
           "name": "← Back To Training",
-          "line": 623,
+          "line": 631,
           "handler": "handleBack",
           "destination": null,
           "type": null,
@@ -49715,7 +49742,17 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 637,
+          "line": 645,
+          "handler": "() => handlePlayLevel(activeQuickLevel.level || 1)",
+          "destination": null,
+          "type": "button",
+          "disabled": "loading",
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "`Start Level ${activeQuickLevel.level || 1} Of ${gameData?.title || 'Training'}`",
+          "line": 690,
           "handler": "() => handlePlayLevel(activeQuickLevel.level || 1)",
           "destination": null,
           "type": "button",
@@ -49772,16 +49809,24 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "handleCardClick",
+          "line": 193,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "handlePlayLevel",
-          "line": 491,
-          "references": 3,
+          "line": 499,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "handleBack",
-          "line": 558,
+          "line": 566,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -49801,7 +49846,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 350,
+          "line": 358,
           "excerpt": "// Fetch game data from API, with TRAINING_LIBRARY fallback",
           "disposition": "runtime-resilience-fallback",
           "review": "accepted",
@@ -49810,7 +49855,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 357,
+          "line": 365,
           "excerpt": "// aborted between headers and JSON, silently forcing fallback.",
           "disposition": "runtime-resilience-fallback",
           "review": "accepted",
@@ -49819,7 +49864,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 366,
+          "line": 374,
           "excerpt": "console.warn('[LevelSelector] API fetch failed, using client fallback');",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -49827,7 +49872,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 369,
+          "line": 377,
           "excerpt": "// Fallback: use TRAINING_LIBRARY if API fails or game not in registry",
           "disposition": "runtime-resilience-fallback",
           "review": "accepted",
@@ -49836,7 +49881,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 379,
+          "line": 387,
           "excerpt": "console.log(`[LevelSelector] Using TRAINING_LIBRARY fallback for: ${gameId}`);",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -50744,7 +50789,7 @@
         {
           "element": "link",
           "name": "Training Games",
-          "line": 25,
+          "line": 30,
           "handler": null,
           "destination": "/hub/training",
           "type": null,
@@ -50753,8 +50798,18 @@
         },
         {
           "element": "link",
-          "name": "Play",
+          "name": "`Play ${title}`",
           "line": 34,
+          "handler": null,
+          "destination": "gameHref",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Play",
+          "line": 46,
           "handler": null,
           "destination": "gameHref",
           "type": null,
@@ -50799,6 +50854,14 @@
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
+        },
+        {
+          "name": "handleCardClick",
+          "line": 21,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
         }
       ],
       "possibleUnwiredFunctions": [
@@ -50830,7 +50893,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 98,
+          "line": 99,
           "handler": "() => submit(reason)",
           "destination": null,
           "type": "button",
@@ -52670,8 +52733,8 @@
         {
           "element": "button",
           "name": "`Play ${game.name}`",
-          "line": 38,
-          "handler": "() => onStart(game)",
+          "line": 43,
+          "handler": "(event) => {\n          event.stopPropagation();\n          onStart(game);\n        }",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -52680,7 +52743,7 @@
         {
           "element": "button",
           "name": "isFavorite ? `Remove ${game.name} From Favorites` : `Add ${game.name} To Favorites`",
-          "line": 60,
+          "line": 68,
           "handler": "() => onToggleFavorite(game.id)",
           "destination": null,
           "type": "button",
@@ -52690,7 +52753,7 @@
         {
           "element": "button",
           "name": "`Play ${game.name}, ${variant}, ${meta.plaqueLabel}, Level ${meta.difficulty}`",
-          "line": 91,
+          "line": 99,
           "handler": "() => onStart(game)",
           "destination": null,
           "type": "button",
@@ -52700,7 +52763,7 @@
         {
           "element": "button",
           "name": "`Customize And Preview ${game.name}`",
-          "line": 101,
+          "line": 109,
           "handler": "() => onOpenPreview(item)",
           "destination": null,
           "type": "button",
@@ -52745,6 +52808,14 @@
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
+        },
+        {
+          "name": "handleCardClick",
+          "line": 28,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
         }
       ],
       "possibleUnwiredFunctions": [],
@@ -52773,8 +52844,18 @@
         },
         {
           "element": "button",
+          "name": "`Play ${game.name}`",
+          "line": 62,
+          "handler": "handleStart",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
           "name": "<dynamic>",
-          "line": 75,
+          "line": 83,
           "handler": "() => setVariant(value)",
           "destination": null,
           "type": "button",
@@ -52784,7 +52865,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 81,
+          "line": 89,
           "handler": "() => setTargetStreet(option.id)",
           "destination": null,
           "type": "button",
@@ -52794,7 +52875,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 88,
+          "line": 96,
           "handler": "() => onToggleFavorite(game.id)",
           "destination": null,
           "type": "button",
@@ -52804,7 +52885,7 @@
         {
           "element": "button",
           "name": "Play Drill",
-          "line": 89,
+          "line": 97,
           "handler": "handleStart",
           "destination": null,
           "type": "button",
@@ -52855,7 +52936,7 @@
         {
           "name": "handleStart",
           "line": 38,
-          "references": 2,
+          "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -87461,6 +87542,7 @@
     "__tests__/training-focused-launch-wiring.test.mjs",
     "__tests__/training-game-favorites-postgres.test.mjs",
     "__tests__/training-generated-scenario-provenance.test.mjs",
+    "__tests__/training-global-smarterdesign-click-cards.test.mjs",
     "__tests__/training-grading-receipt.test.mjs",
     "__tests__/training-history-outage-honesty.test.mjs",
     "__tests__/training-hub-media-audit.test.mjs",
@@ -88999,11 +89081,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:169:2",
+      "id": "pages/hub/training/category/[categoryId].js:177:2",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "All Training Games",
-      "line": 169,
+      "line": 177,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -89012,11 +89094,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:198:3",
+      "id": "pages/hub/training/category/[categoryId].js:206:3",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Play Now",
-      "line": 198,
+      "line": 206,
       "handler": "() => playGame(featuredGame)",
       "destination": null,
       "type": "button",
@@ -89025,11 +89107,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:233:4",
+      "id": "pages/hub/training/category/[categoryId].js:241:4",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Clear Search",
-      "line": 233,
+      "line": 241,
       "handler": "() => updateFilters({ query: '' })",
       "destination": null,
       "type": "button",
@@ -89038,11 +89120,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:243:5",
+      "id": "pages/hub/training/category/[categoryId].js:252:5",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Favorite Games",
-      "line": 243,
+      "line": 252,
       "handler": "() => updateFilters({ favoritesOnly: !favoritesOnly })",
       "destination": null,
       "type": "button",
@@ -89051,11 +89133,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:246:6",
+      "id": "pages/hub/training/category/[categoryId].js:261:6",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Filters",
-      "line": 246,
+      "line": 261,
       "handler": "() => setFiltersOpen(true)",
       "destination": null,
       "type": "button",
@@ -89064,11 +89146,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:303:7",
+      "id": "pages/hub/training/category/[categoryId].js:324:7",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Reset Filters",
-      "line": 303,
+      "line": 324,
       "handler": "resetFilters",
       "destination": null,
       "type": "button",
@@ -89168,11 +89250,11 @@
       "effectRef": "pages/hub/training/coach-mode.js"
     },
     {
-      "id": "pages/hub/training/coach-mode.js:663:2",
+      "id": "pages/hub/training/coach-mode.js:672:2",
       "file": "pages/hub/training/coach-mode.js",
       "element": "button",
       "name": "Back To Training Hub",
-      "line": 663,
+      "line": 672,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -89181,11 +89263,11 @@
       "effectRef": "pages/hub/training/coach-mode.js"
     },
     {
-      "id": "pages/hub/training/coach-mode.js:693:3",
+      "id": "pages/hub/training/coach-mode.js:702:3",
       "file": "pages/hub/training/coach-mode.js",
       "element": "button",
       "name": "Start A Study Room",
-      "line": 693,
+      "line": 702,
       "handler": "() => router.push(coopStudyRoomHref)",
       "destination": null,
       "type": "button",
@@ -89194,11 +89276,11 @@
       "effectRef": "pages/hub/training/coach-mode.js"
     },
     {
-      "id": "pages/hub/training/coach-mode.js:697:4",
+      "id": "pages/hub/training/coach-mode.js:706:4",
       "file": "pages/hub/training/coach-mode.js",
       "element": "button",
       "name": "Copy Study Room Link",
-      "line": 697,
+      "line": 706,
       "handler": "handleCopyCoopStudyRoom",
       "destination": null,
       "type": "button",
@@ -93497,11 +93579,11 @@
       "effectRef": "src/components/training/LeaderboardPanel.jsx"
     },
     {
-      "id": "src/components/training/LevelSelector.tsx:595:1",
+      "id": "src/components/training/LevelSelector.tsx:603:1",
       "file": "src/components/training/LevelSelector.tsx",
       "element": "button",
       "name": "Return To Training",
-      "line": 595,
+      "line": 603,
       "handler": "handleBack",
       "destination": null,
       "type": "button",
@@ -93510,11 +93592,11 @@
       "effectRef": "src/components/training/LevelSelector.tsx"
     },
     {
-      "id": "src/components/training/LevelSelector.tsx:623:2",
+      "id": "src/components/training/LevelSelector.tsx:631:2",
       "file": "src/components/training/LevelSelector.tsx",
       "element": "button",
       "name": "← Back To Training",
-      "line": 623,
+      "line": 631,
       "handler": "handleBack",
       "destination": null,
       "type": null,
@@ -93523,11 +93605,24 @@
       "effectRef": "src/components/training/LevelSelector.tsx"
     },
     {
-      "id": "src/components/training/LevelSelector.tsx:637:3",
+      "id": "src/components/training/LevelSelector.tsx:645:3",
       "file": "src/components/training/LevelSelector.tsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 637,
+      "line": 645,
+      "handler": "() => handlePlayLevel(activeQuickLevel.level || 1)",
+      "destination": null,
+      "type": "button",
+      "disabled": "loading",
+      "wiring": "handler",
+      "effectRef": "src/components/training/LevelSelector.tsx"
+    },
+    {
+      "id": "src/components/training/LevelSelector.tsx:690:4",
+      "file": "src/components/training/LevelSelector.tsx",
+      "element": "button",
+      "name": "`Start Level ${activeQuickLevel.level || 1} Of ${gameData?.title || 'Training'}`",
+      "line": 690,
       "handler": "() => handlePlayLevel(activeQuickLevel.level || 1)",
       "destination": null,
       "type": "button",
@@ -93744,11 +93839,11 @@
       "effectRef": "src/components/training/TrainerEmptyState.jsx"
     },
     {
-      "id": "src/components/training/TrainingGameEntry.jsx:25:1",
+      "id": "src/components/training/TrainingGameEntry.jsx:30:1",
       "file": "src/components/training/TrainingGameEntry.jsx",
       "element": "link",
       "name": "Training Games",
-      "line": 25,
+      "line": 30,
       "handler": null,
       "destination": "/hub/training",
       "type": null,
@@ -93760,8 +93855,21 @@
       "id": "src/components/training/TrainingGameEntry.jsx:34:2",
       "file": "src/components/training/TrainingGameEntry.jsx",
       "element": "link",
-      "name": "Play",
+      "name": "`Play ${title}`",
       "line": 34,
+      "handler": null,
+      "destination": "gameHref",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/training/TrainingGameEntry.jsx"
+    },
+    {
+      "id": "src/components/training/TrainingGameEntry.jsx:46:3",
+      "file": "src/components/training/TrainingGameEntry.jsx",
+      "element": "link",
+      "name": "Play",
+      "line": 46,
       "handler": null,
       "destination": "gameHref",
       "type": null,
@@ -93783,11 +93891,11 @@
       "effectRef": "src/components/training/TrainingQuestionReport.jsx"
     },
     {
-      "id": "src/components/training/TrainingQuestionReport.jsx:98:2",
+      "id": "src/components/training/TrainingQuestionReport.jsx:99:2",
       "file": "src/components/training/TrainingQuestionReport.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 98,
+      "line": 99,
       "handler": "() => submit(reason)",
       "destination": null,
       "type": "button",
@@ -94979,12 +95087,12 @@
       "effectRef": "src/components/training/lobby/TrainingFiltersSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameCard.jsx:38:1",
+      "id": "src/components/training/lobby/TrainingGameCard.jsx:43:1",
       "file": "src/components/training/lobby/TrainingGameCard.jsx",
       "element": "button",
       "name": "`Play ${game.name}`",
-      "line": 38,
-      "handler": "() => onStart(game)",
+      "line": 43,
+      "handler": "(event) => {\n          event.stopPropagation();\n          onStart(game);\n        }",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -94992,11 +95100,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameCard.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameCard.jsx:60:2",
+      "id": "src/components/training/lobby/TrainingGameCard.jsx:68:2",
       "file": "src/components/training/lobby/TrainingGameCard.jsx",
       "element": "button",
       "name": "isFavorite ? `Remove ${game.name} From Favorites` : `Add ${game.name} To Favorites`",
-      "line": 60,
+      "line": 68,
       "handler": "() => onToggleFavorite(game.id)",
       "destination": null,
       "type": "button",
@@ -95005,11 +95113,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameCard.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameCard.jsx:91:3",
+      "id": "src/components/training/lobby/TrainingGameCard.jsx:99:3",
       "file": "src/components/training/lobby/TrainingGameCard.jsx",
       "element": "button",
       "name": "`Play ${game.name}, ${variant}, ${meta.plaqueLabel}, Level ${meta.difficulty}`",
-      "line": 91,
+      "line": 99,
       "handler": "() => onStart(game)",
       "destination": null,
       "type": "button",
@@ -95018,11 +95126,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameCard.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameCard.jsx:101:4",
+      "id": "src/components/training/lobby/TrainingGameCard.jsx:109:4",
       "file": "src/components/training/lobby/TrainingGameCard.jsx",
       "element": "button",
       "name": "`Customize And Preview ${game.name}`",
-      "line": 101,
+      "line": 109,
       "handler": "() => onOpenPreview(item)",
       "destination": null,
       "type": "button",
@@ -95044,11 +95152,24 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:75:2",
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:62:2",
+      "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
+      "element": "button",
+      "name": "`Play ${game.name}`",
+      "line": 62,
+      "handler": "handleStart",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
+    },
+    {
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:83:3",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 75,
+      "line": 83,
       "handler": "() => setVariant(value)",
       "destination": null,
       "type": "button",
@@ -95057,11 +95178,11 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:81:3",
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:89:4",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 81,
+      "line": 89,
       "handler": "() => setTargetStreet(option.id)",
       "destination": null,
       "type": "button",
@@ -95070,11 +95191,11 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:88:4",
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:96:5",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 88,
+      "line": 96,
       "handler": "() => onToggleFavorite(game.id)",
       "destination": null,
       "type": "button",
@@ -95083,11 +95204,11 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:89:5",
+      "id": "src/components/training/lobby/TrainingGamePreviewSheet.jsx:97:6",
       "file": "src/components/training/lobby/TrainingGamePreviewSheet.jsx",
       "element": "button",
       "name": "Play Drill",
-      "line": 89,
+      "line": 97,
       "handler": "handleStart",
       "destination": null,
       "type": "button",
@@ -102062,6 +102183,7 @@
         "__tests__/training-arena-lobby-ui.test.mjs",
         "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -102852,6 +102974,7 @@
       "tests": [
         "__tests__/training-coach-local-practice-authority.test.mjs",
         "__tests__/training-community-phase-11.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -114784,6 +114907,7 @@
       ],
       "tests": [
         "__tests__/training-casino-realism-catalog.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
         "__tests__/training-level-progress-failclosed.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
@@ -114992,6 +115116,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
       ]
@@ -115067,7 +115192,8 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs"
+        "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ]
     },
     {
@@ -115109,7 +115235,9 @@
         }
       ],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
+      ]
     },
     {
       "file": "src/components/training/TrainingSignInPrompt.jsx",
@@ -115121,6 +115249,7 @@
       "realtime": [],
       "tests": [
         "__tests__/daily-challenges-casino-realism.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
       ]
     },
@@ -115514,7 +115643,8 @@
       "persistence": [],
       "realtime": [],
       "tests": [
-        "__tests__/training-arena-lobby-ui.test.mjs"
+        "__tests__/training-arena-lobby-ui.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ]
     },
     {
@@ -115556,7 +115686,8 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/training-arena-lobby-ui.test.mjs"
+        "__tests__/training-arena-lobby-ui.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ]
     },
     {
@@ -122281,7 +122412,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "kind": "PLACEHOLDER",
-        "line": 228,
+        "line": 236,
         "excerpt": "placeholder={`Search ${category.title}…`}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -123032,7 +123163,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 350,
+        "line": 358,
         "excerpt": "// Fetch game data from API, with TRAINING_LIBRARY fallback",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -123042,7 +123173,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 357,
+        "line": 365,
         "excerpt": "// aborted between headers and JSON, silently forcing fallback.",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -123052,7 +123183,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 366,
+        "line": 374,
         "excerpt": "console.warn('[LevelSelector] API fetch failed, using client fallback');",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -123061,7 +123192,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 369,
+        "line": 377,
         "excerpt": "// Fallback: use TRAINING_LIBRARY if API fails or game not in registry",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -123071,7 +123202,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 379,
+        "line": 387,
         "excerpt": "console.log(`[LevelSelector] Using TRAINING_LIBRARY fallback for: ${gameId}`);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -134459,7 +134590,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "kind": "PLACEHOLDER",
-        "line": 228,
+        "line": 236,
         "excerpt": "placeholder={`Search ${category.title}…`}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -135210,7 +135341,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 350,
+        "line": 358,
         "excerpt": "// Fetch game data from API, with TRAINING_LIBRARY fallback",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -135220,7 +135351,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 357,
+        "line": 365,
         "excerpt": "// aborted between headers and JSON, silently forcing fallback.",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -135230,7 +135361,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 366,
+        "line": 374,
         "excerpt": "console.warn('[LevelSelector] API fetch failed, using client fallback');",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -135239,7 +135370,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 369,
+        "line": 377,
         "excerpt": "// Fallback: use TRAINING_LIBRARY if API fails or game not in registry",
         "disposition": "runtime-resilience-fallback",
         "review": "accepted",
@@ -135249,7 +135380,7 @@
       {
         "file": "src/components/training/LevelSelector.tsx",
         "kind": "FALLBACK",
-        "line": 379,
+        "line": 387,
         "excerpt": "console.log(`[LevelSelector] Using TRAINING_LIBRARY fallback for: ${gameId}`);",
         "disposition": "input-normalization-default",
         "review": "accepted",

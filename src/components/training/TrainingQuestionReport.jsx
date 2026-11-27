@@ -69,12 +69,13 @@ export default function TrainingQuestionReport({ gameId, question }) {
                 }))}
                 aria-expanded={state.open}
                 style={{
+                    minHeight: 44,
                     padding: '8px 16px',
-                    borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    background: 'rgba(255,255,255,0.03)',
-                    color: state.sent ? '#53f2a0' : '#9db0bb',
-                    fontSize: 12,
+                    borderRadius: 10,
+                    border: '2px solid transparent',
+                    background: 'linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+                    color: state.sent ? '#53f2a0' : '#f3f7fb',
+                    fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
                 }}
@@ -90,8 +91,8 @@ export default function TrainingQuestionReport({ gameId, question }) {
                         display: 'flex',
                         flexWrap: 'wrap',
                         justifyContent: 'center',
-                        gap: 6,
-                        paddingTop: 2,
+                        gap: 8,
+                        paddingTop: 6,
                     }}
                 >
                     {REASONS.map(([reason, label]) => (
@@ -101,11 +102,13 @@ export default function TrainingQuestionReport({ gameId, question }) {
                             disabled={state.submitting}
                             onClick={() => submit(reason)}
                             style={{
-                                padding: '6px 10px',
-                                border: '1px solid rgba(248,113,113,.3)',
-                                background: 'rgba(127,29,29,.2)',
+                                minHeight: 44,
+                                padding: '6px 14px',
+                                borderRadius: 10,
+                                border: '2px solid transparent',
+                                background: 'linear-gradient(180deg, #3d1c23 0%, #1c0b10 60%, #110609 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 18%, #e6f7ff 45%, #4c6470 72%, #e6f4fa 100%) border-box',
                                 color: '#fecaca',
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: 700,
                                 cursor: state.submitting ? 'wait' : 'pointer',
                             }}

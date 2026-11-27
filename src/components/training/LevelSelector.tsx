@@ -190,6 +190,12 @@ const LevelCard: React.FC<{
     };
 
     const cardStyle = getCardStyle();
+    const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        if (!isUnlocked) return;
+        const target = event.target as HTMLElement | null;
+        if (target?.closest?.('button, a, input, select, textarea, [role="button"]')) return;
+        onPlay(level);
+    };
 
     return (
         <motion.div
@@ -197,9 +203,11 @@ const LevelCard: React.FC<{
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.08, duration: 0.4 }}
+            onClick={handleCardClick}
             style={{
                 ...styles.levelCard,
                 ...cardStyle,
+                cursor: isUnlocked ? 'pointer' : 'default',
             }}
         >
             {/* Level Number Badge */}
@@ -302,8 +310,8 @@ const LevelCard: React.FC<{
                 <div style={{
                     ...styles.connectionLine,
                     background: isCompleted
-                        ? 'linear-gradient(180deg, #FFD700, rgba(255, 215, 0, 0.3))'
-                        : 'linear-gradient(180deg, rgba(100, 100, 120, 0.5), rgba(100, 100, 120, 0.1))',
+                        ? 'linear-gradient(180deg, #56d8ff, rgba(8, 124, 250, 0.28))'
+                        : 'linear-gradient(180deg, rgba(100, 120, 140, 0.5), rgba(100, 120, 140, 0.1))',
                 }} />
             )}
         </motion.div>
@@ -679,7 +687,15 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     </div>
                 </div>
 
-                <div className="sp-level-command-art" aria-hidden="true">
+                <button
+                    type="button"
+                    className="sp-level-command-art"
+                    data-level-art-launch={gameId}
+                    onClick={() => handlePlayLevel(activeQuickLevel.level || 1)}
+                    disabled={loading}
+                    aria-label={`Start Level ${activeQuickLevel.level || 1} Of ${gameData?.title || 'Training'}`}
+                    style={{ padding: 0, border: 0, cursor: loading ? 'default' : 'pointer', textAlign: 'left', background: '#03111d' }}
+                >
                     <TrainingGameArt
                         gameId={gameId}
                         sizes="(max-width: 700px) 100vw, 620px"
@@ -691,7 +707,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                         <span>Live Training System</span>
                         <strong>{gameData?.difficulty ? `Difficulty ${gameData.difficulty} / 5` : 'Adaptive Difficulty'}</strong>
                     </div>
-                </div>
+                </button>
             </header>
 
             {/* Level Map */}

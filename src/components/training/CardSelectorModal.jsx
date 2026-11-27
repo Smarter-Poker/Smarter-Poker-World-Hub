@@ -43,17 +43,21 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
                     }}
                 >
                     <motion.div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={title}
+                        className="sp-training-modal-surface"
                         initial={{ scale: 0.85, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.85, opacity: 0 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 350 }}
                         onClick={e => e.stopPropagation()}
                         style={{
-                            background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 100%)',
-                            border: '1px solid rgba(0,212,255,0.25)',
+                            background: 'linear-gradient(165deg, #0c2031 0%, #040d18 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+                            border: '2px solid transparent',
                             borderRadius: 16,
-                            padding: '24px 28px',
-                            boxShadow: '0 12px 48px rgba(0,0,0,0.6)',
+                            padding: '22px 24px',
+                            boxShadow: '0 20px 64px rgba(0,0,0,0.75), inset 0 1px 1px rgba(255,255,255,0.22)',
                             maxWidth: 520,
                             width: '95%',
                         }}
@@ -61,22 +65,29 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
                         {/* Header */}
                         <div style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            marginBottom: 20,
+                            marginBottom: 18,
+                            paddingBottom: 12,
+                            borderBottom: '1px solid #688299',
                         }}>
                             <h3 style={{
-                                margin: 0, fontSize: 18, fontWeight: 800,
-                                background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
-                                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                                margin: 0, fontSize: 20, fontWeight: 800,
+                                color: '#f3f7fb',
+                                fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
+                                textShadow: '0 1px 2px #000',
                             }}>
                                 {title}
                             </h3>
                             <button
+                                type="button"
+                                aria-label="Close Card Selector"
                                 onClick={onClose}
                                 style={{
-                                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: 8, padding: '4px 10px', color: '#94a3b8',
-                                    cursor: 'pointer', fontSize: 14,
+                                    minWidth: 44, minHeight: 44,
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+                                    border: '2px solid transparent',
+                                    borderRadius: 10, padding: '0 10px', color: '#f3f7fb',
+                                    cursor: 'pointer', fontSize: 16, fontWeight: 700,
                                 }}
                             >
                                 ✕

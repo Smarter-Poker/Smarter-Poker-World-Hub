@@ -25,6 +25,10 @@ const TrainingGameCard = memo(function TrainingGameCard({
   const variant = selectedVariant && selectedVariant !== 'ALL'
     ? selectedVariant.toUpperCase() : meta.variantShort;
   const titleId = `training-card-title-${game.id}`;
+  const handleCardClick = (event) => {
+    if (event.target?.closest?.('button, a, input, select, textarea, [role="button"]')) return;
+    onStart(game);
+  };
 
   return (
     <article
@@ -34,11 +38,15 @@ const TrainingGameCard = memo(function TrainingGameCard({
       data-category={meta.category.toLowerCase()}
       data-training-play-game={game.id}
       aria-labelledby={titleId}
+      onClick={handleCardClick}
     >
       <button
         type="button"
         className={styles.cardArtButton}
-        onClick={() => onStart(game)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onStart(game);
+        }}
         aria-label={`Play ${game.name}`}
         tabIndex={-1}
       >

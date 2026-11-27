@@ -23,7 +23,7 @@ export default function LevelCompleteModal({
 
     return (
         <div className="level-modal-overlay">
-            <div className="level-modal">
+            <div className="level-modal sp-training-modal-surface" role="dialog" aria-modal="true" aria-labelledby="level-complete-title">
                 {/* Corner Bolts */}
                 <div className="bolt bolt-tl" />
                 <div className="bolt bolt-tr" />
@@ -39,7 +39,7 @@ export default function LevelCompleteModal({
                         {passed ? '★' : '★'}
                     </div>
 
-                    <h2 className={`title ${passed ? 'success' : 'warning'}`}>
+                    <h2 id="level-complete-title" className={`title ${passed ? 'success' : 'warning'}`}>
                         {passed
                             ? (isMaxLevel ? 'Game Mastered!' : 'Level Complete!')
                             : 'Level Failed'}
@@ -124,18 +124,20 @@ export default function LevelCompleteModal({
 
                 .level-modal {
                     position: relative;
-                    background: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
-                    border: 3px solid #3d4f5f;
-                    border-radius: 16px;
+                    background:
+                        linear-gradient(165deg, #0c2031 0%, #06131f 48%, #020a12 100%) padding-box,
+                        linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box;
+                    border: 3px solid transparent;
+                    border-radius: 18px;
                     max-width: 420px;
                     width: 100%;
                     box-shadow: 
-                        inset 0 1px 0 rgba(255,255,255,0.1),
-                        inset 0 -1px 0 rgba(0,0,0,0.3),
-                        0 8px 40px rgba(0,0,0,0.6),
-                        0 0 60px rgba(0, 212, 255, 0.15);
+                        inset 0 1px 0 rgba(255,255,255,0.22),
+                        inset 0 -1px 0 rgba(0,0,0,0.45),
+                        0 20px 64px rgba(0,0,0,0.75),
+                        0 0 40px rgba(0, 154, 227, 0.18);
                     animation: slideUp 0.3s ease-out;
-                    font-family: 'Rajdhani', 'Inter', -apple-system, sans-serif;
+                    font-family: var(--font-rajdhani, 'Rajdhani'), 'Inter', -apple-system, sans-serif;
                 }
 
                 @keyframes slideUp {
@@ -218,11 +220,11 @@ export default function LevelCompleteModal({
                 }
                 .title.warning { 
                     color: #86daff; 
-                    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+                    text-shadow: 0 0 20px rgba(134, 218, 255, 0.45);
                 }
 
                 .subtitle {
-                    color: #94a3b8;
+                    color: #c4d2df;
                     font-size: 16px;
                     margin: 0 0 24px;
                 }
@@ -235,20 +237,21 @@ export default function LevelCompleteModal({
                 }
 
                 .stat-box {
-                    background: linear-gradient(180deg, rgba(61, 79, 95, 0.2) 0%, rgba(13, 17, 23, 0.4) 100%);
-                    border: 1px solid rgba(255,255,255,0.08);
+                    background: linear-gradient(180deg, #102438 0%, #050f19 100%);
+                    border: 1px solid #688299;
+                    border-top-color: #aec0d0;
                     border-radius: 10px;
                     padding: 12px;
                 }
 
                 .stat-value {
-                    color: #fff;
+                    color: #f3f7fb;
                     font-size: 22px;
                     font-weight: 700;
                 }
 
                 .stat-label {
-                    color: #64748b;
+                    color: #b6c8d6;
                     font-size: 12px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
@@ -256,25 +259,25 @@ export default function LevelCompleteModal({
                 }
 
                 .xp-row {
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 153, 204, 0.05) 100%);
-                    border: 1px solid rgba(0, 212, 255, 0.3);
+                    background: linear-gradient(135deg, rgba(8, 124, 250, 0.16) 0%, rgba(5, 22, 38, 0.85) 100%);
+                    border: 1px solid #56d8ff;
                     border-radius: 12px;
                     padding: 16px;
                     margin-bottom: 24px;
                 }
 
                 .xp-label {
-                    color: #64748b;
+                    color: #c4d2df;
                     font-size: 12px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
 
                 .xp-value {
-                    color: #00D4FF;
+                    color: #8de6ff;
                     font-size: 32px;
                     font-weight: 800;
-                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+                    text-shadow: 0 0 18px rgba(141, 230, 255, 0.45);
                 }
 
                 .button-row {
@@ -284,38 +287,40 @@ export default function LevelCompleteModal({
 
                 .btn {
                     flex: 1;
-                    padding: 14px 24px;
-                    border-radius: 10px;
-                    border: none;
-                    font-size: 15px;
-                    font-weight: 600;
-                    font-family: 'Rajdhani', sans-serif;
-                    text-transform: uppercase;
+                    min-height: 48px;
+                    padding: 12px 20px;
+                    border-radius: 12px;
+                    border: 2px solid transparent;
+                    font-size: 16px;
+                    font-weight: 700;
+                    font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
                     letter-spacing: 0.5px;
                     cursor: pointer;
-                    transition: all 0.2s ease;
+                    transition: box-shadow 0.15s ease, filter 0.15s ease;
                 }
 
                 .btn-primary {
-                    background: linear-gradient(135deg, #00D4FF, #0099CC);
-                    color: #000;
-                    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+                    background:
+                        linear-gradient(180deg, #51c9ff 0%, #0873ff 10%, #0648e2 38%, #022695 82%, #0b71c4 100%) padding-box,
+                        linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box;
+                    color: #ffffff;
+                    box-shadow: inset 0 1px 2px #b9efff, 0 4px 16px rgba(6, 115, 199, 0.35);
                 }
 
                 .btn-primary:hover {
-                    box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
-                    transform: translateY(-1px);
+                    box-shadow: inset 0 1px 2px #fff, 0 0 22px rgba(81, 201, 255, 0.45);
                 }
 
                 .btn-secondary {
-                    background: rgba(255,255,255,0.1);
-                    color: #fff;
-                    border: 1px solid rgba(255,255,255,0.2);
+                    background:
+                        linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%) padding-box,
+                        linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box;
+                    color: #f3f7fb;
+                    box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 3px 8px rgba(0,0,0,0.4);
                 }
 
                 .btn-secondary:hover {
-                    background: rgba(255,255,255,0.15);
-                    border-color: rgba(255,255,255,0.3);
+                    box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 0 14px rgba(0, 138, 211, 0.28);
                 }
             ` }} />
         </div>
