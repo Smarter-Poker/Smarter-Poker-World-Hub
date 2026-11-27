@@ -189,6 +189,8 @@ _legacy_sql/
 !/__tests__/marketplace-whole-dollar-prices.test.mjs
 !/__tests__/vip-first-month-one-dollar.test.mjs
 !/__tests__/vip-intro-knowledge.test.mjs
+!/__tests__/vip-complimentary-term-does-not-block-card.test.mjs
+!/supabase/migrations/20261127074620_vip_complimentary_term_does_not_block_card_subscription.sql
 !/__tests__/vip-lifecycle-notices.test.mjs
 !/__tests__/vip-first-month-hardening.test.mjs
 !/__tests__/vip-one-first-month-per-card.test.mjs
