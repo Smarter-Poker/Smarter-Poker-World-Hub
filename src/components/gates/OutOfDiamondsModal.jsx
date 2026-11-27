@@ -72,7 +72,8 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
                 {!isVIP && (
                     <div className="sp-ood-vip">
                         <div className="sp-ood-vip-kicker">GET VIP FOR</div>
-                        <div className="sp-ood-vip-price">$20<span>/Month</span></div>
+                        <div className="sp-ood-vip-price">$1<span> First Month</span></div>
+                        <div className="sp-ood-vip-note">Then $20/Month. Cancel Anytime. New Subscribers Only.</div>
                         <div className="sp-ood-vip-note">UNLIMITED ACCESS. No Diamonds Needed</div>
                     </div>
                 )}

@@ -187,3 +187,4 @@ _legacy_sql/
 /eslint-plugin-smarter-poker/
 
 !/__tests__/marketplace-whole-dollar-prices.test.mjs
+!/__tests__/vip-first-month-one-dollar.test.mjs

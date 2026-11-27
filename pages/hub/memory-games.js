@@ -204,6 +204,8 @@ import {
   subscriptionCheckoutOfferConfirmation,
 } from '../../src/lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../src/lib/store/checkoutAuthorization';
+import { useVipIntroOffer } from '../../src/lib/store/useVipIntroOffer';
+import { VIP_INTRO_OFFER } from '../../src/lib/store/vipIntroOffer.mjs';
 import { leaveForCheckout } from '../../src/lib/store/leaveForCheckout.mjs';
 import { VIP_MEMBERSHIP } from '../../src/data/diamondStoreData';
 import PreflopRangeMatrix from '../../src/components/memory-games/PreflopRangeMatrix';
@@ -591,6 +593,7 @@ export default function MemoryGamesPage() {
   const { user, initializing: authInitializing } = useAvatar();
   useTrainingBus('preflop-charts');
   const userId = user?.id;
+  const vipIntro = useVipIntroOffer(userId || null);
   const containerRef = useRef(null);
   const labRef = useRef(null);
   const haptic = useHaptics();
@@ -1745,9 +1748,14 @@ export default function MemoryGamesPage() {
     let checkoutRequestId = null;
     try {
       const expectedAccountId = userId;
+      // $1 first month: reviewed terms carry it only when the server already
+      // confirmed this account is eligible; the API re-decides and refuses a
+      // checkout whose amount due today differs.
       const offerConfirmation = subscriptionCheckoutOfferConfirmation(
         expectedAccountId,
-        VIP_MEMBERSHIP.monthly
+        vipIntro.eligible === true
+          ? { ...VIP_MEMBERSHIP.monthly, introCents: VIP_INTRO_OFFER.firstPeriodCents }
+          : VIP_MEMBERSHIP.monthly
       );
       if (!offerConfirmation) {
         throw new Error('The Current VIP Offer Could Not Be Verified. Review It And Try Again.');
@@ -1845,7 +1853,7 @@ export default function MemoryGamesPage() {
         setVipCheckoutPending(false);
       }
     }
-  }, [router, userId, requireOnline]);
+  }, [router, userId, requireOnline, vipIntro.eligible]);
 
   // ── Page tutorial hand-off (mobile phase 0c / 2) ──
   // The app shell opens the tour; every spotlight target lives on the menu
@@ -2844,7 +2852,7 @@ export default function MemoryGamesPage() {
                     <div className="preflop-vip-panel">
                       <div className="preflop-vip-seal">VIP</div>
                       <div className="preflop-vip-copy">
-                        <div>Go VIP - $20/Month</div>
+                        <div>{vipIntro.display ? 'Go VIP - $1 First Month, Then $20/Month' : 'Go VIP - $20/Month'}</div>
                         <p>Unlock Verified AI Scenario Generation And Other VIP Features.</p>
                       </div>
                       <button

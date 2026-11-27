@@ -36,6 +36,8 @@ import {
   vipDiamondOfferConfirmation,
 } from '../../src/lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../src/lib/store/checkoutAuthorization';
+import { useVipIntroOffer } from '../../src/lib/store/useVipIntroOffer';
+import { VIP_INTRO_OFFER } from '../../src/lib/store/vipIntroOffer.mjs';
 import {
   classifyVipDiamondPurchaseRefusal,
   normalizeVerifiedDiamondPackages,
@@ -848,6 +850,7 @@ export default function DiamondStorePage({
   const committedStoreAccountId = storeClientReady
     ? contextUser?.id || (authInitializing ? user?.id || getAuthUser()?.id || null : null)
     : null;
+  const vipIntro = useVipIntroOffer(committedStoreAccountId);
   const clubShopAuthPending = !storeClientReady || authInitializing;
 
   useEffect(() => {
@@ -2178,9 +2181,16 @@ export default function DiamondStorePage({
     }
     const expectedAccountId = authUser.id;
     const checkoutType = plan.oneTime ? 'vip_lifetime' : 'subscription';
+    /* The $1 first month is part of the reviewed terms only when the server
+       already told this page the account is eligible. The API re-decides it
+       and refuses a checkout whose amount due today differs. */
+    const introReviewed = !plan.oneTime && plan.interval === 'month' && vipIntro.eligible === true;
     const offerConfirmation = plan.oneTime
       ? lifetimeCheckoutOfferConfirmation(expectedAccountId, plan)
-      : subscriptionCheckoutOfferConfirmation(expectedAccountId, plan);
+      : subscriptionCheckoutOfferConfirmation(
+          expectedAccountId,
+          introReviewed ? { ...plan, introCents: VIP_INTRO_OFFER.firstPeriodCents } : plan
+        );
     if (!offerConfirmation) {
       showStoreToast(
         'error',
@@ -2288,6 +2298,11 @@ export default function DiamondStorePage({
         } catch (replacementError) {
           error = replacementError;
         }
+      }
+      if (['VIP_INTRO_OFFER_USED', 'VIP_INTRO_OFFER_AVAILABLE', 'OFFER_CONFIRMATION_MISMATCH'].includes(String(error?.code || ''))) {
+        // The price this account is owed changed under the page. Read it again
+        // so the label and the next confirmation match what the server charges.
+        vipIntro.refresh();
       }
       console.warn('VIP subscription error:', error);
       captureStoreEvent('checkout_failed', { route: 'vip', type: 'subscription' });
@@ -3499,6 +3514,7 @@ export default function DiamondStorePage({
   }, [clubShopClubId, clubShopSnapshotOwned, committedStoreAccountId, visibleClubShopItems]);
 
   const lifetimeSelected = selectedVIPPlan?.interval === 'lifetime';
+  const selectedVipIntro = selectedVIPPlan?.interval === 'month' && vipIntro.display;
   const selectedVipHasExactRecovery =
     vipDiamondRecovery.status === 'recoverable' &&
     vipDiamondRecovery.planKey === vipDiamondPlanKey(selectedVIPPlan);
@@ -3510,7 +3526,9 @@ export default function DiamondStorePage({
   const vipSubscribeLabel = vipCardReady
     ? lifetimeSelected
       ? `Buy VIP Lifetime With Card: $${formatStoreUsd(selectedVIPPlan?.price || 500)} Once`
-      : `Subscribe With Card: $${formatStoreUsd(selectedVIPPlan?.price || 20)}/${selectedVIPPlan?.interval === 'year' ? 'Year' : 'Month'}`
+      : selectedVipIntro
+        ? `Subscribe With Card: $1 First Month, Then $${formatStoreUsd(selectedVIPPlan?.price || 20)}/Month`
+        : `Subscribe With Card: $${formatStoreUsd(selectedVIPPlan?.price || 20)}/${selectedVIPPlan?.interval === 'year' ? 'Year' : 'Month'}`
     : selectedVipHasExactRecovery
       ? 'Verify Purchase'
       : `Lifetime VIP Is Bought With Diamonds: ${Math.round(Number(selectedVIPPlan?.price || 0) * 100).toLocaleString()}`;
@@ -3704,12 +3722,12 @@ export default function DiamondStorePage({
 
                   {!vipProduct?.gift && <section id="vip-plans" className={vipStyles.purchase} aria-labelledby="vip-plan-title">
                     <div className={vipStyles.sectionHeading}>
-                      <h2 id="vip-plan-title">{vipProduct ? `${VIP_TERMS[vipProduct.plan].label} VIP: $${formatStoreUsd(VIP_MEMBERSHIP[vipProduct.plan].price)}` : 'Choose Your VIP Membership'}</h2>
+                      <h2 id="vip-plan-title">{vipProduct ? (vipProduct.plan === 'monthly' && !vipProduct.gift && vipIntro.display ? 'Monthly VIP: $1 First Month, Then $20/Month' : `${VIP_TERMS[vipProduct.plan].label} VIP: $${formatStoreUsd(VIP_MEMBERSHIP[vipProduct.plan].price)}`) : 'Choose Your VIP Membership'}</h2>
                       <p>{vipProduct ? vipMembershipTerms(vipProduct.plan) : 'Monthly Flexibility, A Year Of Access, Or Lifetime Membership.'}</p>
                     </div>
                     {!vipProduct && <>
                     <div className={vipStyles.plans} role="region" aria-label="VIP Membership Plans">
-                      <VIPCard plan={VIP_MEMBERSHIP.monthly} isSelected={selectedVIP === 'vip-monthly'} onSelect={setSelectedVIP} />
+                      <VIPCard plan={VIP_MEMBERSHIP.monthly} isSelected={selectedVIP === 'vip-monthly'} onSelect={setSelectedVIP} introOffer={vipIntro.display} />
                       <VIPCard plan={VIP_MEMBERSHIP.yearly} isSelected={selectedVIP === 'vip-yearly'} onSelect={setSelectedVIP} />
                       <VIPCard plan={VIP_MEMBERSHIP.lifetime} isSelected={selectedVIP === 'vip-lifetime'} onSelect={setSelectedVIP} />
                     </div>
@@ -3721,7 +3739,7 @@ export default function DiamondStorePage({
                     <div className={vipStyles.checkout}>
                       <div className={vipStyles.selectedTerm} aria-live="polite" aria-atomic="true">
                         <strong>{marketplaceCopy(selectedVIPPlan.name)}</strong>
-                        <span>{selectedVIPPlan.oneTime ? 'One Payment. No Renewal.' : `Renews Every ${selectedVIPPlan.interval === 'year' ? 'Year' : 'Month'}. Cancel Anytime.`}</span>
+                        <span>{selectedVIPPlan.oneTime ? 'One Payment. No Renewal.' : selectedVipIntro ? `$1 Today For Your First Month. Then $${formatStoreUsd(selectedVIPPlan.price)} Every Month. Cancel Anytime.` : `Renews Every ${selectedVIPPlan.interval === 'year' ? 'Year' : 'Month'}. Cancel Anytime.`}</span>
                         {selectedVIP === 'vip-yearly' && VIP_MEMBERSHIP.yearly.savings > 0 && (
                           <span className={vipStyles.savings}>Save ${formatStoreUsd(VIP_MEMBERSHIP.yearly.savings)} A Year Compared With Monthly.</span>
                         )}

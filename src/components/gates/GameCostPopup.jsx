@@ -108,6 +108,14 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
                     <span className="tc-row__value tc-ink--green">Free</span>
                 </li>
                 <li className="tc-row">
+                    <span className="tc-row__label">VIP First Month</span>
+                    <span className="tc-row__value tc-ink--green">$1 For New Subscribers</span>
+                </li>
+                <li className="tc-row">
+                    <span className="tc-row__label">VIP After That</span>
+                    <span className="tc-row__value">$20/Month, Cancel Anytime</span>
+                </li>
+                <li className="tc-row">
                     <span className="tc-row__label">Charged</span>
                     <span className="tc-row__value">When A Game Starts</span>
                 </li>

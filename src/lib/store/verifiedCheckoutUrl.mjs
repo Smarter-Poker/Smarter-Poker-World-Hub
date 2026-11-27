@@ -1,3 +1,4 @@
+import { VIP_INTRO_OFFER } from './vipIntroOffer.mjs';
 const MAX_CHECKOUT_URL_LENGTH = 4096;
 const VERIFIED_CHECKOUT_HOSTS = new Set(['checkout.stripe.com']);
 const STRIPE_CHECKOUT_SESSION_ID_RE = /^cs_(?:test|live)_[A-Za-z0-9]{6,255}$/;
@@ -184,6 +185,31 @@ export function subscriptionCheckoutOfferConfirmation(accountIdValue, rawPlan) {
     (rawPlan.price !== undefined && exactUsdCents(rawPlan.price) !== unitCents)
   )
     return null;
+  /* The $1 first month (src/lib/store/vipIntroOffer.mjs). The caller passes
+     `introCents` only when the server said this account is eligible; the key
+     is then part of the reviewed terms, and the API refuses the checkout if
+     its own decision differs. Absent means the regular price. */
+  const introCents = rawPlan.introCents;
+  if (introCents !== undefined && introCents !== null) {
+    if (
+      plan !== VIP_INTRO_OFFER.plan ||
+      introCents !== VIP_INTRO_OFFER.firstPeriodCents ||
+      unitCents !== VIP_INTRO_OFFER.regularCents
+    )
+      return null;
+    return Object.freeze({
+      version: 1,
+      accountId,
+      type: 'subscription',
+      currency: 'usd',
+      plan,
+      interval,
+      quantity: 1,
+      unitCents,
+      totalCents: introCents,
+      introCents,
+    });
+  }
   return Object.freeze({
     version: 1,
     accountId,

@@ -86,6 +86,8 @@ function getSupabase() {
 }
 
 /* ── Tunables ─────────────────────────────────────────────────────────────── */
+const INTRO_PERIOD_DAYS   = 31;    // one monthly period: the $1 first month earns no stipend
+const INTRO_LOOKUP_CHUNK  = 200;   // user ids per prior-subscription lookup
 const PAGE_SIZE          = 500;   // rows pulled from vip_subscriptions per query
 const AWARD_CHUNK        = 10;    // concurrent award_diamonds_v2 calls
 const MAX_AWARDS_PER_RUN = 5000;  // hard ceiling per benefit class
@@ -153,6 +155,7 @@ async function handler(req, res) {
         notEligible:    0,   // rejected by award_diamonds_v2's own VIP check
         capped:         0,   // budget_exhausted / monthly_cap
         failed:         0,   // RPC errors
+        introPeriodSkipped: 0, // first-ever monthly subscribers inside the $1 period
         truncated:      false,
         lifetimeScanned: 0,
         lifetimeEligible: 0,
@@ -174,6 +177,18 @@ async function handler(req, res) {
         // This is the eligibility gate. profiles is never consulted here.
         // ═══════════════════════════════════════════════════════════════════
         const eligibleUserIds = new Set();
+        /* THE $1 FIRST MONTH DOES NOT EARN THE STIPEND (2026-11-26).
+           A first-time monthly subscriber pays $1 for the first period. Paying
+           that account 500 Diamonds ($5) in the same period is the platform
+           handing out $4 per new account and card, repeatable at will. The
+           stipend starts with the first full-price renewal. A monthly row
+           younger than one period is a candidate; it is dropped below only
+           when it is that account's first Card subscription ever, so a
+           returning subscriber, who paid the full price, is never delayed. */
+        const introPeriodFloorISO = new Date(
+            Date.now() - INTRO_PERIOD_DAYS * 24 * 60 * 60 * 1000
+        ).toISOString();
+        const introCandidateUserIds = new Set();
 
         for (let page = 0; page < MAX_PAGES; page++) {
             const from = page * PAGE_SIZE;
@@ -181,7 +196,7 @@ async function handler(req, res) {
 
             const { data: rows, error: fetchError } = await supabase
                 .from('vip_subscriptions')
-                .select('user_id, stripe_subscription_id, status, tier, current_period_end')
+                .select('user_id, stripe_subscription_id, status, tier, current_period_end, created_at')
                 .in('status', PAYING_STATUSES)
                 .not('stripe_subscription_id', 'is', null)
                 /* Issue #771.2 — the non-null test exists to prove CASH was
@@ -214,10 +229,37 @@ async function handler(req, res) {
                 if (row.current_period_end && row.current_period_end < periodFloorISO) continue;
 
                 eligibleUserIds.add(row.user_id);
+                if (row.tier === 'monthly' && row.created_at && row.created_at > introPeriodFloorISO) {
+                    introCandidateUserIds.add(row.user_id);
+                }
             }
 
             if (rows.length < PAGE_SIZE) break;
             if (page === MAX_PAGES - 1) stats.truncated = true;
+        }
+
+        const introCandidates = Array.from(introCandidateUserIds);
+        for (let i = 0; i < introCandidates.length; i += INTRO_LOOKUP_CHUNK) {
+            const chunk = introCandidates.slice(i, i + INTRO_LOOKUP_CHUNK);
+            const { data: olderRows, error: olderError } = await supabase
+                .from('vip_subscriptions')
+                .select('user_id')
+                .in('user_id', chunk)
+                .not('stripe_subscription_id', 'is', null)
+                .not('stripe_subscription_id', 'like', 'diamond_%')
+                .lte('created_at', introPeriodFloorISO);
+            if (olderError) {
+                // Unknown is not eligible: failing the run pays nobody twice
+                // (the award is idempotent per month) and pays no intro month.
+                console.error('[cron/vip-stipend] intro-period lookup failed:', olderError.message);
+                return res.status(500).json({ success: false, error: olderError.message, stats });
+            }
+            const returning = new Set((olderRows || []).map((row) => row.user_id));
+            for (const userId of chunk) {
+                if (returning.has(userId)) continue;
+                eligibleUserIds.delete(userId);
+                stats.introPeriodSkipped += 1;
+            }
         }
 
         const userIds = Array.from(eligibleUserIds).slice(0, maxAwards);

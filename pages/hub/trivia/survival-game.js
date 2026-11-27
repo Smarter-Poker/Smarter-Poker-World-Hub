@@ -1507,7 +1507,7 @@ export default function SurvivalGamePage() {
                                         <h2 id="survival-diamonds-title">Not Enough Diamonds</h2>
                                         <p>
                                             A New Run Costs {formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds.
-                                            Get More Diamonds Or Upgrade To VIP For Unlimited Access.
+                                            Get More Diamonds Or Upgrade To VIP For Unlimited Access. New Subscribers: $1 First Month, Then $20/Month. Cancel Anytime.
                                         </p>
                                     </section>
                                 )}

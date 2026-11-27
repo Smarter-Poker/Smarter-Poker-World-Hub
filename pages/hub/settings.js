@@ -1806,7 +1806,7 @@ export default function SettingsPage() {
                                                         <div style={{ flex: 1 }}>
                                                             <div style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb' }}>No Active Membership</div>
                                                             <div style={{ fontSize: 13, color: '#65676b', marginTop: 4 }}>
-                                                                Upgrade To VIP For Premium Benefits
+                                                                Upgrade To VIP For Premium Benefits. New Subscribers: $1 First Month, Then $20/Month. Cancel Anytime.
                                                             </div>
                                                         </div>
                                                     </div>

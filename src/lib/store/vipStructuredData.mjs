@@ -115,7 +115,7 @@ export function vipProductContent(catalog, plan, gift = false) {
     yearly: `Give An Accepted Friend 365 Days Of Smarter.Poker VIP For ${price} Or ${diamonds} Diamonds. One-Time Gift; Access Starts On Redemption, With No Auto-Renewal.`,
     lifetime: `Give Lifetime Smarter.Poker VIP To An Accepted Friend For ${price} Or ${diamonds} Diamonds. One Payment, No Expiry. Your Friend Chooses When To Redeem.`,
   } : {
-    monthly: `Monthly Poker VIP: ${price}/Month By Card Or ${diamonds} Diamonds For 30 Days. Get Premium Training And Club Arena Features. Card Renews Monthly; Cancel Anytime.`,
+    monthly: `Monthly Poker VIP: $1 First Month For New Card Subscribers, Then ${price}/Month, Or ${diamonds} Diamonds For 30 Days. Premium Training And Club Arena. Cancel Anytime.`,
     yearly: `Yearly Poker VIP: ${price}/Year By Card Or ${diamonds} Diamonds For 365 Days. Premium Training And Club Arena Benefits. Card Renews Yearly; Cancel Anytime.`,
     lifetime: `Lifetime Poker VIP For ${price} Or ${diamonds} Diamonds. One Payment, No Expiry Or Renewal. Unlock Premium Training And Lifetime Club Arena Benefits.`,
   };

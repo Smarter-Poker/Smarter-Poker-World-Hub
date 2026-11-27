@@ -724,7 +724,7 @@ export default function MixedModePage() {
                                     <h2 id="mixed-diamonds-title">Not Enough Diamonds</h2>
                                     <p>
                                         Each Game Costs {formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds.
-                                        Get More Diamonds Or Upgrade To VIP For Unlimited Access.
+                                        Get More Diamonds Or Upgrade To VIP For Unlimited Access. New Subscribers: $1 First Month, Then $20/Month. Cancel Anytime.
                                     </p>
                                 </section>
                             )}
