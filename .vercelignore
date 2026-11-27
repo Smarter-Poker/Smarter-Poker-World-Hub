@@ -191,3 +191,5 @@ _legacy_sql/
 !/__tests__/vip-intro-knowledge.test.mjs
 !/__tests__/vip-lifecycle-notices.test.mjs
 !/__tests__/vip-first-month-hardening.test.mjs
+!/__tests__/vip-one-first-month-per-card.test.mjs
+!/__tests__/vip-comeback-price.test.mjs

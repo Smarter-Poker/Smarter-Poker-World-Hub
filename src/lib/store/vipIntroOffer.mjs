@@ -116,9 +116,17 @@ const SWITCH_OFFER_OFF_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
 /** 'on' | 'off' | 'unknown'. Never throws. */
 export function readVipIntroOfferSwitch(env = process.env) {
+  return readOfferDisabledSwitch(VIP_INTRO_SWITCH_ENV, env);
+}
+
+/**
+ * The same off-switch rule for any offer's own `<NAME>_DISABLED` variable
+ * (the comeback price uses it too). 'on' | 'off' | 'unknown'. Never throws.
+ */
+export function readOfferDisabledSwitch(name, env = process.env) {
   let raw;
   try {
-    raw = env?.[VIP_INTRO_SWITCH_ENV];
+    raw = env?.[name];
   } catch (_error) {
     return 'unknown';
   }
@@ -186,6 +194,16 @@ export function isVipIntroSubscription(subscription) {
  */
 export function vipIntroPlanSwitchDecision(subscription, paidInvoices) {
   if (!isVipIntroSubscription(subscription)) return 'open';
+  return vipFullPriceRenewalDecision(subscription, paidInvoices);
+}
+
+/**
+ * The invoice rule alone, for any subscription whose first month was sold at
+ * a one-time reduction (the $1 first month or the comeback price): 'open' once
+ * Stripe shows one paid invoice at the full monthly price, 'locked' before
+ * that, 'unknown' when the list cannot prove either.
+ */
+export function vipFullPriceRenewalDecision(subscription, paidInvoices) {
   const subscriptionId = objectId(subscription);
   const rows = paidInvoices?.data;
   if (!subscriptionId || !Array.isArray(rows)) return 'unknown';

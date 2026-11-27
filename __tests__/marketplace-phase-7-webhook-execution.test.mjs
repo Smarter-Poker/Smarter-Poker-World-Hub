@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import vm from 'node:vm';
+import { vipDiscountedAdmissionDecision } from '../src/lib/store/vipDiscountedAdmission.mjs';
 
 const WEBHOOK_PATH = new URL('../pages/api/store/webhooks/stripe.js', import.meta.url);
 const webhookSource = await readFile(WEBHOOK_PATH, 'utf8');
@@ -313,6 +314,7 @@ function makeHarness({
     structuredClone,
     stripe,
     getSupabase,
+    vipDiscountedAdmissionDecision,
     STRIPE_VIP_AUTHORITY,
     classifyStripeSubscriptionForVip: (subscription) => subscription.authority,
     classifyStripeCheckoutSessionForVip: (candidate) => (
