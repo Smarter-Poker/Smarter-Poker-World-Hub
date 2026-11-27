@@ -1008,6 +1008,7 @@ function GodModeArenaInner({
   sessionId,
   onComplete,
   onExit,
+  exitLabel = '← Back To Training',
   // 2026-07-26 UX FIX: when the caller has ALREADY collected difficulty /
   // timer / mode (SessionSetupModal on the dashboard), pass them here.
   // The arena then starts straight into play instead of showing its own
@@ -1678,12 +1679,74 @@ function GodModeArenaInner({
     }
   }, [gameComplete]);
 
-  // Reset one-shot coaching refs whenever a new run starts. Canonical session
+  // Reset one-shot coaching and completion refs whenever a new run starts. Canonical session
   // analytics are materialized by useGTOTrainer only after its server-owned
   // attempt completes; this component must never post browser-computed totals.
+  const completedEmissionKeyRef = useRef(null);
+  const resolvedExitLabel = typeof exitLabel === 'string' && exitLabel.trim()
+    ? exitLabel.trim()
+    : '← Back To Training';
+  const exitLabelText = resolvedExitLabel.replace(/^\s*←\s*/, '');
+
+  const emitCompletionOnce = useCallback((overrides = null) => {
+    if (!gameComplete || totalQuestions <= 0) return;
+    const completionKey = `${trainingSessionId || sessionId || gameId}:${currentLevel}:${totalQuestions}:${correctCount}`;
+    if (completedEmissionKeyRef.current === completionKey) return;
+    completedEmissionKeyRef.current = completionKey;
+    const computedAccuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+    const computedTotalEVLoss = measuredEVDecisions > 0 && Number.isFinite(Number(measuredTotalEVLoss))
+      ? Number(measuredTotalEVLoss)
+      : null;
+    onComplete?.({
+      gameId,
+      accuracy: computedAccuracy,
+      correctCount,
+      totalQuestions,
+      passed: levelPassed,
+      questionsAnswered: totalQuestions,
+      questionsCorrect: correctCount,
+      bestStreak,
+      levelPassed,
+      level: currentLevel,
+      gtowScore,
+      totalEVLoss: computedTotalEVLoss,
+      measuredEVDecisions,
+      sessionMistakes,
+      ...(overrides || {}),
+    });
+  }, [
+    gameComplete,
+    totalQuestions,
+    trainingSessionId,
+    sessionId,
+    gameId,
+    currentLevel,
+    correctCount,
+    levelPassed,
+    bestStreak,
+    gtowScore,
+    measuredEVDecisions,
+    measuredTotalEVLoss,
+    sessionMistakes,
+    onComplete,
+  ]);
+
+  // Auto-fire onComplete once upon entering completion state so mastery sync
+  // runs regardless of whether the player chooses Play Again, Train Mistakes,
+  // Next Level, Retry Level, or exits. Guarded by completedEmissionKeyRef which
+  // resets when a new run/level begins.
+  useEffect(() => {
+    if (!gameComplete) {
+      completedEmissionKeyRef.current = null;
+      return;
+    }
+    emitCompletionOnce();
+  }, [gameComplete, emitCompletionOnce]);
+
   useEffect(() => {
     if (!gameComplete) {
       coachingFetchedRef.current = false;
+      completedEmissionKeyRef.current = null;
       sessionStartRef.current = Date.now();
       setAiCoaching(null);
     }
@@ -1929,7 +1992,7 @@ function GodModeArenaInner({
                 fontSize: 14,
               }}
             >
-              Back To Training
+              {exitLabelText}
             </button>
           </div>
         </div>
@@ -2372,18 +2435,9 @@ function GodModeArenaInner({
             <button
               type="button"
               onClick={() => {
-                onComplete?.({
-                  gameId,
-                  accuracy,
-                  questionsAnswered: totalQuestions,
-                  questionsCorrect: correctCount,
-                  bestStreak,
-                  levelPassed,
-                  level: currentLevel,
-                  gtowScore,
+                emitCompletionOnce({
                   totalEVLoss: measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,
                   measuredEVDecisions: measuredEVReviewHistory.length,
-                  sessionMistakes,
                 });
                 onExit?.();
               }}
@@ -2401,7 +2455,7 @@ function GodModeArenaInner({
                 cursor: 'pointer',
               }}
             >
-              ← Back To Training
+              {resolvedExitLabel}
             </button>
           </div>
 
@@ -4306,19 +4360,10 @@ function GodModeArenaInner({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                onComplete?.({
-                  gameId,
-                  accuracy,
-                  questionsAnswered: totalQuestions,
-                  questionsCorrect: correctCount,
-                  bestStreak,
-                  levelPassed,
-                  level: currentLevel,
-                  gtowScore,
+                emitCompletionOnce({
                   totalEVLoss:
                     measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,
                   measuredEVDecisions: measuredEVReviewHistory.length,
-                  sessionMistakes,
                 });
                 onExit?.();
               }}
@@ -4339,7 +4384,7 @@ function GodModeArenaInner({
               }}
             >
               <span style={{ fontSize: 16 }}>{'\u2190'}</span>
-              Back To Training
+              {exitLabelText}
             </motion.button>
           </div>
 
@@ -5074,7 +5119,7 @@ function GodModeArenaInner({
                     cursor: 'pointer',
                   }}
                 >
-                  ← Back To Training
+                  {resolvedExitLabel}
                 </motion.button>
               </div>
             </motion.div>

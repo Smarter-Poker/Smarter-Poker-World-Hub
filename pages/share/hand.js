@@ -1,14 +1,14 @@
 /**
  * Share Hand Landing Page
- * /share/hand?hero=Ah,Kh&board=Qh,Jh,Th&result=Won&amount=+$1250&...
+ * /share/hand?hero=As,Kd&board=Qh,Jh,Th&result=Won&amount=+$420&...
  *
  * Displays the OG image as a card with CTA to sign up / explore more.
  * Includes proper OG meta tags for social sharing.
  *
- * view=review is the Personal Assistant read-only hand review link. It is HONEST: it renders only
- * the parameters that were explicitly passed (never default cards, amounts, pots, stakes or player
- * names), keeps hole cards hidden unless `hero` carries two valid cards, labels opponents as
- * anonymized, and is excluded from search indexing. Legacy links keep their existing behaviour.
+ * Both view=review (Personal Assistant read-only hand review links) and standard links are HONEST:
+ * they render only sanitized parameters that were explicitly passed (never fabricated cards,
+ * amounts, pots, stakes, or win results). Review links keep hole cards hidden unless `hero`
+ * carries two valid cards, label opponents as anonymized, and are excluded from search indexing.
  */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -19,7 +19,7 @@ const SUIT_COLORS = { c: '#4DE0A5', d: '#56D8FF', h: '#FF6B7A', s: '#F1F5FC' };
 
 function parseCard(str) {
     if (!str || str.length < 2) return null;
-    const rank = str.slice(0, -1).replace('T', '10');
+    const rank = str.slice(0, -1).toUpperCase().replace(/^T$/, '10');
     const s = str.slice(-1).toLowerCase();
     return { rank, suit: SUITS[s] || '?', color: SUIT_COLORS[s] || '#F1F5FC' };
 }
@@ -134,77 +134,123 @@ export default function ShareHandPage({ initialQuery = {} }) {
     const imgRef = useRef(null);
     const isReview = view === 'review';
 
-    // Review links: explicit parameters only. Hole cards show only when exactly two valid cards were passed.
-    const reviewHeroList = isReview ? reviewCardList(hero, 2) : [];
-    const reviewBoardList = isReview ? reviewCardList(board, 5) : [];
-    const reviewHeroShared = reviewHeroList.length === 2;
+    // Explicit sanitized parameters only (no fabricated defaults in either mode).
+    const cleanHeroList = isReview ? reviewCardList(hero, 2) : reviewCardList(hero, 4);
+    const cleanBoardList = reviewCardList(board, 5);
+    const reviewHeroShared = isReview && cleanHeroList.length === 2;
     const reviewAnonymized = firstQuery(anon) !== '0';
+
+    const cleanResult = isReview ? '' : reviewText(result, 24);
+    const cleanAmount = isReview ? '' : reviewText(amount, 24);
+    const cleanStakes = reviewText(stakes, 24);
+    const cleanVenue = reviewText(venue, 24);
+    const cleanPot = isReview ? '' : reviewText(pot, 24);
+    const cleanPlayer = isReview ? '' : reviewText(player, 40);
+    const cleanHand = reviewText(hand, 60);
+    const cleanStreet = reviewText(street, 12);
+    const cleanPosition = reviewText(position, 8);
+
     const reviewDetails = isReview
         ? [
-            reviewText(street, 12).toUpperCase(),
-            reviewText(position, 8).toUpperCase(),
-            reviewText(stakes, 24),
-            reviewText(venue, 24),
+            cleanStreet.toUpperCase(),
+            cleanPosition.toUpperCase(),
+            cleanStakes,
+            cleanVenue,
         ].filter(Boolean)
         : [];
     const reviewTitle = isReview ? (reviewText(hand, 60) || 'Poker Hand Review') : '';
 
-    const heroCards = isReview
-        ? (reviewHeroShared ? reviewHeroList : []).map(c => parseCard(c)).filter(Boolean)
-        : (hero || 'Ah,Kh').split(',').filter(Boolean).map(c => parseCard(c.trim())).filter(Boolean);
-    const boardCards = isReview
-        ? reviewBoardList.map(c => parseCard(c)).filter(Boolean)
-        : (board || '').split(',').filter(Boolean).map(c => parseCard(c.trim())).filter(Boolean);
-    const isWin = !isReview && ((result || '').toLowerCase().includes('won') || (amount || '').startsWith('+'));
+    const heroCards = (isReview ? (reviewHeroShared ? cleanHeroList : []) : cleanHeroList)
+        .map(c => parseCard(c))
+        .filter(Boolean);
+    const boardCards = cleanBoardList.map(c => parseCard(c)).filter(Boolean);
+    const isWin = !isReview && (cleanResult.toLowerCase().includes('won') || cleanAmount.startsWith('+'));
 
     const ogParams = isReview
         ? new URLSearchParams({
             view: 'review',
-            ...(reviewHeroShared ? { hero: reviewHeroList.join(',') } : {}),
-            ...(reviewBoardList.length > 0 ? { board: reviewBoardList.join(',') } : {}),
-            ...(reviewText(street, 12) ? { street: reviewText(street, 12).toLowerCase() } : {}),
-            ...(reviewText(position, 8) ? { position: reviewText(position, 8) } : {}),
-            ...(reviewText(stakes, 24) ? { stakes: reviewText(stakes, 24) } : {}),
-            ...(reviewText(venue, 24) ? { venue: reviewText(venue, 24) } : {}),
-            ...(reviewText(hand, 60) ? { hand: reviewText(hand, 60) } : {}),
+            ...(reviewHeroShared ? { hero: cleanHeroList.join(',') } : {}),
+            ...(cleanBoardList.length > 0 ? { board: cleanBoardList.join(',') } : {}),
+            ...(cleanStreet ? { street: cleanStreet.toLowerCase() } : {}),
+            ...(cleanPosition ? { position: cleanPosition } : {}),
+            ...(cleanStakes ? { stakes: cleanStakes } : {}),
+            ...(cleanVenue ? { venue: cleanVenue } : {}),
+            ...(cleanHand ? { hand: cleanHand } : {}),
         })
         : new URLSearchParams({
-            hero: hero || 'Ah,Kh',
-            board: board || '',
-            result: result || 'Won',
-            amount: amount || '+$1,250',
-            stakes: stakes || '$1/$3 NLH',
-            venue: venue || 'Live Poker',
-            pot: pot || '$2,500',
-            player: player || 'Smarter.Poker Player',
-            hand: hand || '',
+            ...(cleanHeroList.length > 0 ? { hero: cleanHeroList.join(',') } : {}),
+            ...(cleanBoardList.length > 0 ? { board: cleanBoardList.join(',') } : {}),
+            ...(cleanResult ? { result: cleanResult } : {}),
+            ...(cleanAmount ? { amount: cleanAmount } : {}),
+            ...(cleanStakes ? { stakes: cleanStakes } : {}),
+            ...(cleanVenue ? { venue: cleanVenue } : {}),
+            ...(cleanPot ? { pot: cleanPot } : {}),
+            ...(cleanPlayer ? { player: cleanPlayer } : {}),
+            ...(cleanHand ? { hand: cleanHand } : {}),
         });
-    const ogImageUrl = `https://smarter.poker/api/og/hand-card?${ogParams.toString()}`;
-    const shareQueryString = new URLSearchParams(resolvedQuery).toString();
+    const ogQueryString = ogParams.toString();
+    const ogImagePath = ogQueryString
+        ? `/api/og/hand-card?${ogQueryString}`
+        : '/api/og/hand-card';
+    const ogImageUrl = `https://smarter.poker${ogImagePath}`;
+
+    const allowedShareKeys = isReview
+        ? ['view', 'hero', 'board', 'street', 'position', 'stakes', 'venue', 'hand', 'anon']
+        : ['hero', 'board', 'result', 'amount', 'stakes', 'venue', 'pot', 'player', 'hand'];
+    const ogUrlParams = new URLSearchParams();
+    for (const key of allowedShareKeys) {
+        if (key === 'view' && isReview) {
+            ogUrlParams.set('view', 'review');
+        } else if (key === 'anon' && isReview && anon) {
+            ogUrlParams.set('anon', anon === '0' ? '0' : '1');
+        } else if (ogParams.has(key)) {
+            ogUrlParams.set(key, ogParams.get(key));
+        }
+    }
+    const shareQueryString = ogUrlParams.toString();
     const ogUrl = shareQueryString
         ? `https://smarter.poker/share/hand?${shareQueryString}`
         : 'https://smarter.poker/share/hand';
+
+    const standardHeading = (cleanResult || cleanAmount)
+        ? [cleanPlayer || 'A Smarter Player', isWin ? 'Won' : (cleanResult || 'Played'), cleanAmount].filter(Boolean).join(' ')
+        : (cleanPlayer ? `${cleanPlayer} Shared A Hand` : 'Smarter.Poker Hand Snapshot');
+
+    const standardDetailParts = [];
+    if (cleanStakes && cleanVenue) {
+        standardDetailParts.push(`${cleanStakes} At ${cleanVenue}`);
+    } else if (cleanStakes) {
+        standardDetailParts.push(cleanStakes);
+    } else if (cleanVenue) {
+        standardDetailParts.push(cleanVenue);
+    }
+    if (cleanPot) {
+        standardDetailParts.push(`Pot: ${cleanPot}`);
+    }
+    const standardDetailsText = standardDetailParts.join(' - ') || 'Hand Details Not Shared';
+
     const imageAlt = isReview
         ? (reviewDetails.length ? `${reviewTitle} (${reviewDetails.join(', ')})` : reviewTitle)
-        : `${player || 'Player'}'s poker hand`;
+        : (cleanPlayer ? `${cleanPlayer}'s Poker Hand` : 'Smarter.Poker Hand Snapshot');
 
     useEffect(() => {
         setImageError(false);
+        setImageLoaded(false);
         if (imgRef.current?.complete) {
             if (imgRef.current.naturalWidth > 0) {
                 setImageLoaded(true);
             } else {
-                setImageLoaded(true);
+                setImageError(true);
             }
         }
-    }, [ogImageUrl]);
+    }, [ogImagePath]);
 
     const title = isReview
         ? `${reviewTitle} | Smarter.Poker`
-        : `${player || 'Player'} ${result || 'played'} at ${venue || 'Poker'} - ${amount || ''} | Smarter.Poker`;
+        : `${standardHeading} | Smarter.Poker`;
     const description = isReview
         ? `Read-only poker hand review${reviewDetails.length ? ` - ${reviewDetails.join(' - ')}` : ''}. Analyze your own hands with the Smarter.Poker Personal Assistant.`
-        : `${hand ? hand + ' - ' : ''}${stakes || 'Cash Game'} at ${venue || 'Live Poker'}. Pot: ${pot || '?'}. See the full hand analysis on Smarter.Poker!`;
+        : `${cleanHand ? `${cleanHand} - ` : ''}${standardDetailsText}. See the full hand analysis on Smarter.Poker!`;
 
     const primaryCtaStyle = {
         display: 'inline-flex',
@@ -247,8 +293,8 @@ export default function ShareHandPage({ initialQuery = {} }) {
                 <meta key="og-title" property="og:title" content={title} />
                 <meta key="og-description" property="og:description" content={description} />
                 <meta key="og-image" property="og:image" content={ogImageUrl} />
-                <meta key="og-image-width" property="og:image:width" content="800" />
-                <meta key="og-image-height" property="og:image:height" content="420" />
+                <meta key="og-image-width" property="og:image:width" content="1200" />
+                <meta key="og-image-height" property="og:image:height" content="630" />
                 <meta key="og-image-type" property="og:image:type" content="image/png" />
                 <meta key="og-type" property="og:type" content="website" />
                 <meta key="og-url" property="og:url" content={ogUrl} />
@@ -291,7 +337,7 @@ export default function ShareHandPage({ initialQuery = {} }) {
                 <div
                     className="share-cardFrame"
                     style={{
-                        maxWidth: 520,
+                        maxWidth: 560,
                         width: '100%',
                         borderRadius: 12,
                         overflow: 'hidden',
@@ -307,7 +353,7 @@ export default function ShareHandPage({ initialQuery = {} }) {
                     {!imageError ? (
                         <img
                             ref={imgRef}
-                            src={ogImageUrl}
+                            src={ogImagePath}
                             alt={imageAlt}
                             style={{ width: '100%', height: 'auto', display: 'block' }}
                             onLoad={() => setImageLoaded(true)}
@@ -341,16 +387,16 @@ export default function ShareHandPage({ initialQuery = {} }) {
                         margin: '0 0 8px',
                         lineHeight: 1.2,
                     }}>
-                        {isReview ? reviewTitle : `${player || 'A Smarter Player'} ${isWin ? 'Won' : 'Played'} ${amount || ''}`}
+                        {isReview ? reviewTitle : standardHeading}
                     </h1>
-                    {!isReview && hand && (
+                    {!isReview && cleanHand && (
                         <div style={{
                             fontSize: 16,
                             color: '#83deff',
                             fontWeight: 700,
                             marginBottom: 4,
                         }}>
-                            {hand}
+                            {cleanHand}
                         </div>
                     )}
                     <div style={{
@@ -359,7 +405,7 @@ export default function ShareHandPage({ initialQuery = {} }) {
                     }}>
                         {isReview
                             ? (reviewDetails.join(' · ') || 'Details Not Shared')
-                            : `${stakes || 'Cash Game'} At ${venue || 'Live Poker'} - Pot: ${pot || '?'}`}
+                            : standardDetailsText}
                     </div>
                 </div>
 
@@ -392,7 +438,7 @@ export default function ShareHandPage({ initialQuery = {} }) {
                 )}
 
                 {/* Interactive card display */}
-                {!isReview && heroCards.length > 0 && (
+                {!isReview && (heroCards.length > 0 || boardCards.length > 0) && (
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -401,20 +447,31 @@ export default function ShareHandPage({ initialQuery = {} }) {
                         flexWrap: 'wrap',
                         justifyContent: 'center',
                     }}>
-                        <div style={{ display: 'flex', gap: 8 }} aria-label="Hole Cards">
-                            {heroCards.map((c, i) => (
-                                <PlayingCard key={i} card={c} variant="hero" />
-                            ))}
-                        </div>
+                        {heroCards.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                <div style={{ color: '#9eb4c8', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Hole Cards</div>
+                                <div style={{ display: 'flex', gap: 8 }} aria-label="Hole Cards">
+                                    {heroCards.map((c, i) => (
+                                        <PlayingCard key={i} card={c} variant="hero" />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {heroCards.length > 0 && boardCards.length > 0 && (
+                            <div
+                                aria-hidden="true"
+                                style={{ width: 1, height: 64, background: 'rgba(174, 192, 208, 0.28)' }}
+                            />
+                        )}
                         {boardCards.length > 0 && (
-                            <>
-                                <div style={{ color: '#9eb4c8', fontSize: 18, fontWeight: 700 }}>Vs</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                <div data-testid="share-board-label" style={{ color: '#9eb4c8', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Board</div>
                                 <div style={{ display: 'flex', gap: 6 }} aria-label="Board">
                                     {boardCards.map((c, i) => (
                                         <PlayingCard key={i} card={c} variant="board" />
                                     ))}
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 )}

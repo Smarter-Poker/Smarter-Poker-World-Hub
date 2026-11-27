@@ -27,16 +27,100 @@ const SWIPE_THRESHOLD_PX = 48;
 const SUITS = { c: '♣', d: '♦', h: '♥', s: '♠' };
 const SUIT_COLORS = { c: '#4DE0A5', d: '#56D8FF', h: '#FF6B7A', s: '#F1F5FC' };
 
-function parseCard(cardStr) {
-  if (!cardStr || typeof cardStr !== 'string' || cardStr.length < 2) return null;
-  const rank = cardStr.slice(0, -1).replace('T', '10').toUpperCase();
-  const suitChar = cardStr.slice(-1).toLowerCase();
+export function parseCard(cardStr) {
+  if (!cardStr || typeof cardStr !== 'string') return null;
+  const trimmed = cardStr.trim();
+  if (trimmed.length < 2) return null;
+  const rank = trimmed.slice(0, -1).toUpperCase().replace(/^T$/, '10');
+  const suitChar = trimmed.slice(-1).toLowerCase();
   return {
     rank,
     suit: SUITS[suitChar] || '?',
     color: SUIT_COLORS[suitChar] || '#FFFFFF',
-    raw: cardStr,
+    raw: trimmed,
   };
+}
+
+/**
+ * Format an action bet/raise amount using unit-aware hand currency context.
+ * Shows "X BB" when the hand or action is BB/tournament-denominated,
+ * "$X" ONLY when cash USD chips are explicitly confirmed, and plain numeric
+ * chips otherwise (never fabricating a "$" sign).
+ */
+export function formatActionAmount(act, { handIsBb = false, handIsCashUsd = false } = {}) {
+  if (!act || typeof act !== 'object') return null;
+  if (act.amountBb != null && String(act.amountBb).trim() !== '') {
+    return `${act.amountBb} BB`;
+  }
+  if (act.amountBB != null && String(act.amountBB).trim() !== '') {
+    return `${act.amountBB} BB`;
+  }
+  const rawAmount = act.amount;
+  if (rawAmount === null || rawAmount === undefined || String(rawAmount).trim() === '') return null;
+  if (typeof rawAmount === 'string') {
+    const trimmed = rawAmount.trim();
+    if (trimmed.includes('$') || /\bbb\b/i.test(trimmed)) return trimmed;
+  }
+  const unit = String(act.unit || act.currency || '').trim().toLowerCase();
+  if (unit === 'bb' || unit === 'bbs') return `${rawAmount} BB`;
+  if (unit === '$' || unit === 'usd') return `$${rawAmount}`;
+  if (handIsBb || act.potBeforeBB != null) return `${rawAmount} BB`;
+  if (handIsCashUsd) return `$${rawAmount}`;
+  return String(rawAmount);
+}
+
+function normalizeShareCardCode(card) {
+  const raw = typeof card === 'object' && card !== null && card.rank
+    ? `${card.rank}${String(card.suit || '')[0] || ''}`
+    : String(card || '').trim();
+  if (!/^(?:10|[2-9TJQKA])[cdhs]$/i.test(raw)) return null;
+  const rank = raw.slice(0, -1).toUpperCase().replace(/^10$/, 'T');
+  const suit = raw.slice(-1).toLowerCase();
+  return `${rank}${suit}`;
+}
+
+/**
+ * Build a privacy-safe read-only /share/hand?view=review URL for the replay.
+ * Hole cards are strictly omitted unless includeHoleCards === true.
+ * Never includes hand IDs, user IDs, or opponent handles.
+ */
+export function buildReplayShareUrl({
+  origin = '',
+  street = null,
+  position = null,
+  board = null,
+  heroCards = null,
+  stakes = null,
+  formatLabel = null,
+  includeHoleCards = false,
+} = {}) {
+  const params = new URLSearchParams();
+  params.set('view', 'review');
+  params.set('anon', '1');
+  const safeStreet = String(street || '').trim().toLowerCase();
+  if (STREETS.includes(safeStreet)) params.set('street', safeStreet);
+  const safePos = String(position || '').replace(/[^A-Za-z0-9+_-]/g, '').trim().toUpperCase().slice(0, 8);
+  if (safePos) params.set('position', safePos);
+  const cleanBoard = (Array.isArray(board) ? board : [])
+    .map(normalizeShareCardCode)
+    .filter(Boolean)
+    .filter((code, idx, arr) => arr.indexOf(code) === idx)
+    .slice(0, 5);
+  if (cleanBoard.length > 0) params.set('board', cleanBoard.join(','));
+  if (includeHoleCards === true) {
+    const cleanHero = (Array.isArray(heroCards) ? heroCards : [])
+      .map(normalizeShareCardCode)
+      .filter(Boolean)
+      .filter((code, idx, arr) => arr.indexOf(code) === idx)
+      .slice(0, 2);
+    if (cleanHero.length === 2) params.set('hero', cleanHero.join(','));
+  }
+  const safeStakes = String(stakes || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24);
+  if (safeStakes) params.set('stakes', safeStakes);
+  const safeFormat = String(formatLabel || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24);
+  if (safeFormat) params.set('venue', safeFormat);
+  const base = String(origin || '').replace(/\/+$/, '');
+  return `${base}/share/hand?${params.toString()}`;
 }
 
 function titleCase(value) {
@@ -261,6 +345,8 @@ export default function InlineHandReplay({
   }, [initialStreet, availableStreets, resolvedDecisions]);
 
   const [activeStreet, setActiveStreet] = useState(defaultStreet);
+  const [includeHoleCards, setIncludeHoleCards] = useState(false);
+  const [shareStatus, setShareStatus] = useState(null);
   useEffect(() => {
     setActiveStreet(defaultStreet);
   }, [defaultStreet]);
@@ -270,18 +356,23 @@ export default function InlineHandReplay({
   // Keyboard navigation for street pill tabs
   const handleKeyDown = useCallback(
     (event, streetIndex) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
       let nextIndex = null;
       if (event.key === 'ArrowRight') {
         event.preventDefault();
+        event.stopPropagation();
         nextIndex = (streetIndex + 1) % availableStreets.length;
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
+        event.stopPropagation();
         nextIndex = (streetIndex - 1 + availableStreets.length) % availableStreets.length;
       } else if (event.key === 'Home') {
         event.preventDefault();
+        event.stopPropagation();
         nextIndex = 0;
       } else if (event.key === 'End') {
         event.preventDefault();
+        event.stopPropagation();
         nextIndex = availableStreets.length - 1;
       }
 
@@ -292,6 +383,34 @@ export default function InlineHandReplay({
       }
     },
     [availableStreets]
+  );
+
+  // Container-level ArrowLeft / ArrowRight keyboard street stepping from anywhere inside the replay
+  const handleContainerKeyDown = useCallback(
+    (event) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      const targetTag = String(event.target?.tagName || '').toUpperCase();
+      if (
+        targetTag === 'INPUT'
+        || targetTag === 'TEXTAREA'
+        || targetTag === 'SELECT'
+        || event.target?.isContentEditable
+      ) {
+        return;
+      }
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      if (availableStreets.length <= 1) return;
+      const currentIdx = availableStreets.indexOf(activeStreet);
+      if (currentIdx < 0) return;
+      if (event.key === 'ArrowRight' && currentIdx < availableStreets.length - 1) {
+        event.preventDefault();
+        setActiveStreet(availableStreets[currentIdx + 1]);
+      } else if (event.key === 'ArrowLeft' && currentIdx > 0) {
+        event.preventDefault();
+        setActiveStreet(availableStreets[currentIdx - 1]);
+      }
+    },
+    [availableStreets, activeStreet],
   );
 
   // Optional touch swipe left/right navigation (>= 48px horizontal threshold with vertical-scroll guard)
@@ -421,9 +540,68 @@ export default function InlineHandReplay({
     ? activeTimeline.actions.filter((act) => act && typeof act === 'object')
     : [];
 
+  const formatHint = String(
+    resolvedHand?.format
+    || resolvedHand?.gameType
+    || resolvedHand?.formatLabel
+    || audit?.hand?.formatLabel
+    || '',
+  ).toLowerCase();
+  const isTournamentFormat = /tournament|\bmtt\b|\bsng\b/.test(formatHint);
+  const stakesText = String(resolvedHand?.stakes || '');
+  const handIsBb = Boolean(
+    potIsBb
+    || stackIsBb
+    || isTournamentFormat
+    || (/\bbb\b/i.test(stakesText) && !stakesText.includes('$'))
+    || String(resolvedHand?.currency || '').toUpperCase() === 'BB',
+  );
+  const handIsCashUsd = Boolean(
+    !handIsBb
+    && (
+      String(resolvedHand?.currency || '').toUpperCase() === 'USD'
+      || stakesText.includes('$')
+      || String(potDisplay || '').includes('$')
+      || String(stackDisplay || '').includes('$')
+    ),
+  );
+
+  const handleShareHand = useCallback(async () => {
+    const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '';
+    const shareUrl = buildReplayShareUrl({
+      origin,
+      street: activeStreet,
+      position: heroPosition,
+      board: streetBoard,
+      heroCards,
+      stakes: resolvedHand?.stakes || null,
+      formatLabel: resolvedHand?.formatLabel || audit?.hand?.formatLabel || null,
+      includeHoleCards,
+    });
+    try {
+      if (typeof navigator === 'undefined' || typeof navigator.clipboard?.writeText !== 'function') {
+        throw new Error('Clipboard Unavailable');
+      }
+      await navigator.clipboard.writeText(shareUrl);
+      setShareStatus({
+        tone: 'success',
+        text: includeHoleCards && heroCards.length >= 2
+          ? 'Share Link Copied (Hole Cards Included)'
+          : 'Share Link Copied (Hole Cards Hidden)',
+      });
+    } catch (_) {
+      setShareStatus({
+        tone: 'error',
+        text: 'Could Not Copy Share Link',
+      });
+    }
+  }, [activeStreet, heroPosition, streetBoard, heroCards, resolvedHand?.stakes, resolvedHand?.formatLabel, audit?.hand?.formatLabel, includeHoleCards]);
+
   return (
     <div
       className={`inline-hand-replay ${className}`}
+      tabIndex={0}
+      onKeyDown={handleContainerKeyDown}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       style={{
@@ -833,7 +1011,10 @@ export default function InlineHandReplay({
                         {act.position || (isHero ? 'Hero' : 'Opponent')}
                       </strong>
                       : {titleCase(act.action)}
-                      {act.amount != null ? ` ($${act.amount})` : ''}
+                      {(() => {
+                        const formattedAmount = formatActionAmount(act, { handIsBb, handIsCashUsd });
+                        return formattedAmount ? ` (${formattedAmount})` : '';
+                      })()}
                     </span>
                     {act.potBeforeBB != null && (
                       <span style={{ color: '#9eb4c8', fontSize: 12 }}>
@@ -850,6 +1031,92 @@ export default function InlineHandReplay({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Privacy-Safe Inline Share Hand Footer Control */}
+      <div
+        data-testid="replay-share-bar"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 10,
+          padding: '8px 10px',
+          borderRadius: 6,
+          background: '#091017',
+          border: '1px solid rgba(140, 161, 180, 0.24)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+          <label
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              minHeight: 44,
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#dce5ef',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={includeHoleCards}
+              onChange={(e) => {
+                setIncludeHoleCards(e.target.checked);
+                setShareStatus(null);
+              }}
+              aria-label="Include Hole Cards"
+              data-testid="replay-share-include-cards"
+              style={{ width: 18, height: 18, margin: 0, cursor: 'pointer', accentColor: '#087cfa' }}
+            />
+            <span>Include Hole Cards</span>
+          </label>
+          <span
+            role="status"
+            aria-live="polite"
+            data-testid="replay-share-status"
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: shareStatus?.tone === 'error'
+                ? '#ff8290'
+                : shareStatus?.tone === 'success'
+                  ? '#4de0a5'
+                  : '#9eb4c8',
+            }}
+          >
+            {shareStatus?.text || (includeHoleCards ? 'Hole Cards Will Be Included' : 'Hole Cards Hidden By Default')}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="pa-btn"
+          data-testid="replay-share-hand-btn"
+          onClick={handleShareHand}
+          style={{
+            minHeight: 44,
+            minWidth: 44,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 14px',
+            borderRadius: 6,
+            border: '1px solid rgba(86, 216, 255, 0.45)',
+            borderTopColor: '#aec0d0',
+            background: 'linear-gradient(180deg, #132233 0%, #060d16 65%)',
+            color: '#f1f5fc',
+            fontFamily: '"Arial Narrow", Arial, sans-serif',
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+          }}
+        >
+          <span>Share Hand</span>
+        </button>
       </div>
 
       {/* Thumb-Zone Sticky Bottom Street Selector (Pre, Flop, Turn, River) */}

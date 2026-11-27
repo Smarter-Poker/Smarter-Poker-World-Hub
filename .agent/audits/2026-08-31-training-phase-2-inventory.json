@@ -32044,7 +32044,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 446,
+          "line": 501,
           "handler": "() => router.replace('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32054,7 +32054,7 @@
         {
           "element": "button",
           "name": "Retry Save",
-          "line": 558,
+          "line": 620,
           "handler": "() => {\n                                            void handleComplete(leakReviewSync.lastResults);\n                                        }",
           "destination": null,
           "type": "button",
@@ -32062,19 +32062,19 @@
           "wiring": "handler"
         },
         {
-          "element": "a",
+          "element": "button",
           "name": "← Return To Personal Assistant",
-          "line": 581,
-          "handler": null,
-          "destination": "personalAssistantReturnHref",
-          "type": null,
+          "line": 644,
+          "handler": "handleExit",
+          "destination": null,
+          "type": "button",
           "disabled": null,
-          "wiring": "destination"
+          "wiring": "handler"
         },
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 623,
+          "line": 695,
           "handler": null,
           "destination": "syncedHandReturnHref",
           "type": null,
@@ -32084,7 +32084,7 @@
         {
           "element": "a",
           "name": "Customize Pack In Drill Builder →",
-          "line": 659,
+          "line": 731,
           "handler": null,
           "destination": "/hub/training/drill-builder",
           "type": null,
@@ -32094,7 +32094,7 @@
         {
           "element": "a",
           "name": "Return To Coach Broadcast →",
-          "line": 696,
+          "line": 768,
           "handler": null,
           "destination": "/hub/training/coach-mode",
           "type": null,
@@ -32104,7 +32104,7 @@
         {
           "element": "a",
           "name": "View Club Leaderboard →",
-          "line": 732,
+          "line": 804,
           "handler": null,
           "destination": "/hub/training/leaderboard",
           "type": null,
@@ -32114,7 +32114,7 @@
         {
           "element": "a",
           "name": "View Verified Two-Player Scoreboard →",
-          "line": 767,
+          "line": 839,
           "handler": null,
           "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
           "type": null,
@@ -32170,7 +32170,15 @@
         },
         {
           "name": "onSyncedHand",
-          "line": 151,
+          "line": 153,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "syncPromise",
+          "line": 391,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -47779,7 +47787,7 @@
         {
           "element": "button",
           "name": "Sign In",
-          "line": 1897,
+          "line": 1960,
           "handler": "() => {\n                  try {\n                    window.top.location.href = '/auth/login';\n                  } catch (err) {\n                    window.location.href = '/auth/login';\n                  }\n                }",
           "destination": null,
           "type": null,
@@ -47788,8 +47796,8 @@
         },
         {
           "element": "button",
-          "name": "Back To Training",
-          "line": 1919,
+          "name": "<dynamic>",
+          "line": 1982,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -47799,7 +47807,7 @@
         {
           "element": "button",
           "name": "← Back",
-          "line": 2012,
+          "line": 2075,
           "handler": "onExit",
           "destination": null,
           "type": "button",
@@ -47809,7 +47817,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2136,
+          "line": 2199,
           "handler": "() => retrainMistakes()",
           "destination": null,
           "type": "button",
@@ -47819,7 +47827,7 @@
         {
           "element": "button",
           "name": "Next Level ( ) →",
-          "line": 2309,
+          "line": 2372,
           "handler": "() => startNextLevel()",
           "destination": null,
           "type": "button",
@@ -47829,7 +47837,7 @@
         {
           "element": "button",
           "name": "Play Again",
-          "line": 2329,
+          "line": 2392,
           "handler": "() => retryLevel()",
           "destination": null,
           "type": "button",
@@ -47839,7 +47847,7 @@
         {
           "element": "button",
           "name": "Train Mistakes ( )",
-          "line": 2352,
+          "line": 2415,
           "handler": "() => retrainMistakes()",
           "destination": null,
           "type": "button",
@@ -47848,9 +47856,9 @@
         },
         {
           "element": "button",
-          "name": "← Back To Training",
-          "line": 2372,
-          "handler": "() => {\n                onComplete?.({\n                  gameId,\n                  accuracy,\n                  questionsAnswered: totalQuestions,\n                  questionsCorrect: correctCount,\n                  bestStreak,\n                  levelPassed,\n                  level: currentLevel,\n                  gtowScore,\n                  totalEVLoss: measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,\n                  measuredEVDecisions: measuredEVReviewHistory.length,\n                  sessionMistakes,\n                });\n                onExit?.();\n              }",
+          "name": "<dynamic>",
+          "line": 2435,
+          "handler": "() => {\n                emitCompletionOnce({\n                  totalEVLoss: measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,\n                  measuredEVDecisions: measuredEVReviewHistory.length,\n                });\n                onExit?.();\n              }",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -47859,7 +47867,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2603,
+          "line": 2657,
           "handler": "() => setReviewTab(tab.id)",
           "destination": null,
           "type": null,
@@ -47869,7 +47877,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4517,
+          "line": 4562,
           "handler": "retryAnswerPersistence",
           "destination": null,
           "type": "button",
@@ -47879,7 +47887,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4580,
+          "line": 4625,
           "handler": "retryTransition",
           "destination": null,
           "type": "button",
@@ -47889,7 +47897,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4890,
+          "line": 4935,
           "handler": "() => setDifficulty(d.key)",
           "destination": null,
           "type": null,
@@ -47899,7 +47907,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4937,
+          "line": 4982,
           "handler": "() => setTimerMode(t.key)",
           "destination": null,
           "type": null,
@@ -47909,7 +47917,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 5096,
+          "line": 5141,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -47919,7 +47927,7 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 5189,
+          "line": 5234,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -47929,7 +47937,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 5202,
+          "line": 5247,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -48043,7 +48051,7 @@
         },
         {
           "name": "fetchCoaching",
-          "line": 1186,
+          "line": 1187,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48051,7 +48059,7 @@
         },
         {
           "name": "GodModeArena",
-          "line": 5645,
+          "line": 5690,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -48091,7 +48099,7 @@
         },
         {
           "name": "findWeakest",
-          "line": 1196,
+          "line": 1197,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48099,7 +48107,7 @@
         },
         {
           "name": "hdOf",
-          "line": 1226,
+          "line": 1227,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -48107,7 +48115,7 @@
         },
         {
           "name": "handler",
-          "line": 1559,
+          "line": 1560,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -48115,7 +48123,7 @@
         },
         {
           "name": "grade",
-          "line": 4352,
+          "line": 4397,
           "references": 17,
           "exported": false,
           "defaultExport": false,
@@ -48126,7 +48134,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 1397,
+          "line": 1398,
           "excerpt": "// timerEnabled through trainerConfig below. A \"fallback\" interval used to",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -48134,7 +48142,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1823,
+          "line": 1886,
           "excerpt": "// ERROR STATE — Graceful fallback when API fails (auth, network, etc.)",
           "disposition": "identity-or-persistence-resilience",
           "review": "accepted",
@@ -48143,7 +48151,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2592,
+          "line": 2646,
           "excerpt": "was an explicit sample-data placeholder). Their imports and",
           "disposition": "historical-defect-comment",
           "review": "accepted",
@@ -84983,11 +84991,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:446:2",
+      "id": "pages/hub/training/arena/[gameId].js:501:2",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 446,
+      "line": 501,
       "handler": "() => router.replace('/hub/training')",
       "destination": null,
       "type": "button",
@@ -84996,11 +85004,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:558:3",
+      "id": "pages/hub/training/arena/[gameId].js:620:3",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Retry Save",
-      "line": 558,
+      "line": 620,
       "handler": "() => {\n                                            void handleComplete(leakReviewSync.lastResults);\n                                        }",
       "destination": null,
       "type": "button",
@@ -85009,24 +85017,24 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:581:4",
+      "id": "pages/hub/training/arena/[gameId].js:644:4",
       "file": "pages/hub/training/arena/[gameId].js",
-      "element": "a",
+      "element": "button",
       "name": "← Return To Personal Assistant",
-      "line": 581,
-      "handler": null,
-      "destination": "personalAssistantReturnHref",
-      "type": null,
+      "line": 644,
+      "handler": "handleExit",
+      "destination": null,
+      "type": "button",
       "disabled": null,
-      "wiring": "destination",
+      "wiring": "handler",
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:623:5",
+      "id": "pages/hub/training/arena/[gameId].js:695:5",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "<dynamic>",
-      "line": 623,
+      "line": 695,
       "handler": null,
       "destination": "syncedHandReturnHref",
       "type": null,
@@ -85035,11 +85043,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:659:6",
+      "id": "pages/hub/training/arena/[gameId].js:731:6",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Customize Pack In Drill Builder →",
-      "line": 659,
+      "line": 731,
       "handler": null,
       "destination": "/hub/training/drill-builder",
       "type": null,
@@ -85048,11 +85056,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:696:7",
+      "id": "pages/hub/training/arena/[gameId].js:768:7",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Return To Coach Broadcast →",
-      "line": 696,
+      "line": 768,
       "handler": null,
       "destination": "/hub/training/coach-mode",
       "type": null,
@@ -85061,11 +85069,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:732:8",
+      "id": "pages/hub/training/arena/[gameId].js:804:8",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Club Leaderboard →",
-      "line": 732,
+      "line": 804,
       "handler": null,
       "destination": "/hub/training/leaderboard",
       "type": null,
@@ -85074,11 +85082,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:767:9",
+      "id": "pages/hub/training/arena/[gameId].js:839:9",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Verified Two-Player Scoreboard →",
-      "line": 767,
+      "line": 839,
       "handler": null,
       "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
       "type": null,
@@ -89221,11 +89229,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:1897:7",
+      "id": "src/components/training/GodModeArena.jsx:1960:7",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Sign In",
-      "line": 1897,
+      "line": 1960,
       "handler": "() => {\n                  try {\n                    window.top.location.href = '/auth/login';\n                  } catch (err) {\n                    window.location.href = '/auth/login';\n                  }\n                }",
       "destination": null,
       "type": null,
@@ -89234,11 +89242,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:1919:8",
+      "id": "src/components/training/GodModeArena.jsx:1982:8",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
-      "name": "Back To Training",
-      "line": 1919,
+      "name": "<dynamic>",
+      "line": 1982,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -89247,11 +89255,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2012:9",
+      "id": "src/components/training/GodModeArena.jsx:2075:9",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "← Back",
-      "line": 2012,
+      "line": 2075,
       "handler": "onExit",
       "destination": null,
       "type": "button",
@@ -89260,11 +89268,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2136:10",
+      "id": "src/components/training/GodModeArena.jsx:2199:10",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2136,
+      "line": 2199,
       "handler": "() => retrainMistakes()",
       "destination": null,
       "type": "button",
@@ -89273,11 +89281,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2309:11",
+      "id": "src/components/training/GodModeArena.jsx:2372:11",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Next Level ( ) →",
-      "line": 2309,
+      "line": 2372,
       "handler": "() => startNextLevel()",
       "destination": null,
       "type": "button",
@@ -89286,11 +89294,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2329:12",
+      "id": "src/components/training/GodModeArena.jsx:2392:12",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Play Again",
-      "line": 2329,
+      "line": 2392,
       "handler": "() => retryLevel()",
       "destination": null,
       "type": "button",
@@ -89299,11 +89307,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2352:13",
+      "id": "src/components/training/GodModeArena.jsx:2415:13",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Train Mistakes ( )",
-      "line": 2352,
+      "line": 2415,
       "handler": "() => retrainMistakes()",
       "destination": null,
       "type": "button",
@@ -89312,12 +89320,12 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2372:14",
+      "id": "src/components/training/GodModeArena.jsx:2435:14",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
-      "name": "← Back To Training",
-      "line": 2372,
-      "handler": "() => {\n                onComplete?.({\n                  gameId,\n                  accuracy,\n                  questionsAnswered: totalQuestions,\n                  questionsCorrect: correctCount,\n                  bestStreak,\n                  levelPassed,\n                  level: currentLevel,\n                  gtowScore,\n                  totalEVLoss: measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,\n                  measuredEVDecisions: measuredEVReviewHistory.length,\n                  sessionMistakes,\n                });\n                onExit?.();\n              }",
+      "name": "<dynamic>",
+      "line": 2435,
+      "handler": "() => {\n                emitCompletionOnce({\n                  totalEVLoss: measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,\n                  measuredEVDecisions: measuredEVReviewHistory.length,\n                });\n                onExit?.();\n              }",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -89325,11 +89333,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:2603:15",
+      "id": "src/components/training/GodModeArena.jsx:2657:15",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2603,
+      "line": 2657,
       "handler": "() => setReviewTab(tab.id)",
       "destination": null,
       "type": null,
@@ -89338,11 +89346,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4517:16",
+      "id": "src/components/training/GodModeArena.jsx:4562:16",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4517,
+      "line": 4562,
       "handler": "retryAnswerPersistence",
       "destination": null,
       "type": "button",
@@ -89351,11 +89359,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4580:17",
+      "id": "src/components/training/GodModeArena.jsx:4625:17",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4580,
+      "line": 4625,
       "handler": "retryTransition",
       "destination": null,
       "type": "button",
@@ -89364,11 +89372,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4890:18",
+      "id": "src/components/training/GodModeArena.jsx:4935:18",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4890,
+      "line": 4935,
       "handler": "() => setDifficulty(d.key)",
       "destination": null,
       "type": null,
@@ -89377,11 +89385,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4937:19",
+      "id": "src/components/training/GodModeArena.jsx:4982:19",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4937,
+      "line": 4982,
       "handler": "() => setTimerMode(t.key)",
       "destination": null,
       "type": null,
@@ -89390,11 +89398,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5096:20",
+      "id": "src/components/training/GodModeArena.jsx:5141:20",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 5096,
+      "line": 5141,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -89403,11 +89411,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5189:21",
+      "id": "src/components/training/GodModeArena.jsx:5234:21",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "← Exit",
-      "line": 5189,
+      "line": 5234,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -89416,11 +89424,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5202:22",
+      "id": "src/components/training/GodModeArena.jsx:5247:22",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 5202,
+      "line": 5247,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -116545,7 +116553,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "FALLBACK",
-        "line": 1397,
+        "line": 1398,
         "excerpt": "// timerEnabled through trainerConfig below. A \"fallback\" interval used to",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -116554,7 +116562,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "FALLBACK",
-        "line": 1823,
+        "line": 1886,
         "excerpt": "// ERROR STATE — Graceful fallback when API fails (auth, network, etc.)",
         "disposition": "identity-or-persistence-resilience",
         "review": "accepted",
@@ -116564,7 +116572,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2592,
+        "line": 2646,
         "excerpt": "was an explicit sample-data placeholder). Their imports and",
         "disposition": "historical-defect-comment",
         "review": "accepted",
@@ -127610,7 +127618,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "FALLBACK",
-        "line": 1397,
+        "line": 1398,
         "excerpt": "// timerEnabled through trainerConfig below. A \"fallback\" interval used to",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -127619,7 +127627,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "FALLBACK",
-        "line": 1823,
+        "line": 1886,
         "excerpt": "// ERROR STATE — Graceful fallback when API fails (auth, network, etc.)",
         "disposition": "identity-or-persistence-resilience",
         "review": "accepted",
@@ -127629,7 +127637,7 @@
       {
         "file": "src/components/training/GodModeArena.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2592,
+        "line": 2646,
         "excerpt": "was an explicit sample-data placeholder). Their imports and",
         "disposition": "historical-defect-comment",
         "review": "accepted",

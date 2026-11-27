@@ -260,14 +260,18 @@ export default function TrainingPage() {
   const sections = useMemo(() => buildLobbySections(filtered, filters), [filtered, filters]);
 
   const [resumableSession, setResumableSession] = useState(null);
+  const [paLaunchContext, setPaLaunchContext] = useState(null);
 
   useEffect(() => {
     setResumableSession(loadResumableTrainingSession(authUser?.id));
   }, [authUser?.id]);
 
-  const playGame = useCallback((game, focus) => {
+  const playGame = useCallback((game, rawFocus) => {
     if (!game || !requireOnline()) return;
     haptic('light');
+    const focus = paLaunchContext
+      ? { ...paLaunchContext, ...(rawFocus || {}) }
+      : rawFocus;
     const query = { gameId: game.id, start: '1', source: 'training-home' };
     if (focus?.from || focus?.source) {
       query.source = focus.from || focus.source;
@@ -295,9 +299,13 @@ export default function TrainingPage() {
     if (focus?.bettingStructure && !userPickedVariant) query.bettingStructure = focus.bettingStructure;
     const normalizedFocusFormat = normalizeLaunchFormat(focus?.format) || focus?.format;
     if (normalizedFocusFormat) query.format = normalizedFocusFormat;
-    if (focus?.targetStreet) query.targetStreet = focus.targetStreet;
-    if (focus?.heroPosition || focus?.targetPositions) {
-      query.position = focus.heroPosition || focus.targetPositions;
+    const effectiveStreet = focus?.street || focus?.targetStreet;
+    if (effectiveStreet) {
+      query.street = effectiveStreet;
+      query.targetStreet = effectiveStreet;
+    }
+    if (focus?.position || focus?.heroPosition || focus?.targetPositions) {
+      query.position = focus.position || focus.heroPosition || focus.targetPositions;
     }
     if (Number.isInteger(focus?.questionsCount)) query.hands = String(focus.questionsCount);
     const navTarget = { pathname: '/hub/training/arena/[gameId]', query };
@@ -306,7 +314,7 @@ export default function TrainingPage() {
     } else {
       router.push(navTarget);
     }
-  }, [filters.variant, haptic, requireOnline, router]);
+  }, [filters.variant, haptic, paLaunchContext, requireOnline, router]);
 
   const heroGame = jarvisPick || TRAINING_LIBRARY[0];
   const continueTarget = useMemo(() => {
@@ -384,10 +392,51 @@ export default function TrainingPage() {
     const rawAutoLaunch = typeof rawAutoLaunchInput === 'string' ? rawAutoLaunchInput.trim().toLowerCase() : '';
     const rawFocus = typeof router.query.focus === 'string' ? router.query.focus.trim().toLowerCase() : '';
     const rawCategory = typeof router.query.category === 'string' ? router.query.category.trim().toUpperCase() : '';
-    const requestKey = `${rawAutoLaunch}|${rawFocus}|${rawCategory}`;
-    if (!rawAutoLaunch && !rawFocus && !rawCategory) return;
+    const qVariant = typeof router.query.variant === 'string' ? router.query.variant.trim().toLowerCase() : '';
+    const qStruct = typeof router.query.bettingStructure === 'string' ? router.query.bettingStructure.trim().toLowerCase() : '';
+    const rawQFormat = typeof router.query.format === 'string' ? router.query.format.trim().toLowerCase() : '';
+    const qFormat = normalizeLaunchFormat(rawQFormat) || rawQFormat;
+    const qStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
+      ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
+      : '';
+    const qPos = typeof (router.query.position || router.query.heroPosition) === 'string'
+      ? String(router.query.position || router.query.heroPosition).trim().toUpperCase()
+      : '';
+    const qFrom = typeof router.query.from === 'string' ? router.query.from.trim() : '';
+    const qSource = typeof router.query.source === 'string' ? router.query.source.trim() : '';
+    const qLeak = typeof router.query.leak === 'string' && router.query.leak.trim()
+      ? router.query.leak.trim()
+      : (typeof router.query.leakSlug === 'string' ? router.query.leakSlug.trim() : '');
+    const qReturnTo = sanitizeHubReturnTo(router.query.returnTo);
+    const hasPaContext = Boolean(
+      qLeak
+      || qReturnTo
+      || qFrom === 'leak-finder'
+      || qFrom.startsWith('personal-assistant')
+      || qSource === 'leak-finder'
+      || qSource.startsWith('personal-assistant')
+    );
+    const requestKey = `${rawAutoLaunch}|${rawFocus}|${rawCategory}|${qLeak}|${qFrom}|${qReturnTo || ''}|${qFormat}|${qStreet}|${qPos}`;
+    if (!rawAutoLaunch && !rawFocus && !rawCategory && !hasPaContext) return;
     if (launchQueryHandledRef.current === requestKey) return;
     launchQueryHandledRef.current = requestKey;
+
+    const preservedContext = hasPaContext
+      ? {
+          ...(['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(qVariant) ? { variant: qVariant } : {}),
+          ...(['no_limit', 'pot_limit', 'fixed_limit'].includes(qStruct) ? { bettingStructure: qStruct } : {}),
+          ...(['cash', 'mtt', 'spins', 'hu', '9max'].includes(qFormat) ? { format: qFormat } : {}),
+          ...(['preflop', 'flop', 'turn', 'river'].includes(qStreet) ? { street: qStreet, targetStreet: qStreet } : {}),
+          ...(['UTG', 'UTG+1', 'UTG+2', 'MP', 'MP+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(qPos) ? { position: qPos, heroPosition: qPos, targetPositions: qPos } : {}),
+          ...(qFrom ? { from: qFrom } : {}),
+          ...(qSource ? { source: qSource } : {}),
+          ...(qLeak ? { leak: qLeak } : {}),
+          ...(qReturnTo ? { returnTo: qReturnTo } : {}),
+        }
+      : null;
+    if (preservedContext) {
+      setPaLaunchContext(preservedContext);
+    }
 
     const requestedGame = rawAutoLaunch || rawFocus;
     const aliases = requestedGame
@@ -401,27 +450,13 @@ export default function TrainingPage() {
     if (game && rawAutoLaunch) {
       setActiveCat(game.category || 'ALL');
       setQuery('');
-      const qVariant = typeof router.query.variant === 'string' ? router.query.variant.trim().toLowerCase() : '';
-      const qStruct = typeof router.query.bettingStructure === 'string' ? router.query.bettingStructure.trim().toLowerCase() : '';
-      const rawQFormat = typeof router.query.format === 'string' ? router.query.format.trim().toLowerCase() : '';
-      const qFormat = normalizeLaunchFormat(rawQFormat) || rawQFormat;
-      const qStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
-        ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
-        : '';
-      const qPos = typeof (router.query.position || router.query.heroPosition) === 'string'
-        ? String(router.query.position || router.query.heroPosition).trim().toUpperCase()
-        : '';
-      const qFrom = typeof router.query.from === 'string' ? router.query.from.trim() : '';
-      const qSource = typeof router.query.source === 'string' ? router.query.source.trim() : '';
-      const qLeak = typeof router.query.leak === 'string' ? router.query.leak.trim() : '';
-      const qReturnTo = sanitizeHubReturnTo(router.query.returnTo);
       const queryOverrides = {
         replace: true,
         ...(['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(qVariant) ? { variant: qVariant } : {}),
         ...(['no_limit', 'pot_limit', 'fixed_limit'].includes(qStruct) ? { bettingStructure: qStruct } : {}),
         ...(['cash', 'mtt', 'spins', 'hu', '9max'].includes(qFormat) ? { format: qFormat } : {}),
-        ...(['preflop', 'flop', 'turn', 'river'].includes(qStreet) ? { targetStreet: qStreet, scope: 'street' } : {}),
-        ...(['UTG', 'UTG+1', 'UTG+2', 'MP', 'MP+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(qPos) ? { heroPosition: qPos, targetPositions: qPos } : {}),
+        ...(['preflop', 'flop', 'turn', 'river'].includes(qStreet) ? { street: qStreet, targetStreet: qStreet, scope: 'street' } : {}),
+        ...(['UTG', 'UTG+1', 'UTG+2', 'MP', 'MP+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(qPos) ? { position: qPos, heroPosition: qPos, targetPositions: qPos } : {}),
         ...(qFrom ? { from: qFrom } : {}),
         ...(qSource ? { source: qSource } : {}),
         ...(qLeak ? { leak: qLeak } : {}),
@@ -440,7 +475,26 @@ export default function TrainingPage() {
       const readable = requestedGame.replace(/[-_]+/g, ' ');
       setQuery(readable);
     }
-  }, [router.isReady, router.query.autoLaunch, router.query.game, router.query.focus, router.query.category, playGame]);
+  }, [
+    router.isReady,
+    router.query.autoLaunch,
+    router.query.game,
+    router.query.focus,
+    router.query.category,
+    router.query.variant,
+    router.query.bettingStructure,
+    router.query.format,
+    router.query.street,
+    router.query.targetStreet,
+    router.query.position,
+    router.query.heroPosition,
+    router.query.from,
+    router.query.source,
+    router.query.leak,
+    router.query.leakSlug,
+    router.query.returnTo,
+    playGame,
+  ]);
 
   /* LOAD FAILSAFE (mobile phase 0a). The dashboard and progress hooks own
      their own loading flags; a request that never settles used to pin the

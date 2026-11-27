@@ -158,6 +158,34 @@
   gap: 8px;
 }
 
+.heroControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settingsButton {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--pa-line);
+  border-top-color: var(--pa-line-hi);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #152639 0%, #06111e 65%);
+  color: #dce5ef;
+  cursor: pointer;
+}
+
+.settingsButton:hover {
+  border-color: var(--pa-cyan);
+  color: #ffffff;
+  filter: brightness(1.08);
+}
+
 .eyebrow,
 .systemEyebrow,
 .dailyEyebrow {
@@ -493,9 +521,8 @@
   color: #9aabba;
   font-size: 12px;
   line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 /* Primary & Secondary MTT Lobby buttons */
@@ -684,6 +711,7 @@
 }
 
 .tabs :is(a, button),
+.settingsButton,
 .primaryButton,
 .secondaryButton,
 .statCard,
@@ -697,6 +725,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .tabs :is(a, button):active,
+  .settingsButton:active,
   .primaryButton:not(:disabled):active,
   .secondaryButton:not(:disabled):active,
   .statCard:active,
@@ -711,6 +740,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tabs :is(a, button),
+  .settingsButton,
   .primaryButton,
   .secondaryButton,
   .statCard,
@@ -723,6 +753,7 @@
   }
 
   .tabs :is(a, button):active,
+  .settingsButton:active,
   .primaryButton:active,
   .secondaryButton:active,
   .statCard:active,
@@ -747,37 +778,38 @@
   align-items: center;
 }
 
-.systemCopy h3 {
-  margin: 2px 0 4px;
+.systemTitle {
+  display: block;
+  margin: 4px 0;
   color: #f1f5fc;
-  font: 800 17px / 1.15 'Arial Narrow', Arial, sans-serif;
+  font: 800 16px / 1.15 'Arial Narrow', Arial, sans-serif;
 }
 
-.systemCopy p {
-  margin: 0;
+.systemDescription {
+  display: block;
+  margin: 0 0 8px;
   color: #b6c8d6;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
-.systemCopy ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
+.systemFeatureList {
+  display: grid;
+  gap: 4px;
 }
 
-.systemCopy li {
+.systemFeatureItem {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  color: #9aabba;
+  gap: 6px;
+  color: #dce5ef;
   font-size: 12px;
 }
 
-.systemCopy li svg { color: var(--pa-cyan); flex: 0 0 auto; }
+.systemFeatureItem svg {
+  color: var(--pa-cyan);
+  flex: 0 0 auto;
+}
 
 /* Activity & Session Rail inside <details> */
 .sessionRail {
@@ -805,6 +837,14 @@
 }
 
 .sessionList { display: grid; }
+
+.sessionEmpty {
+  margin: 0;
+  padding: 10px 12px;
+  color: #9aabba;
+  font-size: 12px;
+  line-height: 1.45;
+}
 
 .sessionRow {
   display: grid;
@@ -925,13 +965,13 @@
   position: relative;
   display: grid;
   place-items: center;
-  border: 1px solid #aebfd0;
-  border-top-color: #ffffff;
-  border-radius: 5px;
-  background: linear-gradient(165deg, #ffffff 0%, #edf3f8 58%, #dce7f0 100%);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  color: #06101a;
-  font: 800 14px / 1.05 Georgia, serif;
+  border: 1px solid rgba(140, 161, 180, 0.42);
+  border-top-color: #aec0d0;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #132238 0%, #08101C 100%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(174, 192, 208, 0.22);
+  color: #F1F5FC;
+  font: 800 14px / 1.05 'Rajdhani', 'Roboto Condensed', Arial, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
@@ -939,7 +979,10 @@
 .boardCard { width: 30px; height: 40px; font-size: 12px; }
 .playingCard i,
 .boardCard i { margin-top: -5px; font-size: max(12px, 0.82em); font-style: normal; }
-.redCard { color: #b8142c; }
+.suitClubs { color: #4DE0A5; border-color: rgba(77, 224, 165, 0.42); border-top-color: rgba(77, 224, 165, 0.72); }
+.suitDiamonds { color: #56D8FF; border-color: rgba(86, 216, 255, 0.42); border-top-color: rgba(86, 216, 255, 0.72); }
+.suitHearts { color: #FF6B7A; border-color: rgba(255, 107, 122, 0.42); border-top-color: rgba(255, 107, 122, 0.72); }
+.suitSpades { color: #F1F5FC; border-color: rgba(241, 245, 252, 0.34); border-top-color: #aec0d0; }
 
 .dailyPrompt {
   display: inline-flex;
@@ -955,6 +998,11 @@
 @media (max-width: 900px) {
   .tabs,
   .main { width: min(600px, calc(100% - 16px)); }
+}
+
+@media (min-width: 769px) {
+  .tabs,
+  .main { width: min(820px, calc(100% - 24px)); }
 }
 
 @media (max-width: 768px) {
@@ -987,6 +1035,11 @@
 }
 
 @media (max-width: 600px) {
-  .decisionLoop { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .loopStep { padding: 6px; }
+  .decisionLoop { grid-template-columns: 1fr; }
+  .loopStep {
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(140, 161, 180, 0.24);
+  }
+  .loopStep:last-child { border-bottom: 0; }
 }

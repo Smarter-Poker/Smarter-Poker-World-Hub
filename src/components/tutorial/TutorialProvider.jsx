@@ -74,6 +74,7 @@ export default function TutorialProvider({ children }) {
       promptTimerRef.current = null;
       // The hamburger drawer or another overlay on top: do not compete.
       if (document.querySelector('[data-tutorial-open="true"]')) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       markPromptSeen(tutorial);
       setPromptVisible(true);
     }, PROMPT_DELAY_MS);

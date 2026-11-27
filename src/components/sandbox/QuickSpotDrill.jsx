@@ -43,6 +43,47 @@ const SUIT_SYMBOL_TO_KEY = Object.freeze({
 });
 
 /**
+ * Pure desktop keyboard-shortcut resolver for an active drill spot.
+ * Guards strictly against modifier chords, form fields, repeat events,
+ * and inactive drill states (loading / finished / confirmQuit / submitting).
+ * Returns `{ type: 'pick', index }` for keys 1-4 while !revealed,
+ * `{ type: 'next' }` for Enter or Space while revealed, or null.
+ */
+export function resolveDrillShortcutAction(event, {
+    active = false,
+    revealed = false,
+    isSubmitting = false,
+    optionCount = 0,
+} = {}) {
+    if (!active || !event || event.repeat) return null;
+    if (event.metaKey || event.ctrlKey || event.altKey) return null;
+    const targetTag = String(event.target?.tagName || '').toUpperCase();
+    if (
+        targetTag === 'INPUT'
+        || targetTag === 'TEXTAREA'
+        || targetTag === 'SELECT'
+        || event.target?.isContentEditable
+    ) {
+        return null;
+    }
+    const key = event.key;
+    if (!revealed) {
+        if (isSubmitting) return null;
+        if (key === '1' || key === '2' || key === '3' || key === '4') {
+            const index = Number(key) - 1;
+            if (index >= 0 && index < optionCount) {
+                return { type: 'pick', index };
+            }
+        }
+        return null;
+    }
+    if (key === 'Enter' || key === ' ') {
+        return { type: 'next' };
+    }
+    return null;
+}
+
+/**
  * Parse a concrete 2-card combo (e.g., "As Kd", "AhKh", "10s 10d", "A♠ K♦")
  * into two 4-color card descriptors. Returns null for range notation ("AKs", "QQ", "T9o")
  * or invalid/duplicate cards so the caller renders a styled range pill instead.
@@ -927,6 +968,34 @@ export default function QuickSpotDrill({
 
     const optionRows = useMemo(() => (q?.options?.length ? q.options : DEFAULT_OPTIONS), [q]);
 
+    // Desktop keyboard shortcuts: 1-4 pick an action while !revealed; Enter / Space advances while revealed.
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const spotActive = !loading && !finished && !confirmQuit && !loadError && questions.length > 0;
+        if (!spotActive) return undefined;
+        const onKeyDown = (e) => {
+            const action = resolveDrillShortcutAction(e, {
+                active: spotActive,
+                revealed,
+                isSubmitting: isSubmittingAnswer,
+                optionCount: optionRows.length,
+            });
+            if (!action) return;
+            if (action.type === 'pick') {
+                const chosen = optionRows[action.index];
+                if (chosen) {
+                    e.preventDefault();
+                    handlePick(chosen);
+                }
+            } else if (action.type === 'next') {
+                e.preventDefault();
+                handleNext();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [loading, finished, confirmQuit, loadError, questions.length, revealed, isSubmittingAnswer, optionRows, handlePick, handleNext]);
+
     // ── render helpers ────────────────────────────────────────────────────
     const headerRight = (streak > 0 && !finished && !loading) ? (
         <span style={{ ...pill('warn'), ...numeric }} aria-label={`${streak} In A Row`}>
@@ -959,6 +1028,30 @@ export default function QuickSpotDrill({
             closeLabel="Close Drill"
         >
             <PAStyles />
+            <style>{`
+                .pa-drill-keycap {
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 22px;
+                    height: 22px;
+                    padding: 0 5px;
+                    border-radius: 4px;
+                    border: 1px solid rgba(140, 161, 180, 0.34);
+                    background: rgba(5, 8, 12, 0.72);
+                    color: #9eb4c8;
+                    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                    font-size: 12px;
+                    font-weight: 700;
+                    line-height: 1;
+                    flex-shrink: 0;
+                }
+                @media (pointer: fine) {
+                    .pa-drill-keycap {
+                        display: inline-flex;
+                    }
+                }
+            `}</style>
             <span className="pa-vh" role="status" aria-live="polite" data-testid="drill-outcome-announcement">{announcement}</span>
 
             {practiceDisclosure && !loading && !loadError && (
@@ -1406,7 +1499,18 @@ export default function QuickSpotDrill({
                                             ...(revealed ? { cursor: 'default', opacity: 1, pointerEvents: 'none' } : null),
                                         }}
                                     >
-                                        <span>{opt}</span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                            {idx < 4 && (
+                                                <kbd
+                                                    className="pa-drill-keycap"
+                                                    aria-hidden="true"
+                                                    data-testid={`drill-keycap-${idx + 1}`}
+                                                >
+                                                    {idx + 1}
+                                                </kbd>
+                                            )}
+                                            <span>{opt}</span>
+                                        </span>
                                         {revealed && isCorrectOpt && <Check size={18} strokeWidth={2.5} aria-hidden="true" />}
                                         {revealed && isUserPick && !isCorrectOpt && <X size={18} strokeWidth={2.5} aria-hidden="true" />}
                                     </button>

@@ -9,7 +9,7 @@
  * and first-paint contract.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -26,6 +26,7 @@ import {
   Route,
   RotateCw,
   ScanSearch,
+  Settings,
   Sparkles,
   Target,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ import { useOnlineStatus, OFFLINE_TOAST } from '../../../src/hooks/useOnlineStat
 import { useHaptics } from '../../../src/hooks/useHaptics';
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { TUTORIAL_WILL_OPEN_EVENT } from '../../../src/tutorials';
 import { getFreshAccessToken } from '../../../src/lib/authUtils';
 import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
@@ -127,11 +129,11 @@ function SystemCardBody({ system }) {
       <span className={styles.systemCopy}>
         <span style={{ display: 'block' }}>
           <span className={styles.systemEyebrow}>{system.eyebrow}</span>
-          <strong style={{ display: 'block', margin: '4px 0', fontSize: 16, color: '#f1f5fc' }}>{system.title}</strong>
-          <span style={{ display: 'block', color: '#b6c8d6', fontSize: 13, lineHeight: 1.45, marginBottom: 8 }}>{system.description}</span>
-          <span style={{ display: 'grid', gap: 4 }}>
+          <strong className={styles.systemTitle}>{system.title}</strong>
+          <span className={styles.systemDescription}>{system.description}</span>
+          <span className={styles.systemFeatureList}>
             {system.features.map((feature) => (
-              <span key={feature} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#dce5ef' }}>
+              <span key={feature} className={styles.systemFeatureItem}>
                 <CheckCircle2 size={13} aria-hidden="true" />{feature}
               </span>
             ))}
@@ -175,7 +177,8 @@ export default function PersonalAssistantPage() {
   useModalHistory(liveSpotOpen, closeLiveSpot);
 
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
-  const menuConfig = getMenuConfig('hub-home', user, {}, {});
+  const menuConfig = getMenuConfig('personal-assistant', user, {}, {});
+  const systemsSectionRef = useRef(null);
   const {
     sessions: recentSessions,
     isLoading: sessionsLoading,
@@ -202,6 +205,18 @@ export default function PersonalAssistantPage() {
   const sessionsBusy = sessionsLoading && dataLoading;
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleTutorialWillOpen = () => {
+      const detailsEl = systemsSectionRef.current?.querySelector('details');
+      if (detailsEl && !detailsEl.open) {
+        detailsEl.open = true;
+      }
+    };
+    window.addEventListener(TUTORIAL_WILL_OPEN_EVENT, handleTutorialWillOpen);
+    return () => window.removeEventListener(TUTORIAL_WILL_OPEN_EVENT, handleTutorialWillOpen);
+  }, []);
 
   const [assistantPrefs, setAssistantPrefs] = useState(() => loadAssistantPreferences(null, null));
   useEffect(() => {
@@ -388,12 +403,13 @@ export default function PersonalAssistantPage() {
   }, [dailyHandReloadKey]);
 
   const normalizeHeroHand = (raw) => {
-    const hand = String(raw || '').replace(/[\s,]/g, '');
-    return /^([2-9TJQKA][shdc]){2}$/i.test(hand) ? hand : null;
+    const cleaned = String(raw || '').replace(/[\s,]/g, '');
+    const cards = cleaned.match(/(?:10|[2-9TJQKA])[shdc]/gi) || [];
+    return cards.length === 2 && cards.join('').length === cleaned.length ? cards : null;
   };
 
   const normalizeBoardCards = (raw) => {
-    const cards = String(raw || '').replace(/[\s,]/g, '').match(/[2-9TJQKA][shdc]/gi) || [];
+    const cards = String(raw || '').replace(/[\s,]/g, '').match(/(?:10|[2-9TJQKA])[shdc]/gi) || [];
     return cards.length >= 3 ? cards.slice(0, 5) : null;
   };
 
@@ -614,16 +630,29 @@ export default function PersonalAssistantPage() {
     },
   ];
 
+  const suitClassMap = {
+    c: styles.suitClubs,
+    d: styles.suitDiamonds,
+    h: styles.suitHearts,
+    s: styles.suitSpades,
+  };
+
   const formatCard = (card) => {
     const match = String(card || '').match(/^(10|[2-9TJQKA])([shdc])$/i);
-    if (!match) return { rank: String(card || '?'), suit: '', red: false };
+    if (!match) return { rank: String(card || '?'), suit: '', suitCode: 's', suitClass: styles.suitSpades };
     const suitMap = { s: '♠', h: '♥', d: '♦', c: '♣' };
     const rawRank = match[1].toUpperCase();
     const rank = rawRank === 'T' ? '10' : rawRank;
-    return { rank, suit: suitMap[match[2].toLowerCase()], red: /[hd]/i.test(match[2]) };
+    const suitCode = match[2].toLowerCase();
+    return {
+      rank,
+      suit: suitMap[suitCode],
+      suitCode,
+      suitClass: suitClassMap[suitCode] || styles.suitSpades,
+    };
   };
 
-  const heroCards = (normalizeHeroHand(dailyHand?.heroHand)?.match(/.{2}/g) || []).map(formatCard);
+  const heroCards = (normalizeHeroHand(dailyHand?.heroHand) || []).map(formatCard);
   const boardCards = (normalizeBoardCards(dailyHand?.board) || []).map(formatCard);
 
   const skeleton = (
@@ -648,7 +677,7 @@ export default function PersonalAssistantPage() {
       <PersonalAssistantCopyPolicy />
       <HubPageShell
         className="pa"
-        maxWidth={640}
+        maxWidth={820}
         header={<UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />}
       >
       <div className={styles.page}>
@@ -656,7 +685,8 @@ export default function PersonalAssistantPage() {
           isOpen={showMenu}
           onClose={closeMenu}
           direction="left"
-          theme="dark"
+          theme="pa"
+          user={user}
           menuItems={menuConfig.menuItems}
           bottomLinks={menuConfig.bottomLinks}
         />
@@ -696,9 +726,19 @@ export default function PersonalAssistantPage() {
                     <span className={styles.eyebrow}>Personal Poker Assistant</span>
                     <h1 id="assistant-title">Personal Assistant</h1>
                   </div>
-                  <div className={`${styles.statusBadge} ${dataSyncError ? styles.statusWarning : ''}`} role="status">
-                    <span className={styles.statusDot} aria-hidden="true" />
-                    {dataSyncError ? 'Data Sync Needs Attention' : 'Training Pipeline Connected'}
+                  <div className={styles.heroControls}>
+                    <div className={`${styles.statusBadge} ${dataSyncError ? styles.statusWarning : ''}`} role="status">
+                      <span className={styles.statusDot} aria-hidden="true" />
+                      {dataSyncError ? 'Data Sync Needs Attention' : 'Training Pipeline Connected'}
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.settingsButton}
+                      aria-label="Practice And Audit Settings"
+                      onClick={() => openGuardedRoute('/hub/personal-assistant/leaks?settings=1')}
+                    >
+                      <Settings size={18} strokeWidth={2} aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -850,9 +890,14 @@ export default function PersonalAssistantPage() {
             <div className={styles.dailyFrame}>
               {dailyHand ? (
                 <div className={styles.dailyInner}>
-                  <div className={styles.holeCards} aria-label={`Hero hand ${dailyHand.heroHand || 'unknown'}`}>
+                  <div className={styles.holeCards} aria-label={`Hero Hand ${dailyHand.heroHand || 'Unknown'}`} data-pa-verbatim="true">
                     {(heroCards.length ? heroCards : [formatCard('?'), formatCard('?')]).map((card, index) => (
-                      <span className={`${styles.playingCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
+                      <span
+                        className={`${styles.playingCard} ${card.suitClass}`}
+                        data-suit={card.suitCode}
+                        data-pa-verbatim="true"
+                        key={`${card.rank}${card.suit}-${index}`}
+                      >
                         {card.rank}<i>{card.suit}</i>
                       </span>
                     ))}
@@ -863,9 +908,14 @@ export default function PersonalAssistantPage() {
                     </span>
                     <h3>{dailyHand.title || 'What Is The Best Line?'}</h3>
                     {boardCards.length > 0 && (
-                      <div className={styles.boardCards} aria-label={`Board ${dailyHand.board}`}>
+                      <div className={styles.boardCards} aria-label={`Board ${dailyHand.board}`} data-pa-verbatim="true">
                         {boardCards.map((card, index) => (
-                          <span className={`${styles.boardCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
+                          <span
+                            className={`${styles.boardCard} ${card.suitClass}`}
+                            data-suit={card.suitCode}
+                            data-pa-verbatim="true"
+                            key={`${card.rank}${card.suit}-${index}`}
+                          >
                             {card.rank}<i>{card.suit}</i>
                           </span>
                         ))}
@@ -938,7 +988,7 @@ export default function PersonalAssistantPage() {
           </section>
 
           {/* Single Collapsed Secondary Disclosure: Tools, Evidence Boundary & Recent Sessions */}
-          <section className={styles.section} aria-labelledby="systems-title" data-tutorial="systems">
+          <section ref={systemsSectionRef} className={styles.section} aria-labelledby="systems-title" data-tutorial="systems">
             <details className={styles.disclosure}>
               <summary id="systems-title">
                 <span>Tools &amp; Evidence Boundary</span>
@@ -1002,6 +1052,16 @@ export default function PersonalAssistantPage() {
                           </button>
                         ))}
                       </div>
+                    )}
+                    {!sessionsBusy && (recentSessions || []).length === 0 && (
+                      <p className={styles.sessionEmpty}>
+                        {isSignedOut
+                          ? 'Sign In To Resume Recent Leak Reviews And Study Sessions.'
+                          : 'No Recent Sessions Yet. Run A Leak Audit Or Start A Verified Drill To Build History.'}
+                      </p>
+                    )}
+                    {sessionsBusy && (
+                      <p className={styles.sessionEmpty}>Syncing Recent Sessions…</p>
                     )}
                   </div>
                 </div>

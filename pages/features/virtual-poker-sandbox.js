@@ -5,38 +5,39 @@ import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 export default function VirtualPokerSandboxPage() {
   const features = [
     {
-      title: 'Custom 3D Table Configuration',
-      description: 'Set Exact Chip Stacks, Position Assignments, Hole Cards, And Dealer Button Placements For 2 To 9 Players At An Interactive Table.',
+      title: 'Post-Session Hand Analysis',
+      description: 'Audit Completed Club Arena And Live Cash Or Tournament Hands Street By Street With Deterministic Leak Detection And Evidence-Backed Reviews.',
     },
     {
-      title: 'Monte Carlo Runout Simulator',
-      description: 'Simulate 10,000 Turn And River Runouts Across Custom Board Textures To Chart Win Frequencies, Ties, And Equity Curves.',
+      title: 'Automated Leak Finder',
+      description: 'Surface Recurring Positional, Street, And Bet-Sizing Leaks Across Your Hand History With Clear Severity Priority And Direct Drill Paths.',
     },
     {
-      title: 'Multiway Pot & Side Pot Modeling',
-      description: 'Accurately Resolve Complex Multi-All-In Encounters With Automated Main Pot And Side Pot Segregation And True Equity Breakdown.',
+      title: 'Audited Spot Study & GTO Drills',
+      description: 'Turn Audited Hand Decisions Into Focused Practice Drills Grounded In Verified Pre-Solved Baselines And Spaced-Repetition Mastery Tracking.',
     },
     {
-      title: 'Stateless Hand Review & Leak Audit',
-      description: 'Connect Directly With Personal Assistant Leak Finder And Verified GTO Training To Audit Completed Hands With Anonymized Stateless Hand Review.',
+      title: 'Multiway Poker Odds Calculator',
+      description: 'Calculate Exact Flop-To-River Win, Tie, And Split-Pot Equities For Texas Hold\'em, PLO-4, PLO-5, PLO-6, Stud, And Razz With Dead-Card Filtering.',
     },
     {
-      title: 'Zero Download WebGL Engine',
-      description: 'Runs Fluidly In All Modern Desktop And Mobile Web Browsers Without Installing Native Executables Or Heavy Desktop Plugins.',
+      title: 'Stateless Hand Review & Privacy Controls',
+      description: 'Generate Clean Read-Only Hand Review Snapshots With Default Villain Anonymization And Opt-In Hole-Card Visibility.',
     },
     {
-      title: '100% Free Access',
-      description: 'Full Simulation Laboratory Features Available Completely Free For Students, Coaches, And Poker Enthusiasts.',
+      title: 'Zero Download Browser Workspace',
+      description: 'Runs Directly In All Modern Desktop, iPhone, iPad, And Android Browsers With Zero Native Installers And 100% Free Access.',
     },
   ];
 
   const comparison = {
-    title: 'Smarter.Poker Virtual Sandbox vs. Proprietary Simulators',
-    headers: ['Feature', 'Smarter.Poker Sandbox', 'Flopzilla / Equilab', 'Proprietary Simulators'],
+    title: 'Smarter.Poker Study Lab vs. Legacy Desktop Tools',
+    headers: ['Capability', 'Smarter.Poker', 'Flopzilla / Equilab', 'Legacy Suites'],
     rows: [
       ['Pricing', '100% Free Forever', '$35 License / Free Tool', '$50 - $100+ / Year'],
-      ['3D Visual Table', 'Interactive 3D Web Table', '2D Text Matrix Only', 'Basic 2D Canvas'],
-      ['Multiway Side Pots', 'Automated Side Pot Engine', 'Manual Input Required', 'Limited Multiway Support'],
+      ['Post-Session Leak Audit', 'Automated Leak Finder', 'Manual Range Entry Only', 'Separate Paid Tracker'],
+      ['Multiway Odds Engine', 'Exact Multiway Web Calculator', 'Windows Desktop Only', 'Desktop Only'],
+      ['Spot Study & Drills', 'Audited Spot Study & GTO Drills', 'No Built-In Drills', 'Separate Subscription'],
       ['Hand Review Workflow', 'Stateless Hand Review & Leak Audit', 'File Export Only', 'Proprietary Files Only'],
       ['Mobile Compatibility', 'iPhone, iPad, Android Web', 'Windows Desktop Only', 'Desktop Only'],
     ],
@@ -44,46 +45,46 @@ export default function VirtualPokerSandboxPage() {
 
   const howItWorks = [
     {
-      title: 'Set Up The Table',
-      description: 'Pick The Number Of Active Players, Drag Cards To Assign Hands, And Enter Starting Chip Stacks.',
+      title: 'Audit Completed Hands In Leak Finder',
+      description: 'Open Personal Assistant Leak Finder To Review Completed Club Arena Hands, Import External Hand Histories, Or Log A Live Spot In Seconds.',
     },
     {
-      title: 'Deal Flop Or Custom Board',
-      description: 'Choose Flop Cards Or Leave Streets Unopened To Test Preflop Hand Distributions.',
+      title: 'Verify Multiway Equities & Boards',
+      description: 'Use The Free Poker Odds Calculator To Select Hole Cards, Flop/Turn/River Boards, And Dead Cards Across Up To 7 Players.',
     },
     {
-      title: 'Run Simulation & Analyze Equities',
-      description: 'Click Simulate To Run 10,000 Turn And River Boards And Review Detailed Multiway Equity Outcomes.',
+      title: 'Drill Audited Spots & Track Mastery',
+      description: 'Launch Verified Spot Study Drills Directly From Your Top Leaks And Track Your Improvement Across Sessions.',
     },
   ];
 
   const faqs = [
     {
       question: 'Can I Run Multiway All-In Scenarios In The Sandbox?',
-      answer: 'Yes. The Sandbox Handles Multiway Hands With Up To 9 Players, Accurately Segmenting Main Pots And Side Pots While Computing Exact Equities.',
+      answer: 'Yes. Open The Free Poker Odds Calculator To Compute Multiway Win, Tie, And Split-Pot Equities For Up To 7 Players In Hold\'em (Or 4 In 5- And 6-Card Omaha) With Exact Flop-To-River Enumeration And Optional Dead Cards.',
     },
     {
-      question: 'Is The Virtual Table Sandbox Free?',
-      answer: 'Yes. Full Simulation, Runout Modeling, And Personal Assistant Hand Review Workflows Are 100% Free With No Download Required.',
+      question: 'Is Smarter.Poker Post-Session Analysis And Odds Calculation Free?',
+      answer: 'Yes. Personal Assistant Leak Finder, Audited Spot Study, Stateless Hand Review, And The Browser Poker Odds Calculator Are 100% Free With Zero Download Required.',
     },
     {
       question: 'How Do I Review Hands With Personal Assistant?',
-      answer: 'Open Personal Assistant Leak Finder To Audit Completed Club Arena Hands Or Use Stateless Hand Review With Optional Villain Anonymization And Hole-Card Privacy.',
+      answer: 'Open Personal Assistant Leak Finder To Audit Completed Club Arena Or Live Hands, Practice Your Top Leaks, And Create Stateless Hand Review Links With Default Villain Anonymization And Hole-Card Privacy.',
     },
   ];
 
   return (
     <div className="virtual-sandbox-lander" data-testid="virtual-sandbox-lander">
       <FeatureLanderLayout
-        title="Virtual Poker Table Sandbox & Runout Simulator"
-        metaTitle="Virtual Poker Table Sandbox & Runout Simulator | Smarter.Poker"
-        description="Interactive 3D Poker Table Simulator. Construct Custom Boards, Test Runout Distributions, Model Multiway Pot Equities, And Replay Epic Hands."
+        title="Virtual Poker Study Lab, Leak Finder & Odds Calculator"
+        metaTitle="Virtual Poker Study Lab, Leak Finder & Odds Calculator | Smarter.Poker"
+        description="Post-Session Hand Analysis, Automated Leak Finder, Audited Spot Study, And A Free Multiway Poker Odds Calculator In Any Web Browser."
         canonical="/features/virtual-poker-sandbox"
-        badgeText="100% Free Poker Simulation Lab"
-        primaryCtaText="Open Virtual Sandbox"
+        badgeText="100% Free Poker Study Lab"
+        primaryCtaText="Open Poker Odds Calculator"
         primaryCtaHref="/tools/poker-odds-calculator"
-        secondaryCtaText="View Plain-Text Spec"
-        secondaryCtaHref="/features/virtual-poker-sandbox.md"
+        secondaryCtaText="Open Leak Finder"
+        secondaryCtaHref="/hub/personal-assistant/leaks"
         markdownUrl="https://smarter.poker/features/virtual-poker-sandbox.md"
         features={features}
         comparison={comparison}
@@ -112,16 +113,23 @@ export default function VirtualPokerSandboxPage() {
         .virtual-sandbox-lander footer > div {
           flex-wrap: wrap !important;
         }
+        .virtual-sandbox-lander section > div:has(> table) {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          max-width: 100%;
+        }
         .virtual-sandbox-lander table {
           width: 100%;
-          max-width: 100%;
+          min-width: 640px;
           table-layout: fixed;
           border-collapse: collapse;
         }
         .virtual-sandbox-lander th,
         .virtual-sandbox-lander td {
+          min-width: 140px;
           overflow-wrap: break-word;
-          word-break: break-word;
+          word-break: normal;
+          white-space: normal;
         }
         .virtual-sandbox-lander pre {
           max-width: 100%;
@@ -152,8 +160,8 @@ export default function VirtualPokerSandboxPage() {
           }
           .virtual-sandbox-lander th,
           .virtual-sandbox-lander td {
-            padding: 10px 8px !important;
-            font-size: 12px !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
           }
         }
       `}</style>

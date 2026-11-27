@@ -2807,8 +2807,11 @@ export default function LeakFinderPage() {
 
   const handleTrainDrills = useCallback((leak) => {
     if (!guardAction()) return;
-    const target = leak || selectedLeak;
-    if (!target) return;
+    const target = leak === null ? null : (leak || selectedLeak);
+    if (!target) {
+      router.push({ pathname: '/hub/training', query: { from: 'leak-finder', returnTo: '/hub/personal-assistant/leaks' } });
+      return;
+    }
     const exactGame = leakToTrainingGame(target, TRAINING_GAME_IDS);
     const drillParams = leakToDrill(target) || {};
     const repHand = target?.representativeHand || target?.adviceExplanation?.representativeHand || {};
@@ -2989,6 +2992,70 @@ export default function LeakFinderPage() {
   }, [authInitializing, userId, requestReviewSchedule]);
 
   useEffect(() => { fetchReviewSchedule(); }, [fetchReviewSchedule, userId]);
+
+  const refresh = useCallback(() => {
+    clearAssistantClientCache(userId);
+    refreshLocalReviews();
+    setReviewNowMs(Date.now());
+    refetchLeaks?.();
+    refetchStats?.();
+    fetchCoachingSnapshot();
+  }, [userId, refreshLocalReviews, refetchLeaks, refetchStats, fetchCoachingSnapshot]);
+
+  // Consume short-lived Training Arena mastery sync receipt written before returning to Leak Finder.
+  useEffect(() => {
+    if (authInitializing || typeof window === 'undefined') return;
+    let raw = null;
+    try {
+      raw = window.sessionStorage?.getItem('pa_arena_review_receipt_v1') || null;
+      if (raw) window.sessionStorage.removeItem('pa_arena_review_receipt_v1');
+    } catch (_) {
+      return;
+    }
+    if (!raw) return;
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (_) {
+      return;
+    }
+    if (!parsed || typeof parsed !== 'object') return;
+    const savedAt = Number(parsed.savedAt);
+    const MAX_RECEIPT_AGE_MS = 10 * 60 * 1000;
+    if (!Number.isFinite(savedAt) || (Date.now() - savedAt) > MAX_RECEIPT_AGE_MS || (Date.now() - savedAt) < -60000) {
+      return;
+    }
+
+    // Force-bypass stale SWR cache and refresh review schedule, leaks, stats, and coaching snapshot.
+    clearAssistantClientCache(userId);
+    fetchReviewSchedule();
+    refresh();
+
+    let intervalDays = parsed.intervalDays;
+    if ((intervalDays === undefined || intervalDays === null) && parsed.nextReviewAt) {
+      const nextMs = new Date(parsed.nextReviewAt).getTime();
+      if (Number.isFinite(nextMs)) {
+        intervalDays = Math.max(0, Math.round((nextMs - Date.now()) / 86400000));
+      }
+    }
+
+    setReviewReceipt({
+      status: 'done',
+      source: 'arena',
+      verified: true,
+      masterySynced: parsed.masterySynced !== false,
+      leakId: parsed.leakId || null,
+      gameId: parsed.gameId || null,
+      accuracy: Number.isFinite(Number(parsed.accuracy)) ? Number(parsed.accuracy) : null,
+      correct: Number.isFinite(Number(parsed.correct)) ? Number(parsed.correct) : null,
+      total: Number.isFinite(Number(parsed.total)) ? Number(parsed.total) : null,
+      newStatus: parsed.newStatus || null,
+      nextReviewAt: parsed.nextReviewAt || null,
+      intervalDays: Number.isFinite(Number(intervalDays)) ? Number(intervalDays) : 1,
+      remediationMastered: parsed.remediationMastered === true || parsed.newStatus === 'mastered',
+    });
+    toast.success('Training Mastery Synced');
+  }, [authInitializing, router.asPath, userId, fetchReviewSchedule, refresh]);
 
   // A finished review updates both stores; re-read them rather than guessing.
   useEffect(() => {
@@ -3340,11 +3407,16 @@ export default function LeakFinderPage() {
     onToggleResolved: (next) => { setTab('leaks'); setPastOpen(!!next); },
   }), [jumpTo, isDetecting, handleRunDetection, visibleLeaks, activeLeaks, handleStartReview, handleTrainDrills]);
 
-  const menuConfig = useMemo(() => getMenuConfig('leaks', null, {
+  const menuConfig = useMemo(() => getMenuConfig('leaks', user, {
     leakCount: activeLeaks.length,
     isDetecting,
     showResolved: pastOpen,
-  }, menuHandlers), [activeLeaks.length, isDetecting, pastOpen, menuHandlers]);
+  }, menuHandlers), [user, activeLeaks.length, isDetecting, pastOpen, menuHandlers]);
+
+  const rawNavSource = Array.isArray(router.query?.source) ? router.query.source[0] : router.query?.source;
+  const navSource = router.isReady ? String(rawNavSource || '').trim().toLowerCase() : '';
+  const isFromClubArenaStats = navSource === 'club-arena-stats';
+  const isFromClubArena = navSource === 'club-arena';
 
   // ═══ PRE-MOUNT: real chrome + skeletons, never a bare flash ═══
   if (!mounted) {
@@ -3494,13 +3566,32 @@ export default function LeakFinderPage() {
           onClose={closeMenu}
           direction="left"
           theme="pa"
-          user={null}
-          showProfile={false}
+          user={user}
+          showProfile={Boolean(user)}
           menuItems={menuConfig.menuItems}
           bottomLinks={menuConfig.bottomLinks}
         />
 
         <main id="leak-finder-main" className="leaks-shell" style={styles.shell}>
+          {(isFromClubArenaStats || (isFromClubArena && !linkedClubHand)) && (
+            <div style={{ marginBottom: S.sm, display: 'flex', alignItems: 'center' }}>
+              <a
+                href={isFromClubArenaStats ? '/hub/club-arena/stats' : '/hub/club-arena'}
+                className="pa-btn"
+                data-testid={isFromClubArenaStats ? 'return-club-arena-stats' : 'return-club-arena'}
+                style={{
+                  ...btn('secondary'),
+                  minHeight: 44,
+                  textDecoration: 'none',
+                  borderColor: 'rgba(86, 216, 255, 0.36)',
+                  borderTopColor: '#aec0d0',
+                  color: '#f1f5fc',
+                }}
+              >
+                <span>{isFromClubArenaStats ? '← Return To Club Arena Stats' : '← Return To Club Arena'}</span>
+              </a>
+            </div>
+          )}
           {/* Compact MTT lobby header plaque with top-right Settings gear button */}
           <section className={`${toolStyles.machineHero} ${toolStyles.leakHero}`} aria-labelledby="leak-machine-title">
             <div className={toolStyles.machineHeroInner}>
@@ -3549,6 +3640,57 @@ export default function LeakFinderPage() {
               ]}
             />
           </div>
+
+          {reviewReceipt && (
+            <section
+              role="status"
+              aria-live="polite"
+              data-testid="review-receipt-banner"
+              style={{ ...card, marginBottom: S.md, background: T.successSoft, borderColor: 'rgba(77,224,165,0.45)' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: S.sm }}>
+                <CheckCircle2 size={20} strokeWidth={2} color={T.success} aria-hidden="true" style={{ marginTop: 2, flex: '0 0 auto' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <strong style={{ display: 'block', color: T.success, fontSize: F.body }}>
+                    {reviewReceipt.source === 'arena'
+                      ? 'Training Mastery Synced'
+                      : (reviewReceipt.verified ? 'Verified Corrective Review Complete' : 'Corrective Review Complete')}
+                  </strong>
+                  <span style={{ display: 'block', color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, marginTop: S.xs }}>
+                    {reviewReceipt.source === 'arena' ? (
+                      <>
+                        {Number.isFinite(Number(reviewReceipt.accuracy))
+                          ? `Accuracy ${Math.round(Number(reviewReceipt.accuracy))}%. `
+                          : ''}
+                        {reviewReceipt.newStatus
+                          ? `Leak Status Updated To ${String(reviewReceipt.newStatus).replace(/_/g, ' ').replace(/\b[a-z]/g, c => c.toUpperCase())}. `
+                          : 'Your Training Review Schedule Has Been Refreshed. '}
+                        {reviewReceipt.nextReviewAt && Number.isFinite(new Date(reviewReceipt.nextReviewAt).getTime())
+                          ? `Next Review Scheduled For ${new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(reviewReceipt.nextReviewAt))}.`
+                          : `The Next Review Is Scheduled In ${Math.max(0, Math.round(num(reviewReceipt.intervalDays)))} Day${Math.round(num(reviewReceipt.intervalDays)) === 1 ? '' : 's'}.`}
+                      </>
+                    ) : (
+                      <>
+                        {reviewReceipt.correct} Of {reviewReceipt.total} Correct. The Next Review Is Scheduled In {Math.max(0, Math.round(num(reviewReceipt.intervalDays)))} Day{Math.round(num(reviewReceipt.intervalDays)) === 1 ? '' : 's'}.
+                        {reviewReceipt.remediationMastered
+                          ? ' Corrective Mastery Is Recorded; Fresh Club Arena Evidence Must Still Confirm The Leak Is Fixed.'
+                          : ''}
+                      </>
+                    )}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="pa-btn"
+                  aria-label="Dismiss Corrective Review Receipt"
+                  onClick={() => setReviewReceipt(null)}
+                  style={iconBtn({ color: T.textMuted })}
+                >
+                  <X size={18} strokeWidth={2} aria-hidden="true" />
+                </button>
+              </div>
+            </section>
+          )}
 
           {/* ── Sample-data disclosure (only when signed-in user is viewing demo/onboarding leaks) ── */}
           {userId && leaksAreDemo && !leaksLoading && (
@@ -3745,38 +3887,6 @@ export default function LeakFinderPage() {
                   onOpenLeak={(l) => l && setSelectedLeakId(l.id)}
                 />
               </LeakErrorBoundary>
-              )}
-
-              {reviewReceipt && (
-                <section
-                  role="status"
-                  aria-live="polite"
-                  style={{ ...card, marginBottom: S.md, background: T.successSoft, borderColor: 'rgba(77,224,165,0.45)' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: S.sm }}>
-                    <CheckCircle2 size={20} strokeWidth={2} color={T.success} aria-hidden="true" style={{ marginTop: 2, flex: '0 0 auto' }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <strong style={{ display: 'block', color: T.success, fontSize: F.body }}>
-                        {reviewReceipt.verified ? 'Verified Corrective Review Complete' : 'Corrective Review Complete'}
-                      </strong>
-                      <span style={{ display: 'block', color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, marginTop: S.xs }}>
-                        {reviewReceipt.correct} Of {reviewReceipt.total} Correct. The Next Review Is Scheduled In {Math.max(0, Math.round(num(reviewReceipt.intervalDays)))} Day{Math.round(num(reviewReceipt.intervalDays)) === 1 ? '' : 's'}.
-                        {reviewReceipt.remediationMastered
-                          ? ' Corrective Mastery Is Recorded; Fresh Club Arena Evidence Must Still Confirm The Leak Is Fixed.'
-                          : ''}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      aria-label="Dismiss Corrective Review Receipt"
-                      onClick={() => setReviewReceipt(null)}
-                      style={iconBtn({ color: T.textMuted })}
-                    >
-                      <X size={18} strokeWidth={2} aria-hidden="true" />
-                    </button>
-                  </div>
-                </section>
               )}
 
               {linkedClubHand && (

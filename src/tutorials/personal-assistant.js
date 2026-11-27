@@ -43,7 +43,7 @@ export const PERSONAL_ASSISTANT_TUTORIAL = {
     {
       id: 'nav',
       title: 'Everything Is On One Screen',
-      body: 'The Row At The Top Jumps Between Your Tools: Overview, The Scenario Archive, Leak Finder, The Training Center And Your Activity. Every Anchor Is Visible At Once On A Phone, So There Is Nothing To Swipe Across And Nothing Hidden Off The Edge.',
+      body: 'The Row At The Top Jumps Between Your Three Core Tabs: Overview, Leak Finder, And Training Games. Every Tab Is Visible At Once On A Phone, So There Is Nothing To Swipe Across And Nothing Hidden Off The Edge.',
       target: 'nav|leak-views',
     },
     {
@@ -67,7 +67,7 @@ export const PERSONAL_ASSISTANT_TUTORIAL = {
     {
       id: 'stats',
       title: 'Your Dashboard Numbers',
-      body: 'Sessions Reviewed, Hands Analyzed, Active Leaks And Archived Sessions. Each Counter Is A Button That Opens The Detail Behind It. While Jarvis Is Still Reading Your Data The Cards Say So Rather Than Showing A Zero You Might Mistake For A Result.',
+      body: 'Active Leaks, Drills Due, And Verified Fixed. Each Summary Tile Is A Button That Opens The Detail Behind It. While Jarvis Is Still Reading Your Data The Tiles Say So Rather Than Showing A Zero You Might Mistake For A Result.',
       target: 'stats|leak-list',
     },
     {
