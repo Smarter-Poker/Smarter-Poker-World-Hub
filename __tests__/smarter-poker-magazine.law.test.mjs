@@ -2610,8 +2610,7 @@ test('MAG LAW 24: every printed picture is real and unique, placeholder plates n
     assert.match(rendererSrc, /if \(!page\?\.showQr\) return null;/, 'QrBlock must render only when the plan prints a QR');
     assert.match(rendererSrc, /page\.imageRole === 'none'/, 'Pages without a picture must print no picture');
     assert.match(rendererSrc, /deckEchoesCopy/, 'Decks that repeat the first paragraph must be dropped');
-    assert.match(rendererSrc, /smarter-poker-logo-final\.png/, 'Running heads must carry the Smarter.Poker logo');
-    assert.match(rendererSrc, /brand-text-trimmed\.png/, 'The cover masthead must carry the Smarter.Poker wordmark');
+    assert.match(rendererSrc, /smarter-poker-wordmark\.webp/, 'Running heads and the cover masthead must carry the Smarter.Poker wordmark');
     assert.match(read('pages/_app.js'), /magazine-print\.css/, 'The print stylesheet must load globally');
     assert.doesNotMatch(rendererSrc, /Scan At The Table/, 'Generic QR badges must not return');
 });
@@ -2640,10 +2639,10 @@ test('MAG LAW 25: decks and paragraphs clip on a full sentence, never mid-word, 
     const css = read('src/components/magazine/magazine-print.css');
     assert.match(css, /\.spm-sheet \.spm-pullquote,\s*\n\.spm-pullquote \{/, 'The pull quote must out-rank the .spm-sheet blockquote reset so its quote mark never overlaps the text');
     const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
-    assert.match(renderer, /const BRAIN_MARK = '\/images\/magazine\/brain-mark\.webp'/, 'The cover brain mark must be the transparent cut, never the checkerboard icon');
-    const mark = fs.readFileSync(path.join(REPO, 'public/images/magazine/brain-mark.webp'));
+    assert.doesNotMatch(renderer, /BRAIN_MARK|brain-mark|brain-icon/, 'The brain icon is not the Smarter.Poker logo');
+    const mark = fs.readFileSync(path.join(REPO, 'public/images/magazine/smarter-poker-wordmark.webp'));
     const chunk = mark.toString('ascii', 12, 16);
-    assert.ok(chunk === 'VP8L' || (chunk === 'VP8X' && (mark[20] & 0x10) !== 0), 'The brain mark must carry a real alpha channel');
+    assert.ok(chunk === 'VP8L' || (chunk === 'VP8X' && (mark[20] & 0x10) !== 0), 'The wordmark must carry a real alpha channel');
     const phone = read('src/index.css');
     for (const sel of ['img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]):not(.spm-sheet *)', 'h1:not(.spm-sheet *)', 'h2:not(.spm-sheet *)', 'h3:not(.spm-sheet *)', 'a:not(.spm-sheet *)']) {
         assert.ok(phone.includes(sel), `The phone reset must skip magazine sheets: ${sel}`);
@@ -2743,4 +2742,23 @@ test('MAG LAW 28: continuation labels never repeat the section name', () => {
     assert.equal(magazineContinuedLabel('Final Table', 'Final Table: Triton, Circuit & BSOP Winners (Continued)'), 'Final Table • Triton, Circuit & BSOP Winners');
     assert.equal(magazineContinuedLabel('The Rail', 'The Rail'), 'The Rail • Continued');
     assert.equal(magazineContinuedLabel('The Rail', 'Tour Radar: December'), 'The Rail • Tour Radar');
+});
+
+test('MAG LAW 29: the magazine carries the real Smarter.Poker wordmark and never the brain icon', async () => {
+    const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
+    const css = read('src/components/magazine/magazine-print.css');
+    assert.match(renderer, /const WORDMARK = '\/images\/magazine\/smarter-poker-wordmark\.webp'/, 'The wordmark is cut from the approved global header artwork');
+    assert.match(renderer, /const LOGO_LIGHT = WORDMARK;/, 'Running heads use the same wordmark');
+    for (const banned of ['brain-mark', 'brain-icon', 'brain-only', 'smarter-poker-logo-final', 'smarter-poker-logo-nobg', 'brand-text-trimmed', 'spm-masthead__brain']) {
+        assert.ok(!renderer.includes(banned), `Renderer must not reference ${banned}`);
+        assert.ok(!css.includes(banned), `Print CSS must not reference ${banned}`);
+    }
+    const { MAGAZINE_BRAND_ART } = await import('../src/lib/magazine/magazineArtDirection.mjs');
+    const art = Object.values(MAGAZINE_BRAND_ART).flat().filter(Boolean);
+    for (const brainArt of ['/circuit-brain-bg.webp', '/images/training/coach-mode/strategy-chamber-hero.webp', '/images/training/training-orb-hero.webp']) {
+        assert.ok(!art.includes(brainArt), `Brand art must not include the brain image ${brainArt}`);
+    }
+    for (const file of art) {
+        assert.ok(fs.existsSync(path.join(REPO, 'public', file)), `Brand art file exists: ${file}`);
+    }
 });
