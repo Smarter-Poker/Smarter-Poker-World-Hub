@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -89,6 +89,9 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
     const [pairedMatchId, setPairedMatchId] = useState(null);
     const [settledMatch, setSettledMatch] = useState(null);
     const [settledSessionId, setSettledSessionId] = useState('');
+    const [rematchDraft, setRematchDraft] = useState(null);
+    const [rematchStake, setRematchStake] = useState(null);
+    const friendChallengeDockRef = useRef(null);
 
     const challengeCode = useMemo(() => {
         const raw = typeof router.query?.challenge === 'string'
@@ -102,7 +105,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         return Number.isInteger(parsed) && VALID_CHALLENGE_STAKES.includes(parsed) ? parsed : null;
     }, [router.query?.stake]);
 
-    const preferredStake = activeChallenge?.stakeAmount ?? queryStake ?? null;
+    const preferredStake = activeChallenge?.stakeAmount ?? rematchStake ?? queryStake ?? null;
 
     const handleRealtimePush = useCallback(() => {
         setRealtimeEventCount((count) => count + 1);
@@ -141,6 +144,43 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         if (active) {
             setSettledMatch(null);
             setSettledSessionId('');
+            setRematchDraft(null);
+        }
+    }, []);
+
+    const handleClearRematchDraft = useCallback(() => {
+        setRematchDraft(null);
+    }, []);
+
+    const handleRequestRematch = useCallback((request = null) => {
+        if (!request || typeof request !== 'object') return;
+        const parsedStake = Number(request.stake);
+        const validStake = Number.isInteger(parsedStake) && VALID_CHALLENGE_STAKES.includes(parsedStake)
+            ? parsedStake
+            : null;
+        if (validStake) {
+            setRematchStake(validStake);
+        }
+        // Smarter Horse opponents never receive a direct Friend Challenge rematch draft.
+        if (request.isHorse) {
+            setRematchDraft(null);
+            return;
+        }
+        const opponentName = typeof request.opponentName === 'string' ? request.opponentName.trim() : '';
+        if (!opponentName || opponentName.toLowerCase() === 'smarter horse') {
+            setRematchDraft(null);
+            return;
+        }
+        setRematchDraft({
+            stake: validStake ?? 25,
+            opponentId: typeof request.opponentId === 'string' && request.opponentId.trim() ? request.opponentId.trim() : null,
+            opponentName,
+            requestedAt: Date.now(),
+        });
+        if (typeof window !== 'undefined') {
+            window.requestAnimationFrame(() => {
+                friendChallengeDockRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+            });
         }
     }, []);
 
@@ -228,6 +268,8 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
             setPairedMatchId(null);
             setSettledMatch(null);
             setSettledSessionId('');
+            setRematchDraft(null);
+            setRematchStake(null);
         }
     }, [user?.id]);
 
@@ -295,7 +337,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         />
                     ) : null}
                     {challengeCode && !matchActive ? (
-                        <div className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="incoming">
+                        <div ref={friendChallengeDockRef} className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="incoming">
                             <FriendChallengePanel
                                 signedIn={Boolean(user?.id)}
                                 onSignIn={handleChallengeSignIn}
@@ -303,6 +345,8 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                                 shareBasePath="/hub/trivia/pvp"
                                 onChallengeLoaded={handleChallengeLoaded}
                                 onChallengeAccepted={handleChallengeAccepted}
+                                rematchDraft={rematchDraft}
+                                onClearRematchDraft={handleClearRematchDraft}
                             />
                         </div>
                     ) : null}
@@ -314,6 +358,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         onMatchActiveChange={handleMatchActiveChange}
                         onMatchSettled={handleMatchSettled}
                         onSyncContextChange={handleSyncContextChange}
+                        onRequestRematch={handleRequestRematch}
                         realtimeConnected={realtimeSync.connected}
                         realtimePollMs={realtimeSync.effectivePollMs}
                         realtimeEventCount={realtimeEventCount}
@@ -323,7 +368,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         settledSessionId={settledSessionId}
                         settledMatch={settledMatch}
                         friendChallengeSlot={!challengeCode && !matchActive ? (
-                            <div className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="standard">
+                            <div ref={friendChallengeDockRef} className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="standard">
                                 <FriendChallengePanel
                                     signedIn={Boolean(user?.id)}
                                     onSignIn={handleChallengeSignIn}
@@ -331,6 +376,8 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                                     shareBasePath="/hub/trivia/pvp"
                                     onChallengeLoaded={handleChallengeLoaded}
                                     onChallengeAccepted={handleChallengeAccepted}
+                                    rematchDraft={rematchDraft}
+                                    onClearRematchDraft={handleClearRematchDraft}
                                 />
                             </div>
                         ) : null}
