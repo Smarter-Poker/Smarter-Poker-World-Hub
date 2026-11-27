@@ -20,6 +20,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { createHardenedSupabaseClient } from '../lib/realtimeTransportGuard';
 import { eventBus, EventType } from './EventBus';
 
 // Extended event types for training
@@ -38,10 +39,10 @@ export const TrainingEventType = {
 let supabase = null;
 function getSupabase() {
     if (!supabase && typeof window !== 'undefined') {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+        const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
         if (url && key) {
-            supabase = createClient(url, key);
+            supabase = createHardenedSupabaseClient(createClient, url, key);
         }
     }
     return supabase;

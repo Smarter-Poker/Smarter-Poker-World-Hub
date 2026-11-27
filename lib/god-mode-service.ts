@@ -7,6 +7,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { createHardenedSupabaseClient } from '../src/lib/realtimeTransportGuard';
 import { SolverPolicyService } from '../src/services/SolverPolicyService.js';
 
 export interface GTOAction {
@@ -62,7 +63,7 @@ export interface GTOScenario {
 }
 
 function makeClient(url: string, key: string) {
-    return createClient(url, key);
+    return createHardenedSupabaseClient(createClient, url.trim(), key.trim());
 }
 
 let client: ReturnType<typeof makeClient> | null = null;

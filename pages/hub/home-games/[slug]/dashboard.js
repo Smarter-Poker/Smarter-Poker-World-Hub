@@ -13,6 +13,7 @@ import DeepRouteSignalDeck from '../../../../src/components/poker-near-me/DeepRo
 import PokerNearMeConsole from '../../../../src/components/poker-near-me/PokerNearMeConsole';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { createClient } from '@supabase/supabase-js';
+import { createHardenedSupabaseClient } from '../../../../src/lib/realtimeTransportGuard';
 import { safeImageUrl } from '../../../../src/lib/security/imageHosts.js';
 
 let _sb = null;
@@ -31,9 +32,10 @@ let _sbToken = null;
 function getSb(token) {
   const key = token || null;
   if (!_sb || _sbToken !== key) {
-    _sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    _sb = createHardenedSupabaseClient(
+      createClient,
+      (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim(),
+      (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim(),
       {
         auth: { persistSession: false, autoRefreshToken: false },
         ...(key ? { global: { headers: { Authorization: `Bearer ${key}` } } } : {}),
