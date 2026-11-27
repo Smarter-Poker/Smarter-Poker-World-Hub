@@ -1,0 +1,72 @@
+{
+  "id": "mtt-002",
+  "name": "ICM Fundamentals",
+  "category": "MTT",
+  "version": "approved-chrome-v1",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:35:43.120Z",
+  "prompt": "Use case: stylized-concept. Create one premium 3D studio illustration for a Smarter.Poker poker training game, landscape 16:9, ideally 1536x864. The approved #SMARTERDESIGN look is glossy black and deep ink navy, polished mirror CHROME AND SILVER, rich COBALT and controlled electric-blue rim lighting. Render large tactile hero objects on a close-up black mirrored circular studio platform with beautiful realistic reflections and sculpted chrome edges, crisp high-definition product-photography quality. No wide room, no distant environment, no tiny details, no text or typography, no logo, no UI, no frames surrounding the picture, no watermarks. NO PLAYING CARDS OF ANY KIND, NO CARD BACKS OR CARD FACES, NO SUIT/RANK MARKINGS, NO LETTERS OR NUMBERS. Real card faces will be composited by the application later. No gold, yellow, orange, purple or pink accent lighting. Black, blue, silver and clear glass only. Keep important objects inside 8% safe margins. Objects must fill the image and remain easily readable in a mobile game card. Subject: A polished silver tournament trophy above three graduated cobalt chip towers on stepped mirrored podiums. Reserve a quiet empty dark foreground area on the LEFT spanning x=8% to 43%, y=22% to 83% for two REAL playing-card asset overlays. Place the main specified 3D subject on the RIGHT, around x=65%, large and beautifully visible. Do not draw placeholders or blank cards. Preserve clean true object proportions and ensure the lighting is bright enough to recognize all central objects. The artwork should feel like an exquisite collectible game cover in a chrome-and-cobalt poker training lobby.",
+  "subject": "A polished silver tournament trophy above three graduated cobalt chip towers on stepped mirrored podiums",
+  "source": {
+    "fileName": "exec-34d1cfb4-7848-42fe-a432-7efc27e2b2dc.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1757135,
+    "sha256": "65861e6bbb0eeee3099cfaedcac383f9dd0b74ff4bbfab28d12cd52dfabc6b5f"
+  },
+  "nativeCards": [
+    "Ah",
+    "Kd"
+  ],
+  "placement": "left",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-002.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 26010,
+      "sha256": "1bd580c143b4a268c1ce5c09a9c613b546111fc5cee6e80b799cab7de400b4b6"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-002.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 25380,
+      "sha256": "e5218e3d390acbaa3135b523dc58e002b4a95edba2a8b7df871cc966d1929939"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-002.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 46382,
+      "sha256": "05f0d401724e1a0c380ead61097319767d9a5403268ad91dbf7251fadfacdc91"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-002.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 41209,
+      "sha256": "04ade55f9d50cb8e81da1304509a40ea809587d422139e45033020bb3237c5a6"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-002.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 81390,
+      "sha256": "006066c4f8309931629fc010bb3ea81e997902c55ff0a93506c17773c25d8ad2"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-002.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 63375,
+      "sha256": "9911dbbb0e4dfa71e9a187b5a64271082816e363753cbd0fc1f2f0c303f31ecf"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "id": "cash-019",
+  "name": "Straddle Games",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:55:35.936Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Straddle Games.\nSubject: A row of three forced bets expands along the opening edge of a cash table, with the added third straddle conspicuously larger and farther forward. A plain chrome marker beside the third post emphasizes the additional pressure.\nCamera: Very low lateral close-up, looking along the three distinct posts so their height and forward distance are visible.\nComposition: Small blind and big blind are partly cropped at the left; the larger straddle dominates the near-right foreground. The felt's stitched boundary runs diagonally behind them and bends outward around the third post. No orbit rings, numbered chips, floating platforms or card overlays.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A row of three forced bets expands along the opening edge of a cash table, with the added third straddle conspicuously larger and farther forward. A plain chrome marker beside the third post emphasizes the additional pressure.",
+  "camera": "Very low lateral close-up, looking along the three distinct posts so their height and forward distance are visible.",
+  "composition": "Small blind and big blind are partly cropped at the left; the larger straddle dominates the near-right foreground. The felt's stitched boundary runs diagonally behind them and bends outward around the third post. No orbit rings, numbered chips, floating platforms or card overlays.",
+  "source": {
+    "fileName": "exec-a3d0bf6b-c0ac-4960-8953-e57379309381.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2353942,
+    "sha256": "a52b0c1ca8d2d54c71f5cfc2f7bb2a05bd5a2fd0821c8c1afccb8bf39768f8e2"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-019.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 39866,
+      "sha256": "337ecd66ce8fdf1725ed9b69a83efc79246130e6455b89cb34e31a1e456b4f52"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-019.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 36346,
+      "sha256": "c7465724559afc69079f4707aa57382ffd810aedfd30b4f7c483e505e5983cef"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-019.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 79048,
+      "sha256": "6718f28c01b5ccb242a625ed62fb27ee6c254eba38743f4fca38007116fa4f54"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-019.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 66816,
+      "sha256": "5fbeea0171cdf091785bbcdd44e27d8ba05d5a5fd896af8324008dc5a86d2204"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-019.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 144322,
+      "sha256": "fd53789db4f1468ecb9079f7bcf2599219c01b8e90e3cc76f4aaf38400786449"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-019.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 110996,
+      "sha256": "790d537b5883f92f3a53b16f5ece04941b385a96569d273d7ce6cf848c711ca6"
+    }
+  ]
+}

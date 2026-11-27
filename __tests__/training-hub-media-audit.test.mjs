@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 
-test('Phase 3 Training Hub media audit is complete and current', () => {
+test('approved Training lobby media audit covers all 107 new scenes and is current', () => {
   const output = execFileSync(
     process.execPath,
     ['scripts/training-hub-media-audit.mjs', '--check'],

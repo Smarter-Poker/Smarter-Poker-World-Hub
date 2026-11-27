@@ -1,0 +1,72 @@
+{
+  "id": "cash-005",
+  "name": "Bluff Catcher",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:48:50.494Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Bluff Catcher.\nSubject: A tense cinematic hero-call moment: a calm adult poker player's eyes watch an oversized opposing wager across the felt while their fingers hold one calling chip at the edge of the betting line. Render the face in cool silver monochrome and the clothing in black.\nCamera: Eye-level telephoto crop across the table; the eyes occupy the upper band and the poised call occupies the lower foreground.\nComposition: The diagonal opposing wager creates the center-left foreground; the focused eyes span the upper right. A small natural hand area at lower right accommodates the actual K-spade and Q-heart cards. Use a narrow cobalt reflection in the rail, not a luminous pedestal. Keep the expression readable rather than distant.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "A tense cinematic hero-call moment: a calm adult poker player's eyes watch an oversized opposing wager across the felt while their fingers hold one calling chip at the edge of the betting line. Render the face in cool silver monochrome and the clothing in black.",
+  "camera": "Eye-level telephoto crop across the table; the eyes occupy the upper band and the poised call occupies the lower foreground.",
+  "composition": "The diagonal opposing wager creates the center-left foreground; the focused eyes span the upper right. A small natural hand area at lower right accommodates the actual K-spade and Q-heart cards. Use a narrow cobalt reflection in the rail, not a luminous pedestal. Keep the expression readable rather than distant.",
+  "source": {
+    "fileName": "exec-5c14b6a1-d637-4c57-92a4-058dfd00ddd8.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2266005,
+    "sha256": "94fdf41a8dfabaf10bd0ee47c1b247bacf7869ec38b08efc049aaf811b11d2ae"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-005.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 28808,
+      "sha256": "d2462d39093c5ed344a3e2b0d63062361deec8cd5cefbf31bf4a96c70e224f7e"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-005.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 25470,
+      "sha256": "335c5bd03c0dde6a20b39e0a188aac342fd94f3ca0bbff299f2b45f6e6dcd608"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-005.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 56686,
+      "sha256": "3c9d2d96743ad413e9c378be58b55a663b64b5db4f4f23d4472483ae49be409f"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-005.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 48216,
+      "sha256": "9f9ee8cb1cd7492578c576c2e73fd329ef2553024d459ef495ab28f45ef209c0"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-005.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 105392,
+      "sha256": "cef7778eed873126ed801bf563b87a892778a83dd3d55fd3d5b684b89cfa62eb"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-005.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 83076,
+      "sha256": "1ed5905cc73f98a19beec56e09a9d1c4695f968d1a812af18fd15ed0fb35685e"
+    }
+  ],
+  "overlayReview": "Removed native-card overlay after visual review because it obscured the poised calling hand and chip; the scene already communicates the hero-call decision."
+}

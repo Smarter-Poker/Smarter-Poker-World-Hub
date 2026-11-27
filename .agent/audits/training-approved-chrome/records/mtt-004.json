@@ -1,0 +1,71 @@
+{
+  "id": "mtt-004",
+  "name": "Final Table ICM",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:47:33.031Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Final Table ICM.\nSubject: Final Table ICM: an escalating payout staircase physically integrated into the arc of a final poker table, with the remaining seats represented by a few unequal chip stacks\nCamera: high oblique view looking across the curved table edge\nComposition: The table cuts a sweeping diagonal from lower left to upper right; three silver payout steps rise along the right rear rail, while the low stack in front faces the largest step. Large objects, no central trophy, no symmetrical stage.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Final Table ICM: an escalating payout staircase physically integrated into the arc of a final poker table, with the remaining seats represented by a few unequal chip stacks",
+  "camera": "high oblique view looking across the curved table edge",
+  "composition": "The table cuts a sweeping diagonal from lower left to upper right; three silver payout steps rise along the right rear rail, while the low stack in front faces the largest step. Large objects, no central trophy, no symmetrical stage.",
+  "source": {
+    "fileName": "exec-b938de41-a0d3-448a-9912-e370a5bbb857.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2420932,
+    "sha256": "410b69c47e3353862510e4e8b3a33c985fd80261e215e5e7ebf29bddd2fe3fe2"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-004.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 34110,
+      "sha256": "c593d836a9f7cd432c7be98756b0d75bfd1d639f2b10aa561568bdad161d8a3b"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-004.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 29819,
+      "sha256": "a4b4dc462b9bd17d5132027250093bde818a3d2205e15469097d1781fad6ff07"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-004.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 69636,
+      "sha256": "b3eb6a993ebe03e57b225573f407ad795899bbb04a22a00f59107be60fe839fa"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-004.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 58248,
+      "sha256": "6e58bc4a285f1b9e426f4729566985118ffb6accba22f42490d5bace1b255430"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-004.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 138848,
+      "sha256": "f2ab2d619635a79f7052b1859a86a13509397ab42f0bbea90f4ee0ec0aaa1a4a"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-004.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 105087,
+      "sha256": "92cfba06a50332f737a2421fd8460733108ffe57c7a259c2850e7f82864454c4"
+    }
+  ]
+}

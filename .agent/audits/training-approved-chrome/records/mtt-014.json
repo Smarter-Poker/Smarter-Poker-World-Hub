@@ -1,0 +1,71 @@
+{
+  "id": "mtt-014",
+  "name": "3-Max Blitz",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:03.509Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: 3-Max Blitz.\nSubject: 3-Max Blitz: a compact triangular poker table with exactly three energized player positions and chips racing toward the center\nCamera: steep tilted overhead with the triangular table corner facing the camera\nComposition: The three rail sections crop boldly against the image edges, each position has an unequal stack, and cobalt motion streaks travel along the table's triangle. A fast aggressive composition with no central trophy or platform.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "3-Max Blitz: a compact triangular poker table with exactly three energized player positions and chips racing toward the center",
+  "camera": "steep tilted overhead with the triangular table corner facing the camera",
+  "composition": "The three rail sections crop boldly against the image edges, each position has an unequal stack, and cobalt motion streaks travel along the table's triangle. A fast aggressive composition with no central trophy or platform.",
+  "source": {
+    "fileName": "exec-45e319f9-2136-4a73-b60d-4d1a2b7f6b99.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2772113,
+    "sha256": "6fd30c660c4e19647c591f3742155c3aaad687a274bb017704b5818ada91a090"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-014.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 47068,
+      "sha256": "9d5d6cf6112e7b1959f002f8e1102fbd62092fc6b351f8e36e0efd4ec8f59c77"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-014.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 47702,
+      "sha256": "245c9b0f0b8cd51e80e04cbf023ec5ed6ef55f9f746d36c687cb91d6c3bec3ff"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-014.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 98688,
+      "sha256": "d7518ff376d7499b9e7466859a8cea88624c4e04e91a07fbf0c4078283998858"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-014.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 93426,
+      "sha256": "c8fee237e33ab097d6948f9aaf40fbc3ed8950e78bacadee27ef12b3b55783af"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-014.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 204134,
+      "sha256": "36c22795d3d972cb6526d68e5ba36e20905b38b9b07b5ffafc2f939d19de51a2"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-014.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 171113,
+      "sha256": "e2fd63c07b36b2c80df05e32c6d28dd360c03d40afce6b1554c5cb0a1922de9d"
+    }
+  ]
+}

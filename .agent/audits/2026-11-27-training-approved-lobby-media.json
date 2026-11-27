@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "generatedBy": "scripts/training-hub-media-audit.mjs",
+  "artworkRoot": "/images/training/approved-chrome",
+  "canonicalGames": 107,
+  "responsiveVariantFiles": 642,
+  "uniqueCanonicalArtworks": 107,
+  "sourceContracts": {
+    "hubUsesResponsiveArt": true,
+    "lobbyCardsUseResponsiveArt": true,
+    "canonicalApprovedArtwork": true,
+    "hubDoesNotImportDirectImage": true,
+    "responsiveAvif": true,
+    "responsiveWebp": true,
+    "largeResponsiveCardSizes": true,
+    "lazyArtworkBelowFirstShelf": true,
+    "noScanline": true
+  },
+  "aggregateBytes": {
+    "rootWebp": 14243452,
+    "avif640": 3485654,
+    "webp640": 3832842,
+    "avif960": 6414271,
+    "webp960": 7486714,
+    "avif1440": 11059871
+  },
+  "estimatedCardArtSavingsPct": {
+    "avif640VsRootWebp": 75.5,
+    "avif960VsRootWebp": 55
+  },
+  "missingVariants": []
+}

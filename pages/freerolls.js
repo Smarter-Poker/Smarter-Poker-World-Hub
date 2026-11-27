@@ -270,44 +270,27 @@ export default function FreerollsPage() {
         </nav>
 
         {/* Hero Banner */}
-        <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            padding: '6px 16px', 
-            borderRadius: 0, 
-            backgroundColor: 'rgba(56, 189, 248, 0.12)', 
-            border: '1px solid rgba(56, 189, 248, 0.3)', 
-            color: '#38bdf8', 
-            fontSize: '13px', 
-            fontWeight: 700, 
-            letterSpacing: '0.04em',
-            marginBottom: '16px'
-          }}>
-            <Sparkles size={16} />
-            <span>FIVE FREE TOURNAMENTS EVERY DAY</span>
-          </div>
+        <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+          <SmarterSeoMasthead
+            vertical="series"
+            eyebrow="Five Free Tournaments Every Day"
+            title="Daily Free Poker Tournaments"
+            lead="Compete In Five Daily Free Poker Tournaments With Guaranteed Rewards, Zero Entry Fees & Instant Browser Play."
+            stats={[
+              { label: 'Daily Schedule', value: `${DAILY_SCHEDULE.length} Events` },
+              { label: 'Entry Buy-In', value: '$0 Free' },
+              { label: 'Starting Stack', value: '3,000 Chips' },
+              { label: 'Platform', value: 'Browser Native' },
+            ]}
+            redirectPath="/freerolls"
+            unlockKey="masthead-freerolls"
+            primaryCtaLabel="Create Free Account To Play"
+            secondaryHref="/hub/club-arena?mode=tournament"
+            secondaryLabel="Enter Tournament Lobby"
+          />
+        </div>
 
-          <div style={{ marginBottom: '20px', textAlign: 'left' }}>
-            <SmarterSeoMasthead
-              vertical="series"
-              eyebrow="Five Free Tournaments Every Day"
-              title="Daily Free Poker Tournaments"
-              lead="Compete In Five Daily Free Poker Tournaments With Guaranteed Rewards, Zero Entry Fees & Instant Browser Play."
-              stats={[
-                { label: 'Daily Schedule', value: `${DAILY_SCHEDULE.length} Events` },
-                { label: 'Entry Buy-In', value: '$0 Free' },
-                { label: 'Starting Stack', value: '3,000 Chips' },
-                { label: 'Platform', value: 'Browser Native' },
-              ]}
-              redirectPath="/freerolls"
-              unlockKey="masthead-freerolls"
-              primaryCtaLabel="Create Free Account To Play"
-              secondaryHref="/hub/club-arena?mode=tournament"
-              secondaryLabel="Enter Tournament Lobby"
-            />
-          </div>
+        <section aria-label="Daily Freerolls Countdown" style={{ textAlign: 'center', marginBottom: '40px' }}>
 
           <p style={{ 
             fontSize: 'clamp(16px, 2.5vw, 19px)', 
@@ -403,7 +386,7 @@ export default function FreerollsPage() {
           </div>
 
           <NextFreerollCountdown />
-        </header>
+        </section>
 
         {/* AI & Search Executive Citation Block */}
         <aside 

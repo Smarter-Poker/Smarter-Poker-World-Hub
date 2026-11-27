@@ -139,33 +139,32 @@ export default function PokerGamesIndexPage() {
           <span style={styles.crumbCurrent}>Poker Variants &amp; Mixed Games Encyclopedia</span>
         </nav>
 
-        <header style={styles.heroPlate}>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="games"
+            eyebrow="Smarter.Poker Mixed Games Encyclopedia"
+            title="Poker Variants & Mixed Games Encyclopedia: Official Rules, Hand Rankings & Starting Hand Strategy"
+            lead="Master All 15 Major Live, Tournament & Private Club Poker Formats From Texas Hold Em To PLO5, Short Deck & H.O.R.S.E."
+            stats={[
+              { label: 'Poker Formats', value: `${POKER_VARIANTS.length} Variants` },
+              { label: 'Game Families', value: `${GAME_CATEGORIES.length} Families` },
+              { label: 'GTO Drills', value: '107 Games' },
+              { label: 'Account Tier', value: '100% Free' },
+            ]}
+            redirectPath="/games"
+            unlockKey="masthead-games"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/tools/poker-odds-calculator"
+            secondaryLabel="6-Game Odds Calc"
+          />
+        </div>
+
+        <section aria-label="Poker Variants Quick Reference" style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.primaryBadge}>15 COMPLETE VARIANT RULEBOOKS</span>
             <span style={styles.cyanBadge}>HOLD&apos;EM · PLO · STUD · LOWBALL · MIXED</span>
             <a href="/games.md" style={styles.mdBadge}>
               RAW MARKDOWN (/GAMES.MD)
             </a>
-          </div>
-
-          <div style={{ marginBottom: 18 }}>
-            <SmarterSeoMasthead
-              vertical="games"
-              eyebrow="Smarter.Poker Mixed Games Encyclopedia"
-              title="Poker Variants & Mixed Games Encyclopedia: Official Rules, Hand Rankings & Starting Hand Strategy"
-              lead="Master All 15 Major Live, Tournament & Private Club Poker Formats From Texas Hold Em To PLO5, Short Deck & H.O.R.S.E."
-              stats={[
-                { label: 'Poker Formats', value: `${POKER_VARIANTS.length} Variants` },
-                { label: 'Game Families', value: `${GAME_CATEGORIES.length} Families` },
-                { label: 'GTO Drills', value: '107 Games' },
-                { label: 'Account Tier', value: '100% Free' },
-              ]}
-              redirectPath="/games"
-              unlockKey="masthead-games"
-              primaryCtaLabel="Create Free Account"
-              secondaryHref="/tools/poker-odds-calculator"
-              secondaryLabel="6-Game Odds Calc"
-            />
           </div>
 
           <p style={styles.lead}>
@@ -188,7 +187,7 @@ export default function PokerGamesIndexPage() {
               PLO Pot-Limit Bet Calculator
             </Link>
           </div>
-        </header>
+        </section>
 
         <section aria-label="Filter Variants By Category" style={styles.filterBar}>
           <button

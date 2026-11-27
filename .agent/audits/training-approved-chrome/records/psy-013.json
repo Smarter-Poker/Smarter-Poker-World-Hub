@@ -1,0 +1,71 @@
+{
+  "id": "psy-013",
+  "name": "Tell Blindness",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:55:06.469Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Tell Blindness.\nSubject: Tell Blindness: a reflective dark poker visor filters a chaotic field of misleading silhouettes into one clean focused reflection of the betting chips\nCamera: close portrait crop of visor and table reflection, no identifiable face\nComposition: The visor angles across the upper half, reflecting a clear cobalt chip commitment; surrounding blurred hand gestures dissolve into darkness. Emphasize objective action over ambiguous gestures. No cards, text or sinister mask.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Tell Blindness: a reflective dark poker visor filters a chaotic field of misleading silhouettes into one clean focused reflection of the betting chips",
+  "camera": "close portrait crop of visor and table reflection, no identifiable face",
+  "composition": "The visor angles across the upper half, reflecting a clear cobalt chip commitment; surrounding blurred hand gestures dissolve into darkness. Emphasize objective action over ambiguous gestures. No cards, text or sinister mask.",
+  "source": {
+    "fileName": "exec-01377a55-300f-4221-916b-4252596f6ab7.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1945395,
+    "sha256": "2a7a559254b076eb765faa39752a3385ba8a748e3ea8dcea2dda97197f085724"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-013.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 27048,
+      "sha256": "197b26952592173cc54c830e2f2eee203c8ac1a2a6f1cdaa23aaca393e3b7dbb"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-013.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 23003,
+      "sha256": "5c125108463fa124ee4c71ac541523cac932f66f9d78ab1253bd927aab1225c5"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-013.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 51294,
+      "sha256": "43d2aa79a951bfbc57351aca22c02f793a662575737aaa23198f7436d9f17658"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-013.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 40228,
+      "sha256": "49134d239d39fb26d7026fb31e5ad2ed879a7b5bcf647f33606b01e1551e02c8"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-013.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 93666,
+      "sha256": "ce61987198201f510b330dc97ab80235340bcef0f943454617ec22a79338df3a"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-013.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 66810,
+      "sha256": "73d424d8613fa0971ab7f260754df3ad6e439b0a78ee81ce8a56acaafa1bbb8a"
+    }
+  ]
+}

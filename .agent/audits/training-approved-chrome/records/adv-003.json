@@ -1,0 +1,71 @@
+{
+  "id": "adv-003",
+  "name": "Node Locking",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:46:31.144Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Node Locking.\nSubject: Node Locking: a branching chrome decision tree suspended across black space, one pivotal blue node physically clamped in place while the other branches reroute around it\nCamera: dramatic close side view with shallow perspective\nComposition: The tree enters from lower left and fans across the image, the large locking clamp sits on the upper right branch, and a bright cobalt alternative route curves underneath. Open architectural wire sculpture with depth, no pedestal, chips, grid screen or circular hub.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Node Locking: a branching chrome decision tree suspended across black space, one pivotal blue node physically clamped in place while the other branches reroute around it",
+  "camera": "dramatic close side view with shallow perspective",
+  "composition": "The tree enters from lower left and fans across the image, the large locking clamp sits on the upper right branch, and a bright cobalt alternative route curves underneath. Open architectural wire sculpture with depth, no pedestal, chips, grid screen or circular hub.",
+  "source": {
+    "fileName": "exec-44111e26-07a7-4783-8171-1b21ca33703f.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1855761,
+    "sha256": "f9aa626b468f8c64db2e684c332b0484cb24e89be939c290b3578dcded08ac9a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-003.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 27892,
+      "sha256": "654e4aeaa32d1907d8045f738f827b73de5f4a53e6c0767e161e494b0daaf3fd"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-003.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 23693,
+      "sha256": "07f3a7b82dd531241155718f7c1a7debc2760839cd9c7fb2fe273cf816db169e"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-003.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 47494,
+      "sha256": "d38a9f2aa2fffa5bd404a728d397cc54dcc572c3a6504501443f5f3fdad24482"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-003.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 36722,
+      "sha256": "3d21e06108fa223344749087f6505992bd74c315e61e6bf34b79be3c5d919002"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-003.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 81322,
+      "sha256": "cddf13c009f47db308912f6234f769fffc20104b5978652d29a58b35713c416d"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-003.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 55568,
+      "sha256": "9299c723ef884e9a44889a6b65fbe72c5a74aec1a1c4da7e5f927ee106a32841"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "id": "cash-012",
+  "name": "River Decisions",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:00.533Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: River Decisions.\nSubject: The final-street decision on a poker table: a completed five-card board divides a large opposing river bet from a small call chip poised at the near rail. The human hand has paused, conveying a consequential final choice.\nCamera: Directly overhead, tightly cropped to the river board and both sides of the decision.\nComposition: The actual five-card board forms a narrow horizontal band through the center. An irregular opposing wager fills the upper-left quadrant; the near hand and single call chip enter from lower right. The table edge curves along the bottom, closing the scene. No drawn cards or empty product-display area.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "The final-street decision on a poker table: a completed five-card board divides a large opposing river bet from a small call chip poised at the near rail. The human hand has paused, conveying a consequential final choice.",
+  "camera": "Directly overhead, tightly cropped to the river board and both sides of the decision.",
+  "composition": "The actual five-card board forms a narrow horizontal band through the center. An irregular opposing wager fills the upper-left quadrant; the near hand and single call chip enter from lower right. The table edge curves along the bottom, closing the scene. No drawn cards or empty product-display area.",
+  "source": {
+    "fileName": "exec-555076d1-799c-4510-be3a-7ade2dd567a8.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2675742,
+    "sha256": "759d98f64adc6a0a157bd4d95b71ca78109a6880c64b3b7a05a99e88e6f944c4"
+  },
+  "nativeCards": [
+    "As",
+    "Kd",
+    "Jh",
+    "8c",
+    "3s"
+  ],
+  "placement": "center",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-012.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 25520,
+      "sha256": "23e7b6adbb4965164aa10666539425379c08439418eb73899419c03d12911fbe"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-012.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 22755,
+      "sha256": "af340fa31a38a02d7a2c464385d3496a20b644795b06d872e133d33d9421d4b3"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-012.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 54672,
+      "sha256": "5086353261c9591d1bca24fff1e7d8b8ba29ecc39f02d93f5075236537de04e5"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-012.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 45890,
+      "sha256": "9956bd5d2250b178b7762903acaaf8355dc8537496f2f7cc0d5c7fc51b84cb0a"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-012.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 119180,
+      "sha256": "a87067b7af566d940dd6bc3aa729f75d09e39f49ad3ec3db9eee830f046bbece"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-012.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 92516,
+      "sha256": "cfb5fb1a27483541ce3fbaa7ae54e1a841c2156297deb7f50013f12730d3096f"
+    }
+  ]
+}

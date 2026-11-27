@@ -1,0 +1,190 @@
+{
+  "uniqueNativeCards": 14,
+  "results": [
+    {
+      "card": "2c",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/clubs_2.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/clubs_2.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "3s",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/spades_3.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/spades_3.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "7h",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/hearts_7.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/hearts_7.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "8c",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/clubs_8.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/clubs_8.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Ad",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/diamonds_a.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/diamonds_a.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Ah",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/hearts_a.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/hearts_a.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "As",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/spades_a.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/spades_a.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Jh",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/hearts_j.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/hearts_j.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Js",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/spades_j.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/spades_j.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Kd",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/diamonds_k.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/diamonds_k.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Kh",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/hearts_k.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/hearts_k.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Ks",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/spades_k.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/spades_k.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Qh",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/hearts_q.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/hearts_q.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    },
+    {
+      "card": "Qs",
+      "webp": {
+        "path": "/hub/club-arena/cards/2color/spades_q.webp",
+        "status": 200,
+        "type": "image/webp"
+      },
+      "png": {
+        "path": "/hub/club-arena/cards/2color/spades_q.png",
+        "status": 200,
+        "type": "image/png"
+      }
+    }
+  ],
+  "observedAt": "2026-11-27T18:58:13.063342+00:00",
+  "method": "HEAD against existing smarter.poker Club Arena card asset URLs",
+  "scope": "All14 distinct native card faces referenced by the new training metadata; WebP plus original PNG fallback"
+}

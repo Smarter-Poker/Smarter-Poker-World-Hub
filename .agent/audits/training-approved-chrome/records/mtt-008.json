@@ -1,0 +1,71 @@
+{
+  "id": "mtt-008",
+  "name": "Short Stack Ninja",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:48:37.890Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Short Stack Ninja.\nSubject: Short Stack Ninja: a tiny disciplined group of twelve cobalt chips threading a narrow opening between two much larger black chip formations\nCamera: close overhead tactical still life\nComposition: A precise zigzag route in silver light passes between large cropped obstacles; the short stack sits off-center on the decisive opening. Broad angular shadows on matte navy felt, very graphic and spare, no ninja character or weapons.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Short Stack Ninja: a tiny disciplined group of twelve cobalt chips threading a narrow opening between two much larger black chip formations",
+  "camera": "close overhead tactical still life",
+  "composition": "A precise zigzag route in silver light passes between large cropped obstacles; the short stack sits off-center on the decisive opening. Broad angular shadows on matte navy felt, very graphic and spare, no ninja character or weapons.",
+  "source": {
+    "fileName": "exec-4fd08ebb-ec37-4a5b-80e5-a2cd2c0078bb.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2532853,
+    "sha256": "06bff59b81236b1f086508ff9ecc7bc53eea19b1a0cc3199e39c53fcf3900711"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-008.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 31412,
+      "sha256": "9db81ed9097a8e3f65cc9a8b6c153d79a03c624b0e39c04a657eea9096ba7be2"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-008.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 29086,
+      "sha256": "4f6d88884dd0faff94f559a3c27e2cadabcc57a87d2e3b6146e11fbcb1623413"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-008.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 62234,
+      "sha256": "dedc458c9c6ad4d6b8145013f9c792e82830de6b206f5c62a7d80c1af4ca7c2b"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-008.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 54955,
+      "sha256": "5ef78b3441af274b80e540e6a22bcc5ad1b2cc45e15194fd22046d07f8101f2e"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-008.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 125994,
+      "sha256": "6877790856b595a670c6b8cfd1f7ef27d6a9d9f3878e9657d541ed8491341851"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-008.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 100777,
+      "sha256": "af8e44e20c825cd2ab2a24c30415463900f79d6354296f0171e936e0697d342a"
+    }
+  ]
+}

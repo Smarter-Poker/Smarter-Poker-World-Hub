@@ -1,0 +1,71 @@
+{
+  "id": "psy-003",
+  "name": "Cooler Cage",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:46.001Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Cooler Cage.\nSubject: Cooler Cage: a single cobalt chip remains intact inside an angular protective steel cage while a wave of shattered ice crashes outside\nCamera: dramatic low oblique action close-up\nComposition: The cage is off-center right and partially cropped; ice shards sweep from left to upper right around the safe chip. Black and blue ice textures, resilient controlled mood, no circular platform or glowing ring.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Cooler Cage: a single cobalt chip remains intact inside an angular protective steel cage while a wave of shattered ice crashes outside",
+  "camera": "dramatic low oblique action close-up",
+  "composition": "The cage is off-center right and partially cropped; ice shards sweep from left to upper right around the safe chip. Black and blue ice textures, resilient controlled mood, no circular platform or glowing ring.",
+  "source": {
+    "fileName": "exec-dd5150a3-435d-4433-b5e5-de87e260faa3.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2965005,
+    "sha256": "87e2ba5af1ad9c1b79d1f669d857c2f04abd211d7f7227339839c032992315b9"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-003.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 68886,
+      "sha256": "ae70d9150ba250a730e8e1f86c8988418a04278d43e7e367ef526b6be0d49660"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-003.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 68416,
+      "sha256": "08c19b63437f743a2e91bca787e15256ae95ec369a9d70251e8f8facd8a1512a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-003.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 130878,
+      "sha256": "e7d33b92229f0792c62022360baabc067871aaf6ea2bb5059484ac9fe3f90656"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-003.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 122686,
+      "sha256": "fa6186fa7b71312dc86de8065818d8e441b098f40cda8ad1fcd82357c5dbfe4b"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-003.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 233140,
+      "sha256": "6d4ab3d22290c1ab29e91ade9c4b7f4c53c9272863e5baeeecb1c5e0327e9bc5"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-003.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 200054,
+      "sha256": "f164c4a90936c185759785b865f323c9e738e710366b35c4412f003e003265ff"
+    }
+  ]
+}

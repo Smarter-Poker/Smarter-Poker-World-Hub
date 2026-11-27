@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
+import { trackSeoFunnelEvent } from '../../lib/seo/seoFunnelTelemetry';
 import {
   recordFirstTouch,
   beginOAuthAttribution,
@@ -9,8 +10,14 @@ import {
 } from '../../lib/acquisition/firstTouch.mjs';
 import styles from './SmarterSeoKit.module.css';
 
+function trackFunnelEvent(event, props) {
+  trackSeoFunnelEvent(event, props);
+}
+
 export const QUICK_SIGNUP_EVENT = 'sp:open-quick-signup';
 export const QUICK_SIGNUP_STATE_EVENT = 'sp:quick-signup-state';
+
+const BASIC_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function sanitizeRedirect(raw) {
   const value = String(raw || '').trim();
@@ -30,33 +37,40 @@ export function openQuickSignup(detail = {}) {
   }
 }
 
-export function buildSignupUrl({ redirectPath = '/hub', unlockKey = '', source = 'seo-unlock' } = {}) {
+export function buildSignupUrl({ redirectPath = '/hub', unlockKey = '', source = 'seo-unlock', email = '' } = {}) {
   const safeRedirect = sanitizeRedirect(redirectPath);
   const params = new URLSearchParams();
   params.set('redirect', safeRedirect);
   if (unlockKey) params.set('unlock', String(unlockKey).slice(0, 64));
   if (source) params.set('src', String(source).slice(0, 64));
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (cleanEmail && BASIC_EMAIL_RE.test(cleanEmail)) {
+    params.set('email', cleanEmail.slice(0, 120));
+  }
   return `/auth/signup?${params.toString()}`;
 }
 
 export default function SmarterQuickSignupSheet() {
   const router = useRouter();
   const [payload, setPayload] = useState(null);
-  const [oauthBusy, setOauthBusy] = useState(false);
+  const [oauthProviderBusy, setOauthProviderBusy] = useState('');
   const [oauthError, setOauthError] = useState('');
+  const [inlineEmail, setInlineEmail] = useState('');
 
   const close = useCallback(() => {
     setPayload(null);
-    setOauthBusy(false);
+    setOauthProviderBusy('');
     setOauthError('');
+    setInlineEmail('');
   }, []);
 
   useEffect(() => {
     const onOpen = (event) => {
       const detail = event?.detail || {};
       setOauthError('');
-      setOauthBusy(false);
-      setPayload({
+      setOauthProviderBusy('');
+      setInlineEmail('');
+      const nextPayload = {
         unlockKey: detail.unlockKey || 'free-account',
         eyebrow: detail.eyebrow || 'Free Smarter.Poker Account',
         title: detail.title || 'Unlock Full Poker Tools & Live Room Intel Free',
@@ -72,7 +86,17 @@ export default function SmarterQuickSignupSheet() {
             ],
         redirectPath: sanitizeRedirect(detail.redirectPath || router?.asPath || '/hub'),
         source: detail.source || 'quick-signup-sheet',
-      });
+      };
+      setPayload(nextPayload);
+      try {
+        trackFunnelEvent('seo_quick_signup_opened', {
+          unlock_key: nextPayload.unlockKey,
+          source: nextPayload.source,
+          redirect_path: nextPayload.redirectPath,
+        });
+      } catch (_) {
+        /* non-blocking */
+      }
     };
 
     window.addEventListener(QUICK_SIGNUP_EVENT, onOpen);
@@ -104,14 +128,25 @@ export default function SmarterQuickSignupSheet() {
     redirectPath: payload.redirectPath,
     unlockKey: payload.unlockKey,
     source: payload.source,
+    email: inlineEmail,
   });
   const loginHref = `/auth/login?redirect=${encodeURIComponent(payload.redirectPath)}`;
 
-  const handleGoogleOneTap = async () => {
-    if (oauthBusy) return;
-    setOauthBusy(true);
+  const handleOAuthOneTap = async (provider) => {
+    if (oauthProviderBusy) return;
+    setOauthProviderBusy(provider);
     setOauthError('');
     try {
+      try {
+        trackFunnelEvent('seo_quick_signup_oauth_click', {
+          provider,
+          unlock_key: payload.unlockKey,
+          source: payload.source,
+          redirect_path: payload.redirectPath,
+        });
+      } catch (_) {
+        /* non-blocking */
+      }
       let nonce = null;
       try {
         recordFirstTouch();
@@ -127,20 +162,48 @@ export default function SmarterQuickSignupSheet() {
       const baseCallbackUrl = `${origin}/auth/callback?${cbParams.toString()}`;
       const callbackUrl = nonce ? withAttributionNonce(baseCallbackUrl, nonce) : baseCallbackUrl;
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider,
         options: {
           redirectTo: callbackUrl,
-          queryParams: { access_type: 'offline', prompt: 'select_account' },
+          queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'select_account' } : undefined,
+          scopes: provider === 'facebook' ? 'email,public_profile' : undefined,
         },
       });
       if (error) {
-        setOauthError(error.message || 'Unable To Start Google Sign-In. Continue With Email Below.');
-        setOauthBusy(false);
+        setOauthError(error.message || 'Unable To Start Social Sign-In. Continue With Email Below.');
+        setOauthProviderBusy('');
       }
     } catch (err) {
-      setOauthError(err?.message || 'Unable To Start Google Sign-In. Continue With Email Below.');
-      setOauthBusy(false);
+      setOauthError(err?.message || 'Unable To Start Social Sign-In. Continue With Email Below.');
+      setOauthProviderBusy('');
     }
+  };
+
+  const handleEmailFormSubmit = (e) => {
+    e.preventDefault();
+    const trimmed = inlineEmail.trim().toLowerCase();
+    if (trimmed && !BASIC_EMAIL_RE.test(trimmed)) {
+      setOauthError('Please Enter A Valid Email Address Or Leave Blank To Continue.');
+      return;
+    }
+    try {
+      trackFunnelEvent('seo_quick_signup_email_continue', {
+        has_prefilled_email: Boolean(trimmed),
+        unlock_key: payload.unlockKey,
+        source: payload.source,
+        redirect_path: payload.redirectPath,
+      });
+    } catch (_) {
+      /* non-blocking */
+    }
+    const target = buildSignupUrl({
+      redirectPath: payload.redirectPath,
+      unlockKey: payload.unlockKey,
+      source: payload.source,
+      email: trimmed,
+    });
+    close();
+    router.push(target);
   };
 
   return (
@@ -185,23 +248,84 @@ export default function SmarterQuickSignupSheet() {
           <button
             type="button"
             className={styles.ctaPrimary}
-            onClick={handleGoogleOneTap}
-            disabled={oauthBusy}
+            onClick={() => handleOAuthOneTap('google')}
+            disabled={Boolean(oauthProviderBusy)}
             data-testid="quick-signup-google-btn"
           >
-            <span>{oauthBusy ? 'Connecting To Google...' : 'Continue With Google (1-Tap Free)'}</span>
+            <span>
+              {oauthProviderBusy === 'google'
+                ? 'Connecting To Google...'
+                : 'Continue With Google (1-Tap Free)'}
+            </span>
           </button>
 
-          <div className={styles.sheetDivider}>Or Create Account With Email</div>
+          <button
+            type="button"
+            className={styles.btnSharpSecondary}
+            style={{ width: '100%', minHeight: 44 }}
+            onClick={() => handleOAuthOneTap('facebook')}
+            disabled={Boolean(oauthProviderBusy)}
+            data-testid="quick-signup-facebook-btn"
+          >
+            <span>
+              {oauthProviderBusy === 'facebook'
+                ? 'Connecting To Facebook...'
+                : 'Continue With Facebook (1-Tap Free)'}
+            </span>
+          </button>
+
+          <div className={styles.sheetDivider}>Or Fast-Track With Email</div>
+
+          <form onSubmit={handleEmailFormSubmit} className={styles.sheetEmailForm} noValidate>
+            <input
+              type="email"
+              value={inlineEmail}
+              onChange={(ev) => {
+                setInlineEmail(ev.target.value);
+                if (oauthError) setOauthError('');
+              }}
+              placeholder="Enter Your Email To Unlock Free"
+              aria-label="Enter Your Email To Unlock Free"
+              autoComplete="email"
+              className={`${styles.sheetEmailInput} no-capitalize`}
+              data-testid="quick-signup-email-input"
+            />
+            <button
+              type="submit"
+              className={styles.ctaSecondary}
+              style={{ width: '100%' }}
+              data-testid="quick-signup-email-submit"
+            >
+              <span>Create Free Account With Email</span>
+            </button>
+          </form>
 
           <Link
             href={signupHref}
-            className={styles.ctaSecondary}
-            onClick={close}
+            onClick={() => {
+              try {
+                trackFunnelEvent('seo_quick_signup_email_continue', {
+                  has_prefilled_email: Boolean(inlineEmail.trim()),
+                  unlock_key: payload.unlockKey,
+                  source: payload.source,
+                  redirect_path: payload.redirectPath,
+                });
+              } catch (_) {
+                /* non-blocking */
+              }
+              close();
+            }}
+            className={styles.sheetDirectEmailLink}
             data-testid="quick-signup-email-link"
           >
-            <span>Create Free Account With Email</span>
+            Open Full Registration Form Directly
           </Link>
+        </div>
+
+        <div className={styles.sheetTrustStrip} aria-label="Account Guarantees">
+          <span>100% Free Forever</span>
+          <span>No Credit Card</span>
+          <span>10-Second Setup</span>
         </div>
 
         <p className={styles.sheetSignInRow}>

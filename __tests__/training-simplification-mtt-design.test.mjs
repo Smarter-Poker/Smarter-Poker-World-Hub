@@ -1096,7 +1096,14 @@ test('Phase 22 Poker Arena Parity, 6 Matched Comparison Cases, Worked Pot-Limit 
   assert.ok(udtSrc.includes('data-replay-current-hand="true"'), 'UniversalDynamicTable must expose data-replay-current-hand="true" Practice Again button');
   assert.ok(/data-training-scenario-telemetry="true"[\s\S]{0,180}zIndex:\s*25/.test(udtSrc), 'Scenario telemetry strip must have zIndex: 25 so top-seat avatar cutouts never intercept toolbar clicks');
   assert.ok(godModeSrc.includes('const handleDefaultNextHand = useCallback((arg) => nextQuestion(arg), [nextQuestion]);') || udtSrc.includes('onNextHand({ retry: true, retryQuestion: lastQuestionRef.current })'), 'Practice Again must pass retry payload');
-  assert.ok(trainingHomeSrc.includes('data-variant-filter-bar="true"') && trainingHomeSrc.includes("id: 'plo5'"), 'Training Home must expose 1-tap PLO5 variant filter and quick launch');
+  const trainingFiltersSrc = read('src/components/training/lobby/TrainingFiltersSheet.jsx');
+  assert.ok(
+    !trainingHomeSrc.includes('data-variant-filter-bar="true"') &&
+      trainingFiltersSrc.includes("id: 'plo5'") &&
+      trainingHomeSrc.includes('onStart={handleRowStart}') &&
+      trainingHomeSrc.includes('variant: filters.variant'),
+    'PLO5 must remain selectable in Filters and reach Play after the owner-approved removal of the standalone rail',
+  );
 
   // Verify zero forbidden yellow/gold/amber/purple/magenta text hexes across training.css, pvp-lobby.js, and live-hud-sync.js
   const checkForbiddenTextHexInFile = (relPath) => {
@@ -1455,14 +1462,17 @@ test('Phase 24 optimizations & enhancements: Horse Brain LRU cache, demand-drive
     'UniversalDynamicTable unified keyboard handler must support R for Practice Again and K / Shift+C for Customize toggle',
   );
 
-  // 4. Verify 1-Tap Fix Top Leak pill in TrainingLobbyHeader.jsx and pages/hub/training.js
+  // The existing measured ten-hand fix stays separate from the new PA navigation button.
   const headerSrc = read('src/components/training/lobby/TrainingLobbyHeader.jsx');
+  const sortBarSrc = read('src/components/training/lobby/TrainingSortBar.jsx');
   const trainingPageSrc = read('pages/hub/training.js');
   assert.ok(
-    headerSrc.includes('data-top-detected-leak-cta="true"') &&
-      headerSrc.includes('Fix Top Leak (10 Hands)') &&
+    sortBarSrc.includes("data-top-detected-leak-cta={detected ? 'true' : undefined}") &&
+      sortBarSrc.includes("detected ? '10-Hand Leak Fix' : '10-Hand Warmup'") &&
+      sortBarSrc.includes('onPlayGame?.(warmupGame, fiveMinuteLeakFix?.overrides)') &&
+      headerSrc.includes('data-personal-assistant-leaks="true"') &&
       trainingPageSrc.includes('fiveMinuteLeakFix={fiveMinuteLeakFix}'),
-    'TrainingLobbyHeader must surface the 1-tap Fix Top Leak (10 Hands) CTA when a verified or active leak is present',
+    'The utility action must preserve the measured ten-hand leak fix while the Jarvis button opens Personal Assistant',
   );
 });
 

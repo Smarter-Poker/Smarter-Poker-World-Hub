@@ -1,0 +1,9 @@
+{
+  "id": "spins-006",
+  "tool": "imagegen",
+  "sourceInput": "/workspace/scratch/c868e812eb6b/generated_images/exec-adc08a0a-154c-4dac-88a2-dafb873793cf.png",
+  "sourceOutput": "/workspace/scratch/c868e812eb6b/generated_images/exec-b367b929-b3b9-4ec5-a000-0e81864344cf.png",
+  "prompt": "Edit the provided existing poker-table scene with a precise cleanup only. Completely REMOVE BOTH playing cards in the LOWER-RIGHT corner, including all white card surfaces, queen/jack illustrations, heart/spade suit marks, colored print, borders, edges and card shadows. Fill their entire former area seamlessly with continuous dark navy poker felt matching the surrounding texture and light. Preserve all three chip contributions and their exact positions, sizes and highlights, the near-left padded rail, far rail and camera angle. Do not alter, move, add or remove any chips. Do not add replacement objects. The finished scene must contain NO playing cards, NO card backs, NO card faces, NO blank placeholders, NO suit/rank markings and NO text. Application code can add source-exact native card assets separately; draw none in this clean scene. Preserve original image dimensions and quality.",
+  "generatedAt": "2026-11-27T19:03:26.268Z",
+  "supersededRecord": ".agent/audits/training-approved-chrome/corrections/spins-006/superseded-v2-source-record.json"
+}

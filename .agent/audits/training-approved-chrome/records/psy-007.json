@@ -1,0 +1,71 @@
+{
+  "id": "psy-007",
+  "name": "Result Detachment",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:53:53.965Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Result Detachment.\nSubject: Result Detachment: two diverging paths leave the same careful poker decision, one carrying rising chips and one scattered losses, while a polished process compass stays steady at the fork\nCamera: overhead branching still life\nComposition: A wide Y-shaped brushed-steel route on black felt fills the scene; the calm compass is lower center and blue chips diverge toward the two upper corners. No writing or arrows. The composition emphasizes one good process and two uncertain outcomes.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Result Detachment: two diverging paths leave the same careful poker decision, one carrying rising chips and one scattered losses, while a polished process compass stays steady at the fork",
+  "camera": "overhead branching still life",
+  "composition": "A wide Y-shaped brushed-steel route on black felt fills the scene; the calm compass is lower center and blue chips diverge toward the two upper corners. No writing or arrows. The composition emphasizes one good process and two uncertain outcomes.",
+  "source": {
+    "fileName": "exec-3b23e28e-68c7-4d94-9bd5-ec2b1b13185d.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2894124,
+    "sha256": "9749954ba98621150e8275c011ace5eafa2c8a1db5daab2124230687f4c1b1f6"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-007.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 38816,
+      "sha256": "f45119150346699f9c934c2288ca929785ca86f7f8650a37e49cf9392c4cc868"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-007.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 35210,
+      "sha256": "4488597edd761cb5c7151eb790cdbfcc098a9bf9ac73f014ea45097c1e14c698"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-007.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 86774,
+      "sha256": "77221889a934397b0c382f46f00b04a61c9b5793a4c58e2f57407879cd7693a4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-007.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 74963,
+      "sha256": "888a6326846226b0df4bc41014b8cfe903018251a74e1e84763915d824772249"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-007.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 177544,
+      "sha256": "723bded94b76f40df9cfd4ca9705b3315458d801541b87cc79106950476195ba"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-007.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 142493,
+      "sha256": "4b5ce0e83d49a40504c14ba3fbb73fd7428cc80b414c508146229553b16d2fb6"
+    }
+  ]
+}

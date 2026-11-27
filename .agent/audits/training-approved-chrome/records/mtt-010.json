@@ -1,0 +1,71 @@
+{
+  "id": "mtt-010",
+  "name": "Squeeze Master",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:49:17.073Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Squeeze Master.\nSubject: Squeeze Master: three player contributions compressed into one contested pot by a large raised cobalt chip stack entering from the rear\nCamera: top-down view of a triangular three-way betting situation\nComposition: Three directions of action form an irregular triangle on black felt; the small opening and calling piles occupy bottom corners and the forceful squeeze stack leans into the upper center. A single silver betting arc cuts through the scene. No mechanical jaws.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Squeeze Master: three player contributions compressed into one contested pot by a large raised cobalt chip stack entering from the rear",
+  "camera": "top-down view of a triangular three-way betting situation",
+  "composition": "Three directions of action form an irregular triangle on black felt; the small opening and calling piles occupy bottom corners and the forceful squeeze stack leans into the upper center. A single silver betting arc cuts through the scene. No mechanical jaws.",
+  "source": {
+    "fileName": "exec-0d928d11-b1cc-423b-a8c9-5a659a946889.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2555337,
+    "sha256": "f856ac1205be66052086a7b431203445d4ab233c0cf19751f50e83bc26d39415"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-010.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 34044,
+      "sha256": "f06a83ce2cd1791e7b125716829af8d69fc1ad76905e86e501dc9639dcda17aa"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-010.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 31248,
+      "sha256": "4899dff7b01450fc9ad4eda149f56b4ef8b077ff094f10547c019df32c14bb4a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-010.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 74016,
+      "sha256": "7d35875a6c98740b2c045a3239685775a88ec24fec9302d8ea0e47752425f83a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-010.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 64069,
+      "sha256": "f4e2354f02729189a09aeadf0240c906eab7d0bebd2e1b57d62d7ab5b956a4c6"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-010.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 143532,
+      "sha256": "3d2723a99b386a1964e5ca5d6537dfd69633d282d06558e19bca23a2c074edba"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-010.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 114525,
+      "sha256": "7f647e859ee37fc49a0a1a5c5681e08d2207132db38559a1edcfd0aa1a80f9e1"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "id": "cash-009",
+  "name": "Deep Stack Cash",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:58:16.862Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Deep Stack Cash.\nSubject: A deep-stacked cash player's workspace viewed from high over the player's right shoulder. Two clear rectangular chip racks hold substantial, irregular reserves; a black-sleeved hand peels a small wager from the nearest column while several widely separated future wager piles remain available farther across the felt. The abundant reserve and room for later decisions communicate 200BB-plus play.\nCamera: Steep sixty-degree downward player-side close-up, explicitly showing the tops of every chip column. The player's cropped shoulder sits at the near-right edge. No low angle, corridor, horizon or view between chip towers.\nComposition: Two transparent rectangular reserve racks cross the lower-left diagonal; the hand reaches through the middle; several smaller prospective wagers spread toward the upper-right on real felt. Individual chip tops and the rack walls remain visible, so depth comes from a rich reserve workspace rather than a canyon. No mirrored display base, flanking walls of stacks, circular platform or empty card zone.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A deep-stacked cash player's workspace viewed from high over the player's right shoulder. Two clear rectangular chip racks hold substantial, irregular reserves; a black-sleeved hand peels a small wager from the nearest column while several widely separated future wager piles remain available farther across the felt. The abundant reserve and room for later decisions communicate 200BB-plus play.",
+  "camera": "Steep sixty-degree downward player-side close-up, explicitly showing the tops of every chip column. The player's cropped shoulder sits at the near-right edge. No low angle, corridor, horizon or view between chip towers.",
+  "composition": "Two transparent rectangular reserve racks cross the lower-left diagonal; the hand reaches through the middle; several smaller prospective wagers spread toward the upper-right on real felt. Individual chip tops and the rack walls remain visible, so depth comes from a rich reserve workspace rather than a canyon. No mirrored display base, flanking walls of stacks, circular platform or empty card zone.",
+  "source": {
+    "fileName": "exec-38e6cb0d-8184-4769-b3fc-54624662b454.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2679298,
+    "sha256": "32dc9e72afae28dfa3fab2193f2160e1a00ae5bec6a2c29ede27b56b3c7e217b"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-009.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 43150,
+      "sha256": "61b94969d2a01b2b4b3be959e67a4b6a27e3226e18484f48c3a1f2018e3873f3"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-009.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 40926,
+      "sha256": "6b05f386d618c711b9324ba6d9b880b31f3615b8e78251a4a0c60570a80bff25"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-009.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 86924,
+      "sha256": "47006f286f8d69ac38955e9f2f58640bdcd37ee6c7339f7fb21ac749efb722bd"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-009.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 78005,
+      "sha256": "2c7e74cb5c9e884facc9d203e18ba36346ec61ee130fc05187ba3935ea22ba58"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-009.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 165182,
+      "sha256": "f5737345f080f06e79810c553bf8cc98d01dca200988d05c9268ba0a51d551af"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-009.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 136383,
+      "sha256": "451ffbdf918e06dabfc3f301d3039dd1d062e1a0e7909a93c5de160faafb8348"
+    }
+  ],
+  "compositionReplacement": {
+    "reason": "Replace canyon composition that duplicated mtt-007 with high player-side deep-reserve workspace.",
+    "supersededRecord": ".agent/audits/training-approved-chrome/corrections/cash-009/superseded-v2-source-record.json",
+    "sourceOutput": "/workspace/scratch/c868e812eb6b/generated_images/exec-38e6cb0d-8184-4769-b3fc-54624662b454.png"
+  }
+}

@@ -59,7 +59,7 @@ test('training home and category games open a dedicated preset arena', () => {
   const arena = readFileSync(new URL('../pages/hub/training/arena/[gameId].js', import.meta.url), 'utf8');
   const controls = readFileSync(new URL('../src/components/training/lobby/TrainingLobbyControls.jsx', import.meta.url), 'utf8');
 
-  assert.match(controls, /data-category-tab=\{catId\.toLowerCase\(\)\}/);
+  assert.match(controls, /data-category-tab=\{id\.toLowerCase\(\)\}/);
   assert.match(hub, /onStart=\{handleRowStart\}/);
   assert.ok(hub.indexOf('id="training-library"') < hub.indexOf('aria-labelledby="stats-h"'));
   assert.doesNotMatch(category, /data-specialty-brain-panel|data-brain-variant-tab/);

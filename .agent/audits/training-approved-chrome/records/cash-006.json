@@ -1,0 +1,71 @@
+{
+  "id": "cash-006",
+  "name": "Position Power",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:18.879Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Position Power.\nSubject: A real poker table seen down its long rail, contrasting an early-position seat half-hidden behind the curve with a clearly lit button seat that can see the whole action. A plain chrome dealer disc rests beside the far active seat.\nCamera: Long, compressed rail-level perspective with a strong near-to-far vanishing line.\nComposition: The curved stitched black rail sweeps from the lower-left foreground toward the far-right button. Two large seat backs, one near and partly occluding the action and one far and exposed, create the positional contrast. Small bet trails lie on the felt. No miniature table on a display platform and no card reserve area.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A real poker table seen down its long rail, contrasting an early-position seat half-hidden behind the curve with a clearly lit button seat that can see the whole action. A plain chrome dealer disc rests beside the far active seat.",
+  "camera": "Long, compressed rail-level perspective with a strong near-to-far vanishing line.",
+  "composition": "The curved stitched black rail sweeps from the lower-left foreground toward the far-right button. Two large seat backs, one near and partly occluding the action and one far and exposed, create the positional contrast. Small bet trails lie on the felt. No miniature table on a display platform and no card reserve area.",
+  "source": {
+    "fileName": "exec-351a487d-14f9-4b51-ac54-ad77d9735565.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1983224,
+    "sha256": "f4bb1438fe4d66e308a47e2f7bf6f0e7184fb018774774ad6e1e48c82bba6d9b"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-006.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 22882,
+      "sha256": "4122ed1abcf05a6c284c44d7977d5d9a67a25c69a1fa9343e16c0b49eb9668b6"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-006.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 17901,
+      "sha256": "a17d29dc0906d077e0c813522c3a00f7d462bfccf154cbbc6115b7c0ce19bc4f"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-006.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 42840,
+      "sha256": "877714957db1e819d313cb728c741fbbfc58ca9c8a3573b93ded6e7a0906db04"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-006.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 32826,
+      "sha256": "dcb1981cc9fe9b9fb3060ba0a0da7a4244dc43aeceaab90224b013e41ffda072"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-006.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 81284,
+      "sha256": "a7c7557b0a4425e3959a9674862b38f511e384ad75eb216ac7b9288785547f60"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-006.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 56971,
+      "sha256": "04d5087bb2dab46dec680c0f10883042892e96f74c5cdf68ce3296f86d7f4ac2"
+    }
+  ]
+}

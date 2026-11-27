@@ -1,0 +1,92 @@
+{
+  "id": "cash-012",
+  "name": "River Decisions",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:54:52.733Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: River Decisions.\nSubject: The final-street decision on a poker table: a completed five-card board divides a large opposing river bet from a small call chip poised at the near rail. The human hand has paused, conveying a consequential final choice.\nCamera: Directly overhead, tightly cropped to the river board and both sides of the decision.\nComposition: The actual five-card board forms a narrow horizontal band through the center. An irregular opposing wager fills the upper-left quadrant; the near hand and single call chip enter from lower right. The table edge curves along the bottom, closing the scene. No drawn cards or empty product-display area.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "The final-street decision on a poker table: a completed five-card board divides a large opposing river bet from a small call chip poised at the near rail. The human hand has paused, conveying a consequential final choice.",
+  "camera": "Directly overhead, tightly cropped to the river board and both sides of the decision.",
+  "composition": "The actual five-card board forms a narrow horizontal band through the center. An irregular opposing wager fills the upper-left quadrant; the near hand and single call chip enter from lower right. The table edge curves along the bottom, closing the scene. No drawn cards or empty product-display area.",
+  "source": {
+    "fileName": "exec-5233132e-2bb8-498b-b201-21d3594ca7ca.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2459026,
+    "sha256": "47c43d4e3b8beb84fa4d1e7b18e9fd19e7b6923d0d2ec7da6aa100d88bfaf8e3"
+  },
+  "nativeCards": [
+    "As",
+    "Kd",
+    "Jh",
+    "8c",
+    "3s"
+  ],
+  "placement": "center",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-012.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 24026,
+      "sha256": "feb3ef9f11db31c4cd34181ebcf52b824625d56cd17bd9f675b6d7947ae44a84"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-012.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 21595,
+      "sha256": "5ba2932d6baace6f22a0244830ad3b73dcbf6ee3660b1970d536f32e1742cf2c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-012.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 50512,
+      "sha256": "9680fe4b4422bb75ba44af6cffa6103956eecf848b1d7d1bd530a781b686889b"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-012.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 41704,
+      "sha256": "b972424f624aa3a7e058d1d1c3c726d2a19d2a9b063e31c591a630742c39d15b"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-012.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 108996,
+      "sha256": "2d9ab297c4284c49d33b5f319a666c68a0598f9d29280cc32b1dcd819bc8e94a"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-012.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 83615,
+      "sha256": "fc3bd4d68559d93710b2c076e6d40bf625c686920706662763986ef2fe8f1ae1"
+    }
+  ],
+  "imagegenCorrection": {
+    "tool": "imagegen",
+    "sourceInput": "/workspace/scratch/c868e812eb6b/generated_images/exec-555076d1-799c-4510-be3a-7ade2dd567a8.png",
+    "sourceOutput": "/workspace/scratch/c868e812eb6b/generated_images/exec-5233132e-2bb8-498b-b201-21d3594ca7ca.png",
+    "prompt": "Edit this existing poker-table image. Preserve exactly the overhead camera, navy felt texture, upper-left pot of black/cobalt/silver chips, lower-right human hand holding its call chip, curved stitched chrome-edged table rail, and the lighting. Remove ALL FIVE white blank playing-card rectangles completely, including their outlines and shadows. Fill their entire former area seamlessly with continuous dark navy poker felt matching the surrounding texture and illumination. The center of the table must be uninterrupted navy felt with NO white rectangles, NO cards, NO card backs, NO card faces, NO suit or rank marks, NO blank placeholders, NO printed text, and NO replacement objects. Do not add any objects or redesign any preserved area. This is a clean scene plate; source-exact real cards will later be rendered by application code, so draw absolutely no cards here. Preserve the original dimensions and high image quality.",
+    "generatedAt": "2026-11-27T18:54:52.733Z",
+    "supersededRecord": ".agent/audits/training-approved-chrome/corrections/cash-012/superseded-v2-source-record.json"
+  },
+  "overlay": {
+    "left": 50,
+    "bottom": 35,
+    "width": 82,
+    "height": 52
+  },
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

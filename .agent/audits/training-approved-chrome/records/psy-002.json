@@ -1,0 +1,71 @@
+{
+  "id": "psy-002",
+  "name": "Timing Discipline",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:46.001Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Timing Discipline.\nSubject: Timing Discipline: a chrome metronome keeping one consistent beat beside a calm disciplined line of poker chips\nCamera: close side profile with a long horizontal focal plane\nComposition: The metronome occupies the left third and its pendulum is captured at a precise angle; equally spaced cobalt chips extend right along black felt. Soft repeated silver highlights show steady rhythm, no round pedestal or brain.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Timing Discipline: a chrome metronome keeping one consistent beat beside a calm disciplined line of poker chips",
+  "camera": "close side profile with a long horizontal focal plane",
+  "composition": "The metronome occupies the left third and its pendulum is captured at a precise angle; equally spaced cobalt chips extend right along black felt. Soft repeated silver highlights show steady rhythm, no round pedestal or brain.",
+  "source": {
+    "fileName": "exec-dd73ba50-ac8d-4f15-a5e7-e07909492538.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1972994,
+    "sha256": "a6e9d11bbf9c14f516a437ec13b83e64f7fb3422573e072e80afd27bd870cdb8"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-002.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 21796,
+      "sha256": "c1983600cea70f32467190f93b5f31458053728a9f98bfb027a343d0f56bb1a1"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-002.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 17336,
+      "sha256": "7314b19da3b901394b776b5ab0b632d25f6c94254ea5a2cfad8c61f7505bd188"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-002.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 42102,
+      "sha256": "53074b6df2567958e7d3e59d33ce72ed35f7faefad07da5a452be17b7b063909"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-002.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 32050,
+      "sha256": "ef8eb6864e992842143efac5b9b02261f2141884ceb9b317ded783e8e32ae752"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-002.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 79350,
+      "sha256": "589e06f01c2b88891bcd957b0f315dae9a04dbb3db6e06a516f77a588c24bd8b"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-002.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 56141,
+      "sha256": "58d950edee3600860e3321f6d7ffab669b6e1b7ef78bf0ca1113558edb7f05fb"
+    }
+  ]
+}

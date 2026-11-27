@@ -635,6 +635,107 @@
   font-size: 13px;
 }
 
+.sheetEmailForm {
+  display: grid;
+  gap: 8px;
+}
+
+.sheetEmailInput {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #355270;
+  border-radius: 0;
+  background: #040c16;
+  color: #f2f7ff;
+  font-size: 16px;
+  outline: none;
+}
+
+.sheetEmailInput::placeholder {
+  color: #7f95ab;
+}
+
+.sheetEmailInput:focus {
+  border-color: var(--sk-ice);
+  box-shadow: 0 0 0 1px var(--sk-ice);
+}
+
+.sheetDirectEmailLink {
+  display: block;
+  text-align: center;
+  color: var(--sk-ice);
+  font: 700 12.5px/1.4 var(--sk-body);
+  text-decoration: underline;
+}
+
+.sheetTrustStrip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border: 1px solid #203954;
+  background: rgba(6, 17, 30, 0.82);
+  color: var(--sk-silver);
+  font: 700 11.5px/1.2 var(--sk-type);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Engaged Scroll / Exit-Intent Hardware Conversion Nudge ─────────── */
+.engagedNudge {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 10500;
+  width: min(360px, calc(100vw - 24px));
+  padding: 14px 16px;
+}
+
+.engagedNudgeHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.engagedNudgeClose {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px 0 0;
+  border: 1px solid #2b4663;
+  border-radius: 0;
+  background: #06101c;
+  color: var(--sk-silver);
+  font: 700 18px/1 var(--sk-type);
+  cursor: pointer;
+}
+
+.engagedNudgeTitle {
+  margin: 6px 0 4px;
+  color: #ffffff;
+  font: 800 16px/1.2 var(--sk-type);
+}
+
+.engagedNudgeBody {
+  margin: 0 0 12px;
+  color: var(--sk-silver);
+  font: 400 13px/1.45 var(--sk-body);
+}
+
+.engagedNudgeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .sheetSignInRow a {
   color: var(--sk-ice);
   font-weight: 700;

@@ -1,0 +1,71 @@
+{
+  "id": "adv-019",
+  "name": "Solver Scripts",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:00:49.162Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Solver Scripts.\nSubject: Solver Scripts: layers of transparent blue simulation plates reveal a hidden decision structure when aligned under a chrome reading arm\nCamera: close oblique view of a physical research instrument\nComposition: Three rectangular glass layers are staggered from lower right to upper left; the reading arm casts a sharp silver line through the stack and exposes a branched route. No computer monitor, code, letters or numbers; precision interpretation is the story.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Solver Scripts: layers of transparent blue simulation plates reveal a hidden decision structure when aligned under a chrome reading arm",
+  "camera": "close oblique view of a physical research instrument",
+  "composition": "Three rectangular glass layers are staggered from lower right to upper left; the reading arm casts a sharp silver line through the stack and exposes a branched route. No computer monitor, code, letters or numbers; precision interpretation is the story.",
+  "source": {
+    "fileName": "exec-acca3593-56a4-48e6-b94c-3f8cdc7518df.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2084993,
+    "sha256": "16f70c5fdfc5f2be0662439a9641a4c7e6258e7af6adb827afe7dddc9c4fc67a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-019.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 38332,
+      "sha256": "9471a4d64f91bdce6a4fe0369940b1d0715ffb47a8832f3a6a62e4c404a4ff3b"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-019.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 32458,
+      "sha256": "04bb8a2cfdb2c75a7d710dcbb451a284b9d45ac100eee51b2697faa2e04a0e97"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-019.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 68448,
+      "sha256": "9bdb328abf9751aa6cd764fb11d63fc1c06870b4d02123ef8e36535a79a2aae4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-019.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 51901,
+      "sha256": "bf64be5859ea98bab0cf6a6abb0182f86d442c1eab8322b785cde2bec300f46f"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-019.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 115654,
+      "sha256": "1f1392ca3f01a37a5fabae8970d26a47eb36b2945d5af832092dac4f38c951e3"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-019.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 80315,
+      "sha256": "e0b72edd9fe46305a743d319cba15b7a56bd70ff7a1ce8c928ff09977e91a7f4"
+    }
+  ]
+}
