@@ -4,6 +4,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { VipUpgradePrompt } from '../../../src/components/vip/VipKit';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -1700,6 +1701,12 @@ export default function TriviaModePage() {
                     <p className="trivia-console-copy">
                         You Need {modeConfig?.diamondCost || 10} Diamonds To Play This Mode. Visit The Diamond Store To Get More.
                     </p>
+                    <VipUpgradePrompt
+                        accountId={userId}
+                        enabled={showOutOfDiamonds}
+                        title="Play Unlimited With VIP"
+                        copy="VIP Members Play Every Trivia Mode Free."
+                    />
                 </TriviaConsoleDialog>
 
                 <main className="content">

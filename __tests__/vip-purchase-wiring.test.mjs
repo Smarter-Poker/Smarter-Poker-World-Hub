@@ -46,7 +46,7 @@ test('the subscribe control exists and is wired to the handler', () => {
   assert.doesNotMatch(STORE, /src="\/images\/subscribe-button\.webp"/, 'static monthly-price artwork must not mislabel another selected plan');
   assert.match(
     STORE,
-    /\{isProcessing \? 'Processing\.\.\.' : vipSubscribeLabel\}/,
+    /\{isProcessing \? 'Processing\.\.\.' : vipSubscribeLabelParts\.sub[\s\S]{0,200}vipSubscribeLabelParts\.main\}/,
     'the plan-aware caption must render — the button image is a static $19.99/month picture'
   );
 });
@@ -179,9 +179,11 @@ test('VIP owns its surface and excludes unrelated marketplace navigation', () =>
   assert.doesNotMatch(vip, /TAB_ROUTES\.merch|View In Marketplace|Store Sections|subscribe-button/);
   assert.match(vip, /Your Lifetime Access Never Expires/);
   assert.doesNotMatch(vip, /#FFD700|#FFF1A6|255,215,0/);
-  assert.match(VIP_STYLES, /\.page[\s\S]*?background: #000;/);
+  // #SMARTERDESIGN ink-navy canvas (Dan, 2026-11-27: no flat pages).
+  assert.match(VIP_STYLES, /\.page \{[\s\S]*?background:[\s\S]*?#040d18;/);
   assert.match(VIP_STYLES, /@media \(max-width: 640px\)[\s\S]*?\.plans \{ grid-template-columns: 1fr;/);
-  assert.match(VIP_STYLES, /inset 0 0 0 3px[\s\S]*?inset 0 0 0 4px[\s\S]*?0 4px 0/);
+  // Actions are the approved painted plates, not drawn bevels.
+  assert.match(VIP_STYLES, /smarterdesign\/plates\/vip-button-primary\.png/);
 });
 
 // Exercise the page's real event handler with isolated provider boundaries.

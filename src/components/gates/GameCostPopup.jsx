@@ -23,6 +23,9 @@
 import { useState, useEffect } from 'react';
 import { checkPopupDismissed, dismissPopup, GAME_COST } from '../../lib/gates/perGameGate';
 import TriviaConsoleDialog from '../trivia/console/TriviaConsoleDialog';
+import { VipCta, VipGhost, VipIntroPrice, vipKitStyles as kit } from '../vip/VipKit';
+import { useVipIntroPrompt } from '../../lib/store/useVipIntroOffer';
+import { VIP_MONTHLY_PURCHASE_PATH } from '../../lib/store/vipIntroPrompt.mjs';
 
 /**
  * @param {Object} props
@@ -36,6 +39,10 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     const key = pageKey || featureKey;
     const [show, setShow] = useState(false);
     const [dismissed, setDismissed] = useState(true);
+    // Account-aware VIP price. Before the early return; asks nothing until the
+    // notice is actually on screen.
+    const vipOn = isVip === false && show && !dismissed;
+    const vipPrompt = useVipIntroPrompt(userId || null, { enabled: vipOn });
 
     useEffect(() => {
         // Guard: never show for VIP users, when status is still unknown, or when userId hasn't resolved.
@@ -78,7 +85,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     const handleUpgrade = () => {
         try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         handleDismiss();
-        window.top.location.href = '/hub/diamond-store#vip';
+        window.top.location.href = VIP_MONTHLY_PURCHASE_PATH;
     };
 
     // Final visibility gate. `isVip !== false` covers both `true` (real VIP)
@@ -93,36 +100,37 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
             title="Table Entry"
             subtitle={`Each Game Costs ${cost} Diamonds`}
             pill="Non-VIP"
-            secondaryAction={{ label: 'Got It', onClick: handleDismiss }}
-            primaryAction={{ label: 'Upgrade To VIP', onClick: handleUpgrade }}
         >
             {/* Disclosure only: this notice never charges. The destination
                 page's server route owns the entry charge when a game starts. */}
             <ul className="tc-rows">
                 <li className="tc-row">
                     <span className="tc-row__label">Entry Cost</span>
-                    <span className="tc-row__value tc-ink--gold">{cost} Diamonds</span>
-                </li>
-                <li className="tc-row">
-                    <span className="tc-row__label">VIP Entry</span>
-                    <span className="tc-row__value tc-ink--green">Free</span>
-                </li>
-                <li className="tc-row">
-                    <span className="tc-row__label">VIP First Month</span>
-                    <span className="tc-row__value tc-ink--green">$1 For New Subscribers</span>
-                </li>
-                <li className="tc-row">
-                    <span className="tc-row__label">VIP After That</span>
-                    <span className="tc-row__value">$20/Month, Cancel Anytime</span>
+                    <span className="tc-row__value">{cost} Diamonds</span>
                 </li>
                 <li className="tc-row">
                     <span className="tc-row__label">Charged</span>
                     <span className="tc-row__value">When A Game Starts</span>
                 </li>
+                <li className="tc-row">
+                    <span className="tc-row__label">VIP Entry</span>
+                    <span className="tc-row__value tc-ink--blue">Free, Unlimited</span>
+                </li>
             </ul>
-            <p className="trivia-console-copy">
-                This Game Costs {cost} Diamonds Per Entry. VIP Members Play Free.
-            </p>
+            {/* The price THIS account pays for VIP, as one readout. */}
+            <VipIntroPrice accountId={userId || null} enabled={vipOn} compact />
+            {/* The family's painted plates. Got It is last so the dialog's
+                opening focus lands on the safe choice. */}
+            <div className={`${kit.kit} ${kit.dialogActions}`}>
+                <VipCta
+                    onClick={handleUpgrade}
+                    data-vip-upgrade="monthly"
+                    sub={vipPrompt.state === 'intro' ? 'Then $20/Month. Cancel Anytime.' : 'Cancel Anytime.'}
+                >
+                    {vipPrompt.copy.cta}
+                </VipCta>
+                <VipGhost onClick={handleDismiss}>Got It</VipGhost>
+            </div>
         </TriviaConsoleDialog>
     );
 }

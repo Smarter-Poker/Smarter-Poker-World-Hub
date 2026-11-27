@@ -107,6 +107,8 @@ const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalH
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { VIPCard } from '../../src/components/store/StoreCards';
+import { VipMasthead, VipPricePlate, vipIntroPlateProps } from '../../src/components/vip/VipKit';
+import { VIP_INTRO_VERIFY_REASON, vipCheckoutAnalytics } from '../../src/lib/store/vipIntroPrompt.mjs';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
 import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommerceNav';
@@ -3534,6 +3536,14 @@ export default function DiamondStorePage({
     : selectedVipHasExactRecovery
       ? 'Verify Purchase'
       : `Lifetime VIP Is Bought With Diamonds: ${Math.round(Number(selectedVIPPlan?.price || 0) * 100).toLocaleString()}`;
+  /* Presentation only: the same label, lettered on two lines of the plate.
+     The accessible name stays the full single-line label. */
+  const vipSubscribeLabelParts = (() => {
+    const cut = vipSubscribeLabel.indexOf(': ');
+    return cut > 0
+      ? { main: vipSubscribeLabel.slice(0, cut), sub: vipSubscribeLabel.slice(cut + 2) }
+      : { main: vipSubscribeLabel, sub: '' };
+  })();
   const vipPrimaryBlocked =
     vipRecoveryBlocksPurchase ||
     (vipCardReady && selectedVipHasExactRecovery) ||
@@ -3693,10 +3703,16 @@ export default function DiamondStorePage({
               {activeTab === 'vip' && (
                 <>
                   <section className={vipStyles.hero} aria-labelledby="vip-page-title">
+                    <VipMasthead
+                      parent="Smarter.Poker VIP"
+                      title={vipProductCopy ? vipProductCopy.heading : 'VIP Membership'}
+                      titleId="vip-page-title"
+                      helpHref="#vip-faq"
+                      helpLabel="VIP Membership Help And Frequently Asked Questions"
+                    />
                     <div className={vipStyles.heroCopy}>
-                      <span className={vipStyles.membershipLabel}>Smarter.Poker VIP</span>
-                      <h1 id="vip-page-title">{vipProductCopy ? vipProductCopy.heading : 'Your Edge, Compounded.'}</h1>
-                      <p>{vipProductCopy ? vipProductCopy.intro : 'Premium Training. More Table Features. One Membership Across Smarter.Poker And Club Arena.'}</p>
+                      {!vipProductCopy && <p className={vipStyles.heroLead}>Your Edge, Compounded.</p>}
+                      <p className={vipStyles.heroText}>{vipProductCopy ? vipProductCopy.intro : 'Premium Training. More Table Features. One Membership Across Smarter.Poker And Club Arena.'}</p>
                       {vipProduct ? <>
                         <a href={vipProduct.gift ? '#gifts' : '#vip-plans'} className={vipStyles.heroAction}>{vipProduct.gift ? 'Send This VIP Gift' : 'Get This Membership'}</a>
                         <Link href="/hub/vip-membership" className={vipStyles.heroAction}>All VIP Options</Link>
@@ -3705,7 +3721,6 @@ export default function DiamondStorePage({
                         <a href="#gifts" className={vipStyles.heroAction}>Gift A VIP</a>
                       </>}
                     </div>
-                    <img src="/images/store-v3/vip-hero.webp" width={883} height={439} alt="" fetchPriority="high" className={vipStyles.heroArtwork} />
                   </section>
 
                   {isVip && !vipProduct?.gift && (
@@ -3733,15 +3748,24 @@ export default function DiamondStorePage({
                       <VIPCard plan={VIP_MEMBERSHIP.yearly} isSelected={selectedVIP === 'vip-yearly'} onSelect={setSelectedVIP} />
                       <VIPCard plan={VIP_MEMBERSHIP.lifetime} isSelected={selectedVIP === 'vip-lifetime'} onSelect={setSelectedVIP} />
                     </div>
-                    <p className={vipStyles.paymentNote}>{vipMembershipTerms('monthly')} {vipMembershipTerms('yearly')} {vipMembershipTerms('lifetime')}</p>
+                    <p className={vipStyles.termsNote}><span>{vipMembershipTerms('monthly')}</span> <span>{vipMembershipTerms('yearly')}</span> <span>{vipMembershipTerms('lifetime')}</span></p>
                     <nav className={vipStyles.tools} aria-label="Individual VIP Membership Pages">
                       {Object.entries(VIP_TERMS).map(([plan, term]) => <Link key={plan} href={vipProductPath(plan)} className={vipStyles.action}>{term.label} VIP Details</Link>)}
                     </nav>
                     </>}
                     <div className={vipStyles.checkout}>
                       <div className={vipStyles.selectedTerm} aria-live="polite" aria-atomic="true">
-                        <strong>{marketplaceCopy(selectedVIPPlan.name)}</strong>
-                        <span>{selectedVIPPlan.oneTime ? 'One Payment. No Renewal.' : selectedVipIntro ? `$1 Today For Your First Month. Then $${formatStoreUsd(selectedVIPPlan.price)} Every Month. Cancel Anytime.` : `Renews Every ${selectedVIPPlan.interval === 'year' ? 'Year' : 'Month'}. Cancel Anytime.`}</span>
+                        <strong>Your Plan: {marketplaceCopy(selectedVIPPlan.name)}</strong>
+                        {/* The price this account pays for the selected plan, as one readout,
+                            with its renewal terms as the line under the figure. */}
+                        <VipPricePlate
+                          {...(selectedVIPPlan.interval === 'month'
+                            ? vipIntroPlateProps(selectedVipIntro ? 'intro' : vipIntro.reason === VIP_INTRO_VERIFY_REASON ? 'verify' : 'regular')
+                            : selectedVIPPlan.oneTime
+                              ? { amount: `$${formatStoreUsd(selectedVIPPlan.price)}`, unit: 'One Payment' }
+                              : { amount: `$${formatStoreUsd(selectedVIPPlan.price)}`, unit: '/Year' })}
+                          note={selectedVIPPlan.oneTime ? 'One Payment. No Renewal.' : selectedVipIntro ? `$1 Today For Your First Month. Then $${formatStoreUsd(selectedVIPPlan.price)} Every Month. Cancel Anytime.` : `Renews Every ${selectedVIPPlan.interval === 'year' ? 'Year' : 'Month'}. Cancel Anytime.`}
+                        />
                         {selectedVIP === 'vip-yearly' && VIP_MEMBERSHIP.yearly.savings > 0 && (
                           <span className={vipStyles.savings}>Save ${formatStoreUsd(VIP_MEMBERSHIP.yearly.savings)} A Year Compared With Monthly.</span>
                         )}
@@ -3751,7 +3775,9 @@ export default function DiamondStorePage({
                           disabled={isProcessing || vipPrimaryBlocked} aria-busy={isProcessing}
                           aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
                           onClick={handleVIPSubscribe}>
-                          {isProcessing ? 'Processing...' : vipSubscribeLabel}
+                          {isProcessing ? 'Processing...' : vipSubscribeLabelParts.sub
+                            ? <><span>{vipSubscribeLabelParts.main}</span><span className={vipStyles.actionSub}>{vipSubscribeLabelParts.sub}</span></>
+                            : vipSubscribeLabelParts.main}
                         </button>
                         {selectedVIPPlan && vipCardReady && (() => {
                           const cost = Math.round(Number(selectedVIPPlan.price) * 100);

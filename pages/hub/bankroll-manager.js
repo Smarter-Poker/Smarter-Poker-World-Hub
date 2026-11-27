@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { VipUpgradePrompt } from '../../src/components/vip/VipKit';
 import layout from '../../styles/BankrollManager.module.css';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
@@ -2111,28 +2112,15 @@ export default function BankrollManagerPage() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 12,
+                        padding: 12,
+                        overflowY: 'auto',
                       }}>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: '#9fe5fb', textAlign: 'center' }}>VIP Analytics</div>
-                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends Require VIP Membership.</div>
-                        <button
-                          type="button"
-                          onClick={() => { haptic('light'); router.push('/hub/diamond-store'); }}
-                          style={{
-                            minHeight: 44,
-                            touchAction: 'manipulation',
-                            background: GRADIENTS.cyanAction,
-                            color: '#edf6ff',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: '10px 24px',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            marginTop: 4,
-                          }}
-                        >
-                          Upgrade To VIP
-                        </button>
+                        <VipUpgradePrompt
+                          accountId={userId || null}
+                          title="VIP Analytics"
+                          copy="Variance Analysis, Venue Intelligence And Historical Trends Require VIP."
+                          onNavigate={() => haptic('light')}
+                        />
                       </div>
                     )}
                     {/* Analytics: a grid at every width. Three across on

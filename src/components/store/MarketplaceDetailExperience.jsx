@@ -73,6 +73,7 @@ export default function MarketplaceDetailExperience({
   commerceActive = 'store',
   openGraphType = 'website',
   presentation = 'record',
+  masthead = null,
   children,
 }) {
   const safeImage = resolveMarketplaceImage(image);
@@ -201,6 +202,9 @@ export default function MarketplaceDetailExperience({
             ))}
           </nav>
 
+          {/* A product family with its own #SMARTERDESIGN masthead (VIP) supplies
+              it whole; the generic command panel is then not drawn under it. */}
+          {masthead || (
           <article
             className={`${styles.hero} ${presentationClass}`}
             data-presentation={safePresentation}
@@ -353,6 +357,7 @@ export default function MarketplaceDetailExperience({
               {copySecurity && <p className={styles.securityCopy}>{copySecurity}</p>}
             </div>
           </article>
+          )}
 
           <section className={styles.detailDeck}>{children}</section>
         </main>
