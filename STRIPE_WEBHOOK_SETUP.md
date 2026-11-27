@@ -20,6 +20,7 @@
    - `customer.subscription.deleted`
    - `invoice.payment_succeeded`
    - `invoice.payment_failed`
+   - `invoice.upcoming` (VIP first-renewal reminder; also set Billing > Subscriptions and emails > "Upcoming renewal events" to the number of days of notice wanted, 7 recommended)
    - `charge.refunded`
 5. Click "Add endpoint"
 
