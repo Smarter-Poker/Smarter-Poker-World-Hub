@@ -15,14 +15,17 @@ test('the shared learning loop exposes the complete study path', () => {
     'Open Full Lesson',
     'Ask Geeves To Explain',
     'Take A Quick Quiz',
-    'Practice In Sandbox',
+    'Audit Your Leaks',
     'Related Lessons',
   ]) assert.match(COMPONENT, new RegExp(copy));
   assert.match(COMPONENT, /buildLearningReason/);
   assert.match(COMPONENT, /View Newest First/);
+  assert.match(COMPONENT, /sandboxHref = '\/hub\/personal-assistant\/leaks'/);
+  assert.doesNotMatch(COMPONENT, /Practice In Sandbox/);
+  assert.doesNotMatch(COMPONENT, /\/hub\/personal-assistant\/sandbox/);
 });
 
-test('Video Library connects progress, saves, related lessons, quiz, sandbox, and Geeves', () => {
+test('Video Library connects progress, saves, related lessons, quiz, leak audit, and Geeves', () => {
   assert.match(LIBRARY, /<VideoLearningLoop/);
   assert.match(LIBRARY, /resumeLabel=\{selectedVideoResumeSeconds/);
   assert.match(LIBRARY, /\/api\/video-library\/study-list/);
@@ -30,10 +33,11 @@ test('Video Library connects progress, saves, related lessons, quiz, sandbox, an
   assert.match(LIBRARY, /onSave=\{\(\) => void toggleWatchLater\(selectedVideo\)\}/);
   assert.match(LIBRARY, /relatedLessons=\{relatedVideos\}/);
   assert.match(LIBRARY, /geeves-open/);
-  assert.match(LIBRARY, /\/hub\/personal-assistant\/sandbox/);
+  assert.match(LIBRARY, /\/hub\/personal-assistant\/leaks/);
+  assert.doesNotMatch(LIBRARY, /\/hub\/personal-assistant\/sandbox/);
 });
 
-test('Reels connects saved state, recommendation reason, full lesson, and chronological mode', () => {
+test('Reels connects saved state, recommendation reason, full lesson, chronological mode, and leak audit', () => {
   assert.match(REELS, /<VideoLearningLoop/);
   assert.match(REELS, /currentReel\?\.selection_reason/);
   assert.match(REELS, /saved=\{savedReels\.has\(currentReel\?\.id\)\}/);
@@ -41,6 +45,8 @@ test('Reels connects saved state, recommendation reason, full lesson, and chrono
   assert.match(REELS, /chronologicalHref="\/hub\/reels\?mode=latest"/);
   assert.match(REELS, /onSave=\{handleStudySave\}/);
   assert.match(REELS, /\/api\/video-library\/study-list/);
+  assert.match(REELS, /\/hub\/personal-assistant\/leaks/);
+  assert.doesNotMatch(REELS, /\/hub\/personal-assistant\/sandbox/);
 });
 
 test('Video Library semantic queries use the Phase 8 discovery authority', () => {

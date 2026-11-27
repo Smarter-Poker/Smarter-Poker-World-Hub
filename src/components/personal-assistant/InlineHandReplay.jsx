@@ -46,6 +46,102 @@ function titleCase(value) {
     .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }
 
+/**
+ * Safely normalize a solver frequency into a 0..100 percentage.
+ * Converts ratio inputs in (0..1] into (0..100]% and clamps finite percentages into [0, 100].
+ * Returns null for nullish, boolean, negative, or non-finite values.
+ */
+export function normalizeSolverFrequency(raw, { treatOneAsHundred = true } = {}) {
+  if (raw === null || raw === undefined || raw === '' || typeof raw === 'boolean') return null;
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num < 0) return null;
+  let pct = num;
+  if (num > 0 && num < 1) {
+    pct = num * 100;
+  } else if (num === 1 && treatOneAsHundred) {
+    pct = 100;
+  }
+  const clamped = Math.max(0, Math.min(100, pct));
+  return Math.round(clamped * 10) / 10;
+}
+
+/**
+ * Build the Hero Action vs Solver Frequency comparison model for an audited street decision.
+ * Enforces strict honesty boundaries:
+ *   - Returns null whenever strategySupported === false or decision.solverVerified !== true
+ *   - Includes evLossBb / evLossLabel ONLY when decision.evLossMeasured === true and finite
+ */
+export function buildSolverFrequencyComparison(decision, { strategySupported = true } = {}) {
+  if (!decision || typeof decision !== 'object') return null;
+  if (
+    strategySupported === false ||
+    decision.strategySupported === false ||
+    decision.supported === false ||
+    decision.solverVerified !== true
+  ) {
+    return null;
+  }
+
+  const rawOptimal =
+    decision.optimalFrequency
+    ?? decision.optimalPct
+    ?? decision.solverFrequency
+    ?? decision.optimal_frequency
+    ?? decision.solver_frequency
+    ?? null;
+  const rawHero =
+    decision.selectedFrequency
+    ?? decision.heroFrequency
+    ?? decision.heroPct
+    ?? decision.playerFrequency
+    ?? decision.chosenFrequency
+    ?? decision.selected_frequency
+    ?? null;
+
+  const optimalIsRatio =
+    rawOptimal !== null
+    && rawOptimal !== undefined
+    && rawOptimal !== ''
+    && Number.isFinite(Number(rawOptimal))
+    && Number(rawOptimal) > 0
+    && Number(rawOptimal) <= 1;
+
+  const optimalFrequencyPct = normalizeSolverFrequency(rawOptimal, { treatOneAsHundred: true });
+  const heroFrequencyPct = normalizeSolverFrequency(rawHero, {
+    treatOneAsHundred: rawOptimal === null || rawOptimal === undefined ? true : optimalIsRatio,
+  });
+
+  const rawEvLoss =
+    decision.evLossBB
+    ?? decision.evLoss
+    ?? decision.ev_loss_bb
+    ?? decision.ev_loss
+    ?? null;
+  const hasMeasuredEvLoss =
+    decision.evLossMeasured === true
+    && rawEvLoss !== null
+    && rawEvLoss !== undefined
+    && rawEvLoss !== ''
+    && typeof rawEvLoss !== 'boolean'
+    && Number.isFinite(Number(rawEvLoss));
+  const evLossBb = hasMeasuredEvLoss ? Math.abs(Number(rawEvLoss)) : null;
+
+  return {
+    heroAction: titleCase(decision.playerAction || decision.player_action || decision.heroAction || 'Recorded'),
+    solverAction: titleCase(
+      decision.solverAction
+      || decision.optimalAction
+      || decision.solver_action
+      || decision.optimal_action
+      || 'Optimal',
+    ),
+    optimalFrequencyPct,
+    heroFrequencyPct,
+    evLossBb,
+    evLossLabel: evLossBb !== null ? `-${evLossBb.toFixed(2)} BB` : null,
+  };
+}
+
 function CardBadge({ card }) {
   const parsed = parseCard(card);
   if (!parsed) return null;
@@ -428,55 +524,221 @@ export default function InlineHandReplay({
                   ? Math.abs(Number(measuredLossRaw))
                   : null;
               const solverAct = activeDecision.solverAction || activeDecision.optimalAction;
+              const freqComparison = buildSolverFrequencyComparison(activeDecision, {
+                strategySupported: !isStrategyUnsupported,
+              });
               return (
                 <div
                   key={activeDecision.decisionKey || `${activeStreet}-dec-${decIndex}`}
-                  role={divergent ? 'status' : undefined}
-                  aria-live={divergent ? 'polite' : undefined}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    background: divergent ? 'rgba(255, 198, 109, 0.12)' : '#091017',
-                    border: divergent ? '1px solid rgba(255, 198, 109, 0.45)' : '1px solid rgba(140, 161, 180, 0.24)',
-                    color: '#f1f5fc',
-                    fontSize: 13,
-                    lineHeight: 1.4,
-                  }}
-                  data-testid="replay-divergence-badge"
-                  data-divergence={divergent ? 'true' : 'false'}
+                  style={{ display: 'grid', gap: 6 }}
                 >
-                  <span
+                  <div
+                    role={divergent ? 'status' : undefined}
+                    aria-live={divergent ? 'polite' : undefined}
                     style={{
-                      display: 'inline-flex',
+                      display: 'flex',
                       alignItems: 'center',
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      background: divergent ? '#ffc66d' : '#16324f',
-                      color: divergent ? '#040d18' : '#83deff',
-                      fontWeight: 800,
-                      fontSize: 12,
-                      textTransform: 'uppercase',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      background: divergent ? 'rgba(255, 198, 109, 0.12)' : '#091017',
+                      border: divergent ? '1px solid rgba(255, 198, 109, 0.45)' : '1px solid rgba(140, 161, 180, 0.24)',
+                      color: '#f1f5fc',
+                      fontSize: 13,
+                      lineHeight: 1.4,
                     }}
+                    data-testid="replay-divergence-badge"
+                    data-divergence={divergent ? 'true' : 'false'}
                   >
-                    {divergent ? 'Divergence' : (activeDecision.solverVerified === false ? 'Unpriced' : 'Aligned')}
-                  </span>
-                  <span>
-                    You: <strong style={{ color: '#ffffff' }}>{titleCase(activeDecision.playerAction || 'Recorded')}</strong>
-                    {solverAct ? (
-                      <>
-                        {' · '}Solver: <strong style={{ color: '#56d8ff' }}>{titleCase(solverAct)}</strong>
-                      </>
-                    ) : null}
-                    {measuredLoss !== null ? (
-                      <span style={{ color: '#ff8290', marginLeft: 6 }}>
-                        · {measuredLoss.toFixed(2)} BB Lost
-                      </span>
-                    ) : null}
-                  </span>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        background: divergent ? '#ffc66d' : '#16324f',
+                        color: divergent ? '#040d18' : '#83deff',
+                        fontWeight: 800,
+                        fontSize: 12,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {divergent ? 'Divergence' : (activeDecision.solverVerified === false ? 'Unpriced' : 'Aligned')}
+                    </span>
+                    <span>
+                      You: <strong style={{ color: '#ffffff' }}>{titleCase(activeDecision.playerAction || 'Recorded')}</strong>
+                      {solverAct ? (
+                        <>
+                          {' · '}Solver: <strong style={{ color: '#56d8ff' }}>{titleCase(solverAct)}</strong>
+                        </>
+                      ) : null}
+                      {measuredLoss !== null ? (
+                        <span style={{ color: '#ff8290', marginLeft: 6 }}>
+                          · {measuredLoss.toFixed(2)} BB Lost
+                        </span>
+                      ) : null}
+                    </span>
+                  </div>
+
+                  {freqComparison && (
+                    <div
+                      data-testid="replay-solver-frequency-bar"
+                      style={{
+                        display: 'grid',
+                        gap: 8,
+                        padding: '10px 12px',
+                        borderRadius: 6,
+                        background: '#091017',
+                        border: '1px solid rgba(140, 161, 180, 0.24)',
+                        borderTopColor: '#aec0d0',
+                        color: '#f1f5fc',
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                          <span
+                            data-testid="replay-hero-action-pill"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                              background: '#0d141c',
+                              border: '1px solid rgba(140, 161, 180, 0.24)',
+                              color: '#f1f5fc',
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <span>Hero Action:</span>
+                            <strong style={{ color: '#ffffff' }}>{freqComparison.heroAction}</strong>
+                            {freqComparison.heroFrequencyPct !== null && (
+                              <span style={{ color: '#9eb4c8' }}>({freqComparison.heroFrequencyPct}%)</span>
+                            )}
+                          </span>
+                          <span
+                            data-testid="replay-solver-optimal-pill"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                              background: 'rgba(8, 124, 250, 0.16)',
+                              border: '1px solid #56d8ff',
+                              color: '#83deff',
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <span>Solver Optimal:</span>
+                            <strong style={{ color: '#ffffff' }}>{freqComparison.solverAction}</strong>
+                            {freqComparison.optimalFrequencyPct !== null && (
+                              <span>({freqComparison.optimalFrequencyPct}%)</span>
+                            )}
+                          </span>
+                        </div>
+
+                        {freqComparison.evLossLabel !== null && (
+                          <span
+                            data-testid="replay-ev-loss-pill"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                              background: 'rgba(255, 107, 122, 0.16)',
+                              border: '1px solid rgba(255, 130, 144, 0.5)',
+                              color: '#ff8290',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            <span>EV Loss:</span>
+                            <strong>{freqComparison.evLossLabel}</strong>
+                          </span>
+                        )}
+                      </div>
+
+                      {freqComparison.optimalFrequencyPct !== null && (
+                        <div style={{ display: 'grid', gap: 6 }}>
+                          <div style={{ display: 'grid', gap: 3 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#9eb4c8' }}>
+                              <span>Solver Optimal Frequency</span>
+                              <strong style={{ color: '#83deff' }}>{freqComparison.optimalFrequencyPct}%</strong>
+                            </div>
+                            <div
+                              role="progressbar"
+                              aria-label="Solver Optimal Frequency"
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={Math.round(freqComparison.optimalFrequencyPct)}
+                              data-testid="replay-optimal-frequency-track"
+                              style={{
+                                width: '100%',
+                                height: 8,
+                                borderRadius: 999,
+                                background: '#05080c',
+                                border: '1px solid rgba(140, 161, 180, 0.24)',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <div
+                                data-testid="replay-optimal-frequency-fill"
+                                style={{
+                                  width: `${freqComparison.optimalFrequencyPct}%`,
+                                  height: '100%',
+                                  background: 'linear-gradient(90deg, #087cfa 0%, #56d8ff 100%)',
+                                  borderRadius: 999,
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {freqComparison.heroFrequencyPct !== null && (
+                            <div style={{ display: 'grid', gap: 3 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#9eb4c8' }}>
+                                <span>Hero Action Frequency</span>
+                                <strong style={{ color: divergent ? '#ffc66d' : '#4de0a5' }}>{freqComparison.heroFrequencyPct}%</strong>
+                              </div>
+                              <div
+                                role="progressbar"
+                                aria-label="Hero Action Frequency"
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={Math.round(freqComparison.heroFrequencyPct)}
+                                data-testid="replay-hero-frequency-track"
+                                style={{
+                                  width: '100%',
+                                  height: 8,
+                                  borderRadius: 999,
+                                  background: '#05080c',
+                                  border: '1px solid rgba(140, 161, 180, 0.24)',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                <div
+                                  data-testid="replay-hero-frequency-fill"
+                                  style={{
+                                    width: `${freqComparison.heroFrequencyPct}%`,
+                                    height: '100%',
+                                    background: divergent
+                                      ? 'linear-gradient(90deg, #d99b38 0%, #ffc66d 100%)'
+                                      : 'linear-gradient(90deg, #1fa97c 0%, #4de0a5 100%)',
+                                    borderRadius: 999,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

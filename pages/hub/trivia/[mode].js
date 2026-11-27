@@ -104,6 +104,8 @@ const SERVER_GRADED_PAGE_MODES = new Set([
     'mtt', 'cash', 'icm', 'gto'
 ]);
 const PHASE9_KNOWLEDGE_MODES = new Set(['arcade', 'history', 'rules', 'pro']);
+// ZERO SILENT SPENDING: ?autostart=1 is strictly restricted to FREE (diamondCost === 0) modes.
+const FREE_AUTOSTART_MODES = Object.freeze(new Set(['daily', 'history', 'rules', 'pro']));
 
 export default function TriviaModePage() {
     useTrainingBus('trivia-mode');
@@ -962,6 +964,38 @@ export default function TriviaModePage() {
             }
         }
     };
+
+    // Fast 1-tap launch for strictly FREE (cost === 0) modes via ?autostart=1.
+    // Ref-latched per mode+user so it never double-fires, and explicitly ignores
+    // any paid or ticket mode, signed-out visitor, recoverable session, or already-played Daily.
+    const autostartConsumedRef = useRef('');
+    useEffect(() => {
+        if (!router.isReady || !mode || !modeConfig) return;
+        const rawAutostart = Array.isArray(router.query.autostart)
+            ? router.query.autostart[0]
+            : router.query.autostart;
+        if (rawAutostart !== '1') return;
+        if (!FREE_AUTOSTART_MODES.has(mode) || (modeConfig.diamondCost || 0) !== 0) return;
+        if (gameState !== 'ready' || !userId || isStarting || isStartingRef.current) return;
+        if (serverRun.hasRecoverableSession) return;
+        if (mode === 'daily' && (!isOnline || dailyStatus !== 'ready' || dailyDiamondsClaimed)) return;
+        const latchKey = `${mode}:${userId}`;
+        if (autostartConsumedRef.current === latchKey) return;
+        autostartConsumedRef.current = latchKey;
+        void startGame();
+    }, [
+        router.isReady,
+        router.query.autostart,
+        mode,
+        modeConfig,
+        gameState,
+        userId,
+        isStarting,
+        serverRun.hasRecoverableSession,
+        isOnline,
+        dailyStatus,
+        dailyDiamondsClaimed,
+    ]);
 
     async function handleComplete(gameResult, questionSet = questions, recoveredSettlement = null) {
         const operationScope = accountOperationScopeRef.current.capture();
