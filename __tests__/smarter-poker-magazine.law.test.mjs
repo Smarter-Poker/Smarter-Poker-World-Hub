@@ -81,6 +81,7 @@ import {
     buildMagazineQrMatrixSvg,
     currentIssuePeriod,
     formatChipsOnly,
+    magazineContinuedLabel,
     formatPeriodLabel,
     isValidIssuePeriod,
     normalizeIssueManifest,
@@ -2735,4 +2736,11 @@ test('MAG LAW 27: Chips amounts with cents keep them instead of rounding to a fa
     assert.equal(formatChipsOnly(15507.5), '15,507.50 Chips');
     assert.equal(formatChipsOnly(97920), '97,920 Chips');
     assert.equal(formatChipsOnly(0), '0 Chips');
+});
+
+test('MAG LAW 28: continuation labels never repeat the section name', () => {
+    assert.equal(magazineContinuedLabel('The Rail', 'The Rail: Global Tour & High-Stakes Briefs'), 'The Rail • Global Tour & High-Stakes Briefs');
+    assert.equal(magazineContinuedLabel('Final Table', 'Final Table: Triton, Circuit & BSOP Winners (Continued)'), 'Final Table • Triton, Circuit & BSOP Winners');
+    assert.equal(magazineContinuedLabel('The Rail', 'The Rail'), 'The Rail • Continued');
+    assert.equal(magazineContinuedLabel('The Rail', 'Tour Radar: December'), 'The Rail • Tour Radar');
 });

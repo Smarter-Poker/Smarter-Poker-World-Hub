@@ -23,6 +23,7 @@ import {
     formatChipsOnly,
     formatPeriodLabel,
     isMagazineFallbackImageUrl,
+    magazineContinuedLabel,
     stripMagazineDashes,
 } from '../../lib/magazine/magazineSchema.mjs';
 
@@ -646,7 +647,7 @@ function NewsRailLayout({ page, issueMeta, mode }) {
             {isOpener ? (
                 <SectionHead kicker={section} headline={page?.headline} size="md" deck={page?.subheadline} />
             ) : (
-                <div className="spm-continued">{`${section} • ${stripContinued(page?.headline).split(':')[0]}`}</div>
+                <div className="spm-continued">{magazineContinuedLabel(section, cleanText(page?.headline))}</div>
             )}
             {lead ? (
                 <article className="spm-stack spm-stack--tight">
