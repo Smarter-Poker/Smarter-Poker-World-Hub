@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { capture } from '../../lib/analytics';
+import { trackSeoFunnelEvent } from '../../lib/seo/seoFunnelTelemetry';
 import { isGuestBarHiddenRoute } from './GuestConversionBar';
 import { openQuickSignup, QUICK_SIGNUP_STATE_EVENT } from './SmarterQuickSignupSheet';
 import styles from './SmarterSeoKit.module.css';
+
+function trackFunnelEvent(event, props) {
+  trackSeoFunnelEvent(event, props);
+}
 
 export const ENGAGED_PROMPT_SHOWN_KEY = 'sp_engaged_prompt_shown_v1';
 export const SEO_TOOL_ENGAGED_EVENT = 'sp:seo-tool-engaged';
@@ -115,7 +119,7 @@ export default function SmarterEngagedConversionPrompt() {
       setTriggerKind(kind);
       setVisible(true);
       try {
-        capture('seo_engaged_prompt_shown', {
+        trackFunnelEvent('seo_engaged_prompt_shown', {
           trigger: kind,
           path: currentPath,
         });
@@ -175,7 +179,7 @@ export default function SmarterEngagedConversionPrompt() {
   const handleDismiss = () => {
     setVisible(false);
     try {
-      capture('seo_engaged_prompt_dismissed', {
+      trackFunnelEvent('seo_engaged_prompt_dismissed', {
         trigger: triggerKind,
         path: currentPath,
       });
@@ -187,7 +191,7 @@ export default function SmarterEngagedConversionPrompt() {
   const handleAccept = () => {
     setVisible(false);
     try {
-      capture('seo_engaged_prompt_clicked', {
+      trackFunnelEvent('seo_engaged_prompt_clicked', {
         trigger: triggerKind,
         path: currentPath,
       });

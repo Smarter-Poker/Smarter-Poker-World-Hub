@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 416,
+    "dependencyFiles": 417,
     "componentFiles": 66,
     "hookFiles": 16,
-    "ctas": 554,
+    "ctas": 556,
     "dialogs": 22,
-    "persistenceFiles": 98,
+    "persistenceFiles": 99,
     "realtimeFiles": 7,
     "tests": 200,
-    "markerCandidates": 402,
-    "possibleUnwiredFunctions": 498,
+    "markerCandidates": 403,
+    "possibleUnwiredFunctions": 499,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -5119,6 +5119,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -5220,6 +5221,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -5863,6 +5865,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -6137,6 +6140,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -6444,6 +6448,7 @@
         "src/lib/pushMenuState.mjs",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/sessionAnalytics.js",
@@ -6760,6 +6765,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -6905,6 +6911,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -7119,6 +7126,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -7245,6 +7253,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -7459,6 +7468,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -7890,6 +7900,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -8100,6 +8111,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
@@ -8431,6 +8443,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -8518,6 +8531,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/training/trainingPresets.mjs"
           ],
           "tests": [
@@ -8592,6 +8606,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -8666,6 +8681,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -8723,6 +8739,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -8792,7 +8809,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/lib/acquisition/firstTouch.mjs"
+            "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -8872,6 +8890,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -9014,6 +9033,7 @@
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -9100,6 +9120,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
         "src/lib/seo/summarySchema.js",
@@ -9216,6 +9237,7 @@
             "src/hooks/useTrainingFeedback.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs"
           ],
@@ -9442,6 +9464,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -9523,6 +9546,7 @@
           "evidence": [
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/training/trainingPresets.mjs"
           ],
           "tests": [
@@ -9991,6 +10015,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -10205,6 +10230,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -10267,6 +10293,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -10336,7 +10363,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/lib/acquisition/firstTouch.mjs"
+            "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -10463,6 +10491,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -10692,6 +10721,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -10786,6 +10816,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -10910,6 +10941,7 @@
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -10971,6 +11003,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -11039,6 +11072,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -11159,6 +11193,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -11373,6 +11408,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -11596,6 +11632,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -11670,6 +11707,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -11729,6 +11767,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -11820,6 +11859,7 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
             "src/lib/idbCacheStore.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -12226,6 +12266,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -12440,6 +12481,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -12502,6 +12544,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -12553,7 +12596,8 @@
           "evidence": [
             "pages/hub/training/hand-comparison.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/lib/acquisition/firstTouch.mjs"
+            "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": []
         },
@@ -12602,6 +12646,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -12721,6 +12766,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -12853,6 +12899,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -13055,6 +13102,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
@@ -13436,6 +13484,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -13660,6 +13709,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -13748,6 +13798,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -13883,6 +13934,7 @@
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -13995,6 +14047,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -14181,6 +14234,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
@@ -14302,6 +14356,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -14527,6 +14582,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
@@ -15183,6 +15239,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -15397,6 +15454,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -15522,6 +15580,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -15762,6 +15821,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -15908,6 +15968,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -16122,6 +16183,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -16184,6 +16246,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -16248,7 +16311,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/lib/acquisition/firstTouch.mjs"
+            "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -16481,6 +16545,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -16695,6 +16760,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -17706,6 +17772,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -17930,6 +17997,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -18002,6 +18070,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -18083,6 +18152,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -18213,6 +18283,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -18427,6 +18498,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -18553,6 +18625,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -18767,6 +18840,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -18849,6 +18923,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -18973,6 +19048,7 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -19715,6 +19791,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -19785,7 +19862,8 @@
           "evidence": [
             "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/lib/acquisition/firstTouch.mjs"
+            "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
@@ -19912,6 +19990,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -20142,6 +20221,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -20237,6 +20317,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -20384,6 +20465,7 @@
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -20838,6 +20920,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -20897,7 +20980,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/lib/acquisition/firstTouch.mjs"
+            "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs"
@@ -21015,6 +21099,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -21229,6 +21314,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -21293,6 +21379,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -21379,6 +21466,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -21471,6 +21559,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -21577,6 +21666,7 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -22001,6 +22091,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -22067,7 +22158,8 @@
           "evidence": [
             "pages/hub/training/risk-analyzer.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/lib/acquisition/firstTouch.mjs"
+            "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -22131,6 +22223,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -22204,6 +22297,7 @@
             "src/hooks/useTrainingFeedback.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -22526,6 +22620,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -22594,6 +22689,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -22655,6 +22751,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -22728,6 +22825,7 @@
             "src/hooks/useTrainingFeedback.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -22789,6 +22887,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -22883,6 +22982,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -22968,6 +23068,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -23097,6 +23198,7 @@
             "src/hooks/usePersistedFilters.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -23191,6 +23293,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -23307,6 +23410,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs"
           ],
@@ -23460,6 +23564,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -23684,6 +23789,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -24338,6 +24444,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -24419,6 +24526,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -24927,6 +25035,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -25141,6 +25250,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -25207,6 +25317,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -25280,6 +25391,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -25373,6 +25485,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -25543,6 +25656,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
@@ -26004,6 +26118,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -26232,6 +26347,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
@@ -26476,6 +26592,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -26568,6 +26685,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -26702,6 +26820,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -26916,6 +27035,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
@@ -26984,6 +27104,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -27069,6 +27190,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
@@ -47554,6 +47676,7 @@
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "imports": [
         "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
       ],
       "links": [],
@@ -47563,7 +47686,7 @@
         {
           "element": "button",
           "name": "Close Quick Signup Dialog",
-          "line": 158,
+          "line": 221,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -47573,18 +47696,38 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 185,
-          "handler": "handleGoogleOneTap",
+          "line": 248,
+          "handler": "() => handleOAuthOneTap('google')",
           "destination": null,
           "type": "button",
-          "disabled": "oauthBusy",
+          "disabled": "Boolean(oauthProviderBusy)",
           "wiring": "handler"
         },
         {
-          "element": "link",
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 262,
+          "handler": "() => handleOAuthOneTap('facebook')",
+          "destination": null,
+          "type": "button",
+          "disabled": "Boolean(oauthProviderBusy)",
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
           "name": "Create Free Account With Email",
-          "line": 197,
-          "handler": "close",
+          "line": 293,
+          "handler": null,
+          "destination": null,
+          "type": "submit",
+          "disabled": null,
+          "wiring": "form-submit"
+        },
+        {
+          "element": "link",
+          "name": "Open Full Registration Form Directly",
+          "line": 303,
+          "handler": "() => {\n              try {\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
           "destination": "signupHref",
           "type": null,
           "disabled": null,
@@ -47593,7 +47736,7 @@
         {
           "element": "link",
           "name": "Sign In",
-          "line": 209,
+          "line": 333,
           "handler": "close",
           "destination": "loginHref",
           "type": null,
@@ -47632,8 +47775,16 @@
       },
       "functions": [
         {
+          "name": "trackFunnelEvent",
+          "line": 13,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "sanitizeRedirect",
-          "line": 15,
+          "line": 22,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -47641,7 +47792,7 @@
         },
         {
           "name": "openQuickSignup",
-          "line": 23,
+          "line": 30,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -47649,15 +47800,15 @@
         },
         {
           "name": "buildSignupUrl",
-          "line": 33,
-          "references": 2,
+          "line": 40,
+          "references": 3,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "SmarterQuickSignupSheet",
-          "line": 42,
+          "line": 53,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -47665,7 +47816,7 @@
         },
         {
           "name": "onOpen",
-          "line": 55,
+          "line": 68,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -47673,15 +47824,23 @@
         },
         {
           "name": "onKeyDown",
-          "line": 92,
+          "line": 116,
           "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "handleGoogleOneTap",
-          "line": 110,
+          "name": "handleOAuthOneTap",
+          "line": 135,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleEmailFormSubmit",
+          "line": 182,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -47692,7 +47851,16 @@
         "openQuickSignup",
         "SmarterQuickSignupSheet"
       ],
-      "markers": []
+      "markers": [
+        {
+          "kind": "PLACEHOLDER",
+          "line": 287,
+          "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
+          "disposition": "ui-input-copy",
+          "review": "accepted",
+          "rationale": "JSX placeholder attribute, not placeholder implementation."
+        }
+      ]
     },
     {
       "file": "src/components/store/DiamondWalletModal.jsx",
@@ -69791,6 +69959,65 @@
       "markers": []
     },
     {
+      "file": "src/lib/seo/seoFunnelTelemetry.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": true,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 1,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "getSessionDistinctId",
+          "line": 13,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "trackSeoFunnelEvent",
+          "line": 27,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "trackSeoFunnelEvent"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/seo/shareImageMetadata.mjs",
       "imports": [],
       "links": [],
@@ -85370,6 +85597,10 @@
     },
     {
       "from": "src/components/seo/SmarterQuickSignupSheet.jsx",
+      "to": "src/lib/seo/seoFunnelTelemetry.js"
+    },
+    {
+      "from": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "to": "src/lib/supabase.js"
     },
     {
@@ -87975,6 +88206,17 @@
         "inserts": 0,
         "updates": 0,
         "deletes": 2,
+        "rpc": 0
+      }
+    },
+    {
+      "file": "src/lib/seo/seoFunnelTelemetry.js",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 1,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
         "rpc": 0
       }
     },
@@ -92313,11 +92555,11 @@
       "effectRef": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:158:1",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:221:1",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Close Quick Signup Dialog",
-      "line": 158,
+      "line": 221,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -92326,25 +92568,51 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:185:2",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:248:2",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 185,
-      "handler": "handleGoogleOneTap",
+      "line": 248,
+      "handler": "() => handleOAuthOneTap('google')",
       "destination": null,
       "type": "button",
-      "disabled": "oauthBusy",
+      "disabled": "Boolean(oauthProviderBusy)",
       "wiring": "handler",
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:197:3",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:262:3",
+      "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 262,
+      "handler": "() => handleOAuthOneTap('facebook')",
+      "destination": null,
+      "type": "button",
+      "disabled": "Boolean(oauthProviderBusy)",
+      "wiring": "handler",
+      "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:293:4",
+      "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
+      "element": "button",
+      "name": "Create Free Account With Email",
+      "line": 293,
+      "handler": null,
+      "destination": null,
+      "type": "submit",
+      "disabled": null,
+      "wiring": "form-submit",
+      "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:303:5",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
-      "name": "Create Free Account With Email",
-      "line": 197,
-      "handler": "close",
+      "name": "Open Full Registration Form Directly",
+      "line": 303,
+      "handler": "() => {\n              try {\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
       "destination": "signupHref",
       "type": null,
       "disabled": null,
@@ -92352,11 +92620,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:209:4",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:333:6",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Sign In",
-      "line": 209,
+      "line": 333,
       "handler": "close",
       "destination": "loginHref",
       "type": null,
@@ -100305,6 +100573,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -100588,6 +100857,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -100742,6 +101022,7 @@
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/pushMenuState.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -100939,6 +101220,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/store/checkoutIntentStore.js",
           "writes": {
             "localStorage": 0,
@@ -101058,6 +101350,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -101068,6 +101361,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -101091,6 +101395,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -101101,6 +101406,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -101566,6 +101882,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -101760,6 +102077,17 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 1,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
             "deletes": 0,
             "rpc": 0
           }
@@ -102227,6 +102555,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -102251,6 +102580,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -102297,6 +102637,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -102326,6 +102667,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -102363,6 +102715,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -102375,6 +102728,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -102421,6 +102785,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -102547,6 +102912,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -102613,6 +102989,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
         "src/lib/seo/summarySchema.js",
@@ -102659,6 +103036,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -102759,6 +103147,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -102799,6 +103188,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 0
           }
         },
@@ -103042,6 +103442,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -103052,6 +103453,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103077,6 +103489,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -103089,6 +103502,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103115,6 +103539,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -103125,6 +103550,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103172,6 +103608,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -103308,6 +103745,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -103361,6 +103809,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -103408,6 +103857,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -103437,6 +103897,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -103447,6 +103908,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103538,6 +104010,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -103586,6 +104059,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -103620,6 +104104,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -103668,6 +104153,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 0
           }
         },
@@ -103779,6 +104275,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -103789,6 +104286,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103814,6 +104322,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -103826,6 +104335,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103854,6 +104374,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -103897,6 +104418,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103985,6 +104517,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -104198,6 +104731,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/store/checkoutIntentStore.js",
           "writes": {
             "localStorage": 0,
@@ -104362,6 +104906,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -104372,6 +104917,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -104417,6 +104973,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -104543,6 +105100,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -104635,6 +105203,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -104839,6 +105408,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/store/checkoutIntentStore.js",
           "writes": {
             "localStorage": 0,
@@ -105003,6 +105583,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -105210,6 +105791,17 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 1,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
             "deletes": 0,
             "rpc": 0
           }
@@ -105783,6 +106375,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -105793,6 +106386,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -105881,6 +106485,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -106125,6 +106730,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -106201,6 +106817,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -106211,6 +106828,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106236,6 +106864,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -106248,6 +106877,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106331,6 +106971,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -106341,6 +106982,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106779,6 +107431,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -106789,6 +107442,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106816,6 +107480,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -106845,6 +107510,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106882,6 +107558,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -106892,6 +107569,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106915,6 +107603,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -106925,6 +107614,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106970,6 +107670,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -107062,6 +107763,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -107824,6 +108536,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -107836,6 +108549,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -107929,6 +108653,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -108160,6 +108885,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -108257,6 +108993,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -108394,6 +109131,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -108476,6 +109224,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -108488,6 +109237,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -108513,6 +109273,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -108523,6 +109284,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -108550,6 +109322,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -108592,6 +109365,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -108767,6 +109551,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -108779,6 +109564,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -108811,6 +109607,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -108852,6 +109649,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109014,6 +109822,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -109061,6 +109870,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -109097,6 +109917,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -109146,6 +109967,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -109182,6 +110014,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -109211,6 +110044,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109263,6 +110107,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -109323,6 +110168,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -109361,6 +110217,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -109392,6 +110249,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109433,6 +110301,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -109443,6 +110312,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109814,6 +110694,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -109844,6 +110725,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -110608,6 +111500,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -110618,6 +111511,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -110647,6 +111551,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -110676,6 +111581,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -110750,6 +111666,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -110945,6 +111862,17 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 1,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
             "deletes": 0,
             "rpc": 0
           }
@@ -111460,6 +112388,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -111660,6 +112589,17 @@
           }
         },
         {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/store/checkoutIntentStore.js",
           "writes": {
             "localStorage": 0,
@@ -111855,6 +112795,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -111885,6 +112826,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -111924,6 +112876,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -111934,6 +112887,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -111965,6 +112929,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
@@ -111997,6 +112962,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112305,6 +113281,7 @@
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js"
@@ -112316,6 +113293,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112362,6 +113350,7 @@
         "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
       ],
       "apiReferences": [],
@@ -112371,6 +113360,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112387,6 +113387,7 @@
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
       ],
       "apiReferences": [],
@@ -112396,6 +113397,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112413,6 +113425,7 @@
       "reachableFiles": [
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
       ],
       "apiReferences": [],
@@ -112422,6 +113435,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -113754,6 +114778,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js"
       ],
@@ -113764,6 +114789,17 @@
           "writes": {
             "localStorage": 2,
             "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -118498,6 +119534,28 @@
       "tests": []
     },
     {
+      "file": "src/lib/seo/seoFunnelTelemetry.js",
+      "reachableFiles": [
+        "src/lib/seo/seoFunnelTelemetry.js"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/seo/shareImageMetadata.mjs",
       "reachableFiles": [
         "src/lib/seo/shareImageMetadata.mjs"
@@ -121545,6 +122603,15 @@
         "disposition": "domain-simulation",
         "review": "accepted",
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
+        "kind": "PLACEHOLDER",
+        "line": 287,
+        "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
+        "disposition": "ui-input-copy",
+        "review": "accepted",
+        "rationale": "JSX placeholder attribute, not placeholder implementation."
       },
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
@@ -126773,7 +127840,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "openQuickSignup",
-        "line": 23,
+        "line": 30,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -126782,16 +127849,19 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/learn/hands/[hand].js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
           "src/components/seo/SmarterConversionCta.jsx",
-          "src/components/seo/SmarterSeoMasthead.jsx"
+          "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterSeoMasthead.jsx",
+          "src/components/tools/CalculatorShareAndPresets.js"
         ]
       },
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "SmarterQuickSignupSheet",
-        "line": 42,
+        "line": 53,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -129289,6 +130359,22 @@
         "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
         "externalReferenceFiles": [
           "__tests__/gsc-series2-phase6.test.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/seo/seoFunnelTelemetry.js",
+        "name": "trackSeoFunnelEvent",
+        "line": 27,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
       {
@@ -133542,6 +134628,15 @@
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
       },
       {
+        "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
+        "kind": "PLACEHOLDER",
+        "line": 287,
+        "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
+        "disposition": "ui-input-copy",
+        "review": "accepted",
+        "rationale": "JSX placeholder attribute, not placeholder implementation."
+      },
+      {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
         "line": 1467,
@@ -138768,7 +139863,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "openQuickSignup",
-        "line": 23,
+        "line": 30,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -138777,16 +139872,19 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/learn/hands/[hand].js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
           "src/components/seo/SmarterConversionCta.jsx",
-          "src/components/seo/SmarterSeoMasthead.jsx"
+          "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterSeoMasthead.jsx",
+          "src/components/tools/CalculatorShareAndPresets.js"
         ]
       },
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "SmarterQuickSignupSheet",
-        "line": 42,
+        "line": 53,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -141284,6 +142382,22 @@
         "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
         "externalReferenceFiles": [
           "__tests__/gsc-series2-phase6.test.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/seo/seoFunnelTelemetry.js",
+        "name": "trackSeoFunnelEvent",
+        "line": 27,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
       {

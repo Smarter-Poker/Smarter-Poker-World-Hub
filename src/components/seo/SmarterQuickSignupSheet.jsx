@@ -2,13 +2,17 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
-import { capture } from '../../lib/analytics';
+import { trackSeoFunnelEvent } from '../../lib/seo/seoFunnelTelemetry';
 import {
   recordFirstTouch,
   beginOAuthAttribution,
   withAttributionNonce,
 } from '../../lib/acquisition/firstTouch.mjs';
 import styles from './SmarterSeoKit.module.css';
+
+function trackFunnelEvent(event, props) {
+  trackSeoFunnelEvent(event, props);
+}
 
 export const QUICK_SIGNUP_EVENT = 'sp:open-quick-signup';
 export const QUICK_SIGNUP_STATE_EVENT = 'sp:quick-signup-state';
@@ -85,7 +89,7 @@ export default function SmarterQuickSignupSheet() {
       };
       setPayload(nextPayload);
       try {
-        capture('seo_quick_signup_opened', {
+        trackFunnelEvent('seo_quick_signup_opened', {
           unlock_key: nextPayload.unlockKey,
           source: nextPayload.source,
           redirect_path: nextPayload.redirectPath,
@@ -134,7 +138,7 @@ export default function SmarterQuickSignupSheet() {
     setOauthError('');
     try {
       try {
-        capture('seo_quick_signup_oauth_click', {
+        trackFunnelEvent('seo_quick_signup_oauth_click', {
           provider,
           unlock_key: payload.unlockKey,
           source: payload.source,
@@ -183,7 +187,7 @@ export default function SmarterQuickSignupSheet() {
       return;
     }
     try {
-      capture('seo_quick_signup_email_continue', {
+      trackFunnelEvent('seo_quick_signup_email_continue', {
         has_prefilled_email: Boolean(trimmed),
         unlock_key: payload.unlockKey,
         source: payload.source,
@@ -300,7 +304,7 @@ export default function SmarterQuickSignupSheet() {
             href={signupHref}
             onClick={() => {
               try {
-                capture('seo_quick_signup_email_continue', {
+                trackFunnelEvent('seo_quick_signup_email_continue', {
                   has_prefilled_email: Boolean(inlineEmail.trim()),
                   unlock_key: payload.unlockKey,
                   source: payload.source,

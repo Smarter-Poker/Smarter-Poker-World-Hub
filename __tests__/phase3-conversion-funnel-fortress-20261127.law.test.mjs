@@ -55,9 +55,9 @@ test('PHASE3 LAW 4: SmarterQuickSignupSheet provides 1-tap Google + Facebook OAu
   assert.match(sheetSrc, /data-testid="quick-signup-email-input"/);
   assert.match(sheetSrc, /data-testid="quick-signup-email-submit"/);
   assert.match(sheetSrc, /params\.set\(['"]email['"]/);
-  assert.match(sheetSrc, /capture\(['"]seo_quick_signup_opened['"]/);
-  assert.match(sheetSrc, /capture\(['"]seo_quick_signup_oauth_click['"]/);
-  assert.match(sheetSrc, /capture\(['"]seo_quick_signup_email_continue['"]/);
+  assert.match(sheetSrc, /trackFunnelEvent\(['"]seo_quick_signup_opened['"]/);
+  assert.match(sheetSrc, /trackFunnelEvent\(['"]seo_quick_signup_oauth_click['"]/);
+  assert.match(sheetSrc, /trackFunnelEvent\(['"]seo_quick_signup_email_continue['"]/);
   assert.match(sheetSrc, /sheetTrustStrip/);
 });
 
@@ -93,6 +93,6 @@ test('PHASE3 LAW 7: SmarterEngagedConversionPrompt is mounted in _app.js with st
   assert.match(promptSrc, /ENGAGED_PROMPT_SHOWN_KEY\s*=\s*['"]sp_engaged_prompt_shown_v1['"]/);
   assert.match(promptSrc, /isGuestBarHiddenRoute/);
   assert.match(promptSrc, /QUICK_SIGNUP_STATE_EVENT/);
-  assert.match(promptSrc, /capture\(['"]seo_engaged_prompt_shown['"]/);
-  assert.match(promptSrc, /capture\(['"]seo_engaged_prompt_clicked['"]/);
+  assert.match(promptSrc, /trackFunnelEvent\(['"]seo_engaged_prompt_shown['"]/);
+  assert.match(promptSrc, /trackFunnelEvent\(['"]seo_engaged_prompt_clicked['"]/);
 });
