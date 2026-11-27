@@ -220,6 +220,19 @@ jobs:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
+      # Later Playwright invocations clear these shared output directories.
+      # Retain the approved-gallery screenshots before the next suite starts.
+      - name: Retain Trivia mobile review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivia-mobile-review-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Trivia installed-PWA upgrade and rollback compatibility
         if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
         run: npx playwright test e2e/trivia-pwa-rollback.spec.ts --project=trivia-pwa --workers=1

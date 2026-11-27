@@ -31,16 +31,15 @@ test('the trivia page shell also keeps CSS out of server-rendered style text', (
     assert.match(HUB_CSS, /\.backgroundOverlay/);
 });
 
-test('mode filters support roving keyboard navigation and keep the active choice visible', () => {
-    assert.match(LOBBY, /ref=\{filterRailRef\}/);
-    assert.match(LOBBY, /filterButtonRefs\.current\[filterIndex\]/);
-    assert.match(LOBBY, /case 'ArrowRight'/);
-    assert.match(LOBBY, /case 'ArrowLeft'/);
-    assert.match(LOBBY, /case 'Home'/);
-    assert.match(LOBBY, /case 'End'/);
-    assert.match(LOBBY, /tabIndex=\{activeFilter === filter\.id \? 0 : -1\}/);
-    assert.match(LOBBY, /rail\.scrollTo\(/);
-    assert.match(LOBBY, /prefers-reduced-motion: reduce/);
+test('gallery search is labelled and its reset returns keyboard focus to the query', () => {
+    assert.match(LOBBY, /<label\b[\s\S]*?Search Trivia Games[\s\S]*?<input\b[\s\S]*?type="search"/);
+    assert.match(LOBBY, /ref=\{searchInputRef\}/);
+    assert.match(LOBBY, /aria-controls="trivia-game-grid"/);
+    assert.match(LOBBY, /id="trivia-game-grid"/);
+    assert.match(LOBBY, /onChange=\{\(event\) => setSearchQuery\(event\.target\.value\)\}/);
+    assert.match(LOBBY, /onClick=\{clearSearch\}>Show All Games/);
+    assert.match(LOBBY, /searchInputRef\.current\?\.focus\(\)/);
+    assert.match(LOBBY, /No Games Found/);
 });
 
 test('phase five keeps every game definition, artwork, and destination intact', () => {

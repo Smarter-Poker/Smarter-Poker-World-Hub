@@ -47121,7 +47121,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1632,
+          "line": 1631,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -47131,7 +47131,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 1643,
+          "line": 1642,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -47141,7 +47141,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 1646,
+          "line": 1645,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -47181,7 +47181,7 @@
       "functions": [
         {
           "name": "usesConsoleDress",
-          "line": 1559,
+          "line": 1558,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -47189,7 +47189,7 @@
         },
         {
           "name": "lookupHubSummaryEntry",
-          "line": 1564,
+          "line": 1563,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -47197,7 +47197,7 @@
         },
         {
           "name": "HubPageSummary",
-          "line": 1590,
+          "line": 1589,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -47218,7 +47218,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 1259,
+          "line": 1258,
           "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -47226,7 +47226,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 1461,
+          "line": 1460,
           "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -47234,7 +47234,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 1464,
+          "line": 1463,
           "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -91309,11 +91309,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1632:1",
+      "id": "src/components/seo/HubPageSummary.js:1631:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1632,
+      "line": 1631,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -91322,11 +91322,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1643:2",
+      "id": "src/components/seo/HubPageSummary.js:1642:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 1643,
+      "line": 1642,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -91335,11 +91335,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1646:3",
+      "id": "src/components/seo/HubPageSummary.js:1645:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 1646,
+      "line": 1645,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -120563,7 +120563,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 1259,
+        "line": 1258,
         "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -120572,7 +120572,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1461,
+        "line": 1460,
         "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -120581,7 +120581,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1464,
+        "line": 1463,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -125324,7 +125324,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1590,
+        "line": 1589,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132462,7 +132462,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 1259,
+        "line": 1258,
         "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -132471,7 +132471,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1461,
+        "line": 1460,
         "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -132480,7 +132480,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1464,
+        "line": 1463,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -137223,7 +137223,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1590,
+        "line": 1589,
         "references": 1,
         "exported": true,
         "defaultExport": true,

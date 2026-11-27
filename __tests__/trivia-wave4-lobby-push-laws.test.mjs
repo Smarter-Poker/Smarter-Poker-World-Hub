@@ -1,14 +1,13 @@
 /**
- * Wave 4 Track 1 Anti-Regression Laws (Lobby Speed, MTT-Density Tabbed Phone Lobby & Lock-Screen Web Push):
+ * Wave 4 Track 1 Anti-Regression Laws (Lobby Speed, Approved Phone Gallery & Lock-Screen Web Push):
  *  1. ?autostart=1 is strictly restricted to FREE (diamondCost === 0) modes (daily, history, rules, pro)
  *     in both TriviaLobby.jsx and pages/hub/trivia/[mode].js — ZERO silent spending on paid/ticket modes.
  *  2. pages/hub/trivia/index.js prefetches free Trivia routes on mount/idle via router.prefetch.
  *  3. NightlyReminderButton.jsx NEVER invokes Notification.requestPermission() or enablePush() inside
  *     useEffect (explicit click handler only), reuses canonical push-client.js, and renders >= 44px
  *     "Enable Device Push Alerts" plus honest active/blocked statuses.
- *  4. TriviaLobby.jsx exposes accessible role="tablist" + role="tab" + aria-selected category tabs
- *     (Featured & Free, Strategy, Timed & Survival, Competitive, All), defaults phone (< 900px) to
- *     Featured & Free for single-screen density, and preserves zero forbidden colors / uppercase CSS.
+ *  4. TriviaLobby.jsx defaults to the approved full gallery, preserves category deep links and
+ *     exposes Quick Stakes and the account-isolated competitive briefing through accessible help.
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -104,21 +103,26 @@ test('Wave 4 Law 3: NightlyReminderButton never prompts push in useEffect and ex
     assert.match(src, /Browser Push Blocked - In-App Alert Active/);
 });
 
-test('Wave 4 Law 4: TriviaLobby exposes role="tablist" MTT-density category tabs and defaults phone (< 900px) to Featured & Free', () => {
+test('Wave 4 Law 4: the full gallery is the default and accessible Help retains secondary game access', () => {
     const lobbySrc = read('src/components/trivia/TriviaLobby.jsx');
+    const dialogSrc = read('src/components/trivia/console/TriviaConsoleDialog.jsx');
 
-    assert.match(lobbySrc, /role="tablist"/);
-    assert.match(lobbySrc, /role="tab"/);
-    assert.match(lobbySrc, /aria-selected=\{activeFilter === filter\.id\}/);
-    assert.match(lobbySrc, /role="tabpanel"/);
-
-    for (const label of ['Featured & Free', 'Strategy', 'Timed & Survival', 'Competitive', 'All']) {
-        assert.ok(lobbySrc.includes(`label: '${label}'`), `TriviaLobby must define category tab "${label}"`);
-    }
-
-    // Default phone (< 900px) starts on 'featured' and gates heavy secondary panels by tab
-    assert.match(lobbySrc, /useState\(['"]featured['"]\)/);
-    assert.match(lobbySrc, /\(max-width:\s*899px\)/);
-    assert.match(lobbySrc, /const showQuickStakes = activeFilter === 'all' \|\| activeFilter === 'timed'/);
-    assert.match(lobbySrc, /const showCompetitiveBriefing = activeFilter === 'all' \|\| activeFilter === 'competitive'/);
+    assert.match(lobbySrc, /\[activeFilter, setActiveFilter\] = useState\('all'\)/);
+    assert.match(lobbySrc, /filterTriviaLobbyCards\(searchQuery, activeFilter\)/);
+    assert.match(lobbySrc, /router\.query\.tab/);
+    assert.match(lobbySrc, /router\.query\.filter/);
+    assert.match(lobbySrc, /aria-label="Poker Trivia Help"/);
+    assert.match(lobbySrc, /aria-haspopup="dialog"/);
+    assert.match(lobbySrc, /aria-expanded=\{helpOpen\}/);
+    assert.match(lobbySrc, /onClick=\{\(\) => setHelpOpen\(true\)\}/);
+    assert.match(lobbySrc, /<TriviaConsoleDialog\s+open=\{helpOpen\}\s+onClose=\{\(\) => setHelpOpen\(false\)\}/);
+    assert.match(lobbySrc, /primaryAction=\{\{ label: 'Close Help', onClick: \(\) => setHelpOpen\(false\) \}\}/);
+    const help = lobbySrc.slice(lobbySrc.indexOf('<TriviaConsoleDialog'), lobbySrc.indexOf('</TriviaConsoleDialog>'));
+    assert.match(help, /startMode\(TRIVIA_QUICK_STAKES_MODE\.id\)/);
+    assert.match(help, /<CompetitiveLobbyBriefing/);
+    assert.match(help, /accountKey=\{accountKey\}/);
+    assert.match(help, /modeAvailability=\{modeAvailability\}/);
+    assert.match(dialogSrc, /role="dialog"\s+aria-modal="true"/);
+    assert.match(dialogSrc, /event\.key === 'Escape'/);
+    assert.match(dialogSrc, /returnFocusRef\.current\?\.focus\?\.\(\)/);
 });

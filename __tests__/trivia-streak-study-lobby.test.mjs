@@ -167,13 +167,13 @@ test('ShareResultCardModal and PostSettlementReviewDrawer are wired across Trivi
     }
 });
 
-test('TriviaLobby quick-access utility bar wires Study Your Misses and non-blocking account-isolated PvP Elo pill', () => {
+test('TriviaLobby wires Study My Misses and retains the non-blocking account-isolated PvP Elo pill in Help', () => {
     const lobby = read('src/components/trivia/TriviaLobby.jsx');
 
     assert.match(lobby, /import Link from 'next\/link'/);
     assert.match(lobby, /import \{ authedFetch \} from '\.\.\/\.\.\/lib\/authUtils'/);
     assert.match(lobby, /href="\/hub\/trivia\/study"/);
-    assert.match(lobby, /Study Your Misses/);
+    assert.match(lobby, /Study My Misses/);
     assert.match(lobby, /\/api\/trivia\/pvp\/ratings\?limit=1/);
     assert.match(lobby, /setPvpEloBadge\(null\)/);
     assert.match(lobby, /authState !== 'authenticated' \|\| !accountKey/);
@@ -182,12 +182,15 @@ test('TriviaLobby quick-access utility bar wires Study Your Misses and non-block
     assert.doesNotMatch(lobby, /:hover|whileHover|onMouseEnter|onMouseOver|lucide-react/);
 
     const masthead = lobby.indexOf('lobby-masthead');
-    const utility = lobby.indexOf('className="lobby-utility-bar"');
-    const catalogue = lobby.indexOf('className="modes-section"');
+    const utility = lobby.indexOf('lobby-utility-bar');
+    const catalogue = lobby.indexOf('modes-section');
+    const help = lobby.indexOf('<TriviaConsoleDialog');
+    const elo = lobby.indexOf('PvP Elo {pvpEloBadge.elo');
     const quickStakes = lobby.indexOf('quick-stakes-card');
     const briefing = lobby.indexOf('<CompetitiveLobbyBriefing');
     assert.ok(
-        masthead >= 0 && masthead < utility && utility < catalogue && catalogue < quickStakes && quickStakes < briefing,
-        'lobby utility bar sits cleanly below the #SMARTERDESIGN masthead ahead of modes, Quick Stakes, and Competitive briefing',
+        masthead >= 0 && masthead < utility && utility < catalogue && catalogue < help
+        && help < elo && elo < quickStakes && quickStakes < briefing,
+        'quick access precedes the gallery; Help retains Elo, Quick Stakes, and the competitive briefing',
     );
 });

@@ -150,8 +150,8 @@ test('no page is served at opacity 0 on a full load; client navigations still fa
   assert.match(src, /if \(disableInitialAnimation\) \{[\s\S]*?<div className=\{className\}/);
 });
 
-test('the Trivia lobby keeps its server-rendered masthead and competitive briefing through the session check', () => {
+test('the Trivia lobby keeps its server-rendered masthead and account-stable briefing key through the session check', () => {
   const lobby = read('src/components/trivia/TriviaLobby.jsx');
   assert.match(lobby, /key=\{`competitive-lobby:\$\{accountKey \|\| 'no-account'\}`\}/);
-  assert.match(lobby, /<header className="sd-masthead lobby-masthead">/, 'the visible #SMARTERDESIGN masthead loads with the HTML');
+  assert.match(lobby, /<header\b[^>]*lobby-masthead[^>]*>/, 'the visible #SMARTERDESIGN masthead loads with the HTML');
 });

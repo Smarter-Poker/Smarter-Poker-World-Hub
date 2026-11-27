@@ -485,7 +485,7 @@ export const HUB_PAGE_SUMMARIES = {
   trivia: {
     heading: 'About Poker Trivia',
     lead:
-      'Poker Trivia Offers Server Scored Questions On Hand Rankings, Pot Odds, Tournament History And Rules. Choose A Knowledge Room Or A Challenge, Sign In To Start Or Recover Your Run, And Review The Entry Cost, VIP Eligibility And Reward Limits Before Playing. Challenge Modes Include Three Miss, Progressive Survival, Time Attack And Mixed Questions. Results And Diamond Activity Are Confirmed By Server Receipts.',
+      'Poker Trivia Presents A Gallery Of 12 Games With Server Scored Questions On Hand Rankings, Pot Odds, Tournament Strategy, History And Rules. Choose A Knowledge Room Or A Challenge, Sign In To Start Or Recover Your Run, And Review The Entry Cost, VIP Eligibility And Reward Limits Before Playing. Challenge Modes Include Three Miss, Progressive Survival And Time Attack. Results And Diamond Activity Are Confirmed By Server Receipts.',
     links: [
       // Head To Head and Trivia Tournaments ARE NOT LINKED from these
       // summaries while their release gates are closed
@@ -498,7 +498,6 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Endless', href: '/hub/trivia/endless', text: 'One Hundred Questions, With A Three Miss Limit.' },
       { name: 'Survival', href: '/hub/trivia/survival-game', text: 'Ten Levels With Increasing Accuracy Requirements.' },
       { name: 'Time Attack', href: '/hub/trivia/time-attack', text: 'As Many As You Can Before The Clock Runs Out.' },
-      { name: 'Mixed', href: '/hub/trivia/mixed', text: 'Every Category At Once, In Random Order.' },
       { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Ahead Today, This Week And All Time.' },
     ],
   },
