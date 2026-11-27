@@ -4793,8 +4793,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -4862,8 +4861,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -6648,8 +6646,7 @@
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
-            "src/lib/training/horseBrainTrainingAdapter.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
             "__tests__/training-question-integrity.test.mjs"
@@ -6732,7 +6729,6 @@
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -7641,8 +7637,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/training-arena-lobby-ui.test.mjs",
@@ -7710,8 +7705,7 @@
             "src/lib/training/trainingPresets.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/training-arena-lobby-ui.test.mjs",
@@ -7965,8 +7959,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
@@ -8036,8 +8029,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
@@ -8260,8 +8252,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": []
         },
@@ -8310,8 +8301,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": []
         },
@@ -12712,8 +12702,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
@@ -12784,8 +12773,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
@@ -13817,8 +13805,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
@@ -13878,8 +13865,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
@@ -14137,8 +14123,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
@@ -14215,8 +14200,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
@@ -14449,8 +14433,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -14505,8 +14488,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -17059,8 +17041,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
@@ -17144,8 +17125,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
@@ -18786,8 +18766,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
@@ -18875,8 +18854,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
@@ -19136,8 +19114,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -19194,8 +19171,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -23202,8 +23178,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -23265,8 +23240,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -23492,8 +23466,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -23555,8 +23528,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -24050,8 +24022,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": []
         },
@@ -24100,8 +24071,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": []
         },
@@ -24747,8 +24717,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -24805,8 +24774,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -25040,8 +25008,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
@@ -25111,8 +25078,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
@@ -25386,8 +25352,7 @@
             "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
-            "src/lib/training/boundedTrainingFetch.js",
-            "src/tutorials/personal-assistant.js"
+            "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -25464,8 +25429,7 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
-            "src/tutorials/index.js",
-            "src/tutorials/personal-assistant.js"
+            "src/tutorials/index.js"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -78408,9 +78372,9 @@
         "loading": false,
         "empty": false,
         "error": false,
-        "retry": true,
+        "retry": false,
         "offline": false,
-        "stale": true,
+        "stale": false,
         "success": false,
         "authExpiry": false
       },
@@ -122199,6 +122163,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/hub/personal-assistant/leaks.js",
+          "pages/hub/personal-assistant/sandbox.js",
           "src/components/sandbox/SandboxComponents.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
@@ -122215,6 +122180,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "src/components/sandbox/SandboxPokerTable.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
       },
@@ -122747,6 +122713,7 @@
           "pages/hub/news/sources.js",
           "pages/hub/personal-assistant/index.js",
           "pages/hub/personal-assistant/leaks.js",
+          "pages/hub/personal-assistant/review.js",
           "pages/hub/promotions.js",
           "pages/hub/reels/my-reels.js",
           "pages/hub/reels/saved.js",
@@ -124006,7 +123973,9 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/hub/personal-assistant/sandbox.js",
           "src/components/poker/TrainingGameTable.jsx",
+          "src/components/sandbox/SandboxPokerTable.jsx",
           "src/components/training/UniversalTrainingTable.tsx",
           "src/components/training/games/UniversalDynamicTable.jsx"
         ]
@@ -133492,6 +133461,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/hub/personal-assistant/leaks.js",
+          "pages/hub/personal-assistant/sandbox.js",
           "src/components/sandbox/SandboxComponents.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
@@ -133508,6 +133478,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "src/components/sandbox/SandboxPokerTable.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
       },
@@ -134040,6 +134011,7 @@
           "pages/hub/news/sources.js",
           "pages/hub/personal-assistant/index.js",
           "pages/hub/personal-assistant/leaks.js",
+          "pages/hub/personal-assistant/review.js",
           "pages/hub/promotions.js",
           "pages/hub/reels/my-reels.js",
           "pages/hub/reels/saved.js",
@@ -135299,7 +135271,9 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/hub/personal-assistant/sandbox.js",
           "src/components/poker/TrainingGameTable.jsx",
+          "src/components/sandbox/SandboxPokerTable.jsx",
           "src/components/training/UniversalTrainingTable.tsx",
           "src/components/training/games/UniversalDynamicTable.jsx"
         ]

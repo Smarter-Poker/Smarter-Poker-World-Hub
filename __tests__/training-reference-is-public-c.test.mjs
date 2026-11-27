@@ -436,10 +436,10 @@ test('every opened page shows a sign-in prompt with a return path instead of an 
   assert.match(join, /if \(signedOut\) \{[\s\S]*return;/, 'a signed-out join never posts');
 });
 
-test('the Personal Assistant daily hand card reads the shared hand without a credential', () => {
-  const load = between(ASSISTANT_PAGE, 'const loadDailyHand = async () => {', 'loadDailyHand();');
-  assert.match(load, /await fetch\('\/api\/training\/hand-of-the-day'/);
-  assert.doesNotMatch(load, /authedFetch|Authorization/);
+test('the Personal Assistant landing page navigates to internal routes without blocking unauthenticated visitors', () => {
+  const nav = between(ASSISTANT_PAGE, 'const openInternalRoute = useCallback((route) => {', '}, [haptic, router]);');
+  assert.match(nav, /router\.push\(route\)/);
+  assert.doesNotMatch(nav, /guardAction|Authorization/);
 });
 
 test('no source touched by this package contains emoji or .single()', () => {

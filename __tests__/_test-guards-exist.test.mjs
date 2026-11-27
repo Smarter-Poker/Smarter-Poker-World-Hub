@@ -85,6 +85,8 @@ import './phases-35-50-aeo.test.mjs';
  */
 import './club-arena-shell-cache.test.mjs';
 import './club-arena-mint-chips-live-rate.test.mjs';
+import './pa-sandbox-restored.test.mjs';
+import './pa-saved-hands-and-review.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
