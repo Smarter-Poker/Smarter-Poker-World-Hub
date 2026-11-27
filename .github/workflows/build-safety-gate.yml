@@ -247,6 +247,11 @@ jobs:
         # targeted "id" instead of (user_id, segment_type) / (user_id, rule_type).
         run: node --test __tests__/a-bankroll-upsert-names-its-natural-key.law.test.mjs
 
+      - name: Image Headers Use The One Painted Help Icon
+        # 2026-11-27 (Dan): every image header uses the Club Arena Cashier "?",
+        # tucked 3px inside the rim, and Back To Dashboard sits above the header.
+        run: node --test __tests__/image-header-help-icon.law.test.mjs
+
       - name: An API Error Names Its Route
         # 2026-11-26: 97 marketplace-health errors a day were logged as
         # route 'unknown' because reportApiError ignored a context's route.

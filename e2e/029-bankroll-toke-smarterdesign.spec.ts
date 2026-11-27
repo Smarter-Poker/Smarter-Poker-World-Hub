@@ -207,7 +207,9 @@ test('Bankroll dashboard owns its launcher, popup actions and contextual Add con
   await header.getByRole('button', { name: 'Help For Player Notes' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
-  await header.getByRole('link', { name: 'Back To Dashboard' }).click();
+  // Back To Dashboard sits above the image header, never inside it (Dan, 2026-11-27).
+  await expect(header.getByRole('link', { name: 'Back To Dashboard' })).toHaveCount(0);
+  await page.locator('[data-header-back]').click();
   await expect(nav.getByRole('button')).toHaveCount(14);
   await page.goto('/hub/bankroll-manager?view=obsolete-bookmark');
   await expect(nav.getByRole('button')).toHaveCount(14);
@@ -342,7 +344,9 @@ test('Bankroll entry screens open their own real form from the masthead', async 
   for (const [query, title, action, form] of cases) {
     await page.goto('/hub/bankroll-manager?' + query, { waitUntil: 'domcontentloaded' });
     const header = page.locator('.sd-masthead').filter({ has: page.getByRole('heading', { name: title, level: 1, exact: true }) });
-    await expect(header.getByRole('link', { name: 'Back To Dashboard' })).toBeVisible();
+    await expect(header.getByRole('link', { name: 'Back To Dashboard' })).toHaveCount(0);
+    await expect(page.locator('[data-header-stack] > .sd-header-back + header.sd-masthead')).toHaveCount(1);
+    await expect(page.locator('[data-header-back]')).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Bankroll Manager Sections' })).toHaveCount(0);
     await header.getByRole('button', { name: 'Add + · ' + action }).click();
     await expect(page.getByRole('heading', { name: form, exact: true })).toBeVisible();

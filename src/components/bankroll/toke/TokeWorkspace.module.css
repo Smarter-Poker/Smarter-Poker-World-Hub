@@ -8,9 +8,9 @@
 .shell { max-width: 970px; min-width: 0; margin-inline: auto; }
 .shell > * + * { margin-top: 14px; }
 .headerActions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-.parentLink, .back { display: inline-flex; align-items: center; gap: 6px; }
+.headerActions:empty { display:none; }
+.parentLink { display: inline-flex; align-items: center; gap: 6px; }
 .parentLink { min-height: 24px; color: #bbdfff; font-size: .89rem; font-weight: 650; text-decoration: none; }
-.back { font-size: .9rem; }
 .sectionNav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }
 .sectionNav a { display:grid; place-items:center; padding-inline:4px; font-size:clamp(13px,2.8vw,16px); }
 .destinations { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }

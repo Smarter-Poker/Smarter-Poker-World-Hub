@@ -3,7 +3,6 @@
  */
 
 import BankrollExportFormats from '../../../src/components/bankroll/BankrollExportFormats';
-import Link from 'next/link';
 import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import layout from '../../../styles/BankrollManager.module.css';
@@ -24,11 +23,8 @@ export default function BankrollExport() {
                 <div className={layout.export}>
                     <UniversalHeader pageDepth={2} />
                     <main className={`smarterdesign ${layout.exportContent}`}>
-                        <BankrollImageHeader title="Export Data" art="export" parent="Bankroll Manager" className={layout.mast}>
-                            <div className={layout.headerActions}>
-                                <Link href="/hub/bankroll-manager" className="sd-button">Back To Dashboard</Link>
-                            </div>
-                        </BankrollImageHeader>
+                        <BankrollImageHeader title="Export Data" art="export" parent="Bankroll Manager" className={layout.mast}
+                            back={{ href: '/hub/bankroll-manager' }} />
                         <div className="sd-panel">
                             <BankrollExportFormats />
                         </div>

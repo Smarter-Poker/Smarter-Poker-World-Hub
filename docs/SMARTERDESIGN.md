@@ -16,6 +16,18 @@ The Cashier header is the visual reference for every #SMARTERDESIGN page image h
 - Set the page name beside the icon in bold, solid white or silver type. Keep lettering live and selectable, with a uniform fill through the middle of each letter. Keep any existing meaningful club name above the title.
 - Transition the dark title area smoothly into a realistic scene on the right. Give each page its own icon, subject and composition. The vault belongs to Cashier. Carry the framing and typography across pages while choosing artwork that identifies each destination.
 - Anchor a working question-mark button in the upper-right corner. Give it a page-specific accessible name, visible keyboard focus and at least a 44px touch target. It opens that page’s help, FAQs or tutorial. Keep both the title and the help control clear when the title wraps or the artwork crops.
+- Never put Back To Dashboard, or any other return link, inside the image header. It sits directly above the header, left aligned. In World Hub pass it through `BankrollImageHeader`'s `back` prop, which renders the row above the frame.
+
+### The image-header question mark (standard, Dan 2026-11-27)
+
+Every image header uses the same painted chrome question mark as the Club Arena Cashier header, and never any other. That means no text "?", no CSS circle, no icon-font glyph and no per-page variant.
+
+- **Asset.** World Hub: `SD_HEADER_HELP_ICON` (`src/components/smarterdesign/headerHelp.js`, `/images/smarterdesign/header-help.webp`, derived from the full-size `public/images/header-help-v4.png`). Club Arena: `PageHelp` (`images/header-help-v4.png`). Both are the same art.
+- **Control.** Render it inside `.sd-header-help` from `styles/smarterdesign.css`: a 44px transparent touch target with the icon at 36px, a page-specific accessible name and a visible focus ring.
+- **Position.** Tuck it into the upper-right corner as close to the edges as it can sit without touching the frame. Place the icon's top and right edges 3px clear of the painted rim's inner edge. The rim is the opaque chrome, not the border-image box: `chrome-readout.webp` paints 9 of its 21px slice, so at 8px the chrome is 3.5px wide. The offset is arithmetic, not eyeballed: painted rim, minus the header's CSS border, plus 3px, minus the 4px between the icon and its touch target. A header with a different rim declares `--sd-help-rim` and/or `--sd-help-border`. The VIP frame's 6px border is the worked example.
+- **Clearance.** Reserve right padding on the header copy so a wrapped title never runs under the icon.
+
+`__tests__/image-header-help-icon.law.test.mjs` refuses a different icon, a text "?", a hand-placed offset and a return link inside the header.
 
 ![Cashier reference showing the circular chip emblem, title, vault scene and help button](../.agent/skills/smarterdesign/references/cashier-header.webp)
 
@@ -35,7 +47,7 @@ Allow long lists, ledgers and dialogs to scroll vertically. Keep amounts and act
 
 Apply the treatment to every control and display in a workflow, including the working form, its close button, selected filters, chart annotations, readouts and empty states. Use a clear, labeled close control with a 44px touch target. Center adjustment dialogs in the viewport and keep fields and dismissal reachable with the keyboard and on small screens.
 
-In Bankroll Manager, open the dashboard on a normal entry. Show the launcher there and place Jarvis Insights at the bottom. Each destination has a Back To Dashboard control. A header Add + opens the existing entry flow wherever the user can create records. Place contextual descriptions, FAQs and tutorials behind the upper-right question mark on the product header. Keep required field labels, form feedback and units visible.
+In Bankroll Manager, open the dashboard on a normal entry. Show the launcher there and place Jarvis Insights at the bottom. Each destination has a Back To Dashboard control directly above its image header, never inside it. A header Add + opens the existing entry flow wherever the user can create records. Place contextual descriptions, FAQs and tutorials behind the upper-right question mark on the product header. Keep required field labels, form feedback and units visible.
 
 Size each data table to the space inside its frame. For short statistics such as Position, Hands, VPIP and PFR, show the row label and every value together on first view. Let the content determine column widths, reduce unused cell padding and allow headings to wrap. For dense records on narrow screens, use a stacked layout that keeps each value paired with its heading. Preserve all fields, readable type, touch targets and the relationship between the row and its values. Reserve sideways scrolling for content whose meaning depends on a wider surface and genuinely cannot reflow.
 
