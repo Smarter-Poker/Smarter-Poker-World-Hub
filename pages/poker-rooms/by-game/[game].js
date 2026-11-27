@@ -18,6 +18,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -315,6 +316,15 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
 
         <HubPageSummary page="poker-rooms-international" path={canonicalPath} />
 
+        <div style={{ margin: '24px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={`poker-rooms-by-game-${gameVertical.slug}`}
+            title={`Track Live ${gameVertical.shortTitle} Tables, Waitlists & Alerts Free`}
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         <CitationBacklinkBox
           title={gameVertical.name}
           canonicalUrl={canonicalUrl}
@@ -361,9 +371,9 @@ const styles = {
   crumbSep: { color: '#475569' },
   crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -373,7 +383,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -383,7 +393,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -404,7 +414,7 @@ const styles = {
   ruleCallout: {
     background: '#070b14',
     border: '1px solid #38bdf8',
-    borderRadius: 10,
+    borderRadius: 0,
     padding: '16px 18px',
     marginBottom: 20,
   },
@@ -429,7 +439,7 @@ const styles = {
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   crossBtnCyan: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#38bdf8',
     color: '#04131d',
     fontWeight: 700,
@@ -438,7 +448,7 @@ const styles = {
   },
   crossBtnEmerald: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#10b981',
     color: '#04131d',
     fontWeight: 700,
@@ -447,26 +457,26 @@ const styles = {
   },
   crossBtnOutline: {
     padding: '9px 15px',
-    borderRadius: 8,
-    background: '#0f172a',
+    borderRadius: 0,
+    background: '#0d1f33',
     color: '#38bdf8',
-    border: '1px solid #334155',
+    border: '1px solid #2b4663',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   sectionPlate: {
-    background: '#0b1120',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px 22px',
     marginBottom: 24,
   },
   h2: { fontSize: 21, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px 0' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13.5 },
-  trHead: { borderBottom: '1px solid #1e293b', textAlign: 'left', color: '#38bdf8' },
+  trHead: { borderBottom: '1px solid #2b4663', textAlign: 'left', color: '#38bdf8' },
   th: { padding: '10px 12px', fontWeight: 700 },
-  trBody: { borderBottom: '1px solid #1e293b' },
+  trBody: { borderBottom: '1px solid #2b4663' },
   tdTitle: { padding: '11px 12px', fontWeight: 700, color: '#f8fafc' },
   td: { padding: '11px 12px', color: '#cbd5e1' },
   tdCyan: { padding: '11px 12px', color: '#38bdf8', fontWeight: 700 },
@@ -482,18 +492,18 @@ const styles = {
     flexDirection: 'column',
     gap: 4,
     padding: '14px 16px',
-    borderRadius: 10,
-    background: '#0f172a',
-    border: '1px solid #1e293b',
+    borderRadius: 0,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
     textDecoration: 'none',
   },
   peerCode: { fontSize: 12.5, fontWeight: 800, color: '#38bdf8' },
   peerName: { fontSize: 12.5, fontWeight: 600, color: '#cbd5e1' },
   faqList: { display: 'grid', gap: 14 },
   faqItem: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px 18px',
   },
   faqQ: { fontSize: 16, fontWeight: 700, color: '#f8fafc', margin: '0 0 6px 0' },

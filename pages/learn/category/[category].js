@@ -17,6 +17,7 @@ import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -248,6 +249,13 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
             secondaryHref={feature.toolHref}
           />
 
+          <SmarterAccountUnlockGate
+            variant={category === 'Preflop' ? 'solver-matrix' : 'study-deck'}
+            context={`learn-category-${categoryAnchor(category)}`}
+            title={`Unlock Full ${category} Study Deck, Solver Drills & Cheat Sheets Free`}
+            redirectPath={path}
+          />
+
           <FaqSection title={`${category} Poker Strategy Questions`} faqs={faqs} />
 
           <section style={styles.section}>
@@ -296,39 +304,39 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'linear-gradient(180deg, #0a0a12 0%, #050510 100%)',
-    color: '#e6ecf5',
+    background: 'linear-gradient(180deg, #0a1a2b 0%, #071321 100%)',
+    color: '#f2f7ff',
     fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif',
   },
   wrap: { maxWidth: 900, margin: '0 auto', padding: '40px 16px 64px' },
-  crumbs: { fontSize: 13, color: '#7f8ca3', margin: '0 0 16px', display: 'flex', gap: 8, flexWrap: 'wrap' },
-  crumbLink: { color: '#9fd8ff', textDecoration: 'none' },
-  crumbSep: { color: '#4b5568' },
+  crumbs: { fontSize: 13, color: '#bdd0e2', margin: '0 0 16px', display: 'flex', gap: 8, flexWrap: 'wrap' },
+  crumbLink: { color: '#86daff', textDecoration: 'none' },
+  crumbSep: { color: '#2b4663' },
   h1: {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 'clamp(26px, 4.5vw, 40px)',
     fontWeight: 700,
     lineHeight: 1.2,
-    color: '#ffffff',
+    color: '#f2f7ff',
     margin: '0 0 18px',
     letterSpacing: '0.5px',
   },
-  lead: { fontSize: 18, lineHeight: 1.7, color: '#dbe4f0', margin: '0 0 18px' },
+  lead: { fontSize: 18, lineHeight: 1.7, color: '#f2f7ff', margin: '0 0 18px' },
   section: { marginTop: 32 },
   h2: {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 'clamp(18px, 2.6vw, 22px)',
     fontWeight: 600,
-    color: '#ffffff',
+    color: '#f2f7ff',
     margin: '0 0 10px',
     letterSpacing: '0.5px',
   },
-  intro: { fontSize: 14, lineHeight: 1.6, color: '#9fb0c8', margin: '0 0 12px' },
+  intro: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: '0 0 12px' },
   list: { listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 },
   item: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    background: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px 16px 12px',
   },
   link: {
@@ -336,28 +344,29 @@ const styles = {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 15,
     fontWeight: 600,
-    color: '#00c6ff',
+    color: '#38bdf8',
     textDecoration: 'none',
     marginBottom: 6,
     letterSpacing: '0.5px',
   },
-  summary: { fontSize: 14, lineHeight: 1.55, color: '#b8c4d6' },
+  summary: { fontSize: 14, lineHeight: 1.55, color: '#bdd0e2' },
   cta: {
     marginTop: 32,
-    background: 'rgba(0, 198, 255, 0.06)',
-    border: '1px solid rgba(0, 198, 255, 0.25)',
-    borderRadius: 14,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px 18px 14px',
   },
   chips: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: 8 },
   chip: {
     display: 'inline-block',
     padding: '6px 12px',
-    borderRadius: 999,
-    border: '1px solid rgba(0, 198, 255, 0.25)',
-    color: '#9fd8ff',
+    borderRadius: 0,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    color: '#86daff',
     fontSize: 14,
     textDecoration: 'none',
   },
-  compliance: { fontSize: 12, lineHeight: 1.6, color: '#7f8ca3', margin: '32px 0 0' },
+  compliance: { fontSize: 12, lineHeight: 1.6, color: '#bdd0e2', margin: '32px 0 0' },
 };

@@ -406,6 +406,7 @@
 /* ── Progressive "Unlock / See More With A Free Account" Gate ───────── */
 .unlockBay {
   padding: 18px 20px;
+  scroll-margin-bottom: 180px;
 }
 
 .unlockHeader {
@@ -433,6 +434,7 @@
 
 .unlockPreviewWrap {
   position: relative;
+  max-width: 100%;
   margin: 14px 0 16px;
   border: 1px solid #2a4663;
   background: #040c16;
@@ -441,6 +443,7 @@
 
 .unlockPreviewTable {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -454,12 +457,14 @@
   text-transform: uppercase;
   border-bottom: 1px solid #233c56;
   background: #091829;
+  overflow-wrap: anywhere;
 }
 
 .unlockPreviewTable td {
   padding: 9px 12px;
   color: var(--sk-silver);
   border-bottom: 1px solid rgba(45, 76, 108, 0.45);
+  overflow-wrap: anywhere;
 }
 
 .unlockBlurred {
@@ -663,5 +668,18 @@
   .sheetDialog {
     max-width: 100%;
     padding: 18px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 560px) {
+  .unlockPreviewTable th:nth-child(n+4),
+  .unlockPreviewTable td:nth-child(n+4) {
+    display: none;
+  }
+
+  .unlockPreviewTable th,
+  .unlockPreviewTable td {
+    padding: 7px 8px;
+    font-size: 12px;
   }
 }

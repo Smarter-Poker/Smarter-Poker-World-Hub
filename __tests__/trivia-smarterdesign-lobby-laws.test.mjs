@@ -3,7 +3,7 @@
  *  - Zero forbidden yellow/gold/amber/purple/violet/lavender/pink/magenta color literals,
  *    zero legacy gold ink tokens, and zero text-transform: uppercase across all owned files.
  *  - <TriviaConsole> adopts .smarterdesign and maps legacy gold/warning inks safely to ice blue.
- *  - TriviaLobby: visible #SMARTERDESIGN masthead (<h1>), zero broken <img> tags, Free (cost === 0)
+ *  - TriviaLobby: visible #SMARTERDESIGN masthead (<h1>), approved custom artwork, Free (cost === 0)
  *    checked before VIP Free, zero showChargePopup double-modal, solo Continue Game recovery card
  *    respecting exact expiresAt, and >= 44px button touch targets.
  *  - Settings (/hub/trivia/settings): never calls applyGameSettings(cached) before an online
@@ -36,9 +36,11 @@ const TRACK1_OWNED_FILES = [
     'src/components/trivia/console/ResponsiveModeArt.jsx',
     'src/components/trivia/console/ResponsiveModeArt.module.css',
     'src/config/triviaModeRegistry.mjs',
+    'src/config/triviaLobbyPresentation.mjs',
     'src/lib/trivia/socialGrowthHelpers.mjs',
     'pages/hub/trivia/index.js',
     'src/components/trivia/TriviaLobby.jsx',
+    'src/components/trivia/TriviaLobby.module.css',
     'src/components/trivia/competitive/CompetitiveLobbyBriefing.jsx',
     'src/components/trivia/competitive/CompetitiveLobbyBriefing.module.css',
     'src/components/trivia/StreakFreezeWidget.jsx',
@@ -92,14 +94,14 @@ test('SMARTERDESIGN Track 1: TriviaConsole adopts .smarterdesign, maps legacy go
     assert.match(consoleCss, /min-height:\s*44px/);
 });
 
-test('SMARTERDESIGN Track 1: TriviaLobby has visible masthead <h1>, zero <img> tags, Free before VIP Free, zero showChargePopup, and solo Continue Game CTA', () => {
+test('SMARTERDESIGN Track 1: TriviaLobby has a visible masthead, Free before VIP Free, no duplicate charge modal, and solo Continue Game CTA', () => {
     const lobby = read('src/components/trivia/TriviaLobby.jsx');
+    const lobbyCss = read('src/components/trivia/TriviaLobby.module.css');
     const indexPage = read('pages/hub/trivia/index.js');
 
-    assert.match(lobby, /<header className="sd-masthead lobby-masthead">/);
-    assert.match(lobby, /<h1 className="lobby-masthead__title">Poker Trivia<\/h1>/);
+    assert.match(lobby, /<header\b[^>]*lobby-masthead[^>]*>/);
+    assert.match(lobby, /<h1\b[^>]*lobby-masthead__title[^>]*>Poker Trivia<\/h1>/);
     assert.doesNotMatch(indexPage, /<h1 className="sr-only">/);
-    assert.doesNotMatch(lobby, /<img\b/, 'Lobby must render zero broken raster <img> tags');
     assert.doesNotMatch(lobby, /showChargePopup/, 'Lobby must not render double-modal showChargePopup');
 
     // Free (cost === 0) MUST be checked before isVip
@@ -113,7 +115,7 @@ test('SMARTERDESIGN Track 1: TriviaLobby has visible masthead <h1>, zero <img> t
     assert.match(lobby, /readSoloRunRecovery/);
     assert.match(lobby, /record\.expiresAt && Date\.parse\(record\.expiresAt\) <= now/);
     assert.match(lobby, /Continue Game/);
-    assert.match(lobby, /min-height:\s*44px/);
+    assert.match(lobbyCss, /min-height:\s*44px/);
 });
 
 test('SMARTERDESIGN Track 1: Settings does not overwrite localStorage with cached defaults before online cloud read settles', () => {

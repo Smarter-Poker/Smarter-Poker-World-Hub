@@ -32,6 +32,7 @@ import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUt
 import { fetchJsonWithDeadline } from '../../src/lib/server/fetchJsonWithDeadline';
 import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import useAccessibleDialog from '../../src/hooks/useAccessibleDialog';
 
 // AEO phase 3 (2026-09-17): this page had copy and no structured data.
@@ -1262,6 +1263,13 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
               )}
             </PokerNearMePanelShell>
           )}
+        </div>
+        <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context="events-calendar"
+            redirectPath="/hub/events-calendar"
+          />
         </div>
         <FaqSection faqs={EVENTS_CALENDAR_FAQS} />
       </main>

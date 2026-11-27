@@ -201,11 +201,26 @@ const APPROVED_RGB = new Set([
     '4 13 24', '10 24 41', '242 247 255', '189 208 226', '134 218 255', '68 94 119', '158 227 255', '74 222 128', '34 197 94', '239 68 68', '25 129 236',
 ]);
 
-function colourViolations(text) {
+// The November 27 approved gallery has its own chrome and cobalt palette.
+// Keep this allowance scoped to its CSS module; other Trivia surfaces retain
+// the existing master palette and the global forbidden-hue law still applies.
+const APPROVED_LOBBY = new Set([
+    '#000', '#000a', '#0026b9', '#0067ff4d', '#007bff', '#010305', '#01030508', '#010305b8',
+    '#010508', '#01060a', '#020506', '#02070deb', '#03080c', '#0445ec', '#05070a', '#050b10',
+    '#060c12', '#07141e', '#0867ff', '#10161b', '#101920', '#103148', '#111d23', '#121a20',
+    '#142431', '#151c21', '#172329', '#18baff', '#19242b', '#1bbcff10', '#283038', '#2b3740',
+    '#2cbbff', '#2e414d', '#2eabff', '#40cdffb3', '#4b6574', '#697780', '#727d84', '#77848d',
+    '#78848c', '#789eb0', '#8bb8ca', '#8be6ff', '#91cde8', '#a3dfff26', '#a5b9c4', '#a5efff',
+    '#a6daef', '#bbeaff', '#c9edfc', '#d4e6ee', '#d5e6ee38', '#d7f1ff', '#d8e5ed', '#d9e3eb',
+    '#d9eaf1', '#dce9ee', '#dce9f1', '#e0e8ed', '#e2e9ee', '#e2f6ff61', '#e5f5ff30', '#e6f6ff',
+    '#e8f0f4', '#ebf4fa78', '#f3f8fa', '#f3f8fb', '#f5f8fb', '#f6fcff', '#fff',
+]);
+
+function colourViolations(text, approvedHex = APPROVED) {
     const bad = [];
     for (const m of text.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
         const hex = m[0].toLowerCase();
-        if (!APPROVED.has(hex)) bad.push(hex);
+        if (!approvedHex.has(hex)) bad.push(hex);
     }
     for (const m of text.matchAll(/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/g)) {
         const triple = `${m[1]} ${m[2]} ${m[3]}`;
@@ -216,13 +231,14 @@ function colourViolations(text) {
 
 const stripCssComments = css => css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-test('every Trivia stylesheet uses the master inks only and never hover', () => {
+test('every Trivia stylesheet uses its approved palette and never hover', () => {
     for (const rel of [...TRIVIA_CSS, ...SOURCES.filter(r => r.endsWith('.js') || r.endsWith('.jsx'))]) {
         const css = cssOf(rel);
         if (!css) continue;
         // A comment that says "no :hover" is documentation, not a rule.
         assert.doesNotMatch(stripCssComments(css), /:hover/, `${rel} must not style :hover`);
-        assert.deepEqual(colourViolations(stripCssComments(css)), [], `${rel} must use schema colours only`);
+        const approvedHex = rel === 'src/components/trivia/TriviaLobby.module.css' ? APPROVED_LOBBY : APPROVED;
+        assert.deepEqual(colourViolations(stripCssComments(css), approvedHex), [], `${rel} must use its approved colours only`);
     }
     // The legacy world sheet keeps tokens the site chrome reads, but it may
     // not bring hover back to a Trivia surface either.

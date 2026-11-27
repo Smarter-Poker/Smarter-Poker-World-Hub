@@ -20,6 +20,8 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import {
   GLOSSARY_TERMS,
   GLOSSARY_URL,
@@ -96,7 +98,25 @@ export default function GlossaryIndexPage() {
             <span>Poker Glossary</span>
           </nav>
 
-          <h1 style={styles.h1}>Poker Glossary</h1>
+          <div style={{ marginBottom: 20 }}>
+            <SmarterSeoMasthead
+              vertical="glossary"
+              eyebrow="Smarter.Poker Canonical Terminology"
+              title="Poker Glossary"
+              lead={`${GLOSSARY_TERMS.length} Poker Terms Defined In Plain Language, From Private Club Operations And Live Rooms To GTO Solver Math.`}
+              stats={[
+                { label: 'Defined Terms', value: `${GLOSSARY_TERMS.length} Terms` },
+                { label: 'Starting Hands', value: '169 Guides' },
+                { label: 'Free Tools', value: '52 Calcs' },
+                { label: 'Account Tier', value: '100% Free' },
+              ]}
+              redirectPath="/glossary"
+              unlockKey="masthead-glossary"
+              primaryCtaLabel="Create Free Account"
+              secondaryHref="/learn"
+              secondaryLabel="Strategy Library"
+            />
+          </div>
 
           <p style={styles.lead}>
             {GLOSSARY_TERMS.length} Poker Terms Defined In Plain Language, From Private Club Poker And Live Room
@@ -161,6 +181,14 @@ export default function GlossaryIndexPage() {
             slug="smarter-poker-glossary-index"
           />
 
+          <div style={{ margin: '28px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="study-deck"
+              context="glossary-index"
+              redirectPath="/glossary"
+            />
+          </div>
+
           <AiPromptLauncher
             title="Smarter.Poker Official Poker & GTO Strategy Glossary"
             canonicalUrl="https://smarter.poker/glossary"
@@ -209,7 +237,7 @@ const styles = {
   jumpLink: {
     display: 'inline-block',
     padding: '6px 12px',
-    borderRadius: 999,
+    borderRadius: 0,
     border: '1px solid rgba(0, 198, 255, 0.25)',
     color: '#9fd8ff',
     fontSize: 13,
@@ -220,7 +248,7 @@ const styles = {
   item: {
     background: 'rgba(255, 255, 255, 0.04)',
     border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    borderRadius: 0,
     padding: '14px 16px 12px',
   },
   link: {

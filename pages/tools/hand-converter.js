@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -605,6 +606,16 @@ export default function HandConverterPage() {
             </div>
           </div>
         </section>
+
+        {!isEmbed && (
+          <div style={{ marginBottom: 32 }}>
+            <SmarterAccountUnlockGate
+              variant="calculator-pro"
+              context="tools-hand-converter"
+              redirectPath={canonicalPath}
+            />
+          </div>
+        )}
 
         {/* Cross-Links */}
         <section style={{ marginBottom: 32, padding: 20, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>

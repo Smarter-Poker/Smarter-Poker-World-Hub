@@ -15,6 +15,7 @@ import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../src/compone
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { normalizeJsonLdGraph } from '../../src/components/seo/SEOHead';
 import { datasetSchema, faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import { serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
@@ -58,9 +59,9 @@ function safeHref(url) {
 
 // ─── Tour Colors (matching TourCard.js) ───
 const TOUR_COLORS = {
-    'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227', fill: '#c9a227' },
+    'WSOP': { bg: 'linear-gradient(135deg, #38bdf8, #8b6914)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
     'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626', fill: '#dc2626' },
-    'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227', fill: '#c9a227' },
+    'WSOPC': { bg: 'linear-gradient(135deg, #38bdf8, #8b6914)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
     'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6', fill: '#3b82f6' },
     'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981', fill: '#10b981' },
     'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6', fill: '#8b5cf6' },
@@ -76,11 +77,11 @@ const TOUR_COLORS = {
 };
 
 const TOUR_TYPE_INFO = {
-    major: { label: 'Major Tour', color: '#c9a227' },
+    major: { label: 'Major Tour', color: '#38bdf8' },
     circuit: { label: 'Circuit', color: '#3b82f6' },
     high_roller: { label: 'High Roller', color: '#8b5cf6' },
     regional: { label: 'Regional', color: '#10b981' },
-    grassroots: { label: 'Grassroots', color: '#f59e0b' },
+    grassroots: { label: 'Grassroots', color: '#38bdf8' },
     charity: { label: 'Charity', color: '#ec4899' },
 };
 
@@ -1085,6 +1086,13 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             </section>
                         )}
 
+                        <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+                            <SmarterAccountUnlockGate
+                                variant="live-venue-intel"
+                                context="hub-poker-tours"
+                                redirectPath="/hub/poker-tours"
+                            />
+                        </div>
                         <FaqSection faqs={POKER_TOURS_FAQS} />
                         <HubPageSummary page="poker-tours" />
                     </main>

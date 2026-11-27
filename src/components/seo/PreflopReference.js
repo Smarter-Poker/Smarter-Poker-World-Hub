@@ -142,9 +142,9 @@ const styles = {
     letterSpacing: '0.4px',
   },
   block: {
-    border: '1px solid rgba(0, 198, 255, 0.14)',
-    background: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
+    border: '1px solid #2b4663',
+    background: '#0d1f33',
+    borderRadius: 0,
     padding: '13px 15px',
     margin: '0 0 10px',
   },

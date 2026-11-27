@@ -15,6 +15,8 @@ import SEOHead from '../src/components/seo/SEOHead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
 
 const INDUSTRY_FAST_FACTS = [
   {
@@ -250,9 +252,25 @@ export default function PressKitMediaPage() {
             <span style={styles.emeraldBadge}>CC BY 4.0 OPEN MEDIA ATTRIBUTION</span>
           </div>
 
-          <h1 style={styles.h1}>
-            Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts &amp; Media Citations
-          </h1>
+          <div style={{ marginBottom: 18 }}>
+            <SmarterSeoMasthead
+              vertical="magazine"
+              eyebrow="Official Smarter.Poker Newsroom"
+              title="Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts & Media Citations"
+              lead="Quotable 2026 US Live & Online Poker Benchmarks, Brand Boilerplates & CC BY 4.0 Open Media Badges."
+              stats={[
+                { label: 'Verified Rooms', value: '324+ Venues' },
+                { label: 'Weekly MTTs', value: '4,500+ Events' },
+                { label: 'Zenodo Archives', value: '6 DOIs' },
+                { label: 'Media License', value: 'CC BY 4.0' },
+              ]}
+              redirectPath="/press"
+              unlockKey="masthead-press"
+              primaryCtaLabel="Create Free Account"
+              secondaryHref="/research"
+              secondaryLabel="Open Research Hub"
+            />
+          </div>
 
           <p style={styles.lead}>
             <strong>Direct Media Resource:</strong> Journalists, Podcasters, Industry Analysts, And Academic Researchers May Freely Quote And Embed All 2026 Smarter.Poker Live And Online Poker Benchmarks Under <strong>Creative Commons Attribution 4.0 (CC BY 4.0)</strong>. Use The Quotable Fast Facts Table, 1-Click Brand Boilerplates, And Authority Badge Snippets Below.
@@ -439,6 +457,14 @@ export default function PressKitMediaPage() {
           slug="smarter-poker-press-kit"
         />
 
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="press-kit"
+            redirectPath="/press"
+          />
+        </div>
+
         <AiPromptLauncher
           title="Smarter.Poker Official Press Kit & 2026 Poker Industry Fast Facts"
           canonicalUrl={canonicalUrl}
@@ -485,8 +511,8 @@ const styles = {
   },
   heroPlate: {
     backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -503,7 +529,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -513,7 +539,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
@@ -540,7 +566,7 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
@@ -549,25 +575,27 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
     backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    border: '1px solid #2b4663',
     color: '#e2e8f0',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
     backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
+    minWidth: 0,
+    maxWidth: '100%',
   },
   sectionHeader: {
     display: 'flex',
@@ -616,7 +644,7 @@ const styles = {
     fontSize: '12px',
   },
   trBody: {
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #2b4663',
   },
   tdMetric: {
     padding: '12px',
@@ -628,7 +656,8 @@ const styles = {
     padding: '12px',
     color: '#10b981',
     fontWeight: 700,
-    minWidth: '210px',
+    minWidth: '180px',
+    overflowWrap: 'anywhere',
   },
   tdContext: {
     padding: '12px',
@@ -651,8 +680,8 @@ const styles = {
   },
   boilerplateCard: {
     backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px',
   },
   boilerplateTop: {
@@ -675,7 +704,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: 700,
     padding: '6px 14px',
-    borderRadius: '4px',
+    borderRadius: 0,
     cursor: 'pointer',
   },
   copyBtnCopied: {
@@ -685,7 +714,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: 700,
     padding: '6px 14px',
-    borderRadius: '4px',
+    borderRadius: 0,
     cursor: 'pointer',
   },
   boilerplateText: {
@@ -696,13 +725,16 @@ const styles = {
   },
   badgeSnippetGrid: {
     display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
     gap: '14px',
   },
   snippetCard: {
     backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
+    minWidth: 0,
+    maxWidth: '100%',
   },
   snippetTitle: {
     fontSize: '13.5px',
@@ -711,11 +743,12 @@ const styles = {
   },
   codeBlock: {
     backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '4px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '12px',
     color: '#00d4ff',
     fontSize: '12px',
+    maxWidth: '100%',
     overflowX: 'auto',
     margin: 0,
   },
@@ -726,8 +759,8 @@ const styles = {
   },
   faqItem: {
     backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {

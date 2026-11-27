@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   SERIES_GUIDES,
@@ -53,7 +54,7 @@ export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
   const icsFeedPath = `/api/seo/series-calendar?slug=${encodeURIComponent(guide.slug)}`;
   const webcalFeedUrl = `webcal://smarter.poker/api/seo/series-calendar?slug=${encodeURIComponent(guide.slug)}`;
   const googleCalTemplateUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${guide.name} (${guide.cityState})`)}&details=${encodeURIComponent(`${guide.name} At ${guide.hostVenue}. Buy-Ins: ${guide.buyInRange} (Main Event: ${guide.mainEventBuyIn}). Full Structure & Strategy Guide: ${canonicalUrl}`)}&location=${encodeURIComponent(`${guide.hostVenue}, ${guide.cityState}`)}`;
-  const seriesTableHtml = `<div style="padding:14px;background:#070b14;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#38bdf8;margin-bottom:6px;">${guide.name} (${guide.cityState}) - Structure &amp; Schedule</div><p style="margin:0 0 8px 0;font-size:12.5px;color:#cbd5e1;">Venue: ${guide.hostVenue} | Window: ${guide.typicalMonths} | Buy-Ins: ${guide.buyInRange} | Main Event: ${guide.mainEventBuyIn}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#34d399;text-decoration:none;">View Full ${guide.shortName} Schedule, Late-Reg EV &amp; Bankroll Guide At Smarter.Poker</a></div>`;
+  const seriesTableHtml = `<div style="padding:14px;background:#071321;border:1px solid #2b4663;border-radius:0;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#38bdf8;margin-bottom:6px;">${guide.name} (${guide.cityState}) - Structure &amp; Schedule</div><p style="margin:0 0 8px 0;font-size:12.5px;color:#cbd5e1;">Venue: ${guide.hostVenue} | Window: ${guide.typicalMonths} | Buy-Ins: ${guide.buyInRange} | Main Event: ${guide.mainEventBuyIn}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#34d399;text-decoration:none;">View Full ${guide.shortName} Schedule, Late-Reg EV &amp; Bankroll Guide At Smarter.Poker</a></div>`;
 
   const handleCopySeriesWidget = async () => {
     try {
@@ -318,6 +319,15 @@ export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
           </div>
         </section>
 
+        <div style={{ margin: '24px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={`poker-series-guide-${guide.slug}`}
+            title={`Save ${guide.shortName} Event Schedules, Alerts & Bankroll Logs Free`}
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         <CitationBacklinkBox
           title={`${guide.name} Strategy & Structure Guide`}
           canonicalUrl={canonicalUrl}
@@ -344,7 +354,7 @@ export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     color: '#e2e8f0',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
@@ -375,9 +385,9 @@ const styles = {
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -394,7 +404,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -404,7 +414,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
@@ -427,9 +437,9 @@ const styles = {
     marginBottom: '22px',
   },
   kpiBox: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px 16px',
   },
   kpiLabel: {
@@ -462,7 +472,7 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
@@ -471,23 +481,23 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
     color: '#e2e8f0',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
   },
@@ -503,7 +513,7 @@ const styles = {
     fontSize: '13.5px',
   },
   trHead: {
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     borderBottom: '2px solid #00d4ff',
     textAlign: 'left',
   },
@@ -514,7 +524,7 @@ const styles = {
     fontSize: '12px',
   },
   trBody: {
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #2b4663',
   },
   tdEvent: {
     padding: '12px',
@@ -544,9 +554,9 @@ const styles = {
     marginTop: '14px',
   },
   strategyCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px',
   },
   cardBadgeCyan: {
@@ -599,9 +609,9 @@ const styles = {
     marginTop: '14px',
   },
   peerCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px',
     textDecoration: 'none',
     display: 'flex',
@@ -628,9 +638,9 @@ const styles = {
     marginTop: '14px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {

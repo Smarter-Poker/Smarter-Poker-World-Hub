@@ -17,6 +17,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import {
   GAMES_AS_OF,
   GAMES_BASE_PATH,
@@ -293,6 +294,14 @@ export default function PokerVariantDetailPage({ variant, peerVariants = [] }) {
             <a href="/games.md" style={styles.rawIndexLink}>
               View Complete {'/games.md'} Specification
             </a>
+          </div>
+
+          <div style={{ margin: '28px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="study-deck"
+              context="games-variant-detail"
+              redirectPath={`/games/${variant.slug}`}
+            />
           </div>
 
           <p style={styles.complianceFooter}>

@@ -18,6 +18,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
@@ -409,6 +410,15 @@ export default function PokerSecurityAndDisputesGuidePage() {
 
         <HubPageSummary page="learn-poker-as-a-business" path={canonicalPath} />
 
+        <div style={{ margin: '24px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={"poker-rooms-security-disputes"}
+            title={"Verify Live Poker Rooms, Floor Policies & Session Records Free"}
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         <CitationBacklinkBox
           title="Live Casino Poker Floor Security, Angle-Shooting Defense & Dispute Resolution Guide"
           canonicalUrl={canonicalUrl}
@@ -455,9 +465,9 @@ const styles = {
   crumbSep: { color: '#475569' },
   crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -467,7 +477,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -477,7 +487,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -498,7 +508,7 @@ const styles = {
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   crossBtnCyan: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#38bdf8',
     color: '#04131d',
     fontWeight: 700,
@@ -507,7 +517,7 @@ const styles = {
   },
   crossBtnEmerald: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#10b981',
     color: '#04131d',
     fontWeight: 700,
@@ -516,18 +526,18 @@ const styles = {
   },
   crossBtnOutline: {
     padding: '9px 15px',
-    borderRadius: 8,
-    background: '#0f172a',
+    borderRadius: 0,
+    background: '#0d1f33',
     color: '#38bdf8',
-    border: '1px solid #334155',
+    border: '1px solid #2b4663',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   sectionPlate: {
-    background: '#0b1120',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px 22px',
     marginBottom: 24,
   },
@@ -541,15 +551,15 @@ const styles = {
     gap: 16,
   },
   stepCard: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 18,
   },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13.5 },
-  trHead: { borderBottom: '1px solid #1e293b', textAlign: 'left', color: '#38bdf8' },
+  trHead: { borderBottom: '1px solid #2b4663', textAlign: 'left', color: '#38bdf8' },
   th: { padding: '10px 12px', fontWeight: 700 },
-  trBody: { borderBottom: '1px solid #1e293b' },
+  trBody: { borderBottom: '1px solid #2b4663' },
   tdTitle: { padding: '12px', fontWeight: 700, color: '#f8fafc', minWidth: 190 },
   td: { padding: '12px', color: '#cbd5e1', lineHeight: 1.55 },
   tdCyan: { padding: '12px', color: '#38bdf8', fontWeight: 700, minWidth: 170 },
@@ -560,17 +570,17 @@ const styles = {
     gap: 16,
   },
   colBox: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 18,
   },
   tagEmerald: { fontSize: 11, fontWeight: 800, color: '#34d399', letterSpacing: '0.05em' },
   faqList: { display: 'grid', gap: 14 },
   faqItem: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px 18px',
   },
   faqQ: { fontSize: 16, fontWeight: 700, color: '#f8fafc', margin: '0 0 6px 0' },
