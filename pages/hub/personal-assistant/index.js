@@ -678,6 +678,7 @@ export default function PersonalAssistantPage() {
           <a className={styles.activeTab} href="#overview" aria-current="page" onClick={() => haptic('light')}>Overview</a>
           <Link
             href={dueCount > 0 ? '/hub/personal-assistant/leaks?tab=leaks' : '/hub/personal-assistant/leaks'}
+            prefetch={false}
             onClick={(event) => {
               event.preventDefault();
               openGuardedRoute(dueCount > 0 ? '/hub/personal-assistant/leaks?tab=leaks' : '/hub/personal-assistant/leaks');
@@ -688,6 +689,7 @@ export default function PersonalAssistantPage() {
           </Link>
           <Link
             href="/hub/training"
+            prefetch={false}
             onClick={(event) => {
               event.preventDefault();
               openGuardedRoute('/hub/training');
@@ -777,6 +779,7 @@ export default function PersonalAssistantPage() {
                 {Array.isArray(trainingPlan?.modules) && trainingPlan.modules.length > 0 && (
                   <Link
                     href="/hub/personal-assistant/leaks?tab=plan"
+                    prefetch={false}
                     className={styles.quietSecondaryLink}
                     onClick={(event) => {
                       event.preventDefault();
