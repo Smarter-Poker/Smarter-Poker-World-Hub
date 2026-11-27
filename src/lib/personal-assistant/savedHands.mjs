@@ -923,6 +923,7 @@ export function encodeSavedHandsCursor({ createdAt, id }) {
 export function decodeSavedHandsCursor(raw) {
   const value = String(raw || '').trim();
   if (!value) return null;
+  if (value.length > 2048) return { error: 'Invalid Cursor Parameter' };
 
   // Support raw ISO timestamp cursors directly.
   if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
@@ -945,6 +946,7 @@ export function decodeSavedHandsCursor(raw) {
       return { error: 'Invalid Cursor Parameter' };
     }
     const id = typeof parsed.id === 'string' && parsed.id.trim() ? parsed.id.trim() : null;
+    if (id && id.length > 128) return { error: 'Invalid Cursor Parameter' };
     return { createdAt, id, ms };
   } catch (_) {
     return { error: 'Invalid Cursor Parameter' };
@@ -955,15 +957,21 @@ export function rowEffectiveTimestamp(row) {
   return row?.created_at || row?.completed_at || row?.started_at || null;
 }
 
-function rowTimestampMs(row) {
-  const raw = rowEffectiveTimestamp(row) || '';
-  const ms = Date.parse(String(raw));
-  return Number.isNaN(ms) ? 0 : ms;
+function timestampNanos(value) {
+  const text = String(value || '');
+  const ms = Date.parse(text);
+  if (Number.isNaN(ms)) return 0n;
+  const fractional = text.match(/\.(\d+)(?:Z|[+-]\d{2}:?\d{2})$/i)?.[1] || '';
+  const submillisecond = fractional.slice(3, 9).padEnd(6, '0');
+  return BigInt(ms) * 1_000_000n + BigInt(submillisecond || '0');
 }
 
 export function compareSavedHandRowsDesc(a, b) {
-  const diff = rowTimestampMs(b) - rowTimestampMs(a);
-  if (diff !== 0) return diff;
+  // Postgres preserves microseconds. Rounding to JS milliseconds before the
+  // merge would misorder rows and skip them at the database keyset boundary.
+  const aTime = timestampNanos(rowEffectiveTimestamp(a));
+  const bTime = timestampNanos(rowEffectiveTimestamp(b));
+  if (aTime !== bTime) return aTime > bTime ? -1 : 1;
   const idA = String(a?.id || '');
   const idB = String(b?.id || '');
   if (idB > idA) return 1;
@@ -973,9 +981,10 @@ export function compareSavedHandRowsDesc(a, b) {
 
 export function isRowAfterCursor(row, cursor) {
   if (!cursor) return true;
-  const rowMs = rowTimestampMs(row);
-  if (rowMs < cursor.ms) return true;
-  if (rowMs > cursor.ms) return false;
+  const rowTime = timestampNanos(rowEffectiveTimestamp(row));
+  const cursorTime = timestampNanos(cursor.createdAt);
+  if (rowTime < cursorTime) return true;
+  if (rowTime > cursorTime) return false;
   // Raw ISO timestamp cursors carry no tie-breaker ID; include equal-millisecond
   // siblings rather than silently dropping rows that share the same timestamp.
   if (!cursor.id) return true;
@@ -996,21 +1005,35 @@ export function inferSavedHandFormat(row) {
   return 'cash';
 }
 
+function identifiedHeroPlayerForRow(row) {
+  const handData = row?.hand_data && typeof row.hand_data === 'object' ? row.hand_data : {};
+  const players = Array.isArray(handData.players) ? handData.players : [];
+  const explicitHero = players.find(player => player?.isHero === true);
+  if (explicitHero) return explicitHero;
+  let ownerId = typeof row?.user_id === 'string' ? row.user_id.trim() : '';
+  // Historical AI-Scan rows store the owner in player_ids and on the player,
+  // while their list projection omits user_id. That identity, not seat order,
+  // identifies the hero even when the old row has no isHero flag.
+  if (!ownerId && row?.table_id === SAVED_HAND_TABLE_ID && handData.source === 'ai-scan'
+    && Array.isArray(row?.player_ids) && row.player_ids.length === 1 && isValidUuid(row.player_ids[0])) {
+    ownerId = row.player_ids[0].trim();
+  }
+  return ownerId ? players.find(player => playerIdOf(player) === ownerId) || null : null;
+}
+
 function extractHeroCardsForRow(row) {
   const handData = row?.hand_data && typeof row.hand_data === 'object' ? row.hand_data : {};
   if (Array.isArray(handData.heroCards) && handData.heroCards.length > 0) {
     return normalizeBoardCodes(handData.heroCards);
   }
-  const players = Array.isArray(handData.players) ? handData.players : [];
-  const hero = players.find((p) => p?.isHero) || players[0];
+  const hero = identifiedHeroPlayerForRow(row);
   return hero?.holeCards ? normalizeBoardCodes(hero.holeCards) : [];
 }
 
 function extractHeroPositionForRow(row) {
   const handData = row?.hand_data && typeof row.hand_data === 'object' ? row.hand_data : {};
   if (handData.heroPosition) return String(handData.heroPosition).trim().toUpperCase();
-  const players = Array.isArray(handData.players) ? handData.players : [];
-  const hero = players.find((p) => p?.isHero);
+  const hero = identifiedHeroPlayerForRow(row);
   return hero?.position ? String(hero.position).trim().toUpperCase() : null;
 }
 
@@ -1226,10 +1249,10 @@ export function rankSuggestedHands(
 /**
  * Strip any hidden opponent hole cards from a saved hand's players array (defense in depth).
  */
-function sanitizePlayersForExport(players) {
+function sanitizePlayersForExport(players, heroPlayer) {
   if (!Array.isArray(players)) return [];
   return players.map((p) => {
-    const isHero = Boolean(p?.isHero);
+    const isHero = heroPlayer !== null && p === heroPlayer;
     const canShow = isHero || (p?.showedCards === true && p?.cardsVisibility === 'shown' && !p?.folded && !p?.mucked);
     return {
       seatIndex: p?.seatIndex ?? null,
@@ -1285,7 +1308,7 @@ export function formatSavedHandForExport(row) {
     heroNet: finiteNumber(handData.heroNet, 0),
     board: primaryBoard,
     boards,
-    players: sanitizePlayersForExport(handData.players),
+    players: sanitizePlayersForExport(handData.players, identifiedHeroPlayerForRow(row)),
     streets: Array.isArray(handData.streets) ? handData.streets : [],
     winners: Array.isArray(handData.winners) ? handData.winners : [],
     winnersByBoard: Array.isArray(handData.winnersByBoard) ? handData.winnersByBoard : [],

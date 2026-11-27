@@ -837,6 +837,13 @@ test('[P1-5] audit-hand-history.js never fabricates hero/board cards or flop str
   try {
     let parsedHandsFixture = [];
     const auditHhMod = compileRoute('pages/api/training/audit-hand-history.js', {
+      '../../../src/lib/personal-assistant/importedSavedHands.mjs': {
+        persistImportedSavedHands: async (_db, { userId, hands, evidenceScope }) => {
+          assert.equal(userId, USER_ID);
+          assert.equal(evidenceScope, 'external_upload');
+          return { saved: true, count: hands.length, handIds: hands.map(hand => `saved-${hand.id}`) };
+        },
+      },
       '../../../src/lib/serverAuth.js': {
         getServerUserWithFallback: async () => ({ user: { id: USER_ID }, error: null, status: 200 }),
       },

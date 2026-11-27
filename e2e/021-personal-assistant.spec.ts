@@ -143,12 +143,14 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     });
   });
 
-  test('strategy hub exposes both systems without layout regression', async ({ page }) => {
+  test('approved landing exposes its illustrated internal destinations without layout regression', async ({ page }) => {
     const response = await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.getByRole('heading', { name: /Meet Jarvis/i })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Scenario Analysis Archive', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Leak Finder', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Review My Play', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Virtual Sandbox', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'My Leaks', exact: true })).toBeVisible();
+    await expect(page.locator('main').getByRole('button', { name: /^Log A Hand/ })).toBeVisible();
+    await expect(page.locator('main').getByRole('link', { name: /^My Coaching Plan/ })).toBeVisible();
     await expectHealthyLayout(page);
   });
 
@@ -195,63 +197,57 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     });
   });
 
-  test('legacy shared hand-offs cannot reopen approximate Sandbox analysis', async ({ page }) => {
+  test('legacy shared hand-offs open the native ungraded workspace without retired analysis', async ({ page }) => {
     await page.goto('/hub/personal-assistant/sandbox?loadShared=true', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Verified Evidence Required' })).toBeVisible();
-    await expect(page.getByText('Approximate Analysis Retired')).toBeVisible();
-    await expect(page.locator('#sandbox-table')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Virtual Sandbox', exact: true })).toBeVisible();
+    await expect(page.locator('[data-training-authority="authored-sandbox-ungraded"]')).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Poker Table', exact: true })).toBeVisible();
+    await expect(page.locator('#run-analysis')).toHaveCount(0);
   });
 
-  test('strategy hub keeps its primary command fully inside the mobile hero bay', async ({ page }, testInfo) => {
-    test.skip(!testInfo.project.name.includes('mobile'), 'mobile project only');
+  test('approved landing keeps Start Review fully inside its hero bay', async ({ page }) => {
     await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
-    const command = page.getByRole('button', { name: 'Open Verified Training' }).first();
+    const command = page.locator('main').getByRole('link', { name: 'Start Review', exact: true });
     const hero = page.locator('section').filter({ has: command }).first();
     await expect(command).toBeVisible();
     const [commandBox, heroBox] = await Promise.all([command.boundingBox(), hero.boundingBox()]);
     expect(commandBox).not.toBeNull();
     expect(heroBox).not.toBeNull();
     expect(commandBox!.y + commandBox!.height).toBeLessThanOrEqual(heroBox!.y + heroBox!.height - 8);
-    const viewportHeight = await page.evaluate(() => window.innerHeight);
-    expect(commandBox!.y + commandBox!.height).toBeLessThanOrEqual(viewportHeight - 72);
+    expect(commandBox!.width).toBeGreaterThanOrEqual(44);
+    expect(commandBox!.height).toBeGreaterThanOrEqual(44);
     await expectHealthyLayout(page);
   });
 
-  test('strategy hub renders the live question-shaped Hand Of The Day payload', async ({ page }) => {
-    await page.route('**/api/training/hand-of-the-day', route => route.fulfill({
+  test('approved landing renders owner queue counts and the current coaching focus', async ({ page }) => {
+    await page.route('**/api/poker/saved-hands?limit=1', route => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
-        dailyId: 'daily-test',
-        question: {
-          id: 'solver-question-test',
-          hero_hand: 'T9s',
-          // Deliberately stale: the canonical scenario must win.
-          heroCards: ['Ah', 'Kd'],
-          hero_position: 'BTN',
-          board_cards: ['Qc', '5h', '3s'],
-          scenario_text: 'You Hold T9s On The Flop. What Is The GTO Play?',
-          scenario: { heroHand: 'T9s', heroPosition: 'BTN', pot: 6 },
-        },
+        hands: [{ id: 'queue-preview', review: { status: 'new' } }],
+        totalCount: 3,
+        unreviewedCount: 2,
       }),
     }));
+    await page.route('**/api/assistant/coaching', route => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, snapshot: { priorities: [{ title: 'River Overfold' }] } }),
+    }));
     await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
-    const dailySection = page.locator('section[aria-labelledby="daily-title"]');
-    await expect(dailySection.getByRole('heading', { name: 'Hand Of The Day' })).toBeVisible();
-    await expect(dailySection.getByText('You Hold T9s On The Flop. What Is The GTO Play?')).toBeVisible();
-    await expect(dailySection.getByText('BTN · Pot 6 BB')).toBeVisible();
-    await expect(dailySection.getByLabel('Hero Hand Ts9s')).toBeVisible();
-    await expect(dailySection.getByRole('button', { name: /Open Verified Training/i })).toBeVisible();
+    const review = page.locator('section[aria-labelledby="card-review-title"]');
+    await expect(review.getByText('3 Saved Hands · 2 Unreviewed')).toBeVisible();
+    await expect(review.getByText('Focus: River Overfold')).toBeVisible();
+    await expect(review.getByRole('link', { name: 'Start Review' })).toHaveAttribute('href', '/hub/personal-assistant/review');
     await expectHealthyLayout(page);
   });
 
-  test('strategy hub exposes recovery and restores the Daily Hand after a feed interruption', async ({ page }, testInfo) => {
+  test('approved landing exposes recovery after a stats interruption', async ({ page }, testInfo) => {
     let feedHealthy = false;
     let requestCount = 0;
     const pageErrors: string[] = [];
     page.on('pageerror', error => pageErrors.push(error.message));
-    await page.route('**/api/training/hand-of-the-day', route => {
+    await page.route('**/api/assistant/stats', route => {
       requestCount += 1;
       if (!feedHealthy) {
         return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary interruption' }) });
@@ -261,52 +257,46 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          question: {
-            id: 'recovered-daily-hand',
-            heroCards: ['Ah', 'Kd'],
-            hero_position: 'CO',
-            board_cards: ['Qs', '7c', '2d'],
-            scenario_text: 'Recovered Solver Decision',
-            scenario: { pot: 8 },
-          },
+          isDemo: false,
+          stats: { leaksFound: 2, resolvedLeaks: 5 },
         }),
       });
     });
 
     await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Daily Hand Temporarily Unavailable', { exact: true })).toBeVisible();
+    await expect(page.getByText('Live Data Could Not Refresh', { exact: true })).toBeVisible();
     expect(pageErrors).toEqual([]);
     const failedRequestCount = requestCount;
     feedHealthy = true;
-    const retryButton = page.getByRole('button', { name: 'Retry Daily Hand' });
+    const retryButton = page.getByRole('button', { name: 'Retry Now' });
     // Playwright WebKit's scrollIntoViewIfNeeded can report an offscreen
     // element as visible on this long dashboard. Use the platform scroll API,
     // then perform a real pointer click against the centered control.
     await activateControl(retryButton, testInfo.project.name);
     await expect.poll(() => requestCount).toBeGreaterThan(failedRequestCount);
-    const dailySection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Hand Of The Day' }) });
-    await expect(dailySection.getByRole('heading', { name: 'Recovered Solver Decision' })).toBeVisible();
-    await expect(dailySection.getByText('CO · Pot 8 BB')).toBeVisible();
+    const leaks = page.locator('section[aria-labelledby="card-leaks-title"]');
+    await expect(leaks.getByText('5 Leaks Fixed', { exact: true })).toBeVisible();
+    await expect(leaks.getByText('2 Open', { exact: true })).toBeVisible();
     await expectHealthyLayout(page);
   });
 
-  test('Sandbox route fails closed and exposes only evidence-backed destinations', async ({ page }) => {
+  test('native Sandbox exposes the original tools with explicit ungraded authority', async ({ page }) => {
     const response = await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.getByRole('heading', { name: 'Verified Evidence Required' })).toBeVisible();
-    await expect(page.getByText('No Answer, Frequency, EV, Accuracy, Streak, Reward, Study Record, Or Progress Is Created On This Page.')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Open Verified Spot Trainer/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Open Hand History Review/i })).toBeVisible();
-    await expect(page.locator('[data-training-authority="verified-evidence-required"]')).toBeVisible();
-    await expect(page.locator('#sandbox-table, #run-analysis')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Virtual Sandbox', exact: true })).toBeVisible();
+    await expect(page.getByText('Ungraded Exploration Workspace', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Import Hand History', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Import Solver Node', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Study Folders', exact: true })).toBeVisible();
+    await expect(page.locator('[data-training-authority="authored-sandbox-ungraded"]')).toBeVisible();
+    await expect(page.locator('#run-analysis')).toHaveCount(0);
     await expectHealthyLayout(page);
   });
 
-  test('Sandbox retirement boundary remains mobile legible and overflow-free', async ({ page }, testInfo) => {
-    test.skip(!testInfo.project.name.includes('mobile'), 'mobile project only');
+  test('native Sandbox main controls remain reachable and overflow-free', async ({ page }) => {
     await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
-    const destinations = page.locator('.destination');
-    await expect(destinations).toHaveCount(3);
+    const destinations = page.getByRole('region', { name: 'Study Library And Workspace Tools', exact: true }).locator('.tools-grid button');
+    await expect(destinations).toHaveCount(8);
     for (const button of await destinations.all()) {
       const box = await button.boundingBox();
       expect(box?.width).toBeGreaterThanOrEqual(44);
