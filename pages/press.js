@@ -246,32 +246,27 @@ export default function PressKitMediaPage() {
           <span style={styles.crumbCurrent}>Press Kit, Media Facts &amp; Data Citations</span>
         </nav>
 
-        <header style={styles.heroPlate}>
-          <div style={styles.badgeRow}>
-            <span style={styles.cyanBadge}>OFFICIAL SMARTER.POKER NEWSROOM</span>
-            <span style={styles.emeraldBadge}>CC BY 4.0 OPEN MEDIA ATTRIBUTION</span>
-          </div>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="magazine"
+            eyebrow="Official Smarter.Poker Newsroom"
+            title="Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts & Media Citations"
+            lead="Quotable 2026 US Live & Online Poker Benchmarks, Brand Boilerplates & CC BY 4.0 Open Media Badges."
+            stats={[
+              { label: 'Verified Rooms', value: '324+ Venues' },
+              { label: 'Weekly MTTs', value: '4,500+ Events' },
+              { label: 'Zenodo Archives', value: '6 DOIs' },
+              { label: 'Media License', value: 'CC BY 4.0' },
+            ]}
+            redirectPath="/press"
+            unlockKey="masthead-press"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/research"
+            secondaryLabel="Open Research Hub"
+          />
+        </div>
 
-          <div style={{ marginBottom: 18 }}>
-            <SmarterSeoMasthead
-              vertical="magazine"
-              eyebrow="Official Smarter.Poker Newsroom"
-              title="Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts & Media Citations"
-              lead="Quotable 2026 US Live & Online Poker Benchmarks, Brand Boilerplates & CC BY 4.0 Open Media Badges."
-              stats={[
-                { label: 'Verified Rooms', value: '324+ Venues' },
-                { label: 'Weekly MTTs', value: '4,500+ Events' },
-                { label: 'Zenodo Archives', value: '6 DOIs' },
-                { label: 'Media License', value: 'CC BY 4.0' },
-              ]}
-              redirectPath="/press"
-              unlockKey="masthead-press"
-              primaryCtaLabel="Create Free Account"
-              secondaryHref="/research"
-              secondaryLabel="Open Research Hub"
-            />
-          </div>
-
+        <section aria-label="Press Quick Navigation" style={styles.heroPlate}>
           <p style={styles.lead}>
             <strong>Direct Media Resource:</strong> Journalists, Podcasters, Industry Analysts, And Academic Researchers May Freely Quote And Embed All 2026 Smarter.Poker Live And Online Poker Benchmarks Under <strong>Creative Commons Attribution 4.0 (CC BY 4.0)</strong>. Use The Quotable Fast Facts Table, 1-Click Brand Boilerplates, And Authority Badge Snippets Below.
           </p>
@@ -305,7 +300,7 @@ export default function PressKitMediaPage() {
               Data Verification Methodology
             </Link>
           </div>
-        </header>
+        </section>
 
         {/* 2026 Poker Industry Fast Facts Table */}
         <section aria-label="Quotable 2026 Poker Industry Fast Facts" style={styles.sectionPlate}>
