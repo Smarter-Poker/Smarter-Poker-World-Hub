@@ -1,0 +1,677 @@
+{
+  "schema": "phase6-direct-M2-remediation.v1",
+  "audit_id": "phase6-direct-M2-20260911T153100Z",
+  "created_utc": "2026-09-11T15:40:15.2222751Z",
+  "machine": "M2",
+  "partition_count": 2,
+  "partition_index": 1,
+  "phase": "host remediation and protected release re-verification",
+  "status": "BLOCKED",
+  "stage_a_ready": false,
+  "canary_closed": true,
+  "canary_attempt_count": 0,
+  "solver_launched": false,
+  "protected_commit": "57e63abfc85cd935d78292f326791a514288c963",
+  "production_public_health_commit": "57e63abfc85cd935d78292f326791a514288c963",
+  "protected_gate": {
+    "bounded_canary_ready_present": false,
+    "unchanged_from_initial_audit": true,
+    "training_game_contract_count": 0,
+    "solver_ready": false
+  },
+  "predecessor_action": "none: referenced bootstrap hash does not match authorized termination provenance",
+  "scheduled_tasks_confirmed_disabled": true,
+  "legacy_credential_files_sanitized": 10,
+  "cleanup_scope_closed": true,
+  "whole_host_credential_absence_attested": false,
+  "process_sample_gaps_seconds": [
+    73.3191819,
+    160.2998724
+  ],
+  "parent_task_id": "01a04158-a7b7-7a61-ba57-a409f628621d",
+  "parent_message_delivered": false,
+  "parent_m1_production_certification_received": false,
+  "draft_pr_number": 1741,
+  "initial_complete_evidence_uploaded": true,
+  "initial_complete_evidence_readback_exact": true,
+  "database_access_performed": false,
+  "hmac_provisioned": false,
+  "secret_values_recorded": false,
+  "plaintext_secret_backups_created": false,
+  "remaining_blockers": [
+    "Mismatched predecessor bootstrap provenance; no termination permitted.",
+    "Elevated PID 13844 remains unverified; UAC launch did not succeed.",
+    "Whole-host credential and HMAC absence, including nested artifacts and process memory, not attested.",
+    "Fresh runtime Pio version and hand-order attestation not collected while execution gates are closed.",
+    "No newer protected release, no bounded canary contract or complete Training ledger.",
+    "Unauthenticated private distribution remains in protected source; host-side transport probe failed.",
+    "Parent task unavailable and no independent M1 production certification received."
+  ],
+  "evidence": {
+    "all-related-tasks": [
+      {
+        "name": "PokerIQ Sync Done Files",
+        "state": "Disabled",
+        "enabled": false,
+        "actions_omitted": true
+      },
+      {
+        "name": "SmarterPokerSolver",
+        "state": "Disabled",
+        "enabled": false,
+        "actions_omitted": true
+      }
+    ],
+    "database-config-postcheck": [
+      {
+        "path": "C:\\sp-solver\\.env",
+        "nonempty_database_values": 0,
+        "keys": []
+      },
+      {
+        "path": "C:\\PioSOLVER\\.env",
+        "nonempty_database_values": 0,
+        "keys": [
+          {
+            "key": "SUPABASE_URL",
+            "value_omitted": true,
+            "database_key": true,
+            "value_present": false
+          },
+          {
+            "key": "SUPABASE_ANON_KEY",
+            "value_omitted": true,
+            "database_key": true,
+            "value_present": false
+          },
+          {
+            "key": "SUPABASE_EMAIL",
+            "value_omitted": true,
+            "database_key": true,
+            "value_present": false
+          },
+          {
+            "key": "SUPABASE_PASSWORD",
+            "value_omitted": true,
+            "database_key": true,
+            "value_present": false
+          },
+          {
+            "key": "TREE_FILES_DIR",
+            "value_omitted": true,
+            "database_key": false,
+            "value_present": true
+          },
+          {
+            "key": "OUTPUT_DIR",
+            "value_omitted": true,
+            "database_key": false,
+            "value_present": true
+          },
+          {
+            "key": "EMAIL_FROM",
+            "value_omitted": true,
+            "database_key": false,
+            "value_present": true
+          },
+          {
+            "key": "SMTP_SERVER",
+            "value_omitted": true,
+            "database_key": false,
+            "value_present": true
+          },
+          {
+            "key": "SMTP_PORT",
+            "value_omitted": true,
+            "database_key": false,
+            "value_present": true
+          },
+          {
+            "key": "SMTP_USER",
+            "value_omitted": true,
+            "database_key": false,
+            "value_present": false
+          },
+          {
+            "key": "SMTP_PASSWORD",
+            "value_omitted": true,
+            "database_key": false,
+            "value_present": false
+          }
+        ]
+      },
+      {
+        "path": "C:\\PokerIQ_Solver\\runner\\supabase_config.txt",
+        "nonempty_database_values": 0,
+        "keys": [
+          {
+            "key": "SUPABASE_URL",
+            "value_omitted": true,
+            "database_key": true,
+            "value_present": false
+          },
+          {
+            "key": "SUPABASE_ANON_KEY",
+            "value_omitted": true,
+            "database_key": true,
+            "value_present": false
+          }
+        ]
+      }
+    ],
+    "elevation-status": {
+      "exact_windows_cause_not_available": true,
+      "start_process_reported_launched": false,
+      "error_type": "InvalidOperationException",
+      "attempted": true,
+      "completed": false,
+      "pid_13844_command_context_unverified": true,
+      "automatic_uac_retry_performed": false,
+      "read_only": true
+    },
+    "environment-presence": {
+      "checked_utc": "2026-09-11T15:40:14.9644533Z",
+      "values_recorded": false,
+      "entries": [],
+      "nonempty_sensitive_entries": 0
+    },
+    "http-probes": [
+      {
+        "probe": "private_raw_manifest",
+        "checked_utc": "2026-09-11T15:37:04.6750081Z",
+        "body_omitted": true,
+        "error_type": "HttpRequestException"
+      },
+      {
+        "status_code": 200,
+        "reported_sha": null,
+        "checked_utc": "2026-09-11T15:37:05.0581111Z",
+        "credentials_used": false,
+        "reported_version": "57e63abfc85cd935d78292f326791a514288c963",
+        "response_body_recorded": false,
+        "probe": "public_production_health"
+      }
+    ],
+    "legacy-credential-cleanup-plan": {
+      "changes": [],
+      "values_recorded": false,
+      "hmac_provisioned": false,
+      "plaintext_backups_created": false,
+      "whole_host_credential_absence_attested": false,
+      "old_credentials_used": false,
+      "changed_files": 0,
+      "scope": "Only root-level readable operational/config files under the three established solver roots, at most 8MB; no logs, nested archives, database service or Windows automation modified.",
+      "checked_utc": "2026-09-11T15:34:01.6481569Z"
+    },
+    "legacy-credential-cleanup": {
+      "plaintext_backups_created": false,
+      "whole_host_credential_absence_attested": false,
+      "scope": "Only root-level readable operational/config files under the three established solver roots, at most 8MB; no logs, nested archives, database service or Windows automation modified.",
+      "changes": [
+        {
+          "path": "C:\\sp-solver\\patch_orchestrate.py",
+          "bytes_before": 1303,
+          "bytes_after": 1109,
+          "removed_matches": {
+            "jwt_literal": 1
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\sp-solver\\patch_pio_harvest.py",
+          "bytes_before": 1428,
+          "bytes_after": 1234,
+          "removed_matches": {
+            "jwt_literal": 1
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\sp-solver\\patch_run_machine.py",
+          "bytes_before": 1271,
+          "bytes_after": 1077,
+          "removed_matches": {
+            "jwt_literal": 1
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\sp-solver\\test_api.py",
+          "bytes_before": 789,
+          "bytes_after": 595,
+          "removed_matches": {
+            "jwt_literal": 1
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\sp-solver\\test_api2.py",
+          "bytes_before": 806,
+          "bytes_after": 612,
+          "removed_matches": {
+            "jwt_literal": 1
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\sp-solver\\test_supabase2.py",
+          "bytes_before": 578,
+          "bytes_after": 384,
+          "removed_matches": {
+            "jwt_literal": 1
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\sp-solver\\test_supabase3.py",
+          "bytes_before": 578,
+          "bytes_after": 384,
+          "removed_matches": {
+            "jwt_literal": 1
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\PioSOLVER\\.env",
+          "bytes_before": 620,
+          "bytes_after": 318,
+          "removed_matches": {
+            "jwt_literal": 1,
+            "database_configuration_values": 4
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\PioSOLVER\\test_key.py",
+          "bytes_before": 380,
+          "bytes_after": 364,
+          "removed_matches": {
+            "supabase_secret_literal": 1
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        },
+        {
+          "path": "C:\\PokerIQ_Solver\\runner\\supabase_config.txt",
+          "bytes_before": 283,
+          "bytes_after": 35,
+          "removed_matches": {
+            "jwt_literal": 1,
+            "database_configuration_values": 2
+          },
+          "applied": true,
+          "readback_verified": true,
+          "secret_values_recorded": false,
+          "plaintext_backup_created": false
+        }
+      ],
+      "changed_files": 10,
+      "values_recorded": false,
+      "checked_utc": "2026-09-11T15:33:13.6686008Z",
+      "hmac_provisioned": false,
+      "old_credentials_used": false
+    },
+    "pio-reverification": {
+      "sha256": "e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb",
+      "runtime_invoked": false,
+      "authenticode_status": "NotSigned",
+      "runtime_hand_order_attested": false,
+      "path": "C:\\PioSOLVER\\PioSOLVER3-pro.exe",
+      "runtime_version_attested": false,
+      "checked_utc": "2026-09-11T15:40:15.1170185Z",
+      "bytes": 1235982
+    },
+    "predecessor": {
+      "status": "PREDECESSOR_PROCESS_UNRESOLVED",
+      "pid": 19612,
+      "created_utc": "2026-09-11T14:17:20.846319Z",
+      "exact_system32_powershell": true,
+      "command_line_available": true,
+      "bootstrap_source_sha256": "21c36b632ca447f52140d13acd66181a58a915bbddb0baba0e6d1faed76936c9",
+      "matches_authorized_retired_hash": false,
+      "direct_children": [],
+      "action": "none",
+      "directory_removed": false
+    },
+    "process-sample-1": {
+      "predecessor_pid_present": true,
+      "pio_python_curl_named_process_count": 0,
+      "sampler_pid": 14768,
+      "sample_utc": "2026-09-11T15:32:00.6625519Z",
+      "processes": [
+        {
+          "pid": 8248,
+          "parent_pid": 10768,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T07:05:12.254706Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 13844,
+          "parent_pid": 8248,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T07:06:30.746707Z",
+          "command_available": false,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 20264,
+          "parent_pid": 16100,
+          "name": "cmd.exe",
+          "creation_utc": "2026-09-11T12:34:10.882007Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 9312,
+          "parent_pid": 15608,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T14:17:20.374802Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": true,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 19612,
+          "parent_pid": 9312,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T14:17:20.846319Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": true,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 3424,
+          "parent_pid": 16100,
+          "name": "cmd.exe",
+          "creation_utc": "2026-09-11T14:50:41.336608Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        }
+      ],
+      "source": "Win32_Process CIM"
+    },
+    "process-sample-2": {
+      "sampler_pid": 15736,
+      "pio_python_curl_named_process_count": 0,
+      "predecessor_pid_present": true,
+      "sample_utc": "2026-09-11T15:33:13.9817338Z",
+      "processes": [
+        {
+          "pid": 8248,
+          "parent_pid": 10768,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T07:05:12.254706Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 13844,
+          "parent_pid": 8248,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T07:06:30.746707Z",
+          "command_available": false,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 20264,
+          "parent_pid": 16100,
+          "name": "cmd.exe",
+          "creation_utc": "2026-09-11T12:34:10.882007Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 9312,
+          "parent_pid": 15608,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T14:17:20.374802Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": true,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 19612,
+          "parent_pid": 9312,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T14:17:20.846319Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": true,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 3424,
+          "parent_pid": 16100,
+          "name": "cmd.exe",
+          "creation_utc": "2026-09-11T14:50:41.336608Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        }
+      ],
+      "source": "Win32_Process CIM"
+    },
+    "process-sample-3": {
+      "sampler_pid": 6880,
+      "source": "Win32_Process CIM",
+      "pio_python_curl_named_process_count": 0,
+      "predecessor_pid_present": true,
+      "sample_utc": "2026-09-11T15:35:54.2816062Z",
+      "processes": [
+        {
+          "pid": 8248,
+          "parent_pid": 10768,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T07:05:12.254706Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 13844,
+          "parent_pid": 8248,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T07:06:30.746707Z",
+          "command_available": false,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 20264,
+          "parent_pid": 16100,
+          "name": "cmd.exe",
+          "creation_utc": "2026-09-11T12:34:10.882007Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 9312,
+          "parent_pid": 15608,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T14:17:20.374802Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": true,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 19612,
+          "parent_pid": 9312,
+          "name": "powershell.exe",
+          "creation_utc": "2026-09-11T14:17:20.846319Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": true,
+          "exact_system32_powershell": true,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 3424,
+          "parent_pid": 16100,
+          "name": "cmd.exe",
+          "creation_utc": "2026-09-11T14:50:41.336608Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        },
+        {
+          "pid": 19824,
+          "parent_pid": 16100,
+          "name": "pwsh.exe",
+          "creation_utc": "2026-09-11T15:35:43.365705Z",
+          "command_available": true,
+          "references_solver": false,
+          "references_watchdog": false,
+          "references_bootstrap": false,
+          "exact_system32_powershell": false,
+          "command_line_omitted": true
+        }
+      ]
+    },
+    "range-reverification": {
+      "prior_valid_1326_files": 450,
+      "prior_file_count": 450,
+      "all_450_files_unchanged": true,
+      "protected_training_mapping_approved": false,
+      "checked_utc": "2026-09-11T15:40:15.113267Z",
+      "changed_or_missing": [],
+      "current_file_count": 450
+    },
+    "services": {
+      "cim_available": true,
+      "matches": []
+    },
+    "startup-refresh": {
+      "checked_utc": "2026-09-11T15:34:01.7053418Z",
+      "files": [
+        {
+          "name": "desktop.ini",
+          "extension": ".ini",
+          "disabled_suffix": false,
+          "solver_reference": false,
+          "directory_user_identity_omitted": true
+        },
+        {
+          "name": "PioWatchdog.vbs.disabled",
+          "extension": ".disabled",
+          "disabled_suffix": true,
+          "solver_reference": true,
+          "directory_user_identity_omitted": true
+        },
+        {
+          "name": "desktop.ini",
+          "extension": ".ini",
+          "disabled_suffix": false,
+          "solver_reference": false,
+          "directory_user_identity_omitted": true
+        }
+      ]
+    },
+    "tasks": [
+      {
+        "name": "PokerIQ Sync Done Files",
+        "state": "Disabled",
+        "enabled": false,
+        "xml_enabled": "false",
+        "action_command": "py",
+        "action_workdir": "C:\\PokerIQ_Solver\\runner",
+        "action_arguments_omitted": true
+      },
+      {
+        "name": "SmarterPokerSolver",
+        "state": "Disabled",
+        "enabled": false,
+        "xml_enabled": "false",
+        "action_command": "C:\\sp-solver\\solver_tick.cmd",
+        "action_workdir": null,
+        "action_arguments_omitted": true
+      }
+    ]
+  }
+}
