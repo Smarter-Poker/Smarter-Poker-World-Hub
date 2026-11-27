@@ -85,7 +85,7 @@ export default function PokerMarketGuidesIndexPage() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#060d1a', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title={pageTitle}
         description={pageDesc}
@@ -97,18 +97,18 @@ export default function PokerMarketGuidesIndexPage() {
 
       <main style={{ maxWidth: 1120, margin: '0 auto', padding: '36px 20px 80px' }}>
         <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+          <Link href="/" style={{ color: '#38bdf8', textDecoration: 'none' }}>Smarter.Poker</Link>
           {' / '}
-          <Link href="/hub/poker-near-me/lobby" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Near Me</Link>
+          <Link href="/hub/poker-near-me/lobby" style={{ color: '#38bdf8', textDecoration: 'none' }}>Poker Near Me</Link>
           {' / '}
           <span>US Regional Poker Market Guides</span>
         </nav>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#f2b84b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
           Verified Regional Market Intelligence · Updated {MARKET_GUIDES_AS_OF}
         </div>
 
-        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#ffffff', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Top 12 US Regional Live Poker Market Strategy &amp; Rake Guides
         </h1>
 
@@ -118,15 +118,15 @@ export default function PokerMarketGuidesIndexPage() {
 
         {/* Summary Comparison Table */}
         <section style={{ marginBottom: 40, overflowX: 'auto' }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
             National Overview: Top 12 US Live Poker Markets At A Glance
           </h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0c1628', borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
             <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
               Active Room Estimates, Rake Models, Signature Stakes, And Peak Tournament Seasons Across 12 US Markets
             </caption>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e293b', color: '#25c8ff', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '1px solid rgba(148,184,224,0.28)', color: '#38bdf8', textAlign: 'left' }}>
                 <th scope="col" style={{ padding: '10px 14px' }}>Regional Market</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Active Capacity</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>House Rake / Time Model</th>
@@ -135,13 +135,13 @@ export default function PokerMarketGuidesIndexPage() {
             </thead>
             <tbody>
               {POKER_MARKET_GUIDES.map((market) => (
-                <tr key={market.slug} style={{ borderBottom: '1px solid #1e293b' }}>
+                <tr key={market.slug} style={{ borderBottom: '1px solid rgba(148,184,224,0.18)' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 700 }}>
-                    <Link href={marketGuidePath(market.slug)} style={{ color: '#25c8ff', textDecoration: 'none' }}>
+                    <Link href={marketGuidePath(market.slug)} style={{ color: '#38bdf8', textDecoration: 'none' }}>
                       {market.regionName} ({market.stateCode})
                     </Link>
                   </td>
-                  <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{market.activeRoomsEstimate}</td>
+                  <td style={{ padding: '10px 14px', color: '#ffffff', fontWeight: 700 }}>{market.activeRoomsEstimate}</td>
                   <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{market.typicalRakeModel}</td>
                   <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{market.signatureStakes}</td>
                 </tr>
@@ -152,7 +152,7 @@ export default function PokerMarketGuidesIndexPage() {
 
         {/* Grid Of 12 Regional Market Cards */}
         <section style={{ marginBottom: 40 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 16px 0' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', margin: '0 0 16px 0' }}>
             Browse Individual Regional Market Strategy Guides
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
@@ -160,9 +160,9 @@ export default function PokerMarketGuidesIndexPage() {
               <div
                 key={market.slug}
                 style={{
-                  background: '#101a20',
-                  border: '1px solid #1e293b',
-                  borderRadius: '2px',
+                  background: '#0c1628',
+                  border: '1px solid rgba(148,184,224,0.28)',
+                  borderRadius: '6px',
                   padding: 20,
                   display: 'flex',
                   flexDirection: 'column',
@@ -171,15 +171,15 @@ export default function PokerMarketGuidesIndexPage() {
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px', background: '#060d1a', color: '#38bdf8', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '4px' }}>
                       {market.stateCode} Market
                     </span>
                     <span style={{ fontSize: 12, color: '#94a3b8' }}>
                       {market.activeRoomsEstimate}
                     </span>
                   </div>
-                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 8px 0' }}>
-                    <Link href={marketGuidePath(market.slug)} style={{ color: '#f8fafc', textDecoration: 'none' }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', margin: '0 0 8px 0' }}>
+                    <Link href={marketGuidePath(market.slug)} style={{ color: '#ffffff', textDecoration: 'none' }}>
                       {market.regionName}
                     </Link>
                   </h3>
@@ -188,17 +188,19 @@ export default function PokerMarketGuidesIndexPage() {
                   </p>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#25c8ff', background: '#020608', padding: '8px 10px', borderRadius: '2px', border: '1px solid #1e293b', marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: '#38bdf8', background: '#060d1a', padding: '8px 10px', borderRadius: '4px', border: '1px solid rgba(148,184,224,0.22)', marginBottom: 12 }}>
                     <strong>Rake Model:</strong> {market.typicalRakeModel}
                   </div>
                   <Link
                     href={marketGuidePath(market.slug)}
                     style={{
-                      display: 'inline-block',
-                      padding: '8px 14px',
-                      background: '#25c8ff',
-                      color: '#020608',
-                      borderRadius: '2px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      minHeight: 44,
+                      padding: '0 16px',
+                      background: '#1d4ed8',
+                      color: '#ffffff',
+                      borderRadius: '6px',
                       fontSize: 13,
                       fontWeight: 700,
                       textDecoration: 'none',
@@ -213,51 +215,51 @@ export default function PokerMarketGuidesIndexPage() {
         </section>
 
         {/* Cross-Links */}
-        <section style={{ marginBottom: 32, padding: 20, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0c1628', borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
             Live Poker Room Finder &amp; Rake Economics Tools
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/hub/poker-near-me/lobby" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-              Poker Near Me (324+ Live Venues)
+            <Link href="/hub/poker-near-me/lobby" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#1d4ed8', color: '#ffffff', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+              Poker Near Me (715+ Live Venues)
             </Link>
-            <Link href="/poker-rooms/international" style={{ padding: '8px 14px', background: '#10b981', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/poker-rooms/international" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#0284c7', color: '#ffffff', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               10 International Poker Destination Guides
             </Link>
-            <Link href="/poker-rooms/first-time-guide" style={{ padding: '8px 14px', background: '#020608', color: '#25c8ff', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/poker-rooms/first-time-guide" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#38bdf8', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               First-Time Live Poker Room Survival Guide
             </Link>
-            <Link href="/learn/player-types" style={{ padding: '8px 14px', background: '#020608', color: '#25c8ff', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/player-types" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#38bdf8', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               8 Poker Player Archetypes &amp; Exploits
             </Link>
-            <Link href="/learn/board-textures" style={{ padding: '8px 14px', background: '#020608', color: '#25c8ff', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/board-textures" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#38bdf8', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               12 Flop Board Texture Encyclopedia
             </Link>
-            <Link href="/learn/mental-game" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/mental-game" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Mental Game &amp; Tilt Control Hub
             </Link>
-            <Link href="/learn/poker-as-a-business" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/learn/poker-as-a-business" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#38bdf8', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Pro Poker Tax &amp; Schedule C Guide
             </Link>
-            <Link href="/poker-series/guides" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/poker-series/guides" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               10 Major Poker Series Survival Guides
             </Link>
-            <Link href="/research/us-live-poker-room-rake-and-jackpot-benchmark" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/research/us-live-poker-room-rake-and-jackpot-benchmark" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#38bdf8', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               US Live Poker Room Rake Benchmark Study
             </Link>
-            <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               52 Free Poker Calculators &amp; Tools
             </Link>
-            <Link href="/learn" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               GTO Strategy Academy
             </Link>
-            <Link href="/learn/matchups" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/matchups" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               25 All-In Hand Matchups
             </Link>
-            <Link href="/tools/rake-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/rake-calculator" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Interactive Rake &amp; Time Calculator
             </Link>
-            <Link href="/tools/poker-winrate-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/poker-winrate-calculator" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Winrate &amp; BB/100 Calculator
             </Link>
           </div>

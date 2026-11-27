@@ -6,6 +6,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import { redactPublicVenue } from '../../../src/lib/poker-near-me/publicVenuePrivacy.mjs';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -2360,7 +2361,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 lineHeight: '1.5',
                 color: '#cbd5e1'
               }}>
-                <strong style={{ color: '#00D4FF', display: 'block', marginBottom: '4px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '4px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Quick Overview
                 </strong>
                 <p style={{ margin: 0 }}>{buildVenueFactKernel(venue)}</p>
@@ -2454,6 +2455,19 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 </div>
               )}
             </PokerNearMePanelShell>
+
+            <div style={{ margin: '18px 0' }}>
+              <SmarterConversionCta
+                eyebrow="Free Live Poker Room Companion"
+                title="Check In Live, Track Waitlists & Log Sessions Free"
+                description="Join Smarter.Poker Free To Check In At Live Poker Rooms, Save Favorite Venues, And Track Your Cash Game Profit."
+                primaryLabel="Create Free Account"
+                primaryHref={`/auth/signup?redirect=${encodeURIComponent(`/hub/venues/${id || ''}`)}&src=venue`}
+                secondaryLabel="Sign In"
+                secondaryHref={`/auth/login?redirect=${encodeURIComponent(`/hub/venues/${id || ''}`)}`}
+                highlights={['100% Free Account', 'Live Room Check-Ins', 'Bankroll Tracker']}
+              />
+            </div>
 
             {/* ============================================ */}
             {/* BRAVO LIVE GAMES BANNER (top of page)        */}

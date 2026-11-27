@@ -1,4 +1,5 @@
 import PokerNearMeLocationPage from '../../../../../src/components/poker-near-me/PokerNearMeLocationPage';
+import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
 import { cityTitleToSlug, citySlugToTitle } from '../../../../../src/lib/home-games/locationUtils';
 import { fetchPokerVenueLocation, resolveStateSlug, venueLocationCanonical } from '../../../../../src/lib/poker-near-me/locationPages';
 
@@ -57,6 +58,7 @@ export async function getServerSideProps({ params, req, res, query }) {
   }
 }
 export default function PokerCityPage({ state, city, ...props }) {
+  const cityPath = `/hub/poker-near-me/in/${state.slug}/${cityTitleToSlug(city)}`;
   return (
     <PokerNearMeLocationPage
       {...props}
@@ -68,8 +70,20 @@ export default function PokerCityPage({ state, city, ...props }) {
         `Poker Rooms In ${city}, ${state.code}`,
         `Poker Rooms In ${city}`,
       ])}
-      description={`Find casino poker rooms and cardrooms in ${city}, ${state.name}. Compare venue profiles, schedules, room details, and current discovery signals.`}
+      description={`Find Casino Poker Rooms And Cardrooms In ${city}, ${state.name}. Compare Venue Profiles, Schedules, Room Details, And Current Discovery Signals.`}
       canonical={venueLocationCanonical(state.code, city)}
+      conversionCta={(
+        <SmarterConversionCta
+          eyebrow={`Free ${city} Poker Directory Account`}
+          title={`Find Live Games & Track Sessions In ${city}, ${state.name} Free`}
+          description={`Create A Free Smarter.Poker Account To Save Favorite ${city} Poker Rooms, Check In Live, And Track Your Cash Game Profit.`}
+          primaryLabel="Create Free Account"
+          primaryHref={`/auth/signup?redirect=${encodeURIComponent(cityPath)}&src=pnm-city`}
+          secondaryLabel="Sign In"
+          secondaryHref={`/auth/login?redirect=${encodeURIComponent(cityPath)}`}
+          highlights={['100% Free Account', 'Live Room Check-Ins', 'Bankroll Tracker']}
+        />
+      )}
     />
   );
 }

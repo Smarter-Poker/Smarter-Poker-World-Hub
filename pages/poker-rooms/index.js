@@ -22,6 +22,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
@@ -164,7 +165,7 @@ export default function PokerRoomsMasterHubPage() {
       '@id': `${canonicalUrl}#collection`,
       name: 'Live Poker Room Guides, Travel Corridors & Game-Format Directories',
       description:
-        'Explore Smarter.Poker\'s Complete Live Cardroom Intelligence Hub: 10 Travel Corridors, 6 Game-Format Directories, 12 US Regional Markets, 15 State Tax Guides, 10 Global Destinations, And Floor Security Rules.',
+        'Explore Smarter.Poker\'s Complete Live Cardroom Intelligence Hub: 10 Travel Corridors, 6 Game-Format Directories, 12 US Regional Markets, 51 US State & DC Tax Guides, 10 Global Destinations, And Floor Security Rules.',
       url: canonicalUrl,
       inLanguage: 'en-US',
       dateModified: '2026-11-24',
@@ -199,7 +200,7 @@ export default function PokerRoomsMasterHubPage() {
     <div style={styles.page}>
       <SEOHead
         title="Live Poker Room Guides And Travel Hubs"
-        description="Explore Smarter.Poker's Complete Live Cardroom Intelligence Hub: 10 Travel Corridors, 6 Game-Format Directories, 12 US Regional Markets, 15 State Tax Guides, 10 Global Destinations, And Floor Security Rules."
+        description="Explore Smarter.Poker's Complete Live Cardroom Intelligence Hub: 10 Travel Corridors, 6 Game-Format Directories, 12 US Regional Markets, 51 US State & DC Tax Guides, 10 Global Destinations, And Floor Security Rules."
         canonical={canonicalPath}
         jsonLd={jsonLd}
       />
@@ -328,10 +329,10 @@ export default function PokerRoomsMasterHubPage() {
           </div>
         </section>
 
-        {/* Quick Index of 12 US Markets, 15 States & 10 International Cities */}
+        {/* Quick Index of 12 US Markets, 51 States & DC & 10 International Cities */}
         <section aria-label="Regional State And International Links" style={styles.sectionPlate}>
           <h2 style={styles.h2}>
-            All 12 US Regional Markets, 15 State Tax Guides &amp; 10 International Hubs
+            All 12 US Regional Markets, 51 US State &amp; DC Tax Guides &amp; 10 International Hubs
           </h2>
           <div style={styles.pillCloud}>
             {POKER_MARKET_GUIDES.map((m) => (
@@ -397,13 +398,26 @@ export default function PokerRoomsMasterHubPage() {
 
         <HubPageSummary page="poker-rooms-international" path={canonicalPath} />
 
+        <div style={{ marginBottom: 24 }}>
+          <SmarterConversionCta
+            eyebrow="Free Live Poker Room Companion"
+            title="Track 715+ Live Poker Rooms, Waitlists & Bankroll Free"
+            description="Create A Free Smarter.Poker Account To Save Favorite Cardrooms, Check Live Cash Games, And Track Your Live Poker Results."
+            primaryLabel="Create Free Account"
+            primaryHref="/auth/signup?redirect=%2Fpoker-rooms&src=poker-rooms-hub"
+            secondaryLabel="Sign In"
+            secondaryHref="/auth/login?redirect=%2Fpoker-rooms"
+            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+          />
+        </div>
+
         <CitationBacklinkBox
           title="Live Poker Room Guides, Border Travel Corridors & Game-Format Directories"
           canonicalUrl={canonicalUrl}
           badgeType="research"
           badgeLabel="Geographic Poker Hub"
           badgeValue="715+ Venues & 8 Directories"
-          summary="Explore Smarter.Poker's Complete Live Cardroom Intelligence Hub: 10 Travel Corridors, 6 Game-Format Directories, 12 US Regional Markets, 15 State Tax Guides, 10 Global Destinations, And Floor Security Rules."
+          summary="Explore Smarter.Poker's Complete Live Cardroom Intelligence Hub: 10 Travel Corridors, 6 Game-Format Directories, 12 US Regional Markets, 51 US State & DC Tax Guides, 10 Global Destinations, And Floor Security Rules."
           publishedYear="2026"
           slug="live-poker-rooms-master-hub"
         />

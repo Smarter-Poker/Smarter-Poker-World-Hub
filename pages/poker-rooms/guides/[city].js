@@ -14,6 +14,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import { SITE_URL, ORGANIZATION_ID } from '../../../src/lib/learn/learnSite.js';
 import {
   MARKET_GUIDES_AS_OF,
@@ -42,7 +43,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
   const otherGuides = POKER_MARKET_GUIDES.filter((g) => g.slug !== guide.slug);
   const badgeSvgUrl = `${SITE_URL}/api/seo/badge?type=directory-listing&label=${encodeURIComponent(`Listed In ${guide.regionName} Directory`)}&value=${encodeURIComponent('Smarter.Poker Public Guide')}`;
   const venueBadgeHtml = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${guide.h1}"><img src="${badgeSvgUrl}" alt="Publicly Listed In ${guide.regionName} Poker Room Directory On Smarter.Poker" height="28" style="border:0;height:28px;" /></a>`;
-  const marketTableHtml = `<div style="padding:14px;background:#020608;border:1px solid #1e293b;border-radius:4px;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#25c8ff;margin-bottom:8px;">${guide.regionName} Live Poker Room Benchmark (${guide.activeRoomsEstimate})</div><p style="margin:0 0 10px 0;font-size:12.5px;color:#cbd5e1;">Standard Rake Model: ${guide.typicalRakeModel} | Stakes: ${guide.signatureStakes}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#f2b84b;text-decoration:none;">View Full ${guide.regionName} Live Poker Directory &amp; Rake Guide At Smarter.Poker</a></div>`;
+  const marketTableHtml = `<div style="padding:14px;background:#060d1a;border:1px solid rgba(148,184,224,0.28);border-radius:4px;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#38bdf8;margin-bottom:8px;">${guide.regionName} Live Poker Room Benchmark (${guide.activeRoomsEstimate})</div><p style="margin:0 0 10px 0;font-size:12.5px;color:#cbd5e1;">Standard Rake Model: ${guide.typicalRakeModel} | Stakes: ${guide.signatureStakes}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#38bdf8;text-decoration:none;">View Full ${guide.regionName} Live Poker Directory &amp; Rake Guide At Smarter.Poker</a></div>`;
 
   const handleCopyMarketSnippet = async (key, text) => {
     try {
@@ -105,7 +106,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#060d1a', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title={guide.title}
         description={guide.summary}
@@ -117,20 +118,20 @@ export default function PokerMarketCityGuidePage({ guide }) {
 
       <main style={{ maxWidth: 1020, margin: '0 auto', padding: '36px 20px 80px' }}>
         <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+          <Link href="/" style={{ color: '#38bdf8', textDecoration: 'none' }}>Smarter.Poker</Link>
           {' / '}
-          <Link href="/hub/poker-near-me/lobby" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Near Me</Link>
+          <Link href="/hub/poker-near-me/lobby" style={{ color: '#38bdf8', textDecoration: 'none' }}>Poker Near Me</Link>
           {' / '}
-          <Link href="/poker-rooms/guides" style={{ color: '#25c8ff', textDecoration: 'none' }}>Regional Market Guides</Link>
+          <Link href="/poker-rooms/guides" style={{ color: '#38bdf8', textDecoration: 'none' }}>Regional Market Guides</Link>
           {' / '}
           <span>{guide.regionName}</span>
         </nav>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#f2b84b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
           {guide.stateCode} Regional Poker Intelligence · Verified {MARKET_GUIDES_AS_OF}
         </div>
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#ffffff', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           {guide.h1}
         </h1>
 
@@ -140,34 +141,34 @@ export default function PokerMarketCityGuidePage({ guide }) {
 
         {/* Regional Market KPI Grid */}
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16, marginBottom: 32 }}>
-          <div style={{ background: '#101a20', padding: 18, borderRadius: '2px', border: '1px solid #25c8ff' }}>
+          <div style={{ background: '#0c1628', padding: 18, borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
             <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
               Active Room &amp; Table Footprint
             </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#25c8ff', marginTop: 6 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#38bdf8', marginTop: 6 }}>
               {guide.activeRoomsEstimate}
             </div>
           </div>
 
-          <div style={{ background: '#101a20', padding: 18, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+          <div style={{ background: '#0c1628', padding: 18, borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
             <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
               Standard House Rake / Time Model
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#f2b84b', marginTop: 6 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#ffffff', marginTop: 6 }}>
               {guide.typicalRakeModel}
             </div>
           </div>
 
-          <div style={{ background: '#101a20', padding: 18, borderRadius: '2px', border: '1px solid #1e293b' }}>
+          <div style={{ background: '#0c1628', padding: 18, borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
             <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
               Signature Cash Game Stakes
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#f8fafc', marginTop: 6 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginTop: 6 }}>
               {guide.signatureStakes}
             </div>
           </div>
 
-          <div style={{ background: '#101a20', padding: 18, borderRadius: '2px', border: '1px solid #1e293b' }}>
+          <div style={{ background: '#0c1628', padding: 18, borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
             <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
               Peak Season &amp; Flagship Series
             </div>
@@ -179,15 +180,15 @@ export default function PokerMarketCityGuidePage({ guide }) {
 
         {/* Top Venue Highlights Table */}
         <section style={{ marginBottom: 34, overflowX: 'auto' }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
             Flagship Poker Rooms &amp; Card Clubs In {guide.regionName}
           </h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0c1628', borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
             <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
               Anchor Venues, Table Counts, And Signature Cash And Tournament Offerings In {guide.regionName}
             </caption>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e293b', color: '#25c8ff', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '1px solid rgba(148,184,224,0.28)', color: '#38bdf8', textAlign: 'left' }}>
                 <th scope="col" style={{ padding: '10px 14px' }}>Venue Name</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Location</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Poker Tables</th>
@@ -196,10 +197,10 @@ export default function PokerMarketCityGuidePage({ guide }) {
             </thead>
             <tbody>
               {guide.topVenueHighlights.map((venue) => (
-                <tr key={venue.name} style={{ borderBottom: '1px solid #1e293b' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{venue.name}</td>
+                <tr key={venue.name} style={{ borderBottom: '1px solid rgba(148,184,224,0.18)' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 700, color: '#ffffff' }}>{venue.name}</td>
                   <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{venue.city}</td>
-                  <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{venue.tables}</td>
+                  <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{venue.tables}</td>
                   <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{venue.knownFor}</td>
                 </tr>
               ))}
@@ -207,23 +208,36 @@ export default function PokerMarketCityGuidePage({ guide }) {
           </table>
         </section>
 
+        <div style={{ marginBottom: 34 }}>
+          <SmarterConversionCta
+            eyebrow={`Free ${guide.regionName} Live Poker Companion`}
+            title={`Track Live Games, Waitlists & Bankroll In ${guide.regionName} Free`}
+            description={`Create A Free Smarter.Poker Account To Save Favorite ${guide.regionName} Cardrooms, Check Live Cash Action, And Track Your Session Profit.`}
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-city-guide`}
+            secondaryLabel="Sign In"
+            secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
+            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+          />
+        </div>
+
         {/* Venue Manager Badge & Regional Market Snapshot Embed */}
         <section
           aria-label="Venue Manager Badge And Regional Market Embed"
           style={{
             marginBottom: 34,
             padding: 20,
-            background: '#101a20',
-            borderRadius: '2px',
-            border: '1px solid #25c8ff',
+            background: '#0c1628',
+            borderRadius: '6px',
+            border: '1px solid rgba(148,184,224,0.28)',
           }}
         >
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#f2b84b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 For Cardroom Publishers &amp; Regional Poker Media
               </div>
-              <h2 style={{ fontSize: 19, fontWeight: 700, color: '#f8fafc', margin: '4px 0 6px 0' }}>
+              <h2 style={{ fontSize: 19, fontWeight: 700, color: '#ffffff', margin: '4px 0 6px 0' }}>
                 Embed {guide.regionName} Public Directory Listing Badge Or Market Snapshot
               </h2>
               <p style={{ fontSize: 13.5, color: '#cbd5e1', margin: 0 }}>
@@ -238,13 +252,14 @@ export default function PokerMarketCityGuidePage({ guide }) {
                 type="button"
                 onClick={() => handleCopyMarketSnippet('badge', venueBadgeHtml)}
                 style={{
-                  padding: '8px 14px',
+                  minHeight: 44,
+                  padding: '0 14px',
                   fontSize: 12,
                   fontWeight: 700,
-                  background: copiedMarketEmbed === 'badge' ? '#10b981' : '#25c8ff',
-                  color: '#020608',
-                  border: 'none',
-                  borderRadius: '2px',
+                  background: copiedMarketEmbed === 'badge' ? '#10b981' : '#1d4ed8',
+                  color: '#ffffff',
+                  border: '1px solid rgba(148,184,224,0.28)',
+                  borderRadius: '6px',
                   cursor: 'pointer',
                 }}
               >
@@ -256,13 +271,14 @@ export default function PokerMarketCityGuidePage({ guide }) {
                 type="button"
                 onClick={() => handleCopyMarketSnippet('snapshot', marketTableHtml)}
                 style={{
-                  padding: '8px 14px',
+                  minHeight: 44,
+                  padding: '0 14px',
                   fontSize: 12,
                   fontWeight: 700,
-                  background: copiedMarketEmbed === 'snapshot' ? '#10b981' : '#020608',
-                  color: copiedMarketEmbed === 'snapshot' ? '#020608' : '#f2b84b',
-                  border: '1px solid #f2b84b',
-                  borderRadius: '2px',
+                  background: copiedMarketEmbed === 'snapshot' ? '#10b981' : '#060d1a',
+                  color: copiedMarketEmbed === 'snapshot' ? '#ffffff' : '#38bdf8',
+                  border: '1px solid rgba(148,184,224,0.28)',
+                  borderRadius: '6px',
                   cursor: 'pointer',
                 }}
               >
@@ -275,8 +291,8 @@ export default function PokerMarketCityGuidePage({ guide }) {
         </section>
 
         {/* Regional Tactical Adjustments */}
-        <section style={{ marginBottom: 34, padding: 22, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#25c8ff', margin: '0 0 12px 0' }}>
+        <section style={{ marginBottom: 34, padding: 22, background: '#0c1628', borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#38bdf8', margin: '0 0 12px 0' }}>
             Winning Cash Game &amp; Bankroll Adjustments For {guide.regionName}
           </h2>
           <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8, color: '#cbd5e1', fontSize: 15 }}>
@@ -288,33 +304,33 @@ export default function PokerMarketCityGuidePage({ guide }) {
 
         {/* FAQs */}
         <section style={{ marginBottom: 34 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 14px 0' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', margin: '0 0 14px 0' }}>
             Frequently Asked Questions: {guide.regionName} Live Poker
           </h2>
           {guide.faqs.map((item) => (
-            <div key={item.q} style={{ marginBottom: 16, padding: 18, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#25c8ff', margin: '0 0 6px 0' }}>{item.q}</h3>
+            <div key={item.q} style={{ marginBottom: 16, padding: 18, background: '#0c1628', borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#38bdf8', margin: '0 0 6px 0' }}>{item.q}</h3>
               <p style={{ fontSize: 15, lineHeight: 1.6, color: '#cbd5e1', margin: 0 }}>{item.a}</p>
             </div>
           ))}
         </section>
 
         {/* Cross-Links To Live Directory, Research & Rake Calculator */}
-        <section style={{ marginBottom: 34, padding: 20, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+        <section style={{ marginBottom: 34, padding: 20, background: '#0c1628', borderRadius: '6px', border: '1px solid rgba(148,184,224,0.28)' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
             Verify Live Waitlists &amp; Compute Your {guide.regionName} Rake Impact
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/hub/poker-near-me/lobby" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/hub/poker-near-me/lobby" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#1d4ed8', color: '#ffffff', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Find Live Poker Rooms Near Me
             </Link>
-            <Link href="/tools/rake-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/rake-calculator" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#38bdf8', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Interactive Rake &amp; Time Calculator
             </Link>
-            <Link href="/research/us-live-poker-room-rake-and-jackpot-benchmark" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/research/us-live-poker-room-rake-and-jackpot-benchmark" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               US Live Poker Room Rake Study
             </Link>
-            <Link href="/poker-rooms/guides" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/poker-rooms/guides" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#060d1a', color: '#cbd5e1', border: '1px solid rgba(148,184,224,0.28)', borderRadius: '6px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               All 12 US Regional Market Guides
             </Link>
           </div>
@@ -322,7 +338,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
 
         {/* Other Regional Guides */}
         <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
             Explore Other Major US Live Poker Markets
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -331,11 +347,14 @@ export default function PokerMarketCityGuidePage({ guide }) {
                 key={other.slug}
                 href={marketGuidePath(other.slug)}
                 style={{
-                  padding: '6px 12px',
-                  background: '#101a20',
-                  border: '1px solid #1e293b',
-                  borderRadius: '2px',
-                  color: '#25c8ff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: 44,
+                  padding: '0 12px',
+                  background: '#0c1628',
+                  border: '1px solid rgba(148,184,224,0.28)',
+                  borderRadius: '6px',
+                  color: '#38bdf8',
                   fontSize: 13,
                   fontWeight: 600,
                   textDecoration: 'none',
