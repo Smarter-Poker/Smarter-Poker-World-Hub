@@ -1365,6 +1365,107 @@ test('Phase 23 deep forensic root-cause hardening: Practice Again spot replay, C
   );
 });
 
+test('Phase 24 optimizations & enhancements: Horse Brain LRU cache, demand-driven simulators, interactive branch replay, archetype replay, hotkeys, and top-leak lobby pill', async () => {
+  const {
+    evaluateTrainingSpotWithHorseBrain,
+    evaluateFullHandLineAndBranchComparison,
+    getHorseBrainSpotCacheStats,
+    clearHorseBrainSpotCache,
+  } = await import('../src/lib/training/horseBrainTrainingAdapter.js');
+
+  // 1. Verify bounded 5,000-entry Horse Brain spot LRU cache & branch LRU cache
+  clearHorseBrainSpotCache();
+  const stats0 = getHorseBrainSpotCacheStats();
+  assert.equal(stats0.size, 0);
+  assert.equal(stats0.hits, 0);
+
+  const eval1 = evaluateTrainingSpotWithHorseBrain({
+    gameId: 'cash-005',
+    variant: 'plo5',
+    bettingStructure: 'pot_limit',
+    format: 'cash',
+    street: 'flop',
+    heroCards: ['As', 'Ks', 'Qh', 'Jd', 'Tc'],
+    boardCards: ['9s', '8d', '2c'],
+    potSizeBb: 8.5,
+    facingBetBb: 4,
+    effectiveStackBb: 100,
+  });
+  assert.equal(eval1.cacheHit, false);
+
+  const eval2 = evaluateTrainingSpotWithHorseBrain({
+    gameId: 'cash-005',
+    variant: 'plo5',
+    bettingStructure: 'pot_limit',
+    format: 'cash',
+    street: 'flop',
+    heroCards: ['As', 'Ks', 'Qh', 'Jd', 'Tc'],
+    boardCards: ['9s', '8d', '2c'],
+    potSizeBb: 8.5,
+    facingBetBb: 4,
+    effectiveStackBb: 100,
+  });
+  assert.equal(eval2.cacheHit, true, 'Identical Horse Brain spot evaluation must hit the in-memory LRU cache');
+  assert.equal(eval2.recommendedAction, eval1.recommendedAction);
+  assert.ok(getHorseBrainSpotCacheStats().hits >= 1);
+
+  const branch1 = evaluateFullHandLineAndBranchComparison({
+    gameId: 'cash-005',
+    variant: 'plo8',
+    heroCards: ['As', '2s', '3h', 'Kh'],
+    fullBoardCards: ['Qs', '7d', '2c', '4s', '8h'],
+  });
+  assert.equal(branch1.cacheHit, false);
+  const branch2 = evaluateFullHandLineAndBranchComparison({
+    gameId: 'cash-005',
+    variant: 'plo8',
+    heroCards: ['As', '2s', '3h', 'Kh'],
+    fullBoardCards: ['Qs', '7d', '2c', '4s', '8h'],
+  });
+  assert.equal(branch2.cacheHit, true, 'Identical full-hand line and branch evaluation must hit the branch LRU cache');
+
+  // 2. Verify batch-preload warm cache capacity upgrade
+  const batchPreloadSrc = read('pages/api/training/batch-preload.js');
+  assert.ok(
+    batchPreloadSrc.includes('const WARM_CACHE_TTL_MS = 300_000;') &&
+      batchPreloadSrc.includes('const WARM_CACHE_MAX_ENTRIES = 256;'),
+    'batch-preload.js must maintain a 5-minute, 256-entry warm question cache',
+  );
+
+  // 3. Verify demand-driven simulator gating, interactive branch replay, archetype replay, and hotkeys in UniversalDynamicTable.jsx
+  const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.ok(
+    udtSrc.includes('if (!showFeedback && continuedBoardCards.length === 0) return null;'),
+    'UniversalDynamicTable must demand-gate whatIfEvaluation during pre-answer decision phase',
+  );
+  assert.ok(
+    udtSrc.includes('data-play-rewound-branch-on-felt="true"') &&
+      udtSrc.includes('handlePlayRewoundBranchOnFelt') &&
+      udtSrc.includes('data-active-branch-replay="true"'),
+    'UniversalDynamicTable must wire interactive multi-street branch replay on felt',
+  );
+  assert.ok(
+    udtSrc.includes('data-replay-vs-archetype-strip="true"') &&
+      udtSrc.includes('data-replay-vs-archetype={prof.key}'),
+    'UniversalDynamicTable must wire 1-tap Replay Vs Exploitative Archetype buttons on verdict banner',
+  );
+  assert.ok(
+    udtSrc.includes("showFeedback && onNextHand && !isMultiStreetActive && (key === 'r' || key === 'R')") &&
+      udtSrc.includes("presetOnlyProp && (key === 'k' || key === 'K' || (e.shiftKey && (key === 'c' || key === 'C')))"),
+    'UniversalDynamicTable unified keyboard handler must support R for Practice Again and K / Shift+C for Customize toggle',
+  );
+
+  // 4. Verify 1-Tap Fix Top Leak pill in TrainingLobbyHeader.jsx and pages/hub/training.js
+  const headerSrc = read('src/components/training/lobby/TrainingLobbyHeader.jsx');
+  const trainingPageSrc = read('pages/hub/training.js');
+  assert.ok(
+    headerSrc.includes('data-top-detected-leak-cta="true"') &&
+      headerSrc.includes('Fix Top Leak (10 Hands)') &&
+      trainingPageSrc.includes('fiveMinuteLeakFix={fiveMinuteLeakFix}'),
+    'TrainingLobbyHeader must surface the 1-tap Fix Top Leak (10 Hands) CTA when a verified or active leak is present',
+  );
+});
+
 
 
 

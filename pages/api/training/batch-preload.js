@@ -79,8 +79,8 @@ function getSupabase() {
 }
 
 const WARM_QUESTION_CACHE = new Map();
-const WARM_CACHE_TTL_MS = 60_000;
-const WARM_CACHE_MAX_ENTRIES = 64;
+const WARM_CACHE_TTL_MS = 300_000;
+const WARM_CACHE_MAX_ENTRIES = 256;
 
 export function buildWarmCacheKey({
     gameId,
