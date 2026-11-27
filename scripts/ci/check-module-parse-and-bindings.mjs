@@ -594,7 +594,12 @@ export function validateWorkingTree(repoRoot, { onlyCheckFiles = null, parseFn }
  * or were touched by both sides (catching cross-PR duplicate imports/declarations/exports
  * even when branch protection has strict:false).
  */
-export function validateSimulatedMerge(repoRoot, baseRef, headRef = 'HEAD', { parseFn } = {}) {
+export function validateSimulatedMerge(
+  repoRoot,
+  baseRef,
+  headRef = 'HEAD',
+  { parseFn, validateWhenUpToDate = false } = {},
+) {
   const parse = parseFn || getBabelParse(repoRoot);
 
   const baseExists = gitExec(repoRoot, ['rev-parse', '--verify', '--quiet', baseRef], {
@@ -604,16 +609,26 @@ export function validateSimulatedMerge(repoRoot, baseRef, headRef = 'HEAD', { pa
     return { skipped: true, reason: `base ref "${baseRef}" is not present locally`, checkedCount: 0, violations: [] };
   }
 
+  const headExists = gitExec(repoRoot, ['rev-parse', '--verify', '--quiet', headRef], {
+    allowNonZero: true,
+  });
+  if (headExists.status !== 0) {
+    return { skipped: true, reason: `head ref "${headRef}" is not present locally`, checkedCount: 0, violations: [] };
+  }
+
   const baseSha = baseExists.stdout.trim();
-  const headSha = gitExec(repoRoot, ['rev-parse', '--verify', headRef]).stdout.trim();
+  const headSha = headExists.stdout.trim();
   const mergeBase = gitExec(repoRoot, ['merge-base', baseSha, headSha], { allowNonZero: true });
   if (mergeBase.status !== 0) {
     return { skipped: true, reason: 'no common ancestor between base and head', checkedCount: 0, violations: [] };
   }
   const mergeBaseSha = mergeBase.stdout.trim();
 
-  // If HEAD already includes all of baseRef, the working-tree/HEAD check already covers the exact merge result.
-  if (mergeBaseSha === baseSha) {
+  // If HEAD already includes all of baseRef and the caller already validated the working tree,
+  // skip the redundant merge-tree pass. In --merge-only mode (e.g. pull_request_target where
+  // PR code is never checked out), validateWhenUpToDate=true validates the PR tree purely from
+  // git objects so up-to-date PRs are verified without touching the working tree.
+  if (!validateWhenUpToDate && mergeBaseSha === baseSha) {
     return { skipped: true, reason: 'HEAD is already up to date with base', checkedCount: 0, violations: [] };
   }
 
@@ -682,6 +697,8 @@ function parseCliArgs(argv) {
   const opts = {
     repoRoot: process.cwd(),
     mergeAgainst: null,
+    head: 'HEAD',
+    mergeOnly: false,
     changedSince: null,
     files: [],
   };
@@ -689,6 +706,10 @@ function parseCliArgs(argv) {
     const arg = argv[i];
     if (arg === '--merge-against' && argv[i + 1]) {
       opts.mergeAgainst = argv[++i];
+    } else if (arg === '--head' && argv[i + 1]) {
+      opts.head = argv[++i];
+    } else if (arg === '--merge-only') {
+      opts.mergeOnly = true;
     } else if (arg === '--changed-since' && argv[i + 1]) {
       opts.changedSince = argv[++i];
     } else if (arg === '--repo' && argv[i + 1]) {
@@ -704,6 +725,36 @@ function parseCliArgs(argv) {
 function main() {
   const opts = parseCliArgs(process.argv.slice(2));
   const t0 = Date.now();
+
+  if (opts.mergeOnly) {
+    if (!opts.mergeAgainst) {
+      console.error('[check-module-parse-and-bindings] FAILED: --merge-only requires --merge-against <baseRef>.');
+      process.exit(1);
+    }
+    const mergeResult = validateSimulatedMerge(opts.repoRoot, opts.mergeAgainst, opts.head, {
+      validateWhenUpToDate: true,
+    });
+    const elapsedMs = Date.now() - t0;
+    if (mergeResult.skipped) {
+      console.error(
+        `[check-module-parse-and-bindings] FAILED: simulated merge-only check could not run (${mergeResult.reason}, ${elapsedMs}ms).`,
+      );
+      process.exit(1);
+    }
+    if (mergeResult.violations.length > 0) {
+      console.error(
+        `[check-module-parse-and-bindings] FAILED: ${mergeResult.violations.length} violation(s) found in simulated merge (${opts.head} onto ${opts.mergeAgainst}, ${mergeResult.checkedCount} file(s), ${elapsedMs}ms):`,
+      );
+      for (const v of mergeResult.violations) {
+        console.error(`  - [${v.kind}] ${v.file}: ${v.message}`);
+      }
+      process.exit(1);
+    }
+    console.log(
+      `[check-module-parse-and-bindings] OK: simulated merge (${opts.head} onto ${opts.mergeAgainst}) verified ${mergeResult.checkedCount} file(s) (${elapsedMs}ms).`,
+    );
+    return;
+  }
 
   let onlyCheckFiles = opts.files.length > 0 ? opts.files : null;
   if (!onlyCheckFiles && opts.changedSince) {
@@ -722,7 +773,7 @@ function main() {
 
   let mergeSummary = '';
   if (opts.mergeAgainst) {
-    const mergeResult = validateSimulatedMerge(opts.repoRoot, opts.mergeAgainst, 'HEAD');
+    const mergeResult = validateSimulatedMerge(opts.repoRoot, opts.mergeAgainst, opts.head);
     if (!mergeResult.skipped) {
       allViolations.push(...mergeResult.violations);
       mergeSummary = `; simulated merge onto ${opts.mergeAgainst}: ${mergeResult.checkedCount} file(s)`;
