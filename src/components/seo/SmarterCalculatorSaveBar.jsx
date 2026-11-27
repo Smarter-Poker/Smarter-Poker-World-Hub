@@ -91,7 +91,7 @@ export default function SmarterCalculatorSaveBar({
       <div className={styles.calcSaveActions}>
         <button
           type="button"
-          className={styles.btnPrimary}
+          className={styles.ctaPrimary}
           data-testid={`calculator-save-cta-${toolSlug}`}
           onClick={handleSaveClick}
         >

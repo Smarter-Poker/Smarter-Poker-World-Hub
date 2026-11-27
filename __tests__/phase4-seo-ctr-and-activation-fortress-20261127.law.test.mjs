@@ -97,8 +97,23 @@ test('Phase 4.4 — Signup page renders real-time Account Progress Indicator wit
   assert.match(signupSrc, /100% Free \(Takes Under 30 Seconds\)/);
 });
 
-test('Phase 4.5 — SmarterSeoKit.module.css defines hardware styles for calcSaveBar and unlockedBanner', () => {
+test('Phase 4.5 — SmarterSeoKit.module.css defines hardware styles for calcSaveBar, unlockedBanner & every referenced styles.* class', () => {
   const css = read('src/components/seo/SmarterSeoKit.module.css');
   assert.match(css, /\.calcSaveBar\s*\{/);
   assert.match(css, /\.unlockedBanner\s*\{/);
+
+  const definedClasses = new Set([...css.matchAll(/\.([A-Za-z][A-Za-z0-9_-]*)/g)].map((m) => m[1]));
+  const seoDir = path.join(ROOT, 'src/components/seo');
+  const missing = [];
+  for (const entry of fs.readdirSync(seoDir)) {
+    if (!/\.(jsx?|tsx?)$/.test(entry)) continue;
+    const src = read(`src/components/seo/${entry}`);
+    if (!src.includes('SmarterSeoKit.module.css')) continue;
+    for (const m of src.matchAll(/\bstyles\.([A-Za-z][A-Za-z0-9_-]*)\b/g)) {
+      if (!definedClasses.has(m[1])) {
+        missing.push(`${entry}: styles.${m[1]}`);
+      }
+    }
+  }
+  assert.deepEqual(missing, [], `Undefined SmarterSeoKit CSS Module class references: ${missing.join(', ')}`);
 });
