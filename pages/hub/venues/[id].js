@@ -31,6 +31,7 @@ import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import VenueContributions, { VenueScheduleEditor } from '../../../src/components/poker-near-me/VenueContributions';
 import { supabase } from '../../../src/lib/supabase';
+import { subscribeOrDegrade, releaseChannel } from '../../../src/lib/realtimeSubscribeOrDegrade.mjs';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { addVenueFavorite, removeVenueFavorite } from '../../../src/services/pokerNearMeFavorites';
@@ -1452,7 +1453,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
   // Realtime subscription — live updates
   useEffect(() => {
     if (!id) return;
-    const _ch = supabase
+    // A browser that refuses the WebSocket keeps the page; it only loses the
+    // live check-in push (src/lib/realtimeSubscribeOrDegrade.mjs).
+    const _ch = subscribeOrDegrade(supabase, (client) => client
       .channel(`venue-pub:${id}`)
       // NOTE: a binding on public.tables filtered by venue_id used to live
       // here. public.tables keys off club_id and has no venue_id column, so
@@ -1487,9 +1490,8 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], maxCount: j.maxCount || 1, peakHour: j.peakHour || '' }); })
             .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }, 500);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
+      }), 'venue-pub');
+    return () => { releaseChannel(supabase, _ch); };
   }, [id]);
 
   // Handlers

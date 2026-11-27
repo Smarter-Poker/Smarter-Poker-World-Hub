@@ -252,6 +252,11 @@ jobs:
         # route 'unknown' because reportApiError ignored a context's route.
         run: node --test __tests__/an-api-error-names-its-route.law.test.mjs
 
+      - name: A Refused WebSocket Never Crashes A Public Page
+        # 2026-11-26/27: 49 crashes on /hub/venues/<id> from a synchronous
+        # throw in channel.subscribe() when the browser refused the socket.
+        run: node --test __tests__/a-refused-websocket-never-crashes-a-public-page.law.test.mjs
+
       - name: Poker Near Me Installed Collector Contracts
         run: |
           python3 scripts/test_tour_stealth_scraper.py
