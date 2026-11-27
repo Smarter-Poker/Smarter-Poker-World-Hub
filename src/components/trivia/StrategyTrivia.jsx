@@ -36,6 +36,7 @@ import TriviaNetworkBanner from './TriviaNetworkBanner';
 import TriviaSkeleton from './TriviaSkeleton';
 import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import TriviaConsole from './console/TriviaConsole';
+import TriviaHelpButton from './TriviaHelpButton';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import { VipUpgradePrompt } from '../vip/VipKit';
 import ResponsiveModeArt from './console/ResponsiveModeArt';
@@ -1116,6 +1117,17 @@ export default function StrategyTrivia({ mode }) {
                         subtitle={config.subtitle}
                         pill={gameState === 'lobby' ? (isPreparing ? 'Dealing' : 'Ready') : gameState === 'playing' ? 'Live' : 'Results'}
                         pillInk={gameState === 'playing' ? 'green' : 'blue'}
+                        headerAction={(
+                            <TriviaHelpButton
+                                ariaLabel={`${config.title} Help`}
+                                eyebrow="Strategy Table"
+                                title={`About ${config.title}`}
+                                subtitle={config.subtitle}
+                            >
+                                <p>{config.description || 'Test Your Poker Strategy Across Server-Scored Scenarios With Detailed Coaching Explanations.'}</p>
+                                <p>Every Run Confirms Entry Terms And VIP Eligibility Upfront And Records Verified Results To Your Stats And Study Deck.</p>
+                            </TriviaHelpButton>
+                        )}
                         titleAs="h1"
                         secondaryAction={(gameState === 'lobby' || gameState === 'results')
                             ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }

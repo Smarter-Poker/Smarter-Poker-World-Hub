@@ -27,6 +27,7 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_SURVIVAL } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
@@ -1444,7 +1445,7 @@ export default function SurvivalGamePage() {
                         <UniversalHeader pageDepth={2} />
                         <PageTransition>
                             <main className="trivia-challenge-shell" aria-labelledby="survival-trivia-title">
-                                <TriviaConsole className="trivia-challenge-console" eyebrow="Ten Level Challenge" title="Survival Trivia" titleId="survival-trivia-title" subtitle="Clear Every Level" pill="Loading" aria-labelledby="survival-trivia-title" secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}>
+                                <TriviaConsole className="trivia-challenge-console" eyebrow="Ten Level Challenge" title="Survival Trivia" titleAs="h1" titleId="survival-trivia-title" subtitle="Clear Every Level" pill="Loading" headerAction={<TriviaHelpButton ariaLabel="Survival Trivia Help" eyebrow="Ten Level Challenge" title="About Survival Trivia" subtitle="Ten Checkpoints, Accuracy Thresholds And Lives"><HubPageSummary page="trivia-survival" /></TriviaHelpButton>} aria-labelledby="survival-trivia-title" secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}>
                                     <section className="trivia-challenge-intro phase9-intro-layout" aria-label="Loading Account Run">
                                         <ResponsiveModeArt art={TRIVIA_INTRO_ART_SURVIVAL} priority />
                                         <p className="trivia-challenge-notice" role="status">Loading The Authoritative Run For This Account</p>
@@ -1454,7 +1455,6 @@ export default function SurvivalGamePage() {
                         </PageTransition>
                     </div>
                 </>
-                <HubPageSummary page="trivia-survival" as="h1" />
             </TriviaErrorBoundary>
         );
     }
@@ -1492,9 +1492,20 @@ export default function SurvivalGamePage() {
                                 className="trivia-challenge-console"
                                 eyebrow="Ten Level Challenge"
                                 title="Survival Trivia"
+                                titleAs="h1"
                                 titleId="survival-trivia-title"
                                 subtitle="Clear Every Level"
                                 pill={stateLabel}
+                                headerAction={(
+                                    <TriviaHelpButton
+                                        ariaLabel="Survival Trivia Help"
+                                        eyebrow="Ten Level Challenge"
+                                        title="About Survival Trivia"
+                                        subtitle="Ten Checkpoints, Accuracy Thresholds And Lives"
+                                    >
+                                        <HubPageSummary page="trivia-survival" />
+                                    </TriviaHelpButton>
+                                )}
                                 aria-labelledby="survival-trivia-title"
                                 primaryAction={primaryAction}
                                 secondaryAction={secondaryAction}
@@ -2014,9 +2025,6 @@ export default function SurvivalGamePage() {
                     </PageTransition>
                 </div>
             </>
-            {/* The only body copy a crawler gets here: the game itself
-                arrives after a data load. */}
-            <HubPageSummary page="trivia-survival" as="h1" />
         </TriviaErrorBoundary>
     );
 }

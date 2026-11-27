@@ -7,6 +7,7 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART } from '../../../src/config/triviaIntroArt.mjs';
@@ -346,6 +347,17 @@ export default function TriviaStats() {
                                 subtitle="Verified Performance Desk"
                                 pill={isLoading ? 'Loading' : loadError ? 'Error' : signedOut ? 'Guest' : `${formatTriviaDisplayNumber(summary.gamesPlayed)} ${summary.gamesPlayed === 1 ? 'Game' : 'Games'}`}
                                 pillInk={loadError ? 'red' : summary.gamesPlayed > 0 ? 'green' : 'blue'}
+                                headerAction={(
+                                    <TriviaHelpButton
+                                        ariaLabel="Trivia Stats Help"
+                                        eyebrow="Player Progress"
+                                        title="About My Trivia Stats"
+                                        subtitle="Verified Performance, Streaks And Weak Spots"
+                                    >
+                                        <p>Filter Verified Poker Trivia Results By Time Range And Game Mode To Inspect Accuracy, Daily Streak Milestones And Comparable Mode Desks.</p>
+                                        <p>Weakest Spot Of The Week Highlights Your Lowest-Accuracy Category And Links Directly To Spaced-Repetition Study And GTO Training.</p>
+                                    </TriviaHelpButton>
+                                )}
                                 secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
                                 primaryAction={!isLoading && loadError
                                     ? { label: 'Retry', onClick: retry }

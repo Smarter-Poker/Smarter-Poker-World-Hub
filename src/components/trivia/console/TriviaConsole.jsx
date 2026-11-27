@@ -86,6 +86,7 @@ export default function TriviaConsole({
     subtitle,
     pill,
     pillInk = 'blue',
+    headerAction,
     children,
     primaryAction,
     secondaryAction,
@@ -97,7 +98,7 @@ export default function TriviaConsole({
     const soleAction = hasPlates ? null : (primaryAction || secondaryAction || null);
     const hasBody = (children !== undefined && children !== null && children !== false) || Boolean(soleAction);
     const pillTone = normalizeInk(pillInk, 'blue');
-    const hasHead = Boolean(eyebrow || title || subtitle || pill);
+    const hasHead = Boolean(eyebrow || title || subtitle || pill || headerAction);
 
     return (
         <Tag
@@ -117,10 +118,15 @@ export default function TriviaConsole({
                         ) : null}
                         {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
                     </div>
-                    {pill ? (
-                        <span className={`${styles.pill} ${styles[`ink_${pillTone}`]}`}>
-                            {pill}
-                        </span>
+                    {pill || headerAction ? (
+                        <div className={styles.headActions}>
+                            {pill ? (
+                                <span className={`${styles.pill} ${styles[`ink_${pillTone}`]}`}>
+                                    {pill}
+                                </span>
+                            ) : null}
+                            {headerAction || null}
+                        </div>
                     ) : null}
                 </header>
             ) : null}

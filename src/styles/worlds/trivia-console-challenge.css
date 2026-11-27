@@ -18,7 +18,7 @@
 
 .trivia-challenge-shell {
     width: 100%;
-    padding: max(76px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    padding: max(76px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(96px, calc(76px + env(safe-area-inset-bottom))) max(8px, env(safe-area-inset-left));
 }
 
 .trivia-challenge-console {
@@ -158,22 +158,24 @@
     text-align: center;
 }
 
-/* Figures: label over value, engraved rule beneath each cell. */
+/* Figures: #SMARTERDESIGN steel stat readouts. */
 .trivia-challenge-stats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 4cqw;
+    gap: 10px;
     margin: 0;
 }
 
 .trivia-challenge-stat {
     display: grid;
     align-content: start;
-    gap: 0.8cqw;
+    gap: 6px;
     min-width: 0;
-    padding: 1.8cqw 0;
-    border-bottom: var(--tc-rule);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 8%);
+    padding: 12px 14px;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 16 / 4px stretch;
+    background: var(--sd-navy, #0a1829);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 12%);
 }
 
 .trivia-challenge-stat dt {
@@ -187,12 +189,12 @@
 .trivia-challenge-stat dd {
     margin: 0;
     overflow-wrap: anywhere;
-    color: var(--tc-ink-silver);
+    color: var(--tc-ink-white);
     font-size: max(20px, 5cqw);
     font-weight: 800;
     font-variant-numeric: tabular-nums lining-nums;
     line-height: 1.1;
-    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 var(--tc-bevel), 0 0.45cqw 0 var(--tc-chassis-black);
+    text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
 }
 
 .trivia-challenge-stats--compact .trivia-challenge-stat dd,
@@ -203,7 +205,7 @@
 
 .trivia-challenge-stat[data-tone='accent'] dd {
     color: var(--tc-ink-blue);
-    text-shadow: 0 0 1cqw rgb(255 215 0 / 55%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+    text-shadow: 0 0 1cqw rgb(69 173 255 / 55%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
 }
 
 .trivia-challenge-toolbar,
@@ -224,10 +226,10 @@
 .trivia-challenge-actions {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 1cqw 3cqw;
+    gap: 8px 10px;
 }
 
-/* Lit words on the glass (the console's own control for body actions). */
+/* #SMARTERDESIGN beveled steel controls for challenge actions and selectors. */
 .trivia-challenge-action,
 .trivia-challenge-switch,
 .trivia-challenge-level {
@@ -238,19 +240,19 @@
     min-width: 44px;
     min-height: 44px;
     margin: 0;
-    padding: 1.2cqw 2.4cqw;
-    border: 0;
-    border-radius: 0;
+    padding: 8px 14px;
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
     color: var(--tc-ink-white);
-    background: transparent;
-    box-shadow: none;
-    font: 800 max(13px, 3cqw) / 1.2 'Roboto Condensed', Inter, system-ui, sans-serif;
-    letter-spacing: 0.12em;
+    background: var(--sd-control, #0e2236);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 10%);
+    font: 800 max(13px, 3cqw) / 1.2 var(--sd-type, 'Arial Narrow', 'Roboto Condensed', Inter, system-ui, sans-serif);
+    letter-spacing: 0.08em;
     text-align: center;
     text-decoration: none;
-    text-shadow: 0 0 1cqw rgb(69 173 255 / 90%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
     cursor: pointer;
     touch-action: manipulation;
+    transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .trivia-challenge-action--link {
@@ -262,21 +264,20 @@
 .trivia-challenge-level[aria-pressed='true'],
 .trivia-challenge-level[data-selected='true'],
 .trivia-challenge-switch[aria-checked='true'] {
-    color: var(--tc-ink-blue);
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 0.9cqw;
+    border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+    background: var(--sd-cobalt, #0c4ea9);
+    color: #fff;
+    text-decoration: none;
 }
 
 .trivia-challenge-switch[aria-checked='false'] {
     color: var(--tc-ink-muted);
-    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
 }
 
 .trivia-challenge-action:active,
 .trivia-challenge-switch:active,
 .trivia-challenge-level:active {
-    filter: brightness(1.25);
+    transform: scale(0.985);
 }
 
 .trivia-challenge-action:focus-visible,
@@ -404,7 +405,7 @@
 
 .trivia-challenge-options {
     display: grid;
-    gap: 0;
+    gap: 10px;
 }
 
 .trivia-challenge-explanation,
@@ -413,9 +414,11 @@
 .trivia-challenge-leaderboard,
 .trivia-challenge-review {
     min-width: 0;
-    padding-top: 1.8cqw;
-    border-top: var(--tc-rule);
-    box-shadow: var(--tc-rule-lit);
+    padding: 14px 16px;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 16 / 4px stretch;
+    background: var(--sd-navy, #0a1829);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 12%);
 }
 
 .trivia-challenge-explanation {
@@ -500,9 +503,11 @@
 
 .phase9-mode-brief,
 .phase9-settlement {
-    padding-top: 1.8cqw;
-    border-top: var(--tc-rule);
-    box-shadow: var(--tc-rule-lit);
+    padding: 14px 16px;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 16 / 4px stretch;
+    background: var(--sd-navy, #0a1829);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 12%);
 }
 
 .phase9-mode-brief > h2,
