@@ -5,6 +5,7 @@ import {
     FALLBACK_MAGAZINE_IMAGE,
     handleMagazineImageError,
 } from '../../../src/components/magazine/MagazineSpreadRenderer.js';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
     MAGAZINE_MASTHEAD,
     MAGAZINE_SITE_URL,
@@ -254,7 +255,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
         boxSizing: 'border-box',
         background: '#05070a',
         border: '1px solid #1b2c3d',
-        borderRadius: '10px',
+        borderRadius: 0,
         padding: '12px 14px',
         color: '#ffffff',
         fontSize: '16px',
@@ -327,7 +328,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                         style={{
                             background: 'linear-gradient(135deg, #0b1520 0%, #102131 100%)',
                             border: '1px solid #1b2c3d',
-                            borderRadius: '20px',
+                            borderRadius: 0,
                             padding: '32px',
                             marginBottom: '28px',
                             display: 'grid',
@@ -348,7 +349,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                         letterSpacing: '1.6px',
                                         textTransform: 'uppercase',
                                         padding: '4px 12px',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                     }}
                                 >
                                     Official Cardroom Print Program
@@ -364,7 +365,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                             fontSize: '11px',
                                             fontWeight: 800,
                                             padding: '4px 12px',
-                                            borderRadius: '999px',
+                                            borderRadius: 0,
                                             textDecoration: 'none',
                                         }}
                                     >
@@ -402,7 +403,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                         background: '#05070a',
                                         border: '1px solid #4fc1b3',
                                         color: '#4fc1b3',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                         padding: '10px 18px',
                                         fontSize: '13.5px',
                                         fontWeight: 900,
@@ -421,7 +422,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                         background: '#102131',
                                         border: '1px solid #1b2c3d',
                                         color: '#ffffff',
-                                        borderRadius: '10px',
+                                        borderRadius: 0,
                                         padding: '10px 16px',
                                         fontSize: '13.5px',
                                         fontWeight: 800,
@@ -435,7 +436,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
 
                         <div
                             style={{
-                                borderRadius: '14px',
+                                borderRadius: 0,
                                 overflow: 'hidden',
                                 border: '1px solid #1b2c3d',
                                 background: '#05070a',
@@ -488,7 +489,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                     background: '#0b1520',
                                     border: '1px solid #1b2c3d',
                                     borderTop: `3px solid ${idx % 2 === 0 ? '#4fc1b3' : '#60a5fa'}`,
-                                    borderRadius: '14px',
+                                    borderRadius: 0,
                                     padding: '22px',
                                 }}
                             >
@@ -534,7 +535,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                         style={{
                             background: '#0b1520',
                             border: '1px solid #1b2c3d',
-                            borderRadius: '18px',
+                            borderRadius: 0,
                             padding: '28px',
                         }}
                     >
@@ -550,7 +551,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                         letterSpacing: '1.6px',
                                         textTransform: 'uppercase',
                                         padding: '5px 14px',
-                                        borderRadius: '999px',
+                                        borderRadius: 0,
                                         marginBottom: '12px',
                                     }}
                                 >
@@ -582,7 +583,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                             minHeight: '44px',
                                             background: '#4fc1b3',
                                             color: '#05070a',
-                                            borderRadius: '10px',
+                                            borderRadius: 0,
                                             padding: '11px 22px',
                                             fontSize: '14px',
                                             fontWeight: 900,
@@ -601,7 +602,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                             background: '#05070a',
                                             border: '1px solid #60a5fa',
                                             color: '#60a5fa',
-                                            borderRadius: '10px',
+                                            borderRadius: 0,
                                             padding: '11px 20px',
                                             fontSize: '14px',
                                             fontWeight: 900,
@@ -618,7 +619,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                             background: '#102131',
                                             border: '1px solid #1b2c3d',
                                             color: '#9fb3c8',
-                                            borderRadius: '10px',
+                                            borderRadius: 0,
                                             padding: '11px 18px',
                                             fontSize: '14px',
                                             fontWeight: 800,
@@ -848,7 +849,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                                 background: '#102131',
                                                 border: '1px solid #60a5fa',
                                                 color: '#ffffff',
-                                                borderRadius: '10px',
+                                                borderRadius: 0,
                                                 padding: '12px 14px',
                                                 fontSize: '14px',
                                                 fontWeight: 700,
@@ -866,7 +867,7 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                             background: '#4fc1b3',
                                             color: '#05070a',
                                             border: 'none',
-                                            borderRadius: '10px',
+                                            borderRadius: 0,
                                             padding: '14px 26px',
                                             fontSize: '15px',
                                             fontWeight: 900,
@@ -880,6 +881,13 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                             </>
                         )}
                     </section>
+                    <div style={{ marginTop: 28 }}>
+                        <SmarterAccountUnlockGate
+                            variant="editorial-wire"
+                            context="magazine-poker-rooms"
+                            redirectPath="/hub/magazine/poker-rooms"
+                        />
+                    </div>
                 </div>
             </main>
         </>

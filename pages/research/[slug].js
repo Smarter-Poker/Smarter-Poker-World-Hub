@@ -15,6 +15,7 @@ import { firstThatFits, fitMetaDescription } from '../../src/lib/seo/titleFit.js
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
@@ -198,7 +199,7 @@ export default function ResearchReportDetailPage({ report }) {
   const chartSvgUrl = `${SITE_URL}/api/seo/research-chart?slug=${encodeURIComponent(report.slug)}`;
   const colabNotebookUrl =
     'https://colab.research.google.com/github/Smarter-Poker/smarter-poker-open-datasets/blob/main/notebooks/poker_math_benchmarks_2026.ipynb';
-  const chartHtmlSnippet = `<figure style="margin:0;padding:14px;background:#070b14;border:1px solid #1e293b;border-radius:10px;text-align:center;"><img src="${chartSvgUrl}" alt="${report.title}" width="880" height="480" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy" /><figcaption style="margin-top:8px;font-size:12px;color:#94a3b8;font-family:Inter,system-ui,sans-serif;">Source: ${report.shortTitle} (Smarter.Poker Research, CC BY 4.0, DOI: ${report.doi || '10.5281/zenodo.24115647'})</figcaption></figure>`;
+  const chartHtmlSnippet = `<figure style="margin:0;padding:14px;background:#070b14;border:1px solid #2b4663;border-radius: 0;text-align:center;"><img src="${chartSvgUrl}" alt="${report.title}" width="880" height="480" style="max-width:100%;height:auto;border-radius: 0;" loading="lazy" /><figcaption style="margin-top:8px;font-size:12px;color:#94a3b8;font-family:Inter,system-ui,sans-serif;">Source: ${report.shortTitle} (Smarter.Poker Research, CC BY 4.0, DOI: ${report.doi || '10.5281/zenodo.24115647'})</figcaption></figure>`;
   const chartMarkdownSnippet = `![${report.shortTitle}](${chartSvgUrl})\n*Source: ${report.title} (Smarter.Poker Research, DOI: ${report.doi || '10.5281/zenodo.24115647'}, ${url})*`;
   const others = RESEARCH_REPORTS.filter((r) => r.slug !== report.slug);
 
@@ -265,7 +266,7 @@ export default function ResearchReportDetailPage({ report }) {
               background: 'rgba(16, 185, 129, 0.12)',
               border: '1px solid #10b981',
               padding: '4px 10px',
-              borderRadius: 6,
+              borderRadius: 0,
               textDecoration: 'none',
             }}
           >
@@ -282,7 +283,7 @@ export default function ResearchReportDetailPage({ report }) {
               background: 'rgba(56, 189, 248, 0.12)',
               border: '1px solid #38bdf8',
               padding: '4px 10px',
-              borderRadius: 6,
+              borderRadius: 0,
               textDecoration: 'none',
               fontFamily: 'monospace',
             }}
@@ -300,7 +301,7 @@ export default function ResearchReportDetailPage({ report }) {
               background: 'rgba(56, 189, 248, 0.14)',
               border: '1px solid rgba(148, 184, 224, 0.35)',
               padding: '4px 10px',
-              borderRadius: 6,
+              borderRadius: 0,
               textDecoration: 'none',
             }}
           >
@@ -316,7 +317,7 @@ export default function ResearchReportDetailPage({ report }) {
           {report.summary}
         </p>
 
-        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 12, border: '1px solid #1e293b' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0d1f33', borderRadius: 0, border: '1px solid #2b4663' }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Key Empirical Findings
           </h2>
@@ -332,9 +333,9 @@ export default function ResearchReportDetailPage({ report }) {
           style={{
             marginBottom: 32,
             padding: 20,
-            background: '#0f172a',
-            borderRadius: 12,
-            border: '1px solid #1e293b',
+            background: '#0d1f33',
+            borderRadius: 0,
+            border: '1px solid #2b4663',
           }}
         >
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -354,7 +355,7 @@ export default function ResearchReportDetailPage({ report }) {
                   padding: '7px 12px',
                   fontSize: 12,
                   fontWeight: 700,
-                  borderRadius: 6,
+                  borderRadius: 0,
                   border: '1px solid #38bdf8',
                   background: chartCopiedKey === 'html' ? '#10b981' : 'rgba(56, 189, 248, 0.14)',
                   color: chartCopiedKey === 'html' ? '#04131d' : '#38bdf8',
@@ -370,7 +371,7 @@ export default function ResearchReportDetailPage({ report }) {
                   padding: '7px 12px',
                   fontSize: 12,
                   fontWeight: 700,
-                  borderRadius: 6,
+                  borderRadius: 0,
                   border: '1px solid #10b981',
                   background: chartCopiedKey === 'md' ? '#10b981' : 'rgba(16, 185, 129, 0.12)',
                   color: chartCopiedKey === 'md' ? '#04131d' : '#34d399',
@@ -385,7 +386,7 @@ export default function ResearchReportDetailPage({ report }) {
                   padding: '7px 12px',
                   fontSize: 12,
                   fontWeight: 700,
-                  borderRadius: 6,
+                  borderRadius: 0,
                   border: '1px solid #475569',
                   background: '#070b14',
                   color: '#e2e8f0',
@@ -397,14 +398,14 @@ export default function ResearchReportDetailPage({ report }) {
             </div>
           </div>
 
-          <div style={{ background: '#070b14', padding: 12, borderRadius: 8, border: '1px solid #1e293b', textAlign: 'center' }}>
+          <div style={{ background: '#070b14', padding: 12, borderRadius: 0, border: '1px solid #2b4663', textAlign: 'center' }}>
             <img
               src={`/api/seo/research-chart?slug=${encodeURIComponent(report.slug)}`}
               alt={`${report.title} Benchmark Chart`}
               width={880}
               height={460}
               loading="lazy"
-              style={{ maxWidth: '100%', height: 'auto', borderRadius: 6, display: 'block', margin: '0 auto' }}
+              style={{ maxWidth: '100%', height: 'auto', borderRadius: 0, display: 'block', margin: '0 auto' }}
             />
           </div>
         </section>
@@ -413,12 +414,13 @@ export default function ResearchReportDetailPage({ report }) {
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             {report.table.caption}
           </h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0 }}>
             <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
               {report.methodology}
             </caption>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e293b', color: '#38bdf8', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '1px solid #2b4663', color: '#38bdf8', textAlign: 'left' }}>
                 {report.table.columns.map((col) => (
                   <th key={col} scope="col" style={{ padding: '12px 14px' }}>{col}</th>
                 ))}
@@ -426,7 +428,7 @@ export default function ResearchReportDetailPage({ report }) {
             </thead>
             <tbody>
               {report.table.rows.map((row) => (
-                <tr key={row[0]} style={{ borderBottom: '1px solid #1e293b' }}>
+                <tr key={row[0]} style={{ borderBottom: '1px solid #2b4663' }}>
                   {row.map((cell, idx) => (
                     <td
                       key={`${row[0]}-${idx}`}
@@ -443,6 +445,7 @@ export default function ResearchReportDetailPage({ report }) {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section style={{ marginBottom: 32 }}>
@@ -492,6 +495,14 @@ export default function ResearchReportDetailPage({ report }) {
           publishedYear={String(report.publishedDate || '2026').slice(0, 4)}
           slug={report.slug}
         />
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="research-detail"
+            redirectPath={researchPath(report.slug)}
+          />
+        </div>
 
         <AiPromptLauncher
           title={report.title}

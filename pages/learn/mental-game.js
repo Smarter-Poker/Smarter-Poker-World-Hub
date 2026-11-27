@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 const SEVEN_TILT_TYPES = [
   {
@@ -390,6 +391,13 @@ export default function PokerMentalGamePage() {
             </Link>
           </div>
         </section>
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context="learn-mental-game"
+          title="Save Mental Game Frameworks, Leak Checklists & Session Trackers Free"
+          redirectPath={canonicalPath}
+        />
+
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>
@@ -428,8 +436,8 @@ export default function PokerMentalGamePage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#050811',
-    color: '#e2e8f0',
+    background: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
   },
   container: {
@@ -442,16 +450,16 @@ const styles = {
     flexWrap: 'wrap',
     gap: 8,
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginBottom: 18,
   },
   crumbLink: { color: '#38bdf8', textDecoration: 'none' },
-  crumbSep: { color: '#475569' },
-  crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
+  crumbSep: { color: '#2b4663' },
+  crumbCurrent: { color: '#bdd0e2', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #0a1a2b 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 26,
   },
@@ -461,7 +469,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -471,7 +479,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -479,49 +487,49 @@ const styles = {
   h1: {
     fontSize: 'clamp(26px, 3.6vw, 36px)',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     lineHeight: 1.2,
     margin: '0 0 14px 0',
   },
   lead: {
     fontSize: 16,
     lineHeight: 1.68,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 20px 0',
   },
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   crossBtnCyan: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#38bdf8',
-    color: '#04131d',
+    color: '#071321',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#10b981',
-    color: '#04131d',
+    color: '#071321',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   crossBtnOutline: {
     padding: '9px 15px',
-    borderRadius: 8,
-    background: '#0f172a',
+    borderRadius: 0,
+    background: '#0d1f33',
     color: '#38bdf8',
-    border: '1px solid #334155',
+    border: '1px solid #2b4663',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   sectionPlate: {
-    background: '#0b1120',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px 22px',
     marginBottom: 26,
   },
@@ -533,14 +541,14 @@ const styles = {
     gap: 10,
     marginBottom: 10,
   },
-  h2: { fontSize: 21, fontWeight: 800, color: '#f8fafc', margin: 0 },
-  h3: { fontSize: 17, fontWeight: 800, color: '#f8fafc', margin: '0 0 10px 0' },
-  subLead: { fontSize: 14.5, color: '#94a3b8', margin: '0 0 16px 0' },
+  h2: { fontSize: 21, fontWeight: 800, color: '#f2f7ff', margin: 0 },
+  h3: { fontSize: 17, fontWeight: 800, color: '#f2f7ff', margin: '0 0 10px 0' },
+  subLead: { fontSize: 14.5, color: '#bdd0e2', margin: '0 0 16px 0' },
   statusGreen: {
     fontSize: 11.5,
     fontWeight: 800,
     padding: '5px 11px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.16)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.4)',
@@ -549,23 +557,23 @@ const styles = {
     fontSize: 11.5,
     fontWeight: 800,
     padding: '5px 11px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.4)',
   },
   checklistGrid: { display: 'grid', gap: 12 },
   checkCard: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px 16px',
     cursor: 'pointer',
   },
   checkCardActive: {
     background: 'rgba(16, 185, 129, 0.08)',
     border: '1px solid rgba(16, 185, 129, 0.45)',
-    borderRadius: 10,
+    borderRadius: 0,
     padding: '14px 16px',
     cursor: 'pointer',
   },
@@ -574,28 +582,28 @@ const styles = {
     fontSize: 10.5,
     fontWeight: 800,
     padding: '3px 8px',
-    borderRadius: 5,
+    borderRadius: 0,
     background: '#10b981',
-    color: '#04131d',
+    color: '#071321',
   },
   checkBoxOff: {
     fontSize: 10.5,
     fontWeight: 800,
     padding: '3px 8px',
-    borderRadius: 5,
-    background: '#1e293b',
-    color: '#94a3b8',
+    borderRadius: 0,
+    background: '#2b4663',
+    color: '#bdd0e2',
   },
-  checkLabel: { fontSize: 15, fontWeight: 700, color: '#f8fafc' },
-  checkDetail: { fontSize: 13.5, color: '#cbd5e1', margin: 0, lineHeight: 1.55 },
+  checkLabel: { fontSize: 15, fontWeight: 700, color: '#f2f7ff' },
+  checkDetail: { fontSize: 13.5, color: '#bdd0e2', margin: 0, lineHeight: 1.55 },
   tiltGrid: { display: 'grid', gap: 14, marginTop: 14 },
   tiltCard: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px 20px',
   },
-  tiltLine: { fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: '0 0 8px 0' },
+  tiltLine: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: '0 0 8px 0' },
   twoColGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
@@ -603,9 +611,9 @@ const styles = {
     marginTop: 14,
   },
   colBox: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 18,
   },
   tagCyan: {
@@ -624,16 +632,16 @@ const styles = {
     letterSpacing: '0.05em',
     marginBottom: 6,
   },
-  bodyText: { fontSize: 14, lineHeight: 1.62, color: '#cbd5e1', margin: 0 },
+  bodyText: { fontSize: 14, lineHeight: 1.62, color: '#bdd0e2', margin: 0 },
   faqList: { display: 'grid', gap: 14, marginTop: 14 },
   faqItem: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px 18px',
   },
-  faqQ: { fontSize: 16, fontWeight: 700, color: '#f8fafc', margin: '0 0 6px 0' },
-  faqA: { fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: 0 },
+  faqQ: { fontSize: 16, fontWeight: 700, color: '#f2f7ff', margin: '0 0 6px 0' },
+  faqA: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: 0 },
 };
 
 export async function getServerSideProps({ req, res, query }) {

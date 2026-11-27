@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -230,7 +231,7 @@ export default function PushFoldCalculatorPage({
           gap: 20,
           marginBottom: 36,
         }}>
-          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: 24 }}>
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 0, padding: 24 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 16px 0' }}>
               1. Short-Stack Spot Inputs (BB, Seat &amp; Antes)
             </h2>
@@ -252,7 +253,7 @@ export default function PushFoldCalculatorPage({
                   padding: '10px 12px',
                   background: '#070b14',
                   border: '1px solid #334155',
-                  borderRadius: 8,
+                  borderRadius: 0,
                   color: '#f8fafc',
                   fontSize: 16,
                   fontWeight: 700,
@@ -273,7 +274,7 @@ export default function PushFoldCalculatorPage({
                   padding: '10px 12px',
                   background: '#070b14',
                   border: '1px solid #334155',
-                  borderRadius: 8,
+                  borderRadius: 0,
                   color: '#f8fafc',
                   fontSize: 16,
                   fontWeight: 700,
@@ -305,7 +306,7 @@ export default function PushFoldCalculatorPage({
                   padding: '10px 12px',
                   background: '#070b14',
                   border: '1px solid #334155',
-                  borderRadius: 8,
+                  borderRadius: 0,
                   color: '#f8fafc',
                   fontSize: 16,
                   fontWeight: 700,
@@ -314,7 +315,7 @@ export default function PushFoldCalculatorPage({
             </div>
           </div>
 
-          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: 24 }}>
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 0, padding: 24 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 16px 0' }}>
               2. Nash Equilibrium Push/Fold Output ({metrics.safeBb} BB At {metrics.posKey})
             </h2>
@@ -328,13 +329,21 @@ export default function PushFoldCalculatorPage({
           </div>
         </section>
 
+        <div style={{ marginBottom: 32 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="tools-push-fold-calculator"
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         {/* Reference Table 1: Positional Nash Shove Frequencies */}
         <section style={{ marginBottom: 36 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Nash Equilibrium Open-Shove Percentages By Position &amp; Stack Depth
           </h2>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Chip-EV Nash Equilibrium Shoving Frequencies With 12.5% Big Blind Ante Across 8-Max Table Positions
               </caption>
@@ -372,7 +381,7 @@ export default function PushFoldCalculatorPage({
             Sklansky-Chubukov Numbers &amp; 10BB Push/Call Hand Group Matrix
           </h2>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Comparison Of Unexploitable Small-Blind Shove Thresholds And Big-Blind Calling Actions At 10 Big Blinds
               </caption>
@@ -401,27 +410,27 @@ export default function PushFoldCalculatorPage({
         </section>
 
         {/* Cross-Link Navigation */}
-        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 12, border: '1px solid #1e293b' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 0, border: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Related Smarter.Poker Calculators &amp; Strategy Guides
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#1f6feb', color: '#fff', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Multiway Equity Calculator
             </Link>
-            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Tournament ICM Calculator
             </Link>
-            <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Pot Odds &amp; MDF Calculator
             </Link>
-            <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Bankroll &amp; Risk Of Ruin Calculator
             </Link>
-            <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               13x13 GTO Preflop Ranges
             </Link>
-            <Link href="/learn/hands" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/hands" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               169 Starting Hand Guides
             </Link>
           </div>

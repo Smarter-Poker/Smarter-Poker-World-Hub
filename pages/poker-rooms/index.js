@@ -21,6 +21,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
@@ -411,6 +412,15 @@ export default function PokerRoomsMasterHubPage() {
           />
         </div>
 
+        <div style={{ margin: '24px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={"poker-rooms-master-hub"}
+            title={"Unlock Live Waitlists, Peak Hours & Room Alerts Across 715+ Venues"}
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         <CitationBacklinkBox
           title="Live Poker Room Guides, Border Travel Corridors & Game-Format Directories"
           canonicalUrl={canonicalUrl}
@@ -457,9 +467,9 @@ const styles = {
   crumbSep: { color: '#475569' },
   crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -469,7 +479,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -479,7 +489,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -500,7 +510,7 @@ const styles = {
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   crossBtnCyan: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#38bdf8',
     color: '#04131d',
     fontWeight: 700,
@@ -509,7 +519,7 @@ const styles = {
   },
   crossBtnEmerald: {
     padding: '9px 15px',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#10b981',
     color: '#04131d',
     fontWeight: 700,
@@ -518,18 +528,18 @@ const styles = {
   },
   crossBtnOutline: {
     padding: '9px 15px',
-    borderRadius: 8,
-    background: '#0f172a',
+    borderRadius: 0,
+    background: '#0d1f33',
     color: '#38bdf8',
-    border: '1px solid #334155',
+    border: '1px solid #2b4663',
     fontWeight: 700,
     fontSize: 13,
     textDecoration: 'none',
   },
   sectionPlate: {
-    background: '#0b1120',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px 22px',
     marginBottom: 24,
   },
@@ -540,9 +550,9 @@ const styles = {
     gap: 16,
   },
   card: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 18,
     display: 'flex',
     flexDirection: 'column',
@@ -553,7 +563,7 @@ const styles = {
     fontSize: 10.5,
     fontWeight: 800,
     padding: '3px 8px',
-    borderRadius: 5,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.16)',
     color: '#38bdf8',
     marginBottom: 8,
@@ -564,7 +574,7 @@ const styles = {
   cardCtaBtn: {
     display: 'inline-block',
     padding: '8px 13px',
-    borderRadius: 7,
+    borderRadius: 0,
     background: '#38bdf8',
     color: '#04131d',
     fontSize: 12.5,
@@ -573,13 +583,13 @@ const styles = {
   },
   twoColGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
     gap: 16,
   },
   colBox: {
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 18,
   },
   tagCyan: { fontSize: 11, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.05em', marginBottom: 10 },
@@ -589,7 +599,7 @@ const styles = {
   pillCloud: { display: 'flex', flexWrap: 'wrap', gap: 8 },
   cloudChipCyan: {
     padding: '6px 11px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.12)',
     border: '1px solid rgba(56, 189, 248, 0.35)',
     color: '#38bdf8',
@@ -599,7 +609,7 @@ const styles = {
   },
   cloudChipEmerald: {
     padding: '6px 11px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.12)',
     border: '1px solid rgba(16, 185, 129, 0.35)',
     color: '#34d399',
@@ -609,9 +619,9 @@ const styles = {
   },
   cloudChipOutline: {
     padding: '6px 11px',
-    borderRadius: 6,
-    background: '#0f172a',
-    border: '1px solid #334155',
+    borderRadius: 0,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
     color: '#cbd5e1',
     fontSize: 12.5,
     fontWeight: 600,

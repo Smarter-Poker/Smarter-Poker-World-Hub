@@ -12,6 +12,7 @@ import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
@@ -177,7 +178,7 @@ export default function ResearchIndexPage() {
             href="/research/annual-state-of-poker-2026"
             style={{
               padding: '9px 15px',
-              borderRadius: 8,
+              borderRadius: 0,
               background: '#38bdf8',
               color: '#04131d',
               fontWeight: 700,
@@ -191,7 +192,7 @@ export default function ResearchIndexPage() {
             href="/research/benchmarks"
             style={{
               padding: '9px 15px',
-              borderRadius: 8,
+              borderRadius: 0,
               background: '#10b981',
               color: '#04131d',
               fontWeight: 700,
@@ -205,10 +206,10 @@ export default function ResearchIndexPage() {
             href="/facts"
             style={{
               padding: '9px 15px',
-              borderRadius: 8,
-              background: '#0f172a',
+              borderRadius: 0,
+              background: '#0d1f33',
               color: '#38bdf8',
-              border: '1px solid #334155',
+              border: '1px solid #304d6b',
               fontWeight: 700,
               fontSize: 13,
               textDecoration: 'none',
@@ -220,10 +221,10 @@ export default function ResearchIndexPage() {
             href="/api/datasets/citation?format=bibtex"
             style={{
               padding: '9px 15px',
-              borderRadius: 8,
-              background: '#0f172a',
+              borderRadius: 0,
+              background: '#0d1f33',
               color: '#34d399',
-              border: '1px solid #334155',
+              border: '1px solid #304d6b',
               fontWeight: 700,
               fontSize: 13,
               textDecoration: 'none',
@@ -237,9 +238,9 @@ export default function ResearchIndexPage() {
           aria-label="Open Datasets And Archival Registry"
           style={{
             padding: 20,
-            background: '#0f172a',
-            borderRadius: 12,
-            border: '1px solid #1e293b',
+            background: '#0d1f33',
+            borderRadius: 0,
+            border: '1px solid #2b4663',
             marginBottom: 28,
           }}
         >
@@ -327,9 +328,9 @@ export default function ResearchIndexPage() {
               key={r.slug}
               style={{
                 padding: 24,
-                background: '#0f172a',
-                borderRadius: 12,
-                border: '1px solid #1e293b',
+                background: '#0d1f33',
+                borderRadius: 0,
+                border: '1px solid #2b4663',
               }}
             >
               <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', marginBottom: 6 }}>
@@ -356,6 +357,14 @@ export default function ResearchIndexPage() {
               </div>
             </article>
           ))}
+        </div>
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="research-index"
+            redirectPath="/research"
+          />
         </div>
 
         <CitationBacklinkBox

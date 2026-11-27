@@ -8,6 +8,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
@@ -1246,7 +1247,7 @@ export default function WebmasterEmbedPortal() {
       return `<div data-smarter-poker-widget="${widget.id}"${partnerAttr}></div>\n<script async src="https://smarter.poker/embed-sdk.js"></script>`;
     }
     if (embedFormat === 'react') {
-      return `<div className="smarter-poker-widget">\n  <iframe src="${fullEmbedUrl}" width="100%" height={${widget.height}} style={{ border: 0, borderRadius: 12, overflow: 'hidden', maxWidth: '100%' }} loading="lazy" title="${widget.title}" />\n  <p style={{ fontSize: 12, textAlign: 'center', marginTop: 6 }}>Powered By <a href="${fullLanderUrl}" target="_blank" rel="noopener noreferrer">${widget.creditAnchor}</a></p>\n</div>`;
+      return `<div className="smarter-poker-widget">\n  <iframe src="${fullEmbedUrl}" width="100%" height={${widget.height}} style={{ border: 0, borderRadius: 0, overflow: 'hidden', maxWidth: '100%' }} loading="lazy" title="${widget.title}" />\n  <p style={{ fontSize: 12, textAlign: 'center', marginTop: 6 }}>Powered By <a href="${fullLanderUrl}" target="_blank" rel="noopener noreferrer">${widget.creditAnchor}</a></p>\n</div>`;
     }
     if (embedFormat === 'oembed') {
       return `https://smarter.poker/api/seo/oembed?url=${encodeURIComponent(widget.landerUrl)}&format=json${cleanPartner ? `&partner=${encodeURIComponent(cleanPartner)}` : ''}`;
@@ -1257,7 +1258,7 @@ export default function WebmasterEmbedPortal() {
     if (embedFormat === 'bbcode') {
       return `[url=${fullLanderUrl}][b]${widget.title} (${widget.creditAnchor})[/b][/url]\n${widget.description}\nLaunch Free Calculator: [url=${fullLanderUrl}]${fullLanderUrl}[/url]`;
     }
-    return `<iframe src="${fullEmbedUrl}" width="${widget.width}" height="${widget.height}" frameborder="0" loading="lazy" style="border:0;border-radius:12px;overflow:hidden;max-width:100%;" title="${widget.title}"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="${fullLanderUrl}" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">${widget.creditAnchor}</a></p>`;
+    return `<iframe src="${fullEmbedUrl}" width="${widget.width}" height="${widget.height}" frameborder="0" loading="lazy" style="border:0;border-radius:0;overflow:hidden;max-width:100%;" title="${widget.title}"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="${fullLanderUrl}" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">${widget.creditAnchor}</a></p>`;
   };
 
   const getBotSyntax = (cmdItem) => {
@@ -1376,7 +1377,7 @@ export default function WebmasterEmbedPortal() {
 
         <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px' }}>
           <header style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '20px', background: 'rgba(78, 156, 255, 0.1)', border: '1px solid rgba(78, 156, 255, 0.25)', color: '#60a5fa', fontSize: '0.85rem', fontWeight: 600, marginBottom: '16px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '0px', background: 'rgba(78, 156, 255, 0.1)', border: '1px solid rgba(78, 156, 255, 0.25)', color: '#60a5fa', fontSize: '0.85rem', fontWeight: 600, marginBottom: '16px' }}>
               <Code size={14} /> Webmaster Distribution Portal
             </div>
             <h1 style={{ fontSize: '2.4rem', fontWeight: 800, margin: '0 0 16px 0', letterSpacing: '-0.02em' }}>
@@ -1388,14 +1389,14 @@ export default function WebmasterEmbedPortal() {
           </header>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '24px' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '0px', padding: '24px' }}>
               <Zap size={24} style={{ color: '#38bdf8', marginBottom: '12px' }} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px 0' }}>Zero Configuration Required</h3>
               <p style={{ margin: 0, fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.5 }}>
                 Copy The HTML Snippet Directly Into Your WordPress Post, Ghost Blog, Or Custom CMS. Works Seamlessly Without External Script Dependencies.
               </p>
             </div>
-            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '24px' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '0px', padding: '24px' }}>
               <ShieldCheck size={24} style={{ color: '#34d399', marginBottom: '12px' }} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px 0' }}>Mobile-Optimized & Responsive</h3>
               <p style={{ margin: 0, fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.5 }}>
@@ -1414,7 +1415,7 @@ export default function WebmasterEmbedPortal() {
               style={{
                 background: 'rgba(56, 189, 248, 0.04)',
                 border: '1px solid rgba(56, 189, 248, 0.22)',
-                borderRadius: '14px',
+                borderRadius: '0px',
                 padding: '20px',
                 marginBottom: '24px',
                 display: 'flex',
@@ -1435,11 +1436,11 @@ export default function WebmasterEmbedPortal() {
                     type="text"
                     value={partnerDomain}
                     onChange={(e) => setPartnerDomain(e.target.value)}
-                    placeholder="example.com or your-club-name"
+                    placeholder="Enter Your Domain Or Club Name"
                     style={{
                       width: '100%',
                       padding: '9px 12px',
-                      borderRadius: '8px',
+                      borderRadius: '0px',
                       background: '#06060c',
                       border: '1px solid rgba(255, 255, 255, 0.16)',
                       color: '#f8fafc',
@@ -1467,7 +1468,7 @@ export default function WebmasterEmbedPortal() {
                         onClick={() => setEmbedFormat(fmt.id)}
                         style={{
                           padding: '7px 12px',
-                          borderRadius: '7px',
+                          borderRadius: '0px',
                           border: embedFormat === fmt.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
                           background: embedFormat === fmt.id ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.03)',
                           color: embedFormat === fmt.id ? '#38bdf8' : '#cbd5e1',
@@ -1497,7 +1498,7 @@ export default function WebmasterEmbedPortal() {
                     onClick={() => setSelectedCategory(cat.id)}
                     style={{
                       padding: '6px 12px',
-                      borderRadius: '20px',
+                      borderRadius: '0px',
                       border: selectedCategory === cat.id ? '1px solid #60a5fa' : '1px solid rgba(255, 255, 255, 0.1)',
                       background: selectedCategory === cat.id ? 'rgba(96, 165, 250, 0.16)' : 'transparent',
                       color: selectedCategory === cat.id ? '#93c5fd' : '#94a3b8',
@@ -1523,7 +1524,7 @@ export default function WebmasterEmbedPortal() {
                     style={{
                       background: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '16px',
+                      borderRadius: '0px',
                       padding: '28px',
                     }}
                   >
@@ -1535,7 +1536,7 @@ export default function WebmasterEmbedPortal() {
                           onClick={() => setPreviewWidgetId(previewWidgetId === widget.id ? null : widget.id)}
                           style={{
                             padding: '5px 11px',
-                            borderRadius: '6px',
+                            borderRadius: '0px',
                             border: '1px solid rgba(56, 189, 248, 0.35)',
                             background: previewWidgetId === widget.id ? 'rgba(56, 189, 248, 0.22)' : 'rgba(56, 189, 248, 0.08)',
                             color: '#7dd3fc',
@@ -1562,7 +1563,7 @@ export default function WebmasterEmbedPortal() {
                     </p>
 
                     {previewWidgetId === widget.id && (
-                      <div style={{ marginBottom: '16px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(56, 189, 248, 0.28)', background: '#050811' }}>
+                      <div style={{ marginBottom: '16px', borderRadius: '0px', overflow: 'hidden', border: '1px solid rgba(56, 189, 248, 0.28)', background: '#050811' }}>
                         <iframe
                           src={widget.embedUrl}
                           width="100%"
@@ -1584,9 +1585,9 @@ export default function WebmasterEmbedPortal() {
                           height: '90px',
                           background: '#06060c',
                           border: '1px solid rgba(255, 255, 255, 0.12)',
-                          borderRadius: '8px',
+                          borderRadius: '0px',
                           padding: '12px',
-                          color: '#a5b4fc',
+                          color: '#86daff',
                           fontFamily: 'monospace',
                           fontSize: '0.85rem',
                           resize: 'none',
@@ -1606,7 +1607,7 @@ export default function WebmasterEmbedPortal() {
                           background: isCopied ? '#059669' : '#2563eb',
                           color: '#fff',
                           border: 0,
-                          borderRadius: '6px',
+                          borderRadius: '0px',
                           padding: '6px 12px',
                           fontSize: '0.82rem',
                           fontWeight: 600,
@@ -1630,6 +1631,14 @@ export default function WebmasterEmbedPortal() {
             </div>
           </section>
 
+          <div style={{ marginTop: '36px' }}>
+            <SmarterAccountUnlockGate
+              variant="calculator-pro"
+              context="tools-embeds"
+              redirectPath="/tools/embeds"
+            />
+          </div>
+
           {/* Verified Partner & Venue SVG Backlink Badges */}
           <section aria-labelledby="partner-badges-heading" style={{ marginTop: '48px' }}>
             <h2 id="partner-badges-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
@@ -1648,7 +1657,7 @@ export default function WebmasterEmbedPortal() {
                     style={{
                       background: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid rgba(56, 189, 248, 0.18)',
-                      borderRadius: '14px',
+                      borderRadius: '0px',
                       padding: '22px',
                     }}
                   >
@@ -1669,7 +1678,7 @@ export default function WebmasterEmbedPortal() {
                           height: '64px',
                           background: '#06060c',
                           border: '1px solid rgba(255, 255, 255, 0.12)',
-                          borderRadius: '8px',
+                          borderRadius: '0px',
                           padding: '10px',
                           color: '#7dd3fc',
                           fontFamily: 'monospace',
@@ -1694,10 +1703,10 @@ export default function WebmasterEmbedPortal() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          background: isBadgeCopied ? '#059669' : '#0284c7',
+                          background: isBadgeCopied ? '#059669' : '#1f6feb',
                           color: '#fff',
                           border: 0,
-                          borderRadius: '6px',
+                          borderRadius: '0px',
                           padding: '6px 12px',
                           fontSize: '0.8rem',
                           fontWeight: 600,
@@ -1739,7 +1748,7 @@ export default function WebmasterEmbedPortal() {
                     onClick={() => setBotPlatform(plat.id)}
                     style={{
                       padding: '6px 12px',
-                      borderRadius: '7px',
+                      borderRadius: '0px',
                       border: botPlatform === plat.id ? '1px solid #38bdf8' : '1px solid rgba(148, 184, 224, 0.28)',
                       background: botPlatform === plat.id ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.03)',
                       color: botPlatform === plat.id ? '#ffffff' : '#94a3b8',
@@ -1766,7 +1775,7 @@ export default function WebmasterEmbedPortal() {
                     style={{
                       background: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid rgba(148, 184, 224, 0.28)',
-                      borderRadius: '14px',
+                      borderRadius: '0px',
                       padding: '20px',
                     }}
                   >
@@ -1775,7 +1784,7 @@ export default function WebmasterEmbedPortal() {
                         style={{
                           display: 'inline-block',
                           padding: '4px 10px',
-                          borderRadius: '6px',
+                          borderRadius: '0px',
                           background: 'rgba(56, 189, 248, 0.14)',
                           border: '1px solid rgba(56, 189, 248, 0.35)',
                           color: '#38bdf8',
@@ -1806,7 +1815,7 @@ export default function WebmasterEmbedPortal() {
                           height: '58px',
                           background: '#06060c',
                           border: '1px solid rgba(255, 255, 255, 0.12)',
-                          borderRadius: '8px',
+                          borderRadius: '0px',
                           padding: '8px 10px',
                           color: '#e2e8f0',
                           fontFamily: 'monospace',
@@ -1832,7 +1841,7 @@ export default function WebmasterEmbedPortal() {
                           background: isCmdCopied ? '#059669' : '#1d4ed8',
                           color: '#fff',
                           border: 0,
-                          borderRadius: '6px',
+                          borderRadius: '0px',
                           padding: '6px 12px',
                           fontSize: '0.78rem',
                           fontWeight: 600,
@@ -1875,7 +1884,7 @@ export default function WebmasterEmbedPortal() {
                     style={{
                       background: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid rgba(148, 184, 224, 0.28)',
-                      borderRadius: '14px',
+                      borderRadius: '0px',
                       padding: '20px',
                       display: 'flex',
                       flexDirection: 'column',
@@ -1890,7 +1899,7 @@ export default function WebmasterEmbedPortal() {
                             fontSize: '0.75rem',
                             fontWeight: 700,
                             padding: '3px 8px',
-                            borderRadius: '6px',
+                            borderRadius: '0px',
                             background: 'rgba(56, 189, 248, 0.14)',
                             color: '#38bdf8',
                           }}
@@ -1930,7 +1939,7 @@ export default function WebmasterEmbedPortal() {
                           background: isDeadCopied ? '#059669' : 'rgba(56, 189, 248, 0.14)',
                           border: '1px solid rgba(56, 189, 248, 0.35)',
                           color: isDeadCopied ? '#fff' : '#38bdf8',
-                          borderRadius: '6px',
+                          borderRadius: '0px',
                           padding: '7px 12px',
                           fontSize: '0.8rem',
                           fontWeight: 600,
@@ -1962,7 +1971,7 @@ export default function WebmasterEmbedPortal() {
               padding: '24px',
               background: 'rgba(16, 185, 129, 0.04)',
               border: '1px solid rgba(16, 185, 129, 0.25)',
-              borderRadius: '14px',
+              borderRadius: '0px',
             }}
           >
             <h2 id="syndication-apis-heading" style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 10px 0', color: '#34d399' }}>
@@ -1978,7 +1987,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: '#064e3b',
                   border: '1px solid #10b981',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#ecfdf5',
                   fontSize: '0.84rem',
                   fontWeight: 600,
@@ -1993,7 +2002,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: '#0f172a',
                   border: '1px solid #38bdf8',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#bae6fd',
                   fontSize: '0.84rem',
                   fontWeight: 600,
@@ -2008,7 +2017,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: '#0f172a',
                   border: '1px solid #38bdf8',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#bae6fd',
                   fontSize: '0.84rem',
                   fontWeight: 600,
@@ -2023,7 +2032,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: '#0f172a',
                   border: '1px solid #38bdf8',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#e2e8f0',
                   fontSize: '0.84rem',
                   fontWeight: 600,
@@ -2038,7 +2047,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: '#0f172a',
                   border: '1px solid rgba(148, 184, 224, 0.35)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#38bdf8',
                   fontSize: '0.84rem',
                   fontWeight: 600,
@@ -2053,7 +2062,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: '#0f172a',
                   border: '1px solid #38bdf8',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#bae6fd',
                   fontSize: '0.84rem',
                   fontWeight: 600,
@@ -2068,7 +2077,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: '#0f172a',
                   border: '1px solid #10b981',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#a7f3d0',
                   fontSize: '0.84rem',
                   fontWeight: 600,
@@ -2087,7 +2096,7 @@ export default function WebmasterEmbedPortal() {
               padding: '24px',
               background: '#0d1117',
               border: '1px solid #30363d',
-              borderRadius: '12px',
+              borderRadius: '0px',
             }}
           >
             <h2
@@ -2107,7 +2116,7 @@ export default function WebmasterEmbedPortal() {
                   style={{
                     background: '#161b22',
                     border: '1px solid #30363d',
-                    borderRadius: '8px',
+                    borderRadius: '0px',
                     padding: '12px 16px',
                     color: '#f0f6fc',
                   }}
@@ -2146,7 +2155,7 @@ export default function WebmasterEmbedPortal() {
               padding: '24px',
               background: '#0d1117',
               border: '1px solid #30363d',
-              borderRadius: '12px',
+              borderRadius: '0px',
             }}
           >
             <h2
@@ -2168,7 +2177,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(56, 189, 248, 0.14)',
                   border: '1px solid rgba(56, 189, 248, 0.35)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#38bdf8',
                   fontSize: '0.85rem',
                   fontWeight: 700,
@@ -2185,7 +2194,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(88, 166, 255, 0.12)',
                   border: '1px solid rgba(88, 166, 255, 0.3)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#58a6ff',
                   fontSize: '0.85rem',
                   fontWeight: 700,
@@ -2202,7 +2211,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(0, 230, 118, 0.12)',
                   border: '1px solid rgba(0, 230, 118, 0.3)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#00e676',
                   fontSize: '0.85rem',
                   fontWeight: 700,
@@ -2219,7 +2228,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#f0f6fc',
                   fontSize: '0.85rem',
                   fontWeight: 600,
@@ -2236,7 +2245,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#f0f6fc',
                   fontSize: '0.85rem',
                   fontWeight: 600,
@@ -2253,7 +2262,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#f0f6fc',
                   fontSize: '0.85rem',
                   fontWeight: 600,
@@ -2270,7 +2279,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#f0f6fc',
                   fontSize: '0.85rem',
                   fontWeight: 600,
@@ -2287,7 +2296,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#f0f6fc',
                   fontSize: '0.85rem',
                   fontWeight: 600,
@@ -2304,7 +2313,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#f0f6fc',
                   fontSize: '0.85rem',
                   fontWeight: 600,
@@ -2321,7 +2330,7 @@ export default function WebmasterEmbedPortal() {
                   padding: '8px 14px',
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   color: '#f0f6fc',
                   fontSize: '0.85rem',
                   fontWeight: 600,

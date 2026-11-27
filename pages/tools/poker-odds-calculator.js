@@ -7,6 +7,7 @@
  */
 
 import PokerToolsPage from '../hub/poker-tools';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export async function getServerSideProps({ req, res, query }) {
@@ -34,5 +35,21 @@ export async function getServerSideProps({ req, res, query }) {
 }
 
 export default function PokerOddsCalculatorLander() {
-    return <PokerToolsPage />;
+    return (
+        <>
+            <PokerToolsPage />
+            <section
+                aria-label="Free Smarter.Poker Account Unlock"
+                style={{ background: '#070b14', padding: '0 20px 48px' }}
+            >
+                <div style={{ maxWidth: 1020, margin: '0 auto' }}>
+                    <SmarterAccountUnlockGate
+                        variant="calculator-pro"
+                        context="tools-poker-odds-calculator"
+                        redirectPath="/tools/poker-odds-calculator"
+                    />
+                </div>
+            </section>
+        </>
+    );
 }

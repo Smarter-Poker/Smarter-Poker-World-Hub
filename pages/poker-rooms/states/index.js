@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   US_POKER_STATES,
@@ -290,6 +291,15 @@ export default function USStatePokerDirectoryPage() {
           </div>
         </section>
 
+        <div style={{ margin: '24px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={"poker-rooms-states-index"}
+            title={"Unlock Live Poker Room Waitlists & Legal Cardrooms In Every State"}
+            redirectPath={STATES_BASE_PATH}
+          />
+        </div>
+
         <CitationBacklinkBox
           title="US State Poker Legality, Tax Rates, Rake & Room Directory Hub"
           canonicalUrl={STATES_URL}
@@ -315,7 +325,7 @@ export default function USStatePokerDirectoryPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     color: '#e2e8f0',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
@@ -346,9 +356,9 @@ const styles = {
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -365,7 +375,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -375,7 +385,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
@@ -402,7 +412,7 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
@@ -411,23 +421,23 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
     color: '#e2e8f0',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   filterPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '20px',
     marginBottom: '24px',
   },
@@ -440,18 +450,18 @@ const styles = {
   },
   searchInput: {
     width: '100%',
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '11px 14px',
     color: '#f8fafc',
     fontSize: '14px',
     boxSizing: 'border-box',
   },
   tablePlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '22px',
     marginBottom: '28px',
   },
@@ -480,7 +490,7 @@ const styles = {
     fontSize: '13.5px',
   },
   trHead: {
-    backgroundColor: '#0a0f18',
+    backgroundColor: '#071321',
     borderBottom: '2px solid #00d4ff',
     textAlign: 'left',
   },
@@ -491,7 +501,7 @@ const styles = {
     fontSize: '12px',
   },
   trBody: {
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #2b4663',
   },
   tdTitle: {
     padding: '12px',
@@ -530,14 +540,14 @@ const styles = {
   },
   cardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
     gap: '16px',
     marginTop: '16px',
   },
   cardPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
@@ -553,10 +563,10 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     color: '#00d4ff',
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
     padding: '3px 8px',
-    borderRadius: '4px',
+    borderRadius: 0,
   },
   cardTaxBadge: {
     fontSize: '11px',
@@ -574,9 +584,9 @@ const styles = {
     textDecoration: 'none',
   },
   metaBox: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '10px 12px',
     fontSize: '12.5px',
     color: '#cbd5e1',
@@ -593,7 +603,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTop: '1px solid #1e293b',
+    borderTop: '1px solid #2b4663',
     paddingTop: '12px',
   },
   readGuideLink: {
@@ -614,9 +624,9 @@ const styles = {
     marginTop: '16px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {

@@ -19,6 +19,7 @@ import GeoCitationCapsule, { geoClaimSchema } from '../../src/components/seo/Geo
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 export const FORMAT_PROFILES = [
   {
@@ -280,7 +281,7 @@ export default function FormatMigrationGuidePage() {
           <h2 style={styles.h2}>
             Master Structural Comparison Table: Live Cash Vs. Online 6-Max Vs. MTTs Vs. PLO
           </h2>
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
             <table style={styles.table}>
               <thead>
                 <tr style={styles.trHead}>
@@ -356,10 +357,10 @@ export default function FormatMigrationGuidePage() {
             {TRANSITION_PLAYBOOKS.map((t) => (
               <div key={t.key} style={styles.card}>
                 <h3 style={styles.h3}>{t.title}</h3>
-                <p style={{ fontSize: 13.5, color: '#94a3b8', margin: '0 0 10px 0' }}>
+                <p style={{ fontSize: 13.5, color: '#bdd0e2', margin: '0 0 10px 0' }}>
                   <strong>Shock:</strong> {t.shockFactor}
                 </p>
-                <p style={{ fontSize: 13.5, color: '#cbd5e1', lineHeight: 1.58, margin: '0 0 12px 0' }}>
+                <p style={{ fontSize: 13.5, color: '#bdd0e2', lineHeight: 1.58, margin: '0 0 12px 0' }}>
                   {t.ifThenBecause}
                 </p>
                 <Link href={t.calculatorHref} style={styles.smallLink}>
@@ -401,6 +402,13 @@ export default function FormatMigrationGuidePage() {
         />
 
         <HubPageSummary page="learn-format-migration-guide" />
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context="learn-format-migration-guide"
+          title="Save This Format Migration Blueprint & Drill Transition Spots Free"
+          redirectPath={canonicalPath}
+        />
+
 
         <CitationBacklinkBox
           title="Smarter.Poker Format Transition & Migration Blueprint (Cash, 6-Max, MTT & PLO)"
@@ -447,19 +455,19 @@ export async function getServerSideProps({ req, res, query }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#050811',
-    color: '#e2e8f0',
+    background: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
   },
   container: { maxWidth: 1120, margin: '0 auto', padding: '32px 20px 80px' },
-  breadcrumbs: { display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 13, color: '#94a3b8', marginBottom: 18 },
+  breadcrumbs: { display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 13, color: '#bdd0e2', marginBottom: 18 },
   crumbLink: { color: '#38bdf8', textDecoration: 'none' },
-  crumbSep: { color: '#475569' },
-  crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
+  crumbSep: { color: '#2b4663' },
+  crumbCurrent: { color: '#bdd0e2', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #0a1a2b 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -469,7 +477,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -479,37 +487,37 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
   },
-  h1: { fontSize: 'clamp(26px, 3.6vw, 36px)', fontWeight: 800, color: '#f8fafc', lineHeight: 1.2, margin: '0 0 14px 0' },
-  lead: { fontSize: 16, lineHeight: 1.68, color: '#cbd5e1', margin: '0 0 20px 0' },
+  h1: { fontSize: 'clamp(26px, 3.6vw, 36px)', fontWeight: 800, color: '#f2f7ff', lineHeight: 1.2, margin: '0 0 14px 0' },
+  lead: { fontSize: 16, lineHeight: 1.68, color: '#bdd0e2', margin: '0 0 20px 0' },
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
-  crossBtnCyan: { padding: '9px 15px', borderRadius: 8, background: '#38bdf8', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
-  crossBtnEmerald: { padding: '9px 15px', borderRadius: 8, background: '#10b981', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
-  crossBtnOutline: { padding: '9px 15px', borderRadius: 8, background: '#0f172a', color: '#38bdf8', border: '1px solid #334155', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
-  sectionPlate: { background: '#0b1120', border: '1px solid #1e293b', borderRadius: 12, padding: '24px 22px', marginBottom: 26 },
-  h2: { fontSize: 21, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px 0' },
-  h3: { fontSize: 18, fontWeight: 800, color: '#f8fafc', margin: '0 0 12px 0' },
+  crossBtnCyan: { padding: '9px 15px', borderRadius: 0, background: '#38bdf8', color: '#071321', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
+  crossBtnEmerald: { padding: '9px 15px', borderRadius: 0, background: '#10b981', color: '#071321', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
+  crossBtnOutline: { padding: '9px 15px', borderRadius: 0, background: '#0d1f33', color: '#38bdf8', border: '1px solid #2b4663', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' },
+  sectionPlate: { background: '#0a1a2b', border: '1px solid #2b4663', borderRadius: 0, padding: '24px 22px', marginBottom: 26 },
+  h2: { fontSize: 21, fontWeight: 800, color: '#f2f7ff', margin: '0 0 16px 0' },
+  h3: { fontSize: 18, fontWeight: 800, color: '#f2f7ff', margin: '0 0 12px 0' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  trHead: { borderBottom: '1px solid #1e293b', textAlign: 'left', color: '#38bdf8' },
+  trHead: { borderBottom: '1px solid #2b4663', textAlign: 'left', color: '#38bdf8' },
   th: { padding: '10px 12px', fontWeight: 700 },
-  trBody: { borderBottom: '1px solid #1e293b' },
-  tdTitle: { padding: '11px 12px', fontWeight: 800, color: '#f8fafc' },
-  td: { padding: '11px 12px', color: '#cbd5e1' },
+  trBody: { borderBottom: '1px solid #2b4663' },
+  tdTitle: { padding: '11px 12px', fontWeight: 800, color: '#f2f7ff' },
+  td: { padding: '11px 12px', color: '#bdd0e2' },
   tdCyan: { padding: '11px 12px', color: '#38bdf8', fontWeight: 700 },
   tdEmerald: { padding: '11px 12px', color: '#34d399', fontWeight: 700 },
   filterPills: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
-  pill: { padding: '7px 14px', borderRadius: 999, border: '1px solid #334155', background: '#0f172a', color: '#cbd5e1', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
-  pillActive: { padding: '7px 14px', borderRadius: 999, border: '1px solid #38bdf8', background: '#38bdf8', color: '#04131d', fontSize: 13, fontWeight: 800, cursor: 'pointer' },
-  activeCard: { background: '#0f172a', border: '1px solid #38bdf8', borderRadius: 10, padding: '20px 22px' },
-  shockStrip: { fontSize: 13, color: '#e2e8f0', marginBottom: 10 },
+  pill: { padding: '7px 14px', borderRadius: 0, border: '1px solid #2b4663', background: '#0d1f33', color: '#bdd0e2', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  pillActive: { padding: '7px 14px', borderRadius: 0, border: '1px solid #38bdf8', background: '#38bdf8', color: '#071321', fontSize: 13, fontWeight: 800, cursor: 'pointer' },
+  activeCard: { background: '#0d1f33', border: '1px solid #38bdf8', borderRadius: 0, padding: '20px 22px' },
+  shockStrip: { fontSize: 13, color: '#f2f7ff', marginBottom: 10 },
   bulletList: { margin: '0 0 14px 0', paddingLeft: 18, display: 'grid', gap: 10 },
-  bulletItem: { fontSize: 14, lineHeight: 1.62, color: '#cbd5e1' },
-  ruleBox: { background: '#050811', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: 8, padding: '11px 14px', fontSize: 13.5, lineHeight: 1.58, color: '#d1fae5' },
+  bulletItem: { fontSize: 14, lineHeight: 1.62, color: '#bdd0e2' },
+  ruleBox: { background: '#071321', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: 0, padding: '11px 14px', fontSize: 13.5, lineHeight: 1.58, color: '#d1fae5' },
   cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 },
-  card: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: 18 },
+  card: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: 18 },
   smallLink: { fontSize: 13, fontWeight: 700, color: '#38bdf8', textDecoration: 'none' },
 };

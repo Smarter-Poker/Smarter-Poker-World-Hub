@@ -1,4 +1,5 @@
 import PokerNearMeLocationPage from '../../../../../src/components/poker-near-me/PokerNearMeLocationPage';
+import SmarterAccountUnlockGate from '../../../../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
 import { aggregateVenueCities, fetchPokerVenueLocation, resolveStateSlug, venueLocationCanonical } from '../../../../../src/lib/poker-near-me/locationPages';
 
@@ -66,16 +67,24 @@ export default function PokerStatePage({ state, ...props }) {
       description={`Explore Casino Poker Rooms And Cardrooms Across ${state.name}, With Direct Venue Profiles, Room Details, Schedules, And Live Discovery Tools.`}
       canonical={venueLocationCanonical(state.code)}
       conversionCta={(
-        <SmarterConversionCta
-          eyebrow={`Free ${state.name} Poker Directory Account`}
-          title={`Find Live Games & Track Sessions In ${state.name} Free`}
-          description={`Create A Free Smarter.Poker Account To Save Favorite ${state.name} Poker Rooms, Check In Live, And Track Your Cash Game Profit.`}
-          primaryLabel="Create Free Account"
-          primaryHref={`/auth/signup?redirect=${encodeURIComponent(statePath)}&src=pnm-state`}
-          secondaryLabel="Sign In"
-          secondaryHref={`/auth/login?redirect=${encodeURIComponent(statePath)}`}
-          highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
-        />
+        <div style={{ display: 'grid', gap: 18 }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context={`pnm-state-${state.slug}`}
+            title={`See Live ${state.name} Waitlists, Peak Hours & Seat Alerts Free`}
+            redirectPath={statePath}
+          />
+          <SmarterConversionCta
+            eyebrow={`Free ${state.name} Poker Directory Account`}
+            title={`Find Live Games & Track Sessions In ${state.name} Free`}
+            description={`Create A Free Smarter.Poker Account To Save Favorite ${state.name} Poker Rooms, Check In Live, And Track Your Cash Game Profit.`}
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=${encodeURIComponent(statePath)}&src=pnm-state`}
+            secondaryLabel="Sign In"
+            secondaryHref={`/auth/login?redirect=${encodeURIComponent(statePath)}`}
+            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+          />
+        </div>
       )}
     />
   );

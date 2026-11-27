@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -235,7 +236,7 @@ export default function BlindStructureCalculatorPage({
           style={{
             background: '#0f172a',
             border: '1px solid #1e293b',
-            borderRadius: 14,
+            borderRadius: 0,
             padding: 24,
             marginBottom: 36,
           }}
@@ -258,7 +259,7 @@ export default function BlindStructureCalculatorPage({
                     width: '100%',
                     marginTop: 6,
                     padding: '10px 12px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     border: '1px solid #334155',
                     background: '#070b14',
                     color: '#f8fafc',
@@ -279,7 +280,7 @@ export default function BlindStructureCalculatorPage({
                     width: '100%',
                     marginTop: 6,
                     padding: '10px 12px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     border: '1px solid #334155',
                     background: '#070b14',
                     color: '#f8fafc',
@@ -305,7 +306,7 @@ export default function BlindStructureCalculatorPage({
                     width: '100%',
                     marginTop: 6,
                     padding: '10px 12px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     border: '1px solid #334155',
                     background: '#070b14',
                     color: '#f8fafc',
@@ -332,7 +333,7 @@ export default function BlindStructureCalculatorPage({
                     width: '100%',
                     marginTop: 6,
                     padding: '10px 12px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     border: '1px solid #334155',
                     background: '#070b14',
                     color: '#f8fafc',
@@ -349,7 +350,7 @@ export default function BlindStructureCalculatorPage({
 
           {/* KPI Summary Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 20 }}>
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Total Chips In Play
               </div>
@@ -361,7 +362,7 @@ export default function BlindStructureCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Projected Final Big Blind
               </div>
@@ -373,7 +374,7 @@ export default function BlindStructureCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Estimated Finish Level
               </div>
@@ -388,7 +389,7 @@ export default function BlindStructureCalculatorPage({
 
           {/* Generated Blind Schedule Table */}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#070b14', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#070b14', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Complete 18-Level Tournament Blind Progression With Orbit Costs And Total Big Blinds In Play
               </caption>
@@ -452,13 +453,21 @@ export default function BlindStructureCalculatorPage({
           </div>
         </section>
 
+        <div style={{ marginBottom: 32 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="tools-blind-structure-calculator"
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         {/* Reference Table: Standard TDA Chip Colors & Starting Stack Breakdown */}
         <section style={{ marginBottom: 36 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Standard TDA Chip Color &amp; Starting Stack Distribution (20,000 Stack)
           </h2>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Official Tournament Directors Association (TDA) Chip Denominations, Colors, And Color-Up Schedule
               </caption>
@@ -487,27 +496,27 @@ export default function BlindStructureCalculatorPage({
         </section>
 
         {/* Cross-Link Navigation */}
-        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 12, border: '1px solid #1e293b' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 0, border: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Run Your Tournament On Smarter.Poker Or Explore Related Calculators
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/hub/commander/home-games" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/hub/commander/home-games" style={{ padding: '8px 14px', background: '#1f6feb', color: '#fff', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Host A Home Game On Smarter.Poker
             </Link>
-            <Link href="/hub/commander/tournaments" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/hub/commander/tournaments" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Club Commander Tournament Software
             </Link>
-            <Link href="/tools" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               All Poker Calculators
             </Link>
-            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Tournament ICM Calculator
             </Link>
-            <Link href="/tools/push-fold-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/push-fold-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Push/Fold Nash Charts
             </Link>
-            <Link href="/tools/side-pot-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/side-pot-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Side Pot Calculator
             </Link>
           </div>

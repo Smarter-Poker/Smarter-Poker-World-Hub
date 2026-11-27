@@ -5,6 +5,7 @@
  */
 
 import PreflopRangeMatrixHub from './preflop-ranges/index';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export async function getServerSideProps({ req, res, query }) {
@@ -28,5 +29,15 @@ export async function getServerSideProps({ req, res, query }) {
 }
 
 export default function PreflopRangesEntry() {
-  return <PreflopRangeMatrixHub />;
+  return (
+    <PreflopRangeMatrixHub
+      unlockGateSlot={
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context="tools-preflop-ranges"
+          redirectPath="/tools/preflop-ranges"
+        />
+      }
+    />
+  );
 }

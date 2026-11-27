@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { buildVideoLibraryBreadcrumbs } from '../../../../src/lib/videoLibraryBreadcrumbs.mjs';
 import { VIDEO_LIBRARY_PLAYERS } from '../../../../src/lib/videoLibraryPlayers.mjs';
@@ -27,6 +28,13 @@ export default function VideoLibraryPlayersDirectory() {
                 <nav className="vl-breadcrumbs" aria-label="Breadcrumb"><Link href="/hub">World Hub</Link><span aria-hidden="true">/</span><Link href="/hub/video-library">Video Library</Link><span aria-hidden="true">/</span><span aria-current="page">Poker Players</span></nav>
                 <VideoLibraryWorkspaceHeader title="Poker Players" eyebrow="Video Library" emblem="player" helpId="players" helpSteps={PLAYERS_HELP_STEPS} />
                 <section className="vl-console-frame" data-tutorial="player-directory" aria-label="Poker Players Directory"><nav className="vl-player-directory-links" aria-label="Poker Players">{VIDEO_LIBRARY_PLAYERS.map(player => <Link key={player.id} className="vl-pill-button" href={player.path}>{player.name}</Link>)}</nav></section>
+                <div style={{ marginTop: 24 }}>
+                    <SmarterAccountUnlockGate
+                        variant="video-drill"
+                        context="video-library-players-index"
+                        redirectPath="/hub/video-library/players"
+                    />
+                </div>
             </article>
         </HubPageShell></div>
     </>;
