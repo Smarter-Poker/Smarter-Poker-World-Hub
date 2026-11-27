@@ -6168,7 +6168,7 @@ function UniversalDynamicTable({
                             </button>
                         </div>
 
-                        {showTableCustomControls && <details
+                        {!presetOnly && <details
                             className="sp-mtt-disclosure"
                             data-table-study-tools-disclosure="true"
                             data-study-tools-disclosure="true"
@@ -9673,7 +9673,7 @@ function UniversalDynamicTable({
                                     Select Next When You Are Ready.
                                 </div>
 
-                                {showTableCustomControls && <details
+                                {!presetOnly && <details
                                     className="sp-mtt-disclosure"
                                     data-posthand-simulators-disclosure="true"
                                     style={{ marginTop: 10, width: '100%' }}
