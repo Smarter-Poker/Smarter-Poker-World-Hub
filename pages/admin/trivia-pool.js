@@ -107,6 +107,30 @@ const WORKBENCH_TABS = [
     { id: 'calibration', label: 'Empirical Difficulty Calibration' },
 ];
 
+const THIN_CATEGORY_PILLS = [
+    { id: 'all', label: 'All' },
+    { id: 'rule_knowledge', label: 'Rules & Etiquette' },
+    { id: 'cash_game_situations', label: 'Cash Game' },
+    { id: 'mtt_situations', label: 'MTT Situations' },
+    { id: 'icm_chip_ev', label: 'ICM & Chip EV' },
+];
+
+function isQualityAuditPass(audit) {
+    return Boolean(audit && (audit.passed === true || audit.pass === true));
+}
+
+function isCleanPerfectAudit(audit) {
+    return isQualityAuditPass(audit) && Number(audit?.score) === 100;
+}
+
+function isEditableElement(el) {
+    if (!el || typeof el !== 'object') return false;
+    const tag = String(el.tagName || '').toUpperCase();
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    if (el.isContentEditable === true) return true;
+    return false;
+}
+
 export async function getServerSideProps({ req }) {
     const adminSecret = typeof req.headers['x-admin-secret'] === 'string' ? req.headers['x-admin-secret'] : '';
     const envSecret = typeof process.env.ADMIN_ROUTE_SECRET === 'string' ? process.env.ADMIN_ROUTE_SECRET : '';
@@ -312,10 +336,14 @@ export default function TriviaPoolDashboard({
     const [workbenchAttempted, setWorkbenchAttempted] = useState(false);
     const workbenchAttemptedRef = useRef(false);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [focusedQueueIndex, setFocusedQueueIndex] = useState(0);
     const [curationReason, setCurationReason] = useState('');
     const [calibrationReason, setCalibrationReason] = useState('Empirical Difficulty Calibration Re-Tier');
     const [actionBusy, setActionBusy] = useState(false);
     const [actionFeedback, setActionFeedback] = useState(null);
+    const reasonInputRef = useRef(null);
+    const approveBtnRef = useRef(null);
+    const quarantineBtnRef = useRef(null);
 
     useEffect(() => {
         if (!requiresClientAuth || byCat || error) return undefined;
@@ -502,9 +530,9 @@ export default function TriviaPoolDashboard({
     const categoryDepthAlerts = useMemo(() => workbenchData?.categoryDepthAlerts || [], [workbenchData]);
     const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
-    const toggleSelectId = (id) => {
+    const toggleSelectId = useCallback((id) => {
         setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
-    };
+    }, []);
 
     const toggleSelectAll = () => {
         if (selectedIds.length === queueItems.length && queueItems.length > 0) {
@@ -517,15 +545,106 @@ export default function TriviaPoolDashboard({
     const selectReadyOnly = () => {
         setSelectedIds(
             queueItems
-                .filter((item) => item.qualityAudit?.pass === true)
+                .filter((item) => isQualityAuditPass(item.qualityAudit))
                 .map((item) => item.questionId)
         );
     };
 
+    const selectTop10Clean = () => {
+        const cleanIds = queueItems
+            .filter((item) => isCleanPerfectAudit(item.qualityAudit))
+            .slice(0, 10)
+            .map((item) => item.questionId);
+        setSelectedIds(cleanIds);
+        if (cleanIds.length > 0 && reasonInputRef.current) {
+            reasonInputRef.current.focus();
+        }
+    };
+
     const readyQueueCount = useMemo(
-        () => queueItems.filter((item) => item.qualityAudit?.pass === true).length,
+        () => queueItems.filter((item) => isQualityAuditPass(item.qualityAudit)).length,
         [queueItems]
     );
+
+    const clean100Count = useMemo(
+        () => queueItems.filter((item) => isCleanPerfectAudit(item.qualityAudit)).length,
+        [queueItems]
+    );
+
+    const safeFocusedIndex = queueItems.length > 0
+        ? Math.min(Math.max(focusedQueueIndex, 0), queueItems.length - 1)
+        : 0;
+
+    useEffect(() => {
+        if (activeTab !== 'curation' || typeof window === 'undefined') return undefined;
+
+        const handleCurationKeyDown = (event) => {
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
+            if (isEditableElement(document.activeElement) || isEditableElement(event.target)) return;
+            if (queueItems.length === 0) return;
+
+            const key = String(event.key || '');
+            const lower = key.toLowerCase();
+
+            if (lower === 'j') {
+                event.preventDefault();
+                setFocusedQueueIndex((prev) => Math.min(queueItems.length - 1, prev + 1));
+                return;
+            }
+            if (lower === 'k') {
+                event.preventDefault();
+                setFocusedQueueIndex((prev) => Math.max(0, prev - 1));
+                return;
+            }
+            if (key === ' ' || event.code === 'Space') {
+                event.preventDefault();
+                const focusedItem = queueItems[safeFocusedIndex];
+                if (focusedItem?.questionId) {
+                    toggleSelectId(focusedItem.questionId);
+                }
+                return;
+            }
+
+            const triggerWithReasonGuard = (action, buttonRef) => {
+                event.preventDefault();
+                if (actionBusy) return;
+                if (selectedIds.length === 0) {
+                    setActionFeedback({ kind: 'error', text: 'Select At Least One Question First.' });
+                    return;
+                }
+                if (curationReason.trim().length < 8) {
+                    setActionFeedback({ kind: 'error', text: 'Enter An Audit Reason (At Least 8 Characters).' });
+                    if (reasonInputRef.current) reasonInputRef.current.focus();
+                    return;
+                }
+                if (buttonRef?.current) buttonRef.current.focus();
+                runBatchCurate({ questionIds: selectedIds, action, reason: curationReason });
+            };
+
+            if (lower === 'a') {
+                triggerWithReasonGuard('approve', approveBtnRef);
+                return;
+            }
+            if (lower === 'q') {
+                triggerWithReasonGuard('quarantine', quarantineBtnRef);
+                return;
+            }
+            if (key === '1') {
+                triggerWithReasonGuard('set_difficulty_easy', null);
+                return;
+            }
+            if (key === '2') {
+                triggerWithReasonGuard('set_difficulty_medium', null);
+                return;
+            }
+            if (key === '3') {
+                triggerWithReasonGuard('set_difficulty_hard', null);
+            }
+        };
+
+        window.addEventListener('keydown', handleCurationKeyDown);
+        return () => window.removeEventListener('keydown', handleCurationKeyDown);
+    }, [actionBusy, activeTab, curationReason, queueItems, safeFocusedIndex, selectedIds, toggleSelectId]);
 
     if (clientLoading) {
         return <main className={`smarterdesign ${consoleStyles.surface}`}><div className={consoleStyles.state} role="status" style={{ padding: 24 }}>Loading Trivia Pool Dashboard...</div></main>;
@@ -917,6 +1036,47 @@ export default function TriviaPoolDashboard({
                             </div>
                         </div>
 
+                        {/* Thin-Category Quick Filter Pills */}
+                        <div
+                            role="group"
+                            aria-label="Thin-Category Quick Filters"
+                            data-thin-category-filters="true"
+                            style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 14 }}
+                        >
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#bdd0e2', marginRight: 4 }}>
+                                Thin-Category Quick Filter:
+                            </span>
+                            {THIN_CATEGORY_PILLS.map((pill) => {
+                                const isActive = queueCategory === pill.id;
+                                return (
+                                    <button
+                                        key={pill.id}
+                                        type="button"
+                                        aria-pressed={isActive}
+                                        data-thin-category-pill={pill.id}
+                                        onClick={() => {
+                                            setQueueCategory(pill.id);
+                                            setFocusedQueueIndex(0);
+                                            loadWorkbench({ mode: queueMode, category: pill.id, min: minShown, thinFirst: thinCategoriesFirst });
+                                        }}
+                                        style={{
+                                            minHeight: 44,
+                                            padding: '8px 14px',
+                                            borderRadius: 999,
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            border: isActive ? '1px solid #86daff' : '1px solid rgba(189, 208, 226, 0.28)',
+                                            background: isActive ? 'rgba(12, 85, 192, 0.45)' : 'rgba(10, 24, 41, 0.72)',
+                                            color: isActive ? '#f2f7ff' : '#bdd0e2',
+                                        }}
+                                    >
+                                        {pill.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
                         {workbenchError && (
                             <div role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12, marginBottom: 14, borderRadius: 8, background: 'rgba(239,68,68,0.14)', color: '#fecaca', fontSize: 13 }}>
                                 <span>{workbenchError}</span>
@@ -924,7 +1084,7 @@ export default function TriviaPoolDashboard({
                                     type="button"
                                     disabled={workbenchLoading}
                                     onClick={() => loadWorkbench()}
-                                    style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(239,68,68,0.28)', color: '#fff', border: '1px solid rgba(239,68,68,0.55)' }}
+                                    style={{ minHeight: 44, padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(239,68,68,0.28)', color: '#fff', border: '1px solid rgba(239,68,68,0.55)' }}
                                 >
                                     Retry
                                 </button>
@@ -932,42 +1092,54 @@ export default function TriviaPoolDashboard({
                         )}
 
                         {/* Batch action controls */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', padding: 12, marginBottom: 16, borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: '#93c5fd' }}>
-                                Selected: {selectedIds.length} / {queueItems.length} · Ready: {readyQueueCount}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', padding: 12, marginBottom: 12, borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>
+                                Selected: {selectedIds.length} / {queueItems.length} · Ready: {readyQueueCount} · Clean 100/100: {clean100Count}
                             </span>
+                            <button
+                                type="button"
+                                data-select-top-clean="true"
+                                disabled={actionBusy || clean100Count === 0}
+                                onClick={selectTop10Clean}
+                                style={{ minHeight: 44, padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(12, 85, 192, 0.42)', color: '#f2f7ff', border: '1px solid #86daff' }}
+                            >
+                                Select Top 10 Clean (100/100)
+                            </button>
                             <button
                                 type="button"
                                 disabled={actionBusy || readyQueueCount === 0}
                                 onClick={selectReadyOnly}
-                                style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(34,197,94,0.18)', color: '#bbf7d0', border: '1px solid rgba(34,197,94,0.45)' }}
+                                style={{ minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(34,197,94,0.18)', color: '#bbf7d0', border: '1px solid rgba(34,197,94,0.45)' }}
                             >
                                 Select Ready Only
                             </button>
                             <input
+                                ref={reasonInputRef}
                                 type="text"
                                 aria-label="Batch Curation Reason"
                                 placeholder="Required Audit Reason (Min 8 Characters)"
                                 value={curationReason}
                                 onChange={(e) => setCurationReason(e.target.value)}
                                 style={{
-                                    flex: '1 1 260px', padding: '8px 10px', borderRadius: 6, fontSize: 13,
+                                    flex: '1 1 260px', minHeight: 44, padding: '8px 10px', borderRadius: 6, fontSize: 13,
                                     background: '#0b1020', color: '#fff', border: '1px solid rgba(255,255,255,0.22)',
                                 }}
                             />
                             <button
+                                ref={approveBtnRef}
                                 type="button"
                                 disabled={actionBusy || selectedIds.length === 0}
                                 onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'approve', reason: curationReason })}
-                                style={{ padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#166534', color: '#fff', border: '1px solid #22c55e' }}
+                                style={{ minHeight: 44, padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#166534', color: '#fff', border: '1px solid #22c55e' }}
                             >
                                 Approve Selected
                             </button>
                             <button
+                                ref={quarantineBtnRef}
                                 type="button"
                                 disabled={actionBusy || selectedIds.length === 0}
                                 onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'quarantine', reason: curationReason })}
-                                style={{ padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#991b1b', color: '#fff', border: '1px solid #ef4444' }}
+                                style={{ minHeight: 44, padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#991b1b', color: '#fff', border: '1px solid #ef4444' }}
                             >
                                 Quarantine Selected
                             </button>
@@ -997,6 +1169,32 @@ export default function TriviaPoolDashboard({
                             </button>
                         </div>
 
+                        {/* Keyboard Shortcuts Legend */}
+                        <div
+                            data-curation-shortcuts-legend="true"
+                            aria-label="Keyboard Curation Shortcuts"
+                            style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 10,
+                                alignItems: 'center',
+                                padding: '8px 12px',
+                                marginBottom: 14,
+                                borderRadius: 8,
+                                background: 'rgba(10, 24, 41, 0.72)',
+                                border: '1px solid rgba(134, 218, 255, 0.24)',
+                                fontSize: 12,
+                                color: '#bdd0e2',
+                            }}
+                        >
+                            <span style={{ fontWeight: 700, color: '#f2f7ff' }}>Keyboard Shortcuts:</span>
+                            <span><kbd style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(189,208,226,0.3)', color: '#f2f7ff', fontSize: 12 }}>J</kbd> / <kbd style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(189,208,226,0.3)', color: '#f2f7ff', fontSize: 12 }}>K</kbd> Move Focus</span>
+                            <span><kbd style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(189,208,226,0.3)', color: '#f2f7ff', fontSize: 12 }}>Space</kbd> Toggle Select</span>
+                            <span><kbd style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(189,208,226,0.3)', color: '#f2f7ff', fontSize: 12 }}>A</kbd> Approve Selected</span>
+                            <span><kbd style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(189,208,226,0.3)', color: '#f2f7ff', fontSize: 12 }}>Q</kbd> Quarantine</span>
+                            <span><kbd style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(189,208,226,0.3)', color: '#f2f7ff', fontSize: 12 }}>1</kbd> / <kbd style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(189,208,226,0.3)', color: '#f2f7ff', fontSize: 12 }}>2</kbd> / <kbd style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(189,208,226,0.3)', color: '#f2f7ff', fontSize: 12 }}>3</kbd> Easy / Medium / Hard</span>
+                        </div>
+
                         {workbenchLoading ? (
                             <div role="status" style={{ padding: 20, fontSize: 13, color: 'rgba(255,255,255,0.72)' }}>Loading Curation Queue</div>
                         ) : queueItems.length === 0 ? (
@@ -1022,65 +1220,79 @@ export default function TriviaPoolDashboard({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {queueItems.map((item) => (
-                                            <tr key={item.questionId} style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                                                <td style={{ padding: '10px 10px', verticalAlign: 'top' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        aria-label={`Select Question ${item.questionId.slice(0, 8)}`}
-                                                        checked={selectedSet.has(item.questionId)}
-                                                        onChange={() => toggleSelectId(item.questionId)}
-                                                    />
-                                                </td>
-                                                <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                                                    <div>{PRETTY[item.category] || item.category}</div>
-                                                    {item.isThinCategory && (
-                                                        <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 6px', borderRadius: 999, background: 'rgba(134, 218, 255, 0.16)', color: '#86daff', fontSize: 12, fontWeight: 600 }}>
-                                                            Thin Priority
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', textTransform: 'capitalize' }}>
-                                                    {item.difficulty}
-                                                </td>
-                                                <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top' }}>
-                                                    {item.qualityScore ?? 'Unset'}
-                                                </td>
-                                                <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', minWidth: 160 }}>
-                                                    {item.qualityAudit?.pass === true ? (
-                                                        <div>
-                                                            <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.45)', color: '#bbf7d0', fontSize: 12, fontWeight: 700 }}>
-                                                                Ready For Review
+                                        {queueItems.map((item, idx) => {
+                                            const isFocused = idx === safeFocusedIndex;
+                                            const auditPass = isQualityAuditPass(item.qualityAudit);
+                                            const auditScore = item.qualityAudit ? Number(item.qualityAudit.score ?? 0) : null;
+                                            return (
+                                                <tr
+                                                    key={item.questionId}
+                                                    data-focused-row={isFocused ? 'true' : undefined}
+                                                    onClick={() => setFocusedQueueIndex(idx)}
+                                                    style={{
+                                                        borderTop: '1px solid rgba(255,255,255,0.08)',
+                                                        background: isFocused ? 'rgba(134, 218, 255, 0.08)' : 'transparent',
+                                                        borderLeft: isFocused ? '3px solid #86daff' : '3px solid transparent',
+                                                    }}
+                                                >
+                                                    <td style={{ padding: '10px 10px', verticalAlign: 'top' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            aria-label={`Select Question ${item.questionId.slice(0, 8)}`}
+                                                            checked={selectedSet.has(item.questionId)}
+                                                            onChange={() => toggleSelectId(item.questionId)}
+                                                        />
+                                                    </td>
+                                                    <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                                                        <div>{PRETTY[item.category] || item.category}</div>
+                                                        {item.isThinCategory && (
+                                                            <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 6px', borderRadius: 999, background: 'rgba(134, 218, 255, 0.16)', color: '#86daff', fontSize: 12, fontWeight: 600 }}>
+                                                                Thin Priority
                                                             </span>
-                                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 4 }}>
-                                                                Score {item.qualityAudit.score}/100
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', textTransform: 'capitalize' }}>
+                                                        {item.difficulty}
+                                                    </td>
+                                                    <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top' }}>
+                                                        {item.qualityScore ?? 'Unset'}
+                                                    </td>
+                                                    <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', minWidth: 180 }}>
+                                                        {auditPass ? (
+                                                            <div>
+                                                                <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.45)', color: '#bbf7d0', fontSize: 12, fontWeight: 700 }}>
+                                                                    Audit {auditScore}/100
+                                                                </span>
+                                                                <div style={{ fontSize: 12, color: '#bdd0e2', marginTop: 4 }}>
+                                                                    Ready For Review
+                                                                </div>
                                                             </div>
+                                                        ) : item.qualityAudit ? (
+                                                            <div>
+                                                                <span style={{ display: 'inline-block', marginBottom: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.45)', color: '#fecaca', fontSize: 12, fontWeight: 700 }}>
+                                                                    Audit {auditScore}/100
+                                                                </span>
+                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                                                    {(item.qualityAudit.issues || []).map((issue) => (
+                                                                        <span key={issue} style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.38)', color: '#fecaca', fontSize: 12, fontWeight: 600 }}>
+                                                                            {formatQualityIssueLabel(issue)}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span style={{ fontSize: 12, color: '#bdd0e2' }}>Pending Check</span>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '10px 10px', fontSize: 13, lineHeight: 1.45 }}>
+                                                        <div>{item.question}</div>
+                                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
+                                                            ID {item.questionId.slice(0, 8)} · Source {item.source}
                                                         </div>
-                                                    ) : item.qualityAudit ? (
-                                                        <div>
-                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                                                {(item.qualityAudit.issues || []).map((issue) => (
-                                                                    <span key={issue} style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.45)', color: '#fecaca', fontSize: 12, fontWeight: 600 }}>
-                                                                        {formatQualityIssueLabel(issue)}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 4 }}>
-                                                                Score {item.qualityAudit.score}/100
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>Pending Check</span>
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: '10px 10px', fontSize: 13, lineHeight: 1.45 }}>
-                                                    <div>{item.question}</div>
-                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
-                                                        ID {item.questionId.slice(0, 8)} · Source {item.source}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
