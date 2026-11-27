@@ -22,6 +22,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   SlidersHorizontal, Shuffle, RotateCcw, Undo2, Plus, X as XIcon,
@@ -49,6 +50,9 @@ import {
   calculateEquityAsync, simulateRunoutsAsync,
   isEquityWorkerAvailable, terminateEquityWorker,
 } from '../../../src/lib/sandbox/EquityEngine';
+import {
+  runProgressiveEquity, DEFAULT_PREVIEW_TRIALS, DEFAULT_FULL_TRIALS,
+} from '../../../src/hooks/useEquityWorker';
 import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
 import {
   getArchetypeRangeString, getArchetypeVPIP, ARCHETYPE_CONFIG,
@@ -57,7 +61,10 @@ import {
   getClubArenaTheme, onClubArenaThemeChange,
 } from '../../../src/lib/clubArenaTheme';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
-import RangeHeatGrid from '../../../src/components/sandbox/RangeHeatGrid';
+import { handleSpatialGridKeyDown } from '../../../src/components/sandbox/spatialNavigation.mjs';
+import {
+  consumeReviewHandoffFromStorage, parseReviewHandoffPayload,
+} from '../../../src/components/sandbox/reviewHandoff.mjs';
 import {
   T, F, S, R, btn, iconBtn, pill, cardCompact, sectionTitle, numeric as NUM,
 } from '../../../src/components/sandbox/paTokens';
@@ -74,6 +81,10 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 // CODE-SPLIT WORKSPACE PANELS (loaded on demand)
 // ═══════════════════════════════════════════════════════════════════════════
+const RangeHeatGrid = dynamic(
+  () => import('../../../src/components/sandbox/RangeHeatGrid'),
+  { ssr: false, loading: () => <Skeleton h={220} /> },
+);
 const ExportCard = dynamic(
   () => import('../../../src/components/sandbox/ExportCard').then((m) => m.ExportCard),
   { ssr: false },
@@ -117,9 +128,9 @@ const DEFAULT_VILLAINS = [
 ];
 
 const DISCLOSED_LIMITS = [
-  'Multiway Equity Is Available.',
-  'The Original Action Builder Is Heads-Up.',
-  'Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes.',
+  'Multiway Equity And Multiway Action Builder (2-6 Seats) Are Supported.',
+  'Exact Historical Wager Sizes Are Parsed For Supported PokerStars, GGPoker, And Club Arena Formats (Malformed Or Unrecognized Formats Fall Back To Estimates).',
+  'Authored Scenarios Remain Strictly Ungraded And Never Produce GTO Grades, Solver EV, Accuracy Scores, Streaks, Or Training Progress.',
 ];
 
 const VERIFIED_DESTINATIONS = [
@@ -282,24 +293,136 @@ function CardSlot({ card, label, onTap, onRemove }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CARD PICKER SHEET (CSS-only responsive: 2-step on mobile, 4x13 on desktop)
+// CARD PICKER SHEET (CSS-only responsive + Spatial Keyboard Navigation)
+// Composite role="grid"/role="gridcell", roving tabindex, edge-based
+// getBoundingClientRect() arrow movement, scrollIntoView, Esc focus restore.
 // ═══════════════════════════════════════════════════════════════════════════
 function CardPickerSheet({
   isOpen, onClose, onSelect, usedCards = [], mode, pickProgress, onRandomCard, onRandomFlop,
 }) {
   const [rank, setRank] = useState(null);
-  useEffect(() => {
-    if (!isOpen) setRank(null);
-  }, [isOpen]);
+  const [activeDesktopCard, setActiveDesktopCard] = useState(null);
+  const [activeMobileRank, setActiveMobileRank] = useState(null);
+  const [activeMobileSuit, setActiveMobileSuit] = useState(null);
+  const desktopGridRef = useRef(null);
+  const mobileRankGridRef = useRef(null);
+  const mobileSuitGridRef = useRef(null);
+  const returnFocusElRef = useRef(null);
 
   const used = useMemo(() => new Set(usedCards || []), [usedCards]);
-  const freeCountFor = (r) => SUITS.filter((s) => !used.has(`${r}${s.code}`)).length;
+  const freeCountFor = useCallback((r) => SUITS.filter((s) => !used.has(`${r}${s.code}`)).length, [used]);
+
+  const firstFreeCard = useMemo(() => {
+    for (const s of SUITS) {
+      for (const r of RANKS) {
+        const code = `${r}${s.code}`;
+        if (!used.has(code)) return code;
+      }
+    }
+    return null;
+  }, [used]);
+
+  const firstFreeRank = useMemo(() => RANKS.find((r) => freeCountFor(r) > 0) || null, [freeCountFor]);
+
+  const firstFreeSuitForRank = useMemo(() => {
+    if (!rank) return null;
+    const found = SUITS.find((s) => !used.has(`${rank}${s.code}`));
+    return found ? `${rank}${found.code}` : null;
+  }, [rank, used]);
+
+  useEffect(() => {
+    if (isOpen && typeof document !== 'undefined') {
+      returnFocusElRef.current = document.activeElement;
+    }
+    if (!isOpen) {
+      setRank(null);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!activeDesktopCard || used.has(activeDesktopCard)) {
+      setActiveDesktopCard(firstFreeCard);
+    }
+  }, [activeDesktopCard, used, firstFreeCard]);
+
+  useEffect(() => {
+    if (!activeMobileRank || freeCountFor(activeMobileRank) === 0) {
+      setActiveMobileRank(firstFreeRank);
+    }
+  }, [activeMobileRank, freeCountFor, firstFreeRank]);
+
+  useEffect(() => {
+    if (rank && (!activeMobileSuit || !activeMobileSuit.startsWith(rank) || used.has(activeMobileSuit))) {
+      setActiveMobileSuit(firstFreeSuitForRank);
+    }
+  }, [rank, activeMobileSuit, used, firstFreeSuitForRank]);
+
+  const handleCloseWithRestore = useCallback(() => {
+    const prevEl = returnFocusElRef.current;
+    onClose?.();
+    if (prevEl && typeof prevEl.focus === 'function') {
+      setTimeout(() => {
+        try { prevEl.focus({ preventScroll: true }); } catch (_e) { /* detached */ }
+      }, 0);
+    }
+  }, [onClose]);
 
   const pick = (cardStr) => {
     if (used.has(cardStr)) return;
     setRank(null);
     onSelect(cardStr);
   };
+
+  const onDesktopGridKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCloseWithRestore();
+      return;
+    }
+    handleSpatialGridKeyDown(e, {
+      container: desktopGridRef.current,
+      itemSelector: 'button[role="gridcell"]:not([disabled])',
+      onMove: (el) => {
+        const code = el?.getAttribute?.('data-card-code');
+        if (code) setActiveDesktopCard(code);
+      },
+    });
+  }, [handleCloseWithRestore]);
+
+  const onMobileRankKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCloseWithRestore();
+      return;
+    }
+    handleSpatialGridKeyDown(e, {
+      container: mobileRankGridRef.current,
+      itemSelector: 'button[role="gridcell"]:not([disabled])',
+      onMove: (el) => {
+        const r = el?.getAttribute?.('data-rank-code');
+        if (r) setActiveMobileRank(r);
+      },
+    });
+  }, [handleCloseWithRestore]);
+
+  const onMobileSuitKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setRank(null);
+      return;
+    }
+    handleSpatialGridKeyDown(e, {
+      container: mobileSuitGridRef.current,
+      itemSelector: 'button[role="gridcell"]:not([disabled])',
+      onMove: (el) => {
+        const code = el?.getAttribute?.('data-card-code');
+        if (code) setActiveMobileSuit(code);
+      },
+    });
+  }, []);
 
   const isHero = mode === 'hero';
   const title = isHero
@@ -311,9 +434,9 @@ function CardPickerSheet({
   return (
     <BottomSheet
       open={isOpen}
-      onClose={onClose}
+      onClose={handleCloseWithRestore}
       title={title}
-      subtitle={rank ? `Choose A Suit For ${rank}` : 'Choose Rank And Suit'}
+      subtitle={rank ? `Choose A Suit For ${rank}` : 'Choose Rank And Suit (Arrow Keys Navigate Grid)'}
       ariaLabel={title}
       maxWidth={680}
       footer={(
@@ -328,7 +451,7 @@ function CardPickerSheet({
               Random Flop
             </button>
           )}
-          <button type="button" className="pa-btn" onClick={onClose} style={{ ...btn('primary'), flex: 1 }}>
+          <button type="button" className="pa-btn" onClick={handleCloseWithRestore} style={{ ...btn('primary'), flex: 1 }}>
             Done
           </button>
         </>
@@ -337,20 +460,31 @@ function CardPickerSheet({
       {/* Mobile two-step rank -> suit */}
       <div className="deck-mobile-only">
         {!rank ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: S.sm }}>
+          <div
+            ref={mobileRankGridRef}
+            role="grid"
+            aria-label="Select Card Rank"
+            onKeyDown={onMobileRankKeyDown}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: S.sm }}
+          >
             {RANKS.map((r) => {
               const free = freeCountFor(r);
+              const isRovingActive = activeMobileRank === r && free > 0;
               return (
                 <button
                   key={r}
                   type="button"
+                  role="gridcell"
+                  data-rank-code={r}
+                  tabIndex={isRovingActive ? 0 : -1}
                   className="pa-btn"
                   disabled={free === 0}
+                  onFocus={() => setActiveMobileRank(r)}
                   onClick={() => setRank(r)}
                   aria-label={`Rank ${r}, ${free} Suits Available`}
                   style={{
                     ...btn('secondary', { disabled: free === 0 }),
-                    minHeight: 52, padding: 0, flexDirection: 'column', gap: 2,
+                    minHeight: 52, minWidth: 44, padding: 0, flexDirection: 'column', gap: 2,
                     fontSize: 18, fontWeight: 800,
                   }}
                 >
@@ -370,23 +504,35 @@ function CardPickerSheet({
             >
               Back To Ranks
             </button>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: S.sm }}>
+            <div
+              ref={mobileSuitGridRef}
+              role="grid"
+              aria-label={`Select Suit For ${rank}`}
+              onKeyDown={onMobileSuitKeyDown}
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: S.sm }}
+            >
               {SUITS.map((s) => {
                 const code = `${rank}${s.code}`;
                 const taken = used.has(code);
+                const isRovingActive = activeMobileSuit === code && !taken;
                 return (
                   <button
                     key={s.code}
                     type="button"
+                    role="gridcell"
+                    data-card-code={code}
+                    tabIndex={isRovingActive ? 0 : -1}
                     className="pa-btn"
                     disabled={taken}
+                    onFocus={() => setActiveMobileSuit(code)}
                     onClick={() => pick(code)}
+                    aria-label={`${rank} Of ${s.label}`}
                     style={{
                       ...btn('secondary', { disabled: taken }),
-                      minHeight: 56, fontSize: 18, fontWeight: 800, color: taken ? T.textDim : s.color,
+                      minHeight: 56, minWidth: 44, fontSize: 18, fontWeight: 800, color: taken ? T.textDim : s.color,
                     }}
                   >
-                    {rank}{s.symbol} {s.label}
+                    <span>{rank}{s.symbol} {s.label}</span>
                   </button>
                 );
               })}
@@ -395,31 +541,46 @@ function CardPickerSheet({
         )}
       </div>
 
-      {/* Desktop full 4x13 grid */}
-      <div className="deck-desktop-only">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+      {/* Desktop full 4x13 grid with roving tabindex + spatial arrow navigation */}
+      <div className="deck-desktop-only" style={{ overflowX: 'auto' }}>
+        <div
+          ref={desktopGridRef}
+          role="grid"
+          aria-label="52-Card Deck Grid"
+          onKeyDown={onDesktopGridKeyDown}
+          style={{ display: 'flex', flexDirection: 'column', gap: S.xs, minWidth: 520 }}
+        >
           {SUITS.map((s) => (
-            <div key={s.code} style={{ display: 'grid', gridTemplateColumns: 'repeat(13, minmax(0, 1fr))', gap: 4 }}>
+            <div
+              key={s.code}
+              role="row"
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(13, minmax(36px, 1fr))', gap: 4 }}
+            >
               {RANKS.map((r) => {
                 const code = `${r}${s.code}`;
                 const taken = used.has(code);
+                const isRovingActive = activeDesktopCard === code && !taken;
                 return (
                   <button
                     key={code}
                     type="button"
+                    role="gridcell"
+                    data-card-code={code}
+                    tabIndex={isRovingActive ? 0 : -1}
                     className="pa-btn"
                     disabled={taken}
+                    onFocus={() => setActiveDesktopCard(code)}
                     onClick={() => pick(code)}
                     aria-label={`${r} Of ${s.label}`}
                     style={{
                       ...btn('secondary', { disabled: taken }),
-                      minWidth: 0, minHeight: 44, padding: 0,
+                      minWidth: 36, minHeight: 44, padding: 0,
                       fontSize: F.label, fontWeight: 800,
                       color: taken ? T.textDim : s.color,
                       opacity: taken ? 0.35 : 1,
                     }}
                   >
-                    {r}{s.symbol}
+                    <span>{r}{s.symbol}</span>
                   </button>
                 );
               })}
@@ -837,6 +998,7 @@ function TemplatesSheet({
 // MAIN VIRTUAL SANDBOX PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 export default function VirtualSandboxPage() {
+  const router = useRouter();
   const { user, initializing: authInitializing } = useAvatar();
   const userId = user?.id || null;
   const haptic = useHaptics();
@@ -856,6 +1018,9 @@ export default function VirtualSandboxPage() {
   const [accessStatus, setAccessStatus] = useState('idle'); // idle | checking | open | blocked | unknown
   const accessReqIdRef = useRef(0);
   const requestAccessCheck = useAbortableFetch(12000);
+  const requestReviewHandoff = useAbortableFetch(12000);
+  const consumedReviewIdRef = useRef(null);
+  const [reviewHandoffSource, setReviewHandoffSource] = useState(null);
 
   // ── Core Poker Table & Scenario State ──
   const [gameType, setGameType] = useState('cash');
@@ -877,6 +1042,7 @@ export default function VirtualSandboxPage() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [equity, setEquity] = useState(null);
   const [equityComputing, setEquityComputing] = useState(false);
+  const [equityRefining, setEquityRefining] = useState(false);
   const [runouts, setRunouts] = useState(null);
   const [runoutsComputing, setRunoutsComputing] = useState(false);
   const [preflopScenario, setPreflopScenario] = useState('rfi');
@@ -1016,18 +1182,26 @@ export default function VirtualSandboxPage() {
 
   const handState = useMemo(() => computeHandState({
     basePot: Number(potBase) || 6.5,
+    heroPosition,
+    villainPosition: primaryVillain?.position || 'BB',
     heroStack: Number(heroStack) || 100,
     villainStack: Number(primaryVillain?.stack) || 100,
+    villains,
+    street: currentStreet,
     actions: actionHistory,
-  }), [potBase, heroStack, primaryVillain, actionHistory]);
+  }), [potBase, heroPosition, heroStack, primaryVillain, villains, currentStreet, actionHistory]);
 
   const replayState = useMemo(() => {
     if (replayIndex == null || replayIndex < 0 || replayIndex >= actionHistory.length) return null;
     const sliced = actionHistory.slice(0, replayIndex + 1);
     const st = computeHandState({
       basePot: Number(potBase) || 6.5,
+      heroPosition,
+      villainPosition: primaryVillain?.position || 'BB',
       heroStack: Number(heroStack) || 100,
       villainStack: Number(primaryVillain?.stack) || 100,
+      villains,
+      street: currentStreet,
       actions: sliced,
     });
     const lastStreet = sliced[sliced.length - 1]?.street || 'preflop';
@@ -1039,7 +1213,7 @@ export default function VirtualSandboxPage() {
           ? communityCards.slice(0, 4)
           : communityCards;
     return { handState: st, cards, street: lastStreet };
-  }, [replayIndex, actionHistory, potBase, heroStack, primaryVillain, communityCards]);
+  }, [replayIndex, actionHistory, potBase, heroPosition, heroStack, primaryVillain, villains, currentStreet, communityCards]);
 
   const streetHistory = useMemo(() => {
     const order = ['preflop', 'flop', 'turn', 'river'];
@@ -1062,26 +1236,38 @@ export default function VirtualSandboxPage() {
     [heroPosition, preflopScenario],
   );
 
-  const tableVillains = useMemo(() => villains.map((v, i) => ({
-    ...v,
-    id: v.id ?? i,
-    archetypeName: v.archetype?.name || 'GTO Neutral',
-    vpip: getArchetypeVPIP(v.archetype?.id || 'gto_neutral', v.position || 'BB'),
-  })), [villains]);
+  const tableVillains = useMemo(() => {
+    const activeState = replayState ? replayState.handState : handState;
+    return villains.map((v, i) => {
+      const seatKey = villains.length >= 2 ? `villain_${i}` : 'villain';
+      const seat = activeState?.players?.find((p) => p.key === seatKey);
+      return {
+        ...v,
+        id: v.id ?? i,
+        stack: seat ? Math.round(seat.remaining) : (Number(v.stack) || 100),
+        folded: Boolean(seat?.folded),
+        archetypeName: v.archetype?.name || 'GTO Neutral',
+        vpip: getArchetypeVPIP(v.archetype?.id || 'gto_neutral', v.position || 'BB'),
+      };
+    });
+  }, [villains, handState, replayState]);
 
   const heroClassLabel = useMemo(() => describeHeroHand(heroHand), [heroHand]);
 
-  // ── Async Multiway / Heads-Up Equity Computation (Abortable + Stale-Safe) ──
+  // ── Progressive Worker Equity + Instant Cancellation (500 preview -> 10,000 convergence) ──
   useEffect(() => {
     if (activePlayBlock) return undefined;
     if (heroCardsMemo.length < 2) {
+      equityReqIdRef.current += 1;
       setEquity(null);
       setEquityComputing(false);
+      setEquityRefining(false);
       return undefined;
     }
     const reqId = ++equityReqIdRef.current;
     const abortHandle = makeAbortHandle();
     setEquityComputing(true);
+    setEquityRefining(false);
 
     const rangeArg = !equityVsRange
       ? (villains.length >= 2 ? { villains: villains.map(() => null) } : null)
@@ -1089,22 +1275,38 @@ export default function VirtualSandboxPage() {
         ? { villains: resolvedVillainRanges }
         : (resolvedVillainRanges[0] || null);
 
-    calculateEquityAsync(heroCardsMemo, communityCards, 1800, rangeArg, {
+    runProgressiveEquity({
+      heroCards: heroCardsMemo,
+      boardCards: communityCards,
+      rangeArg,
+      previewTrials: DEFAULT_PREVIEW_TRIALS,
+      fullTrials: DEFAULT_FULL_TRIALS,
       signal: abortHandle.signal,
-    })
-      .then((res) => {
+      tokenRef: equityReqIdRef,
+      requestId: reqId,
+      calculateFn: calculateEquityAsync,
+      onProgress: (res) => {
         if (reqId !== equityReqIdRef.current) return;
         setEquity(res && Number.isFinite(Number(res.heroEquity)) ? res : null);
-      })
+        setEquityComputing(false);
+        setEquityRefining(Boolean(res?.isPreview && !res?.converged));
+      },
+    })
       .catch((err) => {
         if (isAbortError(err) || reqId !== equityReqIdRef.current) return;
         setEquity(null);
       })
       .finally(() => {
-        if (reqId === equityReqIdRef.current) setEquityComputing(false);
+        if (reqId === equityReqIdRef.current) {
+          setEquityComputing(false);
+          setEquityRefining(false);
+        }
       });
 
-    return () => { abortHandle.abort(); };
+    return () => {
+      equityReqIdRef.current += 1;
+      abortHandle.abort();
+    };
   }, [heroCardsMemo, communityCards, equityVsRange, villains, resolvedVillainRanges, activePlayBlock]);
 
   // ── Async Runout Simulation (Flop/Turn) ──
@@ -1165,8 +1367,12 @@ export default function VirtualSandboxPage() {
     }
     if (Number.isFinite(Number(raw.heroStack))) setHeroStack(Number(raw.heroStack));
     if (Number.isFinite(Number(raw.effStack))) setHeroStack(Number(raw.effStack));
-    if (Number.isFinite(Number(raw.potBase ?? raw.potSize))) {
-      setPotBase(Number(raw.potBase ?? raw.potSize));
+    if (Number.isFinite(Number(raw.potBase))) {
+      setPotBase(Number(raw.potBase));
+    } else if (Number.isFinite(Number(raw.potSize))) {
+      setPotBase(Number(raw.potSize));
+    } else if (Number.isFinite(Number(raw.pot)) && (!Array.isArray(raw.actionHistory) || raw.actionHistory.length === 0)) {
+      setPotBase(Number(raw.pot));
     }
     if (raw.heroHand && (raw.heroHand.card1 || raw.heroHand.card2)) {
       setHeroHand({ card1: raw.heroHand.card1 || null, card2: raw.heroHand.card2 || null });
@@ -1191,6 +1397,69 @@ export default function VirtualSandboxPage() {
     }
     setReplayIndex(null);
   }, [pushUndo]);
+
+  // ── Preload Hand From Review My Play (?fromReview=<savedRowId>) ──
+  useEffect(() => {
+    if (!router.isReady || activePlayBlock) return undefined;
+    const rawParam = router.query?.fromReview;
+    const fromReviewId = Array.isArray(rawParam) ? rawParam[0] : rawParam;
+    if (!fromReviewId || typeof fromReviewId !== 'string') return undefined;
+    if (consumedReviewIdRef.current === fromReviewId) return undefined;
+
+    const applyHandoff = (handoff) => {
+      if (!handoff) return;
+      consumedReviewIdRef.current = fromReviewId;
+      restoreScenario({
+        gameType: handoff.gameType,
+        heroPosition: handoff.heroPosition,
+        heroStack: handoff.heroStack,
+        potBase: handoff.potBase,
+        heroHand: handoff.heroHand,
+        board: handoff.board,
+        actionHistory: [],
+      });
+      setReviewHandoffSource(handoff.sourceRowId || fromReviewId);
+      toast.success(
+        handoff.nonNlhHeroCardCount
+          ? 'Loaded Review Hand (First Two Hero Cards · Ungraded Exploration)'
+          : 'Loaded Hand From Review My Play (Ungraded Exploration)',
+      );
+    };
+
+    const fromStorage = consumeReviewHandoffFromStorage(fromReviewId);
+    if (fromStorage) {
+      applyHandoff(fromStorage);
+      return undefined;
+    }
+
+    if (authInitializing || !userId) return undefined;
+
+    let active = true;
+    (async () => {
+      try {
+        const token = await getFreshAccessToken();
+        if (!active || !token) return;
+        const res = await requestReviewHandoff(`/api/poker/saved-hands?id=${encodeURIComponent(fromReviewId)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeoutMs: 12000,
+        });
+        if (!active || !res.ok) return;
+        const json = await res.json().catch(() => null);
+        if (!active || !json) return;
+        const row = json.hand
+          || (Array.isArray(json.hands) ? json.hands.find((h) => String(h.id) === String(fromReviewId)) : null)
+          || (json.id ? json : null);
+        const handoff = parseReviewHandoffPayload(row, fromReviewId);
+        if (handoff) applyHandoff(handoff);
+      } catch (err) {
+        if (!isAbortError(err)) {
+          console.warn('[VirtualSandbox] fromReview fetch skipped:', err?.message || err);
+        }
+      }
+    })();
+
+    return () => { active = false; };
+  }, [router.isReady, router.query?.fromReview, activePlayBlock, authInitializing, userId, requestReviewHandoff, restoreScenario]);
 
   const popUndo = useCallback(() => {
     setUndoStack((prev) => {
@@ -1224,7 +1493,7 @@ export default function VirtualSandboxPage() {
         equity: equity?.heroEquity != null ? Number(equity.heroEquity.toFixed(1)) : null,
         stackDepth: heroStack,
         potSize: handState.pot,
-        actionLine: actionHistory.map((a) => `${a.actor === 'hero' ? 'H' : 'V'}:${a.action || a.label || ''}`).join(' -> '),
+        actionLine: actionHistory.map((a) => `${a.isHero || a.actor === 'hero' ? 'H' : (a.position || 'V')}:${a.label || a.action || ''}`).join(' -> '),
         source: 'live',
         note: label,
         sessionStartedAt: sessionStartedAtRef.current,
@@ -1603,7 +1872,7 @@ export default function VirtualSandboxPage() {
     pot: tablePot,
     stack: heroStack,
     street: currentStreet,
-    actionLine: actionHistory.map((a) => `${a.actor === 'hero' ? 'Hero' : 'Villain'} ${a.action || a.label || ''}`.trim()).join(' -> '),
+    actionLine: actionHistory.map((a) => `${a.isHero || a.actor === 'hero' ? 'Hero' : (a.player || a.position || 'Villain')} ${a.label || a.action || ''}`.trim()).join(' -> '),
   }), [heroPosition, heroCardsMemo, communityCards, tablePot, heroStack, currentStreet, actionHistory]);
 
   return (
@@ -1680,6 +1949,9 @@ export default function VirtualSandboxPage() {
                 <span style={pill('neutral')}>
                   {workerReady ? 'Worker Equity Ready' : 'Local Equity Engine'}
                 </span>
+                {reviewHandoffSource && (
+                  <span style={pill('success')}>Loaded From Review My Play</span>
+                )}
               </div>
               <p className="honesty-copy">
                 Authored Scenarios In The Virtual Sandbox Do Not Produce GTO Grades, Solver EV, Accuracy Scores,
@@ -1727,13 +1999,19 @@ export default function VirtualSandboxPage() {
             <div className="metric-tile">
               <span className="metric-label">Monte Carlo Equity</span>
               <strong className="metric-value" style={{ color: equity?.heroEquity >= 50 ? T.success : T.accent }}>
-                {equityComputing
+                {equityComputing && !equity
                   ? 'Computing…'
                   : equity?.heroEquity != null
                     ? `${Number(equity.heroEquity).toFixed(1)}%`
                     : 'Not Available'}
               </strong>
-              <span className="metric-sub">{equityLabel || 'Select Two Hero Cards'}</span>
+              <span className="metric-sub">
+                {equityRefining
+                  ? `${equityLabel || 'Preview'} · Refining 10k…`
+                  : equity?.sampleSize
+                    ? `${equityLabel || 'Equity'} · ${Number(equity.sampleSize).toLocaleString()} Trials`
+                    : (equityLabel || 'Select Two Hero Cards')}
+              </span>
             </div>
             <div className="metric-tile">
               <span className="metric-label">Pot &amp; SPR</span>
@@ -1942,7 +2220,7 @@ export default function VirtualSandboxPage() {
                 </div>
               </section>
 
-              {/* Street Timeline, Replay Bar & Heads-Up Action Builder */}
+              {/* Street Timeline, Replay Bar & Multiway Action Builder (2-6 Seats) */}
               <section className="workspace-panel" aria-label="Action Builder And Replay">
                 <div className="panel-header-row">
                   <h2 className="panel-heading">Action Sequence &amp; Replay</h2>
@@ -1957,8 +2235,8 @@ export default function VirtualSandboxPage() {
                 </div>
 
                 <p className="limit-callout">
-                  Scope Note: The Original Action Builder Is Heads-Up. Multiway Pots Still Compute Full Multiway
-                  Equity Across All Seated Villains.
+                  Multiway Action Builder Supports 2-6 Seats With Running Pot, Effective Stack, And Active Players
+                  Per Street. Authored Scenarios Remain Strictly Ungraded.
                 </p>
 
                 <StreetTimeline
@@ -1982,28 +2260,32 @@ export default function VirtualSandboxPage() {
 
                 <ActionHistoryBuilder
                   actions={actionHistory}
-                  onAddAction={(entry) => {
+                  onAdd={(entry) => {
                     if (activePlayBlock) return;
                     pushUndo();
                     setActionHistory((prev) => [...prev, { ...entry, street: entry?.street || currentStreet }]);
                     setReplayIndex(null);
                     playSound?.('chip');
                   }}
-                  onRemoveAction={(idx) => {
+                  onRemove={(idx) => {
                     pushUndo();
                     setActionHistory((prev) => prev.filter((_, i) => i !== idx));
                     setReplayIndex(null);
                   }}
-                  onClearActions={() => {
+                  onClear={() => {
                     pushUndo();
                     setActionHistory([]);
                     setReplayIndex(null);
                   }}
-                  currentStreet={currentStreet}
-                  potSize={handState.pot}
-                  heroStack={handState.remaining.hero}
-                  villainStack={handState.remaining.villain}
+                  street={currentStreet}
+                  heroPosition={heroPosition}
+                  villainPosition={primaryVillain?.position || 'BB'}
+                  villains={villains}
+                  potSize={potBase}
+                  heroStack={heroStack}
+                  villainStack={Number(primaryVillain?.stack) || 100}
                   handState={handState}
+                  disabled={!!activePlayBlock}
                 />
               </section>
             </div>
@@ -2425,7 +2707,11 @@ export default function VirtualSandboxPage() {
           onImport={(parsed) => {
             restoreScenario(parsed);
             recordExplorationSnapshot('Imported Hand History');
-            toast.success('Hand History Loaded (Note: Legacy Parser Approximates Wager Sizes)');
+            toast.success(
+              parsed?.wagerSizesExact
+                ? 'Hand History Loaded With Exact Wager Sizes'
+                : 'Hand History Loaded (Estimated Wager Sizes)',
+            );
           }}
         />
       )}

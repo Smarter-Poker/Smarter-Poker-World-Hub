@@ -130,6 +130,7 @@ async function probeRls(table, token, userId) {
 export async function runProductionHardeningProbe() {
   const publicRoutes = [
     '/hub/personal-assistant',
+    '/hub/personal-assistant/review',
     '/hub/personal-assistant/sandbox',
     '/hub/personal-assistant/leaks',
     '/hub/personal-assistant/leaks?format=tournament',

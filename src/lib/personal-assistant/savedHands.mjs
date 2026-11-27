@@ -4,10 +4,18 @@ import { parseHandSummary, toCardCodes } from './leakRecord.js';
 export const SAVED_HAND_TABLE_ID = 'AI-Scan';
 export const CLUB_ARENA_SOURCE = 'club-arena';
 export const CLUB_ARENA_HAND_KEY_PREFIX = 'club-arena:';
+export const CLUB_ARENA_ALT_HAND_KEY_PREFIX = 'ca:';
 export const HAND_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const ALLOWED_REVIEW_STATUSES = new Set(['saved', 'in_review', 'reviewed']);
 export const ALLOWED_ANALYSIS_STATES = new Set(['not_analyzed', 'analyzed']);
+export const ALLOWED_LIST_STATUSES = new Set(['unreviewed', 'saved', 'in_review', 'reviewed', 'analyzed']);
 export const MAX_NOTE_LENGTH = 4000;
+export const MAX_TAGS = 10;
+export const MAX_TAG_LENGTH = 32;
+export const MAX_BATCH_HAND_IDS = 50;
+export const DEFAULT_SAVED_HANDS_LIMIT = 25;
+export const MAX_SAVED_HANDS_LIMIT = 100;
+export const MAX_PAYLOAD_BYTES = 32_768;
 
 export const SAVED_HAND_LIST_COLUMNS = [
   'id',
@@ -62,6 +70,52 @@ export function isValidUuid(value) {
 
 export function clubArenaSavedHandKey(handId) {
   return `${CLUB_ARENA_HAND_KEY_PREFIX}${String(handId || '').trim().toLowerCase()}`;
+}
+
+export function clubArenaLookupKeys(handId) {
+  const clean = String(handId || '').trim().toLowerCase();
+  if (!clean) return [];
+  return [`${CLUB_ARENA_HAND_KEY_PREFIX}${clean}`, `${CLUB_ARENA_ALT_HAND_KEY_PREFIX}${clean}`];
+}
+
+export function extractSourceHandIdFromKey(handIdKey) {
+  const raw = String(handIdKey || '').trim().toLowerCase();
+  if (!raw) return null;
+  if (raw.startsWith(CLUB_ARENA_HAND_KEY_PREFIX)) {
+    const id = raw.slice(CLUB_ARENA_HAND_KEY_PREFIX.length);
+    return isValidUuid(id) ? id : null;
+  }
+  if (raw.startsWith(CLUB_ARENA_ALT_HAND_KEY_PREFIX)) {
+    const id = raw.slice(CLUB_ARENA_ALT_HAND_KEY_PREFIX.length);
+    return isValidUuid(id) ? id : null;
+  }
+  return isValidUuid(raw) ? raw : null;
+}
+
+/**
+ * Sanitize a tags array: max 10 tags, max 32 chars each, alphanumeric/space/hyphen only,
+ * case-insensitively deduplicated preserving first occurrence.
+ */
+export function sanitizeSavedHandTags(rawTags) {
+  if (!Array.isArray(rawTags)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const raw of rawTags) {
+    if (typeof raw !== 'string') continue;
+    const cleaned = raw
+      .replace(/[^a-zA-Z0-9 -]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, MAX_TAG_LENGTH)
+      .trim();
+    if (!cleaned) continue;
+    const key = cleaned.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(cleaned);
+    if (out.length >= MAX_TAGS) break;
+  }
+  return out;
 }
 
 export function normalizeVariantLabel(raw) {
@@ -179,6 +233,7 @@ export function savedHandRow(userId, hand, now = new Date()) {
       review: {
         status: 'saved',
         notes: '',
+        tags: [],
         revision: 1,
         updatedAt: at,
         analysisState: 'not_analyzed',
@@ -569,6 +624,7 @@ export function buildClubArenaSavedHandRow({
       review: {
         status: 'saved',
         notes: '',
+        tags: [],
         revision: 1,
         updatedAt: at,
         analysisState: 'not_analyzed',
@@ -595,6 +651,7 @@ export function normalizeSavedHandReviewMeta(row) {
   return {
     status,
     notes: typeof rawReview.notes === 'string' ? rawReview.notes : '',
+    tags: sanitizeSavedHandTags(rawReview.tags),
     revision,
     updatedAt: rawReview.updatedAt || row?.created_at || null,
     analysisState,
@@ -604,7 +661,7 @@ export function normalizeSavedHandReviewMeta(row) {
 }
 
 /**
- * Validate a PATCH body updating private notes, review status, or analysis receipt.
+ * Validate a PATCH body updating private notes, tags, review status, or analysis receipt.
  */
 export function validateSavedHandPatch(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -635,8 +692,19 @@ export function validateSavedHandPatch(body) {
     patch.notes = body.notes;
   }
 
+  if (Object.prototype.hasOwnProperty.call(body, 'tags')) {
+    if (!Array.isArray(body.tags)) {
+      return { error: 'Tags Must Be An Array' };
+    }
+    if (body.tags.some((item) => typeof item !== 'string')) {
+      return { error: 'Each Tag Must Be Text' };
+    }
+    patch.tags = sanitizeSavedHandTags(body.tags);
+  }
+
   if (Object.prototype.hasOwnProperty.call(body, 'reviewStatus')) {
-    const st = String(body.reviewStatus || '').trim().toLowerCase();
+    const rawStatus = String(body.reviewStatus || '').trim().toLowerCase();
+    const st = rawStatus === 'unreviewed' ? 'saved' : rawStatus;
     if (!ALLOWED_REVIEW_STATUSES.has(st)) {
       return { error: 'Review Status Must Be Saved, In Review, Or Reviewed' };
     }
@@ -683,17 +751,496 @@ export function isUniqueViolationError(error) {
   return msg.includes('duplicate key') || msg.includes('uq_hand_histories_hand_user');
 }
 
+/**
+ * Encode an opaque base64url cursor `{ createdAt, id }` for saved-hands pagination.
+ */
+export function encodeSavedHandsCursor({ createdAt, id }) {
+  if (!createdAt) return null;
+  const payload = JSON.stringify({ createdAt: String(createdAt), id: id ? String(id) : null });
+  return Buffer.from(payload, 'utf8').toString('base64url');
+}
+
+/**
+ * Decode a cursor supplied as opaque base64url JSON `{ createdAt, id }` OR raw ISO timestamp.
+ * Returns `{ createdAt, id, ms }` or `{ error }`.
+ */
+export function decodeSavedHandsCursor(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return null;
+
+  // Support raw ISO timestamp cursors directly.
+  if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const ms = Date.parse(value);
+    if (!Number.isNaN(ms)) {
+      return { createdAt: value, id: null, ms };
+    }
+    return { error: 'Invalid Cursor Timestamp' };
+  }
+
+  try {
+    const decoded = Buffer.from(value, 'base64url').toString('utf8');
+    const parsed = JSON.parse(decoded);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { error: 'Invalid Cursor Parameter' };
+    }
+    const createdAt = typeof parsed.createdAt === 'string' ? parsed.createdAt.trim() : '';
+    const ms = Date.parse(createdAt);
+    if (!createdAt || Number.isNaN(ms)) {
+      return { error: 'Invalid Cursor Parameter' };
+    }
+    const id = typeof parsed.id === 'string' && parsed.id.trim() ? parsed.id.trim() : null;
+    return { createdAt, id, ms };
+  } catch (_) {
+    return { error: 'Invalid Cursor Parameter' };
+  }
+}
+
+function rowTimestampMs(row) {
+  const raw = row?.created_at || row?.completed_at || row?.started_at || '';
+  const ms = Date.parse(String(raw));
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+export function compareSavedHandRowsDesc(a, b) {
+  const diff = rowTimestampMs(b) - rowTimestampMs(a);
+  if (diff !== 0) return diff;
+  const idA = String(a?.id || '');
+  const idB = String(b?.id || '');
+  if (idB > idA) return 1;
+  if (idB < idA) return -1;
+  return 0;
+}
+
+export function isRowAfterCursor(row, cursor) {
+  if (!cursor) return true;
+  const rowMs = rowTimestampMs(row);
+  if (rowMs < cursor.ms) return true;
+  if (rowMs > cursor.ms) return false;
+  if (!cursor.id) return false;
+  return String(row?.id || '') < String(cursor.id);
+}
+
+export function isSavedHandUnreviewed(decoratedRow) {
+  const status = decoratedRow?.review?.status || normalizeSavedHandReviewMeta(decoratedRow).status;
+  return status === 'saved';
+}
+
+export function inferSavedHandFormat(row) {
+  const handData = row?.hand_data && typeof row.hand_data === 'object' ? row.hand_data : {};
+  const explicit = String(handData.format || row?.format || '').trim().toLowerCase();
+  if (explicit === 'tournament' || explicit === 'mtt' || explicit === 'sng') return 'tournament';
+  if (explicit === 'cash') return 'cash';
+  if (handData.tournamentId || handData.tournament_id || row?.tournament_id) return 'tournament';
+  return 'cash';
+}
+
+function extractHeroCardsForRow(row) {
+  const handData = row?.hand_data && typeof row.hand_data === 'object' ? row.hand_data : {};
+  if (Array.isArray(handData.heroCards) && handData.heroCards.length > 0) {
+    return normalizeBoardCodes(handData.heroCards);
+  }
+  const players = Array.isArray(handData.players) ? handData.players : [];
+  const hero = players.find((p) => p?.isHero) || players[0];
+  return hero?.holeCards ? normalizeBoardCodes(hero.holeCards) : [];
+}
+
+function extractHeroPositionForRow(row) {
+  const handData = row?.hand_data && typeof row.hand_data === 'object' ? row.hand_data : {};
+  if (handData.heroPosition) return String(handData.heroPosition).trim().toUpperCase();
+  const players = Array.isArray(handData.players) ? handData.players : [];
+  const hero = players.find((p) => p?.isHero);
+  return hero?.position ? String(hero.position).trim().toUpperCase() : null;
+}
+
+function cardCodesToHandClass(codes) {
+  if (!Array.isArray(codes) || codes.length !== 2) return '';
+  const r1 = String(codes[0] || '').slice(0, -1).toUpperCase().replace(/^10$/, 'T');
+  const s1 = String(codes[0] || '').slice(-1).toLowerCase();
+  const r2 = String(codes[1] || '').slice(0, -1).toUpperCase().replace(/^10$/, 'T');
+  const s2 = String(codes[1] || '').slice(-1).toLowerCase();
+  const order = '23456789TJQKA';
+  const i1 = order.indexOf(r1);
+  const i2 = order.indexOf(r2);
+  if (i1 === -1 || i2 === -1) return '';
+  const hi = i1 >= i2 ? r1 : r2;
+  const lo = i1 >= i2 ? r2 : r1;
+  if (hi === lo) return `${hi}${lo}`;
+  return `${hi}${lo}${s1 === s2 ? 's' : 'o'}`;
+}
+
+/**
+ * Filter a decorated saved hand row against structured query filters.
+ */
+export function matchesSavedHandFilters(row, filters = {}) {
+  if (!row || typeof row !== 'object') return false;
+  const handData = row.hand_data && typeof row.hand_data === 'object' ? row.hand_data : {};
+  const review = row.review || normalizeSavedHandReviewMeta(row);
+
+  if (filters.source) {
+    const wantedSource = String(filters.source).trim().toLowerCase();
+    const rowSource = String(row.source || handData.source || '').trim().toLowerCase();
+    if (rowSource !== wantedSource) return false;
+  }
+
+  if (filters.status) {
+    const wantedStatus = String(filters.status).trim().toLowerCase();
+    if (wantedStatus === 'unreviewed' || wantedStatus === 'saved') {
+      if (review.status !== 'saved') return false;
+    } else if (wantedStatus === 'in_review' || wantedStatus === 'reviewed') {
+      if (review.status !== wantedStatus) return false;
+    } else if (wantedStatus === 'analyzed') {
+      if (review.analysisState !== 'analyzed') return false;
+    } else {
+      return false;
+    }
+  }
+
+  if (filters.format) {
+    const wantedFormat = String(filters.format).trim().toLowerCase();
+    if (inferSavedHandFormat(row) !== wantedFormat) return false;
+  }
+
+  if (filters.position) {
+    const wantedPos = String(filters.position).trim().toUpperCase();
+    const heroPos = extractHeroPositionForRow(row);
+    if (!heroPos || heroPos !== wantedPos) return false;
+  }
+
+  if (filters.tag) {
+    const wantedTag = String(filters.tag).trim().toLowerCase();
+    const tags = Array.isArray(review.tags) ? review.tags : [];
+    if (!tags.some((t) => String(t).toLowerCase() === wantedTag)) return false;
+  }
+
+  if (filters.q) {
+    const needle = String(filters.q).trim().toLowerCase();
+    if (needle) {
+      const heroCards = extractHeroCardsForRow(row);
+      const primaryBoard = normalizeBoardCodes(handData.communityCards || handData.boards?.[0]?.cards || []);
+      const allBoards = Array.isArray(handData.boards)
+        ? handData.boards.flatMap((b) => normalizeBoardCodes(b?.cards || []))
+        : primaryBoard;
+      const haystackParts = [
+        review.notes || '',
+        ...(Array.isArray(review.tags) ? review.tags : []),
+        heroCards.join(' '),
+        heroCards.join(''),
+        cardCodesToHandClass(heroCards),
+        allBoards.join(' '),
+        allBoards.join(''),
+        handData.tableName || '',
+        row.variant || '',
+        extractHeroPositionForRow(row) || '',
+      ];
+      const haystack = haystackParts.join(' ').toLowerCase();
+      if (!haystack.includes(needle)) return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Rank recent completed `ca_hand_facts` rows into up to `limit` (default 5)
+ * post-session suggested hands for review. Excludes already-saved hands and
+ * never leaks any opponent hidden cards or PII.
+ */
+export function rankSuggestedHands(
+  factRows = [],
+  {
+    savedSourceHandIds = new Set(),
+    handHistoryById = new Map(),
+    tableNameById = new Map(),
+    limit = 5,
+  } = {},
+) {
+  if (!Array.isArray(factRows) || factRows.length === 0) return [];
+  const savedSet = savedSourceHandIds instanceof Set
+    ? new Set([...savedSourceHandIds].map((id) => String(id).trim().toLowerCase()))
+    : new Set();
+
+  const scored = [];
+  const seenHandIds = new Set();
+
+  for (const fact of factRows) {
+    const handId = String(fact?.hand_id || '').trim().toLowerCase();
+    if (!isValidUuid(handId) || savedSet.has(handId) || seenHandIds.has(handId)) continue;
+    seenHandIds.add(handId);
+
+    const historyRow = handHistoryById instanceof Map ? handHistoryById.get(handId) : null;
+    const summary = historyRow ? (parseHandSummary(historyRow.summary) || {}) : {};
+    const bigBlind = finiteNumber(fact?.big_blind ?? historyRow?.big_blind ?? summary?.bigBlind, 0);
+    const netBb = finiteNumber(fact?.net_bb, bigBlind > 0 ? finiteNumber(fact?.net, 0) / bigBlind : 0);
+    const absNetBb = Math.abs(netBb);
+    const invested = finiteNumber(fact?.invested, 0);
+    const returned = finiteNumber(fact?.returned, 0);
+    const rawPot = historyRow?.pot_size ?? summary?.potTotal ?? summary?.potSize ?? fact?.pot_size ?? null;
+    let potBb = null;
+    if (rawPot !== null && rawPot !== undefined && Number.isFinite(Number(rawPot)) && bigBlind > 0) {
+      potBb = +(Number(rawPot) / bigBlind).toFixed(1);
+    } else if (fact?.pot_bb !== undefined && fact?.pot_bb !== null && Number.isFinite(Number(fact.pot_bb))) {
+      potBb = +Number(fact.pot_bb).toFixed(1);
+    } else if (bigBlind > 0) {
+      const approxPot = Math.max(returned, invested * 2, Math.abs(finiteNumber(fact?.net, 0)) * 2);
+      potBb = +(approxPot / bigBlind).toFixed(1);
+    } else {
+      potBb = +(absNetBb * 2).toFixed(1);
+    }
+
+    const evNetBb = fact?.ev_net_bb !== undefined && fact?.ev_net_bb !== null && Number.isFinite(Number(fact.ev_net_bb))
+      ? Number(fact.ev_net_bb)
+      : null;
+
+    let score = (potBb || 0) * 1.1 + absNetBb * 1.6;
+    const reasons = [];
+
+    if (fact?.was_all_in) {
+      score += 45;
+      reasons.push({ weight: 50, label: 'All-In Decision' });
+    }
+    if (fact?.four_bet) {
+      score += 35;
+      reasons.push({ weight: 42, label: '4-Bet Pot' });
+    }
+    if (fact?.went_to_showdown && !fact?.won_at_showdown && absNetBb >= 15) {
+      score += 32;
+      reasons.push({ weight: 40, label: 'Lost Big Showdown' });
+    }
+    if (fact?.three_bet || fact?.faced_three_bet) {
+      score += 24;
+      reasons.push({ weight: 30, label: '3-Bet Pot Decision' });
+    }
+    if (evNetBb !== null && Math.abs(netBb - evNetBb) >= 20) {
+      score += 18;
+      reasons.push({ weight: 28, label: 'High-Variance All-In' });
+    }
+    if ((potBb || 0) >= 40 || absNetBb >= 25) {
+      score += 20;
+      reasons.push({ weight: 35, label: netBb < 0 ? 'Largest Pot Lost' : 'Biggest Pot Won' });
+    }
+    if (fact?.went_to_showdown) {
+      score += 12;
+      reasons.push({ weight: 20, label: 'Showdown Decision' });
+    }
+
+    reasons.sort((a, b) => b.weight - a.weight);
+    const reason = reasons[0]?.label || ((potBb || 0) >= 15 ? 'Large Pot' : 'Notable Decision');
+
+    // Privacy: ONLY hero's own cards from owner-scoped ca_hand_facts + community board cards.
+    // Never include any opponent cards, usernames, or IDs.
+    const heroCards = normalizeBoardCodes(fact?.hole_cards);
+    const board = historyRow
+      ? normalizeBoardCodes(historyRow.community_cards || historyRow.board || summary?.communityCards || summary?.board)
+      : normalizeBoardCodes(fact?.board || fact?.community_cards);
+
+    const tableId = String(fact?.table_id || historyRow?.table_id || '').trim();
+    const resolvedTableName = (tableId && tableNameById instanceof Map && tableNameById.get(tableId))
+      || (summary?.tableName ? String(summary.tableName).trim() : null)
+      || (fact?.table_name ? String(fact.table_name).trim() : null)
+      || null;
+
+    scored.push({
+      score,
+      playedAtMs: Date.parse(String(fact?.played_at || historyRow?.created_at || '')) || 0,
+      item: {
+        handId,
+        playedAt: fact?.played_at || historyRow?.created_at || null,
+        variant: normalizeVariantLabel(fact?.game_variant || historyRow?.game_variant),
+        format: fact?.tournament_id || historyRow?.tournament_id ? 'tournament' : 'cash',
+        heroPosition: fact?.position ? String(fact.position).trim().toUpperCase() : null,
+        heroCards,
+        board,
+        potBb: Number.isFinite(potBb) ? potBb : 0,
+        netBb: Number.isFinite(netBb) ? +netBb.toFixed(1) : 0,
+        tableName: resolvedTableName,
+        reason,
+      },
+    });
+  }
+
+  scored.sort((a, b) => (b.score - a.score) || (b.playedAtMs - a.playedAtMs));
+  return scored.slice(0, Math.max(1, Math.min(limit, 20))).map((entry) => entry.item);
+}
+
+/**
+ * Strip any hidden opponent hole cards from a saved hand's players array (defense in depth).
+ */
+function sanitizePlayersForExport(players) {
+  if (!Array.isArray(players)) return [];
+  return players.map((p) => {
+    const isHero = Boolean(p?.isHero);
+    const canShow = isHero || (p?.showedCards === true && p?.cardsVisibility === 'shown' && !p?.folded && !p?.mucked);
+    return {
+      seatIndex: p?.seatIndex ?? null,
+      name: String(p?.name || (isHero ? 'You' : 'Player')).trim(),
+      position: p?.position || null,
+      stack: finiteNumber(p?.stack, 0),
+      netResult: finiteNumber(p?.netResult, 0),
+      won: finiteNumber(p?.won, 0),
+      folded: Boolean(p?.folded),
+      mucked: Boolean(p?.mucked),
+      isHero,
+      showedCards: Boolean(p?.showedCards && canShow),
+      cardsVisibility: canShow ? (p?.cardsVisibility || (isHero ? 'private_hero' : 'shown')) : 'hidden',
+      holeCards: canShow ? normalizeBoardCodes(p?.holeCards) : [],
+    };
+  });
+}
+
+/**
+ * Build a clean portable JSON export object for a single saved hand.
+ */
+export function formatSavedHandForExport(row) {
+  const handData = row?.hand_data && typeof row.hand_data === 'object' ? row.hand_data : {};
+  const review = row?.review || normalizeSavedHandReviewMeta(row);
+  const heroCards = extractHeroCardsForRow(row);
+  const primaryBoard = normalizeBoardCodes(handData.communityCards || handData.boards?.[0]?.cards || []);
+  const boards = Array.isArray(handData.boards) && handData.boards.length > 0
+    ? handData.boards.map((b, idx) => ({
+      index: b?.index ?? idx + 1,
+      label: b?.label || `Board ${idx + 1}`,
+      cards: normalizeBoardCodes(b?.cards),
+    }))
+    : (primaryBoard.length > 0 ? [{ index: 1, label: 'Board 1', cards: primaryBoard }] : []);
+  const smallBlind = finiteNumber(row?.small_blind, 0);
+  const bigBlind = finiteNumber(row?.big_blind, 0);
+
+  return {
+    id: row?.id || null,
+    source: row?.source || handData.source || (row?.table_id === SAVED_HAND_TABLE_ID ? 'ai-scan' : CLUB_ARENA_SOURCE),
+    sourceHandId: row?.sourceHandId || handData.sourceHandId || null,
+    savedAt: row?.created_at || null,
+    playedAt: row?.started_at || row?.completed_at || row?.created_at || null,
+    handNumber: row?.hand_number ?? 0,
+    variant: normalizeVariantLabel(row?.variant),
+    format: inferSavedHandFormat(row),
+    stakes: bigBlind > 0 ? `${smallBlind}/${bigBlind}` : null,
+    smallBlind,
+    bigBlind,
+    potTotal: finiteNumber(row?.pot_total, 0),
+    tableName: handData.tableName || null,
+    heroPosition: extractHeroPositionForRow(row),
+    heroCards,
+    heroNet: finiteNumber(handData.heroNet, 0),
+    board: primaryBoard,
+    boards,
+    players: sanitizePlayersForExport(handData.players),
+    streets: Array.isArray(handData.streets) ? handData.streets : [],
+    winners: Array.isArray(handData.winners) ? handData.winners : [],
+    winnersByBoard: Array.isArray(handData.winnersByBoard) ? handData.winnersByBoard : [],
+    review: {
+      status: review.status,
+      notes: review.notes,
+      tags: review.tags,
+      analysisState: review.analysisState,
+      analyzedAt: review.analyzedAt,
+      lastAuditSummary: review.lastAuditSummary,
+    },
+  };
+}
+
+/**
+ * Format all caller-owned saved hands + private notes into readable standard hand-history text.
+ */
+export function formatSavedHandsAsText(rows = []) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return '# Smarter.Poker Saved Hands Export\n# No saved hands found.\n';
+  }
+
+  const blocks = rows.map((rawRow) => {
+    const item = formatSavedHandForExport(rawRow);
+    const lines = [];
+    const handRef = item.handNumber > 0 ? `#${item.handNumber}` : `#${item.id || 'saved'}`;
+    const stakesLabel = item.stakes ? `(${item.stakes})` : '(No Blinds Recorded)';
+    const playedLabel = item.playedAt || item.savedAt || '';
+    lines.push(`Smarter.Poker Hand ${handRef}: ${item.variant} ${stakesLabel}${playedLabel ? ` - ${playedLabel}` : ''}`);
+    lines.push(`Table '${item.tableName || 'Saved Hand'}' (${item.format === 'tournament' ? 'Tournament' : 'Cash'}) | Source: ${item.source}`);
+
+    for (const p of item.players) {
+      const posTag = p.position ? ` (${p.position})` : '';
+      const heroTag = p.isHero ? ' [Hero]' : '';
+      lines.push(`Seat ${p.seatIndex ?? '?'}: ${p.name}${posTag}${heroTag} (${p.stack} in chips)`);
+    }
+
+    if (item.heroCards.length > 0) {
+      lines.push('*** HOLE CARDS ***');
+      lines.push(`Dealt to Hero [${item.heroCards.join(' ')}]`);
+    }
+
+    for (const st of item.streets) {
+      const stName = String(st?.name || 'street').toUpperCase();
+      const stCards = normalizeBoardCodes(st?.cards);
+      lines.push(stCards.length > 0 ? `*** ${stName} *** [${stCards.join(' ')}]` : `*** ${stName} ***`);
+      for (const act of Array.isArray(st?.actions) ? st.actions : []) {
+        const actor = act?.playerName || (act?.isHero ? 'Hero' : 'Player');
+        const amt = act?.amount !== null && act?.amount !== undefined ? ` ${act.amount}` : '';
+        lines.push(`${actor}: ${act?.action || 'action'}${amt}`);
+      }
+    }
+
+    if (item.boards.length > 1) {
+      for (const b of item.boards) {
+        lines.push(`*** ${String(b.label || `Board ${b.index}`).toUpperCase()} *** [${b.cards.join(' ')}]`);
+      }
+    }
+
+    lines.push('*** SUMMARY ***');
+    lines.push(`Total pot ${item.potTotal} | Hero Net: ${item.heroNet >= 0 ? `+${item.heroNet}` : item.heroNet}`);
+    if (item.board.length > 0) {
+      lines.push(`Board [${item.board.join(' ')}]`);
+    }
+    for (const p of item.players) {
+      if (p.showedCards && p.holeCards.length > 0 && !p.isHero) {
+        lines.push(`${p.name}: showed [${p.holeCards.join(' ')}]`);
+      }
+    }
+    for (const w of item.winners) {
+      const handDesc = w?.hand ? ` (${w.hand})` : '';
+      lines.push(`Winner: ${w?.playerName || 'Player'} collected ${w?.amount ?? 0}${handDesc}`);
+    }
+    for (const wb of item.winnersByBoard) {
+      const handDesc = wb?.hand ? ` (${wb.hand})` : '';
+      lines.push(`Board ${wb?.board ?? 1} Winner: ${wb?.playerName || 'Player'} collected ${wb?.amount ?? 0}${handDesc}`);
+    }
+
+    lines.push('*** REVIEW NOTES ***');
+    lines.push(`Status: ${item.review.status} | Analysis: ${item.review.analysisState}`);
+    if (item.review.tags.length > 0) {
+      lines.push(`Tags: ${item.review.tags.join(', ')}`);
+    }
+    if (item.review.notes) {
+      lines.push(`Notes: ${item.review.notes}`);
+    }
+
+    return lines.join('\n');
+  });
+
+  return `${blocks.join('\n\n\n')}\n`;
+}
+
 export default {
   SAVED_HAND_TABLE_ID,
   CLUB_ARENA_SOURCE,
   CLUB_ARENA_HAND_KEY_PREFIX,
+  CLUB_ARENA_ALT_HAND_KEY_PREFIX,
   HAND_UUID_RE,
   ALLOWED_REVIEW_STATUSES,
   ALLOWED_ANALYSIS_STATES,
+  ALLOWED_LIST_STATUSES,
+  MAX_NOTE_LENGTH,
+  MAX_TAGS,
+  MAX_TAG_LENGTH,
+  MAX_BATCH_HAND_IDS,
+  DEFAULT_SAVED_HANDS_LIMIT,
+  MAX_SAVED_HANDS_LIMIT,
+  MAX_PAYLOAD_BYTES,
   SAVED_HAND_LIST_COLUMNS,
   CLUB_ARENA_SOURCE_HAND_SELECT,
   isValidUuid,
   clubArenaSavedHandKey,
+  clubArenaLookupKeys,
+  extractSourceHandIdFromKey,
+  sanitizeSavedHandTags,
   normalizeVariantLabel,
   inferBettingStructure,
   validateSavedHand,
@@ -704,4 +1251,14 @@ export default {
   normalizeSavedHandReviewMeta,
   validateSavedHandPatch,
   isUniqueViolationError,
+  encodeSavedHandsCursor,
+  decodeSavedHandsCursor,
+  compareSavedHandRowsDesc,
+  isRowAfterCursor,
+  isSavedHandUnreviewed,
+  inferSavedHandFormat,
+  matchesSavedHandFilters,
+  rankSuggestedHands,
+  formatSavedHandForExport,
+  formatSavedHandsAsText,
 };

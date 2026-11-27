@@ -319,8 +319,8 @@ test('Sandbox API fails closed and the restored UI stays strictly ungraded while
 
   assert.match(page, /data-training-authority="authored-sandbox-ungraded"/);
   assert.match(page, /\/hub\/personal-assistant\/leaks\?source=personal-assistant-sandbox/);
-  assert.match(page, /Multiway Equity Is Available/i);
-  assert.match(page, /Original Action Builder Is Heads-Up/i);
-  assert.match(page, /Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes/i);
+  assert.match(page, /Multiway Equity And Multiway Action Builder \(2-6 Seats\) Are Supported/i);
+  assert.match(page, /Exact Historical Wager Sizes Are Parsed For Supported PokerStars, GGPoker, And Club Arena Formats/i);
+  assert.match(page, /Authored Scenarios Remain Strictly Ungraded And Never Produce GTO Grades, Solver EV, Accuracy Scores, Streaks, Or Training Progress/i);
   assert.doesNotMatch(page, /\/api\/assistant\/sandbox\/analyze|Modeled Exploit Frequencies|localSolve|gradeAction|GodModePanel/);
 });

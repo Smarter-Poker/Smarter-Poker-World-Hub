@@ -78,9 +78,9 @@ test('the restored Virtual Sandbox stays strictly ungraded and preserves disclos
   const source = read(FILES.sandboxPage);
   assert.match(source, /data-training-authority="authored-sandbox-ungraded"/);
   assert.match(source, /\/hub\/personal-assistant\/leaks\?source=personal-assistant-sandbox/);
-  assert.match(source, /Multiway Equity Is Available/i);
-  assert.match(source, /Original Action Builder Is Heads-Up/i);
-  assert.match(source, /Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes/i);
+  assert.match(source, /Multiway Equity And Multiway Action Builder \(2-6 Seats\) Are Supported/i);
+  assert.match(source, /Exact Historical Wager Sizes Are Parsed For Supported PokerStars, GGPoker, And Club Arena Formats/i);
+  assert.match(source, /Authored Scenarios Remain Strictly Ungraded And Never Produce GTO Grades, Solver EV, Accuracy Scores, Streaks, Or Training Progress/i);
   assert.doesNotMatch(source, /localSolve|gradeAction|correct_action|optimalAction|truthLevel|setSrs|setStreak|Forced override|\/api\/assistant\/sandbox\/analyze/);
 });
 
