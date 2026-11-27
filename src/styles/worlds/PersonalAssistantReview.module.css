@@ -43,10 +43,10 @@
   justify-content: space-between;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid var(--pa-line);
-  border-top-color: var(--pa-line-hi);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 10px;
-  background: var(--pa-panel);
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
 .headerCopy {
@@ -90,18 +90,18 @@
   gap: 6px;
   min-height: 44px;
   padding: 8px 14px;
-  border: 1px solid var(--pa-line);
-  border-top-color: var(--pa-line-hi);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 8px;
-  background: linear-gradient(180deg, #152639 0%, #06111e 70%);
-  color: #e2ecf6;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #e4eef7;
   font: 700 13px / 1.15 'Arial Narrow', Arial, sans-serif;
   text-decoration: none;
   cursor: pointer;
 }
 
 .secondaryBtn:hover:not(:disabled) {
-  border-color: var(--pa-cyan);
+  filter: brightness(1.1);
   color: #ffffff;
 }
 
@@ -117,10 +117,10 @@
   gap: 6px;
   min-height: 44px;
   padding: 8px 16px;
-  border: 1px solid var(--pa-cyan);
-  border-top-color: #b3eaff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
   border-radius: 8px;
-  background: linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%);
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
   color: #ffffff;
   font: 700 13px / 1.15 'Arial Narrow', Arial, sans-serif;
   text-decoration: none;
@@ -144,10 +144,10 @@
 }
 
 .panel {
-  border: 1px solid var(--pa-line);
-  border-top-color: var(--pa-line-hi);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 10px;
-  background: var(--pa-panel);
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -187,9 +187,10 @@
   width: 100%;
   text-align: left;
   padding: 10px 12px;
-  border: 1px solid rgba(140, 161, 180, 0.24);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 8px;
-  background: var(--pa-surface);
+  background: linear-gradient(180deg, #1d3249, #0e1e30 45%, #071320 82%, #102438);
   color: #e6eff8;
   cursor: pointer;
   display: flex;
@@ -198,14 +199,14 @@
 }
 
 .handRow:hover {
-  border-color: var(--pa-cyan);
+  filter: brightness(1.08);
 }
 
 .handRowActive {
-  border-color: var(--pa-cyan);
-  border-top-color: #b3eaff;
-  background: linear-gradient(155deg, #123359, #071526 75%);
-  box-shadow: inset 0 0 0 1px rgba(86, 216, 255, 0.28);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  box-shadow: none;
 }
 
 .handRowTop {
@@ -285,9 +286,10 @@
 }
 
 .statBox {
-  border: 1px solid rgba(140, 161, 180, 0.22);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
   border-radius: 8px;
-  background: #071322;
+  background: linear-gradient(155deg, #162a40 0%, #0a1826 52%, #050e18 100%);
   padding: 9px 10px;
   display: flex;
   flex-direction: column;
@@ -617,10 +619,10 @@
 }
 
 .suggestedCard {
-  border: 1px solid rgba(86, 216, 255, 0.28);
-  border-top-color: rgba(174, 192, 208, 0.55);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
   border-radius: 8px;
-  background: var(--pa-surface);
+  background: linear-gradient(155deg, #162a40 0%, #0a1826 52%, #050e18 100%);
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -654,10 +656,10 @@
 }
 
 .rtaNotice {
-  border: 1px solid rgba(251, 191, 36, 0.5);
+  border: 1px solid rgba(86, 216, 255, 0.48);
   border-radius: 8px;
-  background: rgba(120, 53, 15, 0.28);
-  color: #fde68a;
+  background: rgba(8, 47, 73, 0.42);
+  color: #9ee5ff;
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -679,15 +681,15 @@
 }
 
 .badgeWarn {
-  border-color: rgba(251, 191, 36, 0.55);
-  background: rgba(180, 83, 9, 0.22);
-  color: #fde68a;
+  border-color: rgba(134, 218, 255, 0.55);
+  background: rgba(8, 124, 250, 0.2);
+  color: #9ee5ff;
 }
 
 .badgeSpecial {
-  border-color: rgba(167, 139, 250, 0.55);
-  background: rgba(91, 33, 182, 0.22);
-  color: #ddd6fe;
+  border-color: rgba(99, 231, 255, 0.52);
+  background: rgba(14, 96, 158, 0.24);
+  color: #b7f0ff;
 }
 
 .draftRestoredPill {
@@ -696,9 +698,9 @@
   gap: 5px;
   padding: 3px 9px;
   border-radius: 999px;
-  border: 1px solid rgba(251, 191, 36, 0.55);
-  background: rgba(180, 83, 9, 0.22);
-  color: #fde68a;
+  border: 1px solid rgba(134, 218, 255, 0.55);
+  background: rgba(8, 124, 250, 0.2);
+  color: #9ee5ff;
   font-size: 12px;
   font-weight: 700;
 }
@@ -730,9 +732,10 @@
 
 /* Interactive Street-By-Street Visual Replayer */
 .replayerBox {
-  border: 1px solid rgba(86, 216, 255, 0.32);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 10px;
-  background: linear-gradient(160deg, #0a1b2f 0%, #050d18 100%);
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -768,23 +771,24 @@
   gap: 5px;
   min-height: 38px;
   padding: 6px 12px;
-  border: 1px solid var(--pa-line);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 8px;
-  background: #081526;
-  color: #c8daea;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #dcebf8;
   font: 700 13px / 1.15 'Arial Narrow', Arial, sans-serif;
   cursor: pointer;
 }
 
 .streetTab:hover {
-  border-color: var(--pa-cyan);
+  filter: brightness(1.1);
   color: #ffffff;
 }
 
 .streetTabActive {
-  border-color: var(--pa-cyan);
-  border-top-color: #b3eaff;
-  background: linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
   color: #ffffff;
 }
 
@@ -848,18 +852,18 @@
   gap: 6px;
   min-height: 38px;
   padding: 6px 12px;
-  border: 1px solid var(--pa-line);
-  border-top-color: var(--pa-line-hi);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 8px;
-  background: linear-gradient(180deg, #152639 0%, #06111e 70%);
-  color: #e2ecf6;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #e4eef7;
   font: 700 12px / 1.15 'Arial Narrow', Arial, sans-serif;
   text-decoration: none;
   cursor: pointer;
 }
 
 .compactBtn:hover:not(:disabled) {
-  border-color: var(--pa-cyan);
+  filter: brightness(1.1);
   color: #ffffff;
 }
 
@@ -992,10 +996,10 @@
   max-width: min(440px, calc(100vw - 24px));
   width: 100%;
   padding: 0;
-  border: 1px solid rgba(248, 113, 113, 0.6);
-  border-top-color: #fecaca;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 12px;
-  background: linear-gradient(155deg, #121e2e, #050a12 78%);
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   color: #f1f5fc;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72);
 }
@@ -1049,10 +1053,10 @@
   z-index: 60;
   width: min(520px, calc(100vw - 24px));
   padding: 12px 14px;
-  border: 1px solid var(--pa-cyan);
-  border-top-color: #b3eaff;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 10px;
-  background: linear-gradient(155deg, #0d2138, #040b15 80%);
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   color: #f1f5fc;
   box-shadow: 0 16px 42px rgba(0, 0, 0, 0.65);
   display: flex;

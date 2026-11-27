@@ -169,10 +169,10 @@ const GAME_TYPES = [
   { id: 'tournament', label: 'Tournament' },
 ];
 const FELT_COLORS = [
-  { id: 'default', label: 'Obsidian', filter: 'none', swatch: '#040D18' },
-  { id: 'green', label: 'Emerald', filter: 'hue-rotate(100deg) saturate(1.4)', swatch: '#166534' },
-  { id: 'blue', label: 'Cobalt', filter: 'hue-rotate(200deg) saturate(1.3)', swatch: '#1E3A5F' },
-  { id: 'red', label: 'Crimson', filter: 'hue-rotate(340deg) saturate(1.4)', swatch: '#7F1D1D' },
+  { id: 'default', label: 'Classic Green', skinId: 'classic_green', swatch: '#14532D' },
+  { id: 'blue', label: 'Ocean Blue', skinId: 'ocean_blue', swatch: '#1E3A5F' },
+  { id: 'red', label: 'Crimson', skinId: 'crimson', swatch: '#7F1D1D' },
+  { id: 'carbon', label: 'Carbon Ion', skinId: 'carbon_ion', swatch: '#1E293B' },
 ];
 const MAX_VILLAINS = 5;
 const DEFAULT_VILLAINS = [
@@ -2084,7 +2084,7 @@ export default function VirtualSandboxPage() {
               </div>
             </div>
 
-            {/* Honesty & Disclosed Limits Panel */}
+            {/* Compact Honesty Status Row + Collapsible Disclosed Limits */}
             <div
               className="honesty-banner"
               role="note"
@@ -2101,16 +2101,24 @@ export default function VirtualSandboxPage() {
                   <span style={pill('success')}>Loaded From Review My Play</span>
                 )}
               </div>
-              <p className="honesty-copy">
-                Authored Scenarios In The Virtual Sandbox Do Not Produce GTO Grades, Solver EV, Accuracy Scores,
-                Streaks, Or Training Progress. For Verified Solver-Backed Grading, Use A Signed Training Or Audited
-                Hand Review Destination Below.
-              </p>
-              <ul className="disclosed-limits-list" aria-label="Disclosed Workspace Limits">
-                {DISCLOSED_LIMITS.map((limitText) => (
-                  <li key={limitText}>{limitText}</li>
-                ))}
-              </ul>
+              <details className="pa-disclosure honesty-disclosure">
+                <summary>
+                  <span>Workspace Scope &amp; Disclosed Limits</span>
+                  <small>Ungraded Study Boundary</small>
+                </summary>
+                <div className="pa-disclosure-body">
+                  <p className="honesty-copy">
+                    Authored Scenarios In The Virtual Sandbox Do Not Produce GTO Grades, Solver EV, Accuracy Scores,
+                    Streaks, Or Training Progress. For Verified Solver-Backed Grading, Use A Signed Training Or Audited
+                    Hand Review Destination Below.
+                  </p>
+                  <ul className="disclosed-limits-list" aria-label="Disclosed Workspace Limits">
+                    {DISCLOSED_LIMITS.map((limitText) => (
+                      <li key={limitText}>{limitText}</li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
             </div>
           </header>
 
@@ -2211,12 +2219,7 @@ export default function VirtualSandboxPage() {
 
                 <div
                   className="table-stage"
-                  style={{
-                    position: 'relative',
-                    filter: arenaTheme?.fromCache
-                      ? 'none'
-                      : FELT_COLORS.find((f) => f.id === tableFelt)?.filter || 'none',
-                  }}
+                  style={{ position: 'relative' }}
                 >
                   <MemoSandboxPokerTable
                     heroCards={heroCardsMemo}
@@ -2226,6 +2229,7 @@ export default function VirtualSandboxPage() {
                     heroStack={Math.round(handState.remaining.hero)}
                     villains={tableVillains}
                     street={tableStreet}
+                    tableSkinId={FELT_COLORS.find((f) => f.id === tableFelt)?.skinId || 'classic_green'}
                     boardTexture={boardTexture}
                     showTextureBadge={false}
                     equity={equity?.heroEquity}
@@ -2955,12 +2959,11 @@ export default function VirtualSandboxPage() {
         .sandbox-header-card,
         .workspace-panel {
           padding: 14px;
-          border: 1px solid rgba(140, 161, 180, 0.28);
-          border-top-color: #aec0d0;
-          border-radius: 7px;
-          background:
-            radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.45), transparent 63%),
-            linear-gradient(145deg, #091727, #030b14 74%);
+          border: 5px solid transparent;
+          border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+          border-radius: 10px;
+          background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+          box-shadow: inset 0 1px 0 rgba(201, 223, 240, 0.16), 0 8px 20px rgba(0, 0, 0, 0.34);
         }
 
         .sandbox-header-top {
@@ -2992,19 +2995,20 @@ export default function VirtualSandboxPage() {
         }
 
         .honesty-banner {
-          margin-top: 12px;
-          padding: 12px;
-          border: 1px solid rgba(99, 231, 255, 0.32);
-          border-left: 3px solid #56d8ff;
-          border-radius: 6px;
-          background: rgba(8, 124, 250, 0.10);
+          margin-top: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
         .honesty-pill-row {
           display: flex;
           flex-wrap: wrap;
           gap: 6px;
-          margin-bottom: 8px;
+        }
+
+        .honesty-disclosure {
+          margin-top: 0;
         }
 
         .honesty-copy {
@@ -3057,10 +3061,10 @@ export default function VirtualSandboxPage() {
         .metric-tile {
           min-width: 0;
           padding: 10px 12px;
-          border: 1px solid rgba(140, 161, 180, 0.28);
-          border-top-color: #aec0d0;
-          border-radius: 7px;
-          background: linear-gradient(155deg, #12273b, #07111c 70%);
+          border: 3px solid transparent;
+          border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+          border-radius: 8px;
+          background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
           display: flex;
           flex-direction: column;
           gap: 2px;
@@ -3199,9 +3203,10 @@ export default function VirtualSandboxPage() {
           width: 100%;
           min-height: 44px;
           padding: 8px 12px;
-          border: 1px solid rgba(140, 161, 180, 0.28);
-          border-radius: 6px;
-          background: #13253a;
+          border: 3px solid transparent;
+          border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+          border-radius: 8px;
+          background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
           color: #f1f5fc;
           font-size: 13px;
           cursor: pointer;
@@ -3230,11 +3235,11 @@ export default function VirtualSandboxPage() {
           display: block;
           min-height: 64px;
           padding: 11px 12px;
-          border: 1px solid rgba(140, 161, 180, 0.28);
-          border-top-color: #aec0d0;
-          border-radius: 6px;
+          border: 3px solid transparent;
+          border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+          border-radius: 8px;
           color: #f1f5fc;
-          background: linear-gradient(180deg, #152639 0%, #06111e 65%);
+          background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
           text-align: left;
           text-decoration: none;
           cursor: pointer;
@@ -3243,9 +3248,9 @@ export default function VirtualSandboxPage() {
         .destination.primary,
         .sandbox-command-bar :global(a.destination.primary) {
           grid-column: 1 / -1;
-          border-color: #56d8ff;
-          border-top-color: #b3eaff;
-          background: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%);
+          border: 3px solid transparent;
+          border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+          background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
         }
 
         .dest-title {
@@ -3278,10 +3283,10 @@ export default function VirtualSandboxPage() {
         }
 
         .summary-disclosure {
-          border: 1px solid rgba(140, 161, 180, 0.24);
-          border-top-color: #aec0d0;
-          border-radius: 7px;
-          background: linear-gradient(145deg, #091727, #030b14 74%);
+          border: 5px solid transparent;
+          border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+          border-radius: 10px;
+          background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
           overflow: clip;
         }
 

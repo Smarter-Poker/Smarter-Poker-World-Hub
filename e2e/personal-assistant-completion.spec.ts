@@ -122,12 +122,19 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
   await activate(main.getByRole('link', { name: 'Personal Assistant', exact: true }));
   await expect(main.getByRole('heading', { name: 'Personal Assistant', exact: true })).toBeVisible();
 
-  await activate(main.getByRole('link', { name: 'Open Sandbox', exact: true }));
+  // Clicking directly on card artwork/images must also navigate to each destination (#SMARTERDESIGN rule 13)
+  await activate(main.locator('svg[data-approved-illustration="review"]'));
+  await expect(page).toHaveURL(/\/hub\/personal-assistant\/review$/);
+  await openLanding(page);
+
+  await activate(main.locator('svg[data-approved-illustration="sandbox"]'));
   await expect(page).toHaveURL(/\/hub\/personal-assistant\/sandbox$/);
   await expect(page.getByRole('region', { name: 'Poker Table', exact: true })).toBeVisible();
+  await expect(page.locator('[data-arena-table="true"]')).toBeVisible();
+  await expect(page.locator('img[data-arena-table-skin="true"]')).toHaveAttribute('src', /\/hub\/table-theme\/tables\/skin_/);
   await activate(main.getByRole('link', { name: 'Back To Personal Assistant', exact: true }));
 
-  await activate(main.getByRole('link', { name: 'View My Leaks', exact: true }));
+  await activate(main.locator('svg[data-approved-illustration="leaks"]'));
   await expect(page).toHaveURL(/\/hub\/personal-assistant\/leaks$/);
   await expect(main.getByRole('heading', { name: 'Leak Finder', exact: true })).toBeVisible();
   await openLanding(page);

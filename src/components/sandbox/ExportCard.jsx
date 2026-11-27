@@ -16,7 +16,7 @@ import { exportCanvas, createHiDPICanvas, roundRect, wrapText, drawPlayingCard, 
 const C = {
     bgTop: '#020609', bgBottom: '#07111B',
     text: '#EEF8FF', sub: '#B7D0DD', dim: '#8295A2',
-    accent: '#63E7FF', success: '#4DE0A5', danger: '#FF6B7A', warn: '#FFC66D',
+    accent: '#63E7FF', success: '#4DE0A5', danger: '#FF6B7A', warn: '#86DAFF',
 };
 
 const CARD_RE = /^[2-9TJQKA][cdhs]$/i;
