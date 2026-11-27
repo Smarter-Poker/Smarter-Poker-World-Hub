@@ -13,6 +13,7 @@ import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
+import { fetchVisiblePostCount } from '../../../src/lib/socialPostCount';
 import { OWNER_ONLY_PROFILE_COLUMNS } from '../../../src/lib/profileColumns';
 import { loadPublicProfile } from '../../../src/lib/publicProfile';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
@@ -2285,10 +2286,7 @@ export default function UserProfilePage() {
       if (!profile?.id) return;
       const sid = socialIdRef.current || profile.id;
       // Re-fetch post count
-      supabase
-        .from('social_posts')
-        .select('id', { count: 'exact', head: true })
-        .eq('author_id', sid)
+      fetchVisiblePostCount(supabase, sid)
         .then(({ count }) => {
           if (count != null) setStats((prev) => ({ ...prev, posts: count }));
         });
@@ -2581,10 +2579,7 @@ export default function UserProfilePage() {
             .from('social_follows')
             .select('*', { count: 'exact', head: true })
             .eq('following_id', socialId),
-          supabase
-            .from('social_posts')
-            .select('id', { count: 'exact', head: true })
-            .eq('author_id', socialId),
+          fetchVisiblePostCount(supabase, socialId),
         ];
 
         // Friendship status checks (only if logged in)
@@ -3065,10 +3060,7 @@ export default function UserProfilePage() {
               .eq('author_id', sid)
               .order('created_at', { ascending: false })
               .limit(20),
-            supabase
-              .from('social_posts')
-              .select('id', { count: 'exact', head: true })
-              .eq('author_id', sid),
+            fetchVisiblePostCount(supabase, sid),
             supabase
               .from('social_follows')
               .select('*', { count: 'exact', head: true })

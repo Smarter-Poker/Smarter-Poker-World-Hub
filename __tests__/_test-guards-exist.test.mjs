@@ -933,6 +933,7 @@ import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
 import './seo-aeo-geo-phase6-20261126.law.test.mjs';
 import './seo-aeo-geo-phase7-20261126.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
+import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';
 import './trivia-ops-perf-timeout-laws.test.mjs';
 import './trivia-wave5-spectator-club-laws.test.mjs';
