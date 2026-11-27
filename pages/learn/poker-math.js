@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 
 const POKER_FORMULAS = [
   {
@@ -38,8 +39,8 @@ const POKER_FORMULAS = [
     shortcut: 'A 9-Out Flush Draw Holds ~35% Equity On The Flop (9 x 4 - 1) And 19.6% On The Turn (9 / 46). An 8-Out Open-Ended Straight Draw Holds ~31.5% On The Flop And 17.4% On The Turn.',
     workedExample:
       'You Hold As Ks On A Qs 7s 2d Flop (9 Remaining Spades Out Of 47 Unseen Cards). Using The Rule Of 4: 9 x 4 = 36% Approximate Equity (Exact Combinatoric Equity Is 34.97%). On The Turn With One Card Left: 9 x 2 = 18% (Exact Is 19.57%).',
-    toolHref: '/tools/out-to-equity-calculator',
-    toolLabel: 'Open Out-To-Equity Calculator',
+    toolHref: '/tools/outs-calculator',
+    toolLabel: 'Open Outs & Equity Calculator',
   },
   {
     id: 'expected-value-ev',
@@ -49,8 +50,8 @@ const POKER_FORMULAS = [
     shortcut: 'Whenever EV > $0.00, The Action Generates Long-Term Profit Regardless Of Single-Hand Variance.',
     workedExample:
       'Your Opponent Shoves $100 Into A $100 Pot On The River (Total Pot $200, Costs $100 To Call). You Estimate Your Bluff-Catcher Wins 40% Of The Time And Loses 60% Of The Time: EV = (0.40 x $200) - (0.60 x $100) = $80 - $60 = +$20.00 Per Call.',
-    toolHref: '/tools/ev-calculator',
-    toolLabel: 'Open EV Calculator',
+    toolHref: '/tools/pot-odds-calculator',
+    toolLabel: 'Open Pot Odds & EV Calculator',
   },
   {
     id: 'fold-equity-semi-bluff',
@@ -60,8 +61,8 @@ const POKER_FORMULAS = [
     shortcut: 'Combining 35% Fold Equity With 35% Draw Equity When Called Turns Almost Any Semi-Bluff Shove Into A Massive +EV Play.',
     workedExample:
       'There Is $90 In The Pot And You Shove $100 With A Flush Draw (35% Equity When Called). If Villain Folds 45% Of The Time: EV = (0.45 x $90) + 0.55 x [(0.35 x $290) - $100] = $40.50 + 0.55 x ($1.50) = +$41.33.',
-    toolHref: '/tools/fold-equity-calculator',
-    toolLabel: 'Open Fold Equity Calculator',
+    toolHref: '/tools/multi-street-ev-calculator',
+    toolLabel: 'Open Multi-Street EV Calculator',
   },
   {
     id: 'alpha-bluff-breakeven',
@@ -93,7 +94,7 @@ const POKER_FORMULAS = [
     shortcut: 'At 50% Pot Sizing: 25% Bluffs / 75% Value (1:3 Ratio). At 75% Pot Sizing: 30% Bluffs / 70% Value. At 100% Pot Sizing: 33.3% Bluffs / 66.7% Value (1:2 Ratio).',
     workedExample:
       'You Bet Full Pot ($100 Into $100) On The River With A Polarized Range. Because Villain Gets 2-To-1 Pot Odds (Needs 33.3% Equity), Your Betting Range Should Contain 1 Bluff Combination For Every 2 Value Combinations (33.3% Bluffs, 66.7% Value) To Make Villain Indifferent.',
-    toolHref: '/tools/ev-calculator',
+    toolHref: '/tools/bluff-catching-calculator',
     toolLabel: 'Test Polarized Ranges',
   },
   {
@@ -413,6 +414,16 @@ export default function PokerMathReferencePage() {
             ))}
           </div>
         </section>
+
+        <SmarterConversionCta
+          eyebrow="Free Poker Math & GTO Drills"
+          title="Practice Pot Odds, MDF & ICM In 107 Free GTO Games"
+          description="Apply Every Poker Math Formula At Real Table Speed With Instant Solver Feedback, Free Equity Calculators, And Personal Bankroll Tracking."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/hub/training&src=poker-math"
+          secondaryLabel="Open Pot Odds Calculator"
+          secondaryHref="/tools/pot-odds-calculator"
+        />
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>

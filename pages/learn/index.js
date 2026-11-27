@@ -23,6 +23,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -135,6 +136,17 @@ export default function LearnIndex({ count, groups }) {
               </a>
             ))}
           </nav>
+
+          <SmarterConversionCta
+            eyebrow="Free Smarter.Poker Academy"
+            title="Pair Strategy Lessons With 107 Free GTO Training Games"
+            description="Save Your Progress, Drill Solver-Backed Preflop And Postflop Spots, And Track Your Poker Bankroll In One Free Account."
+            primaryLabel="Create Free Account"
+            primaryHref="/auth/signup?redirect=/hub/training&src=learn-index"
+            secondaryLabel="Open 13x13 GTO Ranges"
+            secondaryHref="/tools/preflop-ranges"
+            compact
+          />
 
           {groups.map((g) => (
             <section key={g.category} id={categoryAnchor(g.category)} style={styles.section}>

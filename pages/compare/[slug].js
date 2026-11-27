@@ -21,6 +21,7 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { COMPARE_CSS } from '../../src/components/compare/CompareStyles';
 import {
   CHECKED_LABEL,
@@ -179,6 +180,16 @@ export default function ComparePage({ slug }) {
               </li>
             ))}
           </ul>
+
+          <SmarterConversionCta
+            eyebrow="Switch To 100% Free Poker Tools"
+            title="Start Using Smarter.Poker Free With Zero Subscriptions"
+            description="Get 107 Free GTO Training Games, Browser-Native Odds & ICM Calculators, And 715+ Live Poker Room Listings In One Free Account."
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=/hub/training&src=compare-${encodeURIComponent(page.slug)}`}
+            secondaryLabel="Browse Free Poker Tools"
+            secondaryHref="/tools"
+          />
 
           {page.glossary.length > 0 && (
             <>

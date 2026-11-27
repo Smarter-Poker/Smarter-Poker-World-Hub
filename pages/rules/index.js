@@ -5,8 +5,8 @@
  * Server-rendered directory at /rules (and raw Markdown at /rules.md) covering
  * 30 Robert's Rules of Poker (RROP) and Poker TDA floor rulings.
  *
- * Design: #SmarterCasinoRealism (#020608 obsidian, #101a20 gunmetal, #25c8ff cyan,
- * #f2b84b vault gold, borderRadius: '2px').
+ * Design: #SMARTERDESIGN (#060d1a ink-navy, #081121 panel, #38bdf8 ice-blue,
+ * #1d4ed8 cobalt primary CTA, 1px steel rim rgba(148, 184, 224, 0.28)).
  * House style: Title Case, zero em dashes.
  */
 
@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import {
   POKER_RULES,
   RULE_CATEGORIES,
@@ -159,7 +160,7 @@ export default function PokerRulesIndexPage() {
 
         <header style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.goldBadge}>OFFICIAL TDA &amp; RROP STANDARD</span>
+            <span style={styles.primaryBadge}>OFFICIAL TDA &amp; RROP STANDARD</span>
             <span style={styles.cyanBadge}>30 AUTHORITATIVE FLOOR RULINGS</span>
             <a href="/rules.md" style={styles.mdBadge}>
               RAW MARKDOWN (/RULES.MD)
@@ -177,7 +178,7 @@ export default function PokerRulesIndexPage() {
           </p>
 
           <div style={styles.quickCrossLinks}>
-            <Link href="/learn/poker-hand-rankings" style={styles.crossBtnGold}>
+            <Link href="/learn/poker-hand-rankings" style={styles.crossBtnPrimary}>
               Official Poker Hand Rankings Cheat Sheet
             </Link>
             <Link href="/games" style={styles.crossBtnCyan}>
@@ -217,8 +218,8 @@ export default function PokerRulesIndexPage() {
               style={{
                 padding: '9px 14px',
                 background: '#081118',
-                color: '#f2b84b',
-                border: '1px solid #f2b84b',
+                color: '#38bdf8',
+                border: '1px solid #38bdf8',
                 borderRadius: '2px',
                 fontSize: '12px',
                 fontWeight: 700,
@@ -245,7 +246,7 @@ export default function PokerRulesIndexPage() {
             }}
           >
             <div style={{ flex: '1 1 360px', fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
-              <strong style={{ color: '#f2b84b' }}>Source Attribution &amp; Governance Note:</strong>{' '}
+              <strong style={{ color: '#38bdf8' }}>Source Attribution &amp; Governance Note:</strong>{' '}
               {"Smarter.Poker Provides An Independent Educational Reference Summary Citing Published Poker Tournament Directors Association (TDA) Rules And Robert's Rules Of Poker (RROP). In Any Live Cardroom Or Tournament, The Supervising Floor Director And Posted House Rules Hold Final Authority."}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -379,6 +380,16 @@ export default function PokerRulesIndexPage() {
           );
         })}
 
+        <SmarterConversionCta
+          eyebrow="Free Live Poker & Club Tools"
+          title="Master Official Rules, Live Rooms & GTO Strategy Free"
+          description="Discover 715+ Live Poker Rooms, Run Free Side-Pot And ICM Calculators, And Train Across 107 GTO Games With One Free Account."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/hub/poker-near-me/lobby&src=rules-index"
+          secondaryLabel="Find Live Poker Rooms"
+          secondaryHref="/hub/poker-near-me/lobby"
+        />
+
         <section style={styles.crossHubPlate}>
           <h2 style={styles.h2}>Connected Poker Math Calculators &amp; Reference Hubs</h2>
           <p style={styles.bodyText}>
@@ -498,7 +509,7 @@ export default function PokerRulesIndexPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#020608',
+    backgroundColor: '#060d1a',
     color: '#e2e8f0',
     fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, sans-serif',
   },
@@ -541,10 +552,10 @@ const styles = {
     gap: '10px',
     marginBottom: '14px',
   },
-  goldBadge: {
-    backgroundColor: 'rgba(242, 184, 75, 0.14)',
-    border: '1px solid #f2b84b',
-    color: '#f2b84b',
+  primaryBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.08em',
@@ -593,9 +604,12 @@ const styles = {
     flexWrap: 'wrap',
     gap: '10px',
   },
-  crossBtnGold: {
-    backgroundColor: '#f2b84b',
-    color: '#020608',
+  crossBtnPrimary: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: '44px',
+    backgroundColor: '#1d4ed8',
+    color: '#ffffff',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 14px',
@@ -672,7 +686,7 @@ const styles = {
   },
   asOfText: {
     fontSize: '12px',
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontWeight: 600,
   },
   table: {
@@ -698,7 +712,7 @@ const styles = {
   },
   tdNum: {
     padding: '12px',
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontWeight: 700,
     verticalAlign: 'top',
     width: '38px',
@@ -722,7 +736,7 @@ const styles = {
   },
   tdRef: {
     padding: '12px',
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontSize: '12.5px',
     verticalAlign: 'top',
     minWidth: '160px',
@@ -773,7 +787,7 @@ const styles = {
   cardRefTag: {
     fontSize: '11px',
     fontWeight: 700,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.04em',
   },
   cardMdLink: {
@@ -812,7 +826,7 @@ const styles = {
   },
   crossHubPlate: {
     backgroundColor: '#101a20',
-    border: '1px solid rgba(242, 184, 75, 0.35)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: '2px',
     padding: '24px',
     marginBottom: '30px',
@@ -841,7 +855,7 @@ const styles = {
   hubCardLabel: {
     fontSize: '11px',
     fontWeight: 700,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.07em',
   },
   hubCardTitle: {

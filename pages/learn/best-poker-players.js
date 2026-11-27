@@ -14,6 +14,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { SITE_URL, LEARN_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
@@ -239,7 +240,7 @@ export default function BestPokerPlayersPage() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#060d1a', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Best Poker Players Of All Time: Top 10"
         description={pageDescription}
@@ -260,11 +261,11 @@ export default function BestPokerPlayersPage() {
           <span>Best Poker Players Of All Time</span>
         </nav>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', letterSpacing: '0.06em', marginBottom: 8 }}>
           Poker History &amp; Performance Rankings · Updated {AS_OF_DATE}
         </div>
 
-        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#ffffff', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Best Poker Players Of All Time: Top 10 Legends &amp; Modern Pros
         </h1>
 
@@ -274,8 +275,8 @@ export default function BestPokerPlayersPage() {
             fontSize: 16,
             lineHeight: 1.65,
             color: '#cbd5e1',
-            background: '#0f172a',
-            border: '1px solid #1e293b',
+            background: '#081121',
+            border: '1px solid rgba(148, 184, 224, 0.28)',
             borderLeft: '4px solid #38bdf8',
             padding: '16px 20px',
             borderRadius: 10,
@@ -286,16 +287,16 @@ export default function BestPokerPlayersPage() {
         </p>
 
         {/* Summary Ranking Table */}
-        <section style={{ marginBottom: 40, overflowX: 'auto' }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+        <section style={{ marginBottom: 32, overflowX: 'auto' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
             Consensus Top 10 Greatest Poker Players At A Glance
           </h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', border: '1px solid #1e293b' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#081121', border: '1px solid rgba(148, 184, 224, 0.28)' }}>
             <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
               All-Time Poker Legends Ranked By Career Longevity, WSOP Bracelets, Cash Mastery, And Era-Adjusted Dominance
             </caption>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e293b', color: '#38bdf8', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '1px solid rgba(148, 184, 224, 0.28)', color: '#38bdf8', textAlign: 'left' }}>
                 <th scope="col" style={{ padding: '10px 14px' }}>Rank</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Player</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Era</th>
@@ -304,9 +305,9 @@ export default function BestPokerPlayersPage() {
             </thead>
             <tbody>
               {GREATEST_POKER_PLAYERS.map((player) => (
-                <tr key={player.name} style={{ borderBottom: '1px solid #1e293b' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#f59e0b' }}>#{player.rank}</td>
-                  <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{player.name}</td>
+                <tr key={player.name} style={{ borderBottom: '1px solid rgba(148, 184, 224, 0.16)' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#38bdf8' }}>#{player.rank}</td>
+                  <td style={{ padding: '10px 14px', fontWeight: 700, color: '#ffffff' }}>{player.name}</td>
                   <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{player.era}</td>
                   <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{player.signatureAchievement}</td>
                 </tr>
@@ -315,9 +316,19 @@ export default function BestPokerPlayersPage() {
           </table>
         </section>
 
+        <SmarterConversionCta
+          eyebrow="Free Smarter.Poker GTO Training"
+          title="Train Like The Greats With 107 Free GTO Games"
+          description="Practice Solver-Backed Preflop Ranges, Postflop C-Betting, And Tournament ICM Spots In Interactive Drills Built For Cash And MTT Players."
+          primaryLabel="Train Free In GTO Hub"
+          primaryHref="/auth/signup?redirect=/hub/training&src=best-players"
+          secondaryLabel="Open 13x13 GTO Ranges"
+          secondaryHref="/tools/preflop-ranges"
+        />
+
         {/* Detailed Player Profiles */}
-        <section style={{ marginBottom: 40 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 16px 0' }}>
+        <section style={{ marginBottom: 40, marginTop: 32 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', margin: '0 0 16px 0' }}>
             Why Each Player Belongs Among The Greatest In Poker History
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
@@ -325,17 +336,17 @@ export default function BestPokerPlayersPage() {
               <article
                 key={player.rank}
                 style={{
-                  background: '#0f172a',
-                  border: '1px solid #1e293b',
+                  background: '#081121',
+                  border: '1px solid rgba(148, 184, 224, 0.28)',
                   borderRadius: 10,
                   padding: 18,
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b' }}>RANK #{player.rank}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#38bdf8' }}>Rank #{player.rank}</span>
                   <span style={{ fontSize: 11, color: '#94a3b8' }}>{player.hallOfFame}</span>
                 </div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 8px 0' }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', margin: '0 0 8px 0' }}>
                   {player.name}
                 </h3>
                 <p style={{ fontSize: 13, color: '#38bdf8', fontWeight: 600, margin: '0 0 8px 0' }}>
@@ -350,27 +361,27 @@ export default function BestPokerPlayersPage() {
         </section>
 
         {/* Internal Link Mesh To Study Tools */}
-        <section style={{ marginBottom: 36, padding: 20, background: '#0f172a', borderRadius: 10, border: '1px solid #1e293b' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+        <section style={{ marginBottom: 36, padding: 20, background: '#081121', borderRadius: 10, border: '1px solid rgba(148, 184, 224, 0.28)' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
             Train With The Same GTO Tools &amp; Strategy Guides Used By Winning Players
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/preflop-ranges" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0284c7', color: '#ffffff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               13x13 GTO Preflop Ranges
             </Link>
-            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/poker-odds-calculator" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0f1d33', color: '#e2e8f0', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Odds Calculator
             </Link>
-            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/icm-calculator" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0f1d33', color: '#e2e8f0', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Tournament ICM Calculator
             </Link>
-            <Link href="/learn/famous-hands" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/famous-hands" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0f1d33', color: '#38bdf8', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Famous Poker Hands Analyzed
             </Link>
-            <Link href="/hub/poker-tours" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/hub/poker-tours" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0f1d33', color: '#38bdf8', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Live WSOP, WPT &amp; Major Tour Schedules
             </Link>
-            <Link href="/hub/video-library" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/hub/video-library" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '10px 16px', background: '#0f1d33', color: '#38bdf8', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Video Library
             </Link>
           </div>

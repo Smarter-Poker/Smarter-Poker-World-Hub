@@ -180,7 +180,7 @@ export default function PokerFormulaDetailPage({ formula, allFormulas = [] }) {
               <p style={styles.bodyText}>{formula.workedExample}</p>
             </div>
             <div style={styles.colBox}>
-              <div style={styles.tagAmber}>COMMON TABLE LEAK TO AVOID</div>
+              <div style={styles.tagAlert}>Common Table Leak To Avoid</div>
               <h3 style={styles.h3}>Frequent Misapplication</h3>
               <p style={styles.bodyText}>{formula.commonMistake}</p>
             </div>
@@ -375,7 +375,7 @@ const styles = {
   twoColGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 18 },
   colBox: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: 18 },
   tagCyan: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.05em' },
-  tagAmber: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#f2b84b', letterSpacing: '0.05em' },
+  tagAlert: { display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#e2e8f0', letterSpacing: '0.05em' },
   peerGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 },
   peerCard: { display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', borderRadius: 10, background: '#0f172a', border: '1px solid #1e293b', textDecoration: 'none' },
   peerCode: { fontSize: 11, fontWeight: 800, color: '#38bdf8' },

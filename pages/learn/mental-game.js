@@ -282,7 +282,7 @@ export default function PokerMentalGamePage() {
             <h2 style={styles.h2}>
               Interactive Live A-Game Vs. C-Game Diagnostic Checklist ({score} Of {total} Active)
             </h2>
-            <span style={score >= 4 ? styles.statusGreen : styles.statusAmber}>
+            <span style={score >= 4 ? styles.statusGreen : styles.statusCaution}>
               {score === 5
                 ? 'PEAK A-GAME STATE: CLEAR TO GRIND'
                 : score >= 4
@@ -334,7 +334,7 @@ export default function PokerMentalGamePage() {
                   <strong style={{ color: '#f87171' }}>Primary Trigger:</strong> {t.trigger}
                 </p>
                 <p style={styles.tiltLine}>
-                  <strong style={{ color: '#fbbf24' }}>Table Symptom:</strong> {t.symptom}
+                  <strong style={{ color: '#38bdf8' }}>Table Symptom:</strong> {t.symptom}
                 </p>
                 <p style={styles.tiltLine}>
                   <strong style={{ color: '#34d399' }}>Proven Antidote:</strong> {t.antidote}
@@ -545,14 +545,14 @@ const styles = {
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.4)',
   },
-  statusAmber: {
+  statusCaution: {
     fontSize: 11.5,
     fontWeight: 800,
     padding: '5px 11px',
     borderRadius: 6,
-    background: 'rgba(245, 158, 11, 0.16)',
-    color: '#fbbf24',
-    border: '1px solid rgba(245, 158, 11, 0.4)',
+    background: 'rgba(56, 189, 248, 0.14)',
+    color: '#38bdf8',
+    border: '1px solid rgba(56, 189, 248, 0.4)',
   },
   checklistGrid: { display: 'grid', gap: 12 },
   checkCard: {

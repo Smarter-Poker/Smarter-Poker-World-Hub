@@ -11,6 +11,7 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
@@ -301,7 +302,7 @@ export default function ResearchIndexPage() {
                 href="https://colab.research.google.com/github/Smarter-Poker/smarter-poker-open-datasets/blob/main/notebooks/poker_math_benchmarks_2026.ipynb"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: '#f59e0b', fontWeight: 700 }}
+                style={{ color: '#38bdf8', fontWeight: 700 }}
               >
                 Open Poker Math &amp; Rake Benchmarks Notebook In Google Colab
               </a>
@@ -309,7 +310,18 @@ export default function ResearchIndexPage() {
           </ul>
         </section>
 
-        <div style={{ display: 'grid', gap: 20, marginBottom: 36 }}>
+        <SmarterConversionCta
+          eyebrow="Free Poker Research & Training Account"
+          title="Apply Smarter.Poker Research With 107 Free GTO Games"
+          description="Combine Live Room Intelligence, Rake & Variance Calculators, And Solver-Backed Training Drills In One 100% Free Account."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/hub/training&src=research-index"
+          secondaryLabel="Open Rake & Variance Tools"
+          secondaryHref="/tools"
+          compact
+        />
+
+        <div style={{ display: 'grid', gap: 20, marginTop: 28, marginBottom: 36 }}>
           {RESEARCH_REPORTS.map((r) => (
             <article
               key={r.slug}

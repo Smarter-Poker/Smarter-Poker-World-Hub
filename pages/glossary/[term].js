@@ -21,6 +21,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { firstThatFits } from '../../src/lib/seo/titleFit.js';
 import {
   GLOSSARY_TERMS,
@@ -222,6 +223,18 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
               </ul>
             </>
           )}
+
+          <div style={{ marginTop: 32 }}>
+            <SmarterConversionCta
+              eyebrow="Free Poker Training & Tools"
+              title={`Practice ${term.term} Concepts Free On Smarter.Poker`}
+              description="Turn Poker Vocabulary Into Winning Table Decisions With 107 Free GTO Training Games, 13x13 Preflop Ranges, And Live Room Discovery."
+              primaryLabel="Create Free Account"
+              primaryHref={`/auth/signup?redirect=/hub/training&src=glossary-${encodeURIComponent(term.slug)}`}
+              secondaryLabel="Explore Strategy Lessons"
+              secondaryHref="/learn"
+            />
+          </div>
 
           <CitationBacklinkBox
             title={`${term.term} Poker Definition`}

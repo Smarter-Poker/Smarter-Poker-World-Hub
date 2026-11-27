@@ -16,6 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import FaqSection from '../../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -236,6 +237,16 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
               </li>
             </ul>
           </section>
+
+          <SmarterConversionCta
+            eyebrow={`Free ${category} Training Account`}
+            title={`Practice ${category} Poker Strategy With 107 Free GTO Games`}
+            description={`Put These ${lessons.length} ${category} Lessons Into Action With Interactive Solver Drills, Personal Leak Tracking, And Free Bankroll Tools.`}
+            primaryLabel="Start Free GTO Training"
+            primaryHref={`/auth/signup?redirect=/hub/training&src=learn-category-${categoryAnchor(category)}`}
+            secondaryLabel={`Open ${feature.toolName}`}
+            secondaryHref={feature.toolHref}
+          />
 
           <FaqSection title={`${category} Poker Strategy Questions`} faqs={faqs} />
 

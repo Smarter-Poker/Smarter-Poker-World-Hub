@@ -326,7 +326,7 @@ export default function FormatMigrationGuidePage() {
 
           <article style={styles.activeCard}>
             <div style={styles.shockStrip}>
-              <strong style={{ color: '#f2b84b' }}>Primary Structural Shock:</strong>{' '}
+              <strong style={{ color: '#38bdf8' }}>Primary Structural Shock:</strong>{' '}
               {activePlaybook.shockFactor}
             </div>
             <h3 style={styles.h3}>{activePlaybook.title}</h3>
