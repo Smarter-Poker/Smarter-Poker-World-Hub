@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -319,7 +320,7 @@ export default function PokerTripPlannerPage() {
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: '#f2b84b',
+              color: '#38bdf8',
               background: '#101a20',
               border: '1px solid #334155',
               borderRadius: '2px',
@@ -369,7 +370,7 @@ export default function PokerTripPlannerPage() {
               { label: 'Hotel Rate Per Night ($)', val: hotelPerNight, set: setHotelPerNight, step: 15, color: '#f8fafc' },
               { label: 'Daily Food / Uber Per Diem ($)', val: dailyPerDiem, set: setDailyPerDiem, step: 10, color: '#f8fafc' },
               { label: 'Base Tournament Buy-Ins ($)', val: plannedBuyInsTotal, set: setPlannedBuyInsTotal, step: 500, color: '#34d399' },
-              { label: 'Expected Bullets Multiplier (1.0-2.5x)', val: expectedBulletsMultiplier, set: setExpectedBulletsMultiplier, step: 0.05, color: '#f2b84b' },
+              { label: 'Expected Bullets Multiplier (1.0-2.5x)', val: expectedBulletsMultiplier, set: setExpectedBulletsMultiplier, step: 0.05, color: '#38bdf8' },
               { label: 'Expected Pre-Expense MTT ROI (%)', val: expectedRoiPct, set: setExpectedRoiPct, step: 1, color: '#34d399' },
               { label: 'Side Cash Game Hours / Day', val: cashHoursPerDay, set: setCashHoursPerDay, step: 1, color: '#25c8ff' },
               { label: 'Cash Game Hourly Rate ($/Hr)', val: cashHourlyRate, set: setCashHourlyRate, step: 5, color: '#34d399' },
@@ -450,11 +451,11 @@ export default function PokerTripPlannerPage() {
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Recommended Trip Bankroll To Bring
               </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 ${metrics.recommendedTripBankroll.toLocaleString('en-US')}
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -496,6 +497,17 @@ export default function PokerTripPlannerPage() {
             </table>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Your Poker Trip Budget & Track Live Series Free"
+          description="Plan Festival Travel Costs, Browse 715+ Verified Poker Rooms, And Track Series Results In Bankroll Manager."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/poker-trip-planner&src=trip-planner"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/poker-trip-planner"
+        />
 
         <FaqSection faqs={TRIP_PLANNER_FAQS} />
 

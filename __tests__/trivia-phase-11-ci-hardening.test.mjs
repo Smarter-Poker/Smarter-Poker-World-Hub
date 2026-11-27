@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import test from 'node:test';
 
@@ -312,4 +314,19 @@ test('30/90-day forecasts conserve journals, model depletion, refunds and daily 
         assert.equal(stress.variance, 0);
         assert.equal(stress.terminalEscrow, 0);
     }
+});
+
+// Regression guard (2026-11-27): PR #3136 added VipUpgradePrompt -> checkoutAuthorization
+// (which imports getFreshAccessToken from authUtils) onto pages/hub/trivia/endless.js,
+// breaking scripts/trivia/browser-race-proof/build.cjs in Global Footer E2E because
+// fixture.jsx did not export getFreshAccessToken. Bundling here in required CI catches
+// any fixture-export drift before merge in under a second.
+test('Trivia browser-race-proof fixture bundles cleanly against current Trivia pages', async (t) => {
+    const outDir = mkdtempSync(join(tmpdir(), 'trivia-race-bundle-check-'));
+    t.after(() => rmSync(outDir, { recursive: true, force: true }));
+    const require = createRequire(import.meta.url);
+    const buildFixture = require('../scripts/trivia/browser-race-proof/build.cjs');
+    await buildFixture(outDir);
+    assert.ok(existsSync(join(outDir, 'bundle.js')), 'browser-race-proof must emit bundle.js');
+    assert.ok(statSync(join(outDir, 'bundle.js')).size > 1000, 'bundle.js must be non-empty');
 });

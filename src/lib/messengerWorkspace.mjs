@@ -105,7 +105,7 @@ async function accountingMap(db, ids, userId) {
     // The mapping is unique by audience, not by a synthetic row id.
     for (let start = 0; start < ids.length; start += 100) {
         const records = await rows(db.from('accounting_conversations')
-            .select('conversation_id,scope_id,recipient_id,sender_id,issuer_type,last_discussion_at')
+            .select('conversation_id,scope_id,recipient_id,sender_id,issuer_type,issuer_id,last_discussion_at')
             .in('conversation_id', ids.slice(start, start + 100)));
         if (records.length) {
             const conversationIds = records.map(record => record.conversation_id);
@@ -153,7 +153,54 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
             return isVisibleInvoiceThread(invoice, userId, club?.id);
         }
         return !invoice;
-    }).map(c => ({ ...c, isAccounting: accounting.has(c.id), requiresAction: accounting.get(c.id)?.requiresAction === true, clubId: club?.id || null }));
+    }).map(c => {
+        const invoice = accounting.get(c.id);
+        return { ...c, isAccounting: !!invoice, requiresAction: invoice?.requiresAction === true, clubId: club?.id || null,
+            // Who sent the documents in a thread this reader RECEIVED. Used only
+            // to merge the same issuer's per-club threads in the combined inbox.
+            ...(invoice && invoice.recipient_id === userId && invoice.issuer_id ? { accountingIssuerId: invoice.issuer_id } : {}) };
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ONE ROW PER ISSUER IN THE COMBINED INBOX (owner, 2026-11-27)
+// ═══════════════════════════════════════════════════════════════════════════
+// A union keeps one private accounting thread per member club it bills
+// (accounting_conversations is keyed by scope). A reader who owns or runs
+// several of those clubs received one thread per club, every one titled
+// "Midway Union Accounting" (or the older "Midway Union Statements"), and the
+// main inbox and dock - which combine every club - listed all of them. The
+// owner saw four identical union rows and said: there should only be one.
+//
+// The per-club threads stay exactly as they are: each club's Invoices tab
+// still shows its own statement, and nothing about who may read what changes.
+// The combined views show ONE row per issuer: the thread that would sort first
+// (unread, then needs action, then newest), carrying the issuer's total unread
+// count and action flag so nothing waiting is hidden. Threads the reader SENT
+// are never merged - those are different recipients.
+export function collapseIssuerThreads(conversations) {
+    const sorted = [...conversations].sort((a, b) => compareConversations(a, b));
+    const byIssuer = new Map();
+    const result = [];
+    for (const conversation of sorted) {
+        const issuer = conversation.accountingIssuerId;
+        if (!issuer) { result.push({ ...conversation }); continue; }
+        const kept = byIssuer.get(issuer);
+        if (!kept) {
+            const row = { ...conversation };
+            byIssuer.set(issuer, row);
+            result.push(row);
+            continue;
+        }
+        // The producer names a thread "<issuer> Accounting"; threads opened
+        // before that was the name still say "<issuer> Statements". The row
+        // carries the current name whichever thread it opens.
+        if (/ Accounting$/.test(conversation.title || '') && !/ Accounting$/.test(kept.title || '')) kept.title = conversation.title;
+        kept.unreadCount = Number(kept.unreadCount || 0) + Number(conversation.unreadCount || 0);
+        kept.requiresAction = kept.requiresAction === true || conversation.requiresAction === true;
+    }
+    for (const conversation of result) delete conversation.accountingIssuerId;
+    return result;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -346,7 +393,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
             ...conversation, dockWorkspace: { workspace: selected.workspace, clubId: selected.clubId, folder: selected.folder },
         })));
         const conversations = await enrichMessengerClubRelationships(db, userId,
-            [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]);
+            collapseIssuerThreads([...new Map(combined.map(conversation => [conversation.id, conversation])).values()]));
         return { success: true, clubs, workspace: workspace === 'feed' ? 'social' : 'dock', clubId: null, folder: 'messages',
             unreadCounts: workspaces[0].unreadCounts, attentionCounts: workspaces[0].attentionCounts,
             ...(feed ? { hasOlder: workspaces.some(selected => selected.hasOlder === true), window: feed.window,

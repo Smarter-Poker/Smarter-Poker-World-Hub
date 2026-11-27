@@ -101,17 +101,22 @@ function requestNetworkAddress(req) {
  *
  * The network address is stored only as a hash.
  */
-export async function consumeVipIntroCheckoutAllowance(supabase, userId, req) {
+export async function consumeVipIntroCheckoutAllowance(
+  supabase,
+  userId,
+  req,
+  { scope = 'vip-intro-checkout', limits = VIP_INTRO_CHECKOUT_LIMITS } = {}
+) {
   if (!supabase || typeof userId !== 'string' || !userId) return 'unavailable';
-  const buckets = [
-    { key: `store:vip-intro-checkout:user:${userId}`, ...VIP_INTRO_CHECKOUT_LIMITS.account },
-  ];
+  /* `scope` keeps another discounted first month (the comeback price) on its
+     own counters; the $1 month's keys are exactly what they always were. */
+  const buckets = [{ key: `store:${scope}:user:${userId}`, ...limits.account }];
   const address = requestNetworkAddress(req);
   if (address) {
-    const hash = createHash('sha256').update(`vip-intro-checkout:${address}`).digest('hex');
+    const hash = createHash('sha256').update(`${scope}:${address}`).digest('hex');
     buckets.push({
-      key: `store:vip-intro-checkout:net:${hash}`,
-      ...VIP_INTRO_CHECKOUT_LIMITS.network,
+      key: `store:${scope}:net:${hash}`,
+      ...limits.network,
     });
   }
   let limited = false;

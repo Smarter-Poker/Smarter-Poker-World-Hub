@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -266,7 +267,7 @@ export default function SessionPlannerPage({
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -374,7 +375,7 @@ export default function SessionPlannerPage({
               { label: 'Hours Per Session', val: hoursPerSession, set: setHoursPerSession, step: 1, color: '#f8fafc' },
               { label: 'Sessions Per Week', val: sessionsPerWeek, set: setSessionsPerWeek, step: 1, color: '#f8fafc' },
               { label: 'Weeks Played Per Year', val: weeksPerYear, set: setWeeksPerYear, step: 1, color: '#f8fafc' },
-              { label: 'Casino Comp Rate ($/Hr)', val: compRate, set: setCompRate, step: 0.5, color: '#f2b84b' },
+              { label: 'Casino Comp Rate ($/Hr)', val: compRate, set: setCompRate, step: 0.5, color: '#38bdf8' },
               { label: 'Tips & Expenses / Session ($)', val: expensesPerSession, set: setExpensesPerSession, step: 2, color: '#f87171' },
             ].map((input) => (
               <div key={input.label}>
@@ -441,11 +442,11 @@ export default function SessionPlannerPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Required Bankroll (20-35 Buy-Ins)
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#f2b84b', marginTop: 6 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#38bdf8', marginTop: 6 }}>
                 ${metrics.minBankroll.toLocaleString('en-US')} - ${metrics.proBankroll.toLocaleString('en-US')}
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -489,7 +490,7 @@ export default function SessionPlannerPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.stake}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.targetWinrate}</td>
                     <td style={{ padding: '10px 14px', color: '#f87171', fontWeight: 700 }}>{row.stopLoss}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.bankrollRange}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.bankrollRange}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.annualNetAt1150Hrs}</td>
                   </tr>
                 ))}
@@ -507,7 +508,7 @@ export default function SessionPlannerPage({
             <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Bankroll &amp; Risk Of Ruin Calculator
             </Link>
-            <Link href="/tools/poker-winrate-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/poker-winrate-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Winrate (BB/100 To $/Hr) Calculator
             </Link>
             <Link href="/tools/rake-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -524,6 +525,17 @@ export default function SessionPlannerPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Your Session Plan & Track Live Stop-Losses Free"
+              description="Log Every Cash Session In Bankroll Manager, Enforce Stop-Loss Discipline, And Unlock 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/session-planner&src=session-planner"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/session-planner"
+            />
+
             <FaqSection faqs={SESSION_PLANNER_FAQS} />
 
             <CitationBacklinkBox

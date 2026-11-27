@@ -5,8 +5,8 @@
  * Server-rendered variant rulebook and starting hand strategy guide at
  * /games/<variant> (and raw Markdown at /games/<variant>.md).
  *
- * Design: #SmarterCasinoRealism (#020608 obsidian, #101a20 gunmetal, #25c8ff cyan,
- * #f2b84b vault gold, borderRadius: '2px').
+ * Design: #SMARTERDESIGN (#060d1a ink-navy, #081121 panel, #38bdf8 ice-blue,
+ * #1d4ed8 cobalt primary CTA, 1px steel rim rgba(148, 184, 224, 0.28)).
  * House style: Title Case, zero em dashes.
  */
 
@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import {
   GAMES_AS_OF,
   GAMES_BASE_PATH,
@@ -124,7 +125,7 @@ export default function PokerVariantDetailPage({ variant, peerVariants = [] }) {
         <article>
           <header style={styles.heroPlate}>
             <div style={styles.badgeRow}>
-              <span style={styles.goldBadge}>{variant.category}</span>
+              <span style={styles.primaryBadge}>{variant.category}</span>
               <span style={styles.cyanBadge}>{variant.bettingStructure}</span>
               <a href={mdPath} style={styles.mdBadge}>
                 RAW MARKDOWN ({mdPath})
@@ -200,6 +201,16 @@ export default function PokerVariantDetailPage({ variant, peerVariants = [] }) {
               ))}
             </div>
           </section>
+
+          <SmarterConversionCta
+            eyebrow={`Free ${variant.name} Tools & Training`}
+            title={`Play & Study ${variant.name} Free On Smarter.Poker`}
+            description="Practice GTO Strategy Across 107 Free Training Games, Run Multi-Variant Equity Calculations, And Find Live Mixed-Game Tables Near You."
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=/hub/training&src=game-${encodeURIComponent(variant.slug)}`}
+            secondaryLabel="Open Multi-Variant Odds Calculator"
+            secondaryHref="/tools/poker-odds-calculator"
+          />
 
           <section style={styles.twoColGrid}>
             <div style={styles.colPlate}>
@@ -297,7 +308,7 @@ export default function PokerVariantDetailPage({ variant, peerVariants = [] }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#020608',
+    backgroundColor: '#060d1a',
     color: '#e2e8f0',
     fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, sans-serif',
   },
@@ -340,10 +351,10 @@ const styles = {
     gap: '10px',
     marginBottom: '14px',
   },
-  goldBadge: {
-    backgroundColor: 'rgba(242, 184, 75, 0.14)',
-    border: '1px solid #f2b84b',
-    color: '#f2b84b',
+  primaryBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.07em',
@@ -380,10 +391,10 @@ const styles = {
   },
   summaryBox: {
     backgroundColor: '#020608',
-    borderLeft: '4px solid #f2b84b',
-    borderTop: '1px solid rgba(242, 184, 75, 0.25)',
-    borderRight: '1px solid rgba(242, 184, 75, 0.25)',
-    borderBottom: '1px solid rgba(242, 184, 75, 0.25)',
+    borderLeft: '4px solid #38bdf8',
+    borderTop: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRight: '1px solid rgba(148, 184, 224, 0.28)',
+    borderBottom: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: '2px',
     padding: '16px 18px',
     marginBottom: '18px',
@@ -391,7 +402,7 @@ const styles = {
   summaryLabel: {
     fontSize: '11px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.08em',
     marginBottom: '6px',
   },
@@ -462,7 +473,7 @@ const styles = {
     display: 'inline-block',
     fontSize: '11px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.08em',
     marginBottom: '4px',
   },
@@ -478,14 +489,14 @@ const styles = {
   },
   tierCard: {
     backgroundColor: '#020608',
-    border: '1px solid rgba(242, 184, 75, 0.28)',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
     borderRadius: '2px',
     padding: '16px 18px',
   },
   tierHeader: {
     fontSize: '15px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     marginBottom: '8px',
   },
   tierHandsBox: {
@@ -576,7 +587,7 @@ const styles = {
   calcTag: {
     fontSize: '10px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.08em',
   },
   calcTitle: {
@@ -604,9 +615,9 @@ const styles = {
     color: '#94a3b8',
   },
   allVariantsBtn: {
-    backgroundColor: 'rgba(242, 184, 75, 0.14)',
-    border: '1px solid #f2b84b',
-    color: '#f2b84b',
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '13px',
     fontWeight: 700,
     padding: '10px 14px',
@@ -655,7 +666,7 @@ const styles = {
     textDecoration: 'none',
   },
   rawIndexLink: {
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontSize: '13px',
     fontWeight: 600,
     textDecoration: 'none',

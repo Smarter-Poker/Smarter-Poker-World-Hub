@@ -150,6 +150,7 @@ export default function PersonalAssistantPage() {
 
   const [reloadKey, setReloadKey] = useState(0);
   const [savedHandsCount, setSavedHandsCount] = useState(null);
+  const [unreviewedHandsCount, setUnreviewedHandsCount] = useState(null);
   const [savedHandsLoading, setSavedHandsLoading] = useState(false);
   const [coachingSnapshot, setCoachingSnapshot] = useState(null);
   const activeUserIdRef = useRef(user?.id || null);
@@ -170,10 +171,11 @@ export default function PersonalAssistantPage() {
     };
   }, [refetchSessions, refetchStats]);
 
-  // Fetch owner's saved hands count + coaching focus when signed in.
+  // Fetch owner's live saved hands counts + coaching focus when signed in (with AbortController + timeout).
   useEffect(() => {
     if (authInitializing || !user?.id) {
       setSavedHandsCount(null);
+      setUnreviewedHandsCount(null);
       setSavedHandsLoading(false);
       setCoachingSnapshot(null);
       return undefined;
@@ -182,6 +184,9 @@ export default function PersonalAssistantPage() {
     const expectedUserId = user.id;
     let cancelled = false;
     const controller = new AbortController();
+    const timeoutId = typeof window !== 'undefined'
+      ? window.setTimeout(() => controller.abort(), 8000)
+      : null;
     setSavedHandsLoading(true);
 
     const loadPersonalOverview = async () => {
@@ -193,7 +198,7 @@ export default function PersonalAssistantPage() {
         }
         const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
         const [savedRes, coachRes] = await Promise.allSettled([
-          fetch('/api/poker/saved-hands?limit=50', { cache: 'no-store', headers, signal: controller.signal }),
+          fetch('/api/poker/saved-hands?limit=1', { cache: 'no-store', headers, signal: controller.signal }),
           fetch('/api/assistant/coaching', { cache: 'no-store', headers, signal: controller.signal }),
         ]);
 
@@ -202,8 +207,14 @@ export default function PersonalAssistantPage() {
         if (savedRes.status === 'fulfilled' && savedRes.value.ok) {
           const payload = await savedRes.value.json().catch(() => null);
           if (!cancelled && payload?.success && Array.isArray(payload.hands)) {
-            const unreviewed = payload.hands.filter((h) => (h?.review?.status || h?.hand_data?.review?.status) !== 'reviewed').length;
-            setSavedHandsCount(unreviewed > 0 ? unreviewed : payload.hands.length);
+            const total = Number.isFinite(Number(payload.totalCount))
+              ? Number(payload.totalCount)
+              : payload.hands.length;
+            const unreviewed = Number.isFinite(Number(payload.unreviewedCount))
+              ? Number(payload.unreviewedCount)
+              : payload.hands.filter((h) => (h?.review?.status || h?.hand_data?.review?.status) !== 'reviewed').length;
+            setSavedHandsCount(total);
+            setUnreviewedHandsCount(unreviewed);
           }
         }
 
@@ -218,6 +229,9 @@ export default function PersonalAssistantPage() {
           console.warn('[Personal Assistant] overview fetch skipped:', err?.message || err);
         }
       } finally {
+        if (timeoutId !== null && typeof window !== 'undefined') {
+          window.clearTimeout(timeoutId);
+        }
         if (!cancelled) setSavedHandsLoading(false);
       }
     };
@@ -225,6 +239,9 @@ export default function PersonalAssistantPage() {
     loadPersonalOverview();
     return () => {
       cancelled = true;
+      if (timeoutId !== null && typeof window !== 'undefined') {
+        window.clearTimeout(timeoutId);
+      }
       controller.abort();
     };
   }, [authInitializing, user?.id, reloadKey]);
@@ -279,7 +296,9 @@ export default function PersonalAssistantPage() {
         ? 'Open Your Saved Hands Queue'
         : savedHandsCount === 0
           ? 'No Saved Hands Yet'
-          : `${savedHandsCount} ${savedHandsCount === 1 ? 'Hand' : 'Hands'} Ready To Review`;
+          : (unreviewedHandsCount ?? 0) > 0
+            ? `${savedHandsCount.toLocaleString()} ${savedHandsCount === 1 ? 'Saved Hand' : 'Saved Hands'} · ${unreviewedHandsCount.toLocaleString()} Unreviewed`
+            : `${savedHandsCount.toLocaleString()} ${savedHandsCount === 1 ? 'Saved Hand' : 'Saved Hands'} · All Reviewed`;
 
   const leaksSummaryText = isSignedOut
     ? 'Sign In To Inspect Your Patterns'
@@ -382,6 +401,7 @@ export default function PersonalAssistantPage() {
                           width={1600}
                           height={900}
                           loading="eager"
+                          fetchpriority="high"
                         />
                       </div>
                       <div className={styles.featureBody}>
@@ -457,6 +477,7 @@ export default function PersonalAssistantPage() {
                           className={styles.featureArt}
                           width={1600}
                           height={533}
+                          loading="lazy"
                         />
                       </div>
                       <div className={styles.featureBody}>

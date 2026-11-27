@@ -14,6 +14,7 @@ import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import { firstThatFits, fitMetaDescription } from '../../src/lib/seo/titleFit.js';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
@@ -295,9 +296,9 @@ export default function ResearchReportDetailPage({ report }) {
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: '#f59e0b',
-              background: 'rgba(245, 158, 11, 0.12)',
-              border: '1px solid #f59e0b',
+              color: '#38bdf8',
+              background: 'rgba(56, 189, 248, 0.14)',
+              border: '1px solid rgba(148, 184, 224, 0.35)',
               padding: '4px 10px',
               borderRadius: 6,
               textDecoration: 'none',
@@ -456,8 +457,18 @@ export default function ResearchReportDetailPage({ report }) {
           ))}
         </section>
 
-        <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+        <SmarterConversionCta
+          eyebrow="Free Poker Analytics & GTO Tools"
+          title="Turn Industry Data Into Winning Decisions On Smarter.Poker"
+          description="Track Your Own Bankroll And Rake, Explore 715+ Verified Live Poker Rooms, And Train With 107 Free GTO Games In One Account."
+          primaryLabel="Create Free Account"
+          primaryHref={`/auth/signup?redirect=/hub/training&src=research-${encodeURIComponent(report.slug)}`}
+          secondaryLabel="Explore Free Calculators"
+          secondaryHref="/tools"
+        />
+
+        <section style={{ marginBottom: 32, marginTop: 32 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#ffffff', margin: '0 0 12px 0' }}>
             More Smarter.Poker Research Reports
           </h2>
           <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8 }}>

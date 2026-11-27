@@ -6,6 +6,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
@@ -213,10 +214,23 @@ export default function CompareHubPage() {
             </div>
             <div>
               <div style={{ fontSize: '12px', color: '#7E9BB8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Live Directory</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFD700' }}>324+ Venues + Free Waitlist System</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#38bdf8' }}>324+ Venues + Free Waitlist System</div>
             </div>
           </div>
         </aside>
+
+        <div style={{ marginBottom: '36px' }}>
+          <SmarterConversionCta
+            eyebrow="Zero Subscription Poker Platform"
+            title="Try Smarter.Poker Free Against Legacy Paid Tools"
+            description="Unlock 107 Free GTO Training Games, Browser-Native Equity & ICM Solvers, And 715+ Verified Live Poker Rooms With Zero Credit Card Required."
+            primaryLabel="Create Free Account"
+            primaryHref="/auth/signup?redirect=/hub/training&src=compare-index"
+            secondaryLabel="Open Free Poker Tools"
+            secondaryHref="/tools"
+            compact
+          />
+        </div>
 
         {/* Tab Switcher */}
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '32px', paddingBottom: '6px' }}>

@@ -87,9 +87,10 @@ test('scripts/ci/pa-browser-smoke.mjs preserves core contract and adds a11y & SS
   assert.equal(smoke.MIN_TOUCH_TARGET_HEIGHT, 36);
   assert.equal(smoke.SHARE_REVIEW_PATH, '/share/hand?view=review&street=flop&position=BTN');
 
-  // Preserves existing 6 routes and 2 viewports
+  // Preserves all 7 PA/Sandbox routes (including Review My Play) and 2 viewports
   assert.deepEqual([...smoke.ROUTES], [
     '/hub/personal-assistant',
+    '/hub/personal-assistant/review',
     '/hub/personal-assistant/leaks',
     '/hub/personal-assistant/leaks?format=tournament',
     '/hub/personal-assistant/leaks?tab=coaching',
@@ -153,7 +154,7 @@ test('pa-browser-smoke --check-only executes cleanly via child process', () => {
     cwd: ROOT,
     encoding: 'utf8',
   });
-  assert.match(stdout, /pa-browser-smoke contract ok: 6 routes x 2 viewports, 9 private APIs, 11 checks/);
+  assert.match(stdout, /pa-browser-smoke contract ok: 7 routes x 2 viewports, 9 private APIs, 11 checks/);
 });
 
 test('computeAccessibleName correctly derives accessible names and catches empty controls', async () => {

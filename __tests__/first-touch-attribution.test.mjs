@@ -8,10 +8,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { FIRST_TOUCH_KEY, OAUTH_INTENT_KEY, cleanTag, parseFirstTouch, recordFirstTouch, firstTouchMetadata, attributionForNewAccount, beginOAuthAttribution, withAttributionNonce } from '../src/lib/acquisition/firstTouch.mjs';
 
-function fakeWindow(search, pathname = '/freerolls') {
+function fakeWindow(search, pathname = '/freerolls', referrer = '') {
   const store = new Map();
   return {
     location: { search, pathname },
+    document: { referrer },
     localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) },
     store,
   };
@@ -127,4 +128,87 @@ test('the OAuth callback writes attribution for new accounts', () => {
     assert.match(src, /const attributionNonce = beginOAuthAttribution\(\);/, page);
     assert.match(src, /redirectTo: withAttributionNonce\(/, page);
   }
+});
+
+test('organic search and AI referrers are attributed when utm_source is absent', () => {
+  const t0 = Date.parse('2026-11-27T12:00:00Z');
+
+  // Organic Google (desktop & international)
+  const g = parseFirstTouch('', '/tools/poker-odds-calculator', t0, 'https://www.google.com/search?q=poker+odds');
+  assert.equal(g.utm_source, 'google');
+  assert.equal(g.utm_medium, 'organic');
+  assert.equal(g.landing_path, '/tools/poker-odds-calculator');
+
+  const gUk = parseFirstTouch('', '/poker-rooms/nevada/las-vegas/extra-ignored', t0, 'https://www.google.co.uk/');
+  assert.equal(gUk.utm_source, 'google');
+  assert.equal(gUk.utm_medium, 'organic');
+  assert.equal(gUk.landing_path, '/poker-rooms/nevada/las-vegas');
+
+  // Android Google Search app
+  const gApp = parseFirstTouch('', '/hub/venues/bellagio-las-vegas', t0, 'android-app://com.google.android.googlequicksearchbox/');
+  assert.equal(gApp.utm_source, 'google');
+  assert.equal(gApp.utm_medium, 'organic');
+  assert.equal(gApp.landing_path, '/hub/venues/bellagio-las-vegas');
+
+  // Bing, DuckDuckGo, Yahoo, Brave, Ecosia
+  const bing = parseFirstTouch('', '/learn/icm-basics', t0, 'https://www.bing.com/search?q=icm+poker');
+  assert.equal(bing.utm_source, 'bing');
+  assert.equal(bing.utm_medium, 'organic');
+  assert.equal(bing.landing_path, '/learn/icm-basics');
+
+  assert.deepEqual(
+    [
+      parseFirstTouch('', '/rules', t0, 'https://duckduckgo.com/'),
+      parseFirstTouch('', '/games', t0, 'https://search.yahoo.com/search?p=poker'),
+      parseFirstTouch('', '/glossary', t0, 'https://search.brave.com/search?q=gto'),
+      parseFirstTouch('', '/research', t0, 'https://www.ecosia.org/search?q=poker'),
+    ].map((r) => [r.utm_source, r.utm_medium]),
+    [
+      ['duckduckgo', 'organic'],
+      ['yahoo', 'organic'],
+      ['brave', 'organic'],
+      ['ecosia', 'organic'],
+    ]
+  );
+
+  // AI answer engines (including gemini.google.com taking precedence over google.*)
+  assert.deepEqual(
+    [
+      parseFirstTouch('', '/tools/icm-calculator', t0, 'https://chatgpt.com/'),
+      parseFirstTouch('', '/tools/icm-calculator', t0, 'https://chat.openai.com/c/123'),
+      parseFirstTouch('', '/compare/gto-wizard', t0, 'https://www.perplexity.ai/search/best-gto'),
+      parseFirstTouch('', '/features/gto-trainer', t0, 'https://claude.ai/chat/abc'),
+      parseFirstTouch('', '/hub/series/wsop-2026', t0, 'https://gemini.google.com/app'),
+      parseFirstTouch('', '/hub/poker-near-me/texas', t0, 'https://copilot.microsoft.com/'),
+    ].map((r) => [r.utm_source, r.utm_medium, r.landing_path]),
+    [
+      ['chatgpt', 'ai_referral', '/tools/icm-calculator'],
+      ['chatgpt', 'ai_referral', '/tools/icm-calculator'],
+      ['perplexity', 'ai_referral', '/compare/gto-wizard'],
+      ['claude', 'ai_referral', '/features/gto-trainer'],
+      ['gemini', 'ai_referral', '/hub/series/wsop-2026'],
+      ['copilot', 'ai_referral', '/hub/poker-near-me/texas'],
+    ]
+  );
+
+  // Explicit utm_source still wins over referrer
+  const explicit = parseFirstTouch('?utm_source=reddit&utm_medium=social', '/tools/poker-odds-calculator', t0, 'https://www.google.com/');
+  assert.equal(explicit.utm_source, 'reddit');
+  assert.equal(explicit.utm_medium, 'social');
+
+  // Empty, internal smarter.poker, and unknown referrers return null
+  assert.equal(parseFirstTouch('', '/tools/poker-odds-calculator', t0, ''), null);
+  assert.equal(parseFirstTouch('', '/tools/poker-odds-calculator', t0, 'https://smarter.poker/hub'), null);
+  assert.equal(parseFirstTouch('', '/tools/poker-odds-calculator', t0, 'https://www.smarter.poker/learn'), null);
+  assert.equal(parseFirstTouch('', '/tools/poker-odds-calculator', t0, 'https://example.com/blog'), null);
+
+  // recordFirstTouch reads win.document.referrer and persists through to firstTouchMetadata
+  const w = fakeWindow('', '/tools/poker-odds-calculator', 'https://chatgpt.com/');
+  recordFirstTouch(w, t0);
+  assert.deepEqual(firstTouchMetadata(w, t0 + 1000), {
+    acquisition_utm_source: 'chatgpt',
+    acquisition_utm_medium: 'ai_referral',
+    acquisition_landing_path: '/tools/poker-odds-calculator',
+    acquisition_captured_at: '2026-11-27T12:00:00.000Z',
+  });
 });

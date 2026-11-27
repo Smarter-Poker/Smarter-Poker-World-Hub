@@ -24,6 +24,15 @@ import {
   resolveVipIntroOffer,
 } from '../../../src/lib/store/vipIntroEligibility';
 import {
+  VIP_COMEBACK_CHECKOUT_LIMITS,
+  VIP_COMEBACK_CHECKOUT_SCOPE,
+  VIP_COMEBACK_OFFER,
+  vipComebackCouponMismatch,
+  vipComebackCouponParams,
+  vipComebackOfferAppliesToPlan,
+} from '../../../src/lib/store/vipComebackOffer.mjs';
+import { resolveVipComebackOffer } from '../../../src/lib/store/vipComebackEligibility';
+import {
   BLOCKING_RECURRING_VIP_STATUSES,
   STRIPE_VIP_AUTHORITY,
   classifyStripeCheckoutSessionForVip,
@@ -201,6 +210,52 @@ async function ensureVipIntroCoupon() {
   }
   return coupon;
 }
+
+/**
+ * The comeback price's one-time $10 coupon, verified exactly like the $1
+ * coupon above: created on first use, and a coupon that is not exactly a
+ * one-time $10 USD reduction stops the sale (null) instead of changing it.
+ */
+async function ensureVipComebackCoupon() {
+  let coupon = null;
+  try {
+    coupon = await stripe.coupons.retrieve(VIP_COMEBACK_OFFER.couponId);
+  } catch (error) {
+    if (error?.code !== 'resource_missing' && error?.statusCode !== 404) throw error;
+    try {
+      coupon = await stripe.coupons.create(vipComebackCouponParams());
+    } catch (createError) {
+      if (createError?.code !== 'resource_already_exists') throw createError;
+      coupon = await stripe.coupons.retrieve(VIP_COMEBACK_OFFER.couponId);
+    }
+  }
+  const mismatch = vipComebackCouponMismatch(coupon);
+  if (mismatch) {
+    console.warn('[Checkout] VIP comeback coupon failed verification:', mismatch);
+    return null;
+  }
+  return coupon;
+}
+
+/* Why an account that reviewed the comeback price is not getting it. Each is
+   a 409: the member reviews the regular price and confirms again. */
+const VIP_COMEBACK_REFUSALS = Object.freeze({
+  offer_off: Object.freeze({
+    code: 'VIP_COMEBACK_OFFER_ENDED',
+    message:
+      'The Welcome Back Price Is Not Available Right Now. VIP Monthly Is $20/Month. Review And Confirm Again.',
+  }),
+  verify_contact: Object.freeze({
+    code: 'VIP_COMEBACK_VERIFY_CONTACT',
+    message:
+      'Verify Your Email Address To Unlock The Welcome Back Price. Until Then VIP Monthly Is $20/Month. Review And Confirm Again.',
+  }),
+  default: Object.freeze({
+    code: 'VIP_COMEBACK_OFFER_USED',
+    message:
+      'The Welcome Back Price Is Not Available For This Account. VIP Monthly Is $20/Month. Review And Confirm Again.',
+  }),
+});
 
 /* Why an account that reviewed the $1 first month is not getting it. Each is
    a 409: the member reviews the regular price and confirms again. */
@@ -433,11 +488,19 @@ function isCheckoutOfferConfirmationShape(type, offer) {
       'unitCents',
       'totalCents',
     ];
+    /* `comebackCents` is the same idea for the comeback price
+       (vipComebackOffer.mjs). The two are never on one offer. */
     const hasIntro = Object.prototype.hasOwnProperty.call(offer, 'introCents');
+    const hasComeback = Object.prototype.hasOwnProperty.call(offer, 'comebackCents');
+    if (hasIntro && hasComeback) return false;
     return (
       hasExactObjectKeys(
         offer,
-        hasIntro ? [...subscriptionOfferKeys, 'introCents'] : subscriptionOfferKeys
+        hasIntro
+          ? [...subscriptionOfferKeys, 'introCents']
+          : hasComeback
+            ? [...subscriptionOfferKeys, 'comebackCents']
+            : subscriptionOfferKeys
       ) &&
       ['monthly', 'yearly'].includes(offer.plan) &&
       offer.interval === (offer.plan === 'monthly' ? 'month' : 'year') &&
@@ -449,7 +512,12 @@ function isCheckoutOfferConfirmationShape(type, offer) {
           offer.introCents === VIP_INTRO_OFFER.firstPeriodCents &&
           offer.unitCents === VIP_INTRO_OFFER.regularCents &&
           offer.totalCents === offer.introCents
-        : offer.totalCents === offer.unitCents)
+        : hasComeback
+          ? offer.plan === VIP_COMEBACK_OFFER.plan &&
+            offer.comebackCents === VIP_COMEBACK_OFFER.firstPeriodCents &&
+            offer.unitCents === VIP_COMEBACK_OFFER.regularCents &&
+            offer.totalCents === offer.comebackCents
+          : offer.totalCents === offer.unitCents)
     );
   }
 
@@ -603,6 +671,9 @@ function buildCheckoutOffer(type, preparedCheckout, accountId) {
     if (preparedCheckout?.intro) {
       offer.introCents = preparedCheckout.intro.firstPeriodCents;
       offer.totalCents = preparedCheckout.intro.firstPeriodCents;
+    } else if (preparedCheckout?.comeback) {
+      offer.comebackCents = preparedCheckout.comeback.firstPeriodCents;
+      offer.totalCents = preparedCheckout.comeback.firstPeriodCents;
     }
     return isCheckoutOfferConfirmationShape(type, offer) ? offer : null;
   }
@@ -672,6 +743,9 @@ function computeCheckoutIntentHash(type, preparedCheckout, redemptionIntent = nu
       // exactly as it did before the offer existed.
       ...(preparedCheckout.intro
         ? { introCents: preparedCheckout.intro.firstPeriodCents }
+        : {}),
+      ...(preparedCheckout.comeback
+        ? { comebackCents: preparedCheckout.comeback.firstPeriodCents }
         : {}),
     };
   } else if (type === 'vip_lifetime') {
@@ -1924,13 +1998,72 @@ export default async function handler(req, res) {
               },
             });
           }
-        } else if (confirmedIntro) {
-          /* The member reviewed $1 and this account does not get $1. Say why,
-             and make them confirm the regular price before anything is
-             charged. A confirmation without `introCents` falls through to the
-             ordinary $20 checkout below. */
-          const refusal = VIP_INTRO_REFUSALS[introDecision.reason] || VIP_INTRO_REFUSALS.default;
-          return res.status(409).json({ success: false, error: refusal });
+        } else {
+          /* THE COMEBACK PRICE (vipComebackOffer.mjs). Decided only once the
+             $1 first month is ruled out, so the two are never combined. Same
+             shape as the $1 month: one server decision, unknown stops the
+             checkout, and the member must have confirmed the price Stripe is
+             about to charge. */
+          const comebackDecision = vipComebackOfferAppliesToPlan(preparedCheckout.plan)
+            ? await resolveVipComebackOffer(getSupabase(), user)
+            : { eligible: false, reason: 'plan' };
+          const confirmedComeback = Boolean(
+            rawOfferConfirmation &&
+              Object.prototype.hasOwnProperty.call(rawOfferConfirmation, 'comebackCents')
+          );
+          if (comebackDecision.eligible === null) {
+            const switchUnknown = comebackDecision.reason === 'switch_unknown';
+            return res.status(503).json({
+              success: false,
+              retryable: true,
+              error: {
+                code: switchUnknown
+                  ? 'VIP_COMEBACK_OFFER_UNAVAILABLE'
+                  : 'VIP_ELIGIBILITY_UNAVAILABLE',
+                message: switchUnknown
+                  ? 'The VIP Welcome Back Price Could Not Be Verified. Please Try Again.'
+                  : 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+              },
+            });
+          }
+          if (comebackDecision.eligible === true) {
+            const comebackCoupon = await ensureVipComebackCoupon();
+            if (!comebackCoupon) {
+              return res.status(503).json({
+                success: false,
+                error: {
+                  code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
+                  message: 'VIP subscriptions are not available right now. Please contact support.',
+                },
+              });
+            }
+            preparedCheckout.comeback = {
+              firstPeriodCents: VIP_COMEBACK_OFFER.firstPeriodCents,
+              couponId: comebackCoupon.id,
+            };
+            if (!confirmedComeback) {
+              return res.status(409).json({
+                success: false,
+                error: {
+                  code: 'VIP_COMEBACK_OFFER_AVAILABLE',
+                  message:
+                    'Welcome Back: Your First VIP Month Is $10, Then $20/Month. Refresh This Page To Review The Current Offer And Confirm Again.',
+                },
+              });
+            }
+          } else if (confirmedComeback) {
+            const refusal =
+              VIP_COMEBACK_REFUSALS[comebackDecision.reason] || VIP_COMEBACK_REFUSALS.default;
+            return res.status(409).json({ success: false, error: refusal });
+          }
+          if (confirmedIntro) {
+            /* The member reviewed $1 and this account does not get $1. Say
+               why, and make them confirm the regular price before anything is
+               charged. A confirmation without `introCents` falls through to
+               the ordinary $20 checkout below. */
+            const refusal = VIP_INTRO_REFUSALS[introDecision.reason] || VIP_INTRO_REFUSALS.default;
+            return res.status(409).json({ success: false, error: refusal });
+          }
         }
       }
       let checkoutOffer = buildCheckoutOffer(type, preparedCheckout, user.id);
@@ -2320,8 +2453,13 @@ export default async function handler(req, res) {
            request that is only re-reading its own open session
            (`matchingSession`) opens nothing and is not counted. This runs
            before the claim so a refusal leaves no claim behind. */
-        if (preparedCheckout.intro && !matchingSession) {
-          const allowance = await consumeVipIntroCheckoutAllowance(getSupabase(), user.id, req);
+        if ((preparedCheckout.intro || preparedCheckout.comeback) && !matchingSession) {
+          const allowance = preparedCheckout.comeback
+            ? await consumeVipIntroCheckoutAllowance(getSupabase(), user.id, req, {
+                scope: VIP_COMEBACK_CHECKOUT_SCOPE,
+                limits: VIP_COMEBACK_CHECKOUT_LIMITS,
+              })
+            : await consumeVipIntroCheckoutAllowance(getSupabase(), user.id, req);
           if (allowance === 'unavailable') {
             return res.status(503).json({
               success: false,
@@ -2740,6 +2878,11 @@ export default async function handler(req, res) {
              is the ordinary monthly one. */
           sessionConfig.discounts = [{ coupon: preparedCheckout.intro.couponId }];
           sessionConfig.metadata.vip_intro_offer = VIP_INTRO_OFFER.metadataValue;
+        } else if (preparedCheckout.comeback) {
+          /* Same mechanism for the comeback price: the regular recurring price
+             with a one-time coupon, so only the first invoice is reduced. */
+          sessionConfig.discounts = [{ coupon: preparedCheckout.comeback.couponId }];
+          sessionConfig.metadata.vip_comeback_offer = VIP_COMEBACK_OFFER.metadataValue;
         }
 
         sessionConfig.metadata.vip_tier = vipTier;
@@ -2755,6 +2898,9 @@ export default async function handler(req, res) {
             checkout_intent_hash: checkoutIntentHash,
             ...(preparedCheckout.intro
               ? { vip_intro_offer: VIP_INTRO_OFFER.metadataValue }
+              : {}),
+            ...(preparedCheckout.comeback
+              ? { vip_comeback_offer: VIP_COMEBACK_OFFER.metadataValue }
               : {}),
           },
         };

@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -376,7 +377,7 @@ export default function BlindStructureCalculatorPage({
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Estimated Finish Level
               </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#f59e0b', marginTop: 4 }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 Level {metrics.finishLevel} (~{(metrics.estimatedDurationMinutes / 60).toFixed(1)} Hrs)
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
@@ -430,7 +431,7 @@ export default function BlindStructureCalculatorPage({
                       <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>
                         {row.startStackBbs} BB
                       </td>
-                      <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>
+                      <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>
                         {row.totalBbsInPlay} BB
                       </td>
                       <td style={{ padding: '10px 14px', color: '#94a3b8' }}>
@@ -511,6 +512,17 @@ export default function BlindStructureCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Custom Tournament Blind Structures & Host Free"
+          description="Bookmark Blind Schedules, Run Home Game Clocks, And Unlock 107 Free GTO Training Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/blind-structure-calculator&src=blind-structure"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/blind-structure-calculator"
+        />
 
         <FaqSection faqs={BLIND_STRUCTURE_CALCULATOR_FAQS} />
 

@@ -13,6 +13,7 @@ import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
@@ -926,6 +927,17 @@ export default function PokerToolsDirectoryPage() {
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Solved Spots & Unlock 107 Free GTO Training Games"
+          description="Create A Free Smarter.Poker Account To Bookmark All 52 Calculators, Track Live Sessions, And Find 715+ Verified Poker Rooms."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools&src=tools-index"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools"
+        />
 
         <FaqSection faqs={TOOLS_FAQS} />
 

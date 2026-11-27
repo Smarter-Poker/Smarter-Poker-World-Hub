@@ -15,6 +15,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import {
   US_POKER_STATES,
   STATES_AS_OF,
@@ -349,6 +350,19 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
             ))}
           </div>
         </section>
+
+        <div style={{ marginBottom: 24 }}>
+          <SmarterConversionCta
+            eyebrow={`Free ${stateGuide.name} Poker Companion`}
+            title={`Track Live ${stateGuide.name} Poker Rooms & Sessions Free`}
+            description={`Create A Free Smarter.Poker Account To Save Favorite ${stateGuide.name} Cardrooms, Check Live Cash Games, And Log W-2G & Cash Game Results.`}
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-state`}
+            secondaryLabel="Sign In"
+            secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
+            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll & Tax Log']}
+          />
+        </div>
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>

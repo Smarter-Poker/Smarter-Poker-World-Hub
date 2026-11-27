@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -360,7 +361,7 @@ export default function SidePotCalculatorPage({
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Uncalled Overbet Return
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f59e0b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.uncalledReturn.toLocaleString('en-US')} Chips
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
@@ -388,7 +389,7 @@ export default function SidePotCalculatorPage({
               <tbody>
                 {metrics.pots.map((pot) => (
                   <tr key={pot.tier} style={{ borderBottom: '1px solid #1e293b' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 700, color: pot.isUncalled ? '#f59e0b' : '#f8fafc' }}>
+                    <td style={{ padding: '10px 14px', fontWeight: 700, color: pot.isUncalled ? '#38bdf8' : '#f8fafc' }}>
                       {pot.tier}
                     </td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>
@@ -438,7 +439,7 @@ export default function SidePotCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.scenario}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.mainPot}</td>
                     <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.sidePot1}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b' }}>{row.sidePot2}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8' }}>{row.sidePot2}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.ruleNote}</td>
                   </tr>
                 ))}
@@ -473,6 +474,17 @@ export default function SidePotCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Multiway Side Pot Splits & Host Faster Free"
+          description="Bookmark All-In Payout Splits, Run Cleaner Live Games, And Unlock 107 Free GTO Training Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/side-pot-calculator&src=side-pot"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/side-pot-calculator"
+        />
 
         <FaqSection faqs={SIDE_POT_CALCULATOR_FAQS} />
 

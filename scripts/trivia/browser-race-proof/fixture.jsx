@@ -6,6 +6,7 @@ export const useAvatar = () => {
 };
 export const getAuthUser = () => window.fixtureAccount;
 export const getAccessToken = () => 'isolated-browser-fixture';
+export const getFreshAccessToken = async () => getAccessToken();
 export const authedFetch = (url, options = {}) =>
   fetch(url, {
     ...options,

@@ -19,6 +19,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../../src/components/seo/GeoFollowUpChain';
@@ -240,6 +241,19 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
             ))}
           </div>
         </section>
+
+        <div style={{ marginBottom: 24 }}>
+          <SmarterConversionCta
+            eyebrow={`Free ${gameVertical.shortTitle} Companion`}
+            title={`Find Live ${gameVertical.shortTitle} Rooms & Track Bankroll Free`}
+            description={`Create A Free Smarter.Poker Account To Bookmark Top ${gameVertical.gameFormat} Venues, Track Live Waitlists, And Log Your Session Profit.`}
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-by-game`}
+            secondaryLabel="Sign In"
+            secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
+            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+          />
+        </div>
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>

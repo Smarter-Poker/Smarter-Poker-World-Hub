@@ -84,6 +84,29 @@ fi
 
 ALL_JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '(\.(js|jsx|ts|tsx)$|^(pages|app|src|components|lib|utils)/.*\.(mjs|cjs)$)' | grep -v node_modules | grep -v '.next/')
 JS_FILES=$(echo "$CONTENT_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '(\.(js|jsx|ts|tsx)$|^(pages|app|src|components|lib|utils)/.*\.(mjs|cjs)$)' | grep -v node_modules | grep -v '.next/')
+DEPLOY_CONFIG_FILES=$(echo "$CHANGED_FILES" | grep -E '^(vercel|package|package-lock|tsconfig|jsconfig)\.json$|^config/.*\.json$|^next\.config\.(js|mjs|ts)$')
+
+# Even when no JS/TS files changed, edits to Vercel/package/config JSON can
+# immediately break Vercel deployments with zero build logs. Validate JSON
+# syntax and deployability before allowing config-only pushes.
+if [ -n "$DEPLOY_CONFIG_FILES" ]; then
+    echo "CHECK 0: Deploy & config JSON validation..."
+    for cfg in $(printf '%s\n' "$CONTENT_FILES" | grep -E '^(vercel|package|package-lock|tsconfig|jsconfig)\.json$|^config/.*\.json$'); do
+        [ -f "$cfg" ] || continue
+        if ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$cfg" >/dev/null 2>&1; then
+            echo -e "${RED}  ✗ FATAL: ${cfg} is not valid JSON.${NC}"
+            exit 1
+        fi
+    done
+    if [ -f "__tests__/vercel-json-is-deployable.law.test.mjs" ]; then
+        if ! node --test __tests__/vercel-json-is-deployable.law.test.mjs; then
+            echo -e "${RED}  ✗ FATAL: vercel.json / package-lock deployability law failed.${NC}"
+            exit 1
+        fi
+    fi
+    echo -e "${GREEN}  ✓ Deploy & config JSON passed validation.${NC}"
+    echo ""
+fi
 
 if [ -z "$ALL_JS_FILES" ]; then
     echo -e "${GREEN}✓ No JS/TS files changed. Push allowed.${NC}"

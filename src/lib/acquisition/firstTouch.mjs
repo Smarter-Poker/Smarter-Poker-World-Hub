@@ -23,14 +23,109 @@ export const FIRST_TOUCH_KEY = 'sp_first_touch_v1';
 const FIELDS = ['utm_source', 'utm_medium', 'utm_campaign'];
 const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 
+const SEO_SINGLE_PREFIXES = new Set([
+  'tools',
+  'learn',
+  'features',
+  'poker-rooms',
+  'games',
+  'research',
+  'compare',
+  'rules',
+  'glossary',
+]);
+const SEO_HUB_PREFIXES = new Set(['series', 'venues', 'poker-near-me']);
+const SAFE_SEGMENT_RE = /^[A-Za-z0-9_.-]{1,64}$/;
+const SAFE_FIRST_SEGMENT_RE = /^[A-Za-z0-9_.-]{1,40}$/;
+const GOOGLE_HOST_RE = /^(?:(?:m|encrypted|search)\.)?google\.[a-z]{2,3}(?:\.[a-z]{2})?$/;
+const ANDROID_GOOGLE_APP_RE = /^android-app:\/\/com\.google\.android\.googlequicksearchbox(?:\/|$)/i;
+
+const AI_REFERRER_RULES = [
+  { source: 'chatgpt', hosts: ['chatgpt.com', 'chat.openai.com'] },
+  { source: 'perplexity', hosts: ['perplexity.ai'] },
+  { source: 'claude', hosts: ['claude.ai'] },
+  { source: 'gemini', hosts: ['gemini.google.com'] },
+  { source: 'copilot', hosts: ['copilot.microsoft.com'] },
+];
+
+const SEARCH_REFERRER_RULES = [
+  { source: 'bing', hosts: ['bing.com'] },
+  { source: 'duckduckgo', hosts: ['duckduckgo.com'] },
+  { source: 'yahoo', hosts: ['search.yahoo.com'] },
+  { source: 'brave', hosts: ['search.brave.com'] },
+  { source: 'ecosia', hosts: ['ecosia.org'] },
+];
+
+function hostMatches(host, domain) {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
+function classifyReferrer(referrer) {
+  if (typeof referrer !== 'string') return null;
+  const trimmed = referrer.trim();
+  if (!trimmed) return null;
+
+  if (ANDROID_GOOGLE_APP_RE.test(trimmed)) {
+    return { utm_source: 'google', utm_medium: 'organic' };
+  }
+
+  let host;
+  try {
+    host = new URL(trimmed).hostname.toLowerCase().replace(/^www\./, '');
+  } catch (_) {
+    return null;
+  }
+  if (!host || hostMatches(host, 'smarter.poker')) return null;
+
+  for (const rule of AI_REFERRER_RULES) {
+    if (rule.hosts.some((d) => hostMatches(host, d))) {
+      return { utm_source: rule.source, utm_medium: 'ai_referral' };
+    }
+  }
+
+  if (GOOGLE_HOST_RE.test(host)) {
+    return { utm_source: 'google', utm_medium: 'organic' };
+  }
+
+  for (const rule of SEARCH_REFERRER_RULES) {
+    if (rule.hosts.some((d) => hostMatches(host, d))) {
+      return { utm_source: rule.source, utm_medium: 'organic' };
+    }
+  }
+
+  return null;
+}
+
+function isSafeSegment(seg, re = SAFE_SEGMENT_RE) {
+  return typeof seg === 'string' && seg !== '.' && seg !== '..' && re.test(seg);
+}
+
+function sanitizeLandingPath(pathname) {
+  if (typeof pathname !== 'string') return '/';
+  const rawSegments = pathname.split('/').filter(Boolean);
+  if (rawSegments.length === 0) return '/';
+  const first = rawSegments[0];
+  const isSeoSingle = SEO_SINGLE_PREFIXES.has(first);
+  const isSeoHub = first === 'hub' && rawSegments.length >= 2 && SEO_HUB_PREFIXES.has(rawSegments[1]);
+  if (isSeoSingle || isSeoHub) {
+    const kept = [];
+    for (const seg of rawSegments.slice(0, 3)) {
+      if (!isSafeSegment(seg, SAFE_SEGMENT_RE)) break;
+      kept.push(seg);
+    }
+    return kept.length > 0 ? `/${kept.join('/')}` : '/';
+  }
+  return isSafeSegment(first, SAFE_FIRST_SEGMENT_RE) ? `/${first}` : '/';
+}
+
 export function cleanTag(value) {
   if (typeof value !== 'string') return null;
   const v = value.trim().toLowerCase().slice(0, 64);
   return /^[a-z0-9][a-z0-9._-]*$/.test(v) ? v : null;
 }
 
-/** Parse a location.search string into a first-touch record, or null. */
-export function parseFirstTouch(search, pathname, now = Date.now()) {
+/** Parse a location.search string (or organic/AI referrer) into a first-touch record, or null. */
+export function parseFirstTouch(search, pathname, now = Date.now(), referrer = '') {
   let params;
   try {
     params = new URLSearchParams(search || '');
@@ -38,16 +133,24 @@ export function parseFirstTouch(search, pathname, now = Date.now()) {
     return null;
   }
   const source = cleanTag(params.get('utm_source'));
-  if (!source) return null;
-  const record = { utm_source: source };
-  for (const f of FIELDS.slice(1)) {
-    const v = cleanTag(params.get(f));
-    if (v) record[f] = v;
+  let record;
+  if (source) {
+    record = { utm_source: source };
+    for (const f of FIELDS.slice(1)) {
+      const v = cleanTag(params.get(f));
+      if (v) record[f] = v;
+    }
+  } else {
+    const inferred = classifyReferrer(referrer);
+    if (!inferred) return null;
+    record = { utm_source: inferred.utm_source, utm_medium: inferred.utm_medium };
+    const campaign = cleanTag(params.get('utm_campaign'));
+    if (campaign) record.utm_campaign = campaign;
   }
-  // Only the first path segment: deeper segments can hold an invite code,
-  // a username or a club id, none of which belong in attribution.
-  const first = typeof pathname === 'string' ? pathname.split('/')[1] || '' : '';
-  record.landing_path = /^[A-Za-z0-9_.-]{1,40}$/.test(first) ? `/${first}` : '/';
+  // Keep public SEO slugs (up to 3 clean segments) while restricting private
+  // paths like /hub/club-arena/invite/* to a single segment so invite codes,
+  // usernames and club ids are never stored in attribution.
+  record.landing_path = sanitizeLandingPath(pathname);
   record.captured_at = new Date(now).toISOString();
   return record;
 }
@@ -65,13 +168,13 @@ function readStored(storage, now) {
   }
 }
 
-/** Record the first tagged landing. Never overwrites an unexpired record. */
+/** Record the first tagged or organic/AI landing. Never overwrites an unexpired record. */
 export function recordFirstTouch(win = typeof window !== 'undefined' ? window : undefined, now = Date.now()) {
   try {
     if (!win || !win.localStorage || !win.location) return null;
     const existing = readStored(win.localStorage, now);
     if (existing) return existing;
-    const rec = parseFirstTouch(win.location.search, win.location.pathname, now);
+    const rec = parseFirstTouch(win.location.search, win.location.pathname, now, win.document?.referrer);
     if (rec) win.localStorage.setItem(FIRST_TOUCH_KEY, JSON.stringify(rec));
     return rec;
   } catch (_) {
@@ -83,7 +186,9 @@ export function recordFirstTouch(win = typeof window !== 'undefined' ? window : 
 export function firstTouchMetadata(win = typeof window !== 'undefined' ? window : undefined, now = Date.now()) {
   try {
     if (!win || !win.localStorage) return {};
-    const rec = readStored(win.localStorage, now) || parseFirstTouch(win.location?.search, win.location?.pathname, now);
+    const rec =
+      readStored(win.localStorage, now) ||
+      parseFirstTouch(win.location?.search, win.location?.pathname, now, win.document?.referrer);
     if (!rec) return {};
     const out = {};
     for (const f of FIELDS) if (rec[f]) out[`acquisition_${f}`] = rec[f];

@@ -431,218 +431,220 @@ jobs:
           CHROME_BIN: /usr/bin/google-chrome
         run: node scripts/ci/test-notice-payout-ui.mjs
 
-      - name: Messenger Saved Statements And Received Payments PostgreSQL
-        run: node scripts/ci/test-messenger-accounting-postgres.mjs
-
-      - name: Atomic actual-own-hand publication qualification
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-        run: node scripts/ci/test-grounded-hand-publication.mjs
-
-      - name: Signup Player Number And Downstream PostgreSQL Regression
-        run: node --test __tests__/signup-player-number-postgres.test.mjs
-
-      - name: VIP Gift Friendship Payment And Redemption PostgreSQL 17
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          VIP_GIFT_POSTGRES_ROOT: ${{ runner.temp }}/vip-gifts
-        run: |
-          mkdir -p "$VIP_GIFT_POSTGRES_ROOT"
-          node --test __tests__/vip-gifts-postgres.test.mjs
-
-      - name: Notice Cashout Authorization And Bank Settlement PostgreSQL
-        run: python3 scripts/ci/test-notice-cashout-postgres.py
-
-      - name: Club Notice Board Native Authorization And Pagination
-        run: node --test __tests__/club-notice-board-postgres.test.mjs
-
-      - name: Private Schema Manifest PostgreSQL Contract
-        run: python3 scripts/ci/test-schema-manifest-postgres.py
-
-      - name: Weekly Club Statement Certified Details PostgreSQL
-        run: python3 scripts/ci/test-weekly-club-details-postgres.py
-
-      - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
-        run: npm run audit:training:phase6-db
-
-      - name: Training Favorite Ownership And Constraints
-        run: node --test __tests__/training-game-favorites-postgres.test.mjs
-
-      - name: Notification Delivery Policy And Database Guards
-        env:
-          NOTIFICATION_POLICY_POSTGRES_ROOT: ${{ runner.temp }}
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-        run: node --test __tests__/notification-delivery-policy.test.mjs __tests__/notification-delivery-policy-postgres.test.mjs
-
-      - name: Video Library Channel Follows PostgreSQL 17
-        env:
-          PHASE6_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
-          VIDEO_CHANNEL_PG_WORK_PARENT: ${{ runner.temp }}/video-channel-pg
-          VIDEO_CHANNEL_PG_EVIDENCE_DIR: ${{ runner.temp }}/video-channel-evidence
-        run: node scripts/qualification/videoLibraryChannelFollows.mjs
-
-
-      - name: Video Library Playlist Ordering PostgreSQL 17
-        env:
-          PHASE6_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
-          VIDEO_PLAYLIST_PG_WORK_PARENT: ${{ runner.temp }}/video-playlist-pg
-          VIDEO_PLAYLIST_PG_EVIDENCE_DIR: ${{ runner.temp }}/video-playlist-evidence
-        run: node scripts/qualification/videoLibraryPlaylistReorder.mjs
-
-      - name: Stable Admin Restrictions And Private Exports Native PostgreSQL 17
-        env:
-          PLAYER_CONTROL_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
-          PG_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
-          TMPDIR: ${{ runner.temp }}
-        run: |
-          node --test scripts/qualification/playerControlLockPreflight.test.mjs
-          node scripts/qualify-player-control-pg17.mjs
-          node scripts/qualify-operator-export-artifacts-pg17.mjs
-
-      - name: Messenger Dock Publication PostgreSQL 17
-        env:
-          PG_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
-          TMPDIR: ${{ runner.temp }}
-        run: python3 scripts/ci/test-messenger-dock-publication.py
-
-      - name: Caption Model Budget PostgreSQL 17 Contracts
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          CAPTION_BUDGET_POSTGRES_ROOT: ${{ runner.temp }}/caption-model-budget
-        run: |
-          mkdir -p "$CAPTION_BUDGET_POSTGRES_ROOT"
-          node --test __tests__/caption-model-budget-migration.test.mjs
-
-      - name: Public Profile RPC Privacy PostgreSQL 17 Contract
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          PUBLIC_PROFILE_POSTGRES_ROOT: ${{ runner.temp }}/public-profile-rpc
-        run: |
-          mkdir -p "$PUBLIC_PROFILE_POSTGRES_ROOT"
-          node --test __tests__/public-profile-rpc-migration-postgres.test.mjs
-
-      - name: Home Games Address Visibility PostgreSQL 17 Contract
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          HOME_GAMES_ADDRESS_POSTGRES_ROOT: ${{ runner.temp }}/home-games-address
-        run: |
-          mkdir -p "$HOME_GAMES_ADDRESS_POSTGRES_ROOT"
-          node --test __tests__/home-games-address-visibility-postgres.test.mjs
-
-      - name: Home Games Owner Consistency PostgreSQL 17 Contract
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          HOME_GAMES_OWNER_POSTGRES_ROOT: ${{ runner.temp }}/home-games-owner
-        run: |
-          mkdir -p "$HOME_GAMES_OWNER_POSTGRES_ROOT"
-          node --test __tests__/home-games-owner-consistency-postgres.test.mjs
-
-      - name: Poker Near Me Contributions PostgreSQL 17 Contract
-        env:
-          PNM_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
-          TMPDIR: ${{ runner.temp }}
-        run: node --test __tests__/pnm-contributions-postgres.test.mjs
-
-      - name: Poker Near Me Player Planning PostgreSQL 17 Contract
-        env:
-          PNM_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
-          TMPDIR: ${{ runner.temp }}
-        run: node --test __tests__/pnm-player-planning-postgres.test.mjs
-
-      - name: Social Horse Real Name PostgreSQL 17 Contract
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          HORSE_NAME_POSTGRES_ROOT: ${{ runner.temp }}/social-horse-names
-        run: |
-          mkdir -p "$HORSE_NAME_POSTGRES_ROOT"
-          node --test __tests__/social-horse-real-name-postgres.test.mjs
-
-      - name: Horse News Atomic Publisher PostgreSQL 17 Contract
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          HORSE_NEWS_POSTGRES_ROOT: ${{ runner.temp }}/horse-news-atomic
-        run: |
-          mkdir -p "$HORSE_NEWS_POSTGRES_ROOT"
-          node --test __tests__/horse-news-atomic-publisher-postgres.test.mjs
-
-      - name: Native Video Source Revocation PostgreSQL 17 Contract
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          NATIVE_REVOCATION_POSTGRES_ROOT: ${{ runner.temp }}/native-video-revocation
-        run: |
-          mkdir -p "$NATIVE_REVOCATION_POSTGRES_ROOT"
-          node --test __tests__/native-video-source-revocation-postgres.test.mjs
-
-      # Reuse the already-resolved PG17 binaries. Each authority gate owns one
-      # disposable local cluster, removes it on every exit, and applies the
-      # shipped migration over its exact predecessor fixture.
-      - name: "Trivia Phase 11 Payout Control PostgreSQL 17 Authority"
-        run: bash scripts/trivia/p11-payout-control-replica-tests/run.sh
-
-      - name: "Trivia Phase 9 Solo Authority PostgreSQL 17 Cutover"
-        run: bash scripts/trivia/phase9-solo-authority-replica-tests/run.sh
-
-      - name: Training Phase 6 Atomic Management PostgreSQL Rollback Authority
-        run: node scripts/qualify-phase6-atomic-management-pg17.mjs
-
-      # Reuse the already-resolved PG17 binaries. The gate owns one disposable
-      # local cluster/database, removes it on every exit, and applies the real
-      # Phase 12 cutover migration over its minimal prerequisite fixture.
-      - name: "Trivia Phase 12 PostgreSQL 17 Cutover Authority"
-        run: bash scripts/trivia/p12-cutover-replica-tests/run.sh
-
-      - name: "Trivia Phase 11 Alert And Kill-Switch PostgreSQL 17 Drills"
-        env:
-          P11_ALERT_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
-          P11_ALERT_TMP_PARENT: ${{ runner.temp }}
-        run: bash scripts/trivia/p11-alert-killswitch-replica-tests/run.sh
-
-      - name: Engine Alert Receipt PostgreSQL Contracts
-        run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
-
       - name: Article Preview Publisher Image Contracts
         run: node --test __tests__/link-preview-poker-news-images.test.mjs
 
       - name: Social Articles And Immersive Reel Playback
         run: node --test __tests__/social-feed-normal-ui.test.mjs __tests__/social-feed-normal-live-safety.test.mjs __tests__/reels-carousel-console.test.mjs __tests__/reels-embedded-console-visual.test.mjs __tests__/reels-immersive-playback.test.mjs __tests__/reels-native-visibility.test.mjs __tests__/reels-prefetch-boundary.test.mjs __tests__/reel-mutation-guard.test.mjs __tests__/reel-comment-attempts.test.mjs __tests__/reel-comment-handlers.test.mjs __tests__/reel-comments-reader.test.mjs __tests__/reel-comment-deletion.test.mjs __tests__/reel-comment-edit.test.mjs __tests__/reels-enhancements-live-safety.test.mjs __tests__/reels-enhancement-delivery-workflows.test.mjs __tests__/openclaw-component-diff.test.mjs __tests__/native-reels-worker-authority.test.mjs __tests__/reel-reaction-mutation.test.mjs __tests__/reels-atomic-viewer-interactions.test.mjs __tests__/reels-hydration-order.test.mjs __tests__/reels-enhancement-state.test.mjs __tests__/reels-enhancements-hook.test.mjs __tests__/reels-viewer-relevance.test.mjs __tests__/reels-owner-private-detail.test.mjs __tests__/reels-measured-delivery-events.test.mjs __tests__/reels-youtube-captions.test.mjs __tests__/reels-native-captions.test.mjs __tests__/reels-native-captions-api.test.mjs __tests__/reels-native-caption-control.test.mjs __tests__/reels-interaction-live-safety.test.mjs __tests__/reels-qa-fixture-setup.test.mjs __tests__/native-reels-worker-check.test.mjs
 
-      - name: Reels Native Queue Captions Reactions And Measurements PostgreSQL Authority
-        env:
-          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-          REELS_METRICS_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
-          REELS_CAPTIONS_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
-          REELS_STORY_ISOLATION_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
-          REELS_REWARD_RETURN_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
-        run: |
-          mkdir -p "$REELS_METRICS_POSTGRES_ROOT"
-          node --test __tests__/reels-measured-delivery-postgres.test.mjs __tests__/native-upload-queue-authority.test.mjs __tests__/reels-native-captions-postgres.test.mjs __tests__/reel-reaction-intent-postgres.test.mjs __tests__/native-reels-worker-publication-postgres.test.mjs __tests__/private-native-reels-story-isolation-postgres.test.mjs __tests__/reels-source-post-reward-return-postgres.test.mjs
-
-      - name: Historical User Reels Rights PostgreSQL Contracts
-        run: npm run audit:video-reels:post-rights-db
-
-      - name: One Reaction Invokes One Notification Handler
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
-
-      - name: Messenger Sends Preserve Request Identity
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-send-postgres.py
-
-      - name: Messenger Account Continuity And History Navigation
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-continuity-postgres.py
-
-      - name: Messenger Deletion Persists Per Account
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-deletion-postgres.py
-
-      - name: Messenger Reads Stop At The Displayed Message
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-bounded-read-postgres.py
-
-      - name: Club Messenger Welcomes Follow The Committed Downline
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-club-messenger-welcome-postgres.py
-
-      - name: Owner Operational Notification PostgreSQL Contracts
+      # Run all 39 isolated disposable PostgreSQL 17 suites with bounded
+      # concurrency (4 workers) so Pre-Deploy Safety Checks finishes in ~2-3m
+      # instead of ~8m45s sequentially. Every suite keeps its own isolated
+      # scratch dir, full stdout/stderr capture, and non-zero failure propagation.
+      # Heaviest suites are listed first to minimize parallel tail latency.
+      - name: Run PostgreSQL 17 Qualification Suites In Parallel
         id: owner_notification_postgres
         run: |
-          python3 -m unittest discover -s scripts/ci -p test_owner_operational_notification_postgres.py
-          PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-owner-operational-notification-postgres.py
+          node scripts/ci/run-pg17-suites-parallel.mjs --concurrency 4 <<'PG17_SUITES'
+          - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
+            run: npm run audit:training:phase6-db
+
+          - name: Reels Native Queue Captions Reactions And Measurements PostgreSQL Authority
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              REELS_METRICS_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
+              REELS_CAPTIONS_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
+              REELS_STORY_ISOLATION_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
+              REELS_REWARD_RETURN_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
+            run: |
+              mkdir -p "$REELS_METRICS_POSTGRES_ROOT"
+              node --test __tests__/reels-measured-delivery-postgres.test.mjs __tests__/native-upload-queue-authority.test.mjs __tests__/reels-native-captions-postgres.test.mjs __tests__/reel-reaction-intent-postgres.test.mjs __tests__/native-reels-worker-publication-postgres.test.mjs __tests__/private-native-reels-story-isolation-postgres.test.mjs __tests__/reels-source-post-reward-return-postgres.test.mjs
+
+          - name: "Trivia Phase 12 PostgreSQL 17 Cutover Authority"
+            run: bash scripts/trivia/p12-cutover-replica-tests/run.sh
+
+          - name: Stable Admin Restrictions And Private Exports Native PostgreSQL 17
+            env:
+              PLAYER_CONTROL_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+              PG_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+              TMPDIR: ${{ runner.temp }}
+            run: |
+              node --test scripts/qualification/playerControlLockPreflight.test.mjs
+              node scripts/qualify-player-control-pg17.mjs
+              node scripts/qualify-operator-export-artifacts-pg17.mjs
+
+          - name: Messenger Saved Statements And Received Payments PostgreSQL
+            run: node scripts/ci/test-messenger-accounting-postgres.mjs
+
+          - name: Atomic actual-own-hand publication qualification
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+            run: node scripts/ci/test-grounded-hand-publication.mjs
+
+          - name: Signup Player Number And Downstream PostgreSQL Regression
+            run: node --test __tests__/signup-player-number-postgres.test.mjs
+
+          - name: VIP Gift Friendship Payment And Redemption PostgreSQL 17
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              VIP_GIFT_POSTGRES_ROOT: ${{ runner.temp }}/vip-gifts
+            run: |
+              mkdir -p "$VIP_GIFT_POSTGRES_ROOT"
+              node --test __tests__/vip-gifts-postgres.test.mjs
+
+          - name: Notice Cashout Authorization And Bank Settlement PostgreSQL
+            run: python3 scripts/ci/test-notice-cashout-postgres.py
+
+          - name: Club Notice Board Native Authorization And Pagination
+            run: node --test __tests__/club-notice-board-postgres.test.mjs
+
+          - name: Private Schema Manifest PostgreSQL Contract
+            run: python3 scripts/ci/test-schema-manifest-postgres.py
+
+          - name: Weekly Club Statement Certified Details PostgreSQL
+            run: python3 scripts/ci/test-weekly-club-details-postgres.py
+
+          - name: Training Favorite Ownership And Constraints
+            run: node --test __tests__/training-game-favorites-postgres.test.mjs
+
+          - name: Notification Delivery Policy And Database Guards
+            env:
+              NOTIFICATION_POLICY_POSTGRES_ROOT: ${{ runner.temp }}
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+            run: node --test __tests__/notification-delivery-policy.test.mjs __tests__/notification-delivery-policy-postgres.test.mjs
+
+          - name: Video Library Channel Follows PostgreSQL 17
+            env:
+              PHASE6_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+              VIDEO_CHANNEL_PG_WORK_PARENT: ${{ runner.temp }}/video-channel-pg
+              VIDEO_CHANNEL_PG_EVIDENCE_DIR: ${{ runner.temp }}/video-channel-evidence
+            run: node scripts/qualification/videoLibraryChannelFollows.mjs
+
+          - name: Video Library Playlist Ordering PostgreSQL 17
+            env:
+              PHASE6_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+              VIDEO_PLAYLIST_PG_WORK_PARENT: ${{ runner.temp }}/video-playlist-pg
+              VIDEO_PLAYLIST_PG_EVIDENCE_DIR: ${{ runner.temp }}/video-playlist-evidence
+            run: node scripts/qualification/videoLibraryPlaylistReorder.mjs
+
+          - name: Messenger Dock Publication PostgreSQL 17
+            env:
+              PG_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+              TMPDIR: ${{ runner.temp }}
+            run: python3 scripts/ci/test-messenger-dock-publication.py
+
+          - name: Caption Model Budget PostgreSQL 17 Contracts
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              CAPTION_BUDGET_POSTGRES_ROOT: ${{ runner.temp }}/caption-model-budget
+            run: |
+              mkdir -p "$CAPTION_BUDGET_POSTGRES_ROOT"
+              node --test __tests__/caption-model-budget-migration.test.mjs
+
+          - name: Public Profile RPC Privacy PostgreSQL 17 Contract
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              PUBLIC_PROFILE_POSTGRES_ROOT: ${{ runner.temp }}/public-profile-rpc
+            run: |
+              mkdir -p "$PUBLIC_PROFILE_POSTGRES_ROOT"
+              node --test __tests__/public-profile-rpc-migration-postgres.test.mjs
+
+          - name: Home Games Address Visibility PostgreSQL 17 Contract
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              HOME_GAMES_ADDRESS_POSTGRES_ROOT: ${{ runner.temp }}/home-games-address
+            run: |
+              mkdir -p "$HOME_GAMES_ADDRESS_POSTGRES_ROOT"
+              node --test __tests__/home-games-address-visibility-postgres.test.mjs
+
+          - name: Home Games Owner Consistency PostgreSQL 17 Contract
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              HOME_GAMES_OWNER_POSTGRES_ROOT: ${{ runner.temp }}/home-games-owner
+            run: |
+              mkdir -p "$HOME_GAMES_OWNER_POSTGRES_ROOT"
+              node --test __tests__/home-games-owner-consistency-postgres.test.mjs
+
+          - name: Poker Near Me Contributions PostgreSQL 17 Contract
+            env:
+              PNM_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+              TMPDIR: ${{ runner.temp }}
+            run: node --test __tests__/pnm-contributions-postgres.test.mjs
+
+          - name: Poker Near Me Player Planning PostgreSQL 17 Contract
+            env:
+              PNM_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+              TMPDIR: ${{ runner.temp }}
+            run: node --test __tests__/pnm-player-planning-postgres.test.mjs
+
+          - name: Social Horse Real Name PostgreSQL 17 Contract
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              HORSE_NAME_POSTGRES_ROOT: ${{ runner.temp }}/social-horse-names
+            run: |
+              mkdir -p "$HORSE_NAME_POSTGRES_ROOT"
+              node --test __tests__/social-horse-real-name-postgres.test.mjs
+
+          - name: Horse News Atomic Publisher PostgreSQL 17 Contract
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              HORSE_NEWS_POSTGRES_ROOT: ${{ runner.temp }}/horse-news-atomic
+            run: |
+              mkdir -p "$HORSE_NEWS_POSTGRES_ROOT"
+              node --test __tests__/horse-news-atomic-publisher-postgres.test.mjs
+
+          - name: Native Video Source Revocation PostgreSQL 17 Contract
+            env:
+              PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+              NATIVE_REVOCATION_POSTGRES_ROOT: ${{ runner.temp }}/native-video-revocation
+            run: |
+              mkdir -p "$NATIVE_REVOCATION_POSTGRES_ROOT"
+              node --test __tests__/native-video-source-revocation-postgres.test.mjs
+
+          - name: "Trivia Phase 11 Payout Control PostgreSQL 17 Authority"
+            run: bash scripts/trivia/p11-payout-control-replica-tests/run.sh
+
+          - name: "Trivia Phase 9 Solo Authority PostgreSQL 17 Cutover"
+            run: bash scripts/trivia/phase9-solo-authority-replica-tests/run.sh
+
+          - name: Training Phase 6 Atomic Management PostgreSQL Rollback Authority
+            run: node scripts/qualify-phase6-atomic-management-pg17.mjs
+
+          - name: "Trivia Phase 11 Alert And Kill-Switch PostgreSQL 17 Drills"
+            env:
+              P11_ALERT_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+              P11_ALERT_TMP_PARENT: ${{ runner.temp }}
+            run: bash scripts/trivia/p11-alert-killswitch-replica-tests/run.sh
+
+          - name: Engine Alert Receipt PostgreSQL Contracts
+            run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
+
+          - name: Historical User Reels Rights PostgreSQL Contracts
+            run: npm run audit:video-reels:post-rights-db
+
+          - name: One Reaction Invokes One Notification Handler
+            run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+
+          - name: Messenger Sends Preserve Request Identity
+            run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-send-postgres.py
+
+          - name: Messenger Account Continuity And History Navigation
+            run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-continuity-postgres.py
+
+          - name: Messenger Deletion Persists Per Account
+            run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-deletion-postgres.py
+
+          - name: Messenger Reads Stop At The Displayed Message
+            run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-bounded-read-postgres.py
+
+          - name: Club Messenger Welcomes Follow The Committed Downline
+            run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-club-messenger-welcome-postgres.py
+
+          - name: Owner Operational Notification PostgreSQL Contracts
+            run: |
+              python3 -m unittest discover -s scripts/ci -p test_owner_operational_notification_postgres.py
+              PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-owner-operational-notification-postgres.py
+          PG17_SUITES
 
       - name: Retain Owner Notification PostgreSQL Evidence
         if: always() && steps.owner_notification_postgres.outcome != 'skipped'
@@ -1892,6 +1894,27 @@ jobs:
           echo "✓ Cron governance check passed"
 
 
+      # CHECK 28b (strict:false parallel-PR race guard): Re-fetch the latest
+      # base branch at the very end of Pre-Deploy Safety Checks (milliseconds
+      # before required-check completion can trigger auto-merge) and re-verify
+      # `git merge-tree --write-tree` against the PR head SHA so a concurrent
+      # merge to main during CI execution cannot combine into a SyntaxError.
+      - name: "CHECK 28b: Final pre-merge simulated merge-tree parity"
+        env:
+          BASE_BRANCH: ${{ github.base_ref || 'main' }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid PR_HEAD_SHA: $PR_HEAD_SHA"
+            exit 1
+          fi
+          git fetch --no-tags origin "refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}" "$PR_HEAD_SHA"
+          node scripts/ci/check-module-parse-and-bindings.mjs \
+            --merge-only \
+            --merge-against "origin/${BASE_BRANCH}" \
+            --head FETCH_HEAD
+
       - name: Report Check Duration
         if: always()
         run: |
@@ -2044,6 +2067,70 @@ jobs:
           else
             echo "✓ TypeScript compilation passed — zero errors"
           fi
+
+  # ═══════════════════════════════════════════════════════════════════
+  # VERCEL BUILD PARITY — Cached `npm run build:vercel` pre-merge gate
+  #
+  # Runs the exact `vercel.json` buildCommand (`npm run build:vercel`:
+  # pre-build tests under NODE_ENV=production, copy-reader-assets,
+  # prune-platform-bins, patch-next, webpack compilation at 4096 MB heap,
+  # and /horses bundle-budget check) on every PR before merge so bundling,
+  # PostCSS, SSG prerender, and OOM regressions are caught pre-merge.
+  # Restores node_modules read-only (actions/cache/restore@v4) so
+  # prune-platform-bins.sh and patch-next.js never mutate the shared
+  # nm-wh-noscripts cache populated on main.
+  # ═══════════════════════════════════════════════════════════════════
+  vercel-build-parity:
+    name: Vercel Build Parity (webpack)
+    if: github.event_name == 'pull_request'
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+
+      - name: Restore .next/cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-wh-parity-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            next-wh-parity-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            next-wh-parity-${{ runner.os }}-
+
+      - name: Run Vercel webpack build parity
+        env:
+          NODE_ENV: production
+          PWA_ENABLED: '1'
+          SMARTER_COMPRESS_LOCAL_BUILD_CACHE: '1'
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+        run: npm run build:vercel
 
   # ═══════════════════════════════════════════════════════════════════
   # VERCEL DEPLOY RETRY — Automatically re-triggers any Vercel deploy

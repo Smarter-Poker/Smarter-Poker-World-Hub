@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -295,7 +296,7 @@ export default function BountyCalculatorPage({
             <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.9, color: '#cbd5e1', fontSize: 15 }}>
               <li><strong>Bounty Chip Equivalent:</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>+{metrics.bountyChipEquivalent} Chips</span> ({metrics.bountyMultiplier}x Starting Bounty)</li>
               <li><strong>Bounty-Adjusted Required Equity:</strong> <span style={{ color: '#34d399', fontWeight: 700 }}>{metrics.bountyAdjustedReqEquity}%</span> (When Covering Opponent)</li>
-              <li><strong>Standard Non-Bounty Equity Needed:</strong> <span style={{ color: '#f59e0b', fontWeight: 700 }}>{metrics.standardReqEquity}%</span> (If Covered By Opponent)</li>
+              <li><strong>Standard Non-Bounty Equity Needed:</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>{metrics.standardReqEquity}%</span> (If Covered By Opponent)</li>
               <li><strong>Bounty Equity Discount:</strong> <span style={{ color: '#34d399', fontWeight: 700 }}>-{metrics.equityDiscount}%</span> Less Equity Required To Call</li>
               <li><strong>Effective Bounty Pot Odds Ratio:</strong> {metrics.effectivePotOddsRatio} : 1</li>
             </ul>
@@ -328,7 +329,7 @@ export default function BountyCalculatorPage({
                     <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.bountyRatio}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.bountyPowerPct}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.chipValue20k}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{row.equityDiscount}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.equityDiscount}</td>
                   </tr>
                 ))}
               </tbody>
@@ -361,7 +362,7 @@ export default function BountyCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{m.scenario}</td>
                     <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{m.avgEnvelope}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{m.chipEquivPct}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{m.callAdjustment}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{m.callAdjustment}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{m.strategyNote}</td>
                   </tr>
                 ))}
@@ -396,6 +397,17 @@ export default function BountyCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save PKO & Mystery Bounty Spots & Drill ICM Free"
+          description="Bookmark Bounty Equity Adjustments, Track MTT Results, And Practice 107 Free GTO Training Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/bounty-calculator&src=bounty-calc"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/bounty-calculator"
+        />
 
         <FaqSection faqs={BOUNTY_CALCULATOR_FAQS} />
 

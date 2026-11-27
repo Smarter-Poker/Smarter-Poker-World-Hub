@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -265,7 +266,7 @@ export default function GeometricBetCalculatorPage() {
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: '#f2b84b',
+              color: '#38bdf8',
               background: '#101a20',
               border: '1px solid #334155',
               borderRadius: '2px',
@@ -370,7 +371,7 @@ export default function GeometricBetCalculatorPage() {
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 15,
                     fontWeight: 700,
                   }}
@@ -408,11 +409,11 @@ export default function GeometricBetCalculatorPage() {
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Vs Standard 33% / 75% / Jam Line
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 River Jam = {metrics.stdRiverPct}% Pot
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -443,7 +444,7 @@ export default function GeometricBetCalculatorPage() {
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{r.potBefore}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{r.betPct}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 800 }}>{r.betAmt}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{r.potAfterCall}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{r.potAfterCall}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{r.remainingStack}</td>
                   </tr>
                 ))}
@@ -451,6 +452,17 @@ export default function GeometricBetCalculatorPage() {
             </table>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Geometric Bet Trees & Drill Turn & River GTO Free"
+          description="Bookmark 2e And 3e Overbet Sizing Plans And Practice Multi-Street Sizing In 107 Free GTO Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/geometric-bet-calculator&src=geo-bet"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/geometric-bet-calculator"
+        />
 
         <FaqSection faqs={GEOMETRIC_FAQS} />
 

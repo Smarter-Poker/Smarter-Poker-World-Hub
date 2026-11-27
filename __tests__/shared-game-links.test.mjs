@@ -451,14 +451,30 @@ test('next.config.js, vercel.json, and middleware.ts do not intercept /g/*, /l/*
     assert.doesNotMatch(nextCfg, /source:\s*['"]\/api\/og\/club-game/);
     assert.doesNotMatch(vercelCfg, /"source":\s*"\/(?:g|l)(?:\/|:)/);
     assert.doesNotMatch(vercelCfg, /"source":\s*"\/api\/og\/club-game/);
-    // Public OG images may appear in AUTH_ALWAYS_ALLOW. Check the actual
-    // matcher and auth-prefix scopes, not an unrelated allowlist or comment.
-    const configSource = middleware.match(/export const config\s*=\s*(\{[\s\S]*?\});\s*$/);
-    const authSource = middleware.match(/const requiresAuthPrefix\s*=\s*(\[[\s\S]*?\]);/);
-    assert.ok(configSource, 'middleware config must be inspected');
-    assert.ok(authSource, 'middleware auth prefixes must be inspected');
-    const config = runInNewContext(`(${configSource[1]})`, {}, { timeout: 1000 });
-    const authPrefixes = runInNewContext(authSource[1], {}, { timeout: 1000 });
+    // /api/og/club-game must not be in middleware's auth-required, destructive,
+    // tombstoned, or explicit API matcher lists. Presence in AUTH_ALWAYS_ALLOW
+    // (geo-block bypass for social preview crawlers) is expected and safe.
+    const extractBlock = (label, pattern) => {
+        const match = middleware.match(pattern);
+        assert.ok(match, `Expected middleware.ts to define ${label}`);
+        return match[1];
+    };
+    const authAlwaysAllowBlock = extractBlock('AUTH_ALWAYS_ALLOW', /const AUTH_ALWAYS_ALLOW\s*=\s*(\[[\s\S]*?\]);/);
+    const destructiveBlock = extractBlock('DESTRUCTIVE_POKER_ROUTES', /const DESTRUCTIVE_POKER_ROUTES\s*=\s*(\[[\s\S]*?\]);/);
+    const requiresAuthBlock = extractBlock('requiresAuthPrefix', /const requiresAuthPrefix\s*=\s*(\[[\s\S]*?\]);/);
+    const tombstonedBlock = extractBlock('TOMBSTONED_PATHS', /const TOMBSTONED_PATHS\s*=\s*new Set(?:<[^>]+>)?\((\[[\s\S]*?\])\);/);
+    const matcherBlock = extractBlock('config.matcher', /export const config\s*=\s*(\{[\s\S]*?matcher:\s*\[[\s\S]*?\],[\s\S]*?\});\s*$/);
+
+    assert.match(authAlwaysAllowBlock, /['"]\/api\/og\/['"]/, '/api/og/ must stay in AUTH_ALWAYS_ALLOW so preview crawlers are never geo-blocked');
+    assert.doesNotMatch(destructiveBlock, /\/api\/og/);
+    assert.doesNotMatch(requiresAuthBlock, /\/api\/og/);
+    assert.doesNotMatch(tombstonedBlock, /\/api\/og/);
+    assert.doesNotMatch(matcherBlock, /\/api\/og/);
+
+    // Evaluate the same extracted literals so a broader API matcher or auth
+    // prefix cannot silently catch OG paths without spelling out /api/og.
+    const config = runInNewContext(`(${matcherBlock})`, {}, { timeout: 1000 });
+    const authPrefixes = runInNewContext(requiresAuthBlock, {}, { timeout: 1000 });
     assert.ok(Array.isArray(config.matcher) && config.matcher.length > 0);
     assert.ok(Array.isArray(authPrefixes) && authPrefixes.length > 0);
     const matchers = config.matcher.map(source => pathPatterns.pathToRegexp(source));

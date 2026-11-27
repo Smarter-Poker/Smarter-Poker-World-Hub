@@ -247,3 +247,143 @@ test('every pre-build test in scripts["build:vercel"] also gates PRs in Pre-Depl
       missingInCi.map((c) => `  - ${c}`).join('\n'),
   );
 });
+
+test('CLI --merge-only catches cross-PR duplicate import without checking out PR code and fails closed on missing refs', (t) => {
+  const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wh-merge-only-guard-'));
+  t.after(() => fs.rmSync(repoDir, { recursive: true, force: true }));
+
+  const git = (...args) =>
+    execFileSync('git', args, { cwd: repoDir, env: cleanGitEnv, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+
+  const writeAndCommit = (files, msg) => {
+    for (const [rel, content] of Object.entries(files)) {
+      const abs = path.join(repoDir, rel);
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, content, 'utf8');
+      git('add', '--', rel);
+    }
+    git('commit', '-m', msg);
+  };
+
+  git('init', '-b', 'main');
+  git('config', 'user.name', 'Test');
+  git('config', 'user.email', 'test@example.invalid');
+
+  const pad = Array.from({ length: 30 }, (_, i) => `const filler${i} = ${i};`).join('\n');
+  writeAndCommit(
+    {
+      'src/lib/a.mjs': 'export const sharedFn = () => 1;\n',
+      'src/lib/b.mjs': 'export const sharedFn = () => 2;\nexport const extra = 3;\n',
+      'pages/store.js': `import React from 'react';\n${pad}\nexport default function Store() { return <div />; }\n`,
+    },
+    'base',
+  );
+
+  // Clean up-to-date PR branch (no syntax errors)
+  git('checkout', '-b', 'pr-clean');
+  writeAndCommit(
+    {
+      'pages/clean.js': "import { extra } from '../src/lib/b.mjs';\nexport default function Clean() { return <div>{extra}</div>; }\n",
+    },
+    'pr-clean',
+  );
+  const cleanSha = git('rev-parse', 'HEAD');
+
+  // PR B branches off base and adds import near bottom
+  git('checkout', 'main');
+  git('checkout', '-b', 'pr-b');
+  writeAndCommit(
+    {
+      'pages/store.js': `import React from 'react';\n${pad}\nimport { sharedFn, extra } from '../src/lib/b.mjs';\nconst useB = () => [sharedFn, extra];\nexport default function Store() { return <div />; }\n`,
+    },
+    'pr-b',
+  );
+  const prBSha = git('rev-parse', 'HEAD');
+
+  // PR A lands on main adding import at line 1
+  git('checkout', 'main');
+  writeAndCommit(
+    {
+      'pages/store.js': `import { sharedFn } from '../src/lib/a.mjs';\nimport React from 'react';\nconst useA = () => sharedFn;\n${pad}\nexport default function Store() { return <div />; }\n`,
+    },
+    'pr-a',
+  );
+
+  const scriptPath = path.join(ROOT, 'scripts/ci/check-module-parse-and-bindings.mjs');
+  const runCli = (args) => {
+    try {
+      const stdout = execFileSync(process.execPath, [scriptPath, '--repo', repoDir, ...args], {
+        env: cleanGitEnv,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      return { status: 0, stdout, stderr: '' };
+    } catch (err) {
+      return {
+        status: typeof err.status === 'number' ? err.status : 1,
+        stdout: err.stdout ? String(err.stdout) : '',
+        stderr: err.stderr ? String(err.stderr) : '',
+      };
+    }
+  };
+
+  // Working tree stays on main the entire time (simulating pull_request_target).
+  assert.equal(git('rev-parse', '--abbrev-ref', 'HEAD'), 'main');
+
+  // 1. Clean PR passes --merge-only.
+  const okRes = runCli(['--merge-only', '--merge-against', 'main', '--head', cleanSha]);
+  assert.equal(okRes.status, 0, okRes.stderr);
+
+  // 2. Colliding PR B fails --merge-only against advanced main!
+  const failRes = runCli(['--merge-only', '--merge-against', 'main', '--head', prBSha]);
+  assert.equal(failRes.status, 1, 'must fail when simulated merge onto main creates duplicate import');
+  assert.match(failRes.stderr, /sharedFn.*already been declared/i);
+
+  // 3. Missing ref fails closed (never silently skips in --merge-only mode).
+  const missingRefRes = runCli(['--merge-only', '--merge-against', 'origin/does-not-exist', '--head', prBSha]);
+  assert.equal(missingRefRes.status, 1, '--merge-only must fail closed when base ref is missing');
+  assert.match(missingRefRes.stderr, /could not run/i);
+
+  // Working tree remained untouched on main.
+  assert.equal(git('rev-parse', '--abbrev-ref', 'HEAD'), 'main');
+});
+
+test('strict:false race closure: agent-autopilot.yml validates read-only merge-tree BEFORE minting App token, and CHECK 28b re-validates at end of Pre-Deploy Safety Checks', () => {
+  const autopilotYml = fs.readFileSync(path.join(ROOT, '.github/workflows/agent-autopilot.yml'), 'utf8');
+  const ciYml = fs.readFileSync(path.join(ROOT, '.github/workflows/build-safety-gate.yml'), 'utf8');
+
+  // Security boundary: agent-autopilot.yml ONLY checks out default_branch, never PR code.
+  assert.match(autopilotYml, /ref:\s*\$\{\{\s*github\.event\.repository\.default_branch\s*\}\}/);
+  assert.match(autopilotYml, /fetch-depth:\s*0/);
+  assert.doesNotMatch(autopilotYml, /ref:\s*\$\{\{\s*github\.event\.pull_request\.head/);
+
+  // Simulated merge-tree check must run BEFORE actions/create-github-app-token.
+  const mergeCheckIdx = autopilotYml.indexOf('node scripts/ci/check-module-parse-and-bindings.mjs');
+  const appTokenIdx = autopilotYml.indexOf('uses: actions/create-github-app-token');
+  assert.ok(mergeCheckIdx > 0 && appTokenIdx > 0, 'both merge-tree gate and app token step must exist');
+  assert.ok(
+    mergeCheckIdx < appTokenIdx,
+    'read-only merge-tree check must execute BEFORE minting the GitHub App installation token',
+  );
+  assert.match(autopilotYml, /--merge-only/);
+  assert.match(autopilotYml, /\^\[0-9a-f\]\{40\}\$/);
+
+  // Cache-miss auth hardening: on a lockfile bump miss, npm ci must authenticate
+  // to GitHub Packages and never mutate the shared nm-wh-noscripts cache.
+  assert.match(autopilotYml, /packages:\s*read/);
+  assert.match(autopilotYml, /registry-url:\s*'https:\/\/npm\.pkg\.github\.com'/);
+  assert.match(autopilotYml, /scope:\s*'@smarter-poker'/);
+  assert.match(autopilotYml, /uses:\s*actions\/cache\/restore@v4/);
+  assert.match(autopilotYml, /NODE_AUTH_TOKEN:\s*\$\{\{\s*secrets\.NPM_AUTH_TOKEN\s*\}\}/);
+  assert.match(autopilotYml, /NPM_TOKEN:\s*\$\{\{\s*secrets\.NPM_AUTH_TOKEN\s*\}\}/);
+
+  // Pre-Deploy Safety Checks must re-fetch origin/$BASE_BRANCH and re-run --merge-only right before finishing.
+  const safetyStart = ciYml.indexOf('\n  safety-checks:');
+  const notifyStart = ciYml.indexOf('\n  notify-failure:', safetyStart);
+  const safetyJob = ciYml.slice(safetyStart, notifyStart);
+  const check28bIdx = safetyJob.indexOf('CHECK 28b: Final pre-merge simulated merge-tree parity');
+  const pg17Idx = safetyJob.indexOf('Run PostgreSQL 17 Qualification Suites In Parallel');
+  assert.ok(check28bIdx > pg17Idx && pg17Idx > 0, 'CHECK 28b must run at the end of Pre-Deploy Safety Checks after PG17 suites');
+  assert.match(safetyJob.slice(check28bIdx), /git fetch --no-tags origin/);
+  assert.match(safetyJob.slice(check28bIdx), /--merge-only/);
+});

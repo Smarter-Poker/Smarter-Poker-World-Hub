@@ -58,8 +58,9 @@ import { vipStripePriceMismatch } from '../../../src/lib/store/vipStripePrice.mj
 import {
     VIP_INTRO_PLAN_SWITCH_LOCKED_MESSAGE,
     isVipIntroSubscription,
-    vipIntroPlanSwitchDecision,
+    vipFullPriceRenewalDecision,
 } from '../../../src/lib/store/vipIntroOffer.mjs';
+import { isVipComebackSubscription } from '../../../src/lib/store/vipComebackOffer.mjs';
 const {
     inspectStripeRuntime,
     isProductionRuntime,
@@ -362,7 +363,9 @@ export default async function handler(req, res) {
         //        proration would credit "unused time" at the $20 price for a
         //        month that cost $1 (see vipIntroOffer.mjs). Read from Stripe,
         //        never inferred; an unreadable history is unknown, not open.
-        if (isVipIntroSubscription(live)) {
+        //        A comeback-price subscription ($10 first month) is the same
+        //        case and follows the same rule.
+        if (isVipIntroSubscription(live) || isVipComebackSubscription(live)) {
             let paidInvoices = null;
             try {
                 paidInvoices = await stripe.invoices.list({
@@ -374,7 +377,7 @@ export default async function handler(req, res) {
                 console.warn('[switch-vip-plan] invoice history read failed:', invoiceError?.message || invoiceError);
                 paidInvoices = null;
             }
-            const switchDecision = vipIntroPlanSwitchDecision(live, paidInvoices);
+            const switchDecision = vipFullPriceRenewalDecision(live, paidInvoices);
             if (switchDecision === 'locked') {
                 return res.status(409).json({
                     success: false,

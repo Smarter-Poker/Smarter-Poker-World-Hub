@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -258,7 +259,7 @@ export default function SatelliteCalculatorPage({
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -339,7 +340,7 @@ export default function SatelliteCalculatorPage({
               { label: 'Total Players Registered', val: totalPlayers, set: setTotalPlayers, step: 10, color: '#f8fafc' },
               { label: 'Starting Chip Stack', val: startingStack, set: setStartingStack, step: 1000, color: '#f8fafc' },
               { label: 'Identical Seats Awarded', val: seatsAwarded, set: setSeatsAwarded, step: 1, color: '#25c8ff' },
-              { label: 'Seat Package Value ($)', val: seatValue, set: setSeatValue, step: 500, color: '#f2b84b' },
+              { label: 'Seat Package Value ($)', val: seatValue, set: setSeatValue, step: 500, color: '#38bdf8' },
               { label: 'Players Remaining Now', val: playersRemaining, set: setPlayersRemaining, step: 1, color: '#f87171' },
               { label: 'Hero Current Chip Stack', val: heroStack, set: setHeroStack, step: 5000, color: '#34d399' },
               { label: 'Current Big Blind Size', val: bigBlind, set: setBigBlind, step: 500, color: '#f8fafc' },
@@ -396,11 +397,11 @@ export default function SatelliteCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Satellite Bubble Factor
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.bubbleFactor}x Factor
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -422,7 +423,7 @@ export default function SatelliteCalculatorPage({
           </div>
 
           <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #1e293b' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#f2b84b', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#38bdf8', marginBottom: 4 }}>
               Satellite Bubble Ruling For Premium Hands (QQ / KK / AA)
             </div>
             <div style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.55 }}>
@@ -455,7 +456,7 @@ export default function SatelliteCalculatorPage({
                   <tr key={row.stackRatio} style={{ borderBottom: '1px solid #1e293b' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.stackRatio}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.seatLockPct}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.bubbleFactor}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.bubbleFactor}</td>
                     <td style={{ padding: '10px 14px', color: '#f87171', fontWeight: 700 }}>{row.reqCallingEq}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.actionWithPremiums}</td>
                   </tr>
@@ -474,7 +475,7 @@ export default function SatelliteCalculatorPage({
             <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Tournament ICM &amp; Final Table Solver
             </Link>
-            <Link href="/tools/m-ratio-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/m-ratio-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Harrington M-Ratio &amp; Effective M Calculator
             </Link>
             <Link href="/tools/push-fold-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -491,6 +492,17 @@ export default function SatelliteCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Satellite Bubble Spots & Drill Milestone ICM Free"
+              description="Bookmark Seat-Bubble Survival Thresholds And Practice Satellite Fold Decisions In 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/satellite-calculator&src=satellite-calc"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/satellite-calculator"
+            />
+
             <FaqSection faqs={SATELLITE_FAQS} />
 
             <CitationBacklinkBox

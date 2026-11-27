@@ -21,6 +21,7 @@ import {
     deliverVipLifecycleNotice,
 } from '../../../../src/lib/store/vipLifecycleNotices.mjs';
 import { sendTransactionalEmail } from '../../../../src/lib/email/transactionalEmail.mjs';
+import { vipDiscountedAdmissionDecision } from '../../../../src/lib/store/vipDiscountedAdmission.mjs';
 const {
     buildPrintfulItems,
     cancelPrintfulOrder,
@@ -995,6 +996,7 @@ function vipOverlapRefundAttemptKey(subscriptionId, invoiceId, terminalRefunds) 
 
 async function refundDeniedVipSubscription(subscriptionId, paymentContext, {
     refreshTriggerPaymentContext = null,
+    denialReason = null,
 } = {}) {
     if (paymentContext?.error) throw paymentContext.error;
     const checkoutSession = paymentContext?.checkoutSession;
@@ -1072,9 +1074,10 @@ async function refundDeniedVipSubscription(subscriptionId, paymentContext, {
         ...(paymentIntentId ? { payment_intent: paymentIntentId } : { charge: chargeId }),
         amount: amountPaid,
         metadata: {
-            smarter_poker_reason: paymentContext?.kind === 'trigger'
-                ? 'vip_reactivation_overlap'
-                : 'vip_acquisition_overlap',
+            smarter_poker_reason: denialReason
+                || (paymentContext?.kind === 'trigger'
+                    ? 'vip_reactivation_overlap'
+                    : 'vip_acquisition_overlap'),
             stripe_subscription_id: subscriptionId,
             stripe_invoice_id: invoiceId,
         },
@@ -1107,7 +1110,9 @@ async function cancelDeniedVipSubscription(subscriptionId) {
     }
 }
 
-async function compensateDeniedVipSubscription(subscription, paymentContext) {
+async function compensateDeniedVipSubscription(subscription, paymentContext, {
+    denialReason = null,
+} = {}) {
     // Refund first. If the process dies after a successful refund, the next
     // authoritative retrieval still sees a blocking subscription and retries
     // cancellation. Canceling first would make that retry look like a benign
@@ -1115,7 +1120,7 @@ async function compensateDeniedVipSubscription(subscription, paymentContext) {
     const exactPaymentContext = paymentContext?.checkoutSession
         ? paymentContext
         : await discoverInitialSubscriptionPayment(subscription);
-    await refundDeniedVipSubscription(subscription.id, exactPaymentContext);
+    await refundDeniedVipSubscription(subscription.id, exactPaymentContext, { denialReason });
     await cancelDeniedVipSubscription(subscription.id);
 }
 
@@ -1391,6 +1396,33 @@ async function handleStripeSubscriptionEvent(subscriptionReference, {
         && profile.stripe_customer_id !== customerId
         && !claimMatchesExactAdmission) {
         throw new Error('Stripe VIP subscription conflicts with the profile customer');
+    }
+
+    // ONE $1 MONTH PER CARD, ONE COMEBACK MONTH PER ACCOUNT. A subscription
+    // sold on a discounted first month is checked once, before it is first
+    // admitted (src/lib/store/vipDiscountedAdmission.mjs): a card that already
+    // paid a $1 month for another account, or an account that already used its
+    // comeback month, is refunded and ended through the same compensation as
+    // any other denied acquisition, with the reason on the Stripe refund. An
+    // unreadable answer throws and Stripe retries. Already-admitted
+    // subscriptions and every other subscription are untouched.
+    if (!existingSubscription && VIP_BLOCKING_SUBSCRIPTION_STATUSES.has(status)) {
+        const discounted = await vipDiscountedAdmissionDecision({
+            supabase: getSupabase(),
+            stripe,
+            subscription,
+            userId,
+            paymentContext,
+        });
+        if (!discounted.admit) {
+            console.warn(
+                `[stripe-webhook] VIP subscription ${subscriptionId} denied: ${discounted.reason}`
+            );
+            await compensateDeniedVipSubscription(subscription, paymentContext, {
+                denialReason: discounted.reason,
+            });
+            return;
+        }
     }
 
     // All provider and database reads above finish before this first VIP write.

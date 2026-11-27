@@ -87,6 +87,8 @@ import './club-arena-shell-cache.test.mjs';
 import './club-arena-mint-chips-live-rate.test.mjs';
 import './pa-sandbox-restored.test.mjs';
 import './pa-saved-hands-and-review.test.mjs';
+import './pa-review-workstation.test.mjs';
+import './pa-sandbox-enhancements.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -123,6 +125,12 @@ import './horses-tournament-intent-storage.test.mjs';
 import './api-routes-never-trace-static-pages.law.test.mjs';
 // Full-tree AST parse, duplicate-binding/export, local-import, route-collision & merge-tree guard (incident 86bcafc1, 2026-11-27).
 import './module-parse-and-bindings.law.test.mjs';
+// Extended Vercel deployability (vercel.json schema/crons + package-lock parity),
+// shared-game-links middleware contract, and alias/dynamic-import/Next.js page hardening.
+import './vercel-json-is-deployable.law.test.mjs';
+import './shared-game-links.test.mjs';
+import './vercel-build-hardening.law.test.mjs';
+import './pg17-parallel-and-build-parity.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
@@ -845,6 +853,8 @@ import './club-invite-figures.test.mjs';
 import './messenger-preview-is-plain-text.test.mjs';
 import './messenger-calls-work.law.test.mjs';
 import './messenger-calls-live-safety.test.mjs';
+// Dan 2026-11-27: Jarvis out of Messenger; one row per accounting issuer.
+import './messenger-one-row-per-issuer.law.test.mjs';
 import './messenger-calls-device-safety.test.mjs';
 import './messenger-typed-text-is-white.law.test.mjs';
 import './digest-figures-carry-separators.test.mjs';
@@ -938,6 +948,7 @@ import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
 import './seo-aeo-geo-phase6-20261126.law.test.mjs';
 import './seo-aeo-geo-phase7-20261126.law.test.mjs';
 import './gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs';
+import './smarterdesign-organic-cro-20261127.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';

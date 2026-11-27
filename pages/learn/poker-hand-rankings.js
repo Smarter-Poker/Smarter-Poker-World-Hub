@@ -10,8 +10,8 @@
  *  - Ace-To-Five (California) vs. Deuce-To-Seven (Kansas City) Lowball Rankings
  *  - Official Split-Pot Tie-Breaker & Kicker Rules
  *
- * Design: #SmarterCasinoRealism (#020608 obsidian, #101a20 gunmetal, #25c8ff cyan,
- * #f2b84b vault gold, borderRadius: '2px').
+ * Design: #SMARTERDESIGN (#060d1a ink-navy, #081121 panel, #38bdf8 ice-blue,
+ * #1d4ed8 cobalt primary CTA, 1px steel rim rgba(148, 184, 224, 0.28)).
  * House style: Title Case, zero em dashes.
  */
 
@@ -21,6 +21,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 
 const PAGE_PATH = '/learn/poker-hand-rankings';
 const PAGE_URL = 'https://smarter.poker/learn/poker-hand-rankings';
@@ -293,10 +294,10 @@ export default function PokerHandRankingsPage() {
 
         <header style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.goldBadge}>OFFICIAL 10-TIER HAND HIERARCHY</span>
-            <span style={styles.cyanBadge}>2,598,960 5-CARD &amp; 133,784,560 7-CARD COMBOS</span>
+            <span style={styles.primaryBadge}>Official 10-Tier Hand Hierarchy</span>
+            <span style={styles.cyanBadge}>2,598,960 5-Card &amp; 133,784,560 7-Card Combos</span>
             <a href="/learn/poker-hand-rankings.md" style={styles.mdBadge}>
-              RAW MARKDOWN (.MD)
+              Raw Markdown (.MD)
             </a>
           </div>
 
@@ -305,7 +306,7 @@ export default function PokerHandRankingsPage() {
           </h1>
 
           <div id="hand-rankings-summary" style={styles.summaryBox}>
-            <div style={styles.summaryLabel}>ORDER OF POKER HANDS FROM HIGHEST TO LOWEST</div>
+            <div style={styles.summaryLabel}>Order Of Poker Hands From Highest To Lowest</div>
             <p style={styles.summaryText}>
               In Standard 52-Card High Poker (Texas Hold&apos;Em, Pot-Limit Omaha, And Seven-Card Stud), The Ten Official
               Five-Card Hand Rankings From Strongest (#1) To Weakest (#10) Are: (1) Royal Flush, (2) Straight Flush, (3)
@@ -315,7 +316,7 @@ export default function PokerHandRankingsPage() {
           </div>
 
           <div style={styles.quickCrossLinks}>
-            <Link href="/rules" style={styles.crossBtnGold}>
+            <Link href="/rules" style={styles.crossBtnPrimary}>
               30 Official TDA &amp; Cash Floor Rulings
             </Link>
             <Link href="/games" style={styles.crossBtnCyan}>
@@ -544,6 +545,16 @@ export default function PokerHandRankingsPage() {
           </div>
         </section>
 
+        <SmarterConversionCta
+          eyebrow="Free Poker Training & Odds Tools"
+          title="Master Hand Rankings & Preflop Strategy With 107 Free GTO Games"
+          description="Go Beyond Hand Rankings Into Winning Preflop Ranges, Showdown Equity Drills, And Live Poker Room Discovery With One Free Account."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/hub/training&src=hand-rankings"
+          secondaryLabel="Test Hand Equity Free"
+          secondaryHref="/tools/poker-odds-calculator"
+        />
+
         <section style={styles.crossHubPlate}>
           <h2 style={styles.h2}>Explore Connected Rules, Variants, Starting Hands &amp; Calculators</h2>
           <div style={styles.hubLinkGrid}>
@@ -606,7 +617,7 @@ export default function PokerHandRankingsPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#020608',
+    backgroundColor: '#060d1a',
     color: '#e2e8f0',
     fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, sans-serif',
   },
@@ -625,7 +636,7 @@ const styles = {
     flexWrap: 'wrap',
   },
   crumbLink: {
-    color: '#25c8ff',
+    color: '#38bdf8',
     textDecoration: 'none',
     fontWeight: 600,
   },
@@ -636,9 +647,9 @@ const styles = {
     color: '#cbd5e1',
   },
   heroPlate: {
-    backgroundColor: '#101a20',
-    border: '1px solid rgba(37, 200, 255, 0.28)',
-    borderRadius: '2px',
+    backgroundColor: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: '10px',
     padding: '28px 26px',
     marginBottom: '24px',
     boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 32px rgba(0, 0, 0, 0.55)',
@@ -649,35 +660,35 @@ const styles = {
     gap: '10px',
     marginBottom: '14px',
   },
-  goldBadge: {
-    backgroundColor: 'rgba(242, 184, 75, 0.14)',
-    border: '1px solid #f2b84b',
-    color: '#f2b84b',
+  primaryBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    border: '1px solid rgba(56, 189, 248, 0.45)',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
-    letterSpacing: '0.08em',
+    letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: '2px',
+    borderRadius: '4px',
   },
   cyanBadge: {
-    backgroundColor: 'rgba(37, 200, 255, 0.12)',
-    border: '1px solid #25c8ff',
-    color: '#25c8ff',
-    fontSize: '11px',
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    padding: '4px 10px',
-    borderRadius: '2px',
-  },
-  mdBadge: {
-    backgroundColor: 'rgba(148, 163, 184, 0.12)',
-    border: '1px solid rgba(148, 163, 184, 0.4)',
+    backgroundColor: 'rgba(148, 184, 224, 0.12)',
+    border: '1px solid rgba(148, 184, 224, 0.35)',
     color: '#e2e8f0',
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: '2px',
+    borderRadius: '4px',
+  },
+  mdBadge: {
+    backgroundColor: 'rgba(148, 163, 184, 0.12)',
+    border: '1px solid rgba(148, 184, 224, 0.35)',
+    color: '#e2e8f0',
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    padding: '4px 10px',
+    borderRadius: '4px',
     textDecoration: 'none',
   },
   h1: {
@@ -690,26 +701,26 @@ const styles = {
     letterSpacing: '0.02em',
   },
   summaryBox: {
-    backgroundColor: '#020608',
-    borderLeft: '4px solid #f2b84b',
-    borderTop: '1px solid rgba(242, 184, 75, 0.25)',
-    borderRight: '1px solid rgba(242, 184, 75, 0.25)',
-    borderBottom: '1px solid rgba(242, 184, 75, 0.25)',
-    borderRadius: '2px',
+    backgroundColor: '#060d1a',
+    borderLeft: '4px solid #38bdf8',
+    borderTop: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRight: '1px solid rgba(148, 184, 224, 0.28)',
+    borderBottom: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: '8px',
     padding: '16px 18px',
     marginBottom: '20px',
   },
   summaryLabel: {
     fontSize: '11px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.08em',
     marginBottom: '6px',
   },
   summaryText: {
     fontSize: '15.5px',
     lineHeight: 1.65,
-    color: '#f8fafc',
+    color: '#ffffff',
     fontWeight: 600,
     margin: 0,
   },
@@ -718,38 +729,47 @@ const styles = {
     flexWrap: 'wrap',
     gap: '10px',
   },
-  crossBtnGold: {
-    backgroundColor: '#f2b84b',
-    color: '#020608',
+  crossBtnPrimary: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: '44px',
+    backgroundColor: '#1d4ed8',
+    color: '#ffffff',
     fontWeight: 700,
     fontSize: '13px',
-    padding: '9px 14px',
-    borderRadius: '2px',
+    padding: '10px 16px',
+    borderRadius: '8px',
     textDecoration: 'none',
   },
   crossBtnCyan: {
-    backgroundColor: '#25c8ff',
-    color: '#020608',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: '44px',
+    backgroundColor: '#0284c7',
+    color: '#ffffff',
     fontWeight: 700,
     fontSize: '13px',
-    padding: '9px 14px',
-    borderRadius: '2px',
+    padding: '10px 16px',
+    borderRadius: '8px',
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#020608',
-    border: '1px solid rgba(37, 200, 255, 0.4)',
-    color: '#25c8ff',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: '44px',
+    backgroundColor: '#060d1a',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    color: '#38bdf8',
     fontWeight: 600,
     fontSize: '13px',
-    padding: '8px 14px',
-    borderRadius: '2px',
+    padding: '10px 16px',
+    borderRadius: '8px',
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#101a20',
-    border: '1px solid rgba(148, 163, 184, 0.22)',
-    borderRadius: '2px',
+    backgroundColor: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: '10px',
     padding: '24px',
     marginBottom: '26px',
   },
@@ -771,7 +791,7 @@ const styles = {
   },
   asOfText: {
     fontSize: '12px',
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontWeight: 700,
   },
   bodyText: {
@@ -781,7 +801,7 @@ const styles = {
     margin: '0 0 16px',
   },
   inlineLink: {
-    color: '#25c8ff',
+    color: '#38bdf8',
     fontWeight: 700,
     textDecoration: 'underline',
   },
@@ -791,24 +811,24 @@ const styles = {
     fontSize: '13px',
   },
   trHead: {
-    backgroundColor: '#020608',
-    borderBottom: '2px solid #25c8ff',
+    backgroundColor: '#060d1a',
+    borderBottom: '2px solid #38bdf8',
     textAlign: 'left',
   },
   th: {
     padding: '11px 12px',
-    color: '#25c8ff',
+    color: '#38bdf8',
     fontWeight: 700,
     fontSize: '11.5px',
     letterSpacing: '0.05em',
     textTransform: 'uppercase',
   },
   trBody: {
-    borderBottom: '1px solid rgba(148, 163, 184, 0.14)',
+    borderBottom: '1px solid rgba(148, 184, 224, 0.16)',
   },
   tdRankNum: {
     padding: '12px',
-    color: '#f2b84b',
+    color: '#38bdf8',
     fontWeight: 800,
     verticalAlign: 'top',
   },
@@ -828,7 +848,7 @@ const styles = {
   handExample: {
     fontSize: '12px',
     fontWeight: 700,
-    color: '#25c8ff',
+    color: '#38bdf8',
     fontFamily: 'monospace',
   },
   tdCell: {
@@ -845,12 +865,12 @@ const styles = {
     fontWeight: 600,
   },
   mathBold: {
-    color: '#f2b84b',
+    color: '#ffffff',
     fontWeight: 700,
     fontSize: '13.5px',
   },
   mathCyan: {
-    color: '#25c8ff',
+    color: '#38bdf8',
     fontWeight: 700,
     fontSize: '13.5px',
   },
@@ -865,15 +885,15 @@ const styles = {
     gap: '14px',
   },
   omahaCard: {
-    backgroundColor: '#020608',
-    border: '1px solid rgba(242, 184, 75, 0.3)',
-    borderRadius: '2px',
+    backgroundColor: '#060d1a',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: '8px',
     padding: '16px 18px',
   },
   omahaLabel: {
     fontSize: '11.5px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#38bdf8',
     letterSpacing: '0.07em',
     marginBottom: '6px',
   },
@@ -889,15 +909,15 @@ const styles = {
     gap: '14px',
   },
   tieCard: {
-    backgroundColor: '#020608',
-    border: '1px solid rgba(37, 200, 255, 0.25)',
-    borderRadius: '2px',
+    backgroundColor: '#060d1a',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: '8px',
     padding: '16px 18px',
   },
   tieTitle: {
     fontSize: '15px',
     fontWeight: 700,
-    color: '#25c8ff',
+    color: '#38bdf8',
     margin: '0 0 8px',
   },
   tieBody: {
@@ -907,11 +927,12 @@ const styles = {
     margin: 0,
   },
   crossHubPlate: {
-    backgroundColor: '#101a20',
-    border: '1px solid rgba(242, 184, 75, 0.35)',
-    borderRadius: '2px',
+    backgroundColor: '#081121',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: '10px',
     padding: '24px',
     marginBottom: '26px',
+    marginTop: '26px',
   },
   hubLinkGrid: {
     display: 'grid',
@@ -920,9 +941,9 @@ const styles = {
     marginTop: '14px',
   },
   hubCard: {
-    backgroundColor: '#020608',
-    border: '1px solid rgba(37, 200, 255, 0.25)',
-    borderRadius: '2px',
+    backgroundColor: '#060d1a',
+    border: '1px solid rgba(148, 184, 224, 0.28)',
+    borderRadius: '8px',
     padding: '14px 16px',
     textDecoration: 'none',
     display: 'flex',
@@ -932,13 +953,13 @@ const styles = {
   hubCardLabel: {
     fontSize: '11px',
     fontWeight: 700,
-    color: '#f2b84b',
+    color: '#e2e8f0',
     letterSpacing: '0.07em',
   },
   hubCardTitle: {
     fontSize: '14px',
     fontWeight: 700,
-    color: '#25c8ff',
+    color: '#38bdf8',
     lineHeight: 1.4,
   },
   faqList: {
@@ -947,15 +968,15 @@ const styles = {
     marginTop: '14px',
   },
   faqItem: {
-    backgroundColor: '#020608',
-    border: '1px solid rgba(148, 163, 184, 0.18)',
-    borderRadius: '2px',
+    backgroundColor: '#060d1a',
+    border: '1px solid rgba(148, 184, 224, 0.22)',
+    borderRadius: '8px',
     padding: '16px 18px',
   },
   faqQ: {
     fontSize: '15px',
     fontWeight: 700,
-    color: '#25c8ff',
+    color: '#38bdf8',
     margin: '0 0 8px',
   },
   faqA: {
@@ -966,7 +987,7 @@ const styles = {
   },
   complianceFooter: {
     fontSize: '12px',
-    color: '#64748b',
+    color: '#94a3b8',
     textAlign: 'center',
     marginTop: '32px',
   },

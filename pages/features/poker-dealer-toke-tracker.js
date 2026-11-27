@@ -81,7 +81,7 @@ export default function PokerDealerTokeTrackerPage() {
       canonical="/features/poker-dealer-toke-tracker"
       badgeText="100% Free Dealer Utility"
       primaryCtaText="Open Toke Tracker"
-      primaryCtaHref="/hub/commander"
+      primaryCtaHref="/hub/toke-tracker"
       secondaryCtaText="View Plain-Text Spec"
       secondaryCtaHref="/features/poker-dealer-toke-tracker.md"
       markdownUrl="https://smarter.poker/features/poker-dealer-toke-tracker.md"

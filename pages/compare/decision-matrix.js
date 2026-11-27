@@ -476,7 +476,7 @@ export default function PokerDecisionMatrixPage() {
                     {d.quantitativeJustification}
                   </p>
                   <p style={styles.lineText}>
-                    <strong style={{ color: '#f2b84b' }}>Runner-Up Comparison:</strong>{' '}
+                    <strong style={{ color: '#38bdf8' }}>Runner-Up Comparison:</strong>{' '}
                     {d.runnerUp}
                   </p>
                 </div>

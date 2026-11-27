@@ -17,6 +17,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -339,7 +340,7 @@ export default function HomeGameDirectorPage({
                 onClick={() => setIsClockRunning((r) => !r)}
                 style={{
                   padding: '10px 20px',
-                  background: isClockRunning ? '#f2b84b' : '#34d399',
+                  background: isClockRunning ? '#38bdf8' : '#34d399',
                   color: '#020608',
                   border: 0,
                   borderRadius: '2px',
@@ -411,8 +412,8 @@ export default function HomeGameDirectorPage({
             {[
               { label: 'Initial Players Seated', val: players, set: setPlayers, step: 1, color: '#25c8ff' },
               { label: 'Buy-In / Rebuy Amount ($)', val: buyin, set: setBuyin, step: 5, color: '#34d399' },
-              { label: 'Total Rebuys Logged', val: rebuys, set: setRebuys, step: 1, color: '#f2b84b' },
-              { label: 'Total Add-Ons Logged', val: addons, set: setAddons, step: 1, color: '#f2b84b' },
+              { label: 'Total Rebuys Logged', val: rebuys, set: setRebuys, step: 1, color: '#38bdf8' },
+              { label: 'Total Add-Ons Logged', val: addons, set: setAddons, step: 1, color: '#38bdf8' },
               { label: 'Starting Chip Stack', val: stack, set: setStack, step: 5000, color: '#f8fafc' },
               { label: 'Blind Level Duration (Mins)', val: levelMins, set: setLevelMins, step: 5, color: '#25c8ff' },
             ].map((inp) => (
@@ -466,11 +467,11 @@ export default function HomeGameDirectorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Live Payout Ladder Split
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#f2b84b', marginTop: 6, lineHeight: 1.55 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', marginTop: 6, lineHeight: 1.55 }}>
                 {metrics.payouts.map((p) => (
                   <div key={p.place}>
                     {p.place}: <strong>${p.amount.toLocaleString('en-US')}</strong>
@@ -489,7 +490,7 @@ export default function HomeGameDirectorPage({
             <Link href="/tools/home-game-kit" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Home Game Chip Set Kit
             </Link>
-            <Link href="/tools/blind-structure-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/blind-structure-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Blind Schedule Generator
             </Link>
             <Link href="/tools/shot-clock" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -503,6 +504,17 @@ export default function HomeGameDirectorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Home Game Structures & Track League Standings Free"
+              description="Bookmark Blind Clocks And Payout Templates, Track Home Game Results, And Unlock 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/home-game-director&src=home-game-director"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/home-game-director"
+            />
+
             <FaqSection faqs={DIRECTOR_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

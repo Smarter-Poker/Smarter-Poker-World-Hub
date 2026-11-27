@@ -17,6 +17,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -192,7 +193,7 @@ export default function WarmupCooldownRoutinePage({
       stopLossBi = '2.5 Buy-Ins';
     } else if (readinessScore >= 60) {
       grade = 'B/C-Game Caution Cap';
-      gradeColor = '#f2b84b';
+      gradeColor = '#38bdf8';
       stopLossBi = '1.5 Buy-Ins (Cap Session At 2.5 Hrs)';
     } else {
       grade = 'C-Game Tilt Danger (Abort Session)';
@@ -410,7 +411,7 @@ export default function WarmupCooldownRoutinePage({
             </div>
           </div>
 
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: '#f2b84b', margin: '0 0 12px 0' }}>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: '#38bdf8', margin: '0 0 12px 0' }}>
             2. 60-Second Quantitative Poker Math Activation Drills
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 22 }}>
@@ -478,11 +479,11 @@ export default function WarmupCooldownRoutinePage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Enforced Session Stop-Loss
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.stopLossBi}
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -531,7 +532,7 @@ export default function WarmupCooldownRoutinePage({
             <Link href="/learn/mental-game" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Poker Mental Game Hub
             </Link>
-            <Link href="/tools/session-planner" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/session-planner" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Cash Game Session Planner
             </Link>
             <Link href="/tools/poker-iq-test" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -545,6 +546,17 @@ export default function WarmupCooldownRoutinePage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Your Pre-Session Routine & Track A-Game Hours Free"
+              description="Pair Daily Warmup Drills With 107 Free GTO Training Games And Track Mental-Game Progress In Bankroll Manager."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/warmup-cooldown-routine&src=warmup-routine"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/warmup-cooldown-routine"
+            />
+
             <FaqSection faqs={WARMUP_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

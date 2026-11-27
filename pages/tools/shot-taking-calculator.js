@@ -17,6 +17,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -301,7 +302,7 @@ export default function ShotTakingCalculatorPage({
             {[
               { label: 'Total Liquid Bankroll ($)', val: bankroll, set: setBankroll, step: 500, color: '#34d399' },
               { label: 'Base Stake Big Blind ($)', val: baseBb, set: setBaseBb, step: 1, color: '#25c8ff' },
-              { label: 'Target Shot Big Blind ($)', val: shotBb, set: setShotBb, step: 1, color: '#f2b84b' },
+              { label: 'Target Shot Big Blind ($)', val: shotBb, set: setShotBb, step: 1, color: '#38bdf8' },
               { label: 'Shot Stop-Loss Budget (Buy-Ins)', val: stopLossBi, set: setStopLossBi, step: 1, color: '#f87171' },
               { label: 'Base Stake Winrate (BB/100)', val: wrBase, set: setWrBase, step: 0.5, color: '#34d399' },
               { label: 'Shot Stake Winrate (BB/100)', val: wrShot, set: setWrShot, step: 0.5, color: '#25c8ff' },
@@ -368,11 +369,11 @@ export default function ShotTakingCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 First-Shot Stick Probability
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.shotStickSuccessPct}%
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -421,7 +422,7 @@ export default function ShotTakingCalculatorPage({
             <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Risk Of Ruin Calculator
             </Link>
-            <Link href="/tools/variance-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/variance-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Variance &amp; Downswing Simulator
             </Link>
             <Link href="/tools/table-selection-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -435,6 +436,17 @@ export default function ShotTakingCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Track Your Stake Move-Ups & Bankroll Thresholds Free"
+              description="Log Live Sessions In Bankroll Manager To Monitor Shot-Taking Triggers And Unlock 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/shot-taking-calculator&src=shot-taking"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/shot-taking-calculator"
+            />
+
             <FaqSection faqs={SHOT_TAKING_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

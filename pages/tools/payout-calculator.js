@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -512,11 +513,11 @@ export default function PayoutCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 1st Place Championship Prize
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 ${payoutData.firstPrize.toLocaleString('en-US')}
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -566,7 +567,7 @@ export default function PayoutCalculatorPage({
               <tbody>
                 {payoutData.rows.map((row) => (
                   <tr key={row.place} style={{ borderBottom: '1px solid #1e293b' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 700, color: row.place === 1 ? '#f2b84b' : '#f8fafc' }}>
+                    <td style={{ padding: '10px 14px', fontWeight: 700, color: row.place === 1 ? '#38bdf8' : '#f8fafc' }}>
                       Place #{row.place}
                     </td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.sharePct}%</td>
@@ -605,7 +606,7 @@ export default function PayoutCalculatorPage({
                   <tr key={row.fieldSize} style={{ borderBottom: '1px solid #1e293b' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.fieldSize}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.standardPlacesPaid}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.firstPlaceShare}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.firstPlaceShare}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.minCashMultiple}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.bubbleFactorNote}</td>
                   </tr>
@@ -624,7 +625,7 @@ export default function PayoutCalculatorPage({
             <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Malmuth-Harville ICM Calculator
             </Link>
-            <Link href="/tools/blind-structure-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/blind-structure-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Blind Structure &amp; Clock Generator
             </Link>
             <Link href="/tools/bounty-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -638,6 +639,17 @@ export default function PayoutCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Tournament Payout Tables & Track MTT Cashes Free"
+          description="Bookmark TDA Prize Pool Structures, Log Live Results, And Unlock 107 Free GTO Training Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/payout-calculator&src=payout-calc"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/payout-calculator"
+        />
 
         <FaqSection faqs={PAYOUT_CALCULATOR_FAQS} />
 

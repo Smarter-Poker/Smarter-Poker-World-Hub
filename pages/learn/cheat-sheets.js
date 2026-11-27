@@ -193,7 +193,7 @@ export default function PrintablePokerCheatSheetsPage() {
             <Link href="/tools/preflop-ranges" style={styles.crossBtnOutline}>
               Interactive 13x13 GTO Range Grid
             </Link>
-            <Link href="/tools/push-fold-chart" style={styles.crossBtnOutline}>
+            <Link href="/tools/push-fold-calculator" style={styles.crossBtnOutline}>
               Interactive Push-Fold Tool
             </Link>
             <Link href="/learn/poker-math" style={styles.crossBtnOutline}>

@@ -184,6 +184,7 @@ test('the browser smoke script keeps its routes, viewports, checks and fail-clos
   assert.equal(smoke.DEFAULT_BASE_URL, 'https://smarter.poker');
   assert.deepEqual([...smoke.ROUTES], [
     '/hub/personal-assistant',
+    '/hub/personal-assistant/review',
     '/hub/personal-assistant/leaks',
     '/hub/personal-assistant/leaks?format=tournament',
     '/hub/personal-assistant/leaks?tab=coaching',

@@ -12,6 +12,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import {
   SITE_URL,
   LEARN_URL,
@@ -65,7 +66,7 @@ function handsIndexSchema() {
 
 export default function StartingHandsIndexPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#060d1a', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Poker Starting Hand Encyclopedia"
         description="Complete Texas Hold'em Starting Hand Encyclopedia: Combinatorics, Preflop Rank, Equity Vs. Random Hands, And 6-Max 100BB GTO Opening Strategy For All 169 Starting Hands."
@@ -82,7 +83,7 @@ export default function StartingHandsIndexPage() {
           <span>Starting Hand Encyclopedia</span>
         </nav>
 
-        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#ffffff', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Texas Hold&apos;Em Starting Hand Encyclopedia And GTO Strategy Matrix
         </h1>
 
@@ -90,13 +91,24 @@ export default function StartingHandsIndexPage() {
           Explore Exact Combinatoric Probabilities, Preflop Percentile Rankings, 6-Max 100BB GTO Positional Opening Actions, And Head-To-Head Matchup Equities For All 169 Starting Hands In No-Limit Texas Hold&apos;Em.
         </p>
 
-        <div style={{ overflowX: 'auto', marginBottom: 32 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
-            <caption style={{ textAlign: 'left', fontWeight: 700, padding: '12px 0', color: '#f8fafc', fontSize: 16 }}>
+        <SmarterConversionCta
+          eyebrow="Free GTO Preflop Trainer"
+          title="Drill All 169 Starting Hands With Instant Solver Feedback"
+          description="Turn Preflop Charts Into Muscle Memory Across 107 Free GTO Training Games Covering 6-Max Cash, 3-Bet Pots, And Tournament Ranges."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/hub/training&src=hands-index"
+          secondaryLabel="Open 13x13 GTO Matrix"
+          secondaryHref="/tools/preflop-ranges"
+          compact
+        />
+
+        <div style={{ overflowX: 'auto', marginTop: 28, marginBottom: 32 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#081121', border: '1px solid rgba(148, 184, 224, 0.28)', borderRadius: 10 }}>
+            <caption style={{ textAlign: 'left', fontWeight: 700, padding: '12px 0', color: '#ffffff', fontSize: 16 }}>
               Canonical Texas Hold&apos;Em Starting Hand Reference Table
             </caption>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e293b', color: '#38bdf8', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '1px solid rgba(148, 184, 224, 0.28)', color: '#38bdf8', textAlign: 'left' }}>
                 <th scope="col" style={{ padding: '12px 14px' }}>Starting Hand</th>
                 <th scope="col" style={{ padding: '12px 14px' }}>Notation</th>
                 <th scope="col" style={{ padding: '12px 14px' }}>Rank</th>
@@ -108,13 +120,13 @@ export default function StartingHandsIndexPage() {
             </thead>
             <tbody>
               {STARTING_HANDS.map((h) => (
-                <tr key={h.slug} style={{ borderBottom: '1px solid #1e293b' }}>
+                <tr key={h.slug} style={{ borderBottom: '1px solid rgba(148, 184, 224, 0.16)' }}>
                   <td style={{ padding: '12px 14px', fontWeight: 600 }}>
-                    <Link href={handPath(h.slug)} style={{ color: '#60a5fa', textDecoration: 'none' }}>
+                    <Link href={handPath(h.slug)} style={{ color: '#38bdf8', textDecoration: 'none' }}>
                       {h.name} ({h.nickname})
                     </Link>
                   </td>
-                  <td style={{ padding: '12px 14px', color: '#f8fafc', fontWeight: 700 }}>{h.code}</td>
+                  <td style={{ padding: '12px 14px', color: '#ffffff', fontWeight: 700 }}>{h.code}</td>
                   <td style={{ padding: '12px 14px', color: '#cbd5e1' }}>{h.preflopRank}</td>
                   <td style={{ padding: '12px 14px', color: '#cbd5e1' }}>{h.combinations}</td>
                   <td style={{ padding: '12px 14px', color: '#34d399', fontWeight: 600 }}>{h.vsRandomEquity}</td>
