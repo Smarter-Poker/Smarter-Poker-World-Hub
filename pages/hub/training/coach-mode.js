@@ -657,7 +657,16 @@ export default function CoachModePage() {
       />
       <div className="sp-training-command sp-training-command--coach sp-coach-casino">
         <main className="sp-command-main sp-coach-home">
-          <section className="sp-command-header sp-coach-hero" aria-labelledby="coach-mode-title">
+          <section
+            className="sp-command-header sp-coach-hero"
+            aria-labelledby="coach-mode-title"
+            data-coach-hero-launch={recommendedLesson?.id || undefined}
+            onClick={(event) => {
+              if (!recommendedLesson) return;
+              if (event.target?.closest?.('button, a, input, select, textarea, [role="button"]')) return;
+              startLesson(recommendedLesson);
+            }}
+          >
             <img className="sp-coach-hero-art" src="/images/training/coach-mode/strategy-chamber-hero.webp" alt="" width="1600" height="901" fetchpriority="high" />
             <div className="sp-coach-hero-vignette" />
             <button type="button" className="sp-coach-back sp-coach-hero-back" aria-label="Back To Training Hub" onClick={() => router.push('/hub/training')}>

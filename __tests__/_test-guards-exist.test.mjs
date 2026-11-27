@@ -373,6 +373,7 @@ import './training-request-deadline.test.mjs';
 import './training-reference-is-public-a.test.mjs';
 import './training-hub-progressive-grid.test.mjs';
 import './training-arena-lobby-ui.test.mjs';
+import './training-global-smarterdesign-click-cards.test.mjs';
 import './training-surface-inventory.test.mjs';
 // Training reference pages open to everyone (Dan, 2026-10-12: "THEY SHOULD
 // OPEN TO EVERYONE"): anonymous reads, signed-in writes, no anonymous writes.

@@ -155,7 +155,15 @@ export default function CategoryPage() {
         <UniversalHeader pageDepth={2} />
 
         <main className={`sp-arena-lobby-shell ${lobbyStyles.shell}`}>
-          <section className="sp-arena-masthead sp-category-hero sd-masthead">
+          <section
+            className={`sp-arena-masthead sp-category-hero sd-masthead ${lobbyStyles.lobbyHeader}`}
+            data-category-hero-launch={featuredGame?.id || undefined}
+            onClick={(event) => {
+              if (!featuredGame) return;
+              if (event.target?.closest?.('button, a, input, select, textarea, [role="button"]')) return;
+              playGame(featuredGame);
+            }}
+          >
             <div className="sp-category-hero-art" aria-hidden="true">
               <TrainingGameArt
                 gameId={heroArtId}
@@ -167,7 +175,7 @@ export default function CategoryPage() {
 
             <div className="sp-cat-topbar">
               <button
-                className="sd-button sp-cat-back-btn"
+                className={`sd-button sp-cat-back-btn ${lobbyStyles.chromeButton}`}
                 type="button"
                 onClick={() => router.push('/hub/training')}
               >
@@ -198,7 +206,7 @@ export default function CategoryPage() {
                 <button
                   type="button"
                   data-category-quick-start="true"
-                  className="sp-arena-quickbar__cta sd-button sd-primary"
+                  className={`sp-arena-quickbar__cta sd-button sd-primary ${lobbyStyles.chromeButton} ${lobbyStyles.primaryButton}`}
                   onClick={() => playGame(featuredGame)}
                 >
                   Play Now
@@ -208,7 +216,7 @@ export default function CategoryPage() {
           </section>
 
           <section className={`sp-arena-lobby-section ${lobbyStyles.library}`} aria-labelledby="category-library-title">
-            <div className="sp-arena-deck" ref={controlsRef}>
+            <div className={`sp-arena-deck ${lobbyStyles.controls}`} ref={controlsRef}>
               <div className="sp-arena-deck__heading-row">
                 <h2 id="category-library-title" className="sp-arena-deck__heading">
                   Choose A Game
@@ -218,9 +226,9 @@ export default function CategoryPage() {
                 </span>
               </div>
 
-              <div className="sp-toolbar sp-arena-search-row">
-                <label className="sp-search sp-arena-search">
-                  <Search size={16} aria-hidden="true" />
+              <div className={lobbyStyles.searchRow}>
+                <label className={lobbyStyles.searchWell}>
+                  <Search size={18} aria-hidden="true" />
                   <input
                     ref={searchRef}
                     type="search"
@@ -232,20 +240,33 @@ export default function CategoryPage() {
                   {query && (
                     <button
                       type="button"
-                      className="sp-arena-search__clear"
+                      className={lobbyStyles.clearSearch}
                       aria-label="Clear Search"
                       onClick={() => updateFilters({ query: '' })}
                     >
-                      <X size={15} aria-hidden="true" />
+                      <X size={16} aria-hidden="true" />
                     </button>
                   )}
                 </label>
-                <button type="button" className="sp-arena-pill sd-button" aria-label="Favorite Games" aria-pressed={favoritesOnly} onClick={() => updateFilters({ favoritesOnly: !favoritesOnly })}>
-                  <Star size={16} aria-hidden="true" fill={favoritesOnly ? 'currentColor' : 'none'} />
-                </button>
-                <button type="button" className="sp-arena-pill sd-button" aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}>
-                  <SlidersHorizontal size={16} aria-hidden="true" /> Filters{advancedCount > 0 ? ` (${advancedCount})` : ''}
-                </button>
+                <div className="sp-cat-filter-actions">
+                  <button
+                    type="button"
+                    className={`sp-arena-pill sd-button ${lobbyStyles.chromeButton} ${lobbyStyles.iconButton}`}
+                    aria-label="Favorite Games"
+                    aria-pressed={favoritesOnly}
+                    onClick={() => updateFilters({ favoritesOnly: !favoritesOnly })}
+                  >
+                    <Star size={18} aria-hidden="true" fill={favoritesOnly ? 'currentColor' : 'none'} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`sp-arena-pill sd-button ${lobbyStyles.chromeButton} ${lobbyStyles.filtersButton}`}
+                    aria-haspopup="dialog"
+                    onClick={() => setFiltersOpen(true)}
+                  >
+                    <SlidersHorizontal size={18} aria-hidden="true" /> Filters{advancedCount > 0 ? ` (${advancedCount})` : ''}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -302,7 +323,7 @@ export default function CategoryPage() {
                   : `No ${category.title} Drills Match Your Filter.`}</p>
                 <button
                   type="button"
-                  className="sd-button"
+                  className={`sd-button ${lobbyStyles.chromeButton}`}
                   onClick={resetFilters}
                 >
                   Reset Filters
@@ -341,11 +362,29 @@ export default function CategoryPage() {
         .sp-category-hero {
           position: relative;
           overflow: hidden;
+          border: 2px solid transparent;
+          border-radius: 16px;
+          background:
+            linear-gradient(165deg, #0c2031 0%, #040d18 100%) padding-box,
+            linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+          cursor: pointer;
+          transition: box-shadow 160ms ease, transform 160ms ease;
+        }
+        .sp-category-hero:hover {
+          box-shadow: 0 16px 38px rgba(0, 0, 0, 0.68), 0 0 22px rgba(0, 154, 227, 0.25);
         }
         .sp-category-hero-art { position: absolute; inset: 0; overflow: hidden; }
         .sp-category-hero-art :global(.training-art),
         .sp-category-hero-art :global(picture) { display: block; width: 100%; height: 100%; }
-        .sp-category-hero-art :global(.training-art-scene) { object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.08) brightness(0.45); }
+        .sp-category-hero-art :global(.training-art-scene) { object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.08) brightness(0.45); transition: transform 220ms ease; }
+        .sp-category-hero:hover .sp-category-hero-art :global(.training-art-scene) { transform: scale(1.02); }
+        .sp-cat-filter-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
         .sp-category-hero-shade {
           position: absolute;
           inset: 0;

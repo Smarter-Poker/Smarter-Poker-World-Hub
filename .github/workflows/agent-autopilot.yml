@@ -11,7 +11,9 @@ name: Agent Autopilot
 
 on:
   pull_request_target:
-    types: [opened, reopened, ready_for_review, synchronize]
+    # converted_to_draft is listed so a PR that goes back to draft has any
+    # armed auto-merge taken off it by the hold-unfinished-work job below.
+    types: [opened, reopened, ready_for_review, synchronize, converted_to_draft]
 
 permissions:
   contents: read
@@ -23,13 +25,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Unfinished work is never armed (PR #3170, 2026-11-27): a handoff bookmark
+  # was opened and squash auto-merged into production. A draft, a bookmark/,
+  # handoff/ or wip/ branch, or a head commit whose subject starts with wip or
+  # says bookmark or unfinished is held. No credential is minted here; the
+  # verdict comes from main's own reviewed guard script.
+  classify:
+    name: Classify unfinished work
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      hold: ${{ steps.guard.outputs.hold }}
+    steps:
+      - name: Checkout reviewed default-branch automation
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Read the head commit and apply the unfinished-work guard
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+        run: |
+          set -euo pipefail
+          [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] \
+            || { echo "::error::Invalid PR_HEAD_SHA: $PR_HEAD_SHA"; exit 1; }
+          SUBJECT=$(gh api "repos/$REPO/commits/$PR_HEAD_SHA" \
+            --jq '.commit.message | split("\n")[0]')
+          set +e
+          REASON=$(bash .github/scripts/unfinished-work-guard.sh "$BRANCH" "$SUBJECT" "$DRAFT")
+          RC=$?
+          set -e
+          case "$RC" in
+            0) echo "hold=false" >> "$GITHUB_OUTPUT" ;;
+            10) echo "::notice::Holding this PR from auto-merge: $REASON"
+                echo "hold=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::unfinished-work guard failed ($RC)"; exit 1 ;;
+          esac
+
   queue-pr:
     name: Queue this PR for protected squash merge
+    needs: classify
     # pull_request_target can read the App secret, so same-repository branch
     # ownership is the authorization boundary. A fork may run ordinary CI but
     # can never mint merge authority, even when every check passes.
     if: >-
-      github.event.pull_request.draft == false
+      needs.classify.outputs.hold == 'false'
+      && github.event.pull_request.draft == false
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -112,3 +160,36 @@ jobs:
               exit 0 ;;
           esac
           bash .github/scripts/queue-pr.sh "$REPO" "$PR"
+
+  # A held PR that already has auto-merge armed (a wip commit pushed onto it, or
+  # converted back to draft) has it disabled, so it cannot merge on green.
+  hold-unfinished-work:
+    name: Keep unfinished work from auto-merging
+    needs: classify
+    if: >-
+      needs.classify.outputs.hold == 'true'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Mint the GitHub App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.AUTOPILOT_APP_ID }}
+          private-key: ${{ secrets.AUTOPILOT_APP_PRIVATE_KEY }}
+
+      - name: Disable auto-merge if it is armed
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          ARMED=$(gh api "repos/$REPO/pulls/$PR" --jq 'if .auto_merge then "yes" else "no" end')
+          if [ "$ARMED" = "yes" ]; then
+            gh pr merge "$PR" --repo "$REPO" --disable-auto
+            echo "Disabled auto-merge on held PR #$PR."
+          else
+            echo "PR #$PR is held and has no auto-merge armed."
+          fi

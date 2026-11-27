@@ -68,11 +68,17 @@ export default function TrainingSettingsMenu({ onClose }) {
                 />
             )}
 
-            {/* Drawer - Opens from LEFT - SmarterPoker Dark Theme */}
-            <div style={{
-                ...styles.drawer,
-                transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
-            }}>
+            {/* Drawer - Opens from LEFT - #SMARTERDESIGN Brushed Chrome */}
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Training Settings"
+                className="sp-training-modal-surface"
+                style={{
+                    ...styles.drawer,
+                    transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+                }}
+            >
                 <div style={styles.drawerHeader}>
                     <h2 style={styles.drawerTitle}>Settings</h2>
                     <button
@@ -168,23 +174,27 @@ export default function TrainingSettingsMenu({ onClose }) {
     );
 }
 
-// SmarterPoker Dark Theme Colors
-const FB_DARK = {
-    bg: '#18191A',           // Main background
-    card: '#242526',         // Card/container background
-    elevated: '#3A3B3C',     // Elevated elements
-    border: '#3E4042',       // Borders
-    textPrimary: '#E4E6EB',  // Primary text
-    textSecondary: '#B0B3B8', // Secondary text
-    accent: '#2374E1',       // SmarterPoker blue
-    success: '#31A24C',      // Green for toggles
+// #SMARTERDESIGN Brushed-Chrome Metallic Hardware Tokens
+const CHROME_RIM = 'linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%)';
+const CHROME_FACE = 'linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%)';
+const CHROME_BLUE = 'linear-gradient(180deg, #51c9ff 0%, #0873ff 10%, #0648e2 38%, #022695 82%, #0b71c4 100%)';
+
+const SD_THEME = {
+    bg: 'linear-gradient(165deg, #0c2031 0%, #040d18 100%)',
+    card: 'linear-gradient(180deg, #102438 0%, #06111c 100%)',
+    border: '#688299',
+    textPrimary: '#f3f7fb',
+    textSecondary: '#c4d2df',
+    accent: '#087cfa',
+    ice: '#8de6ff',
 };
 
 const styles = {
     backdrop: {
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.6)',
+        background: 'rgba(1, 9, 19, 0.78)',
+        backdropFilter: 'blur(6px)',
         zIndex: 999,
     },
     drawer: {
@@ -193,9 +203,10 @@ const styles = {
         left: 0,
         bottom: 0,
         width: '100%',
-        maxWidth: '320px',
-        background: FB_DARK.bg,
-        boxShadow: '4px 0 20px rgba(0, 0, 0, 0.5)',
+        maxWidth: '330px',
+        background: SD_THEME.bg,
+        borderRight: '2px solid #688299',
+        boxShadow: '8px 0 36px rgba(0, 0, 0, 0.75)',
         zIndex: 1000,
         transition: 'transform 0.3s ease',
         display: 'flex',
@@ -205,65 +216,72 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '20px',
-        borderBottom: `1px solid ${FB_DARK.border}`,
+        padding: '16px 18px',
+        background: 'linear-gradient(180deg, #102b40, #061723)',
+        borderBottom: `1px solid ${SD_THEME.border}`,
     },
     drawerTitle: {
-        color: FB_DARK.textPrimary,
-        fontSize: '20px',
-        fontWeight: '700',
+        color: SD_THEME.textPrimary,
+        fontSize: '22px',
+        fontWeight: '800',
         margin: 0,
+        fontFamily: "var(--font-rajdhani, 'Rajdhani'), sans-serif",
     },
     closeButton: {
-        background: FB_DARK.elevated,
-        border: 'none',
-        color: FB_DARK.textSecondary,
+        background: `${CHROME_FACE} padding-box, ${CHROME_RIM} border-box`,
+        border: '2px solid transparent',
+        color: SD_THEME.textPrimary,
         fontSize: '18px',
+        fontWeight: '700',
         cursor: 'pointer',
         padding: '0',
-        width: '36px',
-        height: '36px',
-        borderRadius: '50%',
+        width: '44px',
+        height: '44px',
+        minWidth: '44px',
+        minHeight: '44px',
+        borderRadius: '10px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        transition: 'background 0.2s ease',
+        transition: 'box-shadow 0.2s ease',
     },
     drawerContent: {
         flex: 1,
-        padding: '20px',
+        padding: '18px',
         overflowY: 'auto',
     },
     settingGroup: {
-        marginBottom: '24px',
+        marginBottom: '20px',
     },
     settingRow: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '16px',
-        padding: '12px 16px',
-        background: FB_DARK.card,
-        borderRadius: '8px',
+        padding: '12px 14px',
+        background: SD_THEME.card,
+        border: `1px solid ${SD_THEME.border}`,
+        borderTopColor: '#aec0d0',
+        borderRadius: '10px',
     },
     settingLabel: {
         display: 'block',
-        color: FB_DARK.textPrimary,
+        color: SD_THEME.textPrimary,
         fontSize: '15px',
-        fontWeight: '500',
+        fontWeight: '600',
         marginBottom: '0',
     },
     settingHint: {
         display: 'block',
-        color: FB_DARK.textSecondary,
+        color: SD_THEME.textSecondary,
         fontSize: '13px',
         fontWeight: '400',
         marginTop: '4px',
-        marginBottom: '12px',
+        marginBottom: '10px',
     },
     settingHintSmall: {
         display: 'block',
-        color: FB_DARK.textSecondary,
+        color: SD_THEME.textSecondary,
         fontSize: '12px',
         fontWeight: '400',
         marginTop: '2px',
@@ -271,25 +289,28 @@ const styles = {
     toggleGroup: {
         display: 'flex',
         gap: '8px',
-        background: FB_DARK.card,
-        borderRadius: '8px',
-        padding: '4px',
+        background: '#030d16',
+        border: `1px solid ${SD_THEME.border}`,
+        borderRadius: '12px',
+        padding: '5px',
     },
     toggleButton: {
         flex: 1,
-        padding: '10px 16px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '6px',
-        color: FB_DARK.textSecondary,
+        minHeight: '44px',
+        padding: '8px 14px',
+        background: `${CHROME_FACE} padding-box, ${CHROME_RIM} border-box`,
+        border: '2px solid transparent',
+        borderRadius: '9px',
+        color: SD_THEME.textPrimary,
         fontSize: '14px',
-        fontWeight: '600',
+        fontWeight: '700',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
     },
     toggleButtonActive: {
-        background: FB_DARK.accent,
-        color: '#fff',
+        background: `${CHROME_BLUE} padding-box, ${CHROME_RIM} border-box`,
+        color: '#ffffff',
+        boxShadow: 'inset 0 1px 2px #b9efff, 0 0 12px rgba(6, 115, 199, 0.3)',
     },
     // Toggle Switch Styles (with proper knob)
     switchContainer: {
@@ -309,28 +330,30 @@ const styles = {
         width: '52px',
         height: '28px',
         borderRadius: '14px',
+        border: '1px solid #688299',
         transition: 'background-color 0.2s ease',
         position: 'relative',
     },
     switchKnob: {
         position: 'absolute',
         top: '2px',
-        width: '24px',
-        height: '24px',
-        background: '#fff',
+        width: '22px',
+        height: '22px',
+        background: '#f3f7fb',
         borderRadius: '50%',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
         transition: 'transform 0.2s ease',
     },
     infoBox: {
-        marginTop: '24px',
-        padding: '16px',
-        background: FB_DARK.card,
-        borderRadius: '8px',
-        borderLeft: `3px solid ${FB_DARK.accent}`,
+        marginTop: '22px',
+        padding: '14px 16px',
+        background: SD_THEME.card,
+        border: `1px solid ${SD_THEME.border}`,
+        borderLeft: `3px solid ${SD_THEME.ice}`,
+        borderRadius: '10px',
     },
     infoText: {
-        color: FB_DARK.textSecondary,
+        color: SD_THEME.textSecondary,
         fontSize: '13px',
         lineHeight: '1.5',
         margin: '0 0 6px 0',
