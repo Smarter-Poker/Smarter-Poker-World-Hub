@@ -373,5 +373,5 @@ test('4. [studyPlanExport, CoachingWorkspace & CSS] PII-redacted buildStudyPlanJ
   const css = read('src/components/personal-assistant/CoachingWorkspace.module.css');
   assert.match(css, /@media print\s*\{[\s\S]*background:\s*#ffffff/);
   assert.match(css, /@media print\s*\{[\s\S]*color:\s*#111827/);
-  assert.match(css, /@media print\s*\{[\s\S]*\.viewNav[\s\S]*\.exportTray[\s\S]*display:\s*none !important/);
+  assert.match(css, /@media print\s*\{[\s\S]*\.viewNav[\s\S]*\.exportTray[\s\S]*visibility:\s*hidden !important[\s\S]*height:\s*0 !important/);
 });
