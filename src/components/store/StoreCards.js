@@ -10,7 +10,7 @@ import styles from './VipMembershipCard.module.css';
    keyboard and could not have been wired up as they stood. Removed rather
    than left as a trap for whoever reached for them next. */
 
-export function VIPCard({ plan, isSelected, onSelect }) {
+export function VIPCard({ plan, isSelected, onSelect, introOffer = false }) {
   /* 2026-09-05: every VIP term is priced in USD now, so the `isDiamondCost`
      branch this carried for the retired Daily Pass is gone. Lifetime has no
      billing period, and rendering "/lifetime" after a price reads as a rate;
@@ -21,13 +21,19 @@ export function VIPCard({ plan, isSelected, onSelect }) {
   const spokenTerm = lifetime
     ? 'One Payment, Never Expires'
     : `Per ${marketplaceCopy(plan.interval)}`;
+  /* $1 first month (Dan, 2026-11-26): monthly Card subscription only. The
+     caller decides whether it applies to this viewer; the card only words it. */
+  const intro = introOffer === true && plan.interval === 'month';
+  const regularPrice = `$${formatStoreUsd(Number(plan.price) || 0)}`;
   return (
     <button
       type="button"
       className={`${styles.vipCard} ${isSelected ? styles.vipCardSelected : ''}`}
       onClick={() => onSelect(plan.id)}
       aria-pressed={isSelected}
-      aria-label={`Select ${marketplaceCopy(plan.name)}, $${formatStoreUsd(Number(plan.price) || 0)} ${spokenTerm}`}
+      aria-label={intro
+        ? `Select ${marketplaceCopy(plan.name)}, $1 First Month, Then ${regularPrice} Per Month`
+        : `Select ${marketplaceCopy(plan.name)}, ${regularPrice} ${spokenTerm}`}
     >
       <span className={styles.vipCardCrown} aria-hidden="true">
         <svg viewBox="0 0 64 52" fill="none"><path d="M8 14L20 25L32 5L44 25L56 14L50 42H14L8 14Z" stroke="currentColor" strokeWidth="2"/><path d="M16 46H48M18 36H46" stroke="currentColor" strokeWidth="2"/><path d="M28 28L32 23L36 28L32 33L28 28Z" fill="#45adff"/></svg>
@@ -35,13 +41,13 @@ export function VIPCard({ plan, isSelected, onSelect }) {
       <span className={styles.vipCardReadout}>
         <span className={styles.vipPlanName}>{marketplaceCopy(plan.name)}</span>
         <span className={styles.vipPriceRow}>
-          <strong>${formatStoreUsd(Number(plan.price) || 0)}</strong>
-          <span>{term}</span>
+          <strong>{intro ? '$1' : regularPrice}</strong>
+          <span>{intro ? 'First Month' : term}</span>
         </span>
         <span className={styles.vipDiamondPrice}>
           {Math.round((Number(plan.price) || 0) * 100).toLocaleString()} Diamonds
         </span>
-        <span className={styles.vipPlanDetail}>{lifetime ? 'Never Expires' : plan.interval === 'year' ? 'A Full Year Of VIP' : 'Flexible Monthly Access'}</span>
+        <span className={styles.vipPlanDetail}>{lifetime ? 'Never Expires' : plan.interval === 'year' ? 'A Full Year Of VIP' : intro ? `Then ${regularPrice}/Month. Cancel Anytime.` : 'Flexible Monthly Access'}</span>
       </span>
       <span className={styles.vipSelection} aria-hidden="true">{isSelected ? 'Selected' : 'Select Plan'}</span>
     </button>

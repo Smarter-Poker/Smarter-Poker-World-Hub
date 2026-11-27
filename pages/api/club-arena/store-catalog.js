@@ -28,6 +28,7 @@
  */
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { vipIntroOfferPublicTerms } from '../../../src/lib/store/vipIntroOffer.mjs';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import {
@@ -221,6 +222,10 @@ export default async function handler(req, res) {
       })),
       diamondCatalogSource: diamondCatalog.source,
       vipPlans: VIP_PLANS,
+      /* $1 first month for a first-time monthly Card subscriber. Public terms
+         only: whether THIS account qualifies comes from the authenticated
+         /api/store/vip-membership-status, and Checkout decides again. */
+      vipIntroOffer: vipIntroOfferPublicTerms(),
       shopCategories: SHOP_CATEGORIES,
       diamondsPerDollar: DIAMONDS_PER_DOLLAR,
       warnings,

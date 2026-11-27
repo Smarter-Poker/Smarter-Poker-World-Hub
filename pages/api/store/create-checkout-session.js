@@ -13,6 +13,13 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 import { vipStripePriceMismatch } from '../../../src/lib/store/vipStripePrice.mjs';
 import {
+  VIP_INTRO_OFFER,
+  vipIntroCouponMismatch,
+  vipIntroCouponParams,
+  vipIntroOfferAppliesToPlan,
+} from '../../../src/lib/store/vipIntroOffer.mjs';
+import { readVipIntroEligibility } from '../../../src/lib/store/vipIntroEligibility';
+import {
   BLOCKING_RECURRING_VIP_STATUSES,
   STRIPE_VIP_AUTHORITY,
   classifyStripeCheckoutSessionForVip,
@@ -162,6 +169,34 @@ const VIP_SUBSCRIPTION_PLANS = {
        an idempotent settlement, and it is being done as its own change. Until
        then the storefront must not offer a card button for lifetime. */
 };
+
+/**
+ * Return the verified one-time Stripe coupon that turns the first $20 monthly
+ * invoice into $1, creating it when this Stripe account does not have it yet.
+ * Returns null when the coupon exists but is not exactly that reduction: a
+ * coupon somebody edited must stop the sale rather than change the price.
+ */
+async function ensureVipIntroCoupon() {
+  let coupon = null;
+  try {
+    coupon = await stripe.coupons.retrieve(VIP_INTRO_OFFER.couponId);
+  } catch (error) {
+    if (error?.code !== 'resource_missing' && error?.statusCode !== 404) throw error;
+    try {
+      coupon = await stripe.coupons.create(vipIntroCouponParams());
+    } catch (createError) {
+      // Two first checkouts can race to create it. The loser reads the winner's.
+      if (createError?.code !== 'resource_already_exists') throw createError;
+      coupon = await stripe.coupons.retrieve(VIP_INTRO_OFFER.couponId);
+    }
+  }
+  const mismatch = vipIntroCouponMismatch(coupon);
+  if (mismatch) {
+    console.warn('[Checkout] VIP first-month coupon failed verification:', mismatch);
+    return null;
+  }
+  return coupon;
+}
 
 /**
  * Resolve a client plan key ('monthly' | 'yearly', with an optional 'vip-'
@@ -359,24 +394,38 @@ function isCheckoutOfferConfirmationShape(type, offer) {
   }
 
   if (type === 'subscription') {
+    /* `introCents` is present only when the $1 first month applies (see
+       src/lib/store/vipIntroOffer.mjs). It is the amount due today;
+       `unitCents` stays the price of every renewal. An offer without the key
+       is the regular price, so the two can never be confused for each other. */
+    const subscriptionOfferKeys = [
+      'version',
+      'accountId',
+      'type',
+      'currency',
+      'plan',
+      'interval',
+      'quantity',
+      'unitCents',
+      'totalCents',
+    ];
+    const hasIntro = Object.prototype.hasOwnProperty.call(offer, 'introCents');
     return (
-      hasExactObjectKeys(offer, [
-        'version',
-        'accountId',
-        'type',
-        'currency',
-        'plan',
-        'interval',
-        'quantity',
-        'unitCents',
-        'totalCents',
-      ]) &&
+      hasExactObjectKeys(
+        offer,
+        hasIntro ? [...subscriptionOfferKeys, 'introCents'] : subscriptionOfferKeys
+      ) &&
       ['monthly', 'yearly'].includes(offer.plan) &&
       offer.interval === (offer.plan === 'monthly' ? 'month' : 'year') &&
       offer.quantity === 1 &&
       Number.isSafeInteger(offer.unitCents) &&
       offer.unitCents > 0 &&
-      offer.totalCents === offer.unitCents
+      (hasIntro
+        ? offer.plan === VIP_INTRO_OFFER.plan &&
+          offer.introCents === VIP_INTRO_OFFER.firstPeriodCents &&
+          offer.unitCents === VIP_INTRO_OFFER.regularCents &&
+          offer.totalCents === offer.introCents
+        : offer.totalCents === offer.unitCents)
     );
   }
 
@@ -527,6 +576,10 @@ function buildCheckoutOffer(type, preparedCheckout, accountId) {
       unitCents: plan.unitAmount,
       totalCents: plan.unitAmount,
     };
+    if (preparedCheckout?.intro) {
+      offer.introCents = preparedCheckout.intro.firstPeriodCents;
+      offer.totalCents = preparedCheckout.intro.firstPeriodCents;
+    }
     return isCheckoutOfferConfirmationShape(type, offer) ? offer : null;
   }
 
@@ -591,6 +644,11 @@ function computeCheckoutIntentHash(type, preparedCheckout, redemptionIntent = nu
       plan: preparedCheckout.plan.key,
       unitAmount: preparedCheckout.plan.unitAmount,
       interval: preparedCheckout.plan.interval,
+      // Present only for the $1 first month, so a regular-price intent hashes
+      // exactly as it did before the offer existed.
+      ...(preparedCheckout.intro
+        ? { introCents: preparedCheckout.intro.firstPeriodCents }
+        : {}),
     };
   } else if (type === 'vip_lifetime') {
     // No interval: a lifetime term is a price, not a rate.
@@ -1786,6 +1844,68 @@ export default async function handler(req, res) {
         }
         throw inputError;
       }
+      /* THE $1 FIRST MONTH (Dan, 2026-11-26). Decided here, on the server,
+         before the offer is built: the offer the member confirmed must name
+         the same amount due today that Stripe will charge. Eligibility that
+         cannot be read is unknown, and unknown stops the checkout - it never
+         falls through to either price. */
+      if (type === 'subscription' && vipIntroOfferAppliesToPlan(preparedCheckout.plan)) {
+        const introEligible = await readVipIntroEligibility(getSupabase(), user.id);
+        if (introEligible === null) {
+          return res.status(503).json({
+            success: false,
+            retryable: true,
+            error: {
+              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+              message: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+            },
+          });
+        }
+        if (introEligible) {
+          const introCoupon = await ensureVipIntroCoupon();
+          if (!introCoupon) {
+            return res.status(503).json({
+              success: false,
+              error: {
+                code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
+                message: 'VIP subscriptions are not available right now. Please contact support.',
+              },
+            });
+          }
+          preparedCheckout.intro = {
+            firstPeriodCents: VIP_INTRO_OFFER.firstPeriodCents,
+            couponId: introCoupon.id,
+          };
+          if (
+            rawOfferConfirmation &&
+            !Object.prototype.hasOwnProperty.call(rawOfferConfirmation, 'introCents')
+          ) {
+            /* A page loaded before the offer existed still confirms $20. It is
+               never charged $20 here: every first month is $1, so the member
+               is told to reload and confirm the price they are owed. */
+            return res.status(409).json({
+              success: false,
+              error: {
+                code: 'VIP_INTRO_OFFER_AVAILABLE',
+                message:
+                  'Your First VIP Month Is $1, Then $20/Month. Refresh This Page To Review The Current Offer And Confirm Again.',
+              },
+            });
+          }
+        } else if (
+          rawOfferConfirmation &&
+          Object.prototype.hasOwnProperty.call(rawOfferConfirmation, 'introCents')
+        ) {
+          return res.status(409).json({
+            success: false,
+            error: {
+              code: 'VIP_INTRO_OFFER_USED',
+              message:
+                'The $1 First Month Is For First-Time Subscribers. VIP Monthly Is $20/Month For This Account. Review And Confirm Again.',
+            },
+          });
+        }
+      }
       let checkoutOffer = buildCheckoutOffer(type, preparedCheckout, user.id);
       if (!checkoutOffer) {
         return res.status(503).json({
@@ -2556,6 +2676,15 @@ export default async function handler(req, res) {
           ];
         }
 
+        if (preparedCheckout.intro) {
+          /* The regular recurring price above is untouched. A one-time coupon
+             takes the FIRST invoice to $1; every renewal bills the full price
+             with no further action, and the subscription the webhook verifies
+             is the ordinary monthly one. */
+          sessionConfig.discounts = [{ coupon: preparedCheckout.intro.couponId }];
+          sessionConfig.metadata.vip_intro_offer = VIP_INTRO_OFFER.metadataValue;
+        }
+
         sessionConfig.metadata.vip_tier = vipTier;
         // Propagate metadata onto the subscription object itself so renewal
         // webhooks (customer.subscription.updated) can see the tier: session
@@ -2567,6 +2696,9 @@ export default async function handler(req, res) {
             vip_tier: vipTier,
             checkout_request_id: checkoutRequestId,
             checkout_intent_hash: checkoutIntentHash,
+            ...(preparedCheckout.intro
+              ? { vip_intro_offer: VIP_INTRO_OFFER.metadataValue }
+              : {}),
           },
         };
       } else if (type === 'vip_lifetime') {

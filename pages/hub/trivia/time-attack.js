@@ -588,7 +588,7 @@ export default function TimeAttackPage() {
                                 >
                                     <h2 id="time-attack-diamonds-title">Not Enough Diamonds</h2>
                                     <p>
-                                        Each Game Costs 10 Diamonds. Get More Diamonds Or Upgrade To VIP For Unlimited Access.
+                                        Each Game Costs 10 Diamonds. Get More Diamonds Or Upgrade To VIP For Unlimited Access. New Subscribers: $1 First Month, Then $20/Month. Cancel Anytime.
                                     </p>
                                 </section>
                             )}

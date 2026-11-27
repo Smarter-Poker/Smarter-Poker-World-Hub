@@ -76,6 +76,12 @@ export default function VipComparePage() {
                 <strong>{diamondCost.toLocaleString()} Diamonds</strong>
                 {cardReady ? '.' : ' With The Atomic Diamond Settlement Path.'}
               </p>
+              {plan.interval === 'month' ? (
+                <p>
+                  <strong>New Subscribers: $1 First Month</strong> By Card, Then ${cardEquivalent}
+                  /Month. Cancel Anytime.
+                </p>
+              ) : null}
               <ul>
                 <li>
                   {lifetime

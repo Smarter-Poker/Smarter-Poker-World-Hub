@@ -11,6 +11,8 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
+import { vipIntroOfferPublicTerms } from '../../../src/lib/store/vipIntroOffer.mjs';
+import { readVipIntroEligibility } from '../../../src/lib/store/vipIntroEligibility';
 
 let _supabase = null;
 function getSupabase() {
@@ -85,8 +87,16 @@ export default async function handler(req, res) {
     const tier = isLifetime ? 'lifetime' : subscription?.tier || profile?.vip_tier || null;
     const cancelAtPeriodEnd = Boolean(subscription?.cancel_at_period_end);
 
+    /* The $1 first month, for THIS account. `eligible` is null when it could
+       not be read: a display must then show the regular price, and Checkout
+       re-decides it on the server either way. */
+    const introEligible = isLifetime
+      ? false
+      : await readVipIntroEligibility(getSupabase(), user.id);
+
     return res.status(200).json({
       success: true,
+      introOffer: { ...vipIntroOfferPublicTerms(), eligible: introEligible },
       membership: {
         isVip: entitlementIsActive(profile),
         tier,
