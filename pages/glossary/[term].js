@@ -257,7 +257,7 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
             <SmarterAccountUnlockGate
               variant="study-deck"
               context="glossary-term"
-              redirectPath={termPath(entry.slug)}
+              redirectPath={`${GLOSSARY_PATH}/${term.slug}`}
             />
           </div>
 
