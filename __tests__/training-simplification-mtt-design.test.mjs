@@ -1469,9 +1469,10 @@ test('Phase 24 optimizations & enhancements: Horse Brain LRU cache, demand-drive
 test('Phase 25: mobile action-state table geometry floor, synchronous Practice Again reset, and GTOQuestionCard hotkeys', () => {
   const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
   assert.ok(
-    udtSrc.includes('.gto-trainer-container .sp-club-gto-table-area,') &&
-      udtSrc.includes("min-height: min(397px, 102vw) !important;"),
-    'UniversalDynamicTable must preserve full phone-scale min-height on .sp-club-gto-table-area in both action and verdict states on mobile viewports',
+    udtSrc.includes('.gto-trainer-container .sp-club-gto-table-area {') &&
+      udtSrc.includes('min-height: 220px !important;') &&
+      udtSrc.includes("flexWrap: isMobile ? 'nowrap' : 'wrap'"),
+    'UniversalDynamicTable must preserve mobile action-state table min-height and keep mobile telemetry strip single-line scrollable',
   );
   assert.ok(
     udtSrc.includes('aria-pressed={customizeOpen}') &&
@@ -1483,8 +1484,8 @@ test('Phase 25: mobile action-state table geometry floor, synchronous Practice A
   const retryIdx = hookSrc.indexOf('if (options && typeof options === \'object\' && options.retry === true)');
   const awaitPersistIdx = hookSrc.indexOf('? await persistPendingAnswer(pendingPersistence)');
   assert.ok(
-    retryIdx > 0 && awaitPersistIdx > retryIdx,
-    'useGTOTrainer nextQuestion({ retry: true }) must synchronously reset showFeedback before awaiting network answer persistence',
+    retryIdx > 0 && awaitPersistIdx > retryIdx && hookSrc.includes('retryCountAtSubmit: Number(publicQuestion?._retryCount) || 0'),
+    'useGTOTrainer nextQuestion({ retry: true }) must synchronously reset showFeedback and preserve _retryCount across in-flight answer persistence',
   );
 
   const cardSrc = read('src/components/training/GTOQuestionCard.jsx');
