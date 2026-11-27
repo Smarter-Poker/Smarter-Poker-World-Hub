@@ -73,11 +73,11 @@ export function VipMasthead({
  * The price readout. `amount` is the figure, `unit` what it buys, `note` the
  * terms under it. `tag` is the small label above (the new member offer).
  */
-export function VipPricePlate({ amount, unit, note, tag, verify, compact = false, state, className = '' }) {
+export function VipPricePlate({ amount, unit, note, tag, verify, compact = false, uniform = false, state, className = '' }) {
   return (
     <div className={cx(styles.kit, styles.price, compact && styles.priceCompact, className)} data-vip-intro-state={state}>
       {tag && <span className={styles.offerTag}>{tag}</span>}
-      <div className={styles.amountRow}>
+      <div className={cx(styles.amountRow, uniform && styles.amountUniform)}>
         <strong className={styles.amount}>{amount}</strong>
         <span className={styles.unit}>{unit}</span>
       </div>
@@ -92,7 +92,7 @@ const VERIFY_LINE = 'Verify Your Email Or Phone To Unlock The $1 First Month';
 /** Plate props for one of the three monthly price answers. */
 export function vipIntroPlateProps(state) {
   if (state === 'intro') {
-    return { amount: '$1', unit: 'First Month', note: 'Then $20/Month. Cancel Anytime.', tag: 'New Member Offer' };
+    return { amount: '$1', unit: 'First Month', note: 'Then $20/Month. Cancel Anytime.', tag: 'New Member Offer', uniform: true };
   }
   if (state === 'verify') {
     return { amount: '$20', unit: '/Month', note: 'Cancel Anytime.', verify: VERIFY_LINE };
@@ -198,7 +198,7 @@ export function VipPhoneOfferBody({ offer, onSkip, onVerify, returnPath, compact
     <>
       <div className={cx(styles.kit, styles.price, compact && styles.priceCompact)} data-vip-phone-offer-plate="">
         <span className={styles.offerTag}>{words.tag}</span>
-        <div className={styles.amountRow}>
+        <div className={cx(styles.amountRow, styles.amountUniform)}>
           <strong className={styles.amount}>{words.amount}</strong>
           <span className={styles.unit}>{words.unit}</span>
         </div>
@@ -223,7 +223,7 @@ export function VipPhoneOfferStep({ offer, onSkip, onVerify, returnPath, heading
   const words = phoneOfferCopy(offer || {});
   return (
     <section className={cx(styles.kit, styles.frame, styles.prompt, className)} data-vip-phone-offer-step="">
-      <div className={styles.promptHead}>
+      <div className={cx(styles.promptHead, styles.promptHeadStacked)}>
         <VipSeal />
         <div>
           <Heading className={styles.promptTitle}>{words.title}</Heading>
@@ -287,7 +287,7 @@ export function VipUpgradePrompt({
   }
   return (
     <section className={cx(styles.kit, styles.frame, styles.prompt, className)} data-vip-upgrade-prompt="">
-      <div className={styles.promptHead}>
+      <div className={cx(styles.promptHead, styles.promptHeadStacked)}>
         <VipSeal />
         <div>
           <Heading className={styles.promptTitle}>{title}</Heading>

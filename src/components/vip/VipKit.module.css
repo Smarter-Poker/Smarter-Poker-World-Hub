@@ -250,6 +250,26 @@
   font: 600 13px/1.4 var(--vk-body);
   text-wrap: balance;
 }
+/* One size for the whole offer line ("Free First Month", "$1 First Month"). */
+.amountUniform {
+  gap: 0 0.28em;
+}
+.amountUniform .amount,
+.amountUniform .unit,
+.priceCompact .amountUniform .amount,
+.priceCompact .amountUniform .unit {
+  color: #fff;
+  font: 800 clamp(28px, 8.4vw, 40px) / 1 var(--vk-type);
+  letter-spacing: -0.01em;
+  text-shadow:
+    0 1px 0 #d4e8f8,
+    0 2px 0 #86a2ba,
+    0 3px 0 #3f5870,
+    0 5px 9px #000,
+    0 0 24px rgb(47 157 255 / 55%);
+  white-space: nowrap;
+}
+
 .priceCompact {
   padding: 13px 12px 12px;
   gap: 6px;
@@ -350,6 +370,19 @@
   gap: 12px;
   text-align: left;
 }
+/* Crown centred on top, the title on one line under it. */
+.promptHeadStacked {
+  --vk-seal: 64px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.promptHeadStacked .promptTitle {
+  font-size: clamp(18px, 5.9vw, 24px);
+  white-space: nowrap;
+}
+
 .promptTitle {
   margin: 0;
   color: var(--vk-text);
@@ -404,11 +437,13 @@
   isolation: isolate;
   position: relative;
   display: grid;
-  grid-template-columns: var(--vk-seal) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   min-height: 92px;
-  padding: 12px 56px 12px 12px;
+  padding: 12px 44px 12px;
+  text-align: center;
   overflow: hidden;
   border-bottom: 1px solid var(--vk-line);
   background: radial-gradient(ellipse at 18% 110%, #23466f 0, #0f2338 42%, #06111d 82%);
@@ -416,8 +451,9 @@
 .dialogTitle {
   margin: 0;
   color: #f3f7fc;
-  font: italic 800 clamp(1.5rem, 6.4vw, 2rem) / 1.04 var(--vk-type);
+  font: italic 800 clamp(19px, 5.4vw, 28px) / 1.04 var(--vk-type);
   letter-spacing: -0.01em;
+  white-space: nowrap;
   text-shadow:
     0 2px 3px #020911,
     0 0 8px #061321;
