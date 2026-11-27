@@ -682,7 +682,7 @@ function formatDateRange(startDate, endDate) {
 function PlayerRatingDisplay({ avgRating, totalReviews, trustScore }) {
   const displayRating = totalReviews > 0 ? avgRating : (trustScore || 0);
   const displayLabel = totalReviews > 0 ? 'Player Rating' : 'Trust Score';
-  const ratingColor = displayRating >= 4 ? '#22c55e' : displayRating >= 3 ? '#d4a853' : displayRating >= 2 ? '#f59e0b' : '#ef4444';
+  const ratingColor = displayRating >= 4 ? '#22c55e' : displayRating >= 3 ? '#38bdf8' : displayRating >= 2 ? '#cbd5e1' : '#ef4444';
   const stars = [1, 2, 3, 4, 5];
   return (
     <div className="player-rating-display">
@@ -745,11 +745,11 @@ function PlayerRatingDisplay({ avgRating, totalReviews, trustScore }) {
 function VenueTypeBadge({ type }) {
   const label = VENUE_TYPE_LABELS[type] || type || 'Venue';
   const colorMap = {
-    casino: { bg: 'rgba(255, 255, 255, 0.15)', border: '#ffffff', text: '#ffffff' },
-    card_room: { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#3b82f6' },
-    poker_club: { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#8b5cf6' },
-    home_game: { bg: 'rgba(212, 168, 83, 0.15)', border: '#d4a853', text: '#d4a853' },
-    charity: { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#ec4899' },
+    casino: { bg: 'rgba(255, 255, 255, 0.12)', border: 'rgba(148, 184, 224, 0.45)', text: '#ffffff' },
+    card_room: { bg: 'rgba(56, 189, 248, 0.14)', border: 'rgba(56, 189, 248, 0.5)', text: '#38bdf8' },
+    poker_club: { bg: 'rgba(56, 189, 248, 0.14)', border: 'rgba(56, 189, 248, 0.5)', text: '#7dd3fc' },
+    home_game: { bg: 'rgba(148, 184, 224, 0.14)', border: 'rgba(148, 184, 224, 0.45)', text: '#e2e8f0' },
+    charity: { bg: 'rgba(56, 189, 248, 0.14)', border: 'rgba(56, 189, 248, 0.5)', text: '#38bdf8' },
   };
   const colors = colorMap[type] || { bg: 'rgba(255,255,255,0.1)', border: '#6b7280', text: '#9ca3af' };
 
@@ -3632,9 +3632,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                       onClick={() => guardAction(() => {})}
                       className="peak-analytics-upgrade"
                       style={{
-                        background: 'linear-gradient(90deg, #d4a853, #b8860b)',
-                        color: '#000', border: 'none', borderRadius: 8, padding: '10px 20px',
-                        fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 15px rgba(212, 168, 83, 0.4)'
+                        background: 'linear-gradient(90deg, #2563eb, #1d4ed8)',
+                        color: '#ffffff', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: 8, padding: '10px 20px',
+                        fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 15px rgba(37, 99, 235, 0.35)'
                       }}
                     >
                       Unlock Peak Analytics
@@ -3962,7 +3962,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .game-schedule-game-name {
           font-size: 14px;
           font-weight: 700;
-          color: #d4a853;
+          color: #38bdf8;
           white-space: nowrap;
         }
         .game-schedule-time {

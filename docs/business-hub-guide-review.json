@@ -1,12 +1,12 @@
 {
-  "reviewedAt": "2026-11-26",
+  "reviewedAt": "2026-11-27",
   "guideVersion": "2026-11-11.1",
   "inputs": {
     "pages/terms.js": "8fe0d3b12df3616c3bdc66211efeb2e6140076f2fb4d66dbb49b04c57b65a1cf",
     "pages/legal/official-rules.js": "4173d038cf68fb2a9ac806c15011ad1dcfe65122c9bf0ee57865b600484b9c5f",
     "src/components/landing/LandingProductSummary.js": "46e33b8b4e12ce9155345f93b776fa27793288b880ace22f931470040f745a53",
     "src/lib/businessHubGuide.mjs": "af62def60de12b17475ebcf0e1d8f5c2cb28888e10f047876c69accc1ba2a7ef",
-    "pages/about.js": "c4c6fc46be70b5920504023f25495d9915a5de21fd0ae31cfe60075e2adf924c",
+    "pages/about.js": "2b9fdc7055e4eafd17adfe8cabc0b2f4a4dc4a465a3f9d41b617be0f8f3a80d2",
     "src/lib/businessHubJourney.mjs": "8adb19909591e0fdeee08d744e61287f28ff6cd42d0d104010f36da5a9b6b174",
     "pages/hub/commander/index.js": "7157da8adece8f9adc1a54b9b628308aa2c409e32f433eed70bcca0a56ac28b7",
     "pages/hub/bankroll-manager.js": "72849e06d4cfa80c3180b65ac457a913db98b97b6f5d4c1bcadeb5e37c97a48d",

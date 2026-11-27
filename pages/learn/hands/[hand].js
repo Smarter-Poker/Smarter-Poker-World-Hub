@@ -436,6 +436,7 @@ export default function StartingHandDetailPage({ hand }) {
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             6-Max 100BB GTO Opening Strategy By Position
           </h2>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
             <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
               Solver Raise-First-In (RFI) Action By Seat For {hand.code}
@@ -464,6 +465,7 @@ export default function StartingHandDetailPage({ hand }) {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section style={{ marginBottom: 32 }}>
@@ -482,6 +484,7 @@ export default function StartingHandDetailPage({ hand }) {
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Head-To-Head Preflop Equity Matchups
           </h2>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
             <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
               All-In Preflop Equity Benchmarks For {hand.code} Across Key Holdings
@@ -524,6 +527,7 @@ export default function StartingHandDetailPage({ hand }) {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section style={{ marginBottom: 32 }}>

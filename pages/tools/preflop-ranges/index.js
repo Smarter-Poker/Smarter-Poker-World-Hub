@@ -266,12 +266,12 @@ export default function PreflopRangeMatrixHub({
 
           {/* Position Selector Bar */}
           <div style={{
-            display: 'flex',
-            gap: 8,
-            overflowX: 'auto',
-            paddingBottom: 8,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+            gap: 6,
+            paddingBottom: 10,
             marginBottom: 20,
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            borderBottom: '1px solid rgba(148,184,224,0.2)',
           }}>
             {POSITIONS.map((p) => {
               const active = p.id === activePos;

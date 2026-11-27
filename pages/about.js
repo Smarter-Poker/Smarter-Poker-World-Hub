@@ -197,6 +197,67 @@ export default function AboutPage() {
             </Link>
           </p>
 
+          <aside
+            aria-label="Create Free Smarter.Poker Account"
+            style={{
+              margin: '28px 0',
+              padding: '22px 20px',
+              background: '#060d1a',
+              border: '1px solid rgba(148, 184, 224, 0.28)',
+              borderRadius: 12,
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#38bdf8', marginBottom: 6 }}>
+              Free Smarter.Poker Account
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', margin: '0 0 8px' }}>
+              Start Playing And Training Free On Smarter.Poker
+            </h2>
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: '0 0 16px' }}>
+              Join Free To Access 107 Interactive GTO Training Games, 715+ Verified Live Poker Rooms, Bankroll Tracking, And Private Poker Clubs.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <Link
+                href="/auth/signup?redirect=/hub&src=about"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 44,
+                  padding: '10px 20px',
+                  borderRadius: 8,
+                  background: 'linear-gradient(180deg, #0284c7 0%, #1d4ed8 100%)',
+                  border: '1px solid rgba(56, 189, 248, 0.5)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: 'none',
+                }}
+              >
+                Create Free Account
+              </Link>
+              <Link
+                href="/auth/login?redirect=/hub"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 44,
+                  padding: '10px 18px',
+                  borderRadius: 8,
+                  background: '#081121',
+                  border: '1px solid rgba(148, 184, 224, 0.28)',
+                  color: '#38bdf8',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: 'none',
+                }}
+              >
+                Sign In
+              </Link>
+            </div>
+          </aside>
+
           <FaqSection title="Frequently Asked Questions About Smarter.Poker" faqs={ABOUT_FAQS} />
 
           <p style={styles.compliance}>Free To Play. 18+. Diamonds And Chips Have No Cash Value.</p>
