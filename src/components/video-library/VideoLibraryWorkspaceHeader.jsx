@@ -97,7 +97,6 @@ export default function VideoLibraryWorkspaceHeader({
                         onClick={() => setHelpOpen(open => !open)}
                         data-page-help=""
                     >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img className={styles.helpIcon} src={VIDEO_LIBRARY_HELP_ICON} alt="" width={36} height={37} draggable={false} />
                     </button>
                 )}

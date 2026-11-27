@@ -27,7 +27,7 @@ export default function LiveNow({ channelId }) {
         return () => { generation.current += 1; clearTimeout(deadline); controller.abort(); };
     }, [channelId, key, retry]);
     const visible = state.key === key ? state : { loading: true, data: [] };
-    return <section className="vl-live-now" aria-label="Live Now">
+    return <section className="vl-live-now" aria-label="Live Now" data-tutorial="live">
         <div className="vl-live-heading"><h2>Live Now</h2><button type="button" disabled={visible.loading} onClick={() => setRetry(value => value + 1)}>Refresh Live Status</button></div>
         {visible.loading ? <p role="status">Checking Channel Live Status...</p> : visible.error ? <p role="alert">Live Status Is Temporarily Unavailable. Try Refreshing.</p> : <>
             {visible.data.length > 0 ? <div className="vl-live-grid">{visible.data.map(item => <article className="vl-live-card" key={item.videoId}>
@@ -36,7 +36,7 @@ export default function LiveNow({ channelId }) {
                 </a><Link className="vl-channel-link" href={channelPath(item.channelId)}>{item.channelName}</Link>
             </article>)}</div> : <p>No Verified Live Streams Right Now.</p>}
             {visible.unavailableChannels > 0 && <p className="vl-live-note">Live Status Could Not Be Confirmed For Some Channels.</p>}
-            <p className="vl-live-note">{channelId ? 'Channel Live Status' : 'Featured Channel Live Status'} Checked {new Date(visible.checkedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Live Videos Open On YouTube.</p>
+            <p className="vl-live-note">{channelId ? 'Channel Live Status' : 'Featured Channel Live Status'} Checked {new Date(visible.checkedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
         </>}
     </section>;
 }
