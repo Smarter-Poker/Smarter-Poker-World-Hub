@@ -123,13 +123,37 @@ const FullScreenPageOverlay = dynamic(
 const PanelSkeleton = ({ height = 240 }) => (
   <div className="pnm-skel" style={{ minHeight: height }} aria-hidden="true" />
 );
+// The first-paint card skeleton. It is also the loading placeholder of every
+// panel that takes over from it (the venue list and the daily list), so the
+// hand-off from "first data loading" to "panel chunk loading" or "panel not
+// mounted yet" never collapses the section. A collapse above the reader moves
+// the page under them: Chromium hides it with scroll anchoring, WebKit
+// (Safari) has none, so the document shrinks under a reader at the bottom of
+// the deep Series route, the scroll position clamps by about 2000px and the
+// fixed header is laid out off screen until the next frame.
+// Law: __tests__/poker-near-me-sections-never-collapse-above-the-reader.law.test.mjs
+const CardSkeletons = ({ count = 8 }) => (
+  <div className="card-grid" data-pnm-card-skeletons={count}>
+    {Array.from({ length: count }).map((_, i) => (
+      <div key={i} className="entity-card skeleton-card">
+        <div className="skel skel-header"></div>
+        <div className="skel skel-title"></div>
+        <div className="skel skel-text"></div>
+        <div className="skel skel-tags"></div>
+        <div className="skel skel-footer"></div>
+      </div>
+    ))}
+  </div>
+);
+const VENUE_SKELETON_CARDS = 8;
+const DAILY_SKELETON_CARDS = 4;
 const MapTabPanel = dynamic(() => import('../../../src/components/poker-near-me/MapTabPanel'), {
   ssr: false,
   loading: () => <PanelSkeleton height={360} />,
 });
 const VenuesTabPanel = dynamic(
   () => import('../../../src/components/poker-near-me/VenuesTabPanel'),
-  { ssr: false }
+  { ssr: false, loading: () => <CardSkeletons count={VENUE_SKELETON_CARDS} /> }
 );
 const ToursTabPanel = dynamic(() => import('../../../src/components/poker-near-me/ToursTabPanel'), {
   ssr: false,
@@ -141,7 +165,7 @@ const SeriesTabPanel = dynamic(
 );
 const DailyTournamentsTabPanel = dynamic(
   () => import('../../../src/components/poker-near-me/DailyTournamentsTabPanel'),
-  { ssr: false, loading: () => <PanelSkeleton /> }
+  { ssr: false, loading: () => <CardSkeletons count={DAILY_SKELETON_CARDS} /> }
 );
 const FavoritesTabPanel = dynamic(
   () => import('../../../src/components/poker-near-me/FavoritesTabPanel'),
@@ -3280,19 +3304,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   }, [clearPersistedLocation]);
 
   // Loading skeleton component
-  const renderSkeletons = (count = 8) => (
-    <div className="card-grid">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="entity-card skeleton-card">
-          <div className="skel skel-header"></div>
-          <div className="skel skel-title"></div>
-          <div className="skel skel-text"></div>
-          <div className="skel skel-tags"></div>
-          <div className="skel skel-footer"></div>
-        </div>
-      ))}
-    </div>
-  );
+  const renderSkeletons = (count = VENUE_SKELETON_CARDS) => <CardSkeletons count={count} />;
 
   // Render content based on active tab
 
@@ -3485,7 +3497,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         <p className="pnm-section__hint">Casinos, Card Rooms, Clubs And Home Games Sorted By Distance. Tap The Heart To Save One.</p>
       </PokerNearMePanelShell>
       <TabErrorBoundary>
-        {hasSearched && (venueLoading || firstPaintSkeleton) ? renderSkeletons(8) : venuesTabJsx}
+        {hasSearched && (venueLoading || firstPaintSkeleton) ? renderSkeletons(VENUE_SKELETON_CARDS) : venuesTabJsx}
       </TabErrorBoundary>
     </section>
   );
@@ -3528,9 +3540,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         </PokerNearMePanelShell>
         <TabErrorBoundary>
           {firstPaintSkeleton ? (
-            renderSkeletons(4)
+            renderSkeletons(DAILY_SKELETON_CARDS)
           ) : (
-            <LazyPanel>
+            <LazyPanel placeholder={<CardSkeletons count={DAILY_SKELETON_CARDS} />}>
               <DailyTournamentsTabPanel
                 dailyTournaments={dailyTournaments}
                 filters={filters}
