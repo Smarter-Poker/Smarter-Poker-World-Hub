@@ -1,0 +1,141 @@
+[
+ {
+  "id": "bm-dashboard",
+  "url": "/hub/bankroll-manager",
+  "headers": [
+   {
+    "title": "Bankroll Manager",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": false,
+    "anyBackOnPage": false
+   }
+  ],
+  "helpOpens": true,
+  "missing": []
+ },
+ {
+  "id": "bm-trips",
+  "url": "/hub/bankroll-manager?view=trips",
+  "headers": [
+   {
+    "title": "Trip Tracker",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": true,
+    "anyBackOnPage": true
+   }
+  ],
+  "helpOpens": true,
+  "missing": []
+ },
+ {
+  "id": "toke-shift",
+  "url": "/hub/toke-tracker/shift",
+  "headers": [
+   {
+    "title": "Shift Tracker",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": true,
+    "anyBackOnPage": true
+   },
+   {
+    "title": "Jarvis Dealer Reference",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 1.1,
+    "right": 1.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": false,
+    "anyBackOnPage": true
+   }
+  ],
+  "helpOpens": true,
+  "missing": []
+ },
+ {
+  "id": "bm-export",
+  "url": "/hub/bankroll-manager/export",
+  "headers": [
+   {
+    "title": "Export Data",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": true,
+    "anyBackOnPage": true
+   }
+  ],
+  "helpOpens": true,
+  "missing": []
+ },
+ {
+  "id": "poker-tools",
+  "url": "/hub/poker-tools",
+  "headers": [
+   {
+    "title": "Poker Odds Calculator",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": false,
+    "anyBackOnPage": false
+   }
+  ],
+  "helpOpens": true,
+  "missing": []
+ },
+ {
+  "id": "vip-compare",
+  "url": "/hub/vip-membership/compare",
+  "headers": [
+   {
+    "title": "Compare VIP Plans",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": false,
+    "anyBackOnPage": false
+   }
+  ],
+  "helpOpens": null,
+  "missing": []
+ }
+]

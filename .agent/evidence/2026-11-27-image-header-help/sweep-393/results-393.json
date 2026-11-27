@@ -1,0 +1,86 @@
+[
+ {
+  "id": "equity",
+  "url": "/hub/training/equity-calculator",
+  "headers": [
+   {
+    "title": "Equity Calculator",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": false,
+    "anyBackOnPage": false
+   }
+  ],
+  "helpOpens": true,
+  "missing": []
+ },
+ {
+  "id": "vip-compare",
+  "url": "/hub/vip-membership/compare",
+  "headers": [
+   {
+    "title": "Compare VIP Plans",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": false,
+    "anyBackOnPage": false
+   }
+  ],
+  "helpOpens": null,
+  "missing": []
+ },
+ {
+  "id": "vip-manage",
+  "url": "/hub/vip-membership/manage",
+  "headers": [
+   {
+    "title": "VIP Command Center",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": false,
+    "anyBackOnPage": false
+   }
+  ],
+  "helpOpens": null,
+  "missing": []
+ },
+ {
+  "id": "store-vip",
+  "url": "/hub/diamond-store?tab=vip",
+  "headers": [
+   {
+    "title": "VIP Membership",
+    "help": true,
+    "icon": "/images/smarterdesign/header-help.webp",
+    "iconLoaded": true,
+    "top": 6.1,
+    "right": 6.5,
+    "size": 36,
+    "textQ": 0,
+    "backInside": false,
+    "backAbove": false,
+    "anyBackOnPage": false
+   }
+  ],
+  "helpOpens": null,
+  "missing": []
+ }
+]
