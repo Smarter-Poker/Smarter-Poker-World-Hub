@@ -6,9 +6,15 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { MapErrorBoundary } from './VenueMap';
 
-const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false });
+import { SkeletonCard } from './CardSkeletons';
+
+// Each card chunk loads behind the skeleton card it replaces, never behind
+// nothing: the list takes over from the first-paint skeleton, and a list of
+// empty slots collapsed the venue section above the reader (Safari has no
+// scroll anchoring to hide it). Law: poker-near-me-sections-never-collapse-above-the-reader.
+const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false, loading: () => <SkeletonCard /> });
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
-const RichTourCard = dynamic(() => import('./RichTourCard'), { ssr: false });
+const RichTourCard = dynamic(() => import('./RichTourCard'), { ssr: false, loading: () => <SkeletonCard /> });
 
 const RADIUS_TIERS = [50, 100, 150]; // max 150mi matches lobby + API caps
 const PAGE_SIZE = 20; // mirrors PAGE_SIZE in pages/hub/poker-near-me/[pnmTab].js

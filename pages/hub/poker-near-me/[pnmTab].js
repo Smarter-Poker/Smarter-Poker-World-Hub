@@ -116,10 +116,18 @@ const FullScreenPageOverlay = dynamic(
   { ssr: false }
 );
 
+import CardSkeletons, {
+  DAILY_SKELETON_CARDS,
+  VENUE_SKELETON_CARDS,
+} from '../../../src/components/poker-near-me/CardSkeletons';
+
 // Every panel is a dynamic chunk (code splitting) and the heavy ones (map,
 // live feed, tournaments, tours, series, calendar, the More tools) are also
 // wrapped in LazyPanel below so they mount when scrolled near, not on first
-// paint. Loading placeholders share the one .pnm-skel shimmer.
+// paint. Loading placeholders share the one .pnm-skel shimmer, except where
+// a panel takes over from the first-paint card skeleton: there the placeholder
+// is that same skeleton, so no hand-off collapses a section above the reader
+// (src/components/poker-near-me/CardSkeletons.jsx and its law).
 const PanelSkeleton = ({ height = 240 }) => (
   <div className="pnm-skel" style={{ minHeight: height }} aria-hidden="true" />
 );
@@ -129,7 +137,7 @@ const MapTabPanel = dynamic(() => import('../../../src/components/poker-near-me/
 });
 const VenuesTabPanel = dynamic(
   () => import('../../../src/components/poker-near-me/VenuesTabPanel'),
-  { ssr: false }
+  { ssr: false, loading: () => <CardSkeletons count={VENUE_SKELETON_CARDS} /> }
 );
 const ToursTabPanel = dynamic(() => import('../../../src/components/poker-near-me/ToursTabPanel'), {
   ssr: false,
@@ -141,7 +149,7 @@ const SeriesTabPanel = dynamic(
 );
 const DailyTournamentsTabPanel = dynamic(
   () => import('../../../src/components/poker-near-me/DailyTournamentsTabPanel'),
-  { ssr: false, loading: () => <PanelSkeleton /> }
+  { ssr: false, loading: () => <CardSkeletons count={DAILY_SKELETON_CARDS} /> }
 );
 const FavoritesTabPanel = dynamic(
   () => import('../../../src/components/poker-near-me/FavoritesTabPanel'),
@@ -3280,19 +3288,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   }, [clearPersistedLocation]);
 
   // Loading skeleton component
-  const renderSkeletons = (count = 8) => (
-    <div className="card-grid">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="entity-card skeleton-card">
-          <div className="skel skel-header"></div>
-          <div className="skel skel-title"></div>
-          <div className="skel skel-text"></div>
-          <div className="skel skel-tags"></div>
-          <div className="skel skel-footer"></div>
-        </div>
-      ))}
-    </div>
-  );
+  const renderSkeletons = (count = VENUE_SKELETON_CARDS) => <CardSkeletons count={count} />;
 
   // Render content based on active tab
 
@@ -3485,7 +3481,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         <p className="pnm-section__hint">Casinos, Card Rooms, Clubs And Home Games Sorted By Distance. Tap The Heart To Save One.</p>
       </PokerNearMePanelShell>
       <TabErrorBoundary>
-        {hasSearched && (venueLoading || firstPaintSkeleton) ? renderSkeletons(8) : venuesTabJsx}
+        {hasSearched && (venueLoading || firstPaintSkeleton) ? renderSkeletons(VENUE_SKELETON_CARDS) : venuesTabJsx}
       </TabErrorBoundary>
     </section>
   );
@@ -3528,9 +3524,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         </PokerNearMePanelShell>
         <TabErrorBoundary>
           {firstPaintSkeleton ? (
-            renderSkeletons(4)
+            renderSkeletons(DAILY_SKELETON_CARDS)
           ) : (
-            <LazyPanel>
+            <LazyPanel placeholder={<CardSkeletons count={DAILY_SKELETON_CARDS} />}>
               <DailyTournamentsTabPanel
                 dailyTournaments={dailyTournaments}
                 filters={filters}
