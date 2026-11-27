@@ -2852,8 +2852,16 @@ export default function useGTOTrainer(
         questionActivatedAtRef.current = Date.now();
         setCurrentQuestion((prev) => {
           const active = prev || baseQ;
+          const fallbackCorrect =
+            active?.correctAnswer ||
+            options?.retryQuestion?.correctAnswer ||
+            active?.scenario?.correctAnswer ||
+            active?.scenario?.brainEvaluation?.correctAnswer ||
+            active?.options?.[0]?.id ||
+            null;
           return {
             ...active,
+            ...(fallbackCorrect ? { correctAnswer: fallbackCorrect } : {}),
             _retryCount: (Number(active?._retryCount) || 0) + 1,
           };
         });
@@ -2862,15 +2870,7 @@ export default function useGTOTrainer(
       setFeedbackResult(null);
       setLastSelectedAction(null);
       if (pendingPersistence) {
-        Promise.resolve(persistPendingAnswer(pendingPersistence))
-          .then((res) => {
-            if (isTrainingLeaseActive(transitionLease) && res?.ok !== true) {
-              setAnswerSaveError(
-                res?.error || 'Your answer could not be saved. Check your connection, then retry.'
-              );
-            }
-          })
-          .catch(() => {});
+        await Promise.resolve(persistPendingAnswer(pendingPersistence)).catch(() => {});
       }
       return;
     }
