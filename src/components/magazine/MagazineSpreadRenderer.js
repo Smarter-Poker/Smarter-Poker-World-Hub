@@ -797,7 +797,13 @@ function StandingsTableLayout({ page, issueMeta, mode }) {
     const displayRows = rows.slice(0, 13);
     const isOpener = !page?.runIndex;
     const art = pagePicture(page, mode);
-    const kicker = isKings ? 'Kings Club 25450' : 'Player Of The Year';
+    // A page may carry its own kicker and column labels, so a real results
+    // board (a money list, a champions board) is never mislabeled as points.
+    const kicker = cleanText(page?.kicker) || (isKings ? 'Kings Club 25450' : 'Player Of The Year');
+    const labels = page?.standingsLabels && typeof page.standingsLabels === 'object' ? page.standingsLabels : {};
+    const rankLabel = cleanText(labels.rank) || 'Rank';
+    const playerLabel = cleanText(labels.player) || 'Player';
+    const valueLabel = cleanText(labels.value) || 'Points';
 
     return (
         <Frame page={page} issueMeta={issueMeta} mode={mode} section={kicker}>
@@ -815,9 +821,9 @@ function StandingsTableLayout({ page, issueMeta, mode }) {
                         </tr>
                     ) : (
                         <tr>
-                            <th>Rank</th>
-                            <th>Player</th>
-                            <th className="spm-num">Points</th>
+                            <th>{rankLabel}</th>
+                            <th>{playerLabel}</th>
+                            <th className="spm-num">{valueLabel}</th>
                         </tr>
                     )}
                 </thead>
@@ -839,7 +845,7 @@ function StandingsTableLayout({ page, issueMeta, mode }) {
                                 <td className="spm-rank">{r.rank || i + 1}</td>
                                 <td>
                                     <b>{cleanText(r.playerName || r.name)}</b>
-                                    {r.country ? <small>{cleanText(r.country)}</small> : null}
+                                    {r.detail || r.country ? <small>{cleanText(r.detail || r.country)}</small> : null}
                                 </td>
                                 <td className="spm-num">{Number(r.points) ? Number(r.points).toLocaleString('en-US') : cleanText(r.points)}</td>
                             </tr>
