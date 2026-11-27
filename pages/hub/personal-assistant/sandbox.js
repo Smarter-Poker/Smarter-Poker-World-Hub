@@ -1025,12 +1025,15 @@ export default function VirtualSandboxPage() {
   }, [replayIndex, actionHistory, potBase, heroStack, primaryVillain, communityCards]);
 
   const streetHistory = useMemo(() => {
+    const order = ['preflop', 'flop', 'turn', 'river'];
     const grouped = { preflop: [], flop: [], turn: [], river: [] };
-    actionHistory.forEach((a) => {
-      const key = (a?.street || 'preflop').toLowerCase();
-      if (grouped[key]) grouped[key].push(a);
+    actionHistory.forEach((a, idx) => {
+      const key = String(a?.street || 'preflop').toLowerCase();
+      if (grouped[key]) grouped[key].push({ ...a, index: idx });
     });
-    return grouped;
+    return order
+      .filter((key) => grouped[key].length > 0)
+      .map((key) => ({ street: key, actions: grouped[key] }));
   }, [actionHistory]);
 
   const preflopRangeGrid = useMemo(
@@ -1943,8 +1946,12 @@ export default function VirtualSandboxPage() {
 
                 <StreetTimeline
                   streetHistory={streetHistory}
-                  activeStreet={tableStreet}
-                  onSelectStreet={() => setReplayIndex(null)}
+                  activeStreet={Math.max(0, streetHistory.findIndex((s) => s.street === tableStreet))}
+                  onSelectStreet={(idx) => {
+                    const entry = streetHistory[idx];
+                    const lastAction = entry?.actions?.[entry.actions.length - 1];
+                    setReplayIndex(typeof lastAction?.index === 'number' ? lastAction.index : null);
+                  }}
                 />
 
                 {actionHistory.length > 0 && (
