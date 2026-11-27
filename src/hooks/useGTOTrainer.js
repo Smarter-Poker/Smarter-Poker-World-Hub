@@ -1823,8 +1823,22 @@ export default function useGTOTrainer(
           selectedAnswer: submission.selectedAnswer,
           scenario: revealedScenario,
           _gradingContext: publicQuestion._gradingContext,
+          _retryCount: Math.max(Number(publicQuestion?._retryCount) || 0, Number(entry?.retryCountAtSubmit) || 0),
         };
-        setCurrentQuestion(currentQuestion);
+        setCurrentQuestion((prev) => {
+          const activeRetryCount = Math.max(
+            Number(prev?._retryCount) || 0,
+            Number(publicQuestion?._retryCount) || 0,
+            Number(entry?.retryCountAtSubmit) || 0
+          );
+          if (activeRetryCount > (Number(entry?.retryCountAtSubmit) || 0)) {
+            return {
+              ...currentQuestion,
+              _retryCount: activeRetryCount,
+            };
+          }
+          return currentQuestion;
+        });
         const revealedStreet = String(revealedScenario.street || '').toLowerCase();
         const fullHandMode = (trainerConfig?.gameMode || 'full') === 'full';
         if (
@@ -2571,10 +2585,14 @@ export default function useGTOTrainer(
           // These four fields are the mandatory browser rendering of the
           // already-persisted server verdict. They remain explicit and gated
           // by manual Next even if every optional projection above fails.
-          setFeedbackResult(isCorrect ? 'correct' : 'wrong');
-          setExplanation(feedback.explanation || renderedExplanation);
-          setShowFeedback(true);
-          setLastSelectedAction(selectedOptionId);
+          // If the player already triggered Practice Again while persistence was
+          // settling, do not re-open the stale feedback modal over the active retry.
+          if (pendingAnswerPersistenceRef.current === entry) {
+            setFeedbackResult(isCorrect ? 'correct' : 'wrong');
+            setExplanation(feedback.explanation || renderedExplanation);
+            setShowFeedback(true);
+            setLastSelectedAction(selectedOptionId);
+          }
         }
       };
 
@@ -2585,6 +2603,7 @@ export default function useGTOTrainer(
       const entry = {
         lease: submissionLease,
         submission,
+        retryCountAtSubmit: Number(publicQuestion?._retryCount) || 0,
         promise: null,
         result: null,
         inFlight: false,
