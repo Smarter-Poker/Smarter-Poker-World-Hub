@@ -260,7 +260,6 @@ test('a failed renewal is one notice per invoice with the retry date Stripe gave
   assert.equal(notice.dedupeKey, 'vip_payment_failed:in_renewal');
   assert.ok(notice.email.text.includes('$20'));
   assert.ok(notice.email.text.includes(`The Card Will Be Tried Again On ${formatNoticeDate(PERIOD_END + 3 * 86400)}.`));
-  assert.ok(notice.email.text.includes('Update Payment Card'));
 
   const final = buildVipPaymentFailedNotice({
     subscription: introSubscription({ status: 'unpaid' }),
@@ -723,40 +722,19 @@ test('the card-update route refuses anything that could name another customer or
 });
 
 /* ------------------------------------------------------------------------
- * The manage page: one confirmation, consequences shown, reason captured.
+ * The manage page is held (owner order, 2026-11-27): nothing a member sees
+ * changes until the design is approved. The page must not call the card
+ * route or show the new cancel step yet, and no notice may promise a button
+ * the page does not have.
  * --------------------------------------------------------------------- */
-test('the cancel dialog shows what ends and when, and still takes exactly one confirmation', () => {
-  assert.match(manageSource, /Every VIP Benefit Stays On Through \{accessEndLabel\}\./);
-  assert.match(manageSource, /Your Card Is Not Charged Again\./);
-  assert.match(manageSource, /The \$1 First Month Is One Time Per\s+Account\./);
-  assert.equal((manageSource.match(/onClick=\{scheduleCancellation\}/g) || []).length, 1);
-  assert.equal((manageSource.match(/onClick=\{\(\) => setConfirmOpen\(true\)\}/g) || []).length, 1);
-  assert.match(manageSource, /Confirm End At Renewal/);
-  assert.ok(!/setTimeout\([^)]*scheduleCancellation/.test(manageSource), 'cancelling is never delayed');
-});
-
-test('the cancel reason and optional details reach the cancel route', () => {
-  assert.match(
-    manageSource,
-    /details \? \{ reason: cancelReason, reasonText: details \} : \{ reason: cancelReason \}/
-  );
-  assert.match(manageSource, /id="cancel-details"/);
-  assert.match(manageSource, /maxLength=\{CANCEL_DETAILS_MAX_LENGTH\}/);
-  assert.match(manageSource, /const CANCEL_DETAILS_MAX_LENGTH = 500;/);
-  for (const reason of ['not_using', 'too_expensive', 'missing_features', 'found_alternative', 'technical_issues', 'other']) {
-    assert.ok(manageSource.includes(`<option value="${reason}">`), reason);
-  }
-});
-
-test('the manage page states the yearly comparison truthfully and offers the card update', () => {
-  assert.match(
-    manageSource,
-    /\$200\/Year Is Two Months Free Versus Monthly\. After Your First Renewal You Can\s+Switch To Yearly\./
-  );
-  assert.equal(20 * 12 - 200, 2 * 20, 'two months free is arithmetic, not a slogan');
-  assert.match(manageSource, /authedFetch\('\/api\/store\/billing-portal'/);
-  assert.match(manageSource, /const BILLING_PORTAL_HOST = 'billing\.stripe\.com';/);
-  assert.match(manageSource, /window\.location\.assign\(url\)/);
-  assert.ok((manageSource.match(/Update Payment Card/g) || []).length >= 2);
-  assert.ok(!manageSource.includes('—'));
+test('the manage page carries no unapproved lifecycle surface and notices promise none', () => {
+  assert.ok(!manageSource.includes('billing-portal'));
+  assert.ok(!manageSource.includes('Update Payment Card'));
+  assert.ok(!manageSource.includes('cancel-details'));
+  assert.ok(!noticesSource.includes('Update Payment Card'));
+  const notice = buildVipPaymentFailedNotice({
+    subscription: introSubscription({ status: 'past_due' }), invoice: failedInvoice(), status: 'past_due',
+  });
+  assert.ok(notice.email.text.includes('support@smarter.poker'));
+  assert.ok(notice.email.text.includes('Open VIP Command Center: https://smarter.poker/hub/vip-membership/manage'));
 });

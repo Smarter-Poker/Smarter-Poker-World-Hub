@@ -298,58 +298,6 @@
     sans-serif;
 }
 
-.dialog textarea {
-  width: 100%;
-  min-height: 72px;
-  margin-top: 8px;
-  padding: 10px 16px;
-  border: 1px solid #456174;
-  background: #061019;
-  color: #effdff;
-  font:
-    600 14px/1.4 var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    Arial,
-    sans-serif;
-  resize: vertical;
-}
-
-/* What ending the membership means, stated before the member confirms. */
-.dialogList {
-  margin: 16px 0 0;
-  padding: 12px 14px 12px 30px;
-  border: 1px solid #456174;
-  background: #061019;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
-  color: #dcecf2;
-  font:
-    700 13px/1.5 var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    Arial,
-    sans-serif;
-}
-
-.dialogList li + li {
-  margin-top: 6px;
-}
-
-.dialogNote {
-  margin: 14px 0 0;
-  color: #c7d7de;
-  font:
-    600 13px/1.5 var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    Arial,
-    sans-serif;
-}
-
-.dialogNote a {
-  color: #8befff;
-}
-
 .dialogActions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -375,7 +323,7 @@
    store shell already carries `!important` on its own focus ring for this
    exact reason; these follow it so a keyboard user can see where they are. */
 .console :is(button, a, select):focus-visible,
-.dialog :is(button, select, textarea, a):focus-visible {
+.dialog :is(button, select):focus-visible {
   outline: 2px solid #8befff !important;
   outline-offset: 3px !important;
 }
