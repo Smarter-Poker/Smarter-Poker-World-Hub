@@ -27,6 +27,8 @@ function harness(ownerId = 'admin') {
         if (name.includes('authUtils')) return { getAccessToken: () => activeOwner ? `token-${activeOwner}` : null, getAuthUserId: () => activeOwner };
         if (name.includes('OwnerScope')) return { createVideoLibraryOwnerScope };
         if (name.includes('OwnerPanel.module')) return identity({});
+        // The shared chrome mast (Dan, 2026-11-27); its "?" help is not under test here.
+        if (name.includes('VideoLibraryWorkspaceHeader')) return identity(props => React.createElement('h1', null, props.title));
         if (name.includes('OwnerPanel.mjs')) return ownerPanel;
         throw new Error(`Unexpected Owner Panel Dependency: ${name}`);
     }, module, module.exports);

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
+import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { getVideoMetaLine } from '../../../../src/lib/videoLibraryCards';
 import { getVideoLibraryPlayer, matchesVideoPlayer, buildPlayerJsonLd } from '../../../../src/lib/videoLibraryPlayers.mjs';
@@ -29,6 +30,12 @@ export async function getServerSideProps({ params, res }) {
         return { props: { unavailable: true } };
     }
 }
+
+// Page explanations live behind the mast's chrome "?" (Dan, 2026-11-27).
+const PLAYER_HELP_STEPS = Object.freeze([
+    { id: 'player', title: 'Player Videos', body: 'Videos Whose Published Titles Or Tags Name This Player. A Mention Does Not Establish Participation Or Results.', target: 'player-identity' },
+    { id: 'videos', title: 'Load More', body: 'The Newest Matching Verified Videos. Load More Brings In The Next Set.', target: 'player-videos' },
+]);
 
 export default function VideoLibraryPlayerPage({ initial, unavailable }) {
     const player = initial?.player;
@@ -60,14 +67,15 @@ export default function VideoLibraryPlayerPage({ initial, unavailable }) {
         } catch (failure) { if (playerRef.current === id && requestRef.current === controller && (!controller.signal.aborted || timedOut)) setError(timedOut ? 'More Player Videos Took Too Long To Load. Try Again.' : failure.message || 'More Player Videos Could Not Load.'); }
         finally { clearTimeout(deadline); if (requestRef.current === controller) { requestRef.current = null; setLoading(false); } }
     };
-    if (unavailable || !player) return <><SEOHead title="Player Temporarily Unavailable" noindex /><div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}><div className="vl-empty-state"><h1>This Player Could Not Load Right Now</h1><p>The Video Catalog Did Not Answer. Try Again In A Minute.</p><Link href="/hub/video-library" className="vl-pill-button">Browse The Video Library</Link></div></HubPageShell></div></>;
+    if (unavailable || !player) return <><SEOHead title="Player Temporarily Unavailable" noindex /><div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}><div className="vl-console-page"><VideoLibraryWorkspaceHeader title="This Player Could Not Load Right Now" eyebrow="Poker Player" emblem="player" /><div className="vl-console-frame vl-empty-state"><p>The Video Catalog Did Not Answer. Try Again In A Minute.</p><Link href="/hub/video-library" className="vl-pill-button">Browse The Video Library</Link></div></div></HubPageShell></div></>;
     return <><SEOHead title={`${player.name} | Video Library`} description={`Browse Verified Catalog Videos Naming ${player.name} In Their Titles Or Tags.`} canonical={`https://smarter.poker${player.path}`} jsonLd={buildPlayerJsonLd(player, current?.data || [])} />
         <div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}>
-            <article className="vl-player-page" data-player-id={player.id}>
+            <article className="vl-player-page vl-console-page" data-player-id={player.id}>
                 <nav className="vl-breadcrumbs" aria-label="Breadcrumb"><Link href="/hub">World Hub</Link><span aria-hidden="true">/</span><Link href="/hub/video-library">Video Library</Link><span aria-hidden="true">/</span><Link href="/hub/video-library/players">Poker Players</Link><span aria-hidden="true">/</span><span aria-current="page">{player.name}</span></nav>
-                <header className="vl-player-header"><div className="vl-player-logo" aria-hidden="true"><span>{player.name.split(/\s+/).map(word => word[0]).join('').slice(0, 2)}</span></div><div className="vl-player-meta"><h1>{player.name}</h1><p>Videos Whose Published Titles Or Tags Name This Player.</p><p>{`Showing ${current.data.length} Verified Video${current.data.length === 1 ? '' : 's'}`}</p></div></header>
-                <section className="vl-player-videos" aria-labelledby="vl-player-newest"><h2 id="vl-player-newest">{`Videos Naming ${player.name}`}</h2>
-                    {current.data.length ? <div className="vl-video-grid" id="video-library-grid">{current.data.map((video, index) => <div key={video.videoId} className="vl-video-card"><Link className="vl-video-link" href={watchPath(video)} aria-label={`Watch ${video.title}`}><div className="vl-video-thumb"><VideoThumbnail video={video} priority={index === 0} />{video.duration && <span className="vl-duration">{video.duration}</span>}</div></Link><div className="vl-card-info"><div className="vl-card-text"><h3 className="vl-card-title"><Link href={watchPath(video)}>{video.title}</Link></h3><p className="vl-card-meta">{getVideoMetaLine(video)}</p></div></div></div>)}</div> : <div className="vl-empty-state"><h3>No Verified Videos Right Now</h3><p>No Eligible Catalog Videos Currently Name This Player.</p></div>}
+                <VideoLibraryWorkspaceHeader title={player.name} eyebrow="Poker Player" emblem="player" helpId="player" helpSteps={PLAYER_HELP_STEPS} />
+                <section className="vl-console-frame vl-console-identity" data-tutorial="player-identity" aria-label="Player Overview"><div className="vl-player-logo" aria-hidden="true"><span>{player.name.split(/\s+/).map(word => word[0]).join('').slice(0, 2)}</span></div><dl className="vl-console-stats"><div className="vl-console-stat"><dt>Verified Videos Shown</dt><dd>{current.data.length.toLocaleString()}</dd></div></dl></section>
+                <section className="vl-player-videos vl-console-frame" data-tutorial="player-videos" aria-labelledby="vl-player-newest"><h2 id="vl-player-newest" className="vl-console-frame-title">{`Videos Naming ${player.name}`}</h2>
+                    {current.data.length ? <div className="vl-video-grid" id="video-library-grid">{current.data.map((video, index) => <div key={video.videoId} className="vl-video-card"><Link className="vl-video-link" href={watchPath(video)} aria-label={`Watch ${video.title}`}><div className="vl-video-thumb"><VideoThumbnail video={video} priority={index === 0} />{video.duration && <span className="vl-duration">{video.duration}</span>}</div></Link><div className="vl-card-info"><div className="vl-card-text"><h3 className="vl-card-title"><Link href={watchPath(video)}>{video.title}</Link></h3><p className="vl-card-meta">{getVideoMetaLine(video)}</p></div></div></div>)}</div> : <div className="vl-empty-state"><h3>No Verified Videos Right Now</h3></div>}
                     {error && <p role="alert">{error}</p>}{current.pagination.hasMore && <button type="button" className="vl-pill-button" disabled={loading} onClick={() => void loadMore()}>{loading ? 'Loading Videos' : error ? 'Retry Loading Videos' : 'Load More Videos'}</button>}
                 </section>
             </article>

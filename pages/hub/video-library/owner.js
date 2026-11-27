@@ -8,8 +8,17 @@ import { getAccessToken, getAuthUserId } from '../../../src/lib/authUtils';
 import { createVideoLibraryOwnerScope } from '../../../src/lib/videoLibraryOwnerScope.mjs';
 import { VIDEO_OWNER_TOOLS, summarizeVideoOwnerSnapshot } from '../../../src/lib/videoLibraryOwnerPanel.mjs';
 import styles from '../../../src/components/video-library/OwnerPanel.module.css';
+import VideoLibraryWorkspaceHeader from '../../../src/components/video-library/VideoLibraryWorkspaceHeader';
 
 const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
+
+// Page explanations live behind the mast's chrome "?" (Dan, 2026-11-27).
+const OWNER_HELP_STEPS = Object.freeze([
+    { id: 'panel', title: 'Control Panel', body: 'Manage Video Sources, Editorial Review, Rights And Delivery.', target: 'owner-metrics' },
+    { id: 'sessions', title: 'Qualified Study Sessions', body: 'Qualified Study Sessions Count Verified Learning Events In The Last 24 Hours. Individual Learner Identities Remain Private.', target: 'owner-metrics' },
+    { id: 'tools', title: 'Owner Tools', body: 'Open Sources, Editorial Review, Rights Moderation, Native Studio Or Pipeline Controls.', target: 'owner-tools' },
+    { id: 'pipeline', title: 'Pipeline Status', body: 'Each Audited Pipeline Switch And Whether It Is Enabled Or Paused.', target: 'owner-pipeline' },
+]);
 
 export default function VideoLibraryOwnerPanel() {
     const { user } = useAvatar();
@@ -51,19 +60,19 @@ export default function VideoLibraryOwnerPanel() {
     }, [ownerId, revision]);
     return <><Head><title>Control Panel | Video Library</title><meta name="robots" content="noindex,nofollow" /></Head>
         <div className="video-library-page"><HubPageShell className="video-library" maxWidth={1200} header={<div className="vl-header-area"><div className="vl-global-header"><UniversalHeader pageDepth={2} /></div></div>}>
-            <main className={styles.panel} data-video-library-owner-panel>
+            <main className={`${styles.panel} vl-console-page`} data-video-library-owner-panel>
                 <nav className="vl-breadcrumbs" aria-label="Breadcrumb"><Link href="/hub/video-library">Video Library</Link><span aria-hidden="true">/</span><span aria-current="page">Control Panel</span></nav>
-                <h1>Control Panel</h1><p>Manage Video Sources, Editorial Review, Rights And Delivery.</p>
-                {!ownerId ? <p><Link className={styles.action} href="/auth/login?redirect=%2Fhub%2Fvideo-library%2Fowner" rel="nofollow" prefetch={false}>Sign In To Open The Control Panel</Link></p>
-                    : current?.status === 'denied' ? <p role="alert">An Owner Or Admin Account Is Required To Open The Control Panel.</p>
-                        : current?.status === 'error' ? <><p role="alert">{current.error}</p><button className={styles.action} type="button" onClick={() => setRevision(value => value + 1)}>Reload Control Panel</button></>
+                <VideoLibraryWorkspaceHeader title="Control Panel" eyebrow="Video Library" emblem="owner" helpId="owner" helpSteps={OWNER_HELP_STEPS} />
+                {!ownerId ? <section className="vl-console-frame"><Link className="vl-pill-button is-primary" href="/auth/login?redirect=%2Fhub%2Fvideo-library%2Fowner" rel="nofollow" prefetch={false}>Sign In To Open The Control Panel</Link></section>
+                    : current?.status === 'denied' ? <section className="vl-console-frame"><p role="alert">An Owner Or Admin Account Is Required To Open The Control Panel.</p></section>
+                        : current?.status === 'error' ? <section className="vl-console-frame"><p role="alert">{current.error}</p><div className="vl-console-actions"><button className="vl-pill-button" type="button" onClick={() => setRevision(value => value + 1)}>Reload Control Panel</button></div></section>
                             : current?.status === 'ready' ? <>
-                                <div className={styles.toolbar}><p>Current Snapshot. Updated {new Date(current.snapshot.generatedAt).toLocaleString()}.</p><button className={styles.action} type="button" onClick={() => setRevision(value => value + 1)}>Refresh</button></div>
-                                <dl className={styles.metrics}>{current.metrics.map(metric => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value.toLocaleString()}</dd></div>)}</dl>
-                                <p className={styles.note}>Qualified Study Sessions Count Verified Learning Events. Individual Learner Identities Remain Private.</p>
-                                <nav className={styles.tools} aria-label="Owner Tools">{VIDEO_OWNER_TOOLS.map(tool => <Link key={tool.href} href={tool.href}><h2>{tool.title}</h2><p>{tool.description}</p><span>Open {tool.title}</span></Link>)}</nav>
-                                <section><h2>Pipeline Status</h2>{current.snapshot.controls.length ? <ul className={styles.controls}>{current.snapshot.controls.map(control => <li key={control.control_key}><span>{control.control_key.replaceAll('_', ' ').replace(/\b[a-z]/g, letter => letter.toUpperCase())}</span><strong>{control.enabled ? 'Enabled' : 'Paused'}</strong></li>)}</ul> : <p>No Pipeline Controls Were Reported.</p>}<Link className={styles.action} href="/hub/admin/video-operations">Manage Pipeline Controls</Link></section>
-                            </> : <p role="status">Loading Control Panel</p>}
+                                <section className="vl-console-frame" data-tutorial="owner-metrics" aria-labelledby="vl-owner-snapshot"><h2 id="vl-owner-snapshot" className="vl-console-frame-title">Last 24 Hours</h2><p className="vl-console-updated">Updated {new Date(current.snapshot.generatedAt).toLocaleString()}</p>
+                                <dl className="vl-console-stats">{current.metrics.map(metric => <div key={metric.label} className="vl-console-stat"><dt>{metric.label}</dt><dd>{metric.value.toLocaleString()}</dd></div>)}</dl>
+                                <div className="vl-console-actions"><button className="vl-pill-button" type="button" onClick={() => setRevision(value => value + 1)}>Refresh</button></div></section>
+                                <section className="vl-console-frame" data-tutorial="owner-tools" aria-labelledby="vl-owner-tools"><h2 id="vl-owner-tools" className="vl-console-frame-title">Owner Tools</h2><nav className="vl-console-tools" aria-label="Owner Tools">{VIDEO_OWNER_TOOLS.map(tool => <Link key={tool.href} className="vl-console-tool" href={tool.href}><h3>{tool.title}</h3><span>Open {tool.title}</span></Link>)}</nav></section>
+                                <section className="vl-console-frame" data-tutorial="owner-pipeline" aria-labelledby="vl-owner-pipeline"><h2 id="vl-owner-pipeline" className="vl-console-frame-title">Pipeline Status</h2>{current.snapshot.controls.length ? <ul className="vl-console-controls">{current.snapshot.controls.map(control => <li key={control.control_key}><span>{control.control_key.replaceAll('_', ' ').replace(/\b[a-z]/g, letter => letter.toUpperCase())}</span><strong data-enabled={control.enabled ? 'true' : 'false'}>{control.enabled ? 'Enabled' : 'Paused'}</strong></li>)}</ul> : <p className="vl-console-copy">No Pipeline Controls Were Reported.</p>}<div className="vl-console-actions"><Link className="vl-pill-button is-primary" href="/hub/admin/video-operations">Manage Pipeline Controls</Link></div></section>
+                            </> : <section className="vl-console-frame"><p role="status">Loading Control Panel</p></section>}
             </main>
         </HubPageShell></div></>;
 }

@@ -41,6 +41,7 @@ import { useYouTubeErrorManager } from '../../../../../src/hooks/useYouTubeError
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
+import VideoLibraryWorkspaceHeader from '../../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
 import { getMenuConfig } from '../../../../../src/config/hamburgerMenus';
 import {
     BLOCKED_VIDEO_LIBRARY_IDS,
@@ -72,6 +73,15 @@ import { formatViewCount, getVideoChannel, getVideoMetaLine } from '../../../../
 
 const UniversalHeader = dynamic(() => import('../../../../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../../../../src/components/ui/HamburgerMenu'), { ssr: false });
+
+// Page explanations live behind the title mast's chrome "?" (Dan, 2026-11-27).
+const WATCH_HELP_STEPS = Object.freeze([
+    { id: 'player', title: 'Video Player', body: 'The Privacy-Enhanced YouTube Player. Mini-Player Keeps It On Screen While You Scroll, And Autoplay Next Opens The Next Video When This One Ends.', target: 'watch-player' },
+    { id: 'timeline', title: 'Hand Timeline', body: 'The Timeline Becomes Available When Playback Starts. Hand Markers Last For This Viewing Session.', target: 'watch-player' },
+    { id: 'progress', title: 'Watch Progress', body: 'Signed In, Your Watch Progress Saves While You Watch And Verified Watch Time Can Earn A Diamond Reward.', target: 'watch-title' },
+    { id: 'actions', title: 'Video Actions', body: 'Share To Your Feed, Queue The Next Video, Save It To Playlists And Training, Or Watch On YouTube.', target: 'watch-actions' },
+    { id: 'more', title: 'More To Watch', body: 'More From This Channel And Related Videos Are Picked From The Verified Library.', target: 'watch-more' },
+]);
 
 const RELATED_LIMIT = 8;
 const CHANNEL_LIMIT = 6;
@@ -231,8 +241,8 @@ function Thumbnail({ videoId, size, vertical = false, catalogThumbnail, priority
 function VideoList({ title, videos }) {
     if (!videos?.length) return null;
     return (
-        <section className="vl-watch-list" aria-label={title}>
-            <h2 className="vl-up-next-label">{title}</h2>
+        <section className="vl-watch-list vl-console-frame" aria-label={title}>
+            <h2 className="vl-up-next-label vl-console-frame-title">{title}</h2>
             <ul>
                 {videos.map(item => (
                     <li key={item.videoId}>
@@ -323,11 +333,12 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                 <SEOHead title="Video Temporarily Unavailable" description="This Video Page Could Not Load Right Now. Try Again In A Minute." noindex />
                 <div className="video-library-page">
                     <HubPageShell className="video-library" maxWidth={1760} header={header}>
-                        <div className="vl-empty-state">
-                            <span className="vl-empty-kicker">Video Library</span>
-                            <h1>This Video Could Not Load Right Now</h1>
-                            <p>The Video Catalog Did Not Answer. Try Again In A Minute, Or Browse The Library.</p>
-                            <Link href="/hub/video-library" className="vl-pill-button is-primary">Browse The Video Library</Link>
+                        <div className="vl-console-page">
+                            <VideoLibraryWorkspaceHeader title="This Video Could Not Load Right Now" eyebrow="Video Library" emblem="play" />
+                            <div className="vl-console-frame vl-empty-state">
+                                <p>The Video Catalog Did Not Answer. Try Again In A Minute, Or Browse The Library.</p>
+                                <Link href="/hub/video-library" className="vl-pill-button is-primary">Browse The Video Library</Link>
+                            </div>
                         </div>
                     </HubPageShell>
                 </div>
@@ -381,7 +392,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
             </SEOHead>
             <div className="video-library-page">
                 <HubPageShell className="video-library" maxWidth={1760} header={header}>
-                    <article className="vl-watch-page" data-video-id={video.videoId}>
+                    <article className="vl-watch-page vl-console-page" data-video-id={video.videoId}>
                         <nav className="vl-breadcrumbs" aria-label="Breadcrumb">
                             <Link href="/hub">World Hub</Link>
                             <span aria-hidden="true">/</span>
@@ -392,7 +403,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
 
                         <div className="vl-watch-page-grid">
                             <div className="vl-watch-page-main">
-                                <div className={`vl-player-stage vl-watch-page-player${miniPlayer ? ' is-mini-player' : ''}${seconds > 0 && seconds <= 180 ? ' is-vertical-player' : ''}`}>
+                                <div data-tutorial="watch-player" className={`vl-player-stage vl-watch-page-player${miniPlayer ? ' is-mini-player' : ''}${seconds > 0 && seconds <= 180 ? ' is-vertical-player' : ''}`}>
                                     <iframe
                                         key={video.videoId}
                                         ref={iframeRef}
@@ -419,20 +430,19 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
 
                                 {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
                                 {navigationError && <p role="alert">The Next Video Could Not Open. Choose A Video Below To Try Again.</p>}
-                                <div className="vl-info-copy">
-                                    <h1 id="vl-watch-title">{video.title}</h1>
-                                    <p className="vl-info-meta">{[views, published, readableDuration(seconds)].filter(Boolean).join(' · ')}</p>
+                                <VideoLibraryWorkspaceHeader id="vl-watch-title" title={video.title} eyebrow={typeLabel} emblem="play" helpId="watch" helpTitle="Watch Page" helpSteps={WATCH_HELP_STEPS} />
+                                <section className="vl-info-copy vl-console-frame" data-tutorial="watch-title" aria-label="Video Details">
+                                    <p className="vl-info-meta vl-console-watch-meta">{[views, published, readableDuration(seconds)].filter(Boolean).map(item => <span key={item}>{item}</span>)}</p>
+                                    <div className="vl-info-channel">
+                                        <span className="vl-avatar" aria-hidden="true">
+                                            {channel.logo ? <img src={channel.logo} alt="" loading="lazy" decoding="async" /> : <span>{channel.initials}</span>}
+                                        </span>
+                                        {channelHref ? <Link className="vl-info-source vl-channel-link" href={channelHref}>{channel.name}</Link> : <span className="vl-info-source">{channel.name}</span>}
+                                    </div>
                                     <PlayerLinks video={video} />
-                                </div>
+                                </section>
 
-                                <div className="vl-info-channel">
-                                    <span className="vl-avatar" aria-hidden="true">
-                                        {channel.logo ? <img src={channel.logo} alt="" loading="lazy" decoding="async" /> : <span>{channel.initials}</span>}
-                                    </span>
-                                    {channelHref ? <Link className="vl-info-source vl-channel-link" href={channelHref}>{channel.name}</Link> : <span className="vl-info-source">{channel.name}</span>}
-                                </div>
-
-                                <div className="vl-hud" role="group" aria-label="Video actions">
+                                <div className="vl-hud" role="group" aria-label="Video actions" data-tutorial="watch-actions">
                                     <Link href={videoLibrarySocialShareHref(video)} className="vl-hud-link">Share To Feed</Link>
                                     <button type="button" disabled={!(relatedVideos[0] || channelVideos[0])} onClick={() => playbackQueue.enqueueNext(relatedVideos[0] || channelVideos[0], video)}>Queue Next Video</button>
                                     <Link href={libraryHref} rel="nofollow" className="vl-hud-link is-primary">Save, Playlists And Training</Link>
@@ -462,7 +472,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                 </section>
                             </div>
 
-                            <aside className="vl-watch-page-side">
+                            <aside className="vl-watch-page-side" data-tutorial="watch-more">
                                 <VideoQueue currentVideoId={video.videoId} ownerId={user?.id} onPlay={openQueuedVideo} />
                                 <StudyStatus />
                                 <VideoList title={`More From ${channel.name}`} videos={channelVideos} />
