@@ -67108,7 +67108,7 @@
         },
         {
           "name": "faqSchema",
-          "line": 60,
+          "line": 61,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -67116,7 +67116,7 @@
         },
         {
           "name": "howToSchema",
-          "line": 80,
+          "line": 81,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -67124,7 +67124,7 @@
         },
         {
           "name": "licensableImageSchema",
-          "line": 111,
+          "line": 112,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -67132,7 +67132,7 @@
         },
         {
           "name": "hubProductSchema",
-          "line": 143,
+          "line": 144,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -67140,7 +67140,7 @@
         },
         {
           "name": "hubCollectionSchema",
-          "line": 245,
+          "line": 246,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -67148,7 +67148,7 @@
         },
         {
           "name": "datasetSchema",
-          "line": 306,
+          "line": 307,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -67156,7 +67156,7 @@
         },
         {
           "name": "courseSchema",
-          "line": 350,
+          "line": 354,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -67164,7 +67164,7 @@
         },
         {
           "name": "freerollEventSchema",
-          "line": 419,
+          "line": 423,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -67180,7 +67180,7 @@
         },
         {
           "name": "hhmm",
-          "line": 438,
+          "line": 442,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -124472,7 +124472,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubProductSchema",
-        "line": 143,
+        "line": 144,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124483,6 +124483,7 @@
         "externalReferenceFiles": [
           "__tests__/aeo-tool-schemas.test.mjs",
           "__tests__/aeo-video-library-schema.test.mjs",
+          "__tests__/gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs",
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
@@ -124555,7 +124556,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 245,
+        "line": 246,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124564,6 +124565,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs",
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/phase22-discovery-faq-speakable.test.mjs",
@@ -124582,7 +124584,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 419,
+        "line": 423,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -124592,6 +124594,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/business-hub-product-truth.test.mjs",
+          "__tests__/gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs",
           "pages/freerolls.js"
         ]
       },
@@ -135770,7 +135773,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubProductSchema",
-        "line": 143,
+        "line": 144,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135781,6 +135784,7 @@
         "externalReferenceFiles": [
           "__tests__/aeo-tool-schemas.test.mjs",
           "__tests__/aeo-video-library-schema.test.mjs",
+          "__tests__/gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs",
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
@@ -135853,7 +135857,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 245,
+        "line": 246,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135862,6 +135866,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs",
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/phase22-discovery-faq-speakable.test.mjs",
@@ -135880,7 +135885,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 419,
+        "line": 423,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135890,6 +135895,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/business-hub-product-truth.test.mjs",
+          "__tests__/gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs",
           "pages/freerolls.js"
         ]
       },

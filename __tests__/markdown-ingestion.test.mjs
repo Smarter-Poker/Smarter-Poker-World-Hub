@@ -154,7 +154,8 @@ test('SEOHead and tool pages emit rel="alternate" type="text/markdown" link head
   assert.ok(icmSrc.includes('markdownUrl="https://smarter.poker/tools/icm-calculator.md"'));
 
   const rangesSrc = read('pages/tools/preflop-ranges/index.js');
-  assert.ok(rangesSrc.includes('markdownUrl="https://smarter.poker/tools/preflop-ranges.md"'));
+  assert.ok(rangesSrc.includes("markdownPath = '/tools/preflop-ranges.md'"));
+  assert.ok(rangesSrc.includes('markdownUrl={`https://smarter.poker${markdownPath}`}'));
 
   const aboutSrc = read('pages/about.js');
   assert.ok(aboutSrc.includes('markdownUrl="https://smarter.poker/about.md"'));
