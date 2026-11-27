@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -520,11 +521,11 @@ export default function VarianceCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Probability Of Running Below Zero
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.probLossPct}%
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -582,7 +583,7 @@ export default function VarianceCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#34d399' }}>
                       +{b.highBb.toLocaleString('en-US')} BB
                     </td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>
                       ${b.lowDollars.toLocaleString('en-US')} To ${b.highDollars.toLocaleString('en-US')}
                     </td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 600 }}>
@@ -619,7 +620,7 @@ export default function VarianceCalculatorPage({
                   <tr key={row.format} style={{ borderBottom: '1px solid #1e293b' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.format}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.stdDevBb100}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.handsFor95ConfAt4Bb}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.handsFor95ConfAt4Bb}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.typicalDownswing}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.recommendedBankroll}</td>
                   </tr>
@@ -638,7 +639,7 @@ export default function VarianceCalculatorPage({
             <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Risk Of Ruin &amp; Bankroll Calculator
             </Link>
-            <Link href="/tools/poker-winrate-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/poker-winrate-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               BB/100 To $/Hr Winrate Converter
             </Link>
             <Link href="/tools/staking-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -655,6 +656,17 @@ export default function VarianceCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Track Your Real Variance & Downswing Recovery Free"
+              description="Log Cash & MTT Sessions In Bankroll Manager To Compare Real Results Against Variance Models Free."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/variance-calculator&src=variance-calc"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/variance-calculator"
+            />
+
             <FaqSection faqs={VARIANCE_CALCULATOR_FAQS} />
 
             <CitationBacklinkBox

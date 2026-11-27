@@ -18,6 +18,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -287,7 +288,7 @@ export default function BluffCatchingCalculatorPage({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 22 }}>
             {[
               { label: 'River Pot Before Bet (BB Or $)', val: pot, set: setPot, step: 10, color: '#25c8ff' },
-              { label: 'Villain River Bet Size (BB Or $)', val: bet, set: setBet, step: 10, color: '#f2b84b' },
+              { label: 'Villain River Bet Size (BB Or $)', val: bet, set: setBet, step: 10, color: '#38bdf8' },
               { label: 'Villain Unblocked Value Combos', val: valueCombos, set: setValueCombos, step: 1, color: '#f87171' },
               { label: 'Villain Bluff Combos', val: bluffCombos, set: setBluffCombos, step: 1, color: '#34d399' },
               { label: 'Hero Value Blocker Removal (%)', val: blockerPct, set: setBlockerPct, step: 5, color: '#25c8ff' },
@@ -330,11 +331,11 @@ export default function BluffCatchingCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Blocker-Adjusted Bluff Share
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.blockerAdjBluffSharePct}%
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -406,7 +407,7 @@ export default function BluffCatchingCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.betSizing}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.reqBluffFreq}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.mdfPct}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.valueToBluffRatio}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.valueToBluffRatio}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.blockerGuidance}</td>
                   </tr>
                 ))}
@@ -423,7 +424,7 @@ export default function BluffCatchingCalculatorPage({
             <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Pot Odds &amp; MDF Calculator
             </Link>
-            <Link href="/tools/multi-street-ev-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/multi-street-ev-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Multi-Street Barrel EV Solver
             </Link>
             <Link href="/tools/geometric-bet-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -437,6 +438,17 @@ export default function BluffCatchingCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save River Bluff-Catching Spots & Drill GTO Free"
+              description="Bookmark Blocker-Adjusted MDF Calculations And Practice River Call-Down Decisions In 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/bluff-catching-calculator&src=bluff-catch"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/bluff-catching-calculator"
+            />
+
             <FaqSection faqs={BLUFF_CATCH_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

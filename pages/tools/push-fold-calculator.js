@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -319,7 +320,7 @@ export default function PushFoldCalculatorPage({
             </h2>
             <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.9, color: '#cbd5e1', fontSize: 15 }}>
               <li><strong>Optimal Nash Shove Frequency:</strong> <span style={{ color: '#34d399', fontWeight: 700 }}>{metrics.shovePct}%</span> ({metrics.combosShoved} Of 1,326 Combos)</li>
-              <li><strong>Big Blind Nash Call Frequency:</strong> <span style={{ color: '#f59e0b', fontWeight: 700 }}>{metrics.callPct}%</span> ({metrics.playersLeft} Players Left To Act)</li>
+              <li><strong>Big Blind Nash Call Frequency:</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>{metrics.callPct}%</span> ({metrics.playersLeft} Players Left To Act)</li>
               <li><strong>Uncontested Dead Money In Pot:</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>{metrics.deadMoneyBb} BB</span> (M-Ratio: {metrics.mRatio})</li>
               <li><strong>Risk-To-Reward Ratio:</strong> {metrics.riskRewardRatio} : 1 ({metrics.foldEquityNeededIfZeroEq}% Zero-Equity Fold Threshold)</li>
               <li><strong>Recommended Shove Range Tier:</strong> <span style={{ color: '#f8fafc', fontWeight: 600 }}>{metrics.tierRecommendation}</span></li>
@@ -356,7 +357,7 @@ export default function PushFoldCalculatorPage({
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.bb12}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.bb10}</td>
                     <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.bb8}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{row.bb5}</td>
+                    <td style={{ padding: '10px 14px', color: '#e2e8f0', fontWeight: 700 }}>{row.bb5}</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.keyHands}</td>
                   </tr>
                 ))}
@@ -391,7 +392,7 @@ export default function PushFoldCalculatorPage({
                     <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{item.sklanskyChubukov}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{item.nash10bbSb}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{item.nash10bbBtn}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{item.callVs10bbBtn}</td>
+                    <td style={{ padding: '10px 14px', color: '#e2e8f0', fontWeight: 700 }}>{item.callVs10bbBtn}</td>
                   </tr>
                 ))}
               </tbody>
@@ -425,6 +426,17 @@ export default function PushFoldCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Your Push/Fold Spots & Drill Short-Stack ICM Free"
+          description="Bookmark 3BB To 20BB Nash Equilibrium Ranges, Drill Short-Stack Final Table Spots In 107 Free GTO Games, And Track Tournament Results."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/push-fold-calculator&src=push-fold"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/push-fold-calculator"
+          highlights={['100% Free Forever', '107 GTO Drills', 'Short-Stack ICM']}
+        />
 
         <FaqSection faqs={PUSH_FOLD_CALCULATOR_FAQS} />
 

@@ -17,6 +17,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -340,7 +341,7 @@ export default function MultiwayAllInCalculatorPage({
               { label: 'Player 2 Equity (%)', val: eq2, set: setEq2, step: 0.5, color: '#34d399' },
               { label: 'Player 3 Stack (BB Or $)', val: p3, set: setP3, step: 5, color: '#25c8ff' },
               { label: 'Player 3 Equity (%)', val: eq3, set: setEq3, step: 0.5, color: '#34d399' },
-              { label: 'Dead Blinds & Antes In Pot', val: dead, set: setDead, step: 0.5, color: '#f2b84b' },
+              { label: 'Dead Blinds & Antes In Pot', val: dead, set: setDead, step: 0.5, color: '#38bdf8' },
             ].map((inp) => (
               <div key={inp.label}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
@@ -380,11 +381,11 @@ export default function MultiwayAllInCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Heads-Up Side Pot 1
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.sidePot1} BB
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -428,7 +429,7 @@ export default function MultiwayAllInCalculatorPage({
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{r.effectiveRisked} BB</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{r.normEqPct}%</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{r.mainShareEv} BB</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{r.sideShareEv} BB</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{r.sideShareEv} BB</td>
                     <td style={{ padding: '10px 14px', color: '#f8fafc', fontWeight: 700 }}>{r.grossReturnEv} BB</td>
                     <td style={{ padding: '10px 14px', color: r.isPositive ? '#34d399' : '#f87171', fontWeight: 800 }}>
                       {r.isPositive ? '+' : ''}{r.netProfitEv} BB
@@ -464,7 +465,7 @@ export default function MultiwayAllInCalculatorPage({
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.matchup}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.p1Eq}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.p2Eq}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.p3Eq}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.p3Eq}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.sidePotDynamic}</td>
                   </tr>
                 ))}
@@ -481,7 +482,7 @@ export default function MultiwayAllInCalculatorPage({
             <Link href="/tools/side-pot-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               9-Player Side Pot Calculator
             </Link>
-            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Multiway Hand Equity Simulator
             </Link>
             <Link href="/tools/pot-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -495,6 +496,17 @@ export default function MultiwayAllInCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Multiway All-In Spots & Drill Equity Math Free"
+              description="Bookmark Side Pot And 3-Way Equity Solutions And Practice 107 Free GTO Training Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/multiway-all-in-calculator&src=multiway-allin"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/multiway-all-in-calculator"
+            />
+
             <FaqSection faqs={MULTIWAY_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

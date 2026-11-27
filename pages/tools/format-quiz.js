@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -431,7 +432,7 @@ export default function FormatQuizPage({
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 14,
                     fontWeight: 700,
                   }}
@@ -514,7 +515,7 @@ export default function FormatQuizPage({
             <p style={{ fontSize: 14, color: '#cbd5e1', margin: '12px 0 8px 0', lineHeight: 1.6 }}>
               {diagnosis.winner.profile.summary}
             </p>
-            <div style={{ fontSize: 13, color: '#f2b84b', fontWeight: 600 }}>
+            <div style={{ fontSize: 13, color: '#38bdf8', fontWeight: 600 }}>
               Target Winrate: {diagnosis.winner.profile.targetWinrate} | Secondary Format Match: {diagnosis.runnerUp.profile.name} ({diagnosis.runnerUp.matchPct}%)
             </div>
           </div>
@@ -591,7 +592,7 @@ export default function FormatQuizPage({
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 800 }}>{item.matchPct}% Match</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{item.profile.bankrollCushion}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{item.profile.stdDevProfile}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 600 }}>{item.profile.targetWinrate}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 600 }}>{item.profile.targetWinrate}</td>
                   </tr>
                 ))}
               </tbody>
@@ -608,7 +609,7 @@ export default function FormatQuizPage({
             <Link href="/tools" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Explore All 52 Free Poker Calculators
             </Link>
-            <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Bankroll &amp; Risk Of Ruin Calculator
             </Link>
             <Link href="/tools/variance-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -625,6 +626,17 @@ export default function FormatQuizPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Start Your Personalized Poker Study Plan Free"
+              description="Unlock 107 Free GTO Training Games, Track Sessions In Bankroll Manager, And Find 715+ Live Poker Rooms."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/format-quiz&src=format-quiz"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/format-quiz"
+            />
+
             <FaqSection faqs={FORMAT_QUIZ_FAQS} />
 
             <CitationBacklinkBox

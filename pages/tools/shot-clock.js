@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -218,7 +219,7 @@ export default function ShotClockPage() {
   }, [pageDesc]);
 
   const progressPct = Math.min(100, Math.round((secondsLeft / Math.max(1, primarySec)) * 100));
-  const timerColor = secondsLeft <= 5 ? '#ef4444' : secondsLeft <= 10 ? '#f2b84b' : '#34d399';
+  const timerColor = secondsLeft <= 5 ? '#ef4444' : secondsLeft <= 10 ? '#38bdf8' : '#34d399';
   const summaryText = `Smarter.Poker Action Clock: ${primarySec}s Primary Decision Timer | +${timeBankSec}s Time-Bank Extension Cards | Active Seat ${activeSeat}`;
 
   return (
@@ -244,7 +245,7 @@ export default function ShotClockPage() {
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: '#f2b84b',
+              color: '#38bdf8',
               background: '#101a20',
               border: '1px solid #334155',
               borderRadius: '2px',
@@ -319,8 +320,8 @@ export default function ShotClockPage() {
                   style={{
                     padding: '8px 14px',
                     borderRadius: '2px',
-                    border: timeBankSec === tb ? '1px solid #f2b84b' : '1px solid #334155',
-                    background: timeBankSec === tb ? '#f2b84b' : '#020608',
+                    border: timeBankSec === tb ? '1px solid #38bdf8' : '1px solid #334155',
+                    background: timeBankSec === tb ? '#38bdf8' : '#020608',
                     color: timeBankSec === tb ? '#020608' : '#e2e8f0',
                     fontSize: 13,
                     fontWeight: 800,
@@ -402,7 +403,7 @@ export default function ShotClockPage() {
                 onClick={() => setIsRunning((r) => !r)}
                 style={{
                   padding: '14px 22px',
-                  background: isRunning ? '#f2b84b' : '#25c8ff',
+                  background: isRunning ? '#e2e8f0' : '#38bdf8',
                   color: '#020608',
                   border: 0,
                   borderRadius: '2px',
@@ -420,8 +421,8 @@ export default function ShotClockPage() {
                 style={{
                   padding: '14px 22px',
                   background: '#101a20',
-                  color: '#f2b84b',
-                  border: '1px solid #f2b84b',
+                  color: '#38bdf8',
+                  border: '1px solid #38bdf8',
                   borderRadius: '2px',
                   fontSize: 15,
                   fontWeight: 800,
@@ -466,7 +467,7 @@ export default function ShotClockPage() {
                     >
                       Seat {s.seat} {isSelected ? '(Active)' : ''}
                     </button>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: s.cards > 0 ? '#f2b84b' : '#ef4444' }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: s.cards > 0 ? '#38bdf8' : '#ef4444' }}>
                       {s.cards} Cards
                     </span>
                   </div>
@@ -481,7 +482,7 @@ export default function ShotClockPage() {
                       style={{
                         flex: 1,
                         padding: '6px 8px',
-                        background: s.cards > 0 ? '#f2b84b' : '#1e293b',
+                        background: s.cards > 0 ? '#38bdf8' : '#1e293b',
                         color: s.cards > 0 ? '#020608' : '#64748b',
                         border: 0,
                         borderRadius: '2px',
@@ -514,6 +515,17 @@ export default function ShotClockPage() {
             })}
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Shot-Clock Presets & Manage Home Games Free"
+          description="Bookmark Action Clock Timers And Time-Bank Cards, Track Home Game Results, And Unlock 107 Free GTO Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/shot-clock&src=shot-clock"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/shot-clock"
+        />
 
         <FaqSection faqs={SHOT_CLOCK_FAQS} />
 

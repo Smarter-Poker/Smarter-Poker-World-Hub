@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -263,7 +264,7 @@ export default function BankrollCalculatorPage({
             <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.9, color: '#cbd5e1', fontSize: 15 }}>
               <li><strong>Total Bankroll Capital:</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>${stats.totalBankrollDollars}</span> ({stats.bi} Buy-Ins)</li>
               <li><strong>Risk Of Ruin (RoR) At Fixed Stakes:</strong> <span style={{ color: '#34d399', fontWeight: 700 }}>{stats.rorPct}%</span></li>
-              <li><strong>5% Risk Of Ruin Threshold:</strong> <span style={{ color: '#f59e0b', fontWeight: 700 }}>{stats.buyInsForFivePctRor} Buy-Ins</span> (${stats.fivePctDollars})</li>
+              <li><strong>5% Risk Of Ruin Threshold:</strong> <span style={{ color: '#38bdf8', fontWeight: 700 }}>{stats.buyInsForFivePctRor} Buy-Ins</span> (${stats.fivePctDollars})</li>
               <li><strong>1% Professional Bankroll Threshold:</strong> <span style={{ color: '#34d399', fontWeight: 700 }}>{stats.buyInsForOnePctRor} Buy-Ins</span> (${stats.onePctDollars})</li>
               <li><strong>Assumed Winrate &amp; Volatility:</strong> {stats.wr} BB/100 Winrate At {stats.sd} BB/100 Standard Deviation</li>
             </ul>
@@ -296,7 +297,7 @@ export default function BankrollCalculatorPage({
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.stdDev}</td>
                     <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.winrate}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.conservativeBr}</td>
-                    <td style={{ padding: '10px 14px', color: '#f59e0b', fontWeight: 700 }}>{row.aggressiveBr}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.aggressiveBr}</td>
                   </tr>
                 ))}
               </tbody>
@@ -327,6 +328,17 @@ export default function BankrollCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Track Your Live Bankroll & Risk Of Ruin Free"
+          description="Log Cash & Tournament Sessions In Bankroll Manager, Monitor Live Variance, And Unlock 107 Free GTO Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/bankroll-calculator&src=bankroll-calc"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/bankroll-calculator"
+        />
 
         <FaqSection faqs={BANKROLL_CALCULATOR_FAQS} />
 

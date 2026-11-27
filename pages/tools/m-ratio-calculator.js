@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -164,12 +165,12 @@ export default function MRatioCalculatorPage({
         'Strict Push-Or-Fold Mode: Open-Shove All Profitable Nash Hands Directly To Maximize First-In Fold Equity.';
     } else if (effectiveM <= 10) {
       zoneLabel = 'Orange Zone M 6-10';
-      zoneColor = '#fb923c';
+      zoneColor = '#e2e8f0';
       zoneStrategy =
         'Re-Steal & Stop-And-Go Zone: Tighten Speculative Calls And Look For 15BB-22BB 3-Bet All-In Re-Steal Spots Over Late-Position Opens.';
     } else if (effectiveM <= 20) {
       zoneLabel = 'Yellow Zone M 10-20';
-      zoneColor = '#f2b84b';
+      zoneColor = '#38bdf8';
       zoneStrategy =
         'Active Steal Zone: Attack Medium Stacks On Bubbles, Fold Small Pairs To 3-Bets, And Preserve 3-Bet Jam Leverage.';
     }
@@ -271,7 +272,7 @@ export default function MRatioCalculatorPage({
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -352,7 +353,7 @@ export default function MRatioCalculatorPage({
               { label: 'Hero Chip Stack', val: stack, set: setStack, step: 1000, color: '#34d399' },
               { label: 'Small Blind', val: sb, set: setSb, step: 100, color: '#f8fafc' },
               { label: 'Big Blind', val: bb, set: setBb, step: 100, color: '#f8fafc' },
-              { label: 'Big Blind Ante (Orbit Ante)', val: ante, set: setAnte, step: 100, color: '#f2b84b' },
+              { label: 'Big Blind Ante (Orbit Ante)', val: ante, set: setAnte, step: 100, color: '#38bdf8' },
               { label: 'Average Stack At Table', val: avgStack, set: setAvgStack, step: 1000, color: '#25c8ff' },
               { label: 'Level Duration (Minutes)', val: levelMins, set: setLevelMins, step: 5, color: '#f8fafc' },
               { label: 'Hands Dealt Per Hour', val: handsPerHour, set: setHandsPerHour, step: 2, color: '#f8fafc' },
@@ -436,11 +437,11 @@ export default function MRatioCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Q-Ratio (Vs Average Stack)
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 Q = {metrics.qRatio}
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -494,7 +495,7 @@ export default function MRatioCalculatorPage({
                   <tr key={row.zone} style={{ borderBottom: '1px solid #1e293b' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.zone}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.approxBb}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.orbitWindow}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.orbitWindow}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.tacticalPosture}</td>
                   </tr>
                 ))}
@@ -512,7 +513,7 @@ export default function MRatioCalculatorPage({
             <Link href="/tools/push-fold-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Short-Stack Push/Fold Nash Chart
             </Link>
-            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Tournament ICM &amp; Bubble Solver
             </Link>
             <Link href="/tools/satellite-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -529,6 +530,17 @@ export default function MRatioCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save M-Ratio Thresholds & Drill Short-Stack MTTs Free"
+              description="Bookmark Harrington Zone Playbooks And Practice Push/Fold & Re-Steal Spots In 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/m-ratio-calculator&src=m-ratio"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/m-ratio-calculator"
+            />
+
             <FaqSection faqs={M_RATIO_FAQS} />
 
             <CitationBacklinkBox

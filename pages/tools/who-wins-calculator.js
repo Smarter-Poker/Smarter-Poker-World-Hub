@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -335,7 +336,7 @@ export default function WhoWinsCalculatorPage() {
     const p2HandStr = best2.cards.map((c) => c.display).join(' ');
 
     let winnerBanner = 'Exact Split Pot Chop';
-    let winnerColor = '#f2b84b';
+    let winnerColor = '#38bdf8';
     let rulingExplanation = `Both Players Play Identical 5-Card Ranks (${best1.categoryName}). Under Official TDA Rules, Only The Best 5 Cards Count And The Pot Is Split Equally.`;
 
     if (cmp > 0) {
@@ -443,7 +444,7 @@ export default function WhoWinsCalculatorPage() {
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -562,7 +563,7 @@ export default function WhoWinsCalculatorPage() {
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 15,
                     fontWeight: 700,
                   }}
@@ -656,7 +657,7 @@ export default function WhoWinsCalculatorPage() {
               </div>
 
               <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #1e293b' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#f2b84b', marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#38bdf8', marginBottom: 4 }}>
                   Plain-English Floor Ruling &amp; Kicker Explanation
                 </div>
                 <div style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.55 }}>
@@ -712,7 +713,7 @@ export default function WhoWinsCalculatorPage() {
             <Link href="/learn/poker-hand-rankings" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Official Poker Hand Rankings Cheat Sheet
             </Link>
-            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Multiway Poker Odds Calculator
             </Link>
             <Link href="/tools/side-pot-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -729,6 +730,17 @@ export default function WhoWinsCalculatorPage() {
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Master Showdown Rules & Unlock 107 Free GTO Games"
+              description="Create A Free Smarter.Poker Account To Drill Hand Strength, Track Sessions, And Find 715+ Live Poker Rooms."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/who-wins-calculator&src=who-wins"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/who-wins-calculator"
+            />
+
             <FaqSection faqs={WHO_WINS_FAQS} />
 
             <CitationBacklinkBox

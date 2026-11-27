@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -243,7 +244,7 @@ export default function PokerIqTestPage() {
       tierColor = '#25c8ff';
     } else if (iqScore >= 125) {
       tierLabel = '125-145 Studying Reg';
-      tierColor = '#f2b84b';
+      tierColor = '#38bdf8';
     }
 
     const missedQuestions = domainResults.filter((r) => !r.isCorrect);
@@ -346,7 +347,7 @@ export default function PokerIqTestPage() {
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#f2b84b',
+                color: '#38bdf8',
                 background: '#101a20',
                 border: '1px solid #334155',
                 borderRadius: '2px',
@@ -413,8 +414,8 @@ export default function PokerIqTestPage() {
                 style={{
                   padding: '8px 14px',
                   background: copiedShare ? '#059669' : '#020608',
-                  color: '#f2b84b',
-                  border: '1px solid #f2b84b',
+                  color: '#38bdf8',
+                  border: '1px solid #38bdf8',
                   borderRadius: '2px',
                   fontSize: 12,
                   fontWeight: 700,
@@ -506,7 +507,7 @@ export default function PokerIqTestPage() {
 
                 <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
                   <strong>Solver Proof:</strong> {item.explanation}{' '}
-                  <Link href={item.toolHref} style={{ color: '#f2b84b', fontWeight: 700, textDecoration: 'none' }}>
+                  <Link href={item.toolHref} style={{ color: '#38bdf8', fontWeight: 700, textDecoration: 'none' }}>
                     Open {item.toolLabel}
                   </Link>
                 </div>
@@ -524,7 +525,7 @@ export default function PokerIqTestPage() {
             <Link href="/tools/format-quiz" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Poker Format &amp; 7-Day Study Roadmap Quiz
             </Link>
-            <Link href="/learn" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/learn" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               GTO Strategy Academy
             </Link>
             <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -538,6 +539,17 @@ export default function PokerIqTestPage() {
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Your Poker IQ Score & Close Leaks In 107 GTO Games"
+              description="Track Diagnostic Progress Over Time, Drill Weakest Spots Free, And Log Live Results In Bankroll Manager."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/poker-iq-test&src=poker-iq"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/poker-iq-test"
+            />
+
             <FaqSection faqs={IQ_FAQS} />
 
             <CitationBacklinkBox

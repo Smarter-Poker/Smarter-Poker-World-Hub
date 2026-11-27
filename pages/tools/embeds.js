@@ -7,6 +7,7 @@ import { DEAD_TOOL_REPLACEMENTS } from '../../src/lib/seo/backlinkCatalog.mjs';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
@@ -1388,7 +1389,7 @@ export default function WebmasterEmbedPortal() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '40px' }}>
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '24px' }}>
-              <Zap size={24} style={{ color: '#fbbf24', marginBottom: '12px' }} />
+              <Zap size={24} style={{ color: '#38bdf8', marginBottom: '12px' }} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px 0' }}>Zero Configuration Required</h3>
               <p style={{ margin: 0, fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.5 }}>
                 Copy The HTML Snippet Directly Into Your WordPress Post, Ghost Blog, Or Custom CMS. Works Seamlessly Without External Script Dependencies.
@@ -1739,9 +1740,9 @@ export default function WebmasterEmbedPortal() {
                     style={{
                       padding: '6px 12px',
                       borderRadius: '7px',
-                      border: botPlatform === plat.id ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.12)',
-                      background: botPlatform === plat.id ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255, 255, 255, 0.03)',
-                      color: botPlatform === plat.id ? '#e9d5ff' : '#94a3b8',
+                      border: botPlatform === plat.id ? '1px solid #38bdf8' : '1px solid rgba(148, 184, 224, 0.28)',
+                      background: botPlatform === plat.id ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                      color: botPlatform === plat.id ? '#ffffff' : '#94a3b8',
                       fontSize: '0.8rem',
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -1764,7 +1765,7 @@ export default function WebmasterEmbedPortal() {
                     key={cmdItem.id}
                     style={{
                       background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(168, 85, 247, 0.24)',
+                      border: '1px solid rgba(148, 184, 224, 0.28)',
                       borderRadius: '14px',
                       padding: '20px',
                     }}
@@ -1775,9 +1776,9 @@ export default function WebmasterEmbedPortal() {
                           display: 'inline-block',
                           padding: '4px 10px',
                           borderRadius: '6px',
-                          background: 'rgba(168, 85, 247, 0.16)',
-                          border: '1px solid rgba(168, 85, 247, 0.4)',
-                          color: '#d8b4fe',
+                          background: 'rgba(56, 189, 248, 0.14)',
+                          border: '1px solid rgba(56, 189, 248, 0.35)',
+                          color: '#38bdf8',
                           fontFamily: 'monospace',
                           fontWeight: 700,
                           fontSize: '0.92rem',
@@ -1807,7 +1808,7 @@ export default function WebmasterEmbedPortal() {
                           border: '1px solid rgba(255, 255, 255, 0.12)',
                           borderRadius: '8px',
                           padding: '8px 10px',
-                          color: '#e9d5ff',
+                          color: '#e2e8f0',
                           fontFamily: 'monospace',
                           fontSize: '0.78rem',
                           resize: 'none',
@@ -1828,7 +1829,7 @@ export default function WebmasterEmbedPortal() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          background: isCmdCopied ? '#059669' : '#7e22ce',
+                          background: isCmdCopied ? '#059669' : '#1d4ed8',
                           color: '#fff',
                           border: 0,
                           borderRadius: '6px',
@@ -1873,7 +1874,7 @@ export default function WebmasterEmbedPortal() {
                     key={item.id}
                     style={{
                       background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(251, 191, 36, 0.22)',
+                      border: '1px solid rgba(148, 184, 224, 0.28)',
                       borderRadius: '14px',
                       padding: '20px',
                       display: 'flex',
@@ -1890,8 +1891,8 @@ export default function WebmasterEmbedPortal() {
                             fontWeight: 700,
                             padding: '3px 8px',
                             borderRadius: '6px',
-                            background: 'rgba(251, 191, 36, 0.14)',
-                            color: '#fcd34d',
+                            background: 'rgba(56, 189, 248, 0.14)',
+                            color: '#38bdf8',
                           }}
                         >
                           {item.category}
@@ -1926,9 +1927,9 @@ export default function WebmasterEmbedPortal() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
-                          background: isDeadCopied ? '#059669' : 'rgba(251, 191, 36, 0.16)',
-                          border: '1px solid rgba(251, 191, 36, 0.4)',
-                          color: isDeadCopied ? '#fff' : '#fde68a',
+                          background: isDeadCopied ? '#059669' : 'rgba(56, 189, 248, 0.14)',
+                          border: '1px solid rgba(56, 189, 248, 0.35)',
+                          color: isDeadCopied ? '#fff' : '#38bdf8',
                           borderRadius: '6px',
                           padding: '7px 12px',
                           fontSize: '0.8rem',
@@ -2021,9 +2022,9 @@ export default function WebmasterEmbedPortal() {
                 style={{
                   padding: '8px 14px',
                   background: '#0f172a',
-                  border: '1px solid #a855f7',
+                  border: '1px solid #38bdf8',
                   borderRadius: '6px',
-                  color: '#e9d5ff',
+                  color: '#e2e8f0',
                   fontSize: '0.84rem',
                   fontWeight: 600,
                   textDecoration: 'none',
@@ -2036,9 +2037,9 @@ export default function WebmasterEmbedPortal() {
                 style={{
                   padding: '8px 14px',
                   background: '#0f172a',
-                  border: '1px solid #f59e0b',
+                  border: '1px solid rgba(148, 184, 224, 0.35)',
                   borderRadius: '6px',
-                  color: '#fde68a',
+                  color: '#38bdf8',
                   fontSize: '0.84rem',
                   fontWeight: 600,
                   textDecoration: 'none',
@@ -2331,6 +2332,17 @@ export default function WebmasterEmbedPortal() {
               </Link>
             </div>
           </section>
+
+          <SmarterConversionCta
+            compact
+            eyebrow="Free Smarter.Poker Account"
+            title="Unlock All 52 Poker Calculators, 107 GTO Drills & Live Room Data"
+            description="Create A Free Smarter.Poker Account To Save Custom Calculator Presets, Track Bankroll Sessions, And Access 715+ Verified Poker Rooms."
+            primaryLabel="Create Free Account"
+            primaryHref="/auth/signup?redirect=/tools/embeds&src=tools-embeds"
+            secondaryLabel="Sign In"
+            secondaryHref="/auth/login?redirect=/tools/embeds"
+          />
 
           <CitationBacklinkBox
             title="Smarter.Poker Free Embeddable Poker Calculators & Streamer Bot API"

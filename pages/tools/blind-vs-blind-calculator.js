@@ -17,6 +17,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -393,7 +394,7 @@ export default function BlindVsBlindCalculatorPage({
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 15,
                     fontWeight: 700,
                   }}
@@ -427,11 +428,11 @@ export default function BlindVsBlindCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 BB Pot Odds &amp; MDF Vs {metrics.safeSizing} BB
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.bbReqEqPct}% Eq • {metrics.bbMdfPct}% MDF
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -500,7 +501,7 @@ export default function BlindVsBlindCalculatorPage({
                   <tr key={row.node} style={{ borderBottom: '1px solid #1e293b' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.node}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.vpipFreq}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.threeBetOrIso}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.threeBetOrIso}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.callOrCheck}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.strategicNote}</td>
                   </tr>
@@ -518,7 +519,7 @@ export default function BlindVsBlindCalculatorPage({
             <Link href="/tools/preflop-ranges" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               6-Max 13x13 Preflop Ranges
             </Link>
-            <Link href="/tools/heads-up-push-fold-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/heads-up-push-fold-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Heads-Up Push/Fold Solver
             </Link>
             <Link href="/tools/3bet-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -532,6 +533,17 @@ export default function BlindVsBlindCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Blind-Vs-Blind Ranges & Drill SB Vs BB Free"
+              description="Bookmark Limp, Open-Raise, And 3-Bet Defense Matrices And Practice 107 Free GTO Training Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/blind-vs-blind-calculator&src=bvb-calc"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/blind-vs-blind-calculator"
+            />
+
             <FaqSection faqs={BVB_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

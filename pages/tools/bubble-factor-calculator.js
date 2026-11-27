@@ -18,6 +18,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { computeMalmuthHarvilleIcm, useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -354,7 +355,7 @@ export default function BubbleFactorCalculatorPage({
               { label: '1st Place Prize ($)', val: p1, set: setP1, step: 1000, color: '#34d399' },
               { label: '2nd Place Prize ($)', val: p2, set: setP2, step: 1000, color: '#34d399' },
               { label: '3rd Place Prize ($)', val: p3, set: setP3, step: 1000, color: '#34d399' },
-              { label: '4th Place Prize ($)', val: p4, set: setP4, step: 1000, color: '#f2b84b' },
+              { label: '4th Place Prize ($)', val: p4, set: setP4, step: 1000, color: '#38bdf8' },
             ].map((inp) => (
               <div key={inp.label}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
@@ -456,7 +457,7 @@ export default function BubbleFactorCalculatorPage({
             <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Malmuth-Harville ICM Calculator
             </Link>
-            <Link href="/tools/chop-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/chop-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Final Table ICM Chop Calculator
             </Link>
             <Link href="/tools/satellite-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -470,6 +471,17 @@ export default function BubbleFactorCalculatorPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Final Table Bubble Factors & Drill ICM Free"
+              description="Bookmark Risk Premium Matrices And Practice High-Pressure Bubble Spots In 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/bubble-factor-calculator&src=bubble-factor"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/bubble-factor-calculator"
+            />
+
             <FaqSection faqs={BUBBLE_FACTOR_FAQS} />
 
             <HubPageSummary page="poker-tools" path={canonicalPath} />

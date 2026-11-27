@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -303,7 +304,7 @@ export default function LateRegCalculatorPage() {
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: '#f2b84b',
+              color: '#38bdf8',
               background: '#101a20',
               border: '1px solid #334155',
               borderRadius: '2px',
@@ -388,7 +389,7 @@ export default function LateRegCalculatorPage() {
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 15,
                     fontWeight: 700,
                   }}
@@ -535,11 +536,11 @@ export default function LateRegCalculatorPage() {
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Required Break-Even Skill ROI
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {metrics.requiredRoiAtLateReg}% ROI
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -573,7 +574,7 @@ export default function LateRegCalculatorPage() {
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.fieldLeft}</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.icmBoost}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.startingChipValue}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.breakevenRoi}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.breakevenRoi}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.verdict}</td>
                   </tr>
                 ))}
@@ -581,6 +582,17 @@ export default function LateRegCalculatorPage() {
             </table>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Save Late-Registration ICM Spots & Track MTT EV Free"
+          description="Bookmark Re-Entry Equity Calculations, Log Tournament ROI, And Practice 107 Free GTO Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/late-reg-calculator&src=late-reg"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/late-reg-calculator"
+        />
 
         <FaqSection faqs={LATE_REG_FAQS} />
 

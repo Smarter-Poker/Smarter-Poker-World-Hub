@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -477,11 +478,11 @@ export default function RakeCalculatorPage({
               </ul>
             </div>
 
-            <div style={{ background: '#020608', padding: 18, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 18, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Timed Seat Collection Cost
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#f2b84b', marginTop: 6 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 6 }}>
                 ${metrics.hourlyTimeChargeDollars} / Hr
               </div>
               <ul style={{ margin: '10px 0 0 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.75, color: '#cbd5e1' }}>
@@ -529,7 +530,7 @@ export default function RakeCalculatorPage({
                   <tr key={row.regionModel} style={{ borderBottom: '1px solid #1e293b' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{row.regionModel}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.collectionRule}</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.tableHourlyExtracted}</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.tableHourlyExtracted}</td>
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 700 }}>{row.perPlayerCostPerHr}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.costInBbPer100}</td>
                   </tr>
@@ -548,7 +549,7 @@ export default function RakeCalculatorPage({
             <Link href="/research/us-live-poker-room-rake-and-jackpot-benchmark" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               US Live Poker Room Rake Study
             </Link>
-            <Link href="/tools/poker-winrate-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/poker-winrate-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Poker Winrate &amp; BB/100 Calculator
             </Link>
             <Link href="/poker-rooms/guides" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -562,6 +563,17 @@ export default function RakeCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Compare Live Room Rake & Track Net Hourly Profit Free"
+          description="Benchmark Drop Vs Time-Charge Across 715+ Verified Poker Rooms And Log Net Sessions In Bankroll Manager."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/tools/rake-calculator&src=rake-calc"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/tools/rake-calculator"
+        />
 
         <FaqSection faqs={RAKE_CALCULATOR_FAQS} />
 

@@ -15,6 +15,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
 import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
@@ -342,7 +343,7 @@ export default function PreflopRangeMatrixHub({
               padding: '12px 16px',
             }}>
               <div style={{ fontSize: 12, color: '#8B949E', textTransform: 'uppercase' }}>Pure Opens</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#F0883E', marginTop: 4 }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#38bdf8', marginTop: 4 }}>
                 {stats.always.length}
               </div>
               <div style={{ fontSize: 12, color: '#6E7681', marginTop: 2 }}>100% Frequency Hands</div>
@@ -460,7 +461,7 @@ export default function PreflopRangeMatrixHub({
               {stats.always.join(', ')}
             </p>
 
-            <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px 0', color: '#F0883E' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px 0', color: '#38bdf8' }}>
               Mixed Strategy Holdings
             </h3>
             <p style={{ margin: '0 0 16px 0', color: '#8B949E', fontSize: 14 }}>
@@ -527,6 +528,17 @@ export default function PreflopRangeMatrixHub({
               </Link>
             </div>
           </div>
+
+          <SmarterConversionCta
+            eyebrow="Free Smarter.Poker Account"
+            title={`Save Custom Ranges & Drill ${posData.abbrev} Spots In 107 Free GTO Games`}
+            description={`Bookmark ${posData.name} (${posData.abbrev}) 100BB Opening Charts, Practice Mixed Frequencies Interactively, And Track Live Poker Sessions Free.`}
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=preflop-ranges`}
+            secondaryLabel="Sign In"
+            secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
+            highlights={['100% Free Forever', '107 GTO Drills', 'Save Custom Ranges']}
+          />
 
           {/* Frequently Asked Questions */}
           <div style={{

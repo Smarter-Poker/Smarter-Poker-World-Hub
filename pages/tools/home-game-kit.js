@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -430,7 +431,7 @@ export default function HomeGameKitPage({
                     borderRadius: '2px',
                     border: '1px solid #334155',
                     background: '#020608',
-                    color: '#f2b84b',
+                    color: '#38bdf8',
                     fontSize: 15,
                     fontWeight: 700,
                   }}
@@ -489,11 +490,11 @@ export default function HomeGameKitPage({
               </div>
             </div>
 
-            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #f2b84b' }}>
+            <div style={{ background: '#020608', padding: 16, borderRadius: '2px', border: '1px solid #38bdf8' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Starting Chips On Table ({kitMetrics.safePlayers} Seats)
               </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#f2b84b', marginTop: 4 }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#38bdf8', marginTop: 4 }}>
                 {kitMetrics.totalStartingChipsIssued} Chips Issued
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
@@ -537,7 +538,7 @@ export default function HomeGameKitPage({
                     <td style={{ padding: '10px 14px', color: '#25c8ff', fontWeight: 800 }}>{row.tubeQty}x Chips</td>
                     <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{row.playerSubValue}</td>
                     <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{row.issuedTotal} Chips</td>
-                    <td style={{ padding: '10px 14px', color: '#f2b84b', fontWeight: 700 }}>{row.recommendedSetCount} Chips</td>
+                    <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{row.recommendedSetCount} Chips</td>
                     <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.colorUp}</td>
                   </tr>
                 ))}
@@ -566,7 +567,7 @@ export default function HomeGameKitPage({
             </div>
 
             <div style={{ background: '#101a20', border: '1px solid #1e293b', borderRadius: '2px', padding: 20 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#f2b84b', margin: '0 0 12px 0' }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#38bdf8', margin: '0 0 12px 0' }}>
                 Official 10-Tier Poker Hand Rankings (High To Low)
               </h3>
               <div style={{ overflowX: 'auto' }}>
@@ -602,7 +603,7 @@ export default function HomeGameKitPage({
             <Link href="/tools/blind-structure-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Tournament Blind Structure Generator
             </Link>
-            <Link href="/tools/payout-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/tools/payout-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Prize Pool &amp; Payout Calculator
             </Link>
             <Link href="/tools/side-pot-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
@@ -619,6 +620,17 @@ export default function HomeGameKitPage({
 
         {!isEmbed && (
           <>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Save Your Home Game Chip Setups & Host Faster Free"
+              description="Bookmark Chip Denominations And Rebuy Reserves, Manage Home Games, And Unlock 107 Free GTO Games."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/tools/home-game-kit&src=home-game-kit"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/tools/home-game-kit"
+            />
+
             <FaqSection faqs={HOME_GAME_KIT_FAQS} />
 
             <CitationBacklinkBox
