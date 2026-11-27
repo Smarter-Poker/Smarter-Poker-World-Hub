@@ -325,7 +325,12 @@ export function normalizeSignaturePageCount(rawCount, min = 36, max = 48) {
 export function formatChipsOnly(amount) {
     const num = Number(amount || 0);
     if (!Number.isFinite(num) || num <= 0) return '0 Chips';
-    return `${Math.round(num).toLocaleString('en-US')} Chips`;
+    // Club Arena buy-ins and pools can carry cents (31.50, 15,507.50), so a
+    // fractional amount keeps two decimals instead of rounding to a false total.
+    const text = Number.isInteger(num)
+        ? num.toLocaleString('en-US')
+        : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${text} Chips`;
 }
 
 /** Generic image the email-image route draws when a page has no real artwork. */

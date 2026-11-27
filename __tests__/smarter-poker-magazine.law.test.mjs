@@ -2729,3 +2729,10 @@ test('MAG LAW 26: the issue builder never invents standings, results or filler d
     const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
     assert.ok(/page\?\.standingsLabels/.test(renderer) && /cleanText\(page\?\.kicker\)/.test(renderer));
 });
+
+test('MAG LAW 27: Chips amounts with cents keep them instead of rounding to a false total', () => {
+    assert.equal(formatChipsOnly(31.5), '31.50 Chips');
+    assert.equal(formatChipsOnly(15507.5), '15,507.50 Chips');
+    assert.equal(formatChipsOnly(97920), '97,920 Chips');
+    assert.equal(formatChipsOnly(0), '0 Chips');
+});
