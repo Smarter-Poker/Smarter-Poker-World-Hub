@@ -116,37 +116,21 @@ const FullScreenPageOverlay = dynamic(
   { ssr: false }
 );
 
+import CardSkeletons, {
+  DAILY_SKELETON_CARDS,
+  VENUE_SKELETON_CARDS,
+} from '../../../src/components/poker-near-me/CardSkeletons';
+
 // Every panel is a dynamic chunk (code splitting) and the heavy ones (map,
 // live feed, tournaments, tours, series, calendar, the More tools) are also
 // wrapped in LazyPanel below so they mount when scrolled near, not on first
-// paint. Loading placeholders share the one .pnm-skel shimmer.
+// paint. Loading placeholders share the one .pnm-skel shimmer, except where
+// a panel takes over from the first-paint card skeleton: there the placeholder
+// is that same skeleton, so no hand-off collapses a section above the reader
+// (src/components/poker-near-me/CardSkeletons.jsx and its law).
 const PanelSkeleton = ({ height = 240 }) => (
   <div className="pnm-skel" style={{ minHeight: height }} aria-hidden="true" />
 );
-// The first-paint card skeleton. It is also the loading placeholder of every
-// panel that takes over from it (the venue list and the daily list), so the
-// hand-off from "first data loading" to "panel chunk loading" or "panel not
-// mounted yet" never collapses the section. A collapse above the reader moves
-// the page under them: Chromium hides it with scroll anchoring, WebKit
-// (Safari) has none, so the document shrinks under a reader at the bottom of
-// the deep Series route, the scroll position clamps by about 2000px and the
-// fixed header is laid out off screen until the next frame.
-// Law: __tests__/poker-near-me-sections-never-collapse-above-the-reader.law.test.mjs
-const CardSkeletons = ({ count = 8 }) => (
-  <div className="card-grid" data-pnm-card-skeletons={count}>
-    {Array.from({ length: count }).map((_, i) => (
-      <div key={i} className="entity-card skeleton-card">
-        <div className="skel skel-header"></div>
-        <div className="skel skel-title"></div>
-        <div className="skel skel-text"></div>
-        <div className="skel skel-tags"></div>
-        <div className="skel skel-footer"></div>
-      </div>
-    ))}
-  </div>
-);
-const VENUE_SKELETON_CARDS = 8;
-const DAILY_SKELETON_CARDS = 4;
 const MapTabPanel = dynamic(() => import('../../../src/components/poker-near-me/MapTabPanel'), {
   ssr: false,
   loading: () => <PanelSkeleton height={360} />,
