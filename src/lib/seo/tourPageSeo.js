@@ -184,7 +184,9 @@ export function tourSchema({ code, name, type, website, stops }) {
       '@id': `${site}${path}#tour`,
       name: label,
       alternateName: safeCode,
+      description: tourDescription({ code, name, type }),
       sport: 'Poker',
+      image: `${site}/images/og-default.png`,
       ...(website ? { url: website } : {}),
     },
     {

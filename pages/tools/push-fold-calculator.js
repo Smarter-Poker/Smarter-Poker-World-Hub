@@ -17,6 +17,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const POSITION_SHOVE_BENCHMARKS = [
   { position: 'Under The Gun (UTG - 8-Max)', bb15: '13.8%', bb12: '16.5%', bb10: '19.4%', bb8: '23.6%', bb5: '31.2%', keyHands: '55+, ATs+, KQs, AJo+' },
@@ -468,6 +469,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialStackBb: Number(query?.stackBb) || 10,

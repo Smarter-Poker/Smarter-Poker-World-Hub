@@ -17,6 +17,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const VARIANCE_BENCHMARKS = [
   { format: '6-Max Online No-Limit Hold\'em (100BB)', stdDev: '85 BB/100', winrate: '4.0 BB/100', conservativeBr: '45 Buy-Ins', aggressiveBr: '25 Buy-Ins' },
@@ -370,6 +371,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialWinrate: Number(query?.winrate) || 5,

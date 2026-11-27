@@ -57,6 +57,7 @@ import '../src/styles/worlds/poker-near-me-console-pods.css';
 import '../src/styles/worlds/poker-near-me-console-menu.css';
 import '../src/styles/worlds/poker-near-me-home-games-directory.css';
 import '../src/styles/single-field-focus.css';
+import '../src/components/magazine/magazine-print.css';
 import { installSingleFieldFocus } from '../src/lib/singleFieldFocus.mjs';
 import {
   Orbitron,
@@ -308,6 +309,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/magazine/[issue]',
   '/hub/magazine/poker-rooms',
   '/hub/magazine/print/[issue]',
+  '/hub/magazine/table-tent',
   '/hub/marketplace',
   '/hub/messenger/document-designs',
   '/hub/my-tournaments',
@@ -1004,7 +1006,10 @@ export default function App({ Component, pageProps }) {
   const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
   const isPrintProofRoute =
     router.pathname === '/hub/magazine/print/[issue]' ||
-    resolvedPath.startsWith('/hub/magazine/print/');
+    router.pathname === '/hub/magazine/table-tent' ||
+    resolvedPath.startsWith('/hub/magazine/print/') ||
+    resolvedPath === '/hub/magazine/table-tent' ||
+    resolvedPath.startsWith('/hub/magazine/table-tent/');
   const suppressWorldFooterOnMarketplaceStore =
     MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(resolvedPath) ||
     MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(router.pathname);

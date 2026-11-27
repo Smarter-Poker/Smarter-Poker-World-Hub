@@ -7,16 +7,23 @@
  * unless the exact decision is backed by the signed Training pipeline.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import { useHaptics } from '../../../src/hooks/useHaptics';
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
+
+const LiveSpotQuickEntry = dynamic(
+  () => import('../../../src/components/personal-assistant/LiveSpotQuickEntry'),
+  { ssr: false },
+);
 
 const DESTINATIONS = [
   {
@@ -48,6 +55,7 @@ const DESTINATIONS = [
     description: 'Type A Live Hand In About 15 Seconds Or Paste Hands From Another Site. Only Verified Solver Matches Are Graded.',
     href: '/hub/personal-assistant/leaks?quickspot=1&source=assistant-sandbox-retired',
     primary: false,
+    openLiveSpot: true,
   },
   {
     title: 'Open Club Arena Hand History',
@@ -58,14 +66,29 @@ const DESTINATIONS = [
 ];
 
 export default function VerifiedEvidenceSandboxBoundary() {
+  const [user, setUser] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
-  const menuConfig = getMenuConfig('hub-home', null, {}, {});
+  const [liveSpotOpen, setLiveSpotOpen] = useState(false);
   const haptic = useHaptics();
   const closeMenu = useCallback(() => setShowMenu(false), []);
+  const closeLiveSpot = useCallback(() => setLiveSpotOpen(false), []);
   useModalHistory(showMenu, closeMenu);
+  useModalHistory(liveSpotOpen, closeLiveSpot);
 
-  const handleLinkTap = (event, href) => {
+  useEffect(() => {
+    setUser(getAuthUser());
+  }, []);
+
+  const menuConfig = getMenuConfig('personal-assistant', user, {}, {});
+  const secondaryCount = DESTINATIONS.filter((destination) => !destination.primary).length;
+
+  const handleLinkTap = (event, href, options = {}) => {
     haptic('light');
+    if (options.openLiveSpot) {
+      event.preventDefault();
+      setLiveSpotOpen(true);
+      return;
+    }
     if (href.startsWith('/hub/club-arena/') && typeof window !== 'undefined') {
       event.preventDefault();
       window.location.assign(href);
@@ -87,8 +110,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
         onClose={closeMenu}
         direction="left"
         theme="pa"
-        user={null}
-        showProfile={false}
+        user={user}
         menuItems={menuConfig.menuItems}
         bottomLinks={menuConfig.bottomLinks}
       />
@@ -133,17 +155,28 @@ export default function VerifiedEvidenceSandboxBoundary() {
           </p>
 
           <div className="sandbox-command-bar" aria-label="Verified Training Destinations" data-tutorial="sandbox-destinations">
-            {DESTINATIONS.map((destination) => (
-              <Link
-                key={destination.href}
-                href={destination.href}
-                className={destination.primary ? 'destination primary' : 'destination'}
-                onClick={(event) => handleLinkTap(event, destination.href)}
-              >
-                <span>{destination.title}</span>
-                <small>{destination.description}</small>
-              </Link>
-            ))}
+            {DESTINATIONS.map((destination, index) => {
+              const isOrphanTrailingCard = !destination.primary
+                && index === DESTINATIONS.length - 1
+                && secondaryCount % 2 === 1;
+              const className = destination.primary
+                ? 'destination primary'
+                : isOrphanTrailingCard
+                  ? 'destination full-span'
+                  : 'destination';
+              return (
+                <Link
+                  key={destination.href}
+                  href={destination.href}
+                  className={className}
+                  data-live-spot-trigger={destination.openLiveSpot ? 'sandbox-inline' : undefined}
+                  onClick={(event) => handleLinkTap(event, destination.href, destination)}
+                >
+                  <span>{destination.title}</span>
+                  <small>{destination.description}</small>
+                </Link>
+              );
+            })}
           </div>
 
           <Link
@@ -165,6 +198,13 @@ export default function VerifiedEvidenceSandboxBoundary() {
         </details>
       </main>
 
+      {liveSpotOpen && (
+        <LiveSpotQuickEntry
+          open
+          onClose={closeLiveSpot}
+        />
+      )}
+
       <style jsx>{`
         /* Approved MTT Lobby & Arena Workspace Design System:
            #040d18 / #05080c-#020407 obsidian-navy console canvas, 600px centered interior,
@@ -183,6 +223,12 @@ export default function VerifiedEvidenceSandboxBoundary() {
           width: min(100% - 12px, 600px);
           margin: 0 auto;
           padding: 10px 0 max(24px, env(safe-area-inset-bottom));
+        }
+
+        @media (min-width: 769px) {
+          .sandbox-workspace {
+            width: min(100% - 24px, 820px);
+          }
         }
 
         .boundary-console {
@@ -311,10 +357,23 @@ export default function VerifiedEvidenceSandboxBoundary() {
           background: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%);
         }
 
+        .destination.full-span,
+        .sandbox-command-bar :global(a.destination.full-span) {
+          grid-column: 1 / -1;
+        }
+
+        .destination:hover,
+        .sandbox-command-bar :global(a.destination:hover) {
+          border-color: #56d8ff;
+          filter: brightness(1.08);
+          box-shadow: 0 6px 18px rgba(8, 124, 250, 0.22);
+        }
+
         .destination:focus-visible,
         .sandbox-command-bar :global(a.destination:focus-visible),
         .back-link:focus-visible,
-        .boundary-console :global(a.back-link:focus-visible) {
+        .boundary-console :global(a.back-link:focus-visible),
+        .summary-disclosure > summary:focus-visible {
           outline: 2px solid #83deff;
           outline-offset: 2px;
         }
@@ -377,14 +436,50 @@ export default function VerifiedEvidenceSandboxBoundary() {
           user-select: none;
         }
 
+        .summary-disclosure > summary:hover {
+          background: rgba(19, 37, 58, 0.58);
+          color: #ffffff;
+        }
+
         .summary-disclosure > summary::-webkit-details-marker {
           color: transparent;
           width: 0;
         }
 
+        .summary-disclosure > summary::after {
+          content: '';
+          display: inline-block;
+          width: 7px;
+          height: 7px;
+          flex: 0 0 7px;
+          border-right: 2px solid #83deff;
+          border-bottom: 2px solid #83deff;
+          transform: rotate(45deg);
+        }
+
+        .summary-disclosure[open] > summary::after {
+          transform: rotate(225deg);
+        }
+
         .summary-disclosure > summary small {
+          margin-left: auto;
           color: #9aabba;
           font: 600 12px / 1.2 Arial, sans-serif;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+          .destination,
+          .sandbox-command-bar :global(a.destination),
+          .summary-disclosure > summary,
+          .summary-disclosure > summary::after {
+            transition: transform 0.15s ease, filter 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+          }
+
+          .destination:active,
+          .sandbox-command-bar :global(a.destination:active),
+          .summary-disclosure > summary:active {
+            transform: scale(0.985);
+          }
         }
 
         .summary-disclosure-body {

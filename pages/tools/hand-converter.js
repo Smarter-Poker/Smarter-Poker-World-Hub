@@ -20,6 +20,7 @@ import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShar
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderHandConverterMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const GAME_STAKES = [
   '$1/$3 Live NLH',
@@ -678,5 +679,6 @@ export async function getServerSideProps({ req, res, query }) {
       return { props: {} };
     }
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }

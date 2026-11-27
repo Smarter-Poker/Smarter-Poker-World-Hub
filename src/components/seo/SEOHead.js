@@ -351,6 +351,7 @@ export default function SEOHead(props) {
       pathname.startsWith('/rules/') ||
       pathname === '/games' ||
       pathname.startsWith('/games/') ||
+      pathname === '/poker-rooms' ||
       pathname === '/poker-rooms/guides' ||
       pathname.startsWith('/poker-rooms/guides/') ||
       pathname === '/poker-rooms/states' ||

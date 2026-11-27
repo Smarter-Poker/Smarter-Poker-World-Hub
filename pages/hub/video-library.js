@@ -2832,7 +2832,7 @@ export default function VideoLibraryPage() {
                             onOpenLesson={handleOpenVideo}
                             onAskGeeves={() => window.dispatchEvent(new window.CustomEvent('geeves-open'))}
                             quizHref={`/hub/trivia?topic=${encodeURIComponent((selectedVideo.tags || [selectedVideo.type || 'poker'])[0])}`}
-                            sandboxHref="/hub/personal-assistant/sandbox"
+                            sandboxHref="/hub/personal-assistant/leaks"
                         />
                     </div>
 

@@ -11,6 +11,8 @@ export default function FriendChallengePanel({
     shareBasePath = '/hub/trivia/pvp',
     onChallengeLoaded = null,
     onChallengeAccepted = null,
+    rematchDraft = null,
+    onClearRematchDraft = null,
 }) {
     const router = useRouter();
     const [stake, setStake] = useState(25);
@@ -71,6 +73,19 @@ export default function FriendChallengePanel({
     useEffect(() => {
         void loadMyChallenges();
     }, [loadMyChallenges]);
+
+    // Pre-fill the quoted stake when a human Rematch draft arrives.
+    // Never auto-create or auto-charge: the player must explicitly tap Create Rematch Link.
+    useEffect(() => {
+        if (!rematchDraft) return;
+        const requestedStake = Number(rematchDraft.stake);
+        if (Number.isInteger(requestedStake) && VALID_CHALLENGE_STAKES.includes(requestedStake)) {
+            setStake(requestedStake);
+        }
+        setCreated(null);
+        setError('');
+        setNotice('');
+    }, [rematchDraft]);
 
     const challengeShareUrl = (challengeCode) => {
         const origin = typeof window !== 'undefined' && window.location?.origin
@@ -225,6 +240,9 @@ export default function FriendChallengePanel({
     };
 
     const openOwnChallenges = myChallenges.filter((item) => item.isOwner && item.status === 'open');
+    const rematchOpponentName = typeof rematchDraft?.opponentName === 'string' && rematchDraft.opponentName.trim()
+        ? rematchDraft.opponentName.trim()
+        : '';
 
     return (
         <section className="tt-section" aria-labelledby="trivia-friend-challenge-title" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -232,6 +250,46 @@ export default function FriendChallengePanel({
                 <h2 id="trivia-friend-challenge-title" className="tc-label">Direct Friend Challenge</h2>
                 <span className="tc-ink--blue">1v1 Duel Invite</span>
             </div>
+
+            {rematchOpponentName ? (
+                <div
+                    data-rematch-draft="true"
+                    data-rematch-stake={stake}
+                    style={{
+                        border: '1px solid #86daff',
+                        background: '#0a1829',
+                        padding: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                    }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <strong className="tc-ink--blue" data-preserve-case="true">
+                            Rematch With {rematchOpponentName} - {stake} Diamonds
+                        </strong>
+                        {typeof onClearRematchDraft === 'function' ? (
+                            <button
+                                type="button"
+                                className="tc-word tc-ink--silver"
+                                style={{
+                                    minHeight: '44px',
+                                    padding: '6px 12px',
+                                    border: '1px solid #445e77',
+                                    background: '#050607',
+                                    color: '#bdd0e2',
+                                }}
+                                onClick={onClearRematchDraft}
+                            >
+                                Clear Rematch
+                            </button>
+                        ) : null}
+                    </div>
+                    <p className="trivia-console-copy tc-ink--silver" style={{ margin: 0 }}>
+                        Confirm Your Stake Below And Tap Create Rematch Link. No Diamonds Are Charged Until You Confirm.
+                    </p>
+                </div>
+            ) : null}
 
             {incoming ? (
                 <div style={{ border: '1px solid #86daff', background: '#0a1829', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -276,7 +334,15 @@ export default function FriendChallengePanel({
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
                 <TriviaGlassAction
-                    label={busy === 'create' ? 'Creating' : signedIn ? `Create ${stake} Diamond Duel Link` : 'Sign In To Challenge A Friend'}
+                    label={
+                        busy === 'create'
+                            ? 'Creating'
+                            : !signedIn
+                                ? (rematchOpponentName ? 'Sign In To Rematch' : 'Sign In To Challenge A Friend')
+                                : rematchOpponentName
+                                    ? `Create ${stake} Diamond Rematch Link`
+                                    : `Create ${stake} Diamond Duel Link`
+                    }
                     ink="blue"
                     disabled={Boolean(busy)}
                     onClick={handleCreate}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { getFreshAccessToken } from '../../../lib/authUtils';
 import useServerGradedRun from '../../../hooks/useServerGradedRun';
@@ -10,6 +11,8 @@ import PostSettlementReviewDrawer from '../PostSettlementReviewDrawer';
 import ShareResultCardModal from '../ShareResultCardModal';
 import {
     applyPvpAnswerReceipt,
+    buildPvpCategoryBreakdown,
+    computeHeadToHeadSeries,
     createPvpClientNonce,
     createPvpDtoAuthority,
     createPvpQuoteAuthority,
@@ -18,6 +21,7 @@ import {
     formatPvpDuration,
     isActivePvpState,
     isAuthoritativePvpQuote,
+    isPvpHorseOpponent,
     pvpErrorCopy,
     pvpOutcomeInk,
     pvpOutcomeLabel,
@@ -25,6 +29,7 @@ import {
     pvpSecondsUntil,
     pvpServerAnchor,
     pvpStakeKeyboardTarget,
+    resolvePvpOpponentKey,
 } from './pvpModel.mjs';
 
 const DIAMOND_FORMAT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
@@ -47,6 +52,13 @@ function formatDiamonds(value) {
 function formatNet(value) {
     if (!Number.isInteger(value)) return 'Unavailable';
     return `${value > 0 ? '+' : ''}${DIAMOND_FORMAT.format(value)}`;
+}
+
+function formatSeriesRecord(series) {
+    if (!series || series.played < 1) return '';
+    return series.ties > 0
+        ? `${series.wins}-${series.losses}-${series.ties}`
+        : `${series.wins}-${series.losses}`;
 }
 
 function displayOpponent(match) {
@@ -284,7 +296,109 @@ function ResultReceipts({ result, headingId = 'pvp-receipts-title' }) {
     );
 }
 
-function PvpHistory({ history, loading, error, onPage, onRetry, defaultOpen = false }) {
+function PvpCategoryBreakdownCard({ breakdown, loading }) {
+    if (loading && breakdown.length === 0) {
+        return (
+            <section
+                data-pvp-category-breakdown="true"
+                aria-label="Post-Match Category Breakdown"
+                style={{
+                    marginTop: '14px',
+                    padding: '12px',
+                    border: '1px solid #445e77',
+                    background: '#0a1829',
+                }}
+            >
+                <p className="trivia-pvp-fine-print" role="status" style={{ margin: 0 }}>
+                    Loading Category Breakdown...
+                </p>
+            </section>
+        );
+    }
+    if (!Array.isArray(breakdown) || breakdown.length === 0) return null;
+    const weakest = breakdown[0];
+
+    return (
+        <section
+            data-pvp-category-breakdown="true"
+            aria-labelledby="pvp-category-breakdown-title"
+            style={{
+                marginTop: '14px',
+                padding: '12px',
+                border: '1px solid #445e77',
+                background: '#0a1829',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+            }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div>
+                    <p className="tc-label" style={{ margin: 0 }}>Post-Match Study Focus</p>
+                    <h3 id="pvp-category-breakdown-title" className="trivia-pvp-section-title" style={{ margin: '2px 0 0' }}>
+                        Category Breakdown
+                    </h3>
+                </div>
+                <Link
+                    href={weakest.trainingHref}
+                    className="tc-word tc-ink--blue"
+                    data-pvp-train-spot="true"
+                    style={{
+                        minHeight: '44px',
+                        padding: '6px 12px',
+                        border: '1px solid #86daff',
+                        background: '#050607',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                    }}
+                >
+                    Train This Spot: {weakest.trainingLabel}
+                </Link>
+            </div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {breakdown.map((entry) => {
+                    const ink = entry.accuracyPct >= 75 ? 'green' : entry.accuracyPct >= 50 ? 'blue' : 'red';
+                    return (
+                        <li
+                            key={entry.category}
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '10px',
+                                flexWrap: 'wrap',
+                                padding: '8px 10px',
+                                border: '1px solid #445e77',
+                                background: '#050607',
+                            }}
+                        >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <strong style={{ color: '#f2f7ff' }}>{entry.label}</strong>
+                                <span className={`tc-ink--${ink}`}>
+                                    {entry.correct} Of {entry.total} Correct ({entry.accuracyPct}%)
+                                </span>
+                            </div>
+                            <Link
+                                href={entry.trainingHref}
+                                className="tc-word tc-ink--blue"
+                                style={{
+                                    minHeight: '44px',
+                                    padding: '0 10px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                Train This Spot
+                            </Link>
+                        </li>
+                    );
+                })}
+            </ul>
+        </section>
+    );
+}
+
+function PvpHistory({ history, loading, error, onPage, onRetry, onRematch = null, defaultOpen = false }) {
     const items = Array.isArray(history?.items) ? history.items : [];
     const offset = Number(history?.offset || 0);
     const limit = Number(history?.limit || 5);
@@ -313,26 +427,70 @@ function PvpHistory({ history, loading, error, onPage, onRetry, defaultOpen = fa
                     <ol className="trivia-pvp-history-list">
                         {items.map((item, index) => {
                             const itemNumber = offset + index + 1;
+                            const isHorse = isPvpHorseOpponent(item);
+                            const opponentLabel = item.opponent?.isHorse ? 'Smarter Horse' : (isHorse ? 'Smarter Horse' : (item.opponent?.displayName || 'Player'));
+                            const opponentKey = !isHorse ? resolvePvpOpponentKey(item) : null;
+                            const h2h = opponentKey ? computeHeadToHeadSeries(items, opponentKey) : null;
                             return (
                                 <li key={`${item.settlementReference || item.stakeReference || 'match'}-${itemNumber}`}>
-                                    <details>
-                                        <summary style={{ minHeight: '44px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                            <span>{pvpOutcomeLabel(item)}</span>
-                                            <strong>Vs {item.opponent?.isHorse ? 'Smarter Horse' : (item.opponent?.displayName || 'Player')}</strong>
-                                            <span>{formatNet(item.net)} Diamonds</span>
-                                        </summary>
-                                        <div className="trivia-pvp-history-detail">
-                                            <dl className="trivia-pvp-data">
-                                                <DataRow label="Settled" value={item.settledAt || 'Unavailable'} />
-                                                <DataRow label="Your Score" value={formatDiamonds(item.myCorrect)} />
-                                                <DataRow label="Opponent Score" value={formatDiamonds(item.opponentCorrect)} />
-                                                <DataRow label="Stake" value={`${formatDiamonds(item.stake)} Diamonds`} ink="blue" />
-                                                <DataRow label="Payout" value={`${formatDiamonds(item.payout)} Diamonds`} ink={item.payout > 0 ? 'green' : 'silver'} />
-                                                <DataRow label="Rules" value={item.rulesVersion || 'Unavailable'} preserveCase />
-                                            </dl>
-                                            <ResultReceipts result={item} headingId={`pvp-history-receipt-${itemNumber}`} />
-                                        </div>
-                                    </details>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
+                                        <details style={{ flex: '1 1 240px' }}>
+                                            <summary style={{ minHeight: '44px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span>{pvpOutcomeLabel(item)}</span>
+                                                <strong data-preserve-case="true">Vs {opponentLabel}</strong>
+                                                <span>{formatNet(item.net)} Diamonds</span>
+                                                {h2h && h2h.played >= 1 ? (
+                                                    <span className="tc-ink--blue" data-pvp-h2h-series="true" data-preserve-case="true">
+                                                        Series Vs {h2h.opponentName}: {formatSeriesRecord(h2h)} ({formatNet(h2h.netDiamonds)} Diamonds)
+                                                    </span>
+                                                ) : null}
+                                            </summary>
+                                            <div className="trivia-pvp-history-detail">
+                                                <dl className="trivia-pvp-data">
+                                                    <DataRow label="Settled" value={item.settledAt || 'Unavailable'} />
+                                                    <DataRow label="Your Score" value={formatDiamonds(item.myCorrect)} />
+                                                    <DataRow label="Opponent Score" value={formatDiamonds(item.opponentCorrect)} />
+                                                    <DataRow label="Stake" value={`${formatDiamonds(item.stake)} Diamonds`} ink="blue" />
+                                                    <DataRow label="Payout" value={`${formatDiamonds(item.payout)} Diamonds`} ink={item.payout > 0 ? 'green' : 'silver'} />
+                                                    {h2h && h2h.played >= 1 ? (
+                                                        <DataRow
+                                                            label="Head To Head Series"
+                                                            value={`${formatSeriesRecord(h2h)} (${formatNet(h2h.netDiamonds)} Diamonds)`}
+                                                            ink={h2h.netDiamonds >= 0 ? 'green' : 'red'}
+                                                        />
+                                                    ) : null}
+                                                    <DataRow label="Rules" value={item.rulesVersion || 'Unavailable'} preserveCase />
+                                                </dl>
+                                                <ResultReceipts result={item} headingId={`pvp-history-receipt-${itemNumber}`} />
+                                            </div>
+                                        </details>
+                                        {typeof onRematch === 'function' ? (
+                                            <button
+                                                type="button"
+                                                className="tc-word tc-ink--blue"
+                                                data-pvp-rematch="true"
+                                                data-pvp-rematch-kind={isHorse ? 'horse' : 'human'}
+                                                style={{
+                                                    minHeight: '44px',
+                                                    padding: '6px 12px',
+                                                    border: '1px solid #86daff',
+                                                    background: '#0a1829',
+                                                    color: '#f2f7ff',
+                                                    cursor: 'pointer',
+                                                }}
+                                                onClick={() => onRematch({
+                                                    stake: item.stake,
+                                                    opponent: item.opponent,
+                                                    matchType: isHorse ? 'human_horse' : 'human_human',
+                                                    isHorse,
+                                                })}
+                                            >
+                                                {isHorse
+                                                    ? `Play Another Match (${formatDiamonds(item.stake)} Diamonds)`
+                                                    : 'Rematch'}
+                                            </button>
+                                        ) : null}
+                                    </div>
                                 </li>
                             );
                         })}
@@ -365,6 +523,7 @@ export default function PvpCompetitiveExperience({
     onMatchActiveChange = null,
     onMatchSettled = null,
     onSyncContextChange = null,
+    onRequestRematch = null,
     realtimeConnected = false,
     realtimePollMs = null,
     realtimeEventCount = 0,
@@ -405,6 +564,8 @@ export default function PvpCompetitiveExperience({
     const [historyError, setHistoryError] = useState(null);
     const [reviewDrawerOpen, setReviewDrawerOpen] = useState(false);
     const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [categoryBreakdown, setCategoryBreakdown] = useState([]);
+    const [categoryBreakdownLoading, setCategoryBreakdownLoading] = useState(false);
 
     const latestDtoRef = useRef(null);
     const joinNonceRef = useRef(null);
@@ -415,6 +576,7 @@ export default function PvpCompetitiveExperience({
     const terminalQuoteRef = useRef(null);
     const historySettlementRef = useRef(null);
     const historyRequestSequenceRef = useRef(0);
+    const categoryBreakdownRequestRef = useRef(0);
     const staleQuoteRecoveryRef = useRef(false);
     const appliedPreferredStakeRef = useRef(null);
     const lastRealtimeEventRef = useRef(realtimeEventCount);
@@ -1162,6 +1324,8 @@ export default function PvpCompetitiveExperience({
         setShowLobby(true);
         setReviewDrawerOpen(false);
         setShareModalOpen(false);
+        setCategoryBreakdown([]);
+        setCategoryBreakdownLoading(false);
         setNotice(null);
         setActionError(null);
         setQuestions([]);
@@ -1175,6 +1339,48 @@ export default function PvpCompetitiveExperience({
         serverRun.reset();
         await loadQuote();
     }, [loadQuote, serverRun.reset]);
+
+    const handleRematch = useCallback(async (target = null) => {
+        if (!target || typeof target !== 'object') return;
+        const horse = Boolean(target.isHorse || isPvpHorseOpponent(target));
+        const requestedStake = Number(target.stake);
+        const validStake = Number.isInteger(requestedStake) && requestedStake > 0 ? requestedStake : null;
+
+        if (TERMINAL_STATES.has(latestDtoRef.current?.state)) {
+            await handlePlayAgain();
+        } else {
+            setShowLobby(true);
+        }
+
+        if (validStake && isAuthoritativePvpQuote(quote)) {
+            const affordableMatch = quote.stakes.find(
+                (entry) => entry.stake === validStake && entry.stake <= quote.balance,
+            );
+            if (affordableMatch) {
+                setSelectedStake(validStake);
+            }
+        }
+
+        if (horse) {
+            // Smarter Horse opponents never trigger a direct Friend Challenge rematch.
+            onRequestRematch?.({ isHorse: true, stake: validStake });
+            if (validStake) {
+                setNotice(`Selected ${formatDiamonds(validStake)} Diamond Stake. Review The Server Quote And Join When Ready.`);
+            }
+            return;
+        }
+
+        const opponentName = typeof target.opponent?.displayName === 'string' && target.opponent.displayName.trim()
+            ? target.opponent.displayName.trim()
+            : null;
+        const opponentId = target.opponent?.id || target.opponent?.userId || null;
+        onRequestRematch?.({
+            isHorse: false,
+            stake: validStake,
+            opponentId,
+            opponentName,
+        });
+    }, [handlePlayAgain, onRequestRematch, quote]);
 
     const serverState = showLobby ? 'idle' : (dto?.state || 'idle');
     const effectiveState = finishing ? 'settling' : serverState;
@@ -1190,6 +1396,56 @@ export default function PvpCompetitiveExperience({
     const effectiveReviewSessionId = isSettledResult
         ? (match?.mySessionId || serverRun.sessionId || settledSessionId || '')
         : '';
+
+    useEffect(() => {
+        if (!isSettledResult || !effectiveReviewSessionId || !user?.id) {
+            categoryBreakdownRequestRef.current += 1;
+            setCategoryBreakdown([]);
+            setCategoryBreakdownLoading(false);
+            return undefined;
+        }
+        const controller = new AbortController();
+        const { signal } = controller;
+        const requestId = ++categoryBreakdownRequestRef.current;
+        setCategoryBreakdownLoading(true);
+        (async () => {
+            try {
+                const headers = { Accept: 'application/json' };
+                try {
+                    const token = await getFreshAccessToken();
+                    if (token) headers.Authorization = `Bearer ${token}`;
+                } catch (_tokenError) {
+                    // Fallback to session cookie when token helper is unavailable.
+                }
+                if (signal.aborted || categoryBreakdownRequestRef.current !== requestId) return;
+                const response = await fetch(
+                    `/api/trivia/session-review?sessionId=${encodeURIComponent(effectiveReviewSessionId)}`,
+                    {
+                        method: 'GET',
+                        headers,
+                        credentials: 'include',
+                        cache: 'no-store',
+                        signal,
+                    },
+                );
+                const payload = await response.json().catch(() => null);
+                if (signal.aborted || categoryBreakdownRequestRef.current !== requestId) return;
+                if (response.ok && payload?.success === true && Array.isArray(payload.items)) {
+                    setCategoryBreakdown(buildPvpCategoryBreakdown(payload.items));
+                } else {
+                    setCategoryBreakdown([]);
+                }
+            } catch (error) {
+                if (error?.name === 'AbortError' || signal.aborted || categoryBreakdownRequestRef.current !== requestId) return;
+                setCategoryBreakdown([]);
+            } finally {
+                if (!signal.aborted && categoryBreakdownRequestRef.current === requestId) {
+                    setCategoryBreakdownLoading(false);
+                }
+            }
+        })();
+        return () => controller.abort();
+    }, [effectiveReviewSessionId, isSettledResult, user?.id]);
     const effectiveShareMatch = isSettledResult ? (match || settledMatch) : null;
     const playerShareName = user?.user_metadata?.username
         || user?.user_metadata?.display_name
@@ -1529,6 +1785,11 @@ export default function PvpCompetitiveExperience({
             </div>
         );
     } else if (effectiveState === 'result') {
+        const settledIsHorse = isPvpHorseOpponent(match);
+        const settledOpponentKey = !settledIsHorse ? resolvePvpOpponentKey(match) : null;
+        const settledH2h = settledOpponentKey
+            ? computeHeadToHeadSeries(history?.items, settledOpponentKey)
+            : null;
         title = pvpOutcomeLabel(result);
         subtitle = result?.forfeit ? 'Decided By Forfeit' : 'Server-Graded Final';
         pill = result ? `${formatNet(result.net)} Net` : 'Result';
@@ -1544,6 +1805,29 @@ export default function PvpCompetitiveExperience({
                         <>
                             <h2 className={`trivia-pvp-result-title tc-ink--${pvpOutcomeInk(result)}`}>{pvpOutcomeLabel(result)}</h2>
                             <p className="trivia-pvp-copy">{result.decision || 'The Server Recorded The Final Match Decision.'}</p>
+                            {settledH2h && settledH2h.played >= 1 ? (
+                                <div
+                                    data-pvp-h2h-series="true"
+                                    style={{
+                                        marginBottom: '12px',
+                                        padding: '10px 12px',
+                                        border: '1px solid #86daff',
+                                        background: '#0a1829',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        flexWrap: 'wrap',
+                                    }}
+                                >
+                                    <strong className="tc-ink--blue" data-preserve-case="true">
+                                        Series Vs {settledH2h.opponentName}: {formatSeriesRecord(settledH2h)}
+                                    </strong>
+                                    <span className={settledH2h.netDiamonds >= 0 ? 'tc-ink--green' : 'tc-ink--red'}>
+                                        {formatNet(settledH2h.netDiamonds)} Diamonds
+                                    </span>
+                                </div>
+                            ) : null}
                             <dl className="trivia-pvp-data">
                                 <DataRow label="Your Score" value={formatDiamonds(result.myCorrect)} />
                                 <DataRow label={`${displayOpponent(match)} Score`} value={formatDiamonds(result.opponentCorrect)} />
@@ -1558,6 +1842,30 @@ export default function PvpCompetitiveExperience({
                                     className="trivia-pvp-result-actions"
                                     style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '14px' }}
                                 >
+                                    <button
+                                        type="button"
+                                        className="tc-word tc-ink--blue"
+                                        data-pvp-rematch="true"
+                                        data-pvp-rematch-kind={settledIsHorse ? 'horse' : 'human'}
+                                        style={{
+                                            minHeight: '44px',
+                                            padding: '8px 14px',
+                                            border: '1px solid #86daff',
+                                            background: '#0a1829',
+                                            color: '#f2f7ff',
+                                            cursor: 'pointer',
+                                        }}
+                                        onClick={() => void handleRematch({
+                                            stake: result.stake,
+                                            opponent: match?.opponent,
+                                            matchType: settledIsHorse ? 'human_horse' : 'human_human',
+                                            isHorse: settledIsHorse,
+                                        })}
+                                    >
+                                        {settledIsHorse
+                                            ? `Play Another Match (${formatDiamonds(result.stake)} Diamonds)`
+                                            : `Rematch (${formatDiamonds(result.stake)} Diamonds)`}
+                                    </button>
                                     {effectiveReviewSessionId ? (
                                         <TriviaGlassAction
                                             label="Review Match Questions"
@@ -1571,6 +1879,12 @@ export default function PvpCompetitiveExperience({
                                         onClick={() => setShareModalOpen(true)}
                                     />
                                 </div>
+                            ) : null}
+                            {isSettledResult && effectiveReviewSessionId ? (
+                                <PvpCategoryBreakdownCard
+                                    breakdown={categoryBreakdown}
+                                    loading={categoryBreakdownLoading}
+                                />
                             ) : null}
                         </>
                     ) : (
@@ -1650,6 +1964,7 @@ export default function PvpCompetitiveExperience({
                     error={historyError}
                     onPage={(offset) => loadHistory(offset)}
                     onRetry={() => loadHistory(history?.offset || 0)}
+                    onRematch={handleRematch}
                     defaultOpen={effectiveState === 'result'}
                 />
             ) : null}

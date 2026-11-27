@@ -105,6 +105,11 @@ function formatMetric(value, suffix = '') {
     return Number.isInteger(value) ? `${value.toLocaleString('en-US')}${suffix}` : 'Pending';
 }
 
+function formatDiamondMetric(value) {
+    if (!Number.isInteger(value)) return 'Pending';
+    return `${value.toLocaleString('en-US')} ${Math.abs(value) === 1 ? 'Diamond' : 'Diamonds'}`;
+}
+
 function formatLocalStart(value) {
     const match = /^(\d{2}):(\d{2})$/.exec(String(value || ''));
     if (!match) return '8 PM CT';
@@ -526,11 +531,11 @@ export default function CompetitiveLobbyBriefing({
                         <dl className={`${styles.readout} ${styles.tournamentReadout}`}>
                             <div className={styles.readoutRow}>
                                 <dt>Entry</dt>
-                                <dd>{formatMetric(featuredTournament?.entryFee, ' Diamonds')}</dd>
+                                <dd>{formatDiamondMetric(featuredTournament?.entryFee)}</dd>
                             </div>
                             <div className={styles.readoutRow}>
                                 <dt>Rake</dt>
-                                <dd>{formatMetric(featuredTournament?.rakePerEntry, ' Diamonds')}</dd>
+                                <dd>{formatDiamondMetric(featuredTournament?.rakePerEntry)}</dd>
                             </div>
                             <div className={styles.readoutRow}>
                                 <dt>Humans</dt>
@@ -546,7 +551,7 @@ export default function CompetitiveLobbyBriefing({
                             </div>
                             <div className={styles.readoutRow}>
                                 <dt>Prize Pool</dt>
-                                <dd>{formatMetric(featuredTournament?.estimatedPrizePool, ' Diamonds')}</dd>
+                                <dd>{formatDiamondMetric(featuredTournament?.estimatedPrizePool)}</dd>
                             </div>
                         </dl>
                         <p className={styles.zoneDetail}>
@@ -595,7 +600,7 @@ export default function CompetitiveLobbyBriefing({
                                 <dt>Stake</dt>
                                 <dd>
                                     {pvpResource.data?.match || pvpResource.data?.ticket
-                                        ? formatMetric(pvpResource.data?.match?.stake ?? pvpResource.data?.ticket?.stake, ' Diamonds')
+                                        ? formatDiamondMetric(pvpResource.data?.match?.stake ?? pvpResource.data?.ticket?.stake)
                                         : pvpEnabled ? 'Choose At Entry' : 'Unavailable'}
                                 </dd>
                             </div>

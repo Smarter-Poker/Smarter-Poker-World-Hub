@@ -6,6 +6,7 @@
  */
 
 import PreflopRangeMatrixHub from './index';
+import { setPublicSeoHtmlCache } from '../../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const VALID_POSITIONS = new Set(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB']);
 
@@ -36,6 +37,7 @@ export async function getServerSideProps({ req, res, params, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialPosition: rawPos,

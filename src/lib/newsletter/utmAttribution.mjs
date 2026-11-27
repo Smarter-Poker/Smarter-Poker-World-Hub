@@ -68,6 +68,7 @@ export function appendNewsletterUtm(
     const isSmarterPoker =
         hostname === 'smarter.poker' ||
         hostname === 'www.smarter.poker' ||
+        hostname.endsWith('.smarter.poker') ||
         hostname === 'localhost' ||
         hostname === '127.0.0.1';
 
@@ -112,6 +113,28 @@ export function appendNewsletterUtm(
     const startsWithSlash = trimmed.startsWith('/');
     const relativePath = startsWithSlash ? parsed.pathname : parsed.pathname.replace(/^\//, '');
     return `${relativePath}${search}${hash}`;
+}
+
+/**
+ * Appends per-page commercial print QR attribution tags (`utm_source=mag_qr`,
+ * `utm_medium=qr`, `utm_campaign=mag_<period>`, `utm_content=p<NN>_<kind>`)
+ * to a Smarter.Poker magazine QR target URL while preserving existing query
+ * params (`?pt=`, `?spot=`, `?join=25450`, etc.) and conforming to `firstTouch.mjs`.
+ */
+export function appendMagazineQrUtm(
+    rawUrl,
+    { issuePeriod = '', pageNumber = 1, kind = '' } = {}
+) {
+    const cleanPeriod = typeof issuePeriod === 'string' ? issuePeriod.trim() : '';
+    const safePageNum = Math.max(1, Math.round(Number(pageNumber) || 1));
+    const paddedPage = String(safePageNum).padStart(2, '0');
+    const cleanKind = typeof kind === 'string' ? kind.trim() : '';
+    return appendNewsletterUtm(rawUrl, {
+        source: 'mag_qr',
+        medium: 'qr',
+        campaign: cleanPeriod ? `mag_${cleanPeriod}` : 'mag_print',
+        content: `p${paddedPage}${cleanKind ? `_${cleanKind}` : ''}`,
+    });
 }
 
 /**
@@ -184,10 +207,20 @@ export function classifyClickedEmailSection(clickedUrl) {
     ) {
         return 'kings_club';
     }
-    if (path === '/hub/magazine/poker-rooms' || path.startsWith('/hub/magazine/poker-rooms/')) {
+    if (
+        path === '/hub/magazine/poker-rooms' ||
+        path.startsWith('/hub/magazine/poker-rooms/') ||
+        path === '/hub/magazine/table-tent' ||
+        path.startsWith('/hub/magazine/table-tent/')
+    ) {
         return 'cardrooms';
     }
-    if (path === '/hub/magazine' || path.startsWith('/hub/magazine/')) {
+    if (
+        path === '/hub/magazine' ||
+        path.startsWith('/hub/magazine/') ||
+        path === '/api/news/magazine-pdf' ||
+        path.startsWith('/api/news/magazine-pdf/')
+    ) {
         return 'magazine';
     }
     if (

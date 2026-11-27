@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -11,7 +11,6 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useTriviaRealtimeSync from '../../../src/hooks/useTriviaRealtimeSync';
 import { getFreshAccessToken } from '../../../src/lib/authUtils';
-import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { eloTierInk } from '../../../src/lib/trivia/integrityAndElo.mjs';
 import { triviaPvpPageReleaseResult } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 import { VALID_CHALLENGE_STAKES } from '../../../src/lib/trivia/socialGrowthHelpers.mjs';
@@ -26,12 +25,23 @@ export function getServerSideProps() {
     return triviaPvpPageReleaseResult(process.env);
 }
 
+function formatExactElo(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? Math.round(num).toLocaleString('en-US') : '1,200';
+}
+
+function formatExactCount(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? Math.max(0, Math.round(num)).toLocaleString('en-US') : '0';
+}
+
 function PvpEloHeaderBadge({ rating, loading, realtimeActive = false, realtimeConnected = false }) {
     if (loading && !rating) {
         return (
             <section className="trivia-pvp-elo-banner" aria-label="Your PvP Elo Rating">
                 <div className="trivia-pvp-elo-banner__meta">
                     <span className="tc-label">Ranked PvP Elo</span>
+                    {' '}
                     <strong className="trivia-pvp-elo-banner__score">Loading Rating</strong>
                 </div>
             </section>
@@ -41,26 +51,34 @@ function PvpEloHeaderBadge({ rating, loading, realtimeActive = false, realtimeCo
     const rawTierInk = eloTierInk(rating.tier);
     const tierInk = rawTierInk === 'gold' ? 'blue' : rawTierInk;
     const recordLabel = rating.gamesPlayed > 0
-        ? `${formatTriviaDisplayNumber(rating.wins)}W / ${formatTriviaDisplayNumber(rating.losses)}L / ${formatTriviaDisplayNumber(rating.ties)}T`
+        ? `${formatExactCount(rating.wins)}W / ${formatExactCount(rating.losses)}L / ${formatExactCount(rating.ties)}T`
         : 'Unrated';
 
     return (
         <section className="trivia-pvp-elo-banner" aria-label="Your PvP Elo Rating" data-elo-tier={rating.tier}>
             <div className="trivia-pvp-elo-banner__meta">
-                <span className="tc-label">Ranked PvP Elo</span>
+                <span className="tc-label trivia-pvp-elo-banner__label">Ranked PvP Elo</span>
+                {' '}
                 <span className={`trivia-pvp-elo-badge tc-ink--${tierInk}`}>{rating.tier}</span>
-                <strong className="trivia-pvp-elo-banner__score">{formatTriviaDisplayNumber(rating.elo)} Elo</strong>
-                <span className="trivia-pvp-elo-banner__detail">Peak {formatTriviaDisplayNumber(rating.peakElo)}</span>
+                {' '}
+                <strong className="trivia-pvp-elo-banner__score">{formatExactElo(rating.elo)} Elo</strong>
+                {' '}
+                <span className="trivia-pvp-elo-banner__detail">Peak {formatExactElo(rating.peakElo)}</span>
+                {' '}
                 <span className="trivia-pvp-elo-banner__detail">Record {recordLabel}</span>
                 {realtimeActive ? (
-                    <span
-                        className={`trivia-pvp-elo-badge ${realtimeConnected ? 'tc-ink--green' : 'tc-ink--silver'}`}
-                        data-realtime-sync={realtimeConnected ? 'connected' : 'fallback'}
-                    >
-                        {realtimeConnected ? 'Realtime Live' : 'Polling Sync'}
-                    </span>
+                    <>
+                        {' '}
+                        <span
+                            className={`trivia-pvp-elo-badge ${realtimeConnected ? 'tc-ink--green' : 'tc-ink--silver'}`}
+                            data-realtime-sync={realtimeConnected ? 'connected' : 'fallback'}
+                        >
+                            {realtimeConnected ? 'Realtime Live' : 'Polling Sync'}
+                        </span>
+                    </>
                 ) : null}
             </div>
+            {' '}
             <Link href="/hub/trivia/leaderboard" className="tc-word trivia-pvp-elo-link">
                 PvP Elo Leaderboard
             </Link>
@@ -89,6 +107,9 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
     const [pairedMatchId, setPairedMatchId] = useState(null);
     const [settledMatch, setSettledMatch] = useState(null);
     const [settledSessionId, setSettledSessionId] = useState('');
+    const [rematchDraft, setRematchDraft] = useState(null);
+    const [rematchStake, setRematchStake] = useState(null);
+    const friendChallengeDockRef = useRef(null);
 
     const challengeCode = useMemo(() => {
         const raw = typeof router.query?.challenge === 'string'
@@ -102,7 +123,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         return Number.isInteger(parsed) && VALID_CHALLENGE_STAKES.includes(parsed) ? parsed : null;
     }, [router.query?.stake]);
 
-    const preferredStake = activeChallenge?.stakeAmount ?? queryStake ?? null;
+    const preferredStake = activeChallenge?.stakeAmount ?? rematchStake ?? queryStake ?? null;
 
     const handleRealtimePush = useCallback(() => {
         setRealtimeEventCount((count) => count + 1);
@@ -141,6 +162,43 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         if (active) {
             setSettledMatch(null);
             setSettledSessionId('');
+            setRematchDraft(null);
+        }
+    }, []);
+
+    const handleClearRematchDraft = useCallback(() => {
+        setRematchDraft(null);
+    }, []);
+
+    const handleRequestRematch = useCallback((request = null) => {
+        if (!request || typeof request !== 'object') return;
+        const parsedStake = Number(request.stake);
+        const validStake = Number.isInteger(parsedStake) && VALID_CHALLENGE_STAKES.includes(parsedStake)
+            ? parsedStake
+            : null;
+        if (validStake) {
+            setRematchStake(validStake);
+        }
+        // Smarter Horse opponents never receive a direct Friend Challenge rematch draft.
+        if (request.isHorse) {
+            setRematchDraft(null);
+            return;
+        }
+        const opponentName = typeof request.opponentName === 'string' ? request.opponentName.trim() : '';
+        if (!opponentName || opponentName.toLowerCase() === 'smarter horse') {
+            setRematchDraft(null);
+            return;
+        }
+        setRematchDraft({
+            stake: validStake ?? 25,
+            opponentId: typeof request.opponentId === 'string' && request.opponentId.trim() ? request.opponentId.trim() : null,
+            opponentName,
+            requestedAt: Date.now(),
+        });
+        if (typeof window !== 'undefined') {
+            window.requestAnimationFrame(() => {
+                friendChallengeDockRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+            });
         }
     }, []);
 
@@ -228,6 +286,8 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
             setPairedMatchId(null);
             setSettledMatch(null);
             setSettledSessionId('');
+            setRematchDraft(null);
+            setRematchStake(null);
         }
     }, [user?.id]);
 
@@ -295,7 +355,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         />
                     ) : null}
                     {challengeCode && !matchActive ? (
-                        <div className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="incoming">
+                        <div ref={friendChallengeDockRef} className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="incoming">
                             <FriendChallengePanel
                                 signedIn={Boolean(user?.id)}
                                 onSignIn={handleChallengeSignIn}
@@ -303,6 +363,8 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                                 shareBasePath="/hub/trivia/pvp"
                                 onChallengeLoaded={handleChallengeLoaded}
                                 onChallengeAccepted={handleChallengeAccepted}
+                                rematchDraft={rematchDraft}
+                                onClearRematchDraft={handleClearRematchDraft}
                             />
                         </div>
                     ) : null}
@@ -314,6 +376,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         onMatchActiveChange={handleMatchActiveChange}
                         onMatchSettled={handleMatchSettled}
                         onSyncContextChange={handleSyncContextChange}
+                        onRequestRematch={handleRequestRematch}
                         realtimeConnected={realtimeSync.connected}
                         realtimePollMs={realtimeSync.effectivePollMs}
                         realtimeEventCount={realtimeEventCount}
@@ -323,7 +386,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         settledSessionId={settledSessionId}
                         settledMatch={settledMatch}
                         friendChallengeSlot={!challengeCode && !matchActive ? (
-                            <div className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="standard">
+                            <div ref={friendChallengeDockRef} className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="standard">
                                 <FriendChallengePanel
                                     signedIn={Boolean(user?.id)}
                                     onSignIn={handleChallengeSignIn}
@@ -331,6 +394,8 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                                     shareBasePath="/hub/trivia/pvp"
                                     onChallengeLoaded={handleChallengeLoaded}
                                     onChallengeAccepted={handleChallengeAccepted}
+                                    rematchDraft={rematchDraft}
+                                    onClearRematchDraft={handleClearRematchDraft}
                                 />
                             </div>
                         ) : null}

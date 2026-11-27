@@ -4,10 +4,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import OperatorGlyph from '../../src/components/admin/OperatorGlyph';
 import { getFreshAccessToken } from '../../src/lib/authUtils';
 import {
+    MAGAZINE_POSTAL_ADDRESS,
     currentIssuePeriod,
     formatPeriodLabel,
     isValidIssuePeriod,
 } from '../../src/lib/magazine/magazineSchema.mjs';
+import {
+    buildCardroomFulfillmentCsv,
+    extractRoomShippingAddress,
+} from '../../src/lib/magazine/magazineImposition.mjs';
 import styles from '../../src/components/admin/NewsletterOperations.module.css';
 
 const INITIAL_PROMO_DRAFT = {
@@ -233,6 +238,7 @@ export default function NewsletterOperations() {
     const [magInlineNotice, setMagInlineNotice] = useState('');
     const [magInlineError, setMagInlineError] = useState('');
     const [roomEdits, setRoomEdits] = useState({});
+    const [showPackingLabelsModal, setShowPackingLabelsModal] = useState(false);
     const loadedPeriodRef = useRef('');
 
     // A counter that reads the same when it is loading, when the request failed and
@@ -994,6 +1000,131 @@ export default function NewsletterOperations() {
         } finally {
             setRunning('');
         }
+    };
+
+    const fulfillmentPlan = buildCardroomFulfillmentCsv(magRoomSubscriptions, {
+        issuePeriod: activeMagPeriod,
+        overagePct: 10,
+    });
+
+    const exportMagazineFulfillmentCsv = () => {
+        setMagInlineError('');
+        setMagInlineNotice('');
+        if (!fulfillmentPlan.activeRoomsCount) {
+            setMagInlineError(
+                'Verify Or Activate At Least One Poker Room Subscription Before Exporting Shipping CSV.'
+            );
+            return;
+        }
+        if (typeof window === 'undefined' || typeof document === 'undefined') return;
+        const blob = new Blob([fulfillmentPlan.csv], { type: 'text/csv;charset=utf-8;' });
+        const blobUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = blobUrl;
+        anchor.download = `smarter-poker-magazine-fulfillment-${activeMagPeriod}.csv`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+        setMagInlineNotice(
+            `Exported USPS/UPS Shipping CSV For ${fulfillmentPlan.activeRoomsCount} Active/Verified Cardroom(s) (${fulfillmentPlan.totalPressRunCopies} Total Press Run Copies).`
+        );
+    };
+
+    const printMagazinePackingLabels = () => {
+        setMagInlineError('');
+        setMagInlineNotice('');
+        const labelBatch =
+            fulfillmentPlan.rows.length > 0
+                ? fulfillmentPlan
+                : buildCardroomFulfillmentCsv(magRoomSubscriptions, {
+                      issuePeriod: activeMagPeriod,
+                      overagePct: 10,
+                      includePending: true,
+                  });
+
+        if (!labelBatch.rows.length) {
+            setMagInlineError('No Poker Room Shipping Addresses Recorded Yet To Print Box Labels.');
+            return;
+        }
+
+        const escHtml = (val) =>
+            String(val ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+        if (typeof window !== 'undefined') {
+            const labelWin = window.open('', '_blank', 'width=900,height=780');
+            if (labelWin && labelWin.document) {
+                const cardsHtml = labelBatch.rows
+                    .map(
+                        (r, idx) => `
+                        <section class="box-label">
+                            <div class="from-block">
+                                <strong>FROM: SMARTER.POKER MAGAZINE</strong><br/>
+                                ${escHtml(MAGAZINE_POSTAL_ADDRESS)}<br/>
+                                Issue Period: ${escHtml(activeMagPeriod)} (${escHtml(formatPeriodLabel(activeMagPeriod))})
+                            </div>
+                            <div class="to-block">
+                                <div class="ship-kicker">USPS / UPS CARDROOM BUNDLE DELIVERY</div>
+                                <div class="room-title">${escHtml(r.roomName)}</div>
+                                <div class="attn-line">Attn: ${escHtml(r.contactName)}</div>
+                                <div class="addr-line">${escHtml(r.street || 'Street Address Pending')}</div>
+                                <div class="addr-line">${escHtml([r.city, r.state].filter(Boolean).join(', '))} ${escHtml(r.postal_code)}</div>
+                                ${r.contactPhone ? `<div class="phone-line">Tel: ${escHtml(r.contactPhone)}</div>` : ''}
+                            </div>
+                            <div class="qty-bar">
+                                <span>CARTON #${idx + 1} OF ${labelBatch.rows.length}</span>
+                                <strong>BUNDLE QTY: ${escHtml(r.copies)} COPIES</strong>
+                            </div>
+                        </section>`
+                    )
+                    .join('\n');
+
+                labelWin.document.open();
+                labelWin.document.write(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cardroom Box Packing Labels - ${escHtml(activeMagPeriod)} | Smarter.Poker</title>
+<style>
+  @page { size: 4in 6in; margin: 0.18in; }
+  body { margin: 0; padding: 20px; background: #05070a; color: #05070a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  .toolbar { max-width: 780px; margin: 0 auto 18px auto; background: #0b1520; border: 1px solid #1b2c3d; border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; color: #ffffff; }
+  .toolbar button { background: #4fc1b3; color: #05070a; border: none; border-radius: 7px; padding: 9px 16px; font-weight: 900; cursor: pointer; }
+  .grid { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .box-label { width: 3.64in; height: 5.64in; background: #ffffff; border: 2px solid #05070a; border-radius: 8px; padding: 0.2in; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; break-after: page; }
+  .box-label:last-child { page-break-after: auto; break-after: auto; }
+  .from-block { font-size: 10px; line-height: 1.4; border-bottom: 1.5px solid #05070a; padding-bottom: 8px; }
+  .ship-kicker { font-size: 9px; font-weight: 900; letter-spacing: 1.2px; color: #2563eb; margin-bottom: 6px; }
+  .room-title { font-size: 20px; font-weight: 900; line-height: 1.15; margin-bottom: 4px; }
+  .attn-line { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .addr-line { font-size: 14px; font-weight: 700; line-height: 1.35; }
+  .phone-line { font-size: 11px; color: #334155; margin-top: 6px; }
+  .qty-bar { background: #05070a; color: #ffffff; padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; }
+  @media print {
+    body { background: #ffffff !important; padding: 0 !important; }
+    .toolbar { display: none !important; }
+    .grid { gap: 0 !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <div><strong>Smarter.Poker Magazine Box Packing Labels</strong> (${labelBatch.rows.length} Cardroom Carton(s) - ${labelBatch.netCopies} Net Copies)</div>
+    <button type="button" onclick="window.print()">Print 4x6 Box Labels</button>
+  </div>
+  <div class="grid">${cardsHtml}</div>
+</body>
+</html>`);
+                labelWin.document.close();
+                return;
+            }
+        }
+        setShowPackingLabelsModal(true);
     };
 
     const setSubscriberStatus = async (subscriber, isActive) => {
@@ -1804,6 +1935,34 @@ export default function NewsletterOperations() {
                                     <OperatorGlyph kind="layers" size={14} /> Open 8.375x10.875 Print Proof
                                 </Link>
                                 <Link
+                                    href={`/hub/magazine/print/${encodeURIComponent(activeMagPeriod)}?bleed=1&imposition=booklet`}
+                                    className={styles.back}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: 7,
+                                        background: '#0b1520',
+                                        border: '1px solid #60a5fa',
+                                        color: '#60a5fa',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <OperatorGlyph kind="layers" size={14} /> Saddle-Stitch Booklet (17x11)
+                                </Link>
+                                <a
+                                    href={`/api/news/magazine-pdf?issue=${encodeURIComponent(activeMagPeriod)}&download=1&preview=1`}
+                                    className={styles.back}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: 7,
+                                        background: '#0b1520',
+                                        border: '1px solid #4fc1b3',
+                                        color: '#4fc1b3',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <OperatorGlyph kind="archive" size={14} /> Download Issue PDF
+                                </a>
+                                <Link
                                     href="/hub/magazine"
                                     className={styles.back}
                                     style={{
@@ -1830,6 +1989,20 @@ export default function NewsletterOperations() {
                                     }}
                                 >
                                     <OperatorGlyph kind="users" size={14} /> Cardroom Portal
+                                </Link>
+                                <Link
+                                    href="/hub/magazine/table-tent"
+                                    className={styles.back}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: 7,
+                                        background: '#0b1520',
+                                        border: '1px solid #254052',
+                                        color: '#9fb3c8',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <OperatorGlyph kind="spark" size={14} /> Open Table-Tent Kit
                                 </Link>
                             </div>
 
@@ -2090,6 +2263,21 @@ export default function NewsletterOperations() {
                                                     >
                                                         Flipbook
                                                     </Link>
+                                                    <a
+                                                        href={`/api/news/magazine-pdf?issue=${encodeURIComponent(iss.slug || iss.issue_period)}&download=1${iss.status !== 'published' ? '&preview=1' : ''}`}
+                                                        style={{
+                                                            background: '#05070a',
+                                                            border: '1px solid #4fc1b3',
+                                                            color: '#4fc1b3',
+                                                            borderRadius: 6,
+                                                            padding: '4px 9px',
+                                                            fontSize: 11.5,
+                                                            fontWeight: 700,
+                                                            textDecoration: 'none',
+                                                        }}
+                                                    >
+                                                        PDF
+                                                    </a>
                                                 </div>
                                             </div>
                                         ))}
@@ -2102,14 +2290,142 @@ export default function NewsletterOperations() {
                     </div>
 
                     <div style={{ borderTop: '1px solid rgba(118, 184, 226, 0.18)', padding: '16px 18px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-                            <p className={styles.previewLabel} style={{ margin: 0 }}>
-                                Poker Room Print Distribution Roster ({magRoomSubscriptions.length} Shown, {magTotalRequestedCopies} Active Copies Requested)
-                            </p>
-                            <a href="/hub/magazine/rss.xml" style={{ color: '#60a5fa', fontSize: 12, fontWeight: 700 }}>
-                                Magazine RSS ({'/hub/magazine/rss.xml'})
-                            </a>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                            <div>
+                                <p className={styles.previewLabel} style={{ margin: 0 }}>
+                                    Poker Room Print Distribution Roster ({magRoomSubscriptions.length} Shown, {magTotalRequestedCopies} Active Copies Requested)
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <button
+                                    type="button"
+                                    className={styles.rowAction}
+                                    onClick={exportMagazineFulfillmentCsv}
+                                    style={{ borderColor: '#4fc1b3', color: '#4fc1b3', padding: '6px 11px' }}
+                                >
+                                    Export Shipping CSV
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.rowAction}
+                                    onClick={printMagazinePackingLabels}
+                                    style={{ borderColor: '#60a5fa', color: '#60a5fa', padding: '6px 11px' }}
+                                >
+                                    Print Box Labels
+                                </button>
+                                <a
+                                    href={`/api/news/magazine-pdf?issue=${encodeURIComponent(activeMagPeriod)}&download=1&preview=1`}
+                                    className={styles.rowAction}
+                                    style={{ borderColor: '#4fc1b3', color: '#4fc1b3', padding: '6px 11px', textDecoration: 'none' }}
+                                >
+                                    Download Issue PDF
+                                </a>
+                                <Link
+                                    href="/hub/magazine/table-tent"
+                                    className={styles.rowAction}
+                                    style={{ borderColor: '#254052', color: '#9fb3c8', padding: '6px 11px', textDecoration: 'none' }}
+                                >
+                                    Open Table-Tent Kit
+                                </Link>
+                                <a href="/hub/magazine/rss.xml" style={{ color: '#60a5fa', fontSize: 12, fontWeight: 700 }}>
+                                    Magazine RSS ({'/hub/magazine/rss.xml'})
+                                </a>
+                            </div>
                         </div>
+
+                        <div
+                            aria-label="Press Run Calculator"
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))',
+                                gap: 10,
+                                marginBottom: 14,
+                            }}
+                        >
+                            <div style={{ padding: '10px 12px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#9fb3c8', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>
+                                    Verified/Active Rooms
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#ffffff', fontSize: 18 }}>
+                                    {fulfillmentPlan.activeRoomsCount}
+                                </strong>
+                            </div>
+                            <div style={{ padding: '10px 12px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#9fb3c8', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>
+                                    Net Bundle Copies
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#60a5fa', fontSize: 18 }}>
+                                    {fulfillmentPlan.netCopies}
+                                </strong>
+                            </div>
+                            <div style={{ padding: '10px 12px', background: '#0b1520', border: '1px solid #254052', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#9fb3c8', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>
+                                    +10% Newsstand Overage
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#4fc1b3', fontSize: 18 }}>
+                                    +{fulfillmentPlan.overageCopies}
+                                </strong>
+                            </div>
+                            <div style={{ padding: '10px 12px', background: '#0b1520', border: '1px solid #4fc1b3', borderRadius: 8 }}>
+                                <span style={{ display: 'block', color: '#4fc1b3', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.7 }}>
+                                    Total Recommended Press Run
+                                </span>
+                                <strong style={{ display: 'block', marginTop: 4, color: '#ffffff', fontSize: 18 }}>
+                                    {fulfillmentPlan.totalPressRunCopies}
+                                </strong>
+                            </div>
+                        </div>
+
+                        {showPackingLabelsModal && (
+                            <div
+                                role="dialog"
+                                aria-label="Cardroom Box Packing Labels"
+                                style={{
+                                    marginBottom: 14,
+                                    padding: '14px 16px',
+                                    background: '#05070a',
+                                    border: '1px solid #60a5fa',
+                                    borderRadius: 10,
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                    <strong style={{ color: '#ffffff', fontSize: 13.5 }}>
+                                        Cardroom Box Packing Labels ({activeMagPeriod})
+                                    </strong>
+                                    <button
+                                        type="button"
+                                        className={styles.rowAction}
+                                        onClick={() => setShowPackingLabelsModal(false)}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 10 }}>
+                                    {fulfillmentPlan.rows.map((lbl, lIdx) => (
+                                        <div
+                                            key={lbl.id || lIdx}
+                                            style={{
+                                                padding: '10px 12px',
+                                                background: '#0b1520',
+                                                border: '1px solid #254052',
+                                                borderRadius: 8,
+                                                fontSize: 12,
+                                                color: '#ffffff',
+                                            }}
+                                        >
+                                            <div style={{ color: '#4fc1b3', fontSize: 10.5, fontWeight: 800 }}>
+                                                Carton #{lIdx + 1} ({lbl.copies} Copies)
+                                            </div>
+                                            <div style={{ fontWeight: 800, marginTop: 3 }}>{lbl.roomName}</div>
+                                            <div style={{ color: '#9fb3c8', marginTop: 2 }}>Attn: {lbl.contactName}</div>
+                                            <div style={{ marginTop: 2 }}>{lbl.street || 'Street Address Pending'}</div>
+                                            <div>{[lbl.city, lbl.state].filter(Boolean).join(', ')} {lbl.postal_code}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div className={styles.tableWrap}>
                             <table>
                                 <thead>
@@ -2124,21 +2440,27 @@ export default function NewsletterOperations() {
                                 </thead>
                                 <tbody>
                                     {magRoomSubscriptions.map((room) => {
+                                        const normalizedAddr = extractRoomShippingAddress(room);
                                         const streetLine =
+                                            normalizedAddr.street ||
                                             room.shipping_address ||
                                             room.shipping_address_json?.street ||
                                             room.shipping_address_json?.address ||
                                             '';
                                         const zipCode =
+                                            normalizedAddr.postal_code ||
                                             room.postal_code ||
                                             room.shipping_address_json?.postalCode ||
                                             '';
+                                        const cityVal = normalizedAddr.city || room.city || '';
+                                        const stateVal = normalizedAddr.state || room.state || '';
                                         const cityStateLine = [
-                                            [room.city, room.state].filter(Boolean).join(', '),
+                                            [cityVal, stateVal].filter(Boolean).join(', '),
                                             zipCode,
                                         ]
                                             .filter(Boolean)
                                             .join(' ');
+                                        const tentKitHref = `/hub/magazine/table-tent?room=${encodeURIComponent(room.room_name || '')}&city=${encodeURIComponent(cityVal)}&state=${encodeURIComponent(stateVal)}`;
                                         const draftCopies =
                                             roomEdits[room.id]?.requestedCopies ??
                                             String(room.requested_copies ?? 25);
@@ -2280,6 +2602,13 @@ export default function NewsletterOperations() {
                                                         >
                                                             Cancel
                                                         </button>
+                                                        <Link
+                                                            href={tentKitHref}
+                                                            className={styles.rowAction}
+                                                            style={{ borderColor: '#4fc1b3', color: '#4fc1b3', textDecoration: 'none' }}
+                                                        >
+                                                            Table-Tent QR Kit
+                                                        </Link>
                                                     </div>
                                                 </td>
                                             </tr>

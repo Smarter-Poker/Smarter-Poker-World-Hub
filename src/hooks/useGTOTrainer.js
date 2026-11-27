@@ -1823,8 +1823,22 @@ export default function useGTOTrainer(
           selectedAnswer: submission.selectedAnswer,
           scenario: revealedScenario,
           _gradingContext: publicQuestion._gradingContext,
+          _retryCount: Math.max(Number(publicQuestion?._retryCount) || 0, Number(entry?.retryCountAtSubmit) || 0),
         };
-        setCurrentQuestion(currentQuestion);
+        setCurrentQuestion((prev) => {
+          const activeRetryCount = Math.max(
+            Number(prev?._retryCount) || 0,
+            Number(publicQuestion?._retryCount) || 0,
+            Number(entry?.retryCountAtSubmit) || 0
+          );
+          if (activeRetryCount > (Number(entry?.retryCountAtSubmit) || 0)) {
+            return {
+              ...currentQuestion,
+              _retryCount: activeRetryCount,
+            };
+          }
+          return currentQuestion;
+        });
         const revealedStreet = String(revealedScenario.street || '').toLowerCase();
         const fullHandMode = (trainerConfig?.gameMode || 'full') === 'full';
         if (
@@ -2571,10 +2585,14 @@ export default function useGTOTrainer(
           // These four fields are the mandatory browser rendering of the
           // already-persisted server verdict. They remain explicit and gated
           // by manual Next even if every optional projection above fails.
-          setFeedbackResult(isCorrect ? 'correct' : 'wrong');
-          setExplanation(feedback.explanation || renderedExplanation);
-          setShowFeedback(true);
-          setLastSelectedAction(selectedOptionId);
+          // If the player already triggered Practice Again while persistence was
+          // settling, do not re-open the stale feedback modal over the active retry.
+          if (pendingAnswerPersistenceRef.current === entry) {
+            setFeedbackResult(isCorrect ? 'correct' : 'wrong');
+            setExplanation(feedback.explanation || renderedExplanation);
+            setShowFeedback(true);
+            setLastSelectedAction(selectedOptionId);
+          }
         }
       };
 
@@ -2585,6 +2603,7 @@ export default function useGTOTrainer(
       const entry = {
         lease: submissionLease,
         submission,
+        retryCountAtSubmit: Number(publicQuestion?._retryCount) || 0,
         promise: null,
         result: null,
         inFlight: false,
@@ -2823,18 +2842,8 @@ export default function useGTOTrainer(
     // replaces it at the same question number instead of consuming another
     // possibly stale preloaded entry or auto-advancing behind the feedback.
     const pendingPersistence = pendingAnswerPersistenceRef.current;
-    const persistenceResult = pendingPersistence
-      ? await persistPendingAnswer(pendingPersistence)
-      : { ok: true };
-    if (!isTrainingLeaseActive(transitionLease)) return;
 
     if (options && typeof options === 'object' && options.retry === true) {
-      if (persistenceResult?.ok !== true) {
-        setAnswerSaveError(
-          persistenceResult?.error || 'Your answer could not be saved. Check your connection, then retry.'
-        );
-        return;
-      }
       pendingAnswerPersistenceRef.current = null;
       setAnswerSaveError(null);
       setTransitionError(null);
@@ -2843,8 +2852,16 @@ export default function useGTOTrainer(
         questionActivatedAtRef.current = Date.now();
         setCurrentQuestion((prev) => {
           const active = prev || baseQ;
+          const fallbackCorrect =
+            active?.correctAnswer ||
+            options?.retryQuestion?.correctAnswer ||
+            active?.scenario?.correctAnswer ||
+            active?.scenario?.brainEvaluation?.correctAnswer ||
+            active?.options?.[0]?.id ||
+            null;
           return {
             ...active,
+            ...(fallbackCorrect ? { correctAnswer: fallbackCorrect } : {}),
             _retryCount: (Number(active?._retryCount) || 0) + 1,
           };
         });
@@ -2852,8 +2869,16 @@ export default function useGTOTrainer(
       setShowFeedback(false);
       setFeedbackResult(null);
       setLastSelectedAction(null);
+      if (pendingPersistence) {
+        await Promise.resolve(persistPendingAnswer(pendingPersistence)).catch(() => {});
+      }
       return;
     }
+
+    const persistenceResult = pendingPersistence
+      ? await persistPendingAnswer(pendingPersistence)
+      : { ok: true };
+    if (!isTrainingLeaseActive(transitionLease)) return;
 
     const answeredQuestionId = String(currentQuestion?.id || '');
     if (answeredQuestionId && refreshRequiredQuestionIdsRef.current.has(answeredQuestionId)) {

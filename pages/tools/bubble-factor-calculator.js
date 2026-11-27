@@ -21,6 +21,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { computeMalmuthHarvilleIcm, useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const BUBBLE_FACTOR_PRESETS = [
   {
@@ -513,6 +514,7 @@ export async function getServerSideProps({ req, res, query }) {
       return { props: {} };
     }
   }
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialS1: Number(query?.s1) || 50,

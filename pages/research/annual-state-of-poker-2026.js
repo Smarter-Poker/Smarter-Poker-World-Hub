@@ -21,6 +21,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import { RESEARCH_REPORTS, researchPath } from '../../src/content/research/reports';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export const TWENTY_FIVE_EMPIRICAL_STATISTICS = [
   {
@@ -225,6 +226,7 @@ export async function getServerSideProps(context) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(context.res);
   return { props: {} };
 }
 

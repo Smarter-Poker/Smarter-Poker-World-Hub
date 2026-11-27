@@ -12,6 +12,7 @@ import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
   RESEARCH_REPORTS,
   RESEARCH_BASE_PATH,
@@ -35,6 +36,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }
 

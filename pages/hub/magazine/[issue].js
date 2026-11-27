@@ -5,7 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     FALLBACK_MAGAZINE_IMAGE,
     MagazinePageSheet,
+    deckEchoesCopy,
     handleMagazineImageError,
+    parseLiveSpotVotePayload,
     toInternalMagazineHref,
 } from '../../../src/components/magazine/MagazineSpreadRenderer.js';
 import {
@@ -179,10 +181,179 @@ function formatReaderPrizeMetric(r, isPoy) {
     return formatChipsOnly(Number.isFinite(num) ? num : 0);
 }
 
+const SPOT_VOTE_BUS_EVENT = 'sp_magazine_spot_vote_updated';
+
+function buildMagazineCardOgUrl(manifest, pageObj, explicitPageNumber) {
+    const pageNum = Number(explicitPageNumber || pageObj?.pageNumber || 1);
+    const params = new URLSearchParams();
+    params.set('issue', String(manifest?.slug || manifest?.issuePeriod || '2026-11'));
+    params.set('issueNum', String(manifest?.issueNumber || 1));
+    params.set('vol', String(manifest?.volumeNumber || 1));
+    params.set('pages', String(manifest?.pageCount || manifest?.pages?.length || 44));
+    params.set('page', String(pageNum));
+    if (pageObj?.department) {
+        params.set('dept', stripMagazineDashes(pageObj.department));
+    }
+    const headline = stripMagazineDashes(pageObj?.headline || manifest?.coverHeadline || '');
+    if (headline) {
+        params.set('headline', headline.slice(0, 110));
+    }
+    const sub = stripMagazineDashes(
+        pageObj?.subheadline || pageObj?.paragraphs?.[0] || manifest?.coverSubheadline || ''
+    );
+    if (sub) {
+        params.set('sub', sub.slice(0, 160));
+    }
+    return `${MAGAZINE_SITE_URL}/api/og/magazine-card?${params.toString()}`;
+}
+
+function buildAudioNarrationChapters(pages, manifest) {
+    const list = Array.isArray(pages) ? pages : [];
+    const byRange = (start, end) =>
+        list.filter((p) => Number(p?.pageNumber) >= start && Number(p?.pageNumber) <= end);
+
+    const defs = [
+        { key: 'first_hand', label: 'First Hand (Page 3)', startPage: 3, endPage: 3 },
+        { key: 'cover_story', label: 'Cover Story (Pages 12-15)', startPage: 12, endPage: 15 },
+        { key: 'circuit_feature', label: 'Circuit Feature (Pages 16-17)', startPage: 16, endPage: 17 },
+        { key: 'ai_coach', label: 'AI Coach Column (Pages 32-33)', startPage: 32, endPage: 33 },
+    ];
+
+    const built = defs
+        .map((def) => {
+            const matchedPages = byRange(def.startPage, def.endPage);
+            if (matchedPages.length === 0) return null;
+            const first = matchedPages[0];
+            const leadTitle = stripMagazineDashes(first?.headline || manifest?.coverHeadline || def.label);
+            const sentences = [
+                `${MAGAZINE_MASTHEAD}. ${def.label}. ${leadTitle}.`,
+            ];
+            for (const pg of matchedPages) {
+                if (pg?.subheadline) {
+                    sentences.push(stripMagazineDashes(pg.subheadline));
+                }
+                if (Array.isArray(pg?.paragraphs)) {
+                    for (const para of pg.paragraphs) {
+                        const clean = stripMagazineDashes(para);
+                        if (clean) sentences.push(clean);
+                    }
+                }
+            }
+            const script = sentences.join(' ').replace(/\s+/g, ' ').trim();
+            if (!script) return null;
+            return {
+                ...def,
+                headline: leadTitle,
+                script,
+            };
+        })
+        .filter(Boolean);
+
+    if (built.length > 0) return built;
+    return [
+        {
+            key: 'issue_overview',
+            label: 'Issue Overview (Page 1)',
+            startPage: 1,
+            endPage: 1,
+            headline: stripMagazineDashes(manifest?.coverHeadline || MAGAZINE_MASTHEAD),
+            script: `${MAGAZINE_MASTHEAD} Issue ${manifest?.issueNumber || 1}. ${stripMagazineDashes(
+                manifest?.coverHeadline || ''
+            )}. ${stripMagazineDashes(manifest?.coverSubheadline || '')}`,
+        },
+    ];
+}
+
 function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
     const [quizPick, setQuizPick] = useState({});
     const [spotPick, setSpotPick] = useState('');
     const spot = page?.spot || null;
+    const spotSlug = String(spot?.slug || '').trim();
+    const [liveVotes, setLiveVotes] = useState(() => parseLiveSpotVotePayload(null, spot?.communityVotes));
+    const voteReqSeqRef = useRef(0);
+    const voteAbortRef = useRef(null);
+
+    useEffect(() => {
+        setSpotPick('');
+        setLiveVotes(parseLiveSpotVotePayload(null, spot?.communityVotes));
+        if (!spotSlug || typeof window === 'undefined' || typeof fetch !== 'function') {
+            return undefined;
+        }
+        const reqId = voteReqSeqRef.current + 1;
+        voteReqSeqRef.current = reqId;
+        const controller = new AbortController();
+
+        fetch(`/api/news/spot-vote?spot=${encodeURIComponent(spotSlug)}`, {
+            method: 'GET',
+            signal: controller.signal,
+        })
+            .then((res) => (res.ok ? res.json().catch(() => null) : null))
+            .then((data) => {
+                if (controller.signal.aborted || voteReqSeqRef.current !== reqId) return;
+                const parsed = parseLiveSpotVotePayload(data);
+                if (parsed) {
+                    setLiveVotes(parsed);
+                }
+            })
+            .catch(() => {});
+
+        const onExternalVote = (evt) => {
+            const detail = evt?.detail;
+            if (detail && detail.slug === spotSlug && detail.votes) {
+                setLiveVotes(detail.votes);
+            }
+        };
+        window.addEventListener(SPOT_VOTE_BUS_EVENT, onExternalVote);
+
+        return () => {
+            controller.abort();
+            if (voteAbortRef.current) {
+                voteAbortRef.current.abort();
+                voteAbortRef.current = null;
+            }
+            window.removeEventListener(SPOT_VOTE_BUS_EVENT, onExternalVote);
+        };
+    }, [spotSlug, spot?.communityVotes]);
+
+    const handleReaderSpotPick = useCallback(
+        (optKey) => {
+            const cleanKey = String(optKey || 'A').trim().toUpperCase();
+            setSpotPick(cleanKey);
+            if (!spotSlug || !['A', 'B', 'C'].includes(cleanKey) || typeof fetch !== 'function') return;
+
+            if (voteAbortRef.current) {
+                voteAbortRef.current.abort();
+            }
+            const postController = new AbortController();
+            voteAbortRef.current = postController;
+            const reqId = voteReqSeqRef.current + 1;
+            voteReqSeqRef.current = reqId;
+
+            fetch('/api/news/spot-vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ spot: spotSlug, pick: cleanKey }),
+                signal: postController.signal,
+            })
+                .then((res) => (res.ok ? res.json().catch(() => null) : null))
+                .then((data) => {
+                    if (postController.signal.aborted || voteReqSeqRef.current !== reqId) return;
+                    const parsed = parseLiveSpotVotePayload(data);
+                    if (parsed) {
+                        setLiveVotes(parsed);
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(
+                                new CustomEvent(SPOT_VOTE_BUS_EVENT, {
+                                    detail: { slug: spotSlug, votes: parsed },
+                                })
+                            );
+                        }
+                    }
+                })
+                .catch(() => {});
+        },
+        [spotSlug]
+    );
     const rows =
         Array.isArray(page?.standings) && page.standings.length > 0
             ? page.standings
@@ -197,17 +368,20 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
         (page?.meta?.spreadHalf === 'setup' ||
             (page?.meta?.spreadHalf !== 'verdict' && Array.isArray(page?.items) && page.items.length > 0));
     const isVerdictSpotHalf = isStrategySpot && !isSetupSpotHalf;
-    const isCoverContinuation = page?.kind === 'cover_feature' && Number(page?.pageNumber) > 12;
-    const isFallbackBanner =
-        !spot?.cardImageUrl &&
-        String(page?.imageUrl || '').includes('/api/news/email-image?fallback=1');
+    // Art direction decides which pages carry a picture (imageRole 'none' prints none), so the
+    // reader view shows exactly the pictures the printed page shows and never a placeholder.
+    const readerPicture =
+        page?.imageRole === 'none'
+            ? ''
+            : String((isStrategySpot ? spot?.cardImageUrl || page?.imageUrl : page?.imageUrl) || '');
+    const isFallbackBanner = !readerPicture || readerPicture.includes('/api/news/email-image?fallback=1');
     const showHeroImage =
-        Boolean(spot?.cardImageUrl || page?.imageUrl) &&
+        !isFallbackBanner &&
         page?.kind !== 'toc_left' &&
         page?.kind !== 'toc_right' &&
-        !isCoverContinuation &&
-        !isVerdictSpotHalf &&
-        !(isFallbackBanner && (isPoy || isKings || isQuiz));
+        !isVerdictSpotHalf;
+    const readerDeck =
+        page?.subheadline && !deckEchoesCopy(page.subheadline, page?.paragraphs || []) ? page.subheadline : '';
     const spotOptions =
         Array.isArray(page?.items) && page.items.length > 0
             ? page.items
@@ -285,7 +459,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                         fontFamily: "Georgia, 'Times New Roman', serif",
                     }}
                 >
-                    {page.headline}
+                    {stripMagazineDashes(page.headline)}
                 </h3>
             )}
 
@@ -295,17 +469,17 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                 </div>
             )}
 
-            {page.subheadline && (
+            {readerDeck && (
                 <p style={{ margin: '0 0 14px 0', fontSize: '15px', lineHeight: 1.55, color: '#9fb3c8' }}>
-                    {page.subheadline}
+                    {stripMagazineDashes(readerDeck)}
                 </p>
             )}
 
             {showHeroImage && (
                 <div style={{ marginBottom: '14px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #1b2c3d' }}>
                     <img
-                        src={spot?.cardImageUrl || page.imageUrl || FALLBACK_MAGAZINE_IMAGE}
-                        alt={page.headline || `Magazine Page ${page.pageNumber}`}
+                        src={readerPicture || FALLBACK_MAGAZINE_IMAGE}
+                        alt={stripMagazineDashes(page.headline || `Magazine Page ${page.pageNumber}`)}
                         loading="lazy"
                         onError={handleMagazineImageError}
                         style={{
@@ -323,7 +497,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                 <div style={{ display: 'grid', gap: '12px', marginBottom: '14px' }}>
                     {page.paragraphs.map((p, idx) => (
                         <p key={idx} style={{ margin: 0, fontSize: '15.5px', lineHeight: 1.68, color: '#e2e8f0' }}>
-                            {p}
+                            {stripMagazineDashes(p)}
                         </p>
                     ))}
                 </div>
@@ -343,7 +517,7 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                         color: '#ffffff',
                     }}
                 >
-                    {`"${page.pullQuote}"`}
+                    {`"${stripMagazineDashes(page.pullQuote)}"`}
                 </blockquote>
             )}
 
@@ -407,15 +581,25 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                                         const isRight = k === correctKey;
                                         const isWrongPick = Boolean(spotPick) && spotPick === k && !isRight;
                                         const showRight = Boolean(spotPick) && isRight;
+                                        const totalVotes = Number(liveVotes?.total || 0);
+                                        const optVotes = Number(liveVotes?.[k] || 0);
+                                        const votePct =
+                                            totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : null;
                                         return (
                                             <button
                                                 key={k}
                                                 type="button"
-                                                onClick={() => setSpotPick(k)}
+                                                onClick={() => handleReaderSpotPick(k)}
                                                 style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    gap: '10px',
                                                     textAlign: 'left',
                                                     padding: '10px 12px',
                                                     borderRadius: '8px',
+                                                    position: 'relative',
+                                                    overflow: 'hidden',
                                                     background: showRight
                                                         ? '#102131'
                                                         : isWrongPick
@@ -434,7 +618,41 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                                                     cursor: 'pointer',
                                                 }}
                                             >
-                                                {`${k}. ${stripMagazineDashes(opt?.label || '')}`}
+                                                {votePct != null && (
+                                                    <span
+                                                        aria-hidden="true"
+                                                        style={{
+                                                            position: 'absolute',
+                                                            left: 0,
+                                                            top: 0,
+                                                            bottom: 0,
+                                                            width: `${Math.min(100, Math.max(0, votePct))}%`,
+                                                            background: isRight
+                                                                ? 'rgba(79, 193, 179, 0.12)'
+                                                                : 'rgba(96, 165, 250, 0.1)',
+                                                            pointerEvents: 'none',
+                                                        }}
+                                                    />
+                                                )}
+                                                <span style={{ position: 'relative', zIndex: 1 }}>
+                                                    {`${k}. ${stripMagazineDashes(opt?.label || '')}`}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        position: 'relative',
+                                                        zIndex: 1,
+                                                        fontSize: '12px',
+                                                        fontWeight: 800,
+                                                        color: showRight
+                                                            ? '#4fc1b3'
+                                                            : isWrongPick
+                                                              ? '#f87171'
+                                                              : '#60a5fa',
+                                                        flexShrink: 0,
+                                                    }}
+                                                >
+                                                    {votePct != null ? `${votePct}% Vote` : 'Vote'}
+                                                </span>
                                             </button>
                                         );
                                     })}
@@ -714,11 +932,91 @@ export default function SmarterPokerMagazineIssueReaderPage({
     );
     const [zoomed, setZoomed] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
+    const [savedResumePage, setSavedResumePage] = useState(null);
+    const [bookmarkedPages, setBookmarkedPages] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [speechSupported, setSpeechSupported] = useState(false);
+    const [audioBarOpen, setAudioBarOpen] = useState(false);
+    const [audioStatus, setAudioStatus] = useState('idle');
+    const [audioChapterIdx, setAudioChapterIdx] = useState(0);
+    const [shareCopied, setShareCopied] = useState(false);
+
     const activePageRef = useRef(boundedInitialPage);
+    const searchInputRef = useRef(null);
+    const speechSessionRef = useRef(0);
+    const copyTimerRef = useRef(null);
+
+    const progressStorageKey = `sp_mag_progress_v1:${manifest.slug}`;
+    const bookmarksStorageKey = `sp_mag_bookmarks_v1:${manifest.slug}`;
 
     useEffect(() => {
         activePageRef.current = activePageNumber;
-    }, [activePageNumber]);
+        if (typeof window === 'undefined') return;
+        if (activePageNumber > 1) {
+            try {
+                window.localStorage.setItem(progressStorageKey, String(activePageNumber));
+            } catch {
+                // Ignore storage quota or private mode restrictions
+            }
+        }
+    }, [activePageNumber, progressStorageKey]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const rawProgress = window.localStorage.getItem(progressStorageKey);
+            let parsed = parseInt(String(rawProgress || ''), 10);
+            if (!Number.isFinite(parsed) && rawProgress && rawProgress.startsWith('{')) {
+                try {
+                    const obj = JSON.parse(rawProgress);
+                    parsed = parseInt(String(obj?.page || ''), 10);
+                } catch {
+                    parsed = NaN;
+                }
+            }
+            const clampedProgress = clampPageNumber(parsed, maxPageCount);
+            setSavedResumePage(clampedProgress && clampedProgress > 1 ? clampedProgress : null);
+        } catch {
+            setSavedResumePage(null);
+        }
+
+        try {
+            const rawBookmarks = window.localStorage.getItem(bookmarksStorageKey);
+            const parsedList = rawBookmarks ? JSON.parse(rawBookmarks) : [];
+            if (Array.isArray(parsedList)) {
+                const cleaned = Array.from(
+                    new Set(
+                        parsedList
+                            .map((n) => clampPageNumber(n, maxPageCount))
+                            .filter((n) => Number.isFinite(n) && n >= 1)
+                    )
+                ).sort((a, b) => a - b);
+                setBookmarkedPages(cleaned);
+            } else {
+                setBookmarkedPages([]);
+            }
+        } catch {
+            setBookmarkedPages([]);
+        }
+    }, [progressStorageKey, bookmarksStorageKey, maxPageCount]);
+
+    useEffect(() => {
+        const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+        setSpeechSupported(supported);
+        return () => {
+            speechSessionRef.current += 1;
+            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel();
+                } catch {
+                    // Ignore speech engine teardown errors
+                }
+            }
+            if (copyTimerRef.current) {
+                clearTimeout(copyTimerRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (router?.query?.view === 'reader') {
@@ -820,17 +1118,271 @@ export default function SmarterPokerMagazineIssueReaderPage({
         [spreads, maxPageCount, viewMode]
     );
 
+    const toggleBookmarkCurrentPage = useCallback(() => {
+        const target = clampPageNumber(activePageRef.current, maxPageCount) || 1;
+        setBookmarkedPages((prev) => {
+            const existsInList = prev.includes(target);
+            const next = existsInList
+                ? prev.filter((p) => p !== target)
+                : [...prev, target].sort((a, b) => a - b);
+            if (typeof window !== 'undefined') {
+                try {
+                    window.localStorage.setItem(bookmarksStorageKey, JSON.stringify(next));
+                } catch {
+                    // Ignore storage errors
+                }
+            }
+            return next;
+        });
+    }, [maxPageCount, bookmarksStorageKey]);
+
+    const audioChapters = useMemo(() => buildAudioNarrationChapters(pages, manifest), [pages, manifest]);
+    const boundedAudioChapterIdx = Math.min(
+        Math.max(0, audioChapterIdx),
+        Math.max(0, audioChapters.length - 1)
+    );
+    const activeAudioChapter = audioChapters[boundedAudioChapterIdx] || audioChapters[0] || null;
+
+    const speakChapterAtIndex = useCallback(
+        (chapterIdx) => {
+            if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+            const safeIdx = Math.min(Math.max(0, chapterIdx), Math.max(0, audioChapters.length - 1));
+            const chapter = audioChapters[safeIdx];
+            if (!chapter?.script) return;
+
+            setAudioChapterIdx(safeIdx);
+            setAudioBarOpen(true);
+            const sessionId = speechSessionRef.current + 1;
+            speechSessionRef.current = sessionId;
+
+            try {
+                window.speechSynthesis.cancel();
+                if (typeof SpeechSynthesisUtterance === 'undefined') return;
+                const utterance = new SpeechSynthesisUtterance(chapter.script);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.onend = () => {
+                    if (speechSessionRef.current !== sessionId) return;
+                    if (safeIdx + 1 < audioChapters.length) {
+                        speakChapterAtIndex(safeIdx + 1);
+                    } else {
+                        setAudioStatus('idle');
+                    }
+                };
+                utterance.onerror = () => {
+                    if (speechSessionRef.current === sessionId) {
+                        setAudioStatus('idle');
+                    }
+                };
+                window.speechSynthesis.speak(utterance);
+                setAudioStatus('playing');
+                if (chapter.startPage) {
+                    const target = clampPageNumber(chapter.startPage, maxPageCount) || 1;
+                    setActivePageNumber(target);
+                    activePageRef.current = target;
+                    setSpreadIndex(findSpreadIndexForPage(spreads, target));
+                }
+            } catch {
+                setAudioStatus('idle');
+            }
+        },
+        [audioChapters, maxPageCount, spreads]
+    );
+
+    const handleAudioPlayPause = useCallback(() => {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+        setAudioBarOpen(true);
+        if (audioStatus === 'playing') {
+            try {
+                window.speechSynthesis.pause();
+                setAudioStatus('paused');
+            } catch {
+                // Ignore pause errors
+            }
+            return;
+        }
+        if (audioStatus === 'paused') {
+            try {
+                window.speechSynthesis.resume();
+                setAudioStatus('playing');
+                return;
+            } catch {
+                // Fall back to fresh chapter speak
+            }
+        }
+        speakChapterAtIndex(boundedAudioChapterIdx);
+    }, [audioStatus, boundedAudioChapterIdx, speakChapterAtIndex]);
+
+    const handleAudioStop = useCallback(() => {
+        speechSessionRef.current += 1;
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            try {
+                window.speechSynthesis.cancel();
+            } catch {
+                // Ignore cancel errors
+            }
+        }
+        setAudioStatus('idle');
+    }, []);
+
+    const handleShareCurrentPage = useCallback(async () => {
+        const shareUrl = `${MAGAZINE_SITE_URL}/hub/magazine/${manifest.slug}?page=${activePageNumber}`;
+        const activePg = pages.find((p) => Number(p.pageNumber) === Number(activePageNumber));
+        const shareTitle = stripMagazineDashes(
+            activePg?.headline
+                ? `${activePg.headline} - ${MAGAZINE_MASTHEAD} Page ${activePageNumber}`
+                : `${MAGAZINE_MASTHEAD} Issue #${manifest.issueNumber} (Page ${activePageNumber})`
+        );
+
+        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+            try {
+                await navigator.share({ title: shareTitle, url: shareUrl });
+                return;
+            } catch {
+                // Fall through to clipboard copy if user dismisses or share fails
+            }
+        }
+
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                setShareCopied(true);
+                if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+                copyTimerRef.current = setTimeout(() => setShareCopied(false), 2400);
+            } catch {
+                // Ignore clipboard permission restrictions
+            }
+        }
+    }, [manifest.slug, manifest.issueNumber, activePageNumber, pages]);
+
+    const searchMatches = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return [];
+        const tokens = q.split(/\s+/).filter(Boolean);
+        if (tokens.length === 0) return [];
+
+        const results = [];
+        for (const p of pages) {
+            const standingSnippets = Array.isArray(p?.standings)
+                ? p.standings.map((r) =>
+                      [
+                          r?.playerName,
+                          r?.player_name,
+                          r?.username,
+                          r?.winner,
+                          r?.name,
+                          r?.tour,
+                          r?.eventDetail,
+                          r?.gameType,
+                      ]
+                          .filter(Boolean)
+                          .join(' ')
+                  )
+                : [];
+            const itemSnippets = Array.isArray(p?.items)
+                ? p.items.map((it) =>
+                      [
+                          it?.headline,
+                          it?.title,
+                          it?.name,
+                          it?.room_name,
+                          it?.city,
+                          it?.state,
+                          it?.location,
+                          it?.category,
+                          it?.summary,
+                          it?.question,
+                          it?.label,
+                      ]
+                          .filter(Boolean)
+                          .join(' ')
+                  )
+                : [];
+            const hay = [
+                `page ${p.pageNumber}`,
+                `p.${p.pageNumber}`,
+                p.headline,
+                p.subheadline,
+                p.department,
+                ...(Array.isArray(p?.paragraphs) ? p.paragraphs : []),
+                ...itemSnippets,
+                ...standingSnippets,
+                p?.spot?.title,
+                p?.spot?.situation,
+                p?.spot?.category,
+            ]
+                .filter(Boolean)
+                .join(' | ')
+                .toLowerCase();
+
+            if (!tokens.every((tok) => hay.includes(tok))) continue;
+
+            let snippetLabel = stripMagazineDashes(p.headline || p.department || `Page ${p.pageNumber}`);
+            const matchedStanding = Array.isArray(p?.standings)
+                ? p.standings.find((r) => {
+                      const rowName = String(
+                          r?.playerName || r?.player_name || r?.username || r?.winner || r?.name || ''
+                      ).toLowerCase();
+                      return rowName && tokens.some((tok) => rowName.includes(tok));
+                  })
+                : null;
+            if (matchedStanding) {
+                snippetLabel = stripMagazineDashes(
+                    matchedStanding.playerName ||
+                        matchedStanding.player_name ||
+                        matchedStanding.username ||
+                        matchedStanding.winner ||
+                        matchedStanding.name ||
+                        snippetLabel
+                );
+            } else if (Array.isArray(p?.items)) {
+                const matchedItem = p.items.find((it) => {
+                    const label = String(
+                        it?.headline || it?.title || it?.name || it?.room_name || it?.question || ''
+                    ).toLowerCase();
+                    return label && tokens.some((tok) => label.includes(tok));
+                });
+                if (matchedItem) {
+                    snippetLabel = stripMagazineDashes(
+                        matchedItem.headline ||
+                            matchedItem.title ||
+                            matchedItem.name ||
+                            matchedItem.room_name ||
+                            matchedItem.question ||
+                            snippetLabel
+                    );
+                }
+            }
+
+            const trimmedLabel = snippetLabel.length > 42 ? `${snippetLabel.slice(0, 39).trim()}...` : snippetLabel;
+            results.push({
+                pageNumber: Number(p.pageNumber),
+                label: trimmedLabel,
+                department: stripMagazineDashes(p.department || MAGAZINE_MASTHEAD),
+            });
+        }
+        return results.slice(0, 14);
+    }, [pages, searchQuery]);
+
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
         const onKeyDown = (e) => {
             if (e.key === 'Escape') {
                 setTocOpen(false);
+                if (searchQuery) setSearchQuery('');
                 return;
             }
-            if (viewMode !== 'flipbook') return;
             if (e.metaKey || e.ctrlKey || e.altKey || e.target?.isContentEditable) return;
             const tag = String(e.target?.tagName || '').toLowerCase();
             if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+            if (e.key === '/') {
+                e.preventDefault();
+                if (searchInputRef.current) {
+                    searchInputRef.current.focus();
+                }
+                return;
+            }
+            if (viewMode !== 'flipbook') return;
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 goPrevSpread();
@@ -841,7 +1393,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [viewMode, goPrevSpread, goNextSpread]);
+    }, [viewMode, goPrevSpread, goNextSpread, searchQuery]);
 
     const canonicalUrl = `${MAGAZINE_SITE_URL}/hub/magazine/${manifest.slug}`;
     const fittedBaseTitle = firstThatFits([
@@ -859,11 +1411,23 @@ export default function SmarterPokerMagazineIssueReaderPage({
             : stripMagazineDashes(
                   `${rawPageDesc}. Read The Full ${maxPageCount}-Page Smarter.Poker Magazine Issue #${manifest.issueNumber} (${manifest.periodLabel}) Featuring GTO Strategy Labs, Global POY Standings, And Kings Club 25450 Champions.`
               );
-    const ogImageUrl = manifest.coverImageUrl?.startsWith('http')
+    const activePageObj = useMemo(
+        () => pages.find((p) => Number(p.pageNumber) === Number(activePageNumber)) || pages[0] || null,
+        [pages, activePageNumber]
+    );
+    const coverImageUrl = manifest.coverImageUrl?.startsWith('http')
         ? manifest.coverImageUrl
         : `${MAGAZINE_SITE_URL}${manifest.coverImageUrl || FALLBACK_MAGAZINE_IMAGE}`;
+    const ogImageUrl =
+        activePageNumber >= 2
+            ? buildMagazineCardOgUrl(manifest, activePageObj, activePageNumber)
+            : buildMagazineCardOgUrl(manifest, pages[0] || activePageObj, 1);
+    const shareMetaUrl =
+        activePageNumber >= 2 ? `${canonicalUrl}?page=${activePageNumber}` : canonicalUrl;
     const robotsDirective = issue?.isPreview ? ['noindex', 'follow'].join(',') : 'index,follow';
     const printHref = `/hub/magazine/print/${manifest.slug}${issue?.isPreview ? '?preview=1' : ''}`;
+    const pdfDownloadHref = `/api/news/magazine-pdf?issue=${encodeURIComponent(manifest.slug)}&download=1${issue?.isPreview ? '&preview=1' : ''}`;
+    const isCurrentPageBookmarked = bookmarkedPages.includes(activePageNumber);
 
     const jsonLd = {
         '@context': 'https://schema.org',
@@ -875,7 +1439,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                 issueNumber: String(manifest.issueNumber),
                 name: manifest.title,
                 description: pageDesc,
-                image: ogImageUrl,
+                image: coverImageUrl,
                 pageStart: 1,
                 pageEnd: manifest.pageCount || pages.length || 44,
                 ...(issue?.publishedAt ? { datePublished: issue.publishedAt } : {}),
@@ -923,10 +1487,12 @@ export default function SmarterPokerMagazineIssueReaderPage({
                 <meta name="description" content={pageDesc} />
                 <meta name="robots" content={robotsDirective} />
                 <link key="canonical" rel="canonical" href={canonicalUrl} />
-                <meta key="og-url" property="og:url" content={canonicalUrl} />
+                <meta key="og-url" property="og:url" content={shareMetaUrl} />
                 <meta key="og-title" property="og:title" content={pageTitle} />
                 <meta key="og-description" property="og:description" content={pageDesc} />
                 <meta key="og-image" property="og:image" content={ogImageUrl} />
+                <meta key="og-image-width" property="og:image:width" content="1200" />
+                <meta key="og-image-height" property="og:image:height" content="630" />
                 <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
                 <meta key="twitter-title" name="twitter:title" content={pageTitle} />
                 <meta key="twitter-description" property="twitter:description" content={pageDesc} />
@@ -940,7 +1506,7 @@ export default function SmarterPokerMagazineIssueReaderPage({
                 />
                 <style
                     dangerouslySetInnerHTML={{
-                        __html: '@media (max-width: 899px) { .sp-mag-flipbook-spread-grid { grid-template-columns: 1fr !important; } .sp-mag-flipbook-spread-wrap { max-width: 570px !important; } .sp-mag-flipbook-spread-cell { border-right: none !important; } }',
+                        __html: '@media (max-width: 899px) { .sp-mag-flipbook-spread-grid { grid-template-columns: 1fr !important; } .sp-mag-flipbook-spread-wrap:not(.sp-mag-flipbook-spread-zoomed) { max-width: 570px !important; } .sp-mag-flipbook-spread-wrap.sp-mag-flipbook-spread-zoomed { max-width: 770px !important; } .sp-mag-flipbook-spread-cell { border-right: none !important; } }',
                     }}
                 />
                 <script
@@ -1046,9 +1612,69 @@ export default function SmarterPokerMagazineIssueReaderPage({
                                     cursor: 'pointer',
                                 }}
                             >
-                                {zoomed ? 'Zoom: 135%' : 'Zoom: 100%'}
+                                {zoomed ? 'Reset Zoom 100%' : 'Zoom In 135%'}
                             </button>
                         )}
+
+                        <button
+                            type="button"
+                            onClick={toggleBookmarkCurrentPage}
+                            aria-pressed={isCurrentPageBookmarked}
+                            style={{
+                                background: isCurrentPageBookmarked ? '#102131' : '#05070a',
+                                color: isCurrentPageBookmarked ? '#4fc1b3' : '#ffffff',
+                                border: `1px solid ${isCurrentPageBookmarked ? '#4fc1b3' : '#1b2c3d'}`,
+                                borderRadius: '8px',
+                                padding: '7px 11px',
+                                fontSize: '12.5px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            {isCurrentPageBookmarked ? '\u2605 Bookmarked' : '\u2606 Bookmark Page'}
+                        </button>
+
+                        {speechSupported && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!audioBarOpen && audioStatus === 'idle') {
+                                        speakChapterAtIndex(boundedAudioChapterIdx);
+                                    } else {
+                                        setAudioBarOpen((open) => !open);
+                                    }
+                                }}
+                                style={{
+                                    background: audioStatus === 'playing' ? '#4fc1b3' : '#05070a',
+                                    color: audioStatus === 'playing' ? '#05070a' : '#60a5fa',
+                                    border: '1px solid #60a5fa',
+                                    borderRadius: '8px',
+                                    padding: '7px 11px',
+                                    fontSize: '12.5px',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {audioStatus === 'playing' ? 'Listening...' : 'Listen To Issue'}
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={handleShareCurrentPage}
+                            style={{
+                                background: '#05070a',
+                                color: shareCopied ? '#4fc1b3' : '#ffffff',
+                                border: `1px solid ${shareCopied ? '#4fc1b3' : '#1b2c3d'}`,
+                                borderRadius: '8px',
+                                padding: '7px 11px',
+                                fontSize: '12.5px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            {shareCopied ? `Copied Page ${activePageNumber}` : `Share Page ${activePageNumber}`}
+                        </button>
 
                         <button
                             type="button"
@@ -1067,6 +1693,22 @@ export default function SmarterPokerMagazineIssueReaderPage({
                             Table Of Contents
                         </button>
 
+                        <a
+                            href={pdfDownloadHref}
+                            style={{
+                                background: '#05070a',
+                                color: '#4fc1b3',
+                                border: '1px solid #4fc1b3',
+                                borderRadius: '8px',
+                                padding: '7px 11px',
+                                fontSize: '12.5px',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                            }}
+                        >
+                            Download PDF
+                        </a>
+
                         <Link
                             href={printHref}
                             style={{
@@ -1084,6 +1726,271 @@ export default function SmarterPokerMagazineIssueReaderPage({
                         </Link>
                     </div>
                 </header>
+
+                <div
+                    role="region"
+                    aria-label="Magazine Search, Reading Progress And Bookmarks Toolbar"
+                    style={{
+                        background: '#081018',
+                        borderBottom: '1px solid #1b2c3d',
+                        padding: '10px 18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '10px',
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 280px', maxWidth: '520px' }}>
+                            <input
+                                ref={searchInputRef}
+                                type="search"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search All 44 Pages... (Press /)"
+                                aria-label="Search All 44 Pages"
+                                style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    background: '#05070a',
+                                    border: '1px solid #1b2c3d',
+                                    borderRadius: '8px',
+                                    padding: '7px 12px',
+                                    color: '#ffffff',
+                                    fontSize: '16px',
+                                    outline: 'none',
+                                }}
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery('')}
+                                    style={{
+                                        background: '#102131',
+                                        border: '1px solid #1b2c3d',
+                                        color: '#4fc1b3',
+                                        borderRadius: '8px',
+                                        padding: '7px 11px',
+                                        fontSize: '12px',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            {activePageNumber === 1 && savedResumePage && savedResumePage > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleTocItemSelect(savedResumePage)}
+                                    style={{
+                                        background: '#4fc1b3',
+                                        color: '#05070a',
+                                        border: 'none',
+                                        borderRadius: '999px',
+                                        padding: '6px 14px',
+                                        fontSize: '12px',
+                                        fontWeight: 900,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {`Resume Page ${savedResumePage}`} &rarr;
+                                </button>
+                            )}
+
+                            {bookmarkedPages.length > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#9fb3c8' }}>
+                                        Bookmarks:
+                                    </span>
+                                    {bookmarkedPages.map((bPage) => (
+                                        <button
+                                            key={bPage}
+                                            type="button"
+                                            onClick={() => handleTocItemSelect(bPage)}
+                                            style={{
+                                                background: bPage === activePageNumber ? '#4fc1b3' : '#102131',
+                                                color: bPage === activePageNumber ? '#05070a' : '#4fc1b3',
+                                                border: '1px solid #4fc1b3',
+                                                borderRadius: '999px',
+                                                padding: '4px 10px',
+                                                fontSize: '11.5px',
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            {`\u2605 P.${bPage}`}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {searchQuery.trim() !== '' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            {searchMatches.length === 0 ? (
+                                <span style={{ fontSize: '12.5px', color: '#9fb3c8', fontWeight: 700 }}>
+                                    No Matching Pages Found In This Issue.
+                                </span>
+                            ) : (
+                                searchMatches.map((m) => (
+                                    <button
+                                        key={m.pageNumber}
+                                        type="button"
+                                        onClick={() => {
+                                            handleTocItemSelect(m.pageNumber);
+                                        }}
+                                        style={{
+                                            background: '#0b1520',
+                                            border: '1px solid #60a5fa',
+                                            color: '#ffffff',
+                                            borderRadius: '999px',
+                                            padding: '5px 11px',
+                                            fontSize: '12px',
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        {`P.${m.pageNumber}: ${m.label}`}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    {speechSupported && audioBarOpen && activeAudioChapter && (
+                        <div
+                            role="region"
+                            aria-label="Audio Issue Narration Player"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '10px',
+                                background: '#0b1520',
+                                border: '1px solid #1b2c3d',
+                                borderRadius: '10px',
+                                padding: '8px 12px',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span
+                                    style={{
+                                        background: '#4fc1b3',
+                                        color: '#05070a',
+                                        fontSize: '10.5px',
+                                        fontWeight: 900,
+                                        letterSpacing: '1.2px',
+                                        textTransform: 'uppercase',
+                                        padding: '3px 8px',
+                                        borderRadius: '999px',
+                                    }}
+                                >
+                                    Audio Issue
+                                </span>
+                                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#ffffff' }}>
+                                    {activeAudioChapter.label}
+                                </span>
+                                <span style={{ fontSize: '12px', color: '#9fb3c8' }}>
+                                    {activeAudioChapter.headline}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    disabled={boundedAudioChapterIdx === 0}
+                                    onClick={() => speakChapterAtIndex(Math.max(0, boundedAudioChapterIdx - 1))}
+                                    style={{
+                                        background: '#102131',
+                                        color: boundedAudioChapterIdx === 0 ? '#9fb3c8' : '#ffffff',
+                                        border: '1px solid #1b2c3d',
+                                        borderRadius: '6px',
+                                        padding: '5px 10px',
+                                        fontSize: '12px',
+                                        fontWeight: 800,
+                                        cursor: boundedAudioChapterIdx === 0 ? 'default' : 'pointer',
+                                        opacity: boundedAudioChapterIdx === 0 ? 0.5 : 1,
+                                    }}
+                                >
+                                    Prev Chapter
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAudioPlayPause}
+                                    style={{
+                                        background: '#4fc1b3',
+                                        color: '#05070a',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        padding: '5px 12px',
+                                        fontSize: '12px',
+                                        fontWeight: 900,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {audioStatus === 'playing' ? 'Pause' : 'Play'}
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={boundedAudioChapterIdx >= audioChapters.length - 1}
+                                    onClick={() =>
+                                        speakChapterAtIndex(
+                                            Math.min(audioChapters.length - 1, boundedAudioChapterIdx + 1)
+                                        )
+                                    }
+                                    style={{
+                                        background: '#102131',
+                                        color:
+                                            boundedAudioChapterIdx >= audioChapters.length - 1
+                                                ? '#9fb3c8'
+                                                : '#ffffff',
+                                        border: '1px solid #1b2c3d',
+                                        borderRadius: '6px',
+                                        padding: '5px 10px',
+                                        fontSize: '12px',
+                                        fontWeight: 800,
+                                        cursor:
+                                            boundedAudioChapterIdx >= audioChapters.length - 1
+                                                ? 'default'
+                                                : 'pointer',
+                                        opacity: boundedAudioChapterIdx >= audioChapters.length - 1 ? 0.5 : 1,
+                                    }}
+                                >
+                                    Next Chapter
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAudioStop}
+                                    style={{
+                                        background: '#05070a',
+                                        color: '#f87171',
+                                        border: '1px solid #1b2c3d',
+                                        borderRadius: '6px',
+                                        padding: '5px 10px',
+                                        fontSize: '12px',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    Stop
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {tocOpen && (
                     <aside
@@ -1162,18 +2069,27 @@ export default function SmarterPokerMagazineIssueReaderPage({
                 )}
 
                 {viewMode === 'flipbook' ? (
-                    <main style={{ padding: '24px 16px 96px 16px', overflowX: zoomed ? 'auto' : 'hidden' }}>
+                    <main
+                        style={{
+                            padding: '24px 16px 96px 16px',
+                            overflowX: zoomed ? 'auto' : 'hidden',
+                            overscrollBehaviorX: 'contain',
+                            WebkitOverflowScrolling: 'touch',
+                        }}
+                    >
                         <div
-                            className="sp-mag-flipbook-spread-wrap"
+                            className={`sp-mag-flipbook-spread-wrap${zoomed ? ' sp-mag-flipbook-spread-zoomed' : ''}`}
                             style={{
                                 maxWidth: zoomed
-                                    ? '1540px'
+                                    ? currentSpread.pages.length === 2
+                                        ? '1540px'
+                                        : '770px'
                                     : currentSpread.pages.length === 2
                                       ? '1140px'
                                       : '570px',
                                 width: zoomed ? '135%' : '100%',
                                 margin: '0 auto',
-                                transition: 'max-width 0.22s ease, transform 0.22s ease',
+                                transition: 'max-width 0.22s ease, width 0.22s ease',
                             }}
                         >
                             <div

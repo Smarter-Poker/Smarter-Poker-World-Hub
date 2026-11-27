@@ -41,7 +41,7 @@ export const MAGAZINE_SECTIONS = Object.freeze([
 
 export const MAGAZINE_TOC_GROUPS = Object.freeze([
     { key: 'features', label: 'Features & Cover Stories' },
-    { key: 'departments', label: 'Departments, POY & Final Table' },
+    { key: 'departments', label: 'Departments, Standings & Final Table' },
     { key: 'strategy', label: 'The Strategy Lab' },
 ]);
 
@@ -222,10 +222,49 @@ export function normalizeMagazineUsState(code) {
     return mapped || null;
 }
 
-export function stripMagazineDashes(value) {
+const NAMED_HTML_ENTITIES = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    rsquo: "'",
+    lsquo: "'",
+    rdquo: '"',
+    ldquo: '"',
+    nbsp: ' ',
+    bull: '•',
+    middot: '·',
+    hellip: '...',
+};
+
+export function decodeMagazineEntities(value) {
     return String(value ?? '')
         .replace(/&mdash;|&ndash;|&#8212;|&#8211;|&#x2014;|&#x2013;/gi, ' - ')
+        .replace(/&#x([0-9a-f]{1,6});/gi, (m, hex) => {
+            const cp = parseInt(hex, 16);
+            if (!Number.isFinite(cp) || cp < 32 || cp > 0x10ffff) return m;
+            if (cp === 0x2014 || cp === 0x2013) return ' - ';
+            return String.fromCodePoint(cp);
+        })
+        .replace(/&#(\d{1,7});/g, (m, dec) => {
+            const cp = parseInt(dec, 10);
+            if (!Number.isFinite(cp) || cp < 32 || cp > 0x10ffff) return m;
+            if (cp === 0x2014 || cp === 0x2013) return ' - ';
+            return String.fromCodePoint(cp);
+        })
+        .replace(/&([a-z]+);/gi, (m, name) => {
+            const mapped = NAMED_HTML_ENTITIES[String(name).toLowerCase()];
+            return mapped !== undefined ? mapped : m;
+        });
+}
+
+export function stripMagazineDashes(value) {
+    return decodeMagazineEntities(value)
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u201c\u201d]/g, '"')
         .replace(/\s*[\u2014\u2013]\s*/g, ' - ')
+        .replace(/\s+([,.;:!?])/g, '$1')
         .replace(/\s{2,}/g, ' ')
         .trim();
 }
@@ -286,8 +325,186 @@ export function normalizeSignaturePageCount(rawCount, min = 36, max = 48) {
 export function formatChipsOnly(amount) {
     const num = Number(amount || 0);
     if (!Number.isFinite(num) || num <= 0) return '0 Chips';
-    return `${Math.round(num).toLocaleString('en-US')} Chips`;
+    // Club Arena buy-ins and pools can carry cents (31.50, 15,507.50), so a
+    // fractional amount keeps two decimals instead of rounding to a false total.
+    const text = Number.isInteger(num)
+        ? num.toLocaleString('en-US')
+        : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${text} Chips`;
 }
+
+/** Generic image the email-image route draws when a page has no real artwork. */
+export const MAGAZINE_FALLBACK_IMAGE_URL = '/api/news/email-image?fallback=1&w=960&h=540';
+
+/**
+ * True when a URL is the generic "no artwork" placeholder rather than a real
+ * photograph, spot diagram or Smarter.Poker brand plate.
+ */
+export function isMagazineFallbackImageUrl(rawUrl) {
+    const u = String(rawUrl || '').trim();
+    if (!u) return true;
+    return /[?&]fallback=1\b/.test(u);
+}
+
+/**
+ * Stable identity for one piece of artwork, so the same picture is never
+ * printed twice in one issue even when it is referenced through different
+ * renditions (`-web.jpg` vs `-master.jpg`), signed query strings or the
+ * `/_next/image` optimizer.
+ */
+export function magazineImageAssetKey(rawUrl) {
+    const u = String(rawUrl || '').trim();
+    if (!u || isMagazineFallbackImageUrl(u)) return '';
+    const vault = u.match(/magazine-assets\/[^?#]*?([a-f0-9]{24})-(?:web|master)\.(?:jpe?g|png|webp)/i);
+    if (vault) return `vault:${vault[1].toLowerCase()}`;
+    const spot = u.match(/[?&]spot=([^&#]+)/);
+    if (spot) return `spot:${decodeURIComponent(spot[1]).toLowerCase()}`;
+    const optimized = u.match(/^\/_next\/image\?(?:.*&)?url=([^&#]+)/);
+    if (optimized) return magazineImageAssetKey(decodeURIComponent(optimized[1])) || `url:${decodeURIComponent(optimized[1])}`;
+    const yt = u.match(/(?:img\.youtube\.com|i\.ytimg\.com)\/vi\/([A-Za-z0-9_-]{6,})\//);
+    if (yt) return `youtube:${yt[1]}`;
+    return `url:${u.split('#')[0].split('?')[0]}`;
+}
+
+/**
+ * Page kinds that may print a QR code. A QR earns its place only when it sends
+ * the reader somewhere specific they cannot reach from the printed page: join
+ * or sign up, play the spot just analysed, open the calculator, take the full
+ * test, watch the video, find a game, subscribe or request copies.
+ */
+export const MAGAZINE_QR_PAGE_KINDS = Object.freeze([
+    'house_promo_spread',
+    'platform_feature',
+    'kings_club_champions',
+    'strategy_nlh',
+    'strategy_icm',
+    'strategy_plo',
+    'strategy_ai_coach',
+    'the_test_quiz',
+    'video_tool_spotlight',
+    'live_series_radar',
+    'poker_rooms_directory',
+    'cardroom_bundle_cta',
+    'back_cover',
+]);
+
+/** Full-page advertisements keep their own QR even when two sit side by side. */
+const MAGAZINE_QR_STANDALONE_KINDS = new Set(['house_promo_spread', 'cardroom_bundle_cta', 'back_cover']);
+
+function normalizeQrTarget(rawUrl) {
+    const u = String(rawUrl || '').trim();
+    if (!u) return '';
+    try {
+        const parsed = new URL(u, MAGAZINE_SITE_URL);
+        // Print attribution tags (utm_*) differ per page; they never make two QR codes go somewhere different.
+        for (const key of [...parsed.searchParams.keys()]) {
+            if (/^utm_/i.test(key)) parsed.searchParams.delete(key);
+        }
+        const path = parsed.pathname.replace(/\/+$/, '') || '/';
+        return `${parsed.hostname}${path}${parsed.search}`.toLowerCase();
+    } catch {
+        return u.toLowerCase();
+    }
+}
+
+/** A QR that only reopens the magazine the reader is already holding is never printed. */
+export function isSelfReferentialMagazineQr(rawUrl) {
+    const target = normalizeQrTarget(rawUrl);
+    if (!target) return true;
+    return /\/hub\/magazine(\/(?!poker-rooms)[^/?]*)?(\?|$)/.test(target.replace(/^[^/]*/, ''));
+}
+
+/** Plain-language call to action printed under a QR code, chosen from where it goes. */
+export function resolveMagazineQrLabel(rawUrl) {
+    const target = normalizeQrTarget(rawUrl);
+    if (/\/auth\/signup/.test(target)) return 'Scan To Join Smarter.Poker';
+    if (/[?&]join=|club-arena/.test(target)) return 'Scan To Join Kings Club';
+    if (/hand-lab/.test(target)) return 'Scan To Play This Spot';
+    if (/video-library/.test(target)) return 'Scan To Watch';
+    if (/\/hub\/trivia/.test(target)) return 'Scan To Take The Full Test';
+    if (/\/hub\/wire/.test(target)) return 'Scan To Subscribe Free';
+    if (/poker-rooms/.test(target)) return 'Scan To Request Copies';
+    if (/poker-near-me/.test(target)) return 'Scan To Find A Game Near You';
+    if (/calculator|\/tools/.test(target)) return 'Scan To Open The Calculator';
+    if (/ev-heatmap|bankroll-coach|\/hub\/training/.test(target)) return 'Scan To Open The Trainer';
+    if (/leaderboards/.test(target)) return 'Scan For Live Standings';
+    if (/^[^/]*\/?$/.test(target)) return 'Scan To Join Smarter.Poker';
+    return 'Scan To Open On Smarter.Poker';
+}
+
+function qrSpecificity(rawUrl) {
+    const target = normalizeQrTarget(rawUrl);
+    return target.split('/').length + (target.includes('?') ? 2 : 0);
+}
+
+/**
+ * Decides which pages of an issue print a QR code. Rules, in order:
+ * 1. Only `MAGAZINE_QR_PAGE_KINDS` qualify, and never a QR back to the magazine itself.
+ * 2. One QR per spread of the same kind (the most specific destination wins,
+ *    the right-hand page on a tie), except full-page ads.
+ * 3. Each destination is printed once per issue.
+ * Returns a Map of pageNumber -> { showQr, qrLabel }.
+ */
+export function planMagazineQrCodes(pages = []) {
+    const list = Array.isArray(pages) ? pages : [];
+    const allowedKinds = new Set(MAGAZINE_QR_PAGE_KINDS);
+    const plan = new Map();
+    const candidates = [];
+    for (const page of list) {
+        const pageNumber = Number(page?.pageNumber) || 0;
+        plan.set(pageNumber, { showQr: false, qrLabel: '' });
+        const url = String(page?.qrUrl || '').trim();
+        if (!url || !allowedKinds.has(page?.kind) || isSelfReferentialMagazineQr(url)) continue;
+        candidates.push({ pageNumber, kind: page.kind, url });
+    }
+
+    const runWinners = [];
+    for (let i = 0; i < candidates.length; i += 1) {
+        const current = candidates[i];
+        if (MAGAZINE_QR_STANDALONE_KINDS.has(current.kind)) {
+            runWinners.push(current);
+            continue;
+        }
+        const run = [current];
+        while (
+            i + 1 < candidates.length &&
+            candidates[i + 1].kind === current.kind &&
+            candidates[i + 1].pageNumber === run[run.length - 1].pageNumber + 1
+        ) {
+            run.push(candidates[i + 1]);
+            i += 1;
+        }
+        let best = run[run.length - 1];
+        for (const c of run) {
+            if (qrSpecificity(c.url) > qrSpecificity(best.url)) best = c;
+        }
+        runWinners.push(best);
+    }
+
+    const seenTargets = new Set();
+    for (const winner of runWinners) {
+        const target = normalizeQrTarget(winner.url);
+        if (seenTargets.has(target)) continue;
+        seenTargets.add(target);
+        plan.set(winner.pageNumber, { showQr: true, qrLabel: resolveMagazineQrLabel(winner.url) });
+    }
+    return plan;
+}
+
+/**
+ * True when a vault row's stored image is the generated "editorial plate"
+ * placeholder the image vault writes after a source photo fails to download
+ * (always stored at the 1600x2000 print-master size), not a real photograph.
+ */
+export function isVanguardPlateVaultRecord(row) {
+    if (!row || typeof row !== 'object') return false;
+    const meta = row.metadata_json && typeof row.metadata_json === 'object' ? row.metadata_json : row.metadata || {};
+    if (meta?.usedFallbackImage === true || meta?.usedFallbackImage === 'true') return true;
+    if (isMagazineFallbackImageUrl(row.vaulted_image_url)) return true;
+    return Number(row.image_width) === 1600 && Number(row.image_height) === 2000;
+}
+
+const MAGAZINE_IMAGE_ROLES = new Set(['photo', 'art', 'spot', 'video', 'none']);
 
 const createIsoQrCode =
     typeof QRCodeCore?.create === 'function'
@@ -435,7 +652,7 @@ export function normalizeIssueManifest(raw = {}, fallbackIssue = {}) {
         ? m.pages.map((p, idx) => ({
               pageNumber: Number(p?.pageNumber) || idx + 1,
               kind: String(p?.kind || 'news_rail'),
-              department: stripMagazineDashes(p?.department || 'Departments, POY & Final Table'),
+              department: stripMagazineDashes(p?.department || 'Departments, Standings & Final Table'),
               tocGroup: p?.tocGroup || 'departments',
               runningHeader: stripMagazineDashes(p?.runningHeader || MAGAZINE_MASTHEAD),
               headline: stripMagazineDashes(p?.headline || ''),
@@ -453,8 +670,51 @@ export function normalizeIssueManifest(raw = {}, fallbackIssue = {}) {
               spot: p?.spot && typeof p.spot === 'object' ? sanitizeManifestEntryObject(p.spot) : null,
               standings: Array.isArray(p?.standings) ? p.standings.map(sanitizeManifestEntryObject) : [],
               meta: p?.meta && typeof p.meta === 'object' ? p.meta : {},
+              showQr: typeof p?.showQr === 'boolean' ? p.showQr : null,
+              qrLabel: stripMagazineDashes(p?.qrLabel || ''),
+              imageRole: MAGAZINE_IMAGE_ROLES.has(p?.imageRole)
+                  ? p.imageRole
+                  : isMagazineFallbackImageUrl(p?.imageUrl)
+                    ? 'none'
+                    : 'photo',
+              imageCaption: stripMagazineDashes(p?.imageCaption || ''),
+              imageCredit: stripMagazineDashes(p?.imageCredit || ''),
+              kicker: stripMagazineDashes(p?.kicker || ''),
+              standingsLabels:
+                  p?.standingsLabels && typeof p.standingsLabels === 'object'
+                      ? {
+                            rank: stripMagazineDashes(p.standingsLabels.rank || ''),
+                            player: stripMagazineDashes(p.standingsLabels.player || ''),
+                            value: stripMagazineDashes(p.standingsLabels.value || ''),
+                        }
+                      : null,
+              leadItemIndex: Number.isInteger(p?.leadItemIndex) ? p.leadItemIndex : 0,
           }))
         : [];
+    if (pages.some((p) => p.showQr === null)) {
+        const qrPlan = planMagazineQrCodes(pages);
+        for (const page of pages) {
+            if (page.showQr !== null) continue;
+            const planned = qrPlan.get(page.pageNumber) || { showQr: false, qrLabel: '' };
+            page.showQr = planned.showQr;
+            page.qrLabel = page.qrLabel || planned.qrLabel;
+        }
+    }
+    for (const page of pages) {
+        if (page.showQr && !page.qrLabel) page.qrLabel = resolveMagazineQrLabel(page.qrUrl);
+    }
+    // Position of every page inside its run of consecutive same-kind pages, so a renderer can
+    // print an opener once and mark the rest as continuations (derived, never trusted from input).
+    pages.forEach((page, idx) => {
+        const prev = pages[idx - 1];
+        const inRun = prev && prev.kind === page.kind && prev.pageNumber + 1 === page.pageNumber;
+        page.runIndex = inRun ? prev.runIndex + 1 : 0;
+    });
+    for (let idx = pages.length - 1; idx >= 0; idx -= 1) {
+        const next = pages[idx + 1];
+        const page = pages[idx];
+        page.runLength = next && next.runIndex === page.runIndex + 1 ? next.runLength : page.runIndex + 1;
+    }
     const pageCount = normalizeSignaturePageCount(pages.length || m.pageCount || fallbackIssue.page_count || 44);
     const toc = Array.isArray(m.toc) ? m.toc.map(sanitizeTocEntry) : [];
     const slug = (String(m.slug || fallbackIssue.slug || period).trim() || period).slice(0, 128);

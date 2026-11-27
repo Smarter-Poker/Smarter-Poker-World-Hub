@@ -4,13 +4,13 @@
   "inputs": {
     "pages/terms.js": "8fe0d3b12df3616c3bdc66211efeb2e6140076f2fb4d66dbb49b04c57b65a1cf",
     "pages/legal/official-rules.js": "4173d038cf68fb2a9ac806c15011ad1dcfe65122c9bf0ee57865b600484b9c5f",
-    "src/components/landing/LandingProductSummary.js": "16301c9fe1dabfd290fa4f53f77f7edffc8ab144dcdc7291559f466db7b4372e",
+    "src/components/landing/LandingProductSummary.js": "46e33b8b4e12ce9155345f93b776fa27793288b880ace22f931470040f745a53",
     "src/lib/businessHubGuide.mjs": "af62def60de12b17475ebcf0e1d8f5c2cb28888e10f047876c69accc1ba2a7ef",
-    "pages/about.js": "605d5852c27c5a8fe72c8a0efeeeeff427b55fe66220852e9bf5e4b8b93e1d63",
+    "pages/about.js": "c4c6fc46be70b5920504023f25495d9915a5de21fd0ae31cfe60075e2adf924c",
     "src/lib/businessHubJourney.mjs": "8adb19909591e0fdeee08d744e61287f28ff6cd42d0d104010f36da5a9b6b174",
     "pages/hub/commander/index.js": "7157da8adece8f9adc1a54b9b628308aa2c409e32f433eed70bcca0a56ac28b7",
     "pages/hub/bankroll-manager.js": "4c52fdf456e0ed9c6724eca0bd447515d86d4e03d505c3e76aa9e6c9602de7d7",
-    "pages/hub/training.js": "6864e0cb149da48caa79391c5915f14099bc96092a929c93c0fcae59bb35255b",
+    "pages/hub/training.js": "d4862fe1ec1f7d92a3a215e2424d9637d2fd94636b80900f8e08b65fbf0ad8da",
     "pages/hub/poker-near-me/lobby.js": "cc7995ca77094f9368fe40d22ac8cd9ce233d123314b56c111e44873b2d72aac"
   }
 }

@@ -20,6 +20,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -549,6 +550,7 @@ export async function getServerSideProps({ req, res, query }) {
       return { props: {} };
     }
   }
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialBb: Number(query?.bb) || 10,

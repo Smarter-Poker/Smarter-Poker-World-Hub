@@ -270,5 +270,7 @@ export async function getServerSideProps({ req, res, query }) {
     res.end();
     return { props: {} };
   }
+  const { setPublicSeoHtmlCache } = await import('../src/lib/seo/edgeCacheHeaders.mjs');
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }

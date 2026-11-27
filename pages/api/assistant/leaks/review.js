@@ -291,6 +291,21 @@ function mapRow(row, nowMs) {
 
 // ─── validation ───────────────────────────────────────────────────────────────
 
+const ALLOWED_REVIEW_SOURCES = new Set(['quick_spot_drill', 'training_arena']);
+const META_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$/;
+
+function readReviewSource(value) {
+    if (typeof value !== 'string') return 'quick_spot_drill';
+    const trimmed = value.trim().toLowerCase();
+    return ALLOWED_REVIEW_SOURCES.has(trimmed) ? trimmed : 'quick_spot_drill';
+}
+
+function readOptionalMetaId(value) {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return META_ID_RE.test(trimmed) ? trimmed : null;
+}
+
 function readLeakId(value) {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -303,7 +318,7 @@ function readLeakId(value) {
  * EV provenance is deliberately absent here: the endpoint reads the current
  * measured value from the caller's owned leak row after validation.
  */
-function readOutcome(raw, authoritative = null) {
+function readOutcome(raw, authoritative = null, meta = null) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false };
 
     const totalNum = Number(authoritative?.total ?? raw.total);
@@ -321,6 +336,10 @@ function readOutcome(raw, authoritative = null) {
         return { ok: false, reason: 'invalid_review_id' };
     }
     if (reviewId) outcome.reviewId = reviewId;
+
+    if (meta?.source) outcome.source = meta.source;
+    if (meta?.gameId) outcome.gameId = meta.gameId;
+    if (meta?.sessionId) outcome.sessionId = meta.sessionId;
 
     if (authoritative?.serverVerified === true) {
         outcome.serverVerified = true;
@@ -537,6 +556,29 @@ async function handlePost(req, res, userId) {
     if (!leakId) {
         return res.status(400).json({ success: false, error: 'leakId required' });
     }
+    const reviewSource = readReviewSource(body.source);
+    const gameId = readOptionalMetaId(body.gameId);
+    const sessionId = readOptionalMetaId(body.sessionId);
+    const receiptMeta = {
+        source: reviewSource,
+        ...(gameId ? { gameId } : {}),
+        ...(sessionId ? { sessionId } : {}),
+    };
+    const topLevelReviewId = body.operationId !== undefined ? body.operationId : body.reviewId;
+    const rawOutcomeInput = (body.outcome && typeof body.outcome === 'object' && !Array.isArray(body.outcome))
+        ? {
+            ...body.outcome,
+            ...(body.outcome.reviewId === undefined && topLevelReviewId !== undefined
+                ? { reviewId: topLevelReviewId }
+                : {}),
+        }
+        : (body.correct !== undefined || body.total !== undefined || topLevelReviewId !== undefined)
+            ? {
+                correct: body.correct,
+                total: body.total,
+                ...(topLevelReviewId !== undefined ? { reviewId: topLevelReviewId } : {}),
+            }
+            : body.outcome;
 
     const supabase = getSupabase();
     const contextAccess = await checkSandboxAccess(supabase, userId);
@@ -553,18 +595,19 @@ async function handlePost(req, res, userId) {
     if (body.answers !== undefined) {
         return res.status(400).json({ success: false, error: 'Final answer arrays are not accepted' });
     }
-    if (typeof body.drillToken !== 'string' || body.drillToken.length === 0) {
+    const hasDrillToken = typeof body.drillToken === 'string' && body.drillToken.length > 0;
+    if (!hasDrillToken && reviewSource !== 'training_arena') {
         return res.status(400).json({
             success: false,
             reason: 'verified_drill_required',
             error: 'Durable review progress requires a verified drill session.',
         });
     }
-    if (typeof body.drillToken === 'string' && body.drillToken.length > 0) {
+    if (hasDrillToken) {
         let batch;
         try { batch = openDrillBatch(body.drillToken, userId, leakId); }
         catch (_) { return res.status(400).json({ success: false, error: 'Invalid or expired drill session' }); }
-        const reviewId = readReviewId(body?.outcome?.reviewId);
+        const reviewId = readReviewId(rawOutcomeInput?.reviewId);
         if (!reviewId) return res.status(400).json({ success: false, error: 'outcome.reviewId is invalid' });
         const { data: attemptData, error: attemptError } = await supabase.rpc(
             'record_verified_leak_drill_attempt',
@@ -608,7 +651,7 @@ async function handlePost(req, res, userId) {
         };
     }
 
-    const { ok, outcome, reason: outcomeReason } = readOutcome(body.outcome, verifiedDrill ? {
+    const { ok, outcome, reason: outcomeReason } = readOutcome(rawOutcomeInput, verifiedDrill ? {
         correct: verifiedDrill.correct,
         total: verifiedDrill.total,
         serverVerified: true,
@@ -616,7 +659,7 @@ async function handlePost(req, res, userId) {
         attemptNumber: verifiedDrill.attemptNumber,
         remediationMastered: verifiedDrill.remediationMastered,
         firstAttempt: verifiedDrill.firstAttempt,
-    } : null);
+    } : null, { source: reviewSource, gameId, sessionId });
     if (!ok) {
         return res.status(400).json({
             success: false,
@@ -662,6 +705,7 @@ async function handlePost(req, res, userId) {
             success: true,
             persisted: false,
             reason: 'prior_read_failed',
+            ...receiptMeta,
             state: null,
         });
     }
@@ -679,6 +723,7 @@ async function handlePost(req, res, userId) {
             success: true,
             persisted: true,
             idempotent: true,
+            ...receiptMeta,
             state: replayState,
             record: replayState,
         });
@@ -739,13 +784,14 @@ async function handlePost(req, res, userId) {
             success: true,
             persisted: false,
             reason: 'review_id_required',
+            ...receiptMeta,
             state: responseState,
         });
     }
 
     if (!tableAvailable) {
         console.warn(`[leaks/review] ${TABLE} not deployed · returning computed state unpersisted`);
-        return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
+        return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, ...receiptMeta, state: responseState });
     }
 
     // 3. Ownership. Unknown or foreign leaks are computed but never written.
@@ -763,6 +809,7 @@ async function handlePost(req, res, userId) {
             persisted: false,
             ephemeral: true,
             reason: checked ? 'leak_not_persisted' : 'ownership_unverified',
+            ...receiptMeta,
             state: responseState,
         });
     }
@@ -802,15 +849,15 @@ async function handlePost(req, res, userId) {
         if (error) {
             if (isMissingSchema(error)) {
                 console.warn('[leaks/review] atomic review RPC not deployed · returning computed state unpersisted');
-                return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
+                return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, ...receiptMeta, state: responseState });
             }
             console.warn('[leaks/review] persist failed:', error.message);
             // The drill is already over; a write failure must not undo it.
-            return res.status(200).json({ success: true, persisted: false, reason: 'write_failed', state: responseState });
+            return res.status(200).json({ success: true, persisted: false, reason: 'write_failed', ...receiptMeta, state: responseState });
         }
 
         if (data?.success === false) {
-            return res.status(200).json({ success: true, persisted: false, reason: data.error || 'write_failed', state: responseState });
+            return res.status(200).json({ success: true, persisted: false, reason: data.error || 'write_failed', ...receiptMeta, state: responseState });
         }
 
         if (data?.conflict) {
@@ -836,6 +883,7 @@ async function handlePost(req, res, userId) {
                     success: true,
                     persisted: false,
                     reason: error && isMissingSchema(error) ? 'storage_unavailable' : 'write_conflict',
+                    ...receiptMeta,
                     state: { ...retryState, leakId, lastOutcome: retryOutcome },
                 });
             }
@@ -845,12 +893,13 @@ async function handlePost(req, res, userId) {
         return res.status(200).json({
             success: true,
             persisted: true,
+            ...receiptMeta,
             idempotent: data?.idempotent === true || undefined,
             state: record || responseState,
             record: record || responseState,
         });
     } catch (err) {
         console.warn('[leaks/review] persist threw:', err?.message || err);
-        return res.status(200).json({ success: true, persisted: false, reason: 'write_failed', state: responseState });
+        return res.status(200).json({ success: true, persisted: false, reason: 'write_failed', ...receiptMeta, state: responseState });
     }
 }

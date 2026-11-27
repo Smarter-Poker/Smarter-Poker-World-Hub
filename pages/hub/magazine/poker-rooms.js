@@ -238,6 +238,8 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                 requestedCopies: payload.requestedCopies,
                 city: payload.city,
                 state: payload.state,
+                matchedVenueSlug: body?.matchedVenueSlug || null,
+                venueId: body?.subscription?.venue_id || null,
             });
         } catch {
             setErrorMessage('Network Error Submitting Your Request. Please Check Your Connection And Try Again.');
@@ -382,9 +384,53 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                             >
                                 Stock Smarter.Poker Magazine In Your Poker Room
                             </h1>
-                            <p style={{ margin: 0, fontSize: '15.5px', lineHeight: 1.62, color: '#9fb3c8' }}>
+                            <p style={{ margin: '0 0 18px 0', fontSize: '15.5px', lineHeight: 1.62, color: '#9fb3c8' }}>
                                 Give Players Waiting For A Seat A Full 44-Page Commercial Glossy Poker Magazine Packed With GTO Strategy Columns, Global POY Standings, Coast-To-Coast Series Calendars, And Scannable Table QR Codes.
                             </p>
+                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                <Link
+                                    href={
+                                        form.roomName.trim()
+                                            ? `/hub/magazine/table-tent?room=${encodeURIComponent(form.roomName.trim())}&city=${encodeURIComponent(form.city.trim())}&state=${encodeURIComponent(form.state.trim().toUpperCase())}`
+                                            : '/hub/magazine/table-tent'
+                                    }
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        minHeight: '44px',
+                                        background: '#05070a',
+                                        border: '1px solid #4fc1b3',
+                                        color: '#4fc1b3',
+                                        borderRadius: '10px',
+                                        padding: '10px 18px',
+                                        fontSize: '13.5px',
+                                        fontWeight: 900,
+                                        textDecoration: 'none',
+                                    }}
+                                >
+                                    Preview Printable QR Table-Tent Kit -&gt;
+                                </Link>
+                                <Link
+                                    href="/hub/magazine"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        minHeight: '44px',
+                                        background: '#102131',
+                                        border: '1px solid #1b2c3d',
+                                        color: '#ffffff',
+                                        borderRadius: '10px',
+                                        padding: '10px 16px',
+                                        fontSize: '13.5px',
+                                        fontWeight: 800,
+                                        textDecoration: 'none',
+                                    }}
+                                >
+                                    Read Latest 44-Page Issue
+                                </Link>
+                            </div>
                         </div>
 
                         <div
@@ -427,6 +473,8 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                 badge: 'Interactive Table Play',
                                 title: 'Complimentary QR Table-Tent Kit',
                                 body: 'Every Strategy Column And Quiz Spot Includes Pure-Vector QR Codes Players Scan Between Hands With Their Phone Camera.',
+                                ctaHref: '/hub/magazine/table-tent',
+                                ctaLabel: 'Open 4x6 & 5x7 Table-Tent Kit ->',
                             },
                             {
                                 badge: 'National Discovery',
@@ -462,6 +510,21 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                 <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.55, color: '#9fb3c8' }}>
                                     {card.body}
                                 </p>
+                                {card.ctaHref && (
+                                    <div style={{ marginTop: '12px' }}>
+                                        <Link
+                                            href={card.ctaHref}
+                                            style={{
+                                                color: '#4fc1b3',
+                                                fontSize: '13px',
+                                                fontWeight: 800,
+                                                textDecoration: 'none',
+                                            }}
+                                        >
+                                            {card.ctaLabel}
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </section>
@@ -496,15 +559,48 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                 <h2 style={{ margin: '0 0 10px 0', fontSize: '24px', fontWeight: 900, color: '#ffffff' }}>
                                     {`Thank You - ${submittedRecord.roomName} Is Queued For Verification`}
                                 </h2>
-                                <p style={{ margin: '0 auto 20px auto', maxWidth: '620px', fontSize: '15px', lineHeight: 1.6, color: '#9fb3c8' }}>
+                                <p style={{ margin: '0 auto 16px auto', maxWidth: '620px', fontSize: '15px', lineHeight: 1.6, color: '#9fb3c8' }}>
                                     {`Our Distribution Desk Received Your Request For ${submittedRecord.requestedCopies} Monthly Print Copies In ${submittedRecord.city}, ${submittedRecord.state}. Once Verified, Your Room Will Ship On The First Of Each Month.`}
                                 </p>
+                                {submittedRecord.matchedVenueSlug && (
+                                    <p style={{ margin: '0 auto 18px auto', fontSize: '13.5px', fontWeight: 700, color: '#4fc1b3' }}>
+                                        <Link
+                                            href={`/hub/venues/${encodeURIComponent(submittedRecord.matchedVenueSlug)}`}
+                                            style={{ color: '#4fc1b3', textDecoration: 'underline' }}
+                                        >
+                                            Linked To Your Verified Poker Near Me Venue Profile -&gt;
+                                        </Link>
+                                    </p>
+                                )}
                                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                    <Link
+                                        href={`/hub/magazine/table-tent?room=${encodeURIComponent(submittedRecord.roomName)}&city=${encodeURIComponent(submittedRecord.city)}&state=${encodeURIComponent(submittedRecord.state)}${submittedRecord.matchedVenueSlug ? `&slug=${encodeURIComponent(submittedRecord.matchedVenueSlug)}` : ''}`}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            minHeight: '44px',
+                                            background: '#4fc1b3',
+                                            color: '#05070a',
+                                            borderRadius: '10px',
+                                            padding: '11px 22px',
+                                            fontSize: '14px',
+                                            fontWeight: 900,
+                                            textDecoration: 'none',
+                                        }}
+                                    >
+                                        Print Your Complimentary QR Table-Tent Kit -&gt;
+                                    </Link>
                                     <Link
                                         href="/hub/magazine"
                                         style={{
-                                            background: '#4fc1b3',
-                                            color: '#05070a',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            minHeight: '44px',
+                                            background: '#05070a',
+                                            border: '1px solid #60a5fa',
+                                            color: '#60a5fa',
                                             borderRadius: '10px',
                                             padding: '11px 20px',
                                             fontSize: '14px',
@@ -518,9 +614,10 @@ export default function SmarterPokerMagazinePokerRoomsPage({ latestIssue = null 
                                         type="button"
                                         onClick={() => setSubmittedRecord(null)}
                                         style={{
+                                            minHeight: '44px',
                                             background: '#102131',
                                             border: '1px solid #1b2c3d',
-                                            color: '#60a5fa',
+                                            color: '#9fb3c8',
                                             borderRadius: '10px',
                                             padding: '11px 18px',
                                             fontSize: '14px',

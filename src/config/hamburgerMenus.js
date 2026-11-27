@@ -904,8 +904,8 @@ export const MENU_CONFIGS = {
                 { label: 'Bankroll', href: '/hub/bankroll-manager', icon: MenuIcons.wallet },
             ]),
 
-            createMenuItem.section('Ask Jarvis'),
-            createMenuItem.action('Open Jarvis Chat', handlers?.onOpenJarvis, MenuIcons.chat),
+            createMenuItem.section('Coaching & Tools'),
+            createMenuItem.navigation('Coaching Plan', '/hub/personal-assistant/leaks?tab=coaching', MenuIcons.chat),
             createMenuItem.navigation('Odds Calculator', '/hub/poker-tools', MenuIcons.calculator),
             createMenuItem.navigation('Video Library', '/hub/video-library', MenuIcons.video),
 

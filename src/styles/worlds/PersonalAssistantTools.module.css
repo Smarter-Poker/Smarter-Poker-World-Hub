@@ -39,7 +39,6 @@
   overflow: hidden;
 }
 
-.sandboxHero .machineHeroInner,
 .leakHero .machineHeroInner {
   background: transparent;
 }
@@ -119,28 +118,6 @@
   border-radius: 8px !important;
   background: linear-gradient(180deg, #080d14 0%, #05080c 100%) !important;
   box-shadow: none !important;
-}
-
-.sectionRail {
-  display: flex;
-  min-height: 36px;
-  margin: 8px 0;
-  padding: 0 3px 5px;
-  border: 0;
-  border-bottom: 1px solid rgba(140, 161, 180, 0.16);
-  align-items: center;
-  justify-content: space-between;
-  background: transparent;
-}
-
-.sectionRail strong {
-  color: #f1f5fc;
-  font: 800 18px 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-}
-
-.sectionRail span {
-  color: #9eb4c8;
-  font: 700 12px / 1.2 Arial, sans-serif;
 }
 
 .scanDeck {
@@ -255,6 +232,19 @@
   gap: 6px;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.filterChip:hover,
+.filterMoreBtn:hover {
+  border-color: rgba(86, 216, 255, 0.55);
+  color: #ffffff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .filterChip,
+  .filterMoreBtn {
+    transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease, transform 0.12s ease;
+  }
 }
 
 .auditReceipt {

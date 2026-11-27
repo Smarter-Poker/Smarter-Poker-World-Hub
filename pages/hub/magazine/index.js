@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import NewsletterCaptureBar from '../../../src/components/news/NewsletterCaptureBar.js';
 import {
     FALLBACK_MAGAZINE_IMAGE,
@@ -145,10 +145,42 @@ export default function SmarterPokerMagazineNewsstandPage({
 }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDepartment, setActiveDepartment] = useState('all');
+    const [savedProgressMap, setSavedProgressMap] = useState({});
 
     const isPreviewOnly = issues.length === 0 && Boolean(previewIssue);
     const currentHero = issues[0] || previewIssue || null;
     const allDisplayIssues = issues.length > 0 ? issues : previewIssue ? [previewIssue] : [];
+    const leadIssue = currentHero;
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const nextMap = {};
+            const candidateIssues = leadIssue ? [leadIssue, ...allDisplayIssues] : allDisplayIssues;
+            for (const iss of candidateIssues) {
+                if (!iss?.slug) continue;
+                const raw = window.localStorage.getItem(`sp_mag_progress_v1:${iss.slug}`);
+                const maxPage = Number(iss.pageCount || 44);
+                let parsedPage = parseInt(String(raw || ''), 10);
+                if (!Number.isFinite(parsedPage) && raw && raw.startsWith('{')) {
+                    try {
+                        const obj = JSON.parse(raw);
+                        parsedPage = parseInt(String(obj?.page || ''), 10);
+                    } catch {
+                        parsedPage = NaN;
+                    }
+                }
+                if (Number.isFinite(parsedPage) && parsedPage > 1 && parsedPage <= maxPage) {
+                    nextMap[iss.slug] = parsedPage;
+                }
+            }
+            setSavedProgressMap(nextMap);
+        } catch {
+            // Ignore private-browsing storage restrictions
+        }
+    }, [leadIssue, allDisplayIssues]);
+
+    const leadSavedPage = leadIssue?.slug ? Number(savedProgressMap[leadIssue.slug] || 0) : 0;
 
     const filteredIssues = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -499,15 +531,38 @@ export default function SmarterPokerMagazineNewsstandPage({
                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                 {currentHero ? (
                                     <>
+                                        {leadSavedPage > 1 && (
+                                            <Link
+                                                href={`/hub/magazine/${currentHero.slug}?page=${leadSavedPage}${isPreviewOnly ? '&preview=1' : ''}`}
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    minHeight: '44px',
+                                                    background: '#102131',
+                                                    border: '2px solid #4fc1b3',
+                                                    color: '#4fc1b3',
+                                                    textDecoration: 'none',
+                                                    fontWeight: 900,
+                                                    fontSize: '14px',
+                                                    padding: '10px 18px',
+                                                    borderRadius: '10px',
+                                                }}
+                                            >
+                                                {`Continue Reading Issue #${currentHero.issueNumber} (Page ${leadSavedPage})`} &rarr;
+                                            </Link>
+                                        )}
                                         <Link
                                             href={`/hub/magazine/${currentHero.slug}${previewSuffix}`}
                                             style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                minHeight: '44px',
                                                 background: '#4fc1b3',
                                                 color: '#05070a',
                                                 textDecoration: 'none',
                                                 fontWeight: 900,
                                                 fontSize: '14px',
-                                                padding: '12px 20px',
+                                                padding: '10px 20px',
                                                 borderRadius: '10px',
                                             }}
                                         >
@@ -516,28 +571,52 @@ export default function SmarterPokerMagazineNewsstandPage({
                                         <Link
                                             href={`/hub/magazine/${currentHero.slug}${readerSuffix}`}
                                             style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                minHeight: '44px',
                                                 background: '#05070a',
                                                 border: '1px solid #60a5fa',
                                                 color: '#60a5fa',
                                                 textDecoration: 'none',
                                                 fontWeight: 800,
                                                 fontSize: '14px',
-                                                padding: '12px 18px',
+                                                padding: '10px 18px',
                                                 borderRadius: '10px',
                                             }}
                                         >
                                             Clean Mobile Reader
                                         </Link>
+                                        <a
+                                            href={`/api/news/magazine-pdf?issue=${encodeURIComponent(currentHero.slug)}&download=1${isPreviewOnly ? '&preview=1' : ''}`}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                minHeight: '44px',
+                                                background: '#05070a',
+                                                border: '1px solid #4fc1b3',
+                                                color: '#ffffff',
+                                                textDecoration: 'none',
+                                                fontWeight: 800,
+                                                fontSize: '14px',
+                                                padding: '10px 18px',
+                                                borderRadius: '10px',
+                                            }}
+                                        >
+                                            Download 44-Page PDF
+                                        </a>
                                         <Link
                                             href={`/hub/magazine/print/${currentHero.slug}${previewSuffix}`}
                                             style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                minHeight: '44px',
                                                 background: '#05070a',
                                                 border: '1px solid #1b2c3d',
                                                 color: '#ffffff',
                                                 textDecoration: 'none',
                                                 fontWeight: 800,
                                                 fontSize: '14px',
-                                                padding: '12px 18px',
+                                                padding: '10px 18px',
                                                 borderRadius: '10px',
                                             }}
                                         >
@@ -548,12 +627,15 @@ export default function SmarterPokerMagazineNewsstandPage({
                                     <Link
                                         href="/hub/wire"
                                         style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            minHeight: '44px',
                                             background: '#4fc1b3',
                                             color: '#05070a',
                                             textDecoration: 'none',
                                             fontWeight: 900,
                                             fontSize: '14px',
-                                            padding: '12px 20px',
+                                            padding: '10px 20px',
                                             borderRadius: '10px',
                                         }}
                                     >
@@ -564,17 +646,39 @@ export default function SmarterPokerMagazineNewsstandPage({
                                 <Link
                                     href="/hub/magazine/poker-rooms"
                                     style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        minHeight: '44px',
                                         background: '#102131',
                                         border: '1px solid #4fc1b3',
                                         color: '#4fc1b3',
                                         textDecoration: 'none',
                                         fontWeight: 800,
                                         fontSize: '14px',
-                                        padding: '12px 18px',
+                                        padding: '10px 18px',
                                         borderRadius: '10px',
                                     }}
                                 >
                                     Stock In Your Poker Room
+                                </Link>
+
+                                <Link
+                                    href="/hub/magazine/table-tent"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        minHeight: '44px',
+                                        background: '#05070a',
+                                        border: '1px solid #60a5fa',
+                                        color: '#60a5fa',
+                                        textDecoration: 'none',
+                                        fontWeight: 800,
+                                        fontSize: '14px',
+                                        padding: '10px 18px',
+                                        borderRadius: '10px',
+                                    }}
+                                >
+                                    Table-Tent QR Kit
                                 </Link>
                             </div>
                         </div>
@@ -835,7 +939,11 @@ export default function SmarterPokerMagazineNewsstandPage({
                                             }}
                                         >
                                             <Link
-                                                href={`/hub/magazine/${iss.slug}${iss.status !== 'published' ? '?preview=1' : ''}`}
+                                                href={
+                                                    savedProgressMap[iss.slug] > 1
+                                                        ? `/hub/magazine/${iss.slug}?page=${savedProgressMap[iss.slug]}${iss.status !== 'published' ? '&preview=1' : ''}`
+                                                        : `/hub/magazine/${iss.slug}${iss.status !== 'published' ? '?preview=1' : ''}`
+                                                }
                                                 style={{
                                                     color: '#4fc1b3',
                                                     fontSize: '13px',
@@ -843,19 +951,35 @@ export default function SmarterPokerMagazineNewsstandPage({
                                                     textDecoration: 'none',
                                                 }}
                                             >
-                                                Flip Open &rarr;
+                                                {savedProgressMap[iss.slug] > 1
+                                                    ? `Continue Page ${savedProgressMap[iss.slug]}`
+                                                    : 'Flip Open'}{' '}
+                                                &rarr;
                                             </Link>
-                                            <Link
-                                                href={`/hub/magazine/print/${iss.slug}${iss.status !== 'published' ? '?preview=1' : ''}`}
-                                                style={{
-                                                    color: '#60a5fa',
-                                                    fontSize: '12.5px',
-                                                    fontWeight: 700,
-                                                    textDecoration: 'none',
-                                                }}
-                                            >
-                                                Print Sheet
-                                            </Link>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                <a
+                                                    href={`/api/news/magazine-pdf?issue=${encodeURIComponent(iss.slug)}&download=1`}
+                                                    style={{
+                                                        color: '#9fb3c8',
+                                                        fontSize: '12.5px',
+                                                        fontWeight: 700,
+                                                        textDecoration: 'none',
+                                                    }}
+                                                >
+                                                    PDF
+                                                </a>
+                                                <Link
+                                                    href={`/hub/magazine/print/${iss.slug}${iss.status !== 'published' ? '?preview=1' : ''}`}
+                                                    style={{
+                                                        color: '#60a5fa',
+                                                        fontSize: '12.5px',
+                                                        fontWeight: 700,
+                                                        textDecoration: 'none',
+                                                    }}
+                                                >
+                                                    Print Sheet
+                                                </Link>
+                                            </div>
                                         </div>
                                     </article>
                                 ))}

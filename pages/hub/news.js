@@ -58,6 +58,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
 import LiveWireStyles from '../../src/components/news/LiveWireStyles';
+import MagazineNewsstandBanner from '../../src/components/magazine/MagazineNewsstandBanner';
 import {
     ConsoleCopy,
     ConsoleDataRow,
@@ -1618,6 +1619,10 @@ function NewsHub() {
                                 >
                                     <Clock size={14} /> Read Later
                                 </button>
+                            </div>
+
+                            <div style={{ marginBottom: '14px' }}>
+                                <MagazineNewsstandBanner variant="news" />
                             </div>
 
                             {/* Breaking News Ticker */}

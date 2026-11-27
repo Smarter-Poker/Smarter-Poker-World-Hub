@@ -351,12 +351,49 @@ test('Poker Near Me deep Series route keeps its approved header trigger after do
   });
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await expect(trigger).toBeVisible();
+
+  // The pin is read at this instant, from the DOM and from the protocol box.
+  // Both used to miss in WebKit about half the time (y = 1974 to 1979): the
+  // page collapsed its venue and daily skeletons above the reader as soon as
+  // the first data settled, the document shrank by about 2000px under a
+  // reader at the bottom, the scroll position clamped, and WebKit (no scroll
+  // anchoring) laid the fixed header out against the stale layout viewport
+  // until the next frame. The sections now keep their skeleton height through
+  // every hand-off (law: poker-near-me-sections-never-collapse-above-the-reader),
+  // so an immediate read is evidence again.
+  const pin = await trigger.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, scrollY: window.scrollY };
+  });
+  expect(pin.scrollY).toBeGreaterThan(0);
+  expect(pin.x).toBeGreaterThanOrEqual(0);
+  expect(pin.y).toBeGreaterThanOrEqual(0);
+  expect(pin.x + pin.width).toBeLessThanOrEqual(PHONE.width + 1);
+  expect(pin.y + pin.height).toBeLessThanOrEqual(PHONE.height + 1);
   const box = await trigger.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(PHONE.width + 1);
   expect(box!.y + box!.height).toBeLessThanOrEqual(PHONE.height + 1);
+
+  // A tap at the trigger centre must reach the trigger, not something above it.
+  await expect.poll(() => trigger.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    return Boolean(hit) && (hit === element || element.contains(hit));
+  }), { message: 'a tap at the trigger centre reaches the trigger', timeout: 5_000 }).toBe(true);
+  await expect(trigger).toBeInViewport({ ratio: 1 });
+
+  // And it stays there once every late panel has settled.
+  await expect.poll(async () => {
+    const box = await trigger.boundingBox();
+    return Boolean(box)
+      && box!.x >= 0
+      && box!.y >= 0
+      && box!.x + box!.width <= PHONE.width + 1
+      && box!.y + box!.height <= PHONE.height + 1;
+  }, { timeout: 5_000 }).toBe(true);
 });
 
 test('Social Media remains on its preserved Facebook composition', async ({ page }) => {

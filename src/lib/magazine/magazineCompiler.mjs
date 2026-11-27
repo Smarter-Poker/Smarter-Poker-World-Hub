@@ -15,6 +15,9 @@
  *   - Monotonic `issue_number` assignment in `public.magazine_issues` with `23505` conflict retry.
  */
 import { buildPromoSignupUrl } from '../promoCampaigns/promoSignupToken.mjs';
+import { isCompetitorSponsoredPost, normalizeEditorialTitle } from '../newsletter/editorialCleaners.mjs';
+import { appendMagazineQrUtm } from '../newsletter/utmAttribution.mjs';
+import { isEchoingOrEmptyBlurb } from '../newsletter/weeklyWireEngine.mjs';
 import {
     PLATFORM_UPDATES_CATALOG,
     SPOT_OF_THE_WEEK_CATALOG,
@@ -40,6 +43,8 @@ import {
     stripMagazineDashes,
 } from './magazineSchema.mjs';
 import { IMAGE_VAULT_FALLBACK_URL } from './imageVault.mjs';
+import { finalizeMagazineIssueManifest } from './magazineArtDirection.mjs';
+import { buildCleanNonEchoingDeck, stripScraperBylinePrefix } from './vaultHarvester.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NARRATIVE_COVER_SECTIONS = new Set([
@@ -150,12 +155,14 @@ export function ensureFirstPartyMagazineImageUrl(rawUrl, { mode = 'hero' } = {})
     }
 }
 
-export function splitParagraphs(bodyText, summaryText, fallbackParagraphs = [], minCount = 8) {
+export function splitParagraphs(bodyText, summaryText, fallbackParagraphs = [], minCount = 8, headlineText = '') {
     const out = [];
     const seen = new Set();
+    const cleanHead = stripMagazineDashes(headlineText || '');
     const pushUnique = (candidate) => {
-        const clean = stripMagazineDashes(candidate || '');
+        const clean = stripScraperBylinePrefix(candidate || '');
         if (!clean || clean.length < 25) return;
+        if (cleanHead && isEchoingOrEmptyBlurb(cleanHead, clean)) return;
         const norm = normalizeDedupeKey(clean);
         if (!norm || seen.has(norm)) return;
         seen.add(norm);
@@ -167,10 +174,11 @@ export function splitParagraphs(bodyText, summaryText, fallbackParagraphs = [], 
         pushUnique(part);
     }
 
-    const cleanSummary = stripMagazineDashes(summaryText || '');
+    const cleanSummary = stripScraperBylinePrefix(summaryText || '');
     if (
         cleanSummary &&
         cleanSummary.length >= 25 &&
+        (!cleanHead || !isEchoingOrEmptyBlurb(cleanHead, cleanSummary)) &&
         !out.some((p) => p.toLowerCase().includes(cleanSummary.toLowerCase().slice(0, 48)))
     ) {
         const normSum = normalizeDedupeKey(cleanSummary);
@@ -314,46 +322,44 @@ function buildFallbackNewsBriefs(periodLabel) {
     ];
 }
 
-function buildFallbackPoyStandings(year) {
-    const names = [
-        ['Adrian Mateos', 4420],
-        ['Alex Foxen', 4285],
-        ['Stephen Chidwick', 4190],
-        ['Jesse Lonis', 4115],
-        ['Seth Davies', 3980],
-        ['Isaac Haxton', 3910],
-        ['Kristen Foxen', 3845],
-        ['Bin Weng', 3790],
-        ['Jeremy Ausmus', 3725],
-        ['Jason Koon', 3680],
-        ['Artur Martirosian', 3610],
-        ['Michael Watson', 3565],
-        ['Dan Smith', 3510],
-        ['Brian Rast', 3460],
-        ['Mikita Badziakouski', 3415],
-        ['Chris Brewer', 3370],
-        ['Nick Petrangelo', 3325],
-        ['Ren Lin', 3280],
-        ['David Peters', 3240],
-        ['Erik Seidel', 3195],
-        ['Shannon Shorr', 3150],
-        ['Punnat Punsri', 3110],
-        ['Daniel Dvoress', 3075],
-        ['Jonathan Jaffe', 3035],
-        ['Sam Soverel', 2995],
-    ];
-    return names.map(([playerName, points], i) => ({
-        rank: i + 1,
-        playerName,
-        points,
-        year,
-        tour: `${year} Global POY Contender`,
-        source: 'standings_snapshot',
-    }));
+export function isEditoriallyLockedIssue(issue) {
+    const meta = issue?.manifest_json?.meta;
+    return Boolean(meta && meta.editorialLock === true);
+}
+
+const TITLE_WIN_HEADLINE_RE =
+    /\b(wins?|won|seizes|hauls|captures|claims|takes down|denied by|ends\b.*\bdrought|crowned|champion)\b/i;
+
+/**
+ * Real fallback for the standings pages: one row per title-winning headline in
+ * this month's vault, with its outlet. No invented names, points or prizes.
+ */
+export function buildChampionsBoardFromVault(vaultItems = []) {
+    const rows = [];
+    const seen = new Set();
+    for (const item of Array.isArray(vaultItems) ? vaultItems : []) {
+        if (item?.is_excluded) continue;
+        if (item?.source_type !== 'poker_news') continue;
+        const headline = stripMagazineDashes(item?.headline || '');
+        if (!headline || !TITLE_WIN_HEADLINE_RE.test(headline)) continue;
+        const key = normalizeDedupeKey(headline);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const meta = readItemMeta(item);
+        rows.push({
+            rank: rows.length + 1,
+            playerName: headline,
+            points: stripMagazineDashes(meta.byline || item?.author_byline || item?.source_name || 'Tour Desk'),
+            detail: '',
+            source: 'vault_headline',
+        });
+        if (rows.length >= 25) break;
+    }
+    return rows;
 }
 
 function buildKingsClubRow({ rank, name, gameType, buyInChips, prizePoolChips, players }) {
-    const safePrize = Number.isFinite(Number(prizePoolChips)) && Number(prizePoolChips) > 0 ? Math.round(Number(prizePoolChips)) : 50000;
+    const safePrize = Number.isFinite(Number(prizePoolChips)) && Number(prizePoolChips) > 0 ? Math.round(Number(prizePoolChips)) : 0;
     const safeBuyIn = Number.isFinite(Number(buyInChips)) && Number(buyInChips) > 0 ? Math.round(Number(buyInChips)) : 0;
     const safePlayers = Math.max(0, Math.round(Number(players || 0)));
     const cleanName = stripDollarForChips(name || 'Kings Club Championship').split(' - ')[0];
@@ -376,59 +382,6 @@ function buildKingsClubRow({ rank, name, gameType, buyInChips, prizePoolChips, p
         eventDetail,
         eventName: eventDetail,
     };
-}
-
-function buildFallbackKingsClubResults() {
-    return [
-        buildKingsClubRow({
-            rank: 1,
-            name: 'Kings Club Sunday Major Championship',
-            gameType: 'NLH',
-            buyInChips: 500,
-            prizePoolChips: 50000,
-            players: 118,
-        }),
-        buildKingsClubRow({
-            rank: 2,
-            name: 'Kings Club High-Action PLO4 Deepstack',
-            gameType: 'PLO4',
-            buyInChips: 300,
-            prizePoolChips: 25000,
-            players: 89,
-        }),
-        buildKingsClubRow({
-            rank: 3,
-            name: 'Midweek Progressive Bounty Showdown',
-            gameType: 'NLH PKO',
-            buyInChips: 200,
-            prizePoolChips: 18000,
-            players: 102,
-        }),
-        buildKingsClubRow({
-            rank: 4,
-            name: 'Friday Night 6-Max Turbo Championship',
-            gameType: 'NLH 6-Max',
-            buyInChips: 150,
-            prizePoolChips: 12000,
-            players: 84,
-        }),
-        buildKingsClubRow({
-            rank: 5,
-            name: 'PLO5 Five-Card Pot-Limit Classic',
-            gameType: 'PLO5',
-            buyInChips: 250,
-            prizePoolChips: 15000,
-            players: 64,
-        }),
-        buildKingsClubRow({
-            rank: 6,
-            name: 'Kings Club New Member Welcome Freeroll',
-            gameType: 'NLH',
-            buyInChips: 0,
-            prizePoolChips: 5000,
-            players: 210,
-        }),
-    ];
 }
 
 function buildSpotModel(catalogSpot, vaultSpotItem) {
@@ -520,13 +473,39 @@ export function buildMagazineManifestFromVault({
     const isItemPinned = (item) =>
         Boolean(item?.is_pinned) || Boolean(pinnedTargetId && String(item?.id) === pinnedTargetId);
 
-    const activeItems = (Array.isArray(vaultItems) ? vaultItems : [])
-        .filter((item) => item && item.is_excluded !== true)
-        .map((item) => ({
-            ...item,
+    const isNarrativeCompetitorLeak = (item) => {
+        if (!item || !NARRATIVE_COVER_SECTIONS.has(item.section)) return false;
+        const meta = readItemMeta(item);
+        return isCompetitorSponsoredPost({
+            title: item.headline || '',
             summary: item.deck || item.summary || item.subheadline || '',
+            excerpt: String(item.body_text || '').slice(0, 400),
             source_url: item.canonical_url || item.source_url || '',
-        }))
+            source_name: meta.byline || item.author_byline || '',
+            byline: meta.byline || item.author_byline || '',
+        });
+    };
+
+    const isPodcastOrVideoStub = (item) => {
+        const h = String(item?.headline || '');
+        return /\bpodcast\b|\bepisode\s*#?\d+\b/i.test(h) || h.includes('|');
+    };
+
+    const activeItems = (Array.isArray(vaultItems) ? vaultItems : [])
+        .filter((item) => item && item.is_excluded !== true && !isNarrativeCompetitorLeak(item))
+        .map((item) => {
+            const rawHeadline = item.headline || '';
+            const normHeadline =
+                item.source_type === 'poker_news' || NARRATIVE_COVER_SECTIONS.has(item.section)
+                    ? stripMagazineDashes(normalizeEditorialTitle(rawHeadline))
+                    : stripMagazineDashes(rawHeadline);
+            return {
+                ...item,
+                headline: normHeadline || stripMagazineDashes(rawHeadline),
+                summary: stripScraperBylinePrefix(item.deck || item.summary || item.subheadline || ''),
+                source_url: item.canonical_url || item.source_url || '',
+            };
+        })
         .sort((a, b) => {
             const aPinned = isItemPinned(a);
             const bPinned = isItemPinned(b);
@@ -541,14 +520,17 @@ export function buildMagazineManifestFromVault({
     const pinnedNonNarrative = activeItems.filter(
         (i) => isItemPinned(i) && i.section && !NARRATIVE_COVER_SECTIONS.has(i.section)
     );
-    const narrativeCandidates = [
+    const primaryNarrative = [
         ...pinnedNarrative,
+        ...bySection('cover_candidate').filter((i) => !isPodcastOrVideoStub(i)),
+        ...bySection('feature_story').filter((i) => !isPodcastOrVideoStub(i)),
+        ...bySection('news_brief').filter((i) => !isPodcastOrVideoStub(i)),
         ...bySection('cover_candidate'),
         ...bySection('feature_story'),
         ...bySection('news_brief'),
     ];
     const coverPool = dedupeByKey(
-        narrativeCandidates.length > 0 ? narrativeCandidates : [...pinnedNonNarrative],
+        primaryNarrative.length > 0 ? primaryNarrative : [...pinnedNonNarrative],
         (item) => normalizeDedupeKey(item.headline) || String(item.id || `${item.source_type}:${item.source_id}`)
     );
 
@@ -569,30 +551,44 @@ export function buildMagazineManifestFromVault({
         ),
         (item) => normalizeDedupeKey(item.headline)
     ).slice(0, 4);
+    const finalTableHeadlines = new Set(finalTableItems.map((it) => normalizeDedupeKey(it.headline)));
 
     const rawPhotoCandidates = dedupeByKey(
-        [...bySection('photo_essay'), ...bySection('cover_candidate'), ...bySection('feature_story')],
+        [
+            ...bySection('photo_essay').filter((i) => !isPodcastOrVideoStub(i)),
+            ...bySection('cover_candidate').filter((i) => !isPodcastOrVideoStub(i)),
+            ...bySection('feature_story').filter((i) => !isPodcastOrVideoStub(i)),
+            ...bySection('photo_essay'),
+            ...bySection('cover_candidate'),
+            ...bySection('feature_story'),
+        ],
         (item) => normalizeDedupeKey(item.headline) || String(item.id || item.source_id)
     );
     const distinctPhotoCandidates = rawPhotoCandidates.filter(
         (item) =>
             normalizeDedupeKey(item.headline) !== normalizeDedupeKey(leadCoverItem?.headline) &&
-            normalizeDedupeKey(item.headline) !== normalizeDedupeKey(secondaryFeatureItem?.headline)
+            normalizeDedupeKey(item.headline) !== normalizeDedupeKey(secondaryFeatureItem?.headline) &&
+            !finalTableHeadlines.has(normalizeDedupeKey(item.headline))
     );
     const photoEssayItems = dedupeByKey(
         [...distinctPhotoCandidates, ...rawPhotoCandidates],
         (item) => normalizeDedupeKey(item.headline)
     ).slice(0, 2);
+    const photoEssayHeadlines = new Set(photoEssayItems.map((it) => normalizeDedupeKey(it.headline)));
 
-    // News briefs (12 unique stories across pp. 6-9)
-    const vaultNewsBriefs = [...bySection('news_brief'), ...bySection('feature_story')]
-        .filter(
-            (item) =>
+    // News briefs (12 unique stories across pp. 6-9, disjoint from Cover, Secondary, Photo Spread & Final Table)
+    const vaultNewsBriefs = [...bySection('news_brief'), ...bySection('feature_story'), ...bySection('cover_candidate')]
+        .filter((item) => {
+            const normH = normalizeDedupeKey(item?.headline);
+            return (
                 item !== leadCoverItem &&
                 item !== secondaryFeatureItem &&
-                normalizeDedupeKey(item?.headline) !== normalizeDedupeKey(leadCoverItem?.headline) &&
-                normalizeDedupeKey(item?.headline) !== normalizeDedupeKey(secondaryFeatureItem?.headline)
-        )
+                normH !== normalizeDedupeKey(leadCoverItem?.headline) &&
+                normH !== normalizeDedupeKey(secondaryFeatureItem?.headline) &&
+                !finalTableHeadlines.has(normH) &&
+                !photoEssayHeadlines.has(normH)
+            );
+        })
         .map((item) => {
             const meta = readItemMeta(item);
             const webImg = ensureFirstPartyMagazineImageUrl(item.vaulted_image_url || item.original_image_url);
@@ -600,9 +596,21 @@ export function buildMagazineManifestFromVault({
                 item.vaulted_master_url || item.vaulted_image_url || item.original_image_url
             );
             const byline = stripMagazineDashes(meta.byline || item.author_byline || 'Smarter.Poker News Desk');
+            const headline = stripMagazineDashes(item.headline || 'World Poker Report');
+            const itemParas = String(item.body_text || '')
+                .split(/\n{2,}/)
+                .map((p) => stripScraperBylinePrefix(p))
+                .filter(Boolean);
+            const summary = buildCleanNonEchoingDeck({
+                title: headline,
+                rawSummary: item.summary || '',
+                paragraphs: itemParas,
+                sourceName: byline,
+                category: meta.category || 'Poker News',
+            });
             return {
-                headline: stripMagazineDashes(item.headline || 'World Poker Report'),
-                summary: stripMagazineDashes(item.summary || ''),
+                headline,
+                summary,
                 byline,
                 sourceName: byline,
                 category: stripMagazineDashes(meta.category || 'Poker News'),
@@ -611,12 +619,18 @@ export function buildMagazineManifestFromVault({
                 url: resolvePokerNewsArticleUrl(item, siteOrigin),
             };
         });
+    // Briefs with real copy lead; a brief with no deck only fills a slot when
+    // nothing better exists (MAG LAW 26).
+    const vaultBriefsByCopy = [
+        ...vaultNewsBriefs.filter((b) => String(b.summary || '').trim()),
+        ...vaultNewsBriefs.filter((b) => !String(b.summary || '').trim()),
+    ];
     const combinedBriefs = dedupeByKey(
-        [...vaultNewsBriefs, ...buildFallbackNewsBriefs(periodLabel)],
+        [...vaultBriefsByCopy, ...buildFallbackNewsBriefs(periodLabel)],
         (item) => normalizeDedupeKey(item.headline)
     ).slice(0, 12);
 
-    // Cover imagery & headlines (clamped <= 240 chars)
+    // Cover imagery & headlines (clamped <= 240 chars, guaranteed non-echoing subheadline)
     const coverWebImage = ensureFirstPartyMagazineImageUrl(
         overrides?.coverImageUrl || leadCoverItem?.vaulted_image_url || IMAGE_VAULT_FALLBACK_URL
     );
@@ -632,27 +646,40 @@ export function buildMagazineManifestFromVault({
             `${periodLabel} Championship Report: Inside High-Stakes Strategy & The Global POY Race`
     );
     const coverHeadline = (rawCoverHeadline || 'Inside The Month In Poker').slice(0, 240);
-    const coverSubheadline = stripMagazineDashes(
-        overrides?.coverSubheadline ||
-            leadCoverItem?.summary ||
-            'Exclusive Solver Breakdowns, Top 25 Player Of The Year Standings, Kings Club 25450 Champions & 60-Day Live Tour Radar'
-    );
+    const leadCoverParas = String(leadCoverItem?.body_text || '')
+        .split(/\n{2,}/)
+        .map((p) => stripScraperBylinePrefix(p))
+        .filter((p) => p.length >= 32 && !isEchoingOrEmptyBlurb(coverHeadline, p));
+    const explicitCoverSub = stripMagazineDashes(overrides?.coverSubheadline || '');
+    const coverSubheadline =
+        explicitCoverSub && !isEchoingOrEmptyBlurb(coverHeadline, explicitCoverSub)
+            ? explicitCoverSub
+            : leadCoverItem
+              ? buildCleanNonEchoingDeck({
+                    title: coverHeadline,
+                    rawSummary: leadCoverItem.summary || '',
+                    paragraphs: leadCoverParas,
+                    sourceName: readItemMeta(leadCoverItem).byline || leadCoverItem.author_byline || 'Smarter.Poker Feature Desk',
+                    category: readItemMeta(leadCoverItem).category || 'Championship Feature',
+                })
+              : 'Exclusive Solver Breakdowns, Top 25 Player Of The Year Standings, Kings Club 25450 Champions & 60-Day Live Tour Radar';
 
     // Cover Story 4-page paragraphs (pp. 12-15: 8 unique paragraphs, 2 per page)
     const coverStoryParagraphs = splitParagraphs(
         leadCoverItem?.body_text,
         leadCoverItem?.summary,
         [
-            `${coverHeadline} defines the competitive landscape for ${periodLabel}, bringing together deeper championship fields, sharper preflop 3-bet dynamics, and fearless river sizing at the highest levels of the game.`,
-            'Across major stops and online championship series, finalists consistently separated themselves by respecting stack-to-pot geometry early while applying relentless polarized pressure once opponents capped their ranges.',
-            'Tournament directors and cardroom operators likewise reported sustained turnout across mid-major main events, mystery bounty flights, and four- and five-card Pot-Limit Omaha side events.',
-            'Inside the Smarter.Poker Hand Lab, solver diagnostics confirm why modern champions prioritize blocker-driven bluff-catching and disciplined ICM bubble-factor awareness when major pay jumps hang in the balance.',
-            'As the calendar turns toward next month’s headline series, stack preservation on wet multiway textures and decisive turn overbets on brick runouts remain two of the highest-ROI habits any serious player can build.',
-            'Position-aware 3-bet defense also stood out across championship feature tables, with top regulars avoiding passive out-of-position cold calls in favor of linear 4-bets or disciplined folds.',
-            'Late-stage short-stack navigation further rewarded players who mastered 14-to-22 big blind reshove thresholds under big-blind ante structures before blinds eroded fold equity.',
-            'Flip forward to The Strategy Lab beginning on Page 26 to drill the exact No-Limit Holdem, Final-Table ICM, and Pot-Limit Omaha spots shaping championship poker right now.',
+            'Planning to make the trip? Poker Near Me on Smarter.Poker lists verified cardrooms, daily tournament structures, and the full schedule for every major series stop on the calendar.',
+            'The Live Series Radar beginning on Page 38 tracks the next 60 days of festivals coast to coast, with dates, venues, and direct links to each schedule.',
+            'Want to see who is leading the season? The Global Player Of The Year standings on Page 20 rank the Top 25 contenders heading into the final stretch.',
+            'Before your next deep run, drill the exact No-Limit Holdem, Final-Table ICM, and Pot-Limit Omaha spots in The Strategy Lab beginning on Page 26.',
+            'Every spot in the Strategy Lab opens in the free Smarter.Poker Hand Lab, where you can replay the decision and compare your line against the solver.',
+            'Bankroll planning for a festival run starts on Page 33, with the shot-taking budget and downswing rules our coaching desk recommends.',
+            'Kings Club (Club Code 25450) on Club Arena runs nightly online tournaments in Chips, so you can keep your game sharp between live stops.',
+            'Flip forward to The Smarter.Poker Test on Page 34 to check your tournament IQ against this month\u2019s solver questions.',
         ],
-        8
+        8,
+        coverHeadline
     );
 
     // Secondary Feature paragraphs (pp. 16-17: 4 unique paragraphs, 2 per page)
@@ -668,8 +695,19 @@ export function buildMagazineManifestFromVault({
             'Studying blind-versus-blind limp-stab and check-raise frequencies yields immediate non-showdown gains across long Day 1 levels when opponents over-fold unpaired air.',
             'Pair pre-session quick warmups with real-time ICM chop comparisons so every deep run converts maximum long-term tournament equity.',
         ],
-        4
+        4,
+        secondaryHeadline
     );
+
+    const secondaryDeck = secondaryFeatureItem
+        ? buildCleanNonEchoingDeck({
+              title: secondaryHeadline,
+              rawSummary: secondaryFeatureItem.summary || '',
+              paragraphs: secondaryParagraphs,
+              sourceName: readItemMeta(secondaryFeatureItem).byline || secondaryFeatureItem.author_byline || 'Smarter.Poker Tour Desk',
+              category: readItemMeta(secondaryFeatureItem).category || 'Circuit Feature',
+          })
+        : '';
 
     // Platform Highlights (pp. 18-19) - deduplicated by normalized headline
     const vaultPlatform = bySection('platform_highlight').map((item) => {
@@ -703,23 +741,25 @@ export function buildMagazineManifestFromVault({
     // POY Standings (pp. 20-21)
     const poyVault = bySection('poy_snapshot')[0];
     const poyMeta = readItemMeta(poyVault);
-    const rawStandings =
-        Array.isArray(poyMeta.standings) && poyMeta.standings.length >= 5
-            ? poyMeta.standings
-            : buildFallbackPoyStandings(yearNum);
-    const poyStandings = rawStandings.slice(0, 25).map((s, idx) => ({
-        rank: Number(s.rank || idx + 1),
-        playerName: stripMagazineDashes(s.playerName || s.player_name || `Player #${idx + 1}`),
-        points: Math.round(Number(s.points || 0) * 100) / 100,
-        year: Number(s.year || yearNum),
-        tour: stripMagazineDashes(s.tour || `${yearNum} Global POY Contender`),
-    }));
+    // Real standings only (MAG LAW 26). Without a real feed these pages become a
+    // Champions Board built from this month's real title-winning headlines,
+    // never a made-up points table.
+    const hasRealPoy = Array.isArray(poyMeta.standings) && poyMeta.standings.length >= 5;
+    const poyStandings = hasRealPoy
+        ? poyMeta.standings.slice(0, 25).map((s, idx) => ({
+              rank: Number(s.rank || idx + 1),
+              playerName: stripMagazineDashes(s.playerName || s.player_name || `Player #${idx + 1}`),
+              points: Math.round(Number(s.points || 0) * 100) / 100,
+              year: Number(s.year || yearNum),
+              tour: stripMagazineDashes(s.tour || `${yearNum} Player Of The Year`),
+          }))
+        : buildChampionsBoardFromVault(vaultItems);
 
     // Kings Club 25450 Champions (pp. 24-25) - strictly Chips, ZERO `$`
     const kcVaultItems = bySection('tournament_result').map((item, idx) => {
         const meta = readItemMeta(item);
         const rawPrize = Number(meta.prizePoolChips ?? meta.prizeChips ?? meta.prize_pool ?? 0);
-        const prizeChips = Number.isFinite(rawPrize) && rawPrize > 0 ? Math.round(rawPrize) : 50000;
+        const prizeChips = Number.isFinite(rawPrize) && rawPrize > 0 ? Math.round(rawPrize) : 0;
         const rawBuyIn = Number(meta.buyInChips ?? meta.buy_in_amount ?? 0);
         const buyInChips = Number.isFinite(rawBuyIn) && rawBuyIn > 0 ? Math.round(rawBuyIn) : 0;
         const players = Math.max(0, Math.round(Number(meta.players ?? meta.current_players ?? 0)));
@@ -732,8 +772,9 @@ export function buildMagazineManifestFromVault({
             players,
         });
     });
+    // Real completed events only (MAG LAW 26): no invented tournaments.
     const kingsClubList = dedupeByKey(
-        [...kcVaultItems, ...buildFallbackKingsClubResults()],
+        kcVaultItems.filter((r) => Number(r.prizePoolChips) > 0),
         (r) => normalizeDedupeKey(r.name)
     )
         .slice(0, 6)
@@ -844,19 +885,43 @@ export function buildMagazineManifestFromVault({
         qrUrl: t.url,
     }));
 
-    // Live Series Radar (pp. 38-39) - deduplicated by normalized headline
-    const seriesItems = bySection('series_calendar').map((s) => {
-        const meta = readItemMeta(s);
-        return {
-            headline: stripMagazineDashes(s.headline),
-            summary: stripMagazineDashes(s.summary || ''),
-            venueName: stripMagazineDashes(meta.venueName || ''),
-            city: stripMagazineDashes(meta.city || ''),
-            state: stripMagazineDashes(meta.state || ''),
-            dates: stripMagazineDashes([meta.startDate, meta.endDate].filter(Boolean).join(' to ') || meta.schedule || 'Upcoming'),
-            url: `${siteOrigin}/hub/poker-near-me`,
-        };
-    });
+    // Live Series Radar (pp. 38-39) - deduplicated by normalized headline, excluding >90-day year-long recurring placeholders
+    const seriesItems = bySection('series_calendar')
+        .filter((s) => {
+            const meta = readItemMeta(s);
+            if (meta.startDate && meta.endDate) {
+                const spanDays = (Date.parse(meta.endDate) - Date.parse(meta.startDate)) / 86_400_000;
+                if (Number.isFinite(spanDays) && spanDays > 90) return false;
+            }
+            return true;
+        })
+        .map((s) => {
+            const meta = readItemMeta(s);
+            const headline = stripMagazineDashes(normalizeEditorialTitle(s.headline || ''));
+            const venueName = stripMagazineDashes(meta.venueName || '');
+            const city = stripMagazineDashes(meta.city || '');
+            const state = stripMagazineDashes(meta.state || '');
+            const dates = stripMagazineDashes(
+                [meta.startDate, meta.endDate].filter(Boolean).join(' to ') || meta.schedule || 'Upcoming'
+            );
+            const locLabel = [venueName, city, state].filter(Boolean).join(', ');
+            const rawSum = stripMagazineDashes(s.summary || '');
+            const cleanSum =
+                rawSum && !/^\([^)]+\)$/.test(rawSum)
+                    ? rawSum
+                    : locLabel
+                      ? `${locLabel} • ${dates}`
+                      : `Verified Championship Schedule • ${dates}`;
+            return {
+                headline,
+                summary: cleanSum,
+                venueName,
+                city,
+                state,
+                dates,
+                url: `${siteOrigin}/hub/poker-near-me`,
+            };
+        });
     const fallbackSeries = [
         { headline: 'Las Vegas Championship Tour Series', summary: 'Las Vegas, NV • Multi-Flight Main Event & High Rollers', venueName: 'Las Vegas Strip', city: 'Las Vegas', state: 'NV', dates: 'Upcoming 60-Day Window', url: `${siteOrigin}/hub/poker-near-me` },
         { headline: 'South Florida Deepstack Classic', summary: 'Hollywood, FL • Guaranteed Championship & PLO Series', venueName: 'South Florida Cardroom Corridor', city: 'Hollywood', state: 'FL', dates: 'Upcoming 60-Day Window', url: `${siteOrigin}/hub/poker-near-me` },
@@ -917,37 +982,44 @@ export function buildMagazineManifestFromVault({
     const issueStats = [
         { label: 'Print & Digital Pages', value: '44', detail: '11 Four-Page Signatures' },
         { label: 'Pro Poker Calculators', value: '42', detail: '100% Free Browser Suite' },
-        { label: 'POY Contenders Tracked', value: 'Top 25', detail: `${yearNum} Global Standings` },
+        hasRealPoy
+            ? { label: 'POY Contenders Tracked', value: 'Top 25', detail: `${yearNum} Standings` }
+            : { label: 'Title Winners Tracked', value: String(poyStandings.length || 0), detail: `${periodLabel} Champions Board` },
         { label: 'Specialty GTO Labs', value: '16+', detail: 'NLH, ICM, PLO4 & PLO5' },
         { label: 'Kings Club Welcome', value: '25 Chips', detail: 'Plus 30d VIP & 500 Diamonds' },
         { label: 'Live Series Horizon', value: '60 Days', detail: 'Coast-To-Coast Radar' },
     ];
 
+    const monthName = periodLabel.split(' ')[0] || periodLabel;
     const coverLines = [
-        `Global POY Top 25: ${poyStandings[0]?.playerName || 'Leader'} Sets The Pace (p. 20)`,
-        `Kings Club 25450 Monthly Champions Circle In Chips (p. 24)`,
+        hasRealPoy
+            ? `Player Of The Year: ${poyStandings[0]?.playerName || 'The Leader'} Sets The Pace (p. 20)`
+            : `Champions Board: ${monthName}'s Title Winners (p. 20)`,
+        kingsClubList.length
+            ? `Kings Club 25450: ${monthName}'s Biggest Prize Pools (p. 24)`
+            : `Kings Club 25450: Join The Midway Union Schedule (p. 24)`,
         `The Strategy Lab: NLH Overbets, Final-Table ICM & PLO Wraps (p. 26)`,
     ];
 
     const tocEntries = [
-        makeTocEntry({ pageNumber: 3, endPageNumber: 3, title: 'First Hand: From The Editorial Desk', subtitle: 'Monthly telemetry, masthead & state of the game', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'editor_first_hand' }),
-        makeTocEntry({ pageNumber: 6, endPageNumber: 9, title: 'The Rail: Monthly Poker News Digest', subtitle: 'Four pages of industry, tour & high-stakes headlines', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'news_rail' }),
+        makeTocEntry({ pageNumber: 3, endPageNumber: 3, title: 'First Hand: From The Editorial Desk', subtitle: 'Monthly telemetry, masthead & state of the game', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'editor_first_hand' }),
+        makeTocEntry({ pageNumber: 6, endPageNumber: 9, title: 'The Rail: Monthly Poker News Digest', subtitle: 'Four pages of industry, tour & high-stakes headlines', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'news_rail' }),
         makeTocEntry({ pageNumber: 10, endPageNumber: 11, title: 'Capture The Moment: Photo Spread', subtitle: 'Two-page championship photography showcase', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'capture_the_moment_left' }),
         makeTocEntry({ pageNumber: 12, endPageNumber: 15, title: coverHeadline, subtitle: 'Four-page Cover Story investigation & key numbers', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'cover_feature' }),
         makeTocEntry({ pageNumber: 16, endPageNumber: 17, title: secondaryHeadline, subtitle: 'Live circuit deep dive & field dynamics', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'secondary_feature' }),
         makeTocEntry({ pageNumber: 18, endPageNumber: 19, title: 'Inside Smarter.Poker: New Upgrades Shipped', subtitle: 'Latest trainers, calculators & Club Arena features', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'platform_feature' }),
-        makeTocEntry({ pageNumber: 20, endPageNumber: 21, title: `${yearNum} Global Player Of The Year Top 25`, subtitle: 'Official standings & monthly mover spotlights', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'poy_standings' }),
-        makeTocEntry({ pageNumber: 22, endPageNumber: 23, title: 'Final Table: Major Circuit Results', subtitle: 'Championship storylines & trophy winners', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'final_table_live' }),
-        makeTocEntry({ pageNumber: 24, endPageNumber: 25, title: 'Kings Club 25450 Champions Circle', subtitle: 'Completed Club Arena majors & Chips prize pools', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'kings_club_champions' }),
+        makeTocEntry({ pageNumber: 20, endPageNumber: 21, title: hasRealPoy ? `${yearNum} Player Of The Year Top 25` : `Champions Board: ${monthName}'s Title Winners`, subtitle: hasRealPoy ? 'Official standings & monthly mover spotlights' : "The month's tournament champions at a glance", group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'poy_standings' }),
+        makeTocEntry({ pageNumber: 22, endPageNumber: 23, title: 'Final Table: Major Circuit Results', subtitle: 'Championship storylines & trophy winners', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'final_table_live' }),
+        makeTocEntry({ pageNumber: 24, endPageNumber: 25, title: 'Kings Club 25450 Results', subtitle: 'Completed Club Arena majors & Chips prize pools', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'kings_club_champions' }),
         makeTocEntry({ pageNumber: 26, endPageNumber: 27, title: `NLH Solver Lab: ${nlhSpot.title}`, subtitle: 'Deep-stack geometry, EVs & community vote split', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_nlh' }),
         makeTocEntry({ pageNumber: 28, endPageNumber: 29, title: `Tournament ICM Lab: ${icmSpot.title}`, subtitle: 'Pay-jump bubble factors & deal calculator math', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_icm' }),
         makeTocEntry({ pageNumber: 30, endPageNumber: 31, title: `Pot-Limit Omaha Lab: ${ploSpot.title}`, subtitle: 'PLO4/PLO5 nut blockers, wraps & equity realization', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_plo' }),
         makeTocEntry({ pageNumber: 32, endPageNumber: 33, title: 'AI Coach Column: Leak-Busting & Bankroll Shield', subtitle: 'Eliminating positional EV leaks & shot-taking discipline', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_ai_coach' }),
         makeTocEntry({ pageNumber: 34, endPageNumber: 35, title: 'The Smarter.Poker Test: 4-Spot IQ Challenge', subtitle: 'Test your poker math with full answer key', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'the_test_quiz' }),
         makeTocEntry({ pageNumber: 36, endPageNumber: 37, title: 'Video & Pro Tool Spotlight Of The Month', subtitle: 'Scan-to-watch hand breakdowns & pro utilities', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'video_tool_spotlight' }),
-        makeTocEntry({ pageNumber: 38, endPageNumber: 39, title: '60-Day Coast-To-Coast Live Series Radar', subtitle: 'Upcoming tournament stops & daily guarantees', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'live_series_radar' }),
-        makeTocEntry({ pageNumber: 40, endPageNumber: 41, title: 'Featured Poker Rooms Across America', subtitle: 'Verified cardroom directory & table counts', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'poker_rooms_directory' }),
-        makeTocEntry({ pageNumber: 42, endPageNumber: 43, title: 'Cardroom Print Bundle & Weekly Wire Guide', subtitle: 'Stock complimentary monthly print copies in your room', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'cardroom_bundle_cta' }),
+        makeTocEntry({ pageNumber: 38, endPageNumber: 39, title: '60-Day Coast-To-Coast Live Series Radar', subtitle: 'Upcoming tournament stops & daily guarantees', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'live_series_radar' }),
+        makeTocEntry({ pageNumber: 40, endPageNumber: 41, title: 'Featured Poker Rooms Across America', subtitle: 'Verified cardroom directory & table counts', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'poker_rooms_directory' }),
+        makeTocEntry({ pageNumber: 42, endPageNumber: 43, title: 'Cardroom Print Bundle & Weekly Wire Guide', subtitle: 'Stock complimentary monthly print copies in your room', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'cardroom_bundle_cta' }),
     ];
 
     const photoLeftImg = ensureFirstPartyMagazineImageUrl(photoEssayItems[0]?.vaulted_image_url || coverWebImage);
@@ -1021,7 +1093,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 3,
             kind: 'editor_first_hand',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: `First Hand • ${periodLabel}`,
             headline: 'First Hand: Precision At Every Decision Point',
@@ -1036,7 +1108,7 @@ export function buildMagazineManifestFromVault({
                 editorNote,
                 'Every Tuesday our Weekly Wire intelligence brief captures breaking storylines, fresh solver spots, and live tournament action; each month those verified highlights crystallize into this 44-page edition.',
             ],
-            pullQuote: 'Great poker is built one disciplined range decision at a time - at the felt and in the lab.',
+            pullQuote: 'Great poker is built one disciplined range decision at a time, at the felt and in the lab.',
             stats: issueStats,
             items: [
                 { role: 'Publication', name: MAGAZINE_MASTHEAD },
@@ -1091,7 +1163,7 @@ export function buildMagazineManifestFromVault({
             return {
                 pageNumber: 6 + railIdx,
                 kind: 'news_rail',
-                department: 'Departments, POY & Final Table',
+                department: 'Departments, Standings & Final Table',
                 tocGroup: 'departments',
                 runningHeader: `The Rail • Page ${railIdx + 1} Of 4`,
                 headline: railTitles[railIdx],
@@ -1103,7 +1175,7 @@ export function buildMagazineManifestFromVault({
                 ctaUrl: '/hub/news',
                 qrUrl: `${siteOrigin}/hub/news`,
                 items: slice,
-                paragraphs: slice.map((s) => `${s.headline}: ${s.summary}`),
+                paragraphs: [],
             };
         }),
         // p. 10: capture_the_moment_left
@@ -1122,10 +1194,15 @@ export function buildMagazineManifestFromVault({
             ctaUrl: `/hub/magazine/${slug}`,
             qrUrl: `${siteOrigin}/hub/magazine/${slug}`,
             paragraphs: [
-                stripMagazineDashes(
-                    photoEssayItems[0]?.summary ||
-                        'Deep into the final two tables, chip stacks compress, cameras close in, and hours of disciplined preparation converge on a single river decision.'
-                ),
+                photoEssayItems[0]
+                    ? buildCleanNonEchoingDeck({
+                          title: photoEssayItems[0].headline || '',
+                          rawSummary: photoEssayItems[0].summary || '',
+                          paragraphs: String(photoEssayItems[0].body_text || '').split(/\n{2,}/),
+                          sourceName: readItemMeta(photoEssayItems[0]).byline || 'Smarter.Poker Visual Vault',
+                          category: 'Championship Spotlight',
+                      })
+                    : 'Deep into the final two tables, chip stacks compress, cameras close in, and hours of disciplined preparation converge on a single river decision.',
             ],
             pullQuote: 'Composure under final-table lights begins hundreds of hands earlier in preparation.',
         },
@@ -1145,21 +1222,23 @@ export function buildMagazineManifestFromVault({
             ctaUrl: '/hub/poker-near-me',
             qrUrl: `${siteOrigin}/hub/poker-near-me`,
             paragraphs: [
-                stripMagazineDashes(
-                    photoEssayItems[1]?.summary ||
-                        'From packed Day 1 cardroom floors to the final river showdown, live poker continues drawing surging fields across every major stop.'
-                ),
+                photoEssayItems[1]
+                    ? buildCleanNonEchoingDeck({
+                          title: photoEssayItems[1].headline || '',
+                          rawSummary: photoEssayItems[1].summary || '',
+                          paragraphs: String(photoEssayItems[1].body_text || '').split(/\n{2,}/),
+                          sourceName: readItemMeta(photoEssayItems[1]).byline || 'Smarter.Poker Visual Vault',
+                          category: 'Championship Spotlight',
+                      })
+                    : 'From packed Day 1 cardroom floors to the final river showdown, live poker continues drawing surging fields across every major stop.',
             ],
         },
         // pp. 12-15: cover_feature (4 pages, strictly non-overlapping slices)
         ...[0, 1, 2, 3].map((partIdx) => {
             const pSlice = coverStoryParagraphs.slice(partIdx * 2, partIdx * 2 + 2);
-            const subTitles = [
-                coverSubheadline,
-                'Part II: Range Construction & Positional Leverage',
-                'Part III: Navigating Pay Jumps & Deep-Run Inflection Points',
-                'Part IV: Key Takeaways For Your Next Championship Session',
-            ];
+            // Only the opener carries a deck. Continuation pages are marked "Continued" by the
+            // renderer; invented strategy subtitles on a news story read as filler.
+            const subTitles = [coverSubheadline, '', '', ''];
             return {
                 pageNumber: 12 + partIdx,
                 kind: 'cover_feature',
@@ -1175,13 +1254,10 @@ export function buildMagazineManifestFromVault({
                 ctaUrl: '/hub/training/hand-lab',
                 qrUrl: `${siteOrigin}/hub/training/hand-lab`,
                 paragraphs: pSlice,
-                pullQuote:
-                    partIdx === 0
-                        ? 'Uncapped range advantage paired with fearless river sizing separates trophy winners from min-cashers.'
-                        : partIdx === 2
-                          ? 'Respecting Bubble Factor against covering stacks preserves real tournament equity when short stacks are on the ropes.'
-                          : '',
-                stats: issueStats.slice(0, 4),
+                // Pull quotes are lifted from the story itself by finalizeMagazineIssueManifest,
+                // and the issue stats already print on the editor page.
+                pullQuote: '',
+                stats: [],
             };
         }),
         // pp. 16-17: secondary_feature (2 pages, strictly non-overlapping slices)
@@ -1191,11 +1267,8 @@ export function buildMagazineManifestFromVault({
             department: 'Features & Cover Stories',
             tocGroup: 'features',
             runningHeader: `Circuit Feature • Page ${idx + 1} Of 2`,
-            headline: idx === 0 ? secondaryHeadline : `${secondaryHeadline}: Tactical Blueprint`,
-            subheadline:
-                idx === 0
-                    ? 'Inside Multi-Flight Tournament Preparation & Day 2 Stack Accumulation'
-                    : 'Executing 15bb-25bb Reshove & Blind-Defense Adjustments Under Big-Blind Antes',
+            headline: idx === 0 ? secondaryHeadline : `${secondaryHeadline} (Continued)`,
+            subheadline: idx === 0 ? secondaryDeck : '',
             byline: 'Smarter.Poker Tour Desk',
             imageUrl: secondaryImg,
             masterImageUrl: secondaryMaster,
@@ -1203,11 +1276,8 @@ export function buildMagazineManifestFromVault({
             ctaUrl: '/tools/push-fold-calculator',
             qrUrl: `${siteOrigin}/tools/push-fold-calculator`,
             paragraphs: secondaryParagraphs.slice(idx * 2, idx * 2 + 2),
-            pullQuote: 'Winning Day 2 transitions starts with owning the 14bb to 22bb reshove window.',
-            stats: [
-                { label: 'Optimal Reshove Window', value: '14-22 BB', detail: 'High Dead-Money Leverage' },
-                { label: 'BBA Orbit Cost', value: '2.5 BB', detail: 'Standard 8/9-Handed Table' },
-            ],
+            pullQuote: '',
+            stats: [],
         })),
         // pp. 18-19: platform_feature (2 pages)
         ...[0, 1].map((idx) => {
@@ -1230,76 +1300,95 @@ export function buildMagazineManifestFromVault({
                 ctaUrl: idx === 0 ? '/hub/training' : '/tools',
                 qrUrl: `${siteOrigin}${idx === 0 ? '/hub/training' : '/tools'}`,
                 items: pSlice,
-                paragraphs: pSlice.map((p) => `${p.headline}: ${p.summary}`),
+                paragraphs: [
+                    idx === 0
+                        ? 'Every month Smarter.Poker ships direct browser-native upgrades across GTO Hand Lab, Personal Assistant EV diagnostics, and Kings Club 25450 tournament engines.'
+                        : 'Open any calculator in one tap at the table or between sessions to verify exact ICM chop equity, bounty chip-equivalents, and stack-to-pot geometry.',
+                ],
             };
         }),
-        // pp. 20-21: poy_standings (2 pages)
-        {
-            pageNumber: 20,
-            kind: 'poy_standings',
-            department: 'Departments, POY & Final Table',
-            tocGroup: 'departments',
-            runningHeader: `${yearNum} Global POY • Ranks 1-12`,
-            headline: `${yearNum} Global Player Of The Year Standings (Ranks 1-12)`,
-            subheadline: `${poyStandings[0]?.playerName || 'Leader'} Holds #1 Entering ${periodLabel}`,
-            byline: 'Global Standings Desk',
-            imageUrl: IMAGE_VAULT_FALLBACK_URL,
-            masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
-            ctaLabel: 'View Live POY Leaderboard',
-            ctaUrl: '/hub/leaderboards',
-            qrUrl: `${siteOrigin}/hub/leaderboards`,
-            standings: poyStandings.slice(0, 12),
-            items: poyStandings.slice(0, 12),
-        },
-        {
-            pageNumber: 21,
-            kind: 'poy_standings',
-            department: 'Departments, POY & Final Table',
-            tocGroup: 'departments',
-            runningHeader: `${yearNum} Global POY • Ranks 13-25 & Movers`,
-            headline: `${yearNum} Global Player Of The Year Standings (Ranks 13-25)`,
-            subheadline: 'Contenders Within Striking Distance As Championship Series Heat Up',
-            byline: 'Global Standings Desk',
-            imageUrl: IMAGE_VAULT_FALLBACK_URL,
-            masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
-            ctaLabel: 'Follow Live POY Standings',
-            ctaUrl: '/hub/leaderboards',
-            qrUrl: `${siteOrigin}/hub/leaderboards`,
-            standings: poyStandings.slice(12, 25),
-            items: poyStandings.slice(12, 25),
-            paragraphs: [
-                `Consistency across high-roller festivals and massive main-event fields separates the ${yearNum} Top 25 leaderboard contenders, with narrow point margins from #5 through #25.`,
-            ],
-        },
+        // pp. 20-21: poy_standings (2 pages). Real standings when a feed exists,
+        // otherwise the Champions Board of real title-winning headlines.
+        ...[0, 1].map((idx) => {
+            const rows = poyStandings.slice(idx * 12, idx * 12 + (idx === 0 ? 12 : 13));
+            const common = {
+                pageNumber: 20 + idx,
+                kind: 'poy_standings',
+                department: 'Departments, Standings & Final Table',
+                tocGroup: 'departments',
+                imageUrl: IMAGE_VAULT_FALLBACK_URL,
+                masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
+                standings: rows,
+                items: rows,
+            };
+            if (hasRealPoy) {
+                return {
+                    ...common,
+                    kicker: 'Player Of The Year',
+                    standingsLabels: { rank: 'Rank', player: 'Player', value: 'Points' },
+                    runningHeader: `${yearNum} POY • Ranks ${idx === 0 ? '1-12' : '13-25'}`,
+                    headline: `${yearNum} Player Of The Year Standings (Ranks ${idx === 0 ? '1-12' : '13-25'})`,
+                    subheadline: idx === 0 ? `${poyStandings[0]?.playerName || 'The Leader'} Holds #1 Entering ${periodLabel}` : '',
+                    byline: 'Standings Desk',
+                    ctaLabel: 'View The Leaderboard',
+                    ctaUrl: '/hub/leaderboards',
+                    qrUrl: `${siteOrigin}/hub/leaderboards`,
+                };
+            }
+            return {
+                ...common,
+                kicker: 'Champions Board',
+                standingsLabels: { rank: '#', player: 'Title Winner', value: 'Source' },
+                runningHeader: `Champions Board • Page ${idx + 1} Of 2`,
+                headline: idx === 0 ? `Champions Board: ${monthName}'s Title Winners` : 'Champions Board: More Title Winners',
+                subheadline: idx === 0 ? `Every Major Title Reported In ${periodLabel}` : '',
+                byline: 'Tour Results Desk',
+                ctaLabel: 'Read The News Hub',
+                ctaUrl: '/hub/news',
+                qrUrl: `${siteOrigin}/hub/news`,
+            };
+        }),
         // pp. 22-23: final_table_live (2 pages)
         ...[0, 1].map((idx) => {
             const ftSlice = finalTableItems.slice(idx * 2, idx * 2 + 2);
             const mappedFt =
                 ftSlice.length > 0
-                    ? ftSlice.map((f) => {
-                          const meta = readItemMeta(f);
-                          const byline = stripMagazineDashes(meta.byline || f.author_byline || 'Tournament Results Desk');
-                          const webImg = ensureFirstPartyMagazineImageUrl(f.vaulted_image_url || f.original_image_url);
-                          const masterImg = ensureFirstPartyMagazineImageUrl(
-                              f.vaulted_master_url || f.vaulted_image_url || f.original_image_url
-                          );
-                          return {
-                              headline: stripMagazineDashes(f.headline),
-                              summary: stripMagazineDashes(f.summary || ''),
-                              byline,
-                              sourceName: byline,
-                              imageUrl: webImg,
-                              masterImageUrl: masterImg,
-                              url: resolvePokerNewsArticleUrl(f, siteOrigin),
-                          };
-                      })
-                    : combinedBriefs.slice(idx * 2, idx * 2 + 2);
+                      ? ftSlice.map((f) => {
+                            const meta = readItemMeta(f);
+                            const byline = stripMagazineDashes(meta.byline || f.author_byline || 'Tournament Results Desk');
+                            const webImg = ensureFirstPartyMagazineImageUrl(f.vaulted_image_url || f.original_image_url);
+                            const masterImg = ensureFirstPartyMagazineImageUrl(
+                                f.vaulted_master_url || f.vaulted_image_url || f.original_image_url
+                            );
+                            const headline = stripMagazineDashes(f.headline);
+                            const fParas = String(f.body_text || '')
+                                .split(/\n{2,}/)
+                                .map((p) => stripScraperBylinePrefix(p))
+                                .filter(Boolean);
+                            const summary = buildCleanNonEchoingDeck({
+                                title: headline,
+                                rawSummary: f.summary || '',
+                                paragraphs: fParas,
+                                sourceName: byline,
+                                category: meta.category || 'Tournament Results',
+                            });
+                            return {
+                                headline,
+                                summary,
+                                byline,
+                                sourceName: byline,
+                                imageUrl: webImg,
+                                masterImageUrl: masterImg,
+                                url: resolvePokerNewsArticleUrl(f, siteOrigin),
+                            };
+                        })
+                      : combinedBriefs.slice(idx * 2, idx * 2 + 2);
             const leadFtWeb = mappedFt[0]?.imageUrl || IMAGE_VAULT_FALLBACK_URL;
             const leadFtMaster = mappedFt[0]?.masterImageUrl || leadFtWeb;
             return {
                 pageNumber: 22 + idx,
                 kind: 'final_table_live',
-                department: 'Departments, POY & Final Table',
+                department: 'Departments, Standings & Final Table',
                 tocGroup: 'departments',
                 runningHeader: `Final Table Results • Page ${idx + 1} Of 2`,
                 headline:
@@ -1314,7 +1403,7 @@ export function buildMagazineManifestFromVault({
                 ctaUrl: '/hub/poker-near-me',
                 qrUrl: `${siteOrigin}/hub/poker-near-me`,
                 items: mappedFt,
-                paragraphs: mappedFt.map((m) => `${m.headline}: ${m.summary}`),
+                paragraphs: [],
             };
         }),
         // pp. 24-25: kings_club_champions (2 pages, strictly Chips, ZERO `$`)
@@ -1323,14 +1412,18 @@ export function buildMagazineManifestFromVault({
             return {
                 pageNumber: 24 + idx,
                 kind: 'kings_club_champions',
-                department: 'Departments, POY & Final Table',
+                department: 'Departments, Standings & Final Table',
                 tocGroup: 'departments',
                 runningHeader: `Kings Club 25450 • Page ${idx + 1} Of 2`,
                 headline:
                     idx === 0
-                        ? 'Kings Club 25450 Monthly Champions Circle'
-                        : 'Club Arena Completed Majors & Freeroll Standouts',
-                subheadline: 'Official Completed Tournament Prize Pools In Kings Club (Code 25450)',
+                        ? `Kings Club 25450: ${monthName}'s Biggest Prize Pools`
+                        : 'More Completed Majors On The Midway Union Schedule',
+                subheadline:
+                    idx === 0
+                        ? `Completed Club Arena Events Open To Kings Club Players In ${periodLabel}`
+                        : '',
+                kicker: 'Kings Club 25450',
                 byline: 'Club Arena Competition Desk',
                 imageUrl: IMAGE_VAULT_FALLBACK_URL,
                 masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
@@ -1618,7 +1711,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 38,
             kind: 'live_series_radar',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: '60-Day Live Series Radar • National Stops',
             headline: 'Coast-To-Coast Upcoming 60-Day Live Series Schedule',
@@ -1634,7 +1727,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 39,
             kind: 'live_series_radar',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: '60-Day Live Series Radar • Regional & Daily',
             headline: 'Regional Stops & Recurring Cardroom Tournament Highlights',
@@ -1651,7 +1744,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 40,
             kind: 'poker_rooms_directory',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: 'Featured Poker Rooms • West & Las Vegas',
             headline: 'Featured Poker Rooms Across America: West & Las Vegas',
@@ -1667,7 +1760,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 41,
             kind: 'poker_rooms_directory',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: 'Featured Poker Rooms • Texas, Midwest & East',
             headline: 'Featured Poker Rooms Across America: Texas, South & East Coast',
@@ -1684,11 +1777,11 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 42,
             kind: 'cardroom_bundle_cta',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: 'Smarter.Poker Weekly Wire • Free Tuesday Brief',
             headline: 'Never Miss A Tuesday: Subscribe Free To The Smarter.Poker Weekly Wire',
-            subheadline: 'Fresh Solver Spots, POY Updates, Kings Club Schedules & Curated Tour Coverage',
+            subheadline: 'Fresh Solver Spots, Tour Results, Kings Club Schedules & Curated Tour Coverage',
             byline: 'Subscriber Services',
             imageUrl: IMAGE_VAULT_FALLBACK_URL,
             masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
@@ -1728,7 +1821,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 43,
             kind: 'cardroom_bundle_cta',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: 'Cardroom Print Program • Request Copies',
             headline: 'Poker Room Managers: Stock Smarter.Poker Magazine In Your Cardroom',
@@ -1798,10 +1891,55 @@ export function buildMagazineManifestFromVault({
         },
     ];
 
-    const signaturePageCount = normalizeSignaturePageCount(rawPages.length);
+    const taggedPages = rawPages.map((p, idx) => {
+        const pageNum = Number(p.pageNumber) || idx + 1;
+        const pageKind = String(p.kind || '');
+        const taggedQrUrl = p.qrUrl
+            ? appendMagazineQrUtm(p.qrUrl, {
+                  issuePeriod: period,
+                  pageNumber: pageNum,
+                  kind: pageKind,
+              })
+            : p.qrUrl;
+
+        const taggedItems = Array.isArray(p.items)
+            ? p.items.map((it) => {
+                  if (!it || typeof it !== 'object') return it;
+                  if (typeof it.qrUrl === 'string' && it.qrUrl) {
+                      return {
+                          ...it,
+                          qrUrl: appendMagazineQrUtm(it.qrUrl, {
+                              issuePeriod: period,
+                              pageNumber: pageNum,
+                              kind: pageKind,
+                          }),
+                      };
+                  }
+                  if (pageNum >= 36 && pageNum <= 41 && typeof it.url === 'string' && it.url) {
+                      return {
+                          ...it,
+                          qrUrl: appendMagazineQrUtm(it.url, {
+                              issuePeriod: period,
+                              pageNumber: pageNum,
+                              kind: pageKind,
+                          }),
+                      };
+                  }
+                  return it;
+              })
+            : p.items;
+
+        return {
+            ...p,
+            ...(taggedQrUrl !== undefined ? { qrUrl: taggedQrUrl } : {}),
+            ...(taggedItems !== undefined ? { items: taggedItems } : {}),
+        };
+    });
+
+    const signaturePageCount = normalizeSignaturePageCount(taggedPages.length);
     const title = stripMagazineDashes(`${MAGAZINE_MASTHEAD} - Issue #${issueNum} (${periodLabel})`).slice(0, 240);
 
-    return normalizeIssueManifest({
+    const assembledManifest = normalizeIssueManifest({
         masthead: MAGAZINE_MASTHEAD,
         issueNumber: issueNum,
         volumeNumber: volNum,
@@ -1822,8 +1960,12 @@ export function buildMagazineManifestFromVault({
             customCoverSubheadline: Boolean(overrides?.customCoverSubheadline ?? overrides?.coverSubheadline),
             coverImageStoragePath,
         },
-        pages: rawPages,
+        pages: taggedPages,
     });
+
+    // Art direction: one real picture per placement, no placeholders, brand art on
+    // platform and ad pages, and QR codes only where a scan goes somewhere specific.
+    return normalizeIssueManifest(finalizeMagazineIssueManifest(assembledManifest, { vaultItems }));
 }
 
 function isUniqueViolationError(err) {
@@ -1911,6 +2053,7 @@ export async function compileMonthlyMagazineIssue(
         editorNote = '',
         pinnedVaultItemId = '',
         siteUrl = MAGAZINE_SITE_URL,
+        force = false,
     } = {}
 ) {
     const client = await getSupabaseClient(sb);
@@ -1929,6 +2072,17 @@ export async function compileMonthlyMagazineIssue(
     }
 
     let existingIssue = await readExistingIssueByPeriod(client, period);
+    // An issue an editor finished by hand is never regenerated from the vault
+    // (the 1st-of-month run recompiles the month just ended), unless the
+    // caller explicitly forces it (MAG LAW 26).
+    if (!force && isEditoriallyLockedIssue(existingIssue)) {
+        return {
+            issue: existingIssue,
+            manifest: existingIssue.manifest_json,
+            vaultItemCount: vaultItems.length,
+            editorialLocked: true,
+        };
+    }
     const hasExplicitHeadline = Boolean(String(coverHeadline || '').trim());
     const hasExplicitSubheadline = Boolean(String(coverSubheadline || '').trim());
     const hasNewPin = Boolean(String(pinnedVaultItemId || '').trim());
@@ -2007,6 +2161,8 @@ export async function compileMonthlyMagazineIssue(
             status: nextStatus,
             page_count: manifest.pageCount,
             manifest_json: manifest,
+            pdf_url: null,
+            pdf_storage_path: null,
             ...(nextStatus === 'published' && !existingIssue?.published_at ? { published_at: nowIso } : {}),
             updated_at: nowIso,
         };

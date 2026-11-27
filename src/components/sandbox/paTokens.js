@@ -54,6 +54,15 @@ export const Z = {
     backdrop: 950, sheet: 951, popover: 980, toast: 1000,
 };
 
+/** High-contrast 4-color poker deck tokens (#SmarterDesign obsidian bevel cards). */
+export const SUITS = Object.freeze({ c: '♣', d: '♦', h: '♥', s: '♠' });
+export const SUIT_COLORS = Object.freeze({
+    c: '#4DE0A5',
+    d: '#56D8FF',
+    h: '#FF6B7A',
+    s: '#F1F5FC',
+});
+
 export const FONT = "Arial,'Inter',-apple-system,BlinkMacSystemFont,sans-serif";
 export const DISPLAY_FONT = "'Arial Narrow','Rajdhani',Arial,sans-serif";
 export const DATA_FONT = "'IBM Plex Mono','SFMono-Regular',Consolas,monospace";

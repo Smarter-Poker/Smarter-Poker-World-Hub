@@ -1101,16 +1101,21 @@ test('MAG LAW 13: magazineCompiler.mjs and MagazineSpreadRenderer.js guarantee z
     assert.equal(new Set(platTitles).size, platTitles.length, `Duplicate platform updates prohibited on pp. 18-19: ${platTitles.join(', ')}`);
 
     // 3. Kings Club Champions non-zero Chips & POY Page 21 Rank #25 (13 rows)
+    // MAG LAW 26: with no real completed events in the vault the board is empty,
+    // never padded with invented tournaments; every real row carries real Chips.
     const kingsRows = [24, 25].flatMap((n) => pageByNum(n)?.standings || []);
-    assert.ok(kingsRows.length >= 2);
     for (const row of kingsRows) {
         const numericChips = Number(row.prizePoolChips ?? row.prizeChips ?? 0);
         assert.ok(numericChips > 0, `Kings Club row "${row.name}" must carry non-zero prizeChips, got ${numericChips}`);
     }
 
+    // MAG LAW 26: without a real POY feed the pages carry no invented points table.
+    const page20 = pageByNum(20);
     const page21Rows = pageByNum(21)?.standings || [];
-    assert.equal(page21Rows.length, 13, 'Page 21 POY Standings (Ranks 13-25) must contain all 13 rows');
-    assert.equal(page21Rows[12]?.rank, 25, 'Page 21 POY Standings must include Rank #25');
+    assert.ok(page21Rows.length <= 13, 'Page 21 holds at most ranks 13-25');
+    for (const row of [...(page20?.standings || []), ...page21Rows]) {
+        assert.ok(!/^(Adrian Mateos|Alex Foxen|Stephen Chidwick)$/.test(String(row.playerName || '')), 'No invented POY names');
+    }
 
     // 4. Strategy Setup vs Verdict split (pp. 26-31)
     for (const [setupPage, verdictPage] of [[26, 27], [28, 29], [30, 31]]) {
@@ -1507,4 +1512,1227 @@ test('MAG LAW 16: classifyClickedEmailSection, parseWireEditionSubjectNumber, Ne
     assert.match(notifSettingsSrc, /Tuesday Weekly Wire/);
     assert.match(notifSettingsSrc, /\/hub\/magazine/);
     assert.match(read('pages/hub/email-preferences.js'), /\/hub\/magazine/);
+});
+
+// ── MAG LAW 17: Live Editorial Hygiene, Competitor Promo Shield, Entity Decode, Non-Echoing Decks & Real poker_series Schema ──
+test('MAG LAW 17: competitor online-poker promos/outlets never leak into vault or compiled magazine, cover/feature/rail decks never echo headlines, numeric HTML entities & scraper byline prefixes are stripped, and poker_series never queries phantom venue_name', async () => {
+    const { isCompetitorSponsoredPost, normalizeEditorialTitle } = await import('../src/lib/newsletter/editorialCleaners.mjs');
+    const { isEchoingOrEmptyBlurb } = await import('../src/lib/newsletter/weeklyWireEngine.mjs');
+    const { stripMagazineDashes } = await import('../src/lib/magazine/magazineSchema.mjs');
+    const { buildCleanNonEchoingDeck, harvestMonthlyMagazineVault, stripScraperBylinePrefix } = await import(
+        '../src/lib/magazine/vaultHarvester.mjs'
+    );
+    const { buildMagazineManifestFromVault } = await import('../src/lib/magazine/magazineCompiler.mjs');
+
+    // 1. Competitor online-poker promo copy & rival operator blogs blocked at source
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'Climb The Cash Game Ladder At Betrivers Poker For A Share Of 20k Each Week',
+            source_name: 'Poker.org',
+        }),
+        true,
+        'BetRivers Poker cash-game ladder promo must be blocked'
+    );
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'BetRivers: New Jersey Online Poker Launch Remains a Top Priority',
+            source_name: 'Pokerfuse',
+        }),
+        true,
+        'BetRivers online poker promo coverage must be blocked'
+    );
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'Festive Season returns with $1M in rewards throughout December',
+            source_name: 'PokerStars Blog',
+        }),
+        true,
+        'PokerStars Blog promotional posts must be blocked'
+    );
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'Brazilian commentors Felipe de Paulo and Flavio Del Valle become PokerStars Ambassadors',
+            source_name: 'PokerStars Blog',
+        }),
+        true,
+        'PokerStars Ambassador promos must be blocked'
+    );
+    // Real live tour stories remain allowed
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'Ramin Hajiyev Hauls Third Triton Trophy and $2.8M After Steamrolling Final Table',
+            source_name: 'PokerNews',
+        }),
+        false
+    );
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'WPT Unveils Huge 2027 LAPC Schedule With $10M In Guarantees',
+            source_name: 'Poker.org',
+        }),
+        false
+    );
+
+    // 2. Acronym & bare numeric magnitude normalization (LAPC, 50M, 250K, 20K)
+    assert.equal(
+        normalizeEditorialTitle('Wpt Unveils Huge 2027 Lapc Schedule With 10m In Guarantees'),
+        'WPT Unveils Huge 2027 LAPC Schedule With 10M In Guarantees'
+    );
+    assert.equal(
+        normalizeEditorialTitle('Wsop Paradise 2026 A 50m Monster And A 250k Battle Of The Brains'),
+        'WSOP Paradise 2026 A 50M Monster And A 250K Battle Of The Brains'
+    );
+
+    // 3. Hex/decimal HTML entity decoding & punctuation spacing + scraper byline prefix stripping
+    assert.equal(
+        stripMagazineDashes('When you&#x27;re in Delaware , Michigan , and &#39;Pennsylvania&#39; &mdash; let&#8217;s play .'),
+        "When you're in Delaware, Michigan, and 'Pennsylvania' - let's play."
+    );
+    assert.equal(
+        stripScraperBylinePrefix(
+            'Justin Hammer Posted on: November 26, 2026 11:47 PST Link copied Add as a preferred source on Google It&#x27;s that time of year to reflect on tournament direction.'
+        ),
+        "It's that time of year to reflect on tournament direction."
+    );
+
+    // 4. Non-echoing deck synthesis & compile-time competitor exclusion on legacy vault rows
+    const nonEchoDeck = buildCleanNonEchoingDeck({
+        title: 'WSOP Paradise 2026 A 50M Monster And A 250K Battle Of The Brains',
+        rawSummary: 'Wsop Paradise 2026 A 50m Monster And A 250k Battle Of The Brains',
+        paragraphs: ['Wsop Paradise 2026 A 50m Monster And A 250k Battle Of The Brains'],
+        sourceName: 'Poker.org',
+        category: 'Tournament',
+    });
+    // MAG LAW 26: a deck with no real copy is empty, never a templated sentence.
+    assert.ok(
+        nonEchoDeck === '' ||
+            isEchoingOrEmptyBlurb('WSOP Paradise 2026 A 50M Monster And A 250K Battle Of The Brains', nonEchoDeck) === false
+    );
+
+    const vaultedWeb = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/law17-web.jpg';
+    const vaultedMaster = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/law17-master.jpg';
+    const compiledManifest = buildMagazineManifestFromVault({
+        issueNumber: 1,
+        volumeNumber: 1,
+        issuePeriod: '2026-11',
+        vaultItems: [
+            // Legacy banked competitor row with highest score -> MUST BE FILTERED OUT by compiler!
+            {
+                id: 'legacy-betrivers',
+                issue_period: '2026-11',
+                section: 'cover_candidate',
+                source_type: 'poker_news',
+                source_id: 'aaaa1111-1111-4111-8111-111111111111',
+                headline: 'Climb The Cash Game Ladder At Betrivers Poker For A Share Of 20k Each Week',
+                deck: 'Climb The Cash Game Ladder At Betrivers Poker For A Share Of 20k Each Week',
+                body_text: 'At BetRivers Poker , there&#x27;s $20,000 in cash game rewards.',
+                vaulted_image_url: vaultedWeb,
+                vaulted_master_url: vaultedMaster,
+                editorial_score: 999,
+            },
+            // Podcast pipe-stub -> demoted behind real championship journalism
+            {
+                id: 'podcast-stub',
+                issue_period: '2026-11',
+                section: 'cover_candidate',
+                source_type: 'poker_news',
+                source_id: 'bbbb2222-2222-4222-8222-222222222222',
+                headline: 'Shocking Story After EPT Win | PokerNews Podcast #1018',
+                deck: 'Shocking Story After EPT Win | PokerNews Podcast #1018',
+                vaulted_image_url: vaultedWeb,
+                vaulted_master_url: vaultedMaster,
+                editorial_score: 120,
+            },
+            // Legitimate championship lead story with echoing raw deck & hex entities
+            {
+                id: 'triton-champ',
+                issue_period: '2026-11',
+                section: 'cover_candidate',
+                source_type: 'poker_news',
+                source_id: '8cc90281-596b-4b9a-bcfc-12a5feb0f0ee',
+                headline: 'Ramin Hajiyev Hauls Third Triton Trophy and $2.8M After Steamrolling Final Table',
+                deck: 'Ramin Hajiyev Hauls Third Triton Trophy and $2.8M After Steamrolling Final Table',
+                body_text:
+                    'Ramin Hajiyev Hauls Third Triton Trophy and $2.8M After Steamrolling Final Table\n\nRamin Hajiyev captured his third career Triton Super High Roller Series title after navigating an elite final table in Monte Carlo&#x27;s $150,000 event.\n\nEntering heads-up play with a commanding chip lead , Hajiyev applied relentless turn overbet pressure to seal the $2.8M top prize.',
+                vaulted_image_url: vaultedWeb,
+                vaulted_master_url: vaultedMaster,
+                editorial_score: 96,
+                metadata_json: { byline: 'PokerNews', category: 'Tournament' },
+            },
+            // Year-long 365-day placeholder series -> MUST BE FILTERED OUT on pp. 38-39
+            {
+                id: 'year-long-series',
+                issue_period: '2026-11',
+                section: 'series_calendar',
+                source_type: 'poker_series',
+                source_id: '999',
+                headline: '2026 Year Long Placeholder Series',
+                summary: '(2026-01-01 to 2026-12-31)',
+                metadata_json: { startDate: '2026-01-01', endDate: '2026-12-31', city: '', state: '' },
+                editorial_score: 88,
+            },
+            // Genuine multi-week championship stop -> KEPT on pp. 38-39
+            {
+                id: 'real-venetian-series',
+                issue_period: '2026-11',
+                section: 'series_calendar',
+                source_type: 'tournament_series',
+                source_id: '777',
+                headline: 'DeepStack Extravaganza Championship',
+                summary: 'The Venetian Resort, Las Vegas, NV • 2026-11-28 to 2026-12-20',
+                metadata_json: {
+                    venueName: 'The Venetian Resort',
+                    city: 'Las Vegas',
+                    state: 'NV',
+                    startDate: '2026-11-28',
+                    endDate: '2026-12-20',
+                },
+                editorial_score: 85,
+            },
+        ],
+    });
+
+    const fullManifestStr = JSON.stringify(compiledManifest);
+    assert.doesNotMatch(fullManifestStr, /Betrivers/i, 'Competitor BetRivers row must never appear anywhere in manifest');
+    assert.doesNotMatch(fullManifestStr, /&#x27;|&#0?39;|&quot;|&mdash;/i, 'Raw HTML entities must never survive into manifest');
+    assert.match(compiledManifest.coverHeadline, /Ramin Hajiyev Hauls Third Triton Trophy/);
+    assert.equal(
+        isEchoingOrEmptyBlurb(compiledManifest.coverHeadline, compiledManifest.coverSubheadline),
+        false,
+        `coverSubheadline must never echo coverHeadline: "${compiledManifest.coverSubheadline}"`
+    );
+
+    const p12 = compiledManifest.pages.find((p) => p.pageNumber === 12);
+    assert.equal(
+        isEchoingOrEmptyBlurb(compiledManifest.coverHeadline, p12?.paragraphs?.[0] || ''),
+        false,
+        'Cover Story Page 12 opening paragraph must never echo headline'
+    );
+
+    // News Rail / Final Table / Platform pages carry empty paragraphs[] so Reader View never double-renders
+    for (const n of [6, 7, 8, 9, 22, 23]) {
+        assert.deepEqual(
+            compiledManifest.pages.find((p) => p.pageNumber === n)?.paragraphs,
+            [],
+            `Page ${n} must not duplicate item cards inside page.paragraphs`
+        );
+    }
+
+    // Live Series Radar pp. 38-39 excludes 365-day placeholders and keeps real stops
+    const seriesHeadlines = [38, 39].flatMap((n) => (compiledManifest.pages.find((p) => p.pageNumber === n)?.items || []).map((x) => x.headline));
+    assert.equal(seriesHeadlines.includes('2026 Year Long Placeholder Series'), false);
+    assert.equal(seriesHeadlines.includes('DeepStack Extravaganza Championship'), true);
+
+    // 5. Schema Law: neither vaultHarvester.mjs nor weeklyWireEngine.mjs queries phantom `venue_name` on `poker_series`
+    const harvesterSrc = read('src/lib/magazine/vaultHarvester.mjs');
+    const wireEngineSrc = read('src/lib/newsletter/weeklyWireEngine.mjs');
+    for (const [name, src] of [
+        ['vaultHarvester.mjs', harvesterSrc],
+        ['weeklyWireEngine.mjs', wireEngineSrc],
+    ]) {
+        const psSelects = [...src.matchAll(/from\(['"]poker_series['"]\)[\s\S]{0,180}?\.select\(([\s\S]*?)\)/g)];
+        assert.ok(psSelects.length >= 1, `${name} must query poker_series`);
+        for (const m of psSelects) {
+            assert.doesNotMatch(
+                m[1],
+                /\bvenue_name\b/,
+                `${name} must never select non-existent column venue_name on poker_series`
+            );
+        }
+    }
+
+    // Also prove harvestMonthlyMagazineVault executes tournament_series + poker_series cleanly
+    const queriedTables = [];
+    const mockSb = {
+        from(table) {
+            queriedTables.push(table);
+            const chain = {
+                select: () => chain,
+                eq: () => chain,
+                neq: () => chain,
+                in: () => chain,
+                or: () => chain,
+                gte: () => chain,
+                lt: () => chain,
+                lte: () => chain,
+                gt: () => chain,
+                ilike: () => chain,
+                like: () => chain,
+                order: () => chain,
+                limit: async () => ({ data: [], error: null }),
+                upsert: (rows) => ({
+                    select: async () => ({ data: rows, error: null }),
+                }),
+            };
+            return chain;
+        },
+        storage: {
+            from: () => ({
+                upload: async (p) => ({ data: { path: p }, error: null }),
+                getPublicUrl: (p) => ({ data: { publicUrl: `https://smarter.poker/${p}` } }),
+            }),
+        },
+    };
+    await harvestMonthlyMagazineVault(mockSb, { issuePeriod: '2026-11', externalBudgetMs: 0 });
+    assert.ok(queriedTables.includes('poker_series'), 'Harvester must query poker_series');
+    assert.ok(queriedTables.includes('tournament_series'), 'Harvester must query tournament_series');
+});
+
+// ── MAG LAW 18: Commercial Saddle-Stitch Imposition & Cardroom Fulfillment CSV/Label Engine ──
+test('MAG LAW 18: computeSaddleStitchSpreads enforces exact 16.75x10.875 signature sheet pairing across 36/40/44/48 pages, and buildCardroomFulfillmentCsv computes 10% overage + neutralizes CSV formula injection', async () => {
+    const {
+        IMPOSITION_SHEET_TRIM,
+        buildCardroomFulfillmentCsv,
+        computeSaddleStitchSpreads,
+        escapeFulfillmentCsvCell,
+        padPagesToSignature,
+    } = await import('../src/lib/magazine/magazineImposition.mjs');
+
+    assert.equal(IMPOSITION_SHEET_TRIM.spreadWidthIn, 16.75);
+    assert.equal(IMPOSITION_SHEET_TRIM.spreadHeightIn, 10.875);
+    assert.equal(IMPOSITION_SHEET_TRIM.bleedSpreadWidthIn, 17.0);
+    assert.equal(IMPOSITION_SHEET_TRIM.bleedSpreadHeightIn, 11.125);
+
+    // Non-multiples of 4 MUST throw RangeError; padPagesToSignature rounds cleanly to 4-page signatures
+    assert.throws(() => computeSaddleStitchSpreads([{ pageNumber: 1 }, { pageNumber: 2 }]), RangeError);
+    assert.throws(
+        () => computeSaddleStitchSpreads(Array.from({ length: 42 }, (_, i) => ({ pageNumber: i + 1 }))),
+        RangeError
+    );
+    assert.equal(padPagesToSignature([{ pageNumber: 1 }, { pageNumber: 2 }, { pageNumber: 3 }]).length, 4);
+
+    for (const totalPages of [36, 40, 44, 48]) {
+        const fakePages = Array.from({ length: totalPages }, (_, idx) => ({
+            pageNumber: idx + 1,
+            headline: `Page ${idx + 1}`,
+        }));
+        const spreads = computeSaddleStitchSpreads(fakePages);
+        assert.equal(spreads.length, totalPages / 2, `${totalPages}p must produce ${totalPages / 2} printer spreads`);
+
+        // Sheet 1 Front = [P.N | P.1], Sheet 1 Back = [P.2 | P.N-1], Centerfold = [P.N/2 | P.N/2 + 1]
+        assert.equal(spreads[0].leftPageNumber, totalPages);
+        assert.equal(spreads[0].rightPageNumber, 1);
+        assert.equal(spreads[0].side, 'front');
+        assert.equal(spreads[1].leftPageNumber, 2);
+        assert.equal(spreads[1].rightPageNumber, totalPages - 1);
+        assert.equal(spreads[1].side, 'back');
+        const lastSpread = spreads[spreads.length - 1];
+        assert.equal(lastSpread.leftPageNumber, totalPages / 2);
+        assert.equal(lastSpread.rightPageNumber, totalPages / 2 + 1);
+
+        const seen = new Set();
+        for (const sp of spreads) {
+            assert.equal(
+                sp.leftPageNumber + sp.rightPageNumber,
+                totalPages + 1,
+                `Every saddle-stitch spread must sum to N+1 (${totalPages + 1})`
+            );
+            seen.add(sp.leftPageNumber);
+            seen.add(sp.rightPageNumber);
+        }
+        assert.equal(seen.size, totalPages, `All ${totalPages} pages must appear bijectively across spreads`);
+    }
+
+    // Print proof route wires booklet imposition, center spine fold ticks, registration bullseyes & Vanguard color bars
+    const printProofSrc = read('pages/hub/magazine/print/[issue].js');
+    assert.match(printProofSrc, /computeSaddleStitchSpreads/);
+    assert.match(printProofSrc, /imposition.*booklet/);
+    assert.match(printProofSrc, /16\.75in\s+10\.875in/);
+    assert.match(printProofSrc, /17\.0in\s+11\.125in/);
+    assert.match(printProofSrc, /RegistrationBullseye/);
+    assert.match(printProofSrc, /VanguardColorBars/);
+
+    // CSV formula-injection guard + shipping_address_json extraction + 10% overage press-run calculation
+    assert.equal(escapeFulfillmentCsvCell('=CMD|\' /C calc\'!A0'), "'=CMD|' /C calc'!A0");
+    assert.equal(escapeFulfillmentCsvCell('+18005550199'), "'+18005550199");
+
+    const fulfillment = buildCardroomFulfillmentCsv(
+        [
+            {
+                id: 'r1',
+                room_name: 'The Lodge Card Club',
+                contact_name: '=EvilManager',
+                contact_email: 'floor@thelodgepokerclub.com',
+                contact_phone: '512-555-0199',
+                shipping_address_json: { street: '2055 S Interstate 35, Suite 150', postalCode: '78664' },
+                city: 'Round Rock',
+                state: 'TX',
+                table_count: 85,
+                requested_copies: 100,
+                status: 'verified',
+            },
+            {
+                id: 'r2',
+                room_name: 'Texas Card House Dallas',
+                contact_name: 'Cardroom Desk',
+                contact_email: 'desk@texascardhouse.com',
+                shipping_address_json: { street: '11834 Harry Hines Blvd' },
+                city: 'Dallas',
+                state: 'TX',
+                postal_code: '75234',
+                requested_copies: 75,
+                status: 'active',
+            },
+            {
+                id: 'r3-pending',
+                room_name: 'Pending Room Excluded By Default',
+                requested_copies: 500,
+                status: 'pending',
+            },
+        ],
+        { issuePeriod: '2026-11', overagePct: 10 }
+    );
+    assert.equal(fulfillment.activeRoomsCount, 2);
+    assert.equal(fulfillment.netCopies, 175);
+    assert.equal(fulfillment.overageCopies, 18); // Math.ceil(175 * 0.10) = 18
+    assert.equal(fulfillment.totalPressRunCopies, 193);
+    assert.match(fulfillment.csv, /"2055 S Interstate 35, Suite 150"/);
+    assert.match(fulfillment.csv, /'=EvilManager/);
+    assert.doesNotMatch(fulfillment.csv, /Pending Room Excluded By Default/);
+
+    const adminSrc = read('pages/admin/newsletter.js');
+    assert.match(adminSrc, /exportMagazineFulfillmentCsv/);
+    assert.match(adminSrc, /printMagazinePackingLabels/);
+});
+
+// ── MAG LAW 19: 44-Page Commercial PDF Builder, Cache Invalidation & /api/news/magazine-pdf Trace Law ──
+test('MAG LAW 19: buildMagazineIssuePdfBuffer generates a valid 44-page %PDF-1.x binary with SSRF protection, /api/news/magazine-pdf enforces refresh auth + published-only caching, compileMonthlyMagazineIssue invalidates stale pdf_url, and @vercel/nft traces zero pages/hub/* files', async () => {
+    const { buildMagazineManifestFromVault, compileMonthlyMagazineIssue } = await import(
+        '../src/lib/magazine/magazineCompiler.mjs'
+    );
+    const { buildMagazineIssuePdfBuffer, isAllowedMagazineAssetImageUrl } = await import(
+        '../src/lib/magazine/magazinePdfBuilder.mjs'
+    );
+    const { default: pdfHandler } = await import('../pages/api/news/magazine-pdf.js');
+
+    // 1. Strict SSRF allowlist on embedded PDF images
+    assert.equal(
+        isAllowedMagazineAssetImageUrl(
+            'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/cover.jpg'
+        ),
+        true
+    );
+    assert.equal(isAllowedMagazineAssetImageUrl('http://169.254.169.254/latest/meta-data/'), false);
+    assert.equal(isAllowedMagazineAssetImageUrl('https://evil.example.com/storage/v1/object/public/magazine-assets/a.jpg'), false);
+    assert.equal(
+        isAllowedMagazineAssetImageUrl(
+            'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/../private/secret.jpg'
+        ),
+        false
+    );
+
+    // 2. Real 44-page PDF binary generation
+    const manifest = buildMagazineManifestFromVault({
+        issueNumber: 1,
+        volumeNumber: 1,
+        issuePeriod: '2026-11',
+        vaultItems: [],
+    });
+    const pdfBuf = await buildMagazineIssuePdfBuffer(manifest, { embedImages: false });
+    assert.ok(Buffer.isBuffer(pdfBuf), 'PDF output must be a Node Buffer');
+    assert.ok(pdfBuf.byteLength > 25_000, `Expected substantial 44-page PDF binary, got ${pdfBuf.byteLength} bytes`);
+    const pdfAscii = pdfBuf.toString('latin1');
+    assert.equal(pdfAscii.startsWith('%PDF-1.'), true, 'PDF buffer must start with %PDF-1. header');
+    assert.match(pdfAscii, /\/Count\s+44\b/, 'PDF page tree must declare /Count 44 pages');
+
+    // 3. /api/news/magazine-pdf endpoint behavior (400 bad selector, 401 unauth refresh, 200 build+upload on published, 302 cached, no DB cache write on draft preview)
+    let uploadedBytes = 0;
+    let dbUpdatedPayload = null;
+    const cachedPublicPdfUrl =
+        'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/smarter-poker-magazine-2026-11.pdf';
+
+    const makePdfMockSb = (issueRow) => ({
+        from(table) {
+            const chain = {
+                select: () => chain,
+                in: () => chain,
+                eq: () => chain,
+                order: () => chain,
+                limit: async () => ({
+                    data: table === 'magazine_issues' && issueRow ? [issueRow] : [],
+                    error: null,
+                }),
+                update: (payload) => {
+                    dbUpdatedPayload = payload;
+                    return { eq: async () => ({ data: [payload], error: null }) };
+                },
+            };
+            return chain;
+        },
+        storage: {
+            from: () => ({
+                upload: async (_p, buf) => {
+                    uploadedBytes = buf.byteLength;
+                    return { data: { path: _p }, error: null };
+                },
+                getPublicUrl: () => ({ data: { publicUrl: cachedPublicPdfUrl } }),
+            }),
+        },
+    });
+
+    const callPdfApi = async ({ query = {}, issueRow = null }) => {
+        let statusCode = 200;
+        let headers = {};
+        let bodyOut = null;
+        let redirectTarget = null;
+        const req = {
+            method: 'GET',
+            headers: {},
+            query,
+            _rateLimitFn: () => true,
+            _fetchImpl: async () => ({ ok: false }),
+            _supabase: makePdfMockSb(issueRow),
+        };
+        const res = {
+            setHeader(k, v) {
+                headers[k.toLowerCase()] = v;
+            },
+            status(c) {
+                statusCode = c;
+                return this;
+            },
+            redirect(c, url) {
+                statusCode = c;
+                redirectTarget = url;
+                return this;
+            },
+            send(b) {
+                bodyOut = b;
+                return this;
+            },
+            end(b) {
+                if (b !== undefined) bodyOut = b;
+                return this;
+            },
+            json(p) {
+                bodyOut = p;
+                return this;
+            },
+        };
+        await pdfHandler(req, res);
+        return { statusCode, headers, bodyOut, redirectTarget };
+    };
+
+    const badSel = await callPdfApi({ query: { issue: '../etc/passwd' } });
+    assert.equal(badSel.statusCode, 400);
+
+    const unauthRefresh = await callPdfApi({ query: { issue: '2026-11', refresh: '1' } });
+    assert.equal(unauthRefresh.statusCode, 401);
+
+    // Draft preview generates PDF with private,no-store and NEVER persists pdf_url to DB
+    uploadedBytes = 0;
+    dbUpdatedPayload = null;
+    const draftRes = await callPdfApi({
+        query: { issue: '2026-11', preview: '1', download: '1' },
+        issueRow: {
+            id: 'draft-id-1',
+            issue_number: 1,
+            volume_number: 1,
+            issue_period: '2026-11',
+            slug: '2026-11',
+            status: 'review',
+            manifest_json: manifest,
+            pdf_url: null,
+        },
+    });
+    assert.equal(draftRes.statusCode, 200);
+    assert.equal(draftRes.headers['content-type'], 'application/pdf');
+    assert.equal(draftRes.headers['cache-control'], 'private, no-store');
+    assert.equal(uploadedBytes, 0, 'Draft preview must not overwrite published storage PDF');
+    assert.equal(dbUpdatedPayload, null, 'Draft preview must not persist pdf_url on review issue');
+
+    // Published issue builds PDF, uploads to magazine-assets, and caches pdf_url
+    const pubRes = await callPdfApi({
+        query: { issue: '2026-11', download: '1' },
+        issueRow: {
+            id: 'pub-id-1',
+            issue_number: 1,
+            volume_number: 1,
+            issue_period: '2026-11',
+            slug: '2026-11',
+            status: 'published',
+            manifest_json: manifest,
+            pdf_url: null,
+        },
+    });
+    assert.equal(pubRes.statusCode, 200);
+    assert.ok(uploadedBytes > 25_000);
+    assert.equal(dbUpdatedPayload?.pdf_url, cachedPublicPdfUrl);
+
+    // Subsequent published request redirects (302) to cached magazine-assets PDF URL
+    const cachedRes = await callPdfApi({
+        query: { issue: '2026-11', download: '1' },
+        issueRow: {
+            id: 'pub-id-1',
+            issue_number: 1,
+            volume_number: 1,
+            issue_period: '2026-11',
+            slug: '2026-11',
+            status: 'published',
+            manifest_json: manifest,
+            pdf_url: cachedPublicPdfUrl,
+        },
+    });
+    assert.equal(cachedRes.statusCode, 302);
+    assert.match(String(cachedRes.redirectTarget), /magazine-assets\/2026-11\/smarter-poker-magazine-2026-11\.pdf/);
+
+    // Re-compiling an issue resets pdf_url: null so stale PDFs are never served after manifest edits
+    let persistedIssueRow = null;
+    const compileMockSb = {
+        from(table) {
+            const chain = {
+                select: () => chain,
+                eq: () => chain,
+                order: () => chain,
+                limit: async () => ({
+                    data:
+                        table === 'magazine_issues'
+                            ? [{ id: 'pub-id-1', issue_number: 1, issue_period: '2026-11', status: 'published', pdf_url: cachedPublicPdfUrl }]
+                            : [],
+                    error: null,
+                }),
+                update: (payload) => {
+                    persistedIssueRow = payload;
+                    return {
+                        eq: () => ({
+                            select: () => ({ limit: async () => ({ data: [payload], error: null }) }),
+                        }),
+                    };
+                },
+            };
+            return chain;
+        },
+    };
+    await compileMonthlyMagazineIssue(compileMockSb, { issuePeriod: '2026-11' });
+    assert.equal(persistedIssueRow?.pdf_url, null, 'Re-compiling an issue must reset pdf_url to null');
+
+    // 4. Next.js @vercel/nft trace check: magazine-pdf.js must NEVER trace any pages/hub/* static page
+    const nftRes = await nextFileTracer.nodeFileTrace(['pages/api/news/magazine-pdf.js'], {
+        base: REPO,
+        processCwd: REPO,
+    });
+    const leakedPages = [...nftRes.fileList].filter(
+        (f) => f.startsWith('pages/hub/') || f.startsWith('pages/poker-rooms/')
+    );
+    assert.deepEqual(
+        leakedPages,
+        [],
+        `pages/api/news/magazine-pdf.js leaked page traces into serverless bundle: ${leakedPages.join(', ')}`
+    );
+});
+
+// ── MAG LAW 20: Printable 300-DPI Cardroom Table-Tent Kit, Print Chrome Isolation & Sitemap Parity ──
+test('MAG LAW 20: /hub/magazine/table-tent exports getServerSideProps, <=60-char title, 4x6 & 5x7 @page specs, ISO 18004 QR codes, _app.js + NewsletterCaptureBar print isolation, and dual sitemaps', async () => {
+    const tentSrc = read('pages/hub/magazine/table-tent.js');
+    assert.match(tentSrc, /export\s+async\s+function\s+getServerSideProps/);
+    assert.match(tentSrc, /buildMagazineQrDataUri/);
+    assert.match(tentSrc, /@page\s*\{\s*size:\s*8\.5in\s+6\.5in/);
+    assert.match(tentSrc, /@page\s*\{\s*size:\s*5in\s+7in/);
+    assert.match(tentSrc, /utm_source=table_tent&utm_medium=qr&utm_campaign=cardroom_kit/);
+
+    const titleMatch = tentSrc.match(/const\s+pageTitle\s*=\s*['"]([^'"]+)['"]/);
+    assert.ok(titleMatch?.[1], 'table-tent.js must define static pageTitle');
+    const escapedLen = titleMatch[1].replace(/&/g, '&amp;').length;
+    assert.ok(escapedLen <= 60, `table-tent.js <title> exceeds 60 chars (${escapedLen}): "${titleMatch[1]}"`);
+    assert.equal((titleMatch[1].match(/Smarter\.Poker/gi) || []).length, 1);
+
+    // Print isolation in _app.js + NewsletterCaptureBar exclusion
+    const appSrc = read('pages/_app.js');
+    assert.match(appSrc, /\/hub\/magazine\/table-tent/);
+
+    const captureSrc = read('src/components/news/NewsletterCaptureBar.js');
+    const fnStart = captureSrc.indexOf('export function normalizeCapturePath');
+    const fnEnd = captureSrc.indexOf('export default function NewsletterCaptureBar');
+    const pureSnippet = captureSrc.slice(fnStart, fnEnd).replace(/^export\s+function\s+/gm, 'function ');
+    const capSb = { exports: {} };
+    vm.runInNewContext(`${pureSnippet}\nexports.isNewsletterCaptureRoute = isNewsletterCaptureRoute;`, capSb);
+    assert.equal(capSb.exports.isNewsletterCaptureRoute('/hub/magazine/table-tent'), false);
+    assert.equal(capSb.exports.isNewsletterCaptureRoute('/hub/magazine/table-tent?room=Lodge'), false);
+
+    // Registered in both sitemaps
+    assert.match(read('src/lib/seo/sitemapBuilders.mjs'), /\/hub\/magazine\/table-tent/);
+    assert.match(read('pages/sitemap.xml.js'), /['"]\/hub\/magazine\/table-tent['"]/);
+});
+
+// ── MAG LAW 21: Interactive Flipbook Live Spot Voting, Reading Progress/Bookmarks, Instant Search, Zoom & Audio Speech Cleanup ──
+test('MAG LAW 21: MagazineSpreadRenderer + [issue].js + index.js wire live /api/news/spot-vote tallies with AbortController, localStorage reading progress & bookmarks, instant 44-page search, 135% spread zoom, and speechSynthesis cleanup on unmount', () => {
+    const rendererSrc = read('src/components/magazine/MagazineSpreadRenderer.js');
+    const fnStart = rendererSrc.indexOf('export function parseLiveSpotVotePayload');
+    const fnEnd = rendererSrc.indexOf('function StrategyColumnLayout');
+    assert.ok(fnStart >= 0 && fnEnd > fnStart, 'parseLiveSpotVotePayload must exist in MagazineSpreadRenderer.js');
+    const fnSnippet = rendererSrc.slice(fnStart, fnEnd).replace(/^export\s+function\s+/, 'function ');
+    const sb = { Math, Number, exports: {} };
+    vm.runInNewContext(`${fnSnippet}\nexports.parseLiveSpotVotePayload = parseLiveSpotVotePayload;`, sb);
+
+    const normalizedTallies = sb.exports.parseLiveSpotVotePayload({
+        votes: { A: 14, B: 26, C: 10, total: 50 },
+    });
+    assert.deepEqual({ ...normalizedTallies }, { A: 14, B: 26, C: 10, total: 50 });
+
+    assert.match(rendererSrc, /\/api\/news\/spot-vote/);
+    assert.match(rendererSrc, /new\s+AbortController\(\)/);
+    assert.match(rendererSrc, /sp_magazine_spot_vote_updated/);
+
+    const issueSrc = read('pages/hub/magazine/[issue].js');
+    assert.match(issueSrc, /sp_mag_progress_v1:/);
+    assert.match(issueSrc, /sp_mag_bookmarks_v1:/);
+    assert.match(issueSrc, /speechSynthesis/);
+    assert.match(issueSrc, /\.cancel\(\)/, 'Audio narration must cancel speechSynthesis cleanly on stop/unmount');
+    assert.match(issueSrc, /zoomScale|1\.35|135%/);
+    assert.match(issueSrc, /\/api\/og\/magazine-card\?/);
+    assert.match(issueSrc, /\/api\/news\/spot-vote/);
+
+    const indexSrc = read('pages/hub/magazine/index.js');
+    assert.match(indexSrc, /sp_mag_progress_v1:/);
+    assert.match(indexSrc, /Continue Reading Issue #/);
+    assert.match(indexSrc, /\/api\/news\/magazine-pdf\?issue=/);
+    assert.match(indexSrc, /\/hub\/magazine\/table-tent/);
+});
+
+// ── MAG LAW 22: Dynamic 1200x630 Magazine OG Card Satori Compliance & Geo/Middleware Public Allowlisting ──
+test('MAG LAW 22: /api/og/magazine-card enforces Edge runtime, Satori display:flex on all multi-child JSX containers, ASCII/no-$ cardText, Vanguard palette, and geo-blocks + middleware allowlists', () => {
+    const ogSrc = read('pages/api/og/magazine-card.js');
+    assert.match(ogSrc, /export\s+const\s+config\s*=\s*\{\s*runtime:\s*['"]edge['"]\s*\}/);
+    assert.match(ogSrc, /new\s+ImageResponse\(/);
+    assert.match(ogSrc, /width:\s*1200/);
+    assert.match(ogSrc, /height:\s*630/);
+    assert.doesNotMatch(ogSrc, /#fbbf24|#f59e0b|#eab308|#c084fc|#a855f7|#ec4899/i);
+
+    // Every <div style={{ ... }}> in Satori OG card must explicitly include display: 'flex'
+    const divStyleMatches = [...ogSrc.matchAll(/<div\s+style=\{\{([\s\S]*?)\}\}/g)];
+    assert.ok(divStyleMatches.length >= 15, 'Expected Satori JSX layout containers in magazine-card.js');
+    for (const m of divStyleMatches) {
+        assert.match(
+            m[1],
+            /display:\s*['"]flex['"]/,
+            `Every <div> in pages/api/og/magazine-card.js must declare display: 'flex' for Satori: ${m[1].slice(0, 80)}`
+        );
+    }
+
+    // Verify cardText sanitizes non-ASCII, em/en dashes, and '$' symbols
+    const fnStart = ogSrc.indexOf('export function cardText');
+    const fnEnd = ogSrc.indexOf('function clampText');
+    const fnSnippet = ogSrc.slice(fnStart, fnEnd).replace(/^export\s+function\s+/, 'function ');
+    const sb = { exports: {} };
+    vm.runInNewContext(`${fnSnippet}\nexports.cardText = cardText;`, sb);
+    assert.equal(sb.exports.cardText('Kings Club — $500,000 Chips \u{1F525}'), 'Kings Club - 500,000 Chips');
+
+    // Public allowlists in config/geo-blocks.json and middleware.ts
+    const geoBlocks = JSON.parse(read('config/geo-blocks.json'));
+    const allowPaths = geoBlocks.allow_paths || [];
+    assert.ok(allowPaths.includes('/api/news/magazine-pdf'), 'geo-blocks.json must allow /api/news/magazine-pdf');
+    assert.ok(allowPaths.includes('/api/og/'), 'geo-blocks.json must allow /api/og/');
+
+    const mwSrc = read('middleware.ts');
+    assert.match(mwSrc, /['"]\/api\/news\/magazine-pdf['"]/);
+    assert.match(mwSrc, /['"]\/api\/og\/['"]/);
+});
+
+// ── MAG LAW 23: Per-Page Print QR UTMs, Venue Auto-Linking, Pro-Account Confirmation Email & Cross-Hub Showcases ──
+test('MAG LAW 23: appendMagazineQrUtm tags all 44 QR URLs without mutating ctaUrl or dropping ?pt=, resolveMatchingPokerVenueId auto-links verified venues while rejecting id=3109 & unverified self-reg, sendCardroomConfirmationEmail uses resendAccount.mjs within <=30 @vercel/nft files, and MagazineNewsstandBanner mounts on /hub/news & /poker-rooms', async () => {
+    const { appendMagazineQrUtm, classifyClickedEmailSection } = await import(
+        '../src/lib/newsletter/utmAttribution.mjs'
+    );
+    const { buildMagazineManifestFromVault } = await import('../src/lib/magazine/magazineCompiler.mjs');
+    const {
+        default: roomsHandler,
+        resolveMatchingPokerVenueId,
+        sendCardroomConfirmationEmail,
+    } = await import('../pages/api/news/magazine-rooms.js');
+
+    // 1. Per-page QR UTM attribution across all 44 pages while keeping web ctaUrl clean & preserving ?pt=
+    const taggedPromoQr = appendMagazineQrUtm(
+        'https://smarter.poker/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450&pt=signed_token_xyz',
+        { issuePeriod: '2026-11', pageNumber: 2, kind: 'house_promo_spread' }
+    );
+    const parsedPromoQr = new URL(taggedPromoQr);
+    assert.equal(parsedPromoQr.searchParams.get('pt'), 'signed_token_xyz');
+    assert.equal(parsedPromoQr.searchParams.get('utm_source'), 'mag_qr');
+    assert.equal(parsedPromoQr.searchParams.get('utm_medium'), 'qr');
+    assert.equal(parsedPromoQr.searchParams.get('utm_campaign'), 'mag_2026-11');
+    assert.equal(parsedPromoQr.searchParams.get('utm_content'), 'p02_house_promo_spread');
+
+    assert.equal(classifyClickedEmailSection('https://smarter.poker/hub/magazine/table-tent?room=Lodge'), 'cardrooms');
+    assert.equal(classifyClickedEmailSection('https://smarter.poker/api/news/magazine-pdf?issue=2026-11'), 'magazine');
+
+    const manifest = buildMagazineManifestFromVault({
+        issueNumber: 1,
+        volumeNumber: 1,
+        issuePeriod: '2026-11',
+        vaultItems: [],
+    });
+    assert.equal(manifest.pages.length, 44);
+    for (const pg of manifest.pages) {
+        if (pg.qrUrl) {
+            assert.match(
+                pg.qrUrl,
+                /utm_source=mag_qr/,
+                `Page ${pg.pageNumber} (${pg.kind}) qrUrl must include utm_source=mag_qr: ${pg.qrUrl}`
+            );
+            assert.match(pg.qrUrl, /utm_campaign=mag_2026-11/);
+        }
+        if (pg.ctaUrl) {
+            assert.doesNotMatch(
+                pg.ctaUrl,
+                /utm_source=mag_qr/,
+                `Page ${pg.pageNumber} web ctaUrl must stay clean of print QR UTMs: ${pg.ctaUrl}`
+            );
+        }
+    }
+
+    // 2. Verified Poker Venue Auto-Linking (matches real room, rejects id=3109 & unverified self_registration)
+    const mockVenuesSb = (rows) => ({
+        from: () => {
+            const chain = {
+                select: () => chain,
+                eq: () => chain,
+                limit: async () => ({ data: rows, error: null }),
+            };
+            return chain;
+        },
+    });
+
+    const verifiedMatch = await resolveMatchingPokerVenueId(
+        mockVenuesSb([
+            {
+                id: 3109,
+                name: 'The Lodge Card Club',
+                slug: 'suppressed-3109',
+                city: 'Round Rock',
+                state: 'TX',
+                is_active: true,
+                is_suppressed: false,
+                canonical_venue_id: null,
+                source: 'pokeratlas',
+                data_quality: 'scraped_verified',
+                venue_type: 'card_room',
+            },
+            {
+                id: 9001,
+                name: 'The Lodge Card Club',
+                slug: 'unverified-self-reg',
+                city: 'Round Rock',
+                state: 'TX',
+                is_active: true,
+                is_suppressed: false,
+                canonical_venue_id: null,
+                source: 'self_registration',
+                data_quality: 'pending',
+                venue_type: 'card_room',
+            },
+            {
+                id: 4242,
+                name: 'The Lodge Card Club & Poker Room',
+                slug: 'the-lodge-card-club-round-rock',
+                city: 'Round Rock',
+                state: 'TX',
+                is_active: true,
+                is_suppressed: false,
+                canonical_venue_id: null,
+                source: 'pokeratlas',
+                data_quality: 'scraped_verified',
+                venue_type: 'card_room',
+            },
+        ]),
+        { room_name: 'The Lodge Card Club', city: 'Round Rock', state: 'TX' }
+    );
+    assert.deepEqual(verifiedMatch, {
+        venueId: 4242,
+        slug: 'the-lodge-card-club-round-rock',
+    });
+
+    // 3. Automated Cardroom Confirmation Email via resendAccount.mjs + POST /api/news/magazine-rooms end-to-end
+    const savedBulkKey = process.env.RESEND_BULK_API_KEY;
+    process.env.RESEND_BULK_API_KEY = 're_test_pro_key_mag23';
+    try {
+        let capturedEmailReq = null;
+        const emailResult = await sendCardroomConfirmationEmail(
+            {
+                room_name: 'The Lodge Card Club',
+                contact_name: 'Floor Manager',
+                contact_email: 'floor@thelodgepokerclub.com',
+                city: 'Round Rock',
+                state: 'TX',
+                postal_code: '78664',
+                requested_copies: 75,
+                shipping_address_json: { street: '2055 S Interstate 35' },
+            },
+            {
+                matchedVenueSlug: 'the-lodge-card-club-round-rock',
+                fetchImpl: async (url, init) => {
+                    capturedEmailReq = { url, headers: init.headers, body: JSON.parse(init.body) };
+                    return { ok: true, status: 200 };
+                },
+            }
+        );
+        assert.equal(emailResult.sent, true);
+        assert.equal(capturedEmailReq?.url, 'https://api.resend.com/emails');
+        assert.equal(capturedEmailReq?.headers?.Authorization, 'Bearer re_test_pro_key_mag23');
+        assert.match(capturedEmailReq?.body?.from || '', /@mail\.smarter\.poker/);
+        assert.match(capturedEmailReq?.body?.html || '', /\/hub\/magazine\/table-tent\?/);
+        assert.match(capturedEmailReq?.body?.html || '', /the-lodge-card-club-round-rock/);
+
+        // End-to-end POST handler links venue_id and returns matched_venue_slug + confirmationEmailSent
+        let insertedPayload = null;
+        let postStatus = 200;
+        let postJson = null;
+        const mockPostSb = {
+            from(table) {
+                if (table === 'poker_venues') {
+                    const chain = {
+                        select: () => chain,
+                        eq: () => chain,
+                        limit: async () => ({
+                            data: [
+                                {
+                                    id: 4242,
+                                    name: 'The Lodge Card Club',
+                                    slug: 'the-lodge-card-club-round-rock',
+                                    city: 'Round Rock',
+                                    state: 'TX',
+                                    is_active: true,
+                                    is_suppressed: false,
+                                    canonical_venue_id: null,
+                                    source: 'pokeratlas',
+                                    data_quality: 'scraped_verified',
+                                    venue_type: 'card_room',
+                                },
+                            ],
+                            error: null,
+                        }),
+                    };
+                    return chain;
+                }
+                const chain = {
+                    select: () => chain,
+                    ilike: () => chain,
+                    in: () => chain,
+                    limit: async () => ({ data: [], error: null }),
+                    insert: (payload) => {
+                        insertedPayload = payload;
+                        return {
+                            select: () => ({
+                                limit: async () => ({
+                                    data: [{ id: 'sub-uuid-1', ...payload }],
+                                    error: null,
+                                }),
+                            }),
+                        };
+                    },
+                };
+                return chain;
+            },
+        };
+        await roomsHandler(
+            {
+                method: 'POST',
+                headers: {},
+                body: {
+                    room_name: 'The Lodge Card Club',
+                    contact_name: 'Floor Manager',
+                    contact_email: 'floor@thelodgepokerclub.com',
+                    shipping_address: '2055 S Interstate 35',
+                    city: 'Round Rock',
+                    state: 'TX',
+                    postal_code: '78664',
+                    requested_copies: 50,
+                },
+                _rateLimitFn: () => true,
+                _supabase: mockPostSb,
+                _fetchImpl: async () => ({ ok: true, status: 200 }),
+            },
+            {
+                setHeader() {},
+                status(c) {
+                    postStatus = c;
+                    return this;
+                },
+                json(p) {
+                    postJson = p;
+                    return this;
+                },
+            }
+        );
+        assert.equal(postStatus, 201);
+        assert.equal(insertedPayload?.venue_id, 4242);
+        assert.equal(postJson?.subscription?.venue_id, 4242);
+    } finally {
+        if (savedBulkKey === undefined) delete process.env.RESEND_BULK_API_KEY;
+        else process.env.RESEND_BULK_API_KEY = savedBulkKey;
+    }
+
+    // 4. @vercel/nft serverless trace stays <= 30 files and 0 pages/hub/* files on magazine-rooms.js
+    const roomsNft = await nextFileTracer.nodeFileTrace(['pages/api/news/magazine-rooms.js'], {
+        base: REPO,
+        processCwd: REPO,
+    });
+    assert.ok(
+        roomsNft.fileList.size <= 30,
+        `pages/api/news/magazine-rooms.js trace grew to ${roomsNft.fileList.size} files (max 30)`
+    );
+    const leakedRoomPages = [...roomsNft.fileList].filter((f) => f.startsWith('pages/hub/'));
+    assert.deepEqual(leakedRoomPages, []);
+
+    // 5. Cross-hub MagazineNewsstandBanner mounted on /hub/news and /poker-rooms + Table-Tent CTA on /hub/magazine/poker-rooms
+    const bannerSrc = read('src/components/magazine/MagazineNewsstandBanner.js');
+    assert.match(bannerSrc, /minHeight:\s*['"]44px['"]/);
+    assert.match(bannerSrc, /href="\/hub\/magazine"/);
+    assert.match(bannerSrc, /href="\/hub\/magazine\/poker-rooms"/);
+    assert.doesNotMatch(bannerSrc, /#fbbf24|#c084fc|\u2014|\u2013/i);
+
+    assert.match(read('pages/hub/news.js'), /MagazineNewsstandBanner/);
+    assert.match(read('pages/poker-rooms/index.js'), /MagazineNewsstandBanner/);
+    assert.match(read('pages/hub/magazine/poker-rooms.js'), /\/hub\/magazine\/table-tent/);
+});
+
+// ── MAG LAW 24: Print-Edition Art Direction, QR Discipline & Zero Duplication ──
+test('MAG LAW 24: every printed picture is real and unique, placeholder plates never print or get reused, QR codes print only on join or destination pages, pull quotes come from their own story, and the renderer honors the plan', async () => {
+    const { buildMagazineManifestFromVault } = await import('../src/lib/magazine/magazineCompiler.mjs');
+    const { finalizeMagazineIssueManifest, listPrintedMagazinePictures } = await import('../src/lib/magazine/magazineArtDirection.mjs');
+    const {
+        normalizeIssueManifest,
+        isMagazineFallbackImageUrl,
+        isSelfReferentialMagazineQr,
+        MAGAZINE_QR_PAGE_KINDS,
+        planMagazineQrCodes,
+    } = await import('../src/lib/magazine/magazineSchema.mjs');
+
+    const asset = (name) => `https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/${name}-web.jpg`;
+    const shared = asset('0123456789abcdef01234567');
+    const plate = asset('fedcba9876543210fedcba98');
+    const vaultItems = [
+        {
+            id: 'l18-cover',
+            issue_period: '2026-11',
+            section: 'cover_candidate',
+            headline: 'Circuit Finale Draws Record Field In Cherokee',
+            body_text:
+                'The circuit finale opened with a record 1,240 entries across the first two flights of the Main Event.\n\nOrganizers added a third starting flight after the opening day sold out within four hours of registration.\n\nLast year the same event drew 980 players and paid 140 places, with the winner taking home a career-best score.',
+            vaulted_image_url: shared,
+            vaulted_master_url: shared,
+            image_width: 1200,
+            image_height: 800,
+            editorial_score: 99,
+            is_pinned: true,
+        },
+        {
+            id: 'l18-feature',
+            issue_period: '2026-11',
+            section: 'feature_story',
+            headline: 'Island Festival Adds A Five Million Guarantee',
+            body_text:
+                'The island festival announced a five million guarantee for its championship event starting next week.\n\nQualifiers from the season will receive travel packages and a seat in the opening flight of the event.',
+            vaulted_image_url: shared,
+            vaulted_master_url: shared,
+            image_width: 1200,
+            image_height: 800,
+            editorial_score: 90,
+        },
+        {
+            id: 'l18-news-plate',
+            issue_period: '2026-11',
+            section: 'news_brief',
+            headline: 'Regional Series Posts Strong Turnout',
+            summary: 'A regional series posted strong turnout across its opening weekend of events.',
+            vaulted_image_url: plate,
+            vaulted_master_url: plate,
+            image_width: 1600,
+            image_height: 2000,
+            metadata_json: { usedFallbackImage: true },
+            editorial_score: 80,
+        },
+    ];
+
+    const manifest = buildMagazineManifestFromVault({ issueNumber: 1, volumeNumber: 1, issuePeriod: '2026-11', vaultItems });
+
+    // 1. Every printed picture is real (never a fallback or a plate) and prints exactly once.
+    const pictures = listPrintedMagazinePictures(manifest);
+    assert.ok(pictures.length > 0, 'Issue must print pictures');
+    const plateKey = 'vault:fedcba9876543210fedcba98';
+    for (const pic of pictures) {
+        assert.equal(isMagazineFallbackImageUrl(pic.url), false, `Page ${pic.pageNumber} prints a fallback image`);
+        assert.notEqual(pic.key, plateKey, `Page ${pic.pageNumber} prints a placeholder plate`);
+    }
+    const keys = pictures.map((p) => p.key);
+    assert.equal(new Set(keys).size, keys.length, `Duplicate printed pictures: ${keys.join(', ')}`);
+    for (const page of manifest.pages) {
+        if (page.imageRole === 'none') continue;
+        assert.ok(page.imageUrl && !isMagazineFallbackImageUrl(page.imageUrl), `Page ${page.pageNumber} has a role but no real picture`);
+    }
+
+    // 2. QR codes: allowed kinds only, never pointing back at the magazine, each destination once.
+    const qrPages = manifest.pages.filter((p) => p.showQr);
+    assert.ok(qrPages.length >= 3 && qrPages.length <= 16, `Expected a disciplined QR count, got ${qrPages.length}`);
+    const qrTargets = new Set();
+    for (const page of qrPages) {
+        assert.ok(new Set(MAGAZINE_QR_PAGE_KINDS).has(page.kind), `QR printed on disallowed page kind ${page.kind}`);
+        assert.equal(isSelfReferentialMagazineQr(page.qrUrl), false, `Page ${page.pageNumber} QR points back at the magazine`);
+        assert.ok(page.qrLabel && /^Scan To |^Scan For /.test(page.qrLabel), `Page ${page.pageNumber} QR needs an action label`);
+        const target = String(page.qrUrl).replace(/#.*$/, '').replace(/[?&]utm_[^&]*/g, '').replace(/\/$/, '');
+        assert.equal(qrTargets.has(target), false, `QR destination printed twice: ${target}`);
+        qrTargets.add(target);
+    }
+    assert.equal(manifest.pages.find((p) => p.kind === 'front_cover').showQr, false, 'Front cover never carries a QR code');
+    assert.ok(planMagazineQrCodes(manifest.pages) instanceof Map);
+
+    // 3. Feature pull quotes are sentences of their own story; no pull quote or stat prints twice.
+    const storyText = manifest.pages
+        .filter((p) => p.kind === 'cover_feature')
+        .flatMap((p) => p.paragraphs)
+        .join(' ')
+        .toLowerCase();
+    for (const page of manifest.pages.filter((p) => p.kind === 'cover_feature' && p.pullQuote)) {
+        assert.ok(storyText.includes(page.pullQuote.toLowerCase().slice(0, 40)), `Page ${page.pageNumber} pull quote is not from the story`);
+    }
+    const quotes = manifest.pages.map((p) => p.pullQuote).filter(Boolean);
+    assert.equal(new Set(quotes).size, quotes.length, 'A pull quote prints twice');
+    const statKeys = manifest.pages.flatMap((p) => (p.stats || []).map((s) => `${s.label}|${s.value}`.toLowerCase()));
+    assert.equal(new Set(statKeys).size, statKeys.length, 'A stat prints twice');
+    for (const page of manifest.pages.filter((p) => p.kind === 'cover_feature' || p.kind === 'secondary_feature')) {
+        if (page.runIndex > 0) assert.equal(page.subheadline, '', `Page ${page.pageNumber} continuation carries an invented deck`);
+        assert.doesNotMatch(page.headline, /Tactical Blueprint/);
+    }
+
+    // 4. Runs are derived and finalize is idempotent.
+    const cover = manifest.pages.filter((p) => p.kind === 'cover_feature');
+    assert.deepEqual(cover.map((p) => `${p.runIndex}/${p.runLength}`), ['0/4', '1/4', '2/4', '3/4']);
+    const again = normalizeIssueManifest(finalizeMagazineIssueManifest(manifest, { vaultItems }));
+    assert.equal(JSON.stringify(again.pages), JSON.stringify(manifest.pages), 'finalizeMagazineIssueManifest must be idempotent');
+
+    // 5. The harvester retries plates instead of reusing them forever.
+    const harvesterSrc = read('src/lib/magazine/vaultHarvester.mjs');
+    assert.match(harvesterSrc, /!isVanguardPlateVaultRecord\(existing\)/, 'Harvester must never reuse a placeholder plate');
+    assert.match(harvesterSrc, /usedFallbackImage:\s*Boolean\(vidVault\?\.usedFallback\)/, 'Video plates must be recorded');
+
+    // 6. The renderer prints exactly what the plan says.
+    const rendererSrc = read('src/components/magazine/MagazineSpreadRenderer.js');
+    assert.match(rendererSrc, /if \(!page\?\.showQr\) return null;/, 'QrBlock must render only when the plan prints a QR');
+    assert.match(rendererSrc, /page\.imageRole === 'none'/, 'Pages without a picture must print no picture');
+    assert.match(rendererSrc, /deckEchoesCopy/, 'Decks that repeat the first paragraph must be dropped');
+    assert.match(rendererSrc, /smarter-poker-logo-final\.png/, 'Running heads must carry the Smarter.Poker logo');
+    assert.match(rendererSrc, /brand-text-trimmed\.png/, 'The cover masthead must carry the Smarter.Poker wordmark');
+    assert.match(read('pages/_app.js'), /magazine-print\.css/, 'The print stylesheet must load globally');
+    assert.doesNotMatch(rendererSrc, /Scan At The Table/, 'Generic QR badges must not return');
+});
+
+// ── MAG LAW 25: Printed Copy Never Stops Mid-Word & Pull Quotes Keep Their Gutter ──
+test('MAG LAW 25: decks and paragraphs clip on a full sentence, never mid-word, and the pull-quote mark keeps its gutter', async () => {
+    const { clipAtSentence, buildCleanNonEchoingDeck } = await import('../src/lib/magazine/vaultHarvester.mjs');
+    const long = "Only four people will ever have a Triton 10th Anniversary commemorative coin in their prize cabinets, won in the $150,000 NLH 10th Anniversary Special tournaments held at this year's Triton stops. The last one was up for grabs today at the Triton Super High Roller Series North Cyprus, where the field was the deepest of the year.";
+    const clipped = clipAtSentence(long, 280);
+    assert.ok(clipped.length <= 280, 'Clipped copy must respect the limit');
+    assert.ok(clipped.endsWith("Triton stops."), `Clipped copy must end on the last full sentence, got: ${clipped.slice(-40)}`);
+    assert.equal(clipAtSentence('Short line.', 280), 'Short line.', 'Copy under the limit is untouched');
+    const noStops = 'word '.repeat(80).trim();
+    const wordClip = clipAtSentence(noStops, 100);
+    assert.ok(wordClip.endsWith('word…'), 'Without a sentence end the clip lands on a whole word with an ellipsis');
+    assert.ok(wordClip.length <= 100, 'Word clip respects the limit');
+    const deck = buildCleanNonEchoingDeck({ title: 'Triton Anniversary Special', rawSummary: long });
+    assert.match(deck, /[.!?…]["”')\]]?$/, 'Decks end on punctuation, never mid-word');
+    const harvester = read('src/lib/magazine/vaultHarvester.mjs');
+    assert.doesNotMatch(harvester, /return cand\.slice\(0, 280\)/, 'Decks must not be sliced mid-word');
+    assert.doesNotMatch(harvester, /paragraphs\.push\(text\.slice\(0, 700\)\)/, 'Paragraphs must not be sliced mid-word');
+    const { MAGAZINE_BRAND_ART } = await import('../src/lib/magazine/magazineArtDirection.mjs');
+    assert.notEqual(MAGAZINE_BRAND_ART.back_cover[0], '/images/og-card.jpg', 'The back cover must not sit on the text-heavy share card');
+    const art = Object.values(MAGAZINE_BRAND_ART).flat().filter(Boolean);
+    assert.equal(new Set(art).size, art.length, 'Each piece of brand art prints on one page only');
+    const css = read('src/components/magazine/magazine-print.css');
+    assert.match(css, /\.spm-sheet \.spm-pullquote,\s*\n\.spm-pullquote \{/, 'The pull quote must out-rank the .spm-sheet blockquote reset so its quote mark never overlaps the text');
+    const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
+    assert.match(renderer, /const BRAIN_MARK = '\/images\/magazine\/brain-mark\.webp'/, 'The cover brain mark must be the transparent cut, never the checkerboard icon');
+    const mark = fs.readFileSync(path.join(REPO, 'public/images/magazine/brain-mark.webp'));
+    const chunk = mark.toString('ascii', 12, 16);
+    assert.ok(chunk === 'VP8L' || (chunk === 'VP8X' && (mark[20] & 0x10) !== 0), 'The brain mark must carry a real alpha channel');
+    const phone = read('src/index.css');
+    for (const sel of ['img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]):not(.spm-sheet *)', 'h1:not(.spm-sheet *)', 'h2:not(.spm-sheet *)', 'h3:not(.spm-sheet *)', 'a:not(.spm-sheet *)']) {
+        assert.ok(phone.includes(sel), `The phone reset must skip magazine sheets: ${sel}`);
+    }
+});
+
+test('MAG LAW 26: the issue builder never invents standings, results or filler decks, and a hand-finished issue is never regenerated', async () => {
+    const harvester = await import('../src/lib/magazine/vaultHarvester.mjs');
+    const compiler = await import('../src/lib/magazine/magazineCompiler.mjs');
+    const harvesterSrc = read('src/lib/magazine/vaultHarvester.mjs');
+    const compilerSrc = read('src/lib/magazine/magazineCompiler.mjs');
+
+    // 1. No templated filler decks anywhere.
+    assert.ok(!/headlines this month's \$\{/.test(harvesterSrc), 'No templated "headlines this month" deck');
+    assert.ok(!/examining field turnouts, tournament structures/.test(harvesterSrc), 'No templated breakdown deck');
+    assert.equal(harvester.buildCleanNonEchoingDeck({ title: 'Ryan Brown Wins Main', rawSummary: '', paragraphs: [] }), '');
+    assert.equal(
+        harvester.isTemplatedFillerDeck(
+            "X headlines this month's news coverage via PokerNews, tracking key shifts in tournament fields, prize structures, and top-level competitive storylines."
+        ),
+        true
+    );
+    assert.equal(
+        harvester.buildCleanNonEchoingDeck({
+            title: 'X',
+            rawSummary: "X headlines this month's news coverage via PokerNews, tracking key shifts in tournament fields, prize structures, and top-level competitive storylines.",
+        }),
+        ''
+    );
+
+    // 2. No invented POY names or Kings Club events in the compiler.
+    assert.ok(!/buildFallbackPoyStandings|buildFallbackKingsClubResults/.test(compilerSrc));
+    assert.ok(!/Adrian Mateos|Kings Club Sunday Major Championship/.test(compilerSrc));
+    assert.ok(!/Circle In Chips/.test(compilerSrc), 'Cover line reads like English');
+
+    const empty = compiler.buildMagazineManifestFromVault({ issuePeriod: '2026-11', vaultItems: [] });
+    const p20 = empty.pages.find((p) => p.pageNumber === 20);
+    assert.equal(p20.kicker, 'Champions Board');
+    assert.equal(p20.standingsLabels.value, 'Source');
+    assert.equal([24, 25].flatMap((n) => empty.pages.find((p) => p.pageNumber === n).standings).length, 0);
+    for (const line of empty.meta?.coverLines || []) assert.ok(!/In Chips \(p\./.test(line), line);
+
+    // 3. Real vault rows drive both boards.
+    const vault = [
+        { id: 'a', issue_period: '2026-11', section: 'feature_story', source_type: 'poker_news', headline: 'Ryan Brown Wins Caesars New Orleans WSOP Circuit Main Event', summary: 'Brown won the $1,700 Main Event over 370 entries.', metadata_json: { byline: 'WSOP' } },
+        { id: 'b', issue_period: '2026-11', section: 'news_brief', source_type: 'poker_news', headline: 'EPT Prague To Debut New Formats', summary: 'Two mixed formats join the schedule.', metadata_json: { byline: 'PokerNews' } },
+        { id: 'c', issue_period: '2026-11', section: 'tournament_result', source_type: 'kings_club_tournament', headline: 'Sunday 200 Deep Stack', metadata_json: { name: 'Sunday 200 Deep Stack', gameType: 'NLH', buyInChips: 180, prizePoolChips: 97920, players: 326 } },
+    ];
+    const real = compiler.buildMagazineManifestFromVault({ issuePeriod: '2026-11', vaultItems: vault });
+    const board = real.pages.find((p) => p.pageNumber === 20).standings;
+    assert.ok(board.some((r) => /Ryan Brown Wins/.test(r.playerName)), 'Champions Board uses the real win headline');
+    assert.ok(!board.some((r) => /EPT Prague/.test(r.playerName)), 'Previews are not title wins');
+    const kc = real.pages.find((p) => p.pageNumber === 24).standings;
+    assert.equal(kc[0].name, 'Sunday 200 Deep Stack');
+    assert.equal(kc[0].players, 326);
+    assert.equal(kc[0].prizePoolChips, 97920);
+
+    // 4. Harvester reads Kings Club and the Midway Union, with real field sizes.
+    assert.ok(/\.in\('club_id', \[KINGS_CLUB_UUID, MIDWAY_UNION_CLUB_UUID\]\)/.test(harvesterSrc));
+    assert.ok(/from\('tournament_payouts'\)/.test(harvesterSrc));
+
+    // 5. A hand-finished issue is never regenerated by the monthly run.
+    assert.equal(compiler.isEditoriallyLockedIssue({ manifest_json: { meta: { editorialLock: true } } }), true);
+    assert.equal(compiler.isEditoriallyLockedIssue({ manifest_json: { meta: {} } }), false);
+    const locked = { id: 'issue-1', issue_period: '2026-11', status: 'published', manifest_json: { meta: { editorialLock: true }, pages: [{ pageNumber: 1, headline: 'Hand Edited' }] } };
+    let writes = 0;
+    const chain = (rows) => {
+        const q = {
+            select: () => q, eq: () => q, order: () => q, limit: () => q, in: () => q,
+            update: () => { writes += 1; return q; }, insert: () => { writes += 1; return q; }, upsert: () => { writes += 1; return q; },
+            single: () => q, maybeSingle: () => q,
+            then: (res, rej) => Promise.resolve({ data: rows, error: null }).then(res, rej),
+        };
+        return q;
+    };
+    const fake = { from: (t) => chain(t === 'magazine_issues' ? [locked] : []) };
+    const out = await compiler.compileMonthlyMagazineIssue(fake, { issuePeriod: '2026-11' });
+    assert.equal(out.editorialLocked, true);
+    assert.equal(out.manifest.pages[0].headline, 'Hand Edited');
+    assert.equal(writes, 0, 'A locked issue is not rewritten');
+    assert.ok(/force: body\.force === true/.test(read('pages/api/news/magazine.js')), 'Only an explicit admin force overrides the lock');
+
+    // 6. Standings pages carry their own labels into print.
+    const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
+    assert.ok(/page\?\.standingsLabels/.test(renderer) && /cleanText\(page\?\.kicker\)/.test(renderer));
+});
+
+test('MAG LAW 27: Chips amounts with cents keep them instead of rounding to a false total', () => {
+    assert.equal(formatChipsOnly(31.5), '31.50 Chips');
+    assert.equal(formatChipsOnly(15507.5), '15,507.50 Chips');
+    assert.equal(formatChipsOnly(97920), '97,920 Chips');
+    assert.equal(formatChipsOnly(0), '0 Chips');
 });

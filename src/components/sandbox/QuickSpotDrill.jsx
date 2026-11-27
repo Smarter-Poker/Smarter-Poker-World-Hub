@@ -26,7 +26,7 @@ import { lockedDrillResult } from '../../lib/personal-assistant/lockedDrillResul
 import { readPersistenceResponse } from '../../lib/personal-assistant/persistenceContract';
 import { gradeReview, migrateRecord, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION } from '../../lib/sandbox/leakReview';
 import { PA_ANALYSIS_DEFAULTS, resolveDrillTiming } from '../../lib/personal-assistant/assistantDefaults.mjs';
-import { T, F, S, R, btn, pill, numeric } from './paTokens';
+import { T, F, S, R, btn, pill, numeric, SUITS, SUIT_COLORS } from './paTokens';
 import {
     BottomSheet, PAStyles, Skeleton, EmptyState, ErrorState,
     safeStorage, usePrefersReducedMotion,
@@ -36,6 +36,151 @@ const DEFAULT_OPTIONS = ['Fold', 'Call', 'Raise', 'Check'];
 const DISTRACTORS = ['Fold', 'Check', 'Call', 'Bet', 'Raise', 'All-In'];
 const DURATION = 15;
 const LEVEL_KEY = 'sandbox-drill-level';
+
+const SUIT_SYMBOL_TO_KEY = Object.freeze({
+    c: 'c', d: 'd', h: 'h', s: 's',
+    '♣': 'c', '♦': 'd', '♥': 'h', '♠': 's',
+});
+
+/**
+ * Pure desktop keyboard-shortcut resolver for an active drill spot.
+ * Guards strictly against modifier chords, form fields, repeat events,
+ * and inactive drill states (loading / finished / confirmQuit / submitting).
+ * Returns `{ type: 'pick', index }` for keys 1-4 while !revealed,
+ * `{ type: 'next' }` for Enter or Space while revealed, or null.
+ */
+export function resolveDrillShortcutAction(event, {
+    active = false,
+    revealed = false,
+    isSubmitting = false,
+    optionCount = 0,
+} = {}) {
+    if (!active || !event || event.repeat) return null;
+    if (event.metaKey || event.ctrlKey || event.altKey) return null;
+    const targetTag = String(event.target?.tagName || '').toUpperCase();
+    if (
+        targetTag === 'INPUT'
+        || targetTag === 'TEXTAREA'
+        || targetTag === 'SELECT'
+        || event.target?.isContentEditable
+    ) {
+        return null;
+    }
+    const key = event.key;
+    if (!revealed) {
+        if (isSubmitting) return null;
+        if (key === '1' || key === '2' || key === '3' || key === '4') {
+            const index = Number(key) - 1;
+            if (index >= 0 && index < optionCount) {
+                return { type: 'pick', index };
+            }
+        }
+        return null;
+    }
+    if (key === 'Enter' || key === ' ') {
+        return { type: 'next' };
+    }
+    return null;
+}
+
+/**
+ * Parse a concrete 2-card combo (e.g., "As Kd", "AhKh", "10s 10d", "A♠ K♦")
+ * into two 4-color card descriptors. Returns null for range notation ("AKs", "QQ", "T9o")
+ * or invalid/duplicate cards so the caller renders a styled range pill instead.
+ */
+export function parseDrillHeroHandCards(rawHand) {
+    if (!rawHand || typeof rawHand !== 'string') return null;
+    const trimmed = rawHand.trim();
+    const match = trimmed.match(/^(10|[2-9TJQKA])([cdhs♣♦♥♠])\s*[,/\s-]*\s*(10|[2-9TJQKA])([cdhs♣♦♥♠])$/i);
+    if (!match) return null;
+    const toCard = (rawRank, rawSuit) => {
+        const upRank = rawRank.toUpperCase();
+        const canonicalRank = upRank === '10' ? 'T' : upRank;
+        const displayRank = canonicalRank === 'T' ? '10' : canonicalRank;
+        const suitKey = SUIT_SYMBOL_TO_KEY[rawSuit.toLowerCase()] || SUIT_SYMBOL_TO_KEY[rawSuit];
+        if (!suitKey) return null;
+        return {
+            rank: displayRank,
+            canonicalRank,
+            suitKey,
+            suit: SUITS[suitKey] || '?',
+            color: SUIT_COLORS[suitKey] || '#F1F5FC',
+            code: `${canonicalRank}${suitKey}`,
+        };
+    };
+    const c1 = toCard(match[1], match[2]);
+    const c2 = toCard(match[3], match[4]);
+    if (!c1 || !c2 || c1.code === c2.code) return null;
+    return [c1, c2];
+}
+
+function HeroHandBadge({ hand, testId = null }) {
+    if (!hand) return null;
+    const cards = parseDrillHeroHandCards(hand);
+    if (cards) {
+        return (
+            <span
+                data-testid={testId || undefined}
+                data-hand-notation="combo"
+                aria-label={`Hero Hand ${hand}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+                {cards.map((card, idx) => (
+                    <span
+                        key={`${card.code}-${idx}`}
+                        data-card={card.code}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 2,
+                            minWidth: 32,
+                            height: 36,
+                            padding: '0 6px',
+                            borderRadius: 5,
+                            background: 'linear-gradient(165deg, #0D1E32 0%, #07111C 72%, #040B13 100%)',
+                            border: '1px solid rgba(86, 216, 255, 0.34)',
+                            borderTopColor: '#56d8ff',
+                            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.36)',
+                            color: card.color,
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                            fontWeight: 800,
+                            fontSize: 14,
+                            letterSpacing: -0.5,
+                            ...numeric,
+                        }}
+                    >
+                        <span>{card.rank}</span>
+                        <span style={{ fontSize: 13 }} aria-hidden="true">{card.suit}</span>
+                    </span>
+                ))}
+            </span>
+        );
+    }
+    return (
+        <span
+            data-testid={testId || undefined}
+            data-hand-notation="range"
+            style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 32,
+                padding: '4px 10px',
+                borderRadius: 6,
+                background: 'linear-gradient(165deg, #0D1E32 0%, #07111C 72%, #040B13 100%)',
+                border: '1px solid rgba(255, 198, 109, 0.45)',
+                borderTopColor: '#ffc66d',
+                fontSize: F.h3,
+                fontWeight: 800,
+                color: T.warn,
+                ...numeric,
+            }}
+        >
+            {hand}
+        </span>
+    );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LOCAL REVIEW SCHEDULE (fallback store)
@@ -651,7 +796,7 @@ export default function QuickSpotDrill({
             : locked.correct
                 ? 'Correct · This Action Is Inside The Solver Range.'
                 : `Incorrect · You Picked ${locked.pick}; The Solver Prefers ${graded?.correct_answer}.`);
-        try { navigator.vibrate?.(locked.correct ? 10 : 30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        try { navigator.vibrate?.(locked.correct ? 10 : 30); } catch (_) { /* vibrate unsupported or blocked */ }
         persistResult(graded, locked.timedOut ? 'timeout' : locked.pick, locked.correct);
     }, [persistResult, recordMiss]);
 
@@ -779,7 +924,7 @@ export default function QuickSpotDrill({
             // Safari private mode throws on setItem · never inside a click path.
             safeStorage.set(LEVEL_KEY, newLevel);
             if (newLevel > level) {
-                try { navigator.vibrate?.([20, 20, 20]); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+                try { navigator.vibrate?.([20, 20, 20]); } catch (_) { /* vibrate unsupported or blocked */ }
                 celebrate();
                 if (typeof window !== 'undefined') {
                     window.dispatchEvent(new CustomEvent('sandbox-drill-level-up', { detail: { level: newLevel } }));
@@ -823,10 +968,38 @@ export default function QuickSpotDrill({
 
     const optionRows = useMemo(() => (q?.options?.length ? q.options : DEFAULT_OPTIONS), [q]);
 
+    // Desktop keyboard shortcuts: 1-4 pick an action while !revealed; Enter / Space advances while revealed.
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const spotActive = !loading && !finished && !confirmQuit && !loadError && questions.length > 0;
+        if (!spotActive) return undefined;
+        const onKeyDown = (e) => {
+            const action = resolveDrillShortcutAction(e, {
+                active: spotActive,
+                revealed,
+                isSubmitting: isSubmittingAnswer,
+                optionCount: optionRows.length,
+            });
+            if (!action) return;
+            if (action.type === 'pick') {
+                const chosen = optionRows[action.index];
+                if (chosen) {
+                    e.preventDefault();
+                    handlePick(chosen);
+                }
+            } else if (action.type === 'next') {
+                e.preventDefault();
+                handleNext();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [loading, finished, confirmQuit, loadError, questions.length, revealed, isSubmittingAnswer, optionRows, handlePick, handleNext]);
+
     // ── render helpers ────────────────────────────────────────────────────
     const headerRight = (streak > 0 && !finished && !loading) ? (
         <span style={{ ...pill('warn'), ...numeric }} aria-label={`${streak} In A Row`}>
-            <Flame size={12} strokeWidth={2.5} /> {streak}
+            <Flame size={12} strokeWidth={2.5} aria-hidden="true" /> {streak}
         </span>
     ) : null;
 
@@ -846,7 +1019,7 @@ export default function QuickSpotDrill({
             open
             onClose={requestClose}
             title="Quick Drill"
-            titleIcon={<Zap size={18} strokeWidth={2} color={T.accent} />}
+            titleIcon={<Zap size={18} strokeWidth={2} color={T.accent} aria-hidden="true" />}
             subtitle={subtitle}
             headerRight={headerRight}
             ariaLabel="Quick Spot Drill"
@@ -855,6 +1028,30 @@ export default function QuickSpotDrill({
             closeLabel="Close Drill"
         >
             <PAStyles />
+            <style>{`
+                .pa-drill-keycap {
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 22px;
+                    height: 22px;
+                    padding: 0 5px;
+                    border-radius: 4px;
+                    border: 1px solid rgba(140, 161, 180, 0.34);
+                    background: rgba(5, 8, 12, 0.72);
+                    color: #9eb4c8;
+                    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                    font-size: 12px;
+                    font-weight: 700;
+                    line-height: 1;
+                    flex-shrink: 0;
+                }
+                @media (pointer: fine) {
+                    .pa-drill-keycap {
+                        display: inline-flex;
+                    }
+                }
+            `}</style>
             <span className="pa-vh" role="status" aria-live="polite" data-testid="drill-outcome-announcement">{announcement}</span>
 
             {practiceDisclosure && !loading && !loadError && (
@@ -918,7 +1115,7 @@ export default function QuickSpotDrill({
                 />
             ) : questions.length === 0 ? (
                 <EmptyState
-                    icon={<AlertTriangle size={22} strokeWidth={2} />}
+                    icon={<AlertTriangle size={22} strokeWidth={2} aria-hidden="true" />}
                     title="No Spots Match Yet"
                     body={activeParams
                         ? 'Nothing in the question pool fits these filters. Try the unfiltered pool instead.'
@@ -936,7 +1133,7 @@ export default function QuickSpotDrill({
                                 </button>
                             )}
                             <button type="button" className="pa-btn" onClick={load} style={btn('secondary')}>
-                                <RotateCcw size={18} strokeWidth={2} /> Retry
+                                <RotateCcw size={18} strokeWidth={2} aria-hidden="true" /> Retry
                             </button>
                         </div>
                     )}
@@ -1064,7 +1261,19 @@ export default function QuickSpotDrill({
                             <span style={numeric}>{target}% To Promote</span>
                         </div>
                         <div style={{ height: 8, borderRadius: R.pill, background: T.surface2, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${ladderPct}%`, background: pctTone(accuracy) }} />
+                            <div
+                                className="pa-progress-fill"
+                                data-testid="drill-level-ladder-fill"
+                                style={{
+                                    height: '100%',
+                                    width: '100%',
+                                    borderRadius: R.pill,
+                                    background: pctTone(accuracy),
+                                    transform: `scaleX(${Math.max(0, Math.min(1, ladderPct / 100))})`,
+                                    transformOrigin: 'left center',
+                                    transition: reduce ? 'none' : 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease',
+                                }}
+                            />
                         </div>
                     </div>
 
@@ -1083,7 +1292,7 @@ export default function QuickSpotDrill({
                                         }}
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap', marginBottom: S.xs }}>
-                                            {m.hand && <span style={{ fontSize: F.bodySm, fontWeight: 800, color: T.text, ...numeric }}>{m.hand}</span>}
+                                            {m.hand && <HeroHandBadge hand={m.hand} />}
                                             {m.position && <span style={pill('accent')}>{m.position}</span>}
                                         </div>
                                         <div style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
@@ -1109,7 +1318,7 @@ export default function QuickSpotDrill({
                             disabled={reviewLeakId && review?.status === 'saving'}
                             style={{ ...btn('secondary', { disabled: reviewLeakId && review?.status === 'saving' }), flex: '1 1 140px' }}
                         >
-                            <RotateCcw size={18} strokeWidth={2} /> Drill Again
+                            <RotateCcw size={18} strokeWidth={2} aria-hidden="true" /> Drill Again
                         </button>
                         <button
                             type="button"
@@ -1134,11 +1343,16 @@ export default function QuickSpotDrill({
                         </div>
                         <div style={{ height: 6, borderRadius: R.pill, background: T.surface2, overflow: 'hidden' }}>
                             <div
+                                className="pa-progress-fill"
+                                data-testid="drill-timer-fill"
                                 style={{
-                                    height: '100%', borderRadius: R.pill,
+                                    height: '100%',
+                                    width: '100%',
+                                    borderRadius: R.pill,
                                     background: timer <= 5 ? T.danger : T.accent,
-                                    width: `${Math.min(100, Math.max(0, (timer / spotDuration) * 100))}%`,
-                                    transition: reduce ? 'none' : 'width 0.25s linear, background 0.3s',
+                                    transform: `scaleX(${Math.min(1, Math.max(0, timer / spotDuration))})`,
+                                    transformOrigin: 'left center',
+                                    transition: reduce ? 'none' : 'transform 0.25s linear, background 0.3s ease',
                                 }}
                             />
                         </div>
@@ -1170,9 +1384,7 @@ export default function QuickSpotDrill({
                         {(q?.hero_hand || q?.hero_position || q?.street || potDisplay || revealed || answer) && (
                             <div style={{ display: 'flex', gap: S.sm, alignItems: 'center', flexWrap: 'wrap' }}>
                                 {q?.hero_hand && (
-                                    <span data-testid="drill-hero-cards" style={{ fontSize: F.h3, fontWeight: 800, color: T.warn, ...numeric }}>
-                                        {q.hero_hand}
-                                    </span>
+                                    <HeroHandBadge hand={q.hero_hand} testId="drill-hero-cards" />
                                 )}
                                 {q?.hero_position && <span style={pill('accent')}>{q.hero_position}</span>}
                                 {q?.street && <span style={pill('neutral')}>{String(q.street).replace(/_/g, ' ')}</span>}
@@ -1208,11 +1420,18 @@ export default function QuickSpotDrill({
                     )}
 
                     {revealed && q?.gto_explanation && (
-                        <p style={{
-                            fontSize: F.caption, color: T.textMuted, lineHeight: 1.45, margin: 0,
-                            background: T.surface2, border: `1px solid ${T.border}`,
-                            borderRadius: R.sm, padding: S.md,
-                        }}>
+                        <p
+                            className="pa-feedback-reveal"
+                            data-testid="drill-gto-explanation"
+                            style={{
+                                fontSize: F.caption, color: T.textMuted, lineHeight: 1.45, margin: 0,
+                                background: T.surface2, border: `1px solid ${T.border}`,
+                                borderTopColor: T.borderHi,
+                                borderRadius: R.sm, padding: S.md,
+                                animation: reduce ? 'none' : undefined,
+                                transition: reduce ? 'none' : 'opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1), transform 0.18s cubic-bezier(0.22, 1, 0.36, 1)',
+                            }}
+                        >
                             {q.gto_explanation}
                         </p>
                     )}
@@ -1280,7 +1499,18 @@ export default function QuickSpotDrill({
                                             ...(revealed ? { cursor: 'default', opacity: 1, pointerEvents: 'none' } : null),
                                         }}
                                     >
-                                        <span>{opt}</span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                            {idx < 4 && (
+                                                <kbd
+                                                    className="pa-drill-keycap"
+                                                    aria-hidden="true"
+                                                    data-testid={`drill-keycap-${idx + 1}`}
+                                                >
+                                                    {idx + 1}
+                                                </kbd>
+                                            )}
+                                            <span>{opt}</span>
+                                        </span>
                                         {revealed && isCorrectOpt && <Check size={18} strokeWidth={2.5} aria-hidden="true" />}
                                         {revealed && isUserPick && !isCorrectOpt && <X size={18} strokeWidth={2.5} aria-hidden="true" />}
                                     </button>

@@ -90,12 +90,72 @@ function Progress({ value, label }) {
   const bounded = Math.max(0, Math.min(100, number(value)));
   return (
     <div className={styles.progressWrap}>
-      <div className={styles.progressMeta}><span>{label}</span><strong>{bounded}%</strong></div>
-      <div className={styles.progressTrack} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={bounded}>
-        <span style={{ width: `${bounded}%` }} />
+      <div className={styles.progressMeta}><span>{label}</span><strong>{Math.round(bounded)}%</strong></div>
+      <div className={styles.progressTrack} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(bounded)}>
+        <span style={{ transform: `scaleX(${bounded / 100})` }} />
       </div>
     </div>
   );
+}
+
+/**
+ * Build a clean, deterministic JSON export payload for unmeasured solver coverage gaps
+ * (`{ schemaVersion: 1, exportedAt, totalUnmeasured, buckets }`).
+ * Returns null when no non-empty coverage gap buckets are present.
+ */
+export function buildCoverageGapsHarvestPayload(snapshot, rankedGaps = null, nowIso = null) {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  const rawCoverageGaps = snapshot.coverageGaps || snapshot.solverCoverageGaps || null;
+  const candidateBuckets =
+    (Array.isArray(snapshot.coverageGaps?.buckets) && snapshot.coverageGaps.buckets.length > 0 && snapshot.coverageGaps.buckets)
+    || (Array.isArray(snapshot.coverageGaps?.topGaps) && snapshot.coverageGaps.topGaps.length > 0 && snapshot.coverageGaps.topGaps)
+    || (Array.isArray(snapshot.solverCoverageGaps?.buckets) && snapshot.solverCoverageGaps.buckets.length > 0 && snapshot.solverCoverageGaps.buckets)
+    || (Array.isArray(snapshot.solverCoverageGaps?.topGaps) && snapshot.solverCoverageGaps.topGaps.length > 0 && snapshot.solverCoverageGaps.topGaps)
+    || (Array.isArray(rankedGaps?.rows) && rankedGaps.rows.length > 0 && rankedGaps.rows)
+    || (Array.isArray(snapshot.coverageGapsRanked) && snapshot.coverageGapsRanked.length > 0 && snapshot.coverageGapsRanked)
+    || (Array.isArray(snapshot.coverageGapsRanked?.rows) && snapshot.coverageGapsRanked.rows.length > 0 && snapshot.coverageGapsRanked.rows)
+    || [];
+
+  const buckets = candidateBuckets
+    .filter((item) => item && typeof item === 'object' && Number(item.count ?? item.frequency ?? item.unpricedCount ?? 1) > 0)
+    .map((bucket) => ({
+      format: bucket.format || 'Unknown Format',
+      street: String(bucket.street || 'unknown').toLowerCase(),
+      position: bucket.position || bucket.heroPosition || 'ANY',
+      spotType: bucket.spotType || 'general',
+      ...(bucket.stackBucket ? { stackBucket: bucket.stackBucket } : {}),
+      ...(bucket.reason ? { reason: bucket.reason } : {}),
+      count: Math.max(0, Math.round(Number(bucket.count ?? bucket.frequency ?? bucket.unpricedCount) || 0)),
+      ...(Number.isFinite(Number(bucket.sharePercent)) ? { sharePercent: Number(bucket.sharePercent) } : {}),
+    }));
+
+  if (buckets.length === 0) return null;
+
+  const rawTotalCandidates = [
+    rawCoverageGaps?.totalUnmeasured,
+    rawCoverageGaps?.totalUnpriced,
+    snapshot.solverCoverageGaps?.totalUnmeasured,
+    snapshot.coverageGapsSummary?.totalUnpriced,
+    rankedGaps?.total,
+    snapshot.coverage?.unpriced,
+  ];
+  let totalUnmeasured = null;
+  for (const candidate of rawTotalCandidates) {
+    if (candidate !== null && candidate !== undefined && candidate !== '' && Number.isFinite(Number(candidate))) {
+      totalUnmeasured = Math.max(0, Math.round(Number(candidate)));
+      break;
+    }
+  }
+  if (totalUnmeasured === null) {
+    totalUnmeasured = buckets.reduce((sum, item) => sum + item.count, 0);
+  }
+
+  return {
+    schemaVersion: 1,
+    exportedAt: nowIso || new Date().toISOString(),
+    totalUnmeasured,
+    buckets,
+  };
 }
 
 export default function CoachingWorkspace({
@@ -144,6 +204,7 @@ export default function CoachingWorkspace({
   const [weeklyDigestOptIn, setWeeklyDigestOptIn] = useState(false);
   const [showExportTray, setShowExportTray] = useState(true);
   const [exportingPlan, setExportingPlan] = useState(false);
+  const [coverageGapsCopyState, setCoverageGapsCopyState] = useState(null);
   const [claimedRewardLeaks, setClaimedRewardLeaks] = useState({});
   const [claimingRewardLeakId, setClaimingRewardLeakId] = useState(null);
 
@@ -204,6 +265,7 @@ export default function CoachingWorkspace({
     setSelectedLeakId(null);
     setConfirmGoalId(null);
     setStatus(null);
+    setCoverageGapsCopyState(null);
     setClaimedRewardLeaks({});
     setClaimingRewardLeakId(null);
     setOverflowModule(null);
@@ -579,6 +641,63 @@ export default function CoachingWorkspace({
     }
   }, [getStudyPlanMarkdown]);
 
+  const getStudyPlanJson = useCallback(async () => {
+    try {
+      const mod = await import('../../lib/personal-assistant/studyPlanExport.mjs');
+      if (typeof mod.buildStudyPlanJson === 'function') {
+        return mod.buildStudyPlanJson(workspace?.snapshot);
+      }
+    } catch (_) {}
+    return {
+      schemaVersion: 1,
+      title: 'Personal Assistant Poker Study Plan',
+      generatedAt: new Date().toISOString(),
+      funnelMetrics: {
+        auditedHands: null,
+        activeLeaks: null,
+        drilledLeaks: null,
+        masteredLeaks: null,
+        verifiedFixedLive: null,
+      },
+      modules: [],
+      coverageGaps: [],
+    };
+  }, [workspace?.snapshot]);
+
+  const handleDownloadStudyPlanJson = useCallback(async () => {
+    setExportingPlan(true);
+    try {
+      const planJson = await getStudyPlanJson();
+      const blob = new Blob([JSON.stringify(planJson, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `smarter-poker-study-plan-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus({ tone: 'success', text: 'Study Plan Downloaded As JSON' });
+    } catch (_) {
+      setStatus({ tone: 'danger', text: 'Could Not Download Study Plan JSON' });
+    } finally {
+      setExportingPlan(false);
+    }
+  }, [getStudyPlanJson]);
+
+  const handlePrintStudyPlan = useCallback(() => {
+    if (typeof window === 'undefined' || typeof window.print !== 'function') {
+      setStatus({ tone: 'danger', text: 'Printing Is Not Available In This Browser' });
+      return;
+    }
+    try {
+      window.print();
+      setStatus({ tone: 'success', text: 'Print Dialog Opened For Study Plan' });
+    } catch (_) {
+      setStatus({ tone: 'danger', text: 'Could Not Open Print Dialog' });
+    }
+  }, []);
+
   const handleClaimLiveFix = useCallback(async (leakId) => {
     setClaimingRewardLeakId(leakId);
     setStatus(null);
@@ -708,6 +827,28 @@ export default function CoachingWorkspace({
   }, [coverage.unpriced, workspace]);
 
   const snapshot = workspace?.snapshot;
+  const harvestQueuePayload = useMemo(
+    () => buildCoverageGapsHarvestPayload(snapshot, rankedGaps),
+    [snapshot, rankedGaps],
+  );
+
+  const handleCopyCoverageGaps = useCallback(async () => {
+    const payload = buildCoverageGapsHarvestPayload(snapshot, rankedGaps);
+    if (!payload) return false;
+    try {
+      if (typeof navigator === 'undefined' || typeof navigator.clipboard?.writeText !== 'function') {
+        throw new Error('Clipboard Is Not Available');
+      }
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      setCoverageGapsCopyState('copied');
+      setStatus({ tone: 'success', text: 'Copied Harvest Queue' });
+      return true;
+    } catch (_) {
+      setCoverageGapsCopyState('failed');
+      setStatus({ tone: 'danger', text: 'Copy Failed' });
+      return false;
+    }
+  }, [snapshot, rankedGaps]);
 
   const settingsSheetNode = (
     <BottomSheet
@@ -740,7 +881,7 @@ export default function CoachingWorkspace({
                     disabled={saving}
                     onChange={(event) => toggleWeeklyDigest(event.target.checked)}
                     aria-label="Weekly Coaching Digest"
-                    style={{ width: 20, height: 20, minHeight: 20, margin: 0, cursor: 'pointer' }}
+                    style={{ width: 20, height: 20, minHeight: 20, margin: 0, cursor: 'pointer', accentColor: '#087cfa' }}
                   />
                   <span style={{ color: '#f1f5fc', fontSize: 13, fontWeight: 700 }}>
                     Weekly Coaching Digest
@@ -786,6 +927,24 @@ export default function CoachingWorkspace({
                     disabled={exportingPlan}
                   >
                     Download .Md File
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    data-testid="download-study-plan-json-btn"
+                    onClick={handleDownloadStudyPlanJson}
+                    disabled={exportingPlan}
+                  >
+                    Download JSON
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    data-testid="print-study-plan-btn"
+                    onClick={handlePrintStudyPlan}
+                    disabled={exportingPlan}
+                  >
+                    Print / Save PDF
                   </button>
                 </div>
               )}
@@ -1025,10 +1184,12 @@ export default function CoachingWorkspace({
                   <button
                     type="button"
                     className={`${styles.primaryButton} ${styles.onePlusOnePrimary}`}
+                    data-testid="next-best-action-practice-btn"
                     onClick={() => {
                       const targetLeak = findLeak(leaks, snapshot.nextBestAction.leakId);
                       if (onStartReview && targetLeak) onStartReview(targetLeak);
-                      else onOpenHandReview?.(targetLeak);
+                      else if (onTrain) onTrain(targetLeak || null);
+                      else if (typeof window !== 'undefined') window.location.assign('/hub/training');
                     }}
                   >
                     Practice This
@@ -1106,7 +1267,11 @@ export default function CoachingWorkspace({
                   const basisKey = advice.evidenceBasis || 'general_coaching';
                   const rep = advice.representativeHand || {};
                   const samples = advice.sampleCounts || {};
-                  const rateOrNull = (value) => (value === null || value === undefined || !Number.isFinite(Number(value)) ? null : Number(value));
+                  const rateOrNull = (value) => {
+                    if (value === null || value === undefined || !Number.isFinite(Number(value))) return null;
+                    const rate = Number(value);
+                    return Number(rate.toFixed(1));
+                  };
                   const postRate = rateOrNull(mod.tableVerification?.postMistakeRate ?? mod.tableVerification?.postBaselineErrorRate);
                   const preRate = rateOrNull(mod.tableVerification?.preMistakeRate ?? mod.tableVerification?.preBaselineErrorRate);
                   const isVerifiedFixed = mod.tableVerification?.status === 'confirmed_fixed_at_tables';
@@ -1431,10 +1596,44 @@ export default function CoachingWorkspace({
 
           {/* 4. Solver Coverage Gaps */}
           <article id="progress-gaps" className={styles.panel} role="region" aria-label="Solver Coverage Gaps">
-            <span className={styles.eyebrow}>
-              Most Requested Coverage Gaps{rankedGaps.total !== null ? ` · ${rankedGaps.total.toLocaleString()} Unpriced Decisions` : ''}
-            </span>
-            <h3>Top Unmeasured Solver Buckets</h3>
+            <div className={styles.panelHeading}>
+              <div>
+                <span className={styles.eyebrow}>
+                  Most Requested Coverage Gaps{(rankedGaps.total ?? harvestQueuePayload?.totalUnmeasured ?? null) !== null ? ` · ${(rankedGaps.total ?? harvestQueuePayload?.totalUnmeasured).toLocaleString()} Unpriced Decisions` : ''}
+                </span>
+                <h3>Top Unmeasured Solver Buckets</h3>
+              </div>
+              {harvestQueuePayload && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    data-testid="copy-coverage-gaps-btn"
+                    className={styles.secondaryButton}
+                    style={{ minHeight: 44 }}
+                    onClick={handleCopyCoverageGaps}
+                    aria-label="Copy Harvest Queue JSON"
+                  >
+                    <span>
+                      {coverageGapsCopyState === 'copied'
+                        ? 'Copied Harvest Queue'
+                        : coverageGapsCopyState === 'failed'
+                          ? 'Copy Failed'
+                          : 'Copy Harvest Queue JSON'}
+                    </span>
+                  </button>
+                  {coverageGapsCopyState && (
+                    <span
+                      className="pa-vh"
+                      role="status"
+                      aria-live="polite"
+                      data-testid="copy-coverage-gaps-status"
+                    >
+                      {coverageGapsCopyState === 'copied' ? 'Copied Harvest Queue' : 'Copy Failed'}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
             {rankedGaps.rows.length > 0 ? (
               <ol className={styles.gapDemandList} aria-label="Coverage Gap Demand">
                 {rankedGaps.rows.map((gap, index) => (
@@ -1453,11 +1652,11 @@ export default function CoachingWorkspace({
                   </li>
                 ))}
               </ol>
-            ) : Array.isArray(snapshot?.solverCoverageGaps?.topGaps) && snapshot.solverCoverageGaps.topGaps.length > 0 ? (
+            ) : harvestQueuePayload ? (
               <ul className={styles.alertList}>
-                {snapshot.solverCoverageGaps.topGaps.slice(0, 5).map(gap => (
-                  <li key={`${gap.format}-${gap.street}-${gap.heroPosition}-${gap.spotType}`}>
-                    <strong>{gap.format} · {gap.street.toUpperCase()} · {gap.heroPosition}</strong> ({gap.spotType}): {gap.count} Spots ({gap.sharePercent}% Of Unmeasured)
+                {harvestQueuePayload.buckets.slice(0, 5).map((gap, index) => (
+                  <li key={`${gap.format}-${gap.street}-${gap.position}-${gap.spotType}-${index}`}>
+                    <strong>{gap.format} · {String(gap.street || '').toUpperCase()} · {gap.position}</strong> ({gap.spotType}): {gap.count} Spots{Number.isFinite(Number(gap.sharePercent)) ? ` (${gap.sharePercent}% Of Unmeasured)` : ''}
                   </li>
                 ))}
               </ul>
