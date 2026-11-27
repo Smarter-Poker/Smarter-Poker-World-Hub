@@ -23,6 +23,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
   loading: () => (
@@ -291,39 +292,7 @@ export default function QuickWarmupPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Quick Warmup</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>5-Minute Speed Session</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-quick-warmup" note="5-Minute Speed Session" />
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
 

@@ -32,6 +32,7 @@ import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTr
 
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-23 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -280,8 +281,8 @@ function MistakeCard({ mistake, onPractice }) {
                     flex: 1,
                     padding: '10px',
                     borderRadius: 8,
-                    border: '1px solid rgba(168,85,247,0.2)',
-                    background: 'rgba(168,85,247,0.06)',
+                    border: '1px solid rgba(134, 218, 255, 0.2)',
+                    background: 'rgba(134, 218, 255, 0.06)',
                     color: '#86daff',
                     fontSize: 12,
                     fontWeight: 700,
@@ -385,41 +386,7 @@ export default function ReplayTheaterPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Replay Theater</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Review And Learn From Your Mistakes
-            </div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-replay-theater" note="Review And Learn From Your Mistakes" />
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
 
@@ -519,8 +486,8 @@ export default function ReplayTheaterPage() {
                   padding: '6px 10px',
                   borderRadius: 6,
                   flex: 1,
-                  border: `1px solid ${streetFilter === s ? 'rgba(168,85,247,0.2)' : 'transparent'}`,
-                  background: streetFilter === s ? 'rgba(168,85,247,0.06)' : 'transparent',
+                  border: `1px solid ${streetFilter === s ? 'rgba(134, 218, 255, 0.2)' : 'transparent'}`,
+                  background: streetFilter === s ? 'rgba(134, 218, 255, 0.06)' : 'transparent',
                   color: streetFilter === s ? '#86daff' : 'var(--sp-fg-dim)',
                   fontSize: 12,
                   fontWeight: 600,

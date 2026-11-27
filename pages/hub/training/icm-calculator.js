@@ -11,7 +11,7 @@
 // TRAIN-CSS-TOKENS-BATCH4-2 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH5-23 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 import sd from '../../../src/styles/training/training-smarterdesign.module.css';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
@@ -341,8 +341,8 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
 
       <div className="sp-training-tool sp-training-tool--analysis sp-analysis-icm">
         <div className={sd.page}>
-          <BankrollImageHeader
-            art="icm"
+          <TrainingPageHead
+            slug="icm"
             title="ICM Calculator"
             helpContent={
               <>

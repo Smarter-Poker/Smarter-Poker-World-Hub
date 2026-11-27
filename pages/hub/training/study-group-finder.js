@@ -21,6 +21,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-9b — adoption: shared empty-state primitive
 
 
@@ -50,7 +51,6 @@ function BookIcon({ size=24 })     { return <_Svg size={size}><path d="M4 19.5A2
 function BoltIcon({ size=24 })     { return <_Svg size={size}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_Svg>; }
 function TargetIcon({ size=24 })   { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
 function SwordsIcon({ size=24 })   { return <_Svg size={size}><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polyline points="19 21 21 21 21 19 14 12"/></_Svg>; }
-function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function AvatarIcon({ kind, size=24 }) {
   switch (kind) {
     case 'shark':  return <SharkIcon size={size}/>;
@@ -237,45 +237,11 @@ export default function StudyGroupFinderPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          className="sp-command-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              aria-label="Back to training"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                padding: '6px 10px',
-                borderRadius: 6,
-              }}
-            >
-              {/* TRAIN-STUDYFINDER-A11Y-1: SVG back arrow */}
-              <BackArrowIcon size={18} />
-            </button>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>Study Group Finder</div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                {groups.length} Live {groups.length === 1 ? 'Group' : 'Groups'}
-              </div>
-            </div>
-          </div>
-          <motion.button
+        <TrainingPageHead slug="training-study-group-finder">
+          <p className="sp-head-note"><strong>{groups.length}</strong> Live {groups.length === 1 ? 'Group' : 'Groups'}</p>
+          <button
             type="button"
-            whileTap={{ scale: 0.95 }}
+            className="sd-button sd-primary"
             onClick={() => {
               if (signedOut) {
                 setShowCreate(false);
@@ -284,21 +250,10 @@ export default function StudyGroupFinderPage() {
               }
               setShowCreate(!showCreate);
             }}
-            style={{
-              background: 'var(--sp-accent-blue)',
-              color: '#fff',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(59,130,246,0.3)',
-            }}
           >
             + Create Group
-          </motion.button>
-        </div>
+          </button>
+        </TrainingPageHead>
 
         <div className="sp-command-main" style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
           {!isOnline && (
@@ -309,8 +264,8 @@ export default function StudyGroupFinderPage() {
                 marginBottom: 14,
                 padding: '10px 14px',
                 borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(134, 218, 255, 0.4)',
+                background: 'rgba(134, 218, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
@@ -518,7 +473,7 @@ export default function StudyGroupFinderPage() {
                   padding: '4px 10px',
                   borderRadius: 4,
                   border: `1px solid ${filterLevel === l ? 'var(--sp-accent-purple)' : 'transparent'}`,
-                  background: filterLevel === l ? 'rgba(168,85,247,0.06)' : 'transparent',
+                  background: filterLevel === l ? 'rgba(134, 218, 255, 0.06)' : 'transparent',
                   color: filterLevel === l ? '#86daff' : 'var(--sp-fg-faint)',
                   fontSize: 12,
                   fontWeight: 600,

@@ -21,6 +21,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-28 - durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -55,7 +56,6 @@ function CardsIcon({ size=20 })       { return <_Svg size={size}><rect x="3" y="
 function AbacusIcon({ size=20 })      { return <_Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="7" cy="6" r="1"/><circle cx="11" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="18" r="1"/></_Svg>; }
 function CompassIcon({ size=20 })     { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></_Svg>; }
 function CheckSquareIcon({ size=40 }) { return <_Svg size={size}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></_Svg>; }
-function BackArrowIcon({ size=18 })   { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function TipIcon({ kind, size=20 }) {
   switch (kind) {
     case 'meditate':  return <MeditateIcon size={size}/>;
@@ -371,42 +371,7 @@ export default function TiltGuardPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-TILTGUARD-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Tilt Guard</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Emotional Intelligence Coach</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-tilt-guard" note="Emotional Intelligence Coach" />
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
 

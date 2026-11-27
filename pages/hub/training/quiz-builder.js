@@ -21,6 +21,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
 import { encodeSharedDrillPack } from '../../../src/lib/training/trainingPresets.mjs';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-8b — adoption: shared empty-state primitive
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -487,39 +488,7 @@ export default function QuizBuilderPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Quiz Builder</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Create Custom GTO Scenarios</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-quiz-builder" note="Create Custom GTO Scenarios" />
 
         {/* Tabs */}
         <div

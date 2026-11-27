@@ -25,6 +25,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-2a — adoption: shared empty-state primitive
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
@@ -391,41 +392,7 @@ export default function AutopilotPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
-              Weak Spot Autopilot
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Zero-Decision Training Mode</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-autopilot" note="Zero-Decision Training Mode" />
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchAndAnalyze(); }} />
@@ -601,8 +568,8 @@ export default function AutopilotPage() {
                   borderRadius: 18,
                   marginBottom: 24,
                   background:
-                    'linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(139,92,246,0.04) 100%)',
-                  border: '1px solid rgba(168,85,247,0.15)',
+                    'linear-gradient(135deg, rgba(134, 218, 255, 0.08) 0%, rgba(134, 218, 255, 0.04) 100%)',
+                  border: '1px solid rgba(134, 218, 255, 0.15)',
                   textAlign: 'center',
                 }}
               >
@@ -651,7 +618,7 @@ export default function AutopilotPage() {
                     fontSize: 15,
                     fontWeight: 800,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 20px rgba(168,85,247,0.3)',
+                    boxShadow: '0 4px 20px rgba(134, 218, 255, 0.3)',
                     letterSpacing: 0.5,
                   }}
                 >

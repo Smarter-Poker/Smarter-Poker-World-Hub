@@ -14,7 +14,7 @@ const routes = [
 
 test('the Training Leaderboard is rebuilt on #SMARTERDESIGN with its own image header (2026-11-27)', () => {
   const source = read('pages/hub/training/leaderboard.js');
-  assert.match(source, /<BankrollImageHeader\s+art="training-leaderboard"/);
+  assert.match(source, /<TrainingPageHead\s+slug="training-leaderboard"/);
   assert.match(source, /training-smarterdesign\.module\.css/);
   // The intelligence rail repainted every button border with a 1px line,
   // which erased the chrome rims of the console buttons.
@@ -48,7 +48,7 @@ test('report, scorecard, dashboard, and profile pages expose responsive stages',
     'community-leaderboard',
   ]) {
     const source = read(`pages/hub/training/${route === 'gto-reports' ? 'reports' : route}.js`);
-    assert.match(source, /sp-intelligence-header/, `${route} is missing the command header`);
+    assert.match(source, /<TrainingPageHead slug="training-/, `${route} is missing the #SMARTERDESIGN page head`);
     assert.match(source, /sp-intelligence-main/, `${route} is missing the responsive stage`);
   }
 });
@@ -74,6 +74,6 @@ test('the global header remains outside the leaderboard intelligence scope', () 
   const leaderboard = read('pages/hub/training/leaderboard.js');
   const css = read('src/styles/worlds/training.css');
 
-  assert.ok(leaderboard.indexOf('<UniversalHeader') < leaderboard.indexOf('<BankrollImageHeader'));
+  assert.ok(leaderboard.indexOf('<UniversalHeader') < leaderboard.indexOf('<TrainingPageHead'));
   assert.doesNotMatch(css, /\.universal-header[^\n]*sp-training-intelligence/);
 });

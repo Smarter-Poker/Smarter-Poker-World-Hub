@@ -28,15 +28,16 @@ const universalHeader = read('src/components/ui/UniversalHeader.js');
 
 test('every Daily Challenges surface adopts the casino realism visual system', () => {
   assert.match(trainingPage, /daily-challenge-casino\.module\.css/);
-  assert.match(trainingPage, /styles\.marquee/);
+  // #SMARTERDESIGN (2026-11-27): every Daily family page opens on the shared
+  // image header with the family tabs under it.
+  assert.match(trainingPage, /<TrainingPageHead slug="training-daily-challenge" nav=\{<TrainingDailyNav current="\/hub\/training\/daily-challenge" \/>\}>/);
   assert.match(trainingPage, /styles\.feltTable/);
   assert.match(trainingPage, /styles\.resultDrawer/);
   assert.match(goalsPage, /daily-goals-casino\.module\.css/);
   assert.match(challengesPage, /challenges-casino\.module\.css/);
   assert.match(challengesPage, /casinoStyles\.marquee/);
-  assert.match(challengesPage, /casinoStyles\.subpageNav/);
-  assert.match(trainingPage, /styles\.subpageNav/);
-  assert.match(goalsPage, /casinoStyles\.subpageNav/);
+  assert.match(challengesPage, /<TrainingDailyNav current="\/hub\/training\/challenges" \/>/);
+  assert.match(goalsPage, /<TrainingDailyNav current="\/hub\/training\/daily-goals" \/>/);
   assert.match(challengesWidget, /#25c8ff/i);
   assert.match(challengesWidget, /#f2b84b/i);
   assert.match(challengesWidget, /borderRadius:\s*'2px'/);

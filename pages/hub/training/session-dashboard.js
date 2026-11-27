@@ -19,6 +19,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { normalizeScoreToPercent } from '../../../src/engines/GTOScoreEngine';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-1a — adoption: shared empty-state primitive
 
 
@@ -386,7 +387,7 @@ function StreakTracker({ sessions }) {
                 width: 18,
                 height: 18,
                 borderRadius: 4,
-                background: isActive ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.04)',
+                background: isActive ? 'rgba(134, 218, 255, 0.5)' : 'rgba(255,255,255,0.04)',
                 border: isToday ? '1px solid #fbbf24' : '1px solid transparent',
               }}
             />
@@ -749,43 +750,7 @@ export default function SessionDashboard() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div className="sp-intelligence-header sd-masthead" style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              ← Training
-            </button>
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Session Dashboard
-            </h1>
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 6 }}>
-            Track Your Training Progress, Identify Trends, And Maintain Your Streak.
-          </p>
-        </div>
+        <TrainingPageHead slug="training-session-dashboard" note="Track Your Training Progress, Identify Trends, And Maintain Your Streak." />
 
         <div className="sp-intelligence-main" style={{ padding: '16px 24px', maxWidth: 900, margin: '0 auto' }}>
           {/* Time Range Selector */}

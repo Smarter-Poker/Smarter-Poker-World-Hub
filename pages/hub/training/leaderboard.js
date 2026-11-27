@@ -25,7 +25,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // TRAIN-WIRE-EMPTY-4a — adoption: shared empty-state primitive
 import { useSWRConfig } from 'swr';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
-import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 import sd from '../../../src/styles/training/training-smarterdesign.module.css';
 import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
@@ -142,10 +142,9 @@ export default function TrainingLeaderboard({ seed = null }) {
         <UniversalHeader pageDepth={2} />
 
         <div className={sd.page}>
-          <BankrollImageHeader
-            art="training-leaderboard"
+          <TrainingPageHead
+            slug="training-leaderboard"
             title="Training Leaderboard"
-            section="training-leaderboard"
             helpContent={LEADERBOARD_HELP}
           />
 

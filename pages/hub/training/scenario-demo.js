@@ -22,9 +22,9 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
-import BottomSheet from '../../../src/components/ui/BottomSheet';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-7 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -169,7 +169,6 @@ function FrequencyBars({ freqs }) {
 export default function ScenarioDemoPage() {
   const router = useRouter();
   // TRAIN-WIRE-BOTTOMSHEET-6 — info sheet state
-  const [infoOpen, setInfoOpen] = useState(false);
   useTrainingBus('scenario-demo');
   const fb = useTrainingFeedback();
 
@@ -259,60 +258,12 @@ export default function ScenarioDemoPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <button
-            onClick={() => setInfoOpen(true)}
-            aria-label="How Strategy Concept Tutorial works"
-            style={{
-              background: 'rgba(var(--sp-accent-cyan-rgb), 0.08)',
-              border: '1px solid rgba(var(--sp-accent-cyan-rgb), 0.25)',
-              color: 'var(--sp-accent-cyan)',
-              fontSize: 12,
-              fontWeight: 700,
-              padding: '4px 12px',
-              borderRadius: 12,
-              cursor: 'pointer',
-              letterSpacing: 0.4,
-              textTransform: 'uppercase',
-            }}
-          >
-            How It Works
-          </button>
-          <BottomSheet
-            open={infoOpen}
-            onClose={() => setInfoOpen(false)}
-            title="How Strategy Concept Tutorial Works"
-            subtitle="Practice-only poker and solver-literacy concepts"
-          >
-            <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
-              <p style={{ marginTop: 0 }}>
+        <TrainingPageHead
+          slug="training-scenario-demo"
+          title="Strategy Concepts"
+          helpContent={
+            <>
+              <p>
                 Walk Through Short Concept Lessons Covering Decision Context,
                 Frequency Charts, Board Texture, Position, And Evidence Labels.
                 Example Percentages Are Illustrative And Are Not Solver Output.
@@ -321,20 +272,18 @@ export default function ScenarioDemoPage() {
                 Your Optional Private Practice Note Does Not Affect Account
                 Progress, Rank, Rewards, Or Solver Accuracy.
               </p>
-            </div>
-          </BottomSheet>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Strategy Concept Tutorial</div>
-            <ProgressStrip
-              current={currentStep + 1}
-              total={TUTORIAL_STEPS.length}
-              correct={quizScore.correct}
-              difficulty="beginner"
-              compact
-              style={{ marginTop: 4 }}
-            />
-          </div>
-        </div>
+            </>
+          }
+        >
+          <ProgressStrip
+            current={currentStep + 1}
+            total={TUTORIAL_STEPS.length}
+            correct={quizScore.correct}
+            difficulty="beginner"
+            compact
+            style={{ marginTop: 6 }}
+          />
+        </TrainingPageHead>
 
         {/* Progress Bar */}
         <div style={{ height: 3, background: 'rgba(255,255,255,0.05)' }}>

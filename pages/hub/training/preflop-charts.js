@@ -24,6 +24,7 @@ import BottomSheet from '../../../src/components/ui/BottomSheet';
 import useVIPGate from '../../../src/hooks/useVIPGate';
 import VIPGateModal from '../../../src/components/ui/VIPGateModal';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-18 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -258,68 +259,11 @@ export default function PreflopCharts() {
             borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              ← Training
-            </button>
-            <button
-              onClick={() => setInfoOpen(true)}
-              aria-label="How Preflop Charts work"
-              style={{
-                background: 'rgba(0,212,255,0.10)',
-                border: '1px solid rgba(0,212,255,0.30)',
-                color: 'var(--sp-accent-cyan)',
-                fontSize: 12,
-                fontWeight: 700,
-                padding: '6px 12px',
-                borderRadius: 12,
-                cursor: 'pointer',
-                letterSpacing: 0.4,
-                textTransform: 'uppercase',
-              }}
-            >
-              How It Works
-            </button>
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Preflop Charts
-            </h1>
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--sp-accent-cyan)',
-                background: 'rgba(0,212,255,0.1)',
-                padding: '3px 8px',
-                borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(0,212,255,0.2)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              PHASE 17
-            </span>
-          </div>
+          <TrainingPageHead slug="training-range-browser">
+          <button type="button" className="sd-button" onClick={() => setInfoOpen(true)}>
+            How It Works
+          </button>
+        </TrainingPageHead>
 
           {/* ●●● Filters ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
           <div data-pills-row style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
@@ -419,7 +363,7 @@ export default function PreflopCharts() {
               maxWidth: 700,
               margin: '0 auto 18px',
               padding: '12px 15px',
-              border: '1px solid rgba(251,191,36,0.28)',
+              border: '1px solid rgba(134, 218, 255, 0.28)',
               borderRadius: 10,
               color: 'var(--sp-fg-muted)',
               background: 'rgba(120,53,15,0.12)',
@@ -557,9 +501,9 @@ export default function PreflopCharts() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '10px 14px',
-                    background: 'rgba(124,58,237,0.08)',
+                    background: 'rgba(134, 218, 255, 0.08)',
                     borderRadius: 10,
-                    border: '1px solid rgba(124,58,237,0.2)',
+                    border: '1px solid rgba(134, 218, 255, 0.2)',
                   }}
                 >
                   <span
@@ -699,9 +643,9 @@ export default function PreflopCharts() {
                       fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       marginBottom: 8,
                       padding: '4px 12px',
-                      background: 'rgba(168,85,247,0.1)',
+                      background: 'rgba(134, 218, 255, 0.1)',
                       borderRadius: 6,
-                      border: '1px solid rgba(168,85,247,0.2)',
+                      border: '1px solid rgba(134, 218, 255, 0.2)',
                     }}
                   >
                     {scenario === 'bb_defense' ? `BB vs ${comparePosition}` : comparePosition} -{' '}
@@ -714,7 +658,7 @@ export default function PreflopCharts() {
                         style={{
                           width: 36,
                           height: 36,
-                          border: '3px solid rgba(168,85,247,0.2)',
+                          border: '3px solid rgba(134, 218, 255, 0.2)',
                           borderTop: '3px solid #a855f7',
                           borderRadius: '50%',
                           animation: 'spin 1s linear infinite',

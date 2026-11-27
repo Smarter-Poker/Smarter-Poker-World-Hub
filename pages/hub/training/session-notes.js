@@ -20,6 +20,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-3a — adoption: shared empty-state primitive
 
 const MOOD_OPTIONS = [
@@ -292,17 +293,7 @@ export default function SessionNotesPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <header className="sd-masthead" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            type="button"
-            className="sd-button"
-            aria-label="Back To Training"
-            onClick={() => router.push('/hub/training')}
-          >
-            <span aria-hidden="true">←</span>
-          </button>
-          <h1 style={{ margin: 0 }}>Session Notes</h1>
-        </header>
+        <TrainingPageHead slug="training-session-notes" />
 
         {/* Tabs */}
         <div
@@ -623,8 +614,8 @@ export default function SessionNotesPage() {
                       minWidth: 80,
                       padding: '10px 12px',
                       borderRadius: 10,
-                      background: 'rgba(251,191,36,0.04)',
-                      border: '1px solid rgba(251,191,36,0.08)',
+                      background: 'rgba(134, 218, 255, 0.04)',
+                      border: '1px solid rgba(134, 218, 255, 0.08)',
                       textAlign: 'center',
                     }}
                   >

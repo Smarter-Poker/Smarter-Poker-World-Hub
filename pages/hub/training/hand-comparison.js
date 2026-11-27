@@ -27,6 +27,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import Card from '../../../src/components/training/Card';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-3 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -510,84 +511,13 @@ export default function HandComparison() {
 
       <div className="sp-training-tool sp-training-tool--analysis sp-analysis-comparison" style={container}>
         <div className="sp-training-analysis-main" style={{ maxWidth: 680, margin: '0 auto' }}>
-          {/* BACK NAV */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 16,
-            }}
-          >
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--sp-fg-dim)',
-                fontSize: 12,
-                cursor: 'pointer',
-                display: 'flex',
-                gap: 4,
-              }}
-            >
-              ← Training Hub
-            </button>
+          <TrainingPageHead slug="training-hand-comparison" note="A/B Equity Analysis · Best-5-From-7 · Monte Carlo">
             {allSelected.size > 0 && (
-              <button
-                onClick={handleClearAll}
-                style={{
-                  background: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  borderRadius: 8,
-                  color: 'var(--sp-accent-red)',
-                  padding: '4px 12px',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
+              <button type="button" className="sd-button" onClick={handleClearAll}>
                 Clear All
               </button>
             )}
-          </div>
-
-          {/* HEADER */}
-          <div className="sp-training-analysis-header sp-training-analysis-header--inline" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                fontSize: 22,
-                background: 'linear-gradient(135deg, #22c55e22, #00d4ff22)',
-                border: '1px solid rgba(34,197,94,0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              »
-            </div>
-            <div>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 22,
-                  fontWeight: 900,
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-cyan-rgb), 1))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                HAND COMPARISON
-              </h1>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
-                A/B Equity Analysis · Best-5-From-7 · Monte Carlo
-              </p>
-            </div>
-          </div>
+          </TrainingPageHead>
 
           {/* HAND A */}
           <div

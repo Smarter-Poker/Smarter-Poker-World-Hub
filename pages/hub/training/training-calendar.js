@@ -21,6 +21,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 function buildHeatmap(sessions) {
   const dayMap = {};
   if (!sessions) return dayMap;
@@ -69,14 +70,6 @@ function StarSparkleIcon({ size=12 }) {
       <polygon points="12 2 14 9 22 12 14 15 12 22 10 15 2 12 10 9 12 2"/>
       <circle cx="20" cy="4" r="1"/>
       <circle cx="4" cy="20" r="1"/>
-    </svg>
-  );
-}
-function BackArrowIcon({ size=18 }) {
-  return (
-    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <line x1="19" y1="12" x2="5" y2="12"/>
-      <polyline points="12 19 5 12 12 5"/>
     </svg>
   );
 }
@@ -223,43 +216,7 @@ export default function TrainingCalendarPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <div
-          className="sp-journey-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back To Training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-CALENDAR-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            {/* TRAIN-CALENDAR-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Training Calendar</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Your Activity Heatmap</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-training-calendar" note="Your Activity Heatmap" />
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
 
           {loading && (
@@ -404,7 +361,7 @@ export default function TrainingCalendarPage() {
                             background: cell.isFuture
                               ? 'transparent'
                               : cell.isToday
-                                ? 'rgba(251,191,36,0.4)'
+                                ? 'rgba(134, 218, 255, 0.4)'
                                 : INTENSITY_COLORS[getIntensity(cell.data?.hands || 0)],
                             cursor: cell.isFuture ? 'default' : 'pointer',
                             outline: selectedDay === cell.key ? '1px solid #00d4ff' : 'none',

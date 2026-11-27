@@ -19,6 +19,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 export default function RiskAnalyzerPage() {
   const router = useRouter();
   useTrainingBus('risk-analyzer');
@@ -115,37 +116,7 @@ export default function RiskAnalyzerPage() {
           paddingBottom: 60,
         }}
       >
-        {/* Header */}
-        <div
-          className="sp-training-analysis-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              marginRight: 16,
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Risk Analyzer</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Monte Carlo Bankroll Simulator</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-risk-analyzer" note="Monte Carlo Bankroll Simulator" />
 
         <div
           className="sp-training-analysis-main sp-risk-analysis-layout"

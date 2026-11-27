@@ -17,6 +17,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const ROUTES = [
   {
     label: 'Open Audited Spot Study',
@@ -59,22 +60,7 @@ export default function FamousFinalsArchivePage() {
         }}
       >
         <section style={{ width: '100%', maxWidth: 760, margin: '0 auto' }}>
-          <button
-            type="button"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              border: '1px solid rgba(139,238,255,0.32)',
-              background: 'linear-gradient(180deg, rgba(27,55,72,0.92), rgba(5,15,23,0.98))',
-              color: '#dff8ff',
-              minHeight: 44,
-              padding: '0 16px',
-              cursor: 'pointer',
-              fontWeight: 800,
-              boxShadow: 'inset 0 1px rgba(255,255,255,0.18), 0 10px 24px rgba(0,0,0,0.34)',
-            }}
-          >
-            Back To Training Hub
-          </button>
+          <TrainingPageHead slug="training-famous-finals" />
 
           <div
             style={{
@@ -91,9 +77,9 @@ export default function FamousFinalsArchivePage() {
               style={{
                 display: 'inline-flex',
                 padding: '6px 10px',
-                border: '1px solid rgba(251,191,36,0.5)',
+                border: '1px solid rgba(134, 218, 255, 0.5)',
                 color: '#86daff',
-                background: 'rgba(90,61,10,0.24)',
+                background: 'rgba(134, 218, 255, 0.24)',
                 fontSize: 12,
                 fontWeight: 900,
                 letterSpacing: 1.2,
@@ -103,7 +89,7 @@ export default function FamousFinalsArchivePage() {
               Archived · Not A Scored Game
             </div>
 
-            <h1
+            <h2
               style={{
                 margin: '18px 0 12px',
                 fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
@@ -116,7 +102,7 @@ export default function FamousFinalsArchivePage() {
               }}
             >
               Famous Finals Archive
-            </h1>
+            </h2>
 
             <p style={{ margin: 0, maxWidth: 640, color: '#b9ccd5', fontSize: 15, lineHeight: 1.75 }}>
               The Previous Final-Table Scenarios Were Authored Reconstructions. They Did Not Carry

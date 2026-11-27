@@ -554,8 +554,8 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   const sessionNotesUi = read('pages/hub/training/session-notes.js');
   assert.match(sessionNotesUi, /tool_id:\s*'session-notes'/);
   assert.match(sessionNotesUi, /tool_id=session-notes/);
-  assert.match(sessionNotesUi, /<h1[^>]*>Session Notes<\/h1>/);
-  assert.match(sessionNotesUi, /aria-label="Back To Training"/);
+  // Title and Back control come from the shared #SMARTERDESIGN page head.
+  assert.match(sessionNotesUi, /<TrainingPageHead slug="training-session-notes"/);
   assert.match(sessionNotesUi, /renderNoteText\(note\.freeText\)/);
   assert.doesNotMatch(sessionNotesUi, /dangerouslySetInnerHTML/);
 

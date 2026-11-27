@@ -10,7 +10,7 @@ import TrainingFavoritesNotice from '../../../../src/components/training/lobby/T
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
-import TrainingGameArt from '../../../../src/components/training/TrainingGameArt';
+import TrainingImageHeader from '../../../../src/components/training/TrainingImageHeader';
 import TrainingLobbyResults from '../../../../src/components/training/lobby/TrainingLobbyResults';
 import TrainingFiltersSheet from '../../../../src/components/training/lobby/TrainingFiltersSheet';
 import TrainingSortBar from '../../../../src/components/training/lobby/TrainingSortBar';
@@ -106,7 +106,6 @@ export default function CategoryPage() {
 
   if (!router.isReady) return pageHead;
 
-  const heroArtId = games[0]?.id || 'quiz-gauntlet';
   const featuredGame = games[0] || null;
   const featuredPreset = featuredGame ? resolvePresetForGame(featuredGame) : null;
 
@@ -124,7 +123,6 @@ export default function CategoryPage() {
     );
   }
 
-  const Icon = category.Icon;
   const playGame = (game, overrides = variant !== 'ALL' && game.category !== 'PSYCHOLOGY'
     ? { variant, bettingStructure: VARIANT_METADATA[variant]?.defaultStructure }
     : null) => {
@@ -153,38 +151,16 @@ export default function CategoryPage() {
         <UniversalHeader pageDepth={2} />
 
         <main className="sp-arena-lobby-shell">
-          <section className="sp-arena-masthead sp-category-hero sd-masthead">
-            <div className="sp-category-hero-art" aria-hidden="true">
-              <TrainingGameArt
-                gameId={heroArtId}
-                sizes="(max-width: 700px) 100vw, 1000px"
-                loading="eager"
-              />
-            </div>
-            <div className="sp-category-hero-shade" aria-hidden="true" />
-
-            <div className="sp-cat-topbar">
-              <button
-                className="sd-button sp-cat-back-btn"
-                type="button"
-                onClick={() => router.push('/hub/training')}
-              >
+          <div className="sp-training-head">
+            <div className="sd-back-row">
+              <button className="sd-button sp-cat-back-btn" type="button" onClick={() => router.push('/hub/training')}>
                 <ArrowLeft size={15} aria-hidden="true" />
                 <span>All Training Games</span>
               </button>
-              <span className="sp-arena-deck__count sp-num">{games.length} Games</span>
             </div>
-
-            <div className="sp-cat-banner">
-              <div className="sp-cat-banner__copy">
-                <div className="sp-cat-banner__title-row">
-                  <Icon size={18} aria-hidden="true" />
-                  <h1>{category.title}</h1>
-                </div>
-                <p>{category.description}</p>
-              </div>
-            </div>
-
+            <TrainingImageHeader slug={`training-category-${String(categoryId).toLowerCase()}`} title={category.title} help={category.description}>
+              <p className="sp-head-note"><strong className="sp-num">{games.length}</strong> Games</p>
+            </TrainingImageHeader>
             {featuredGame && (
               <div className="sp-arena-quickbar sp-cat-quickbar" data-category-preset-summary="true">
                 <div className="sp-arena-quickbar__copy">
@@ -203,7 +179,7 @@ export default function CategoryPage() {
                 </button>
               </div>
             )}
-          </section>
+          </div>
 
           <section className="sp-arena-lobby-section" aria-labelledby="category-library-title">
             <div className="sp-arena-deck" ref={controlsRef}>

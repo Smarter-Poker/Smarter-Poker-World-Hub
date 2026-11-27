@@ -20,6 +20,7 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const FORMAT_OPTIONS = [
   { value: '', label: 'All' },
   { value: 'cash', label: 'Cash' },
@@ -173,51 +174,7 @@ export default function SpotTrainerPage() {
         }}
       >
         <div style={{ padding: '20px 24px 12px', borderBottom: '1px solid rgba(103,232,249,0.20)' }}>
-          <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              aria-label={isPaSource ? 'Back To Personal Assistant' : 'Back To Training'}
-              onClick={() => router.push(backHref)}
-              style={{
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))',
-                border: '1px solid rgba(255,255,255,0.16)',
-                borderRadius: 8,
-                padding: '7px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              {isPaSource ? '← Back To Personal Assistant' : '← Training'}
-            </button>
-            <h1
-              style={{
-                fontSize: 20,
-                fontWeight: 900,
-                margin: 0,
-                color: '#dff9ff',
-                textShadow: '0 0 18px rgba(34,211,238,0.35)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Solver Spot Study
-            </h1>
-            <span
-              style={{
-                fontSize: 12,
-                color: '#a5f3fc',
-                background: 'rgba(8,145,178,0.16)',
-                padding: '4px 8px',
-                borderRadius: 12,
-                fontWeight: 800,
-                border: '1px solid rgba(103,232,249,0.30)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Answer-Revealed Study
-            </span>
-          </div>
+          <TrainingPageHead slug="training-spot-trainer" note="Answer-Revealed Study" backHref={backHref} backLabel={isPaSource ? 'Back To Personal Assistant' : 'Training'} />
         </div>
 
         <div style={{ padding: '16px 20px', maxWidth: 650, margin: '0 auto' }}>

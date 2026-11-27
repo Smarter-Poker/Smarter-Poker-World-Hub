@@ -10,6 +10,7 @@
  */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import Link from 'next/link';
 
@@ -51,11 +52,8 @@ export default function AggregateReports() {
       </Head>
 
       <main className="aggregate-boundary">
+        <TrainingPageHead slug="training-aggregate" />
         <section className="aggregate-panel" aria-labelledby="aggregate-title">
-          <button type="button" className="aggregate-back" onClick={() => router.push('/hub/training')}>
-            <BackArrowIcon />
-            <span>Training Hub</span>
-          </button>
 
           <div className="aggregate-seal">
             <ShieldIcon />
@@ -63,7 +61,7 @@ export default function AggregateReports() {
           </div>
 
           <p className="aggregate-kicker">Audited Cohort Analysis</p>
-          <h1 id="aggregate-title">Aggregate Reports Are Paused</h1>
+          <h2 id="aggregate-title">Aggregate Reports Are Paused</h2>
           <p className="aggregate-lead">
             The Previous Report Combined Solver Rows Without Proving Complete Identity,
             Source Lineage, Cohort Membership, Or Board Weighting. Those Numbers Are Not
@@ -189,7 +187,7 @@ export default function AggregateReports() {
             margin-top: 16px;
             padding: 13px 15px;
             color: #86daff;
-            border: 1px solid rgba(251,191,36,0.25);
+            border: 1px solid rgba(134, 218, 255, 0.25);
             border-radius: 9px;
             background: rgba(120,53,15,0.14);
             font-size: 12px;

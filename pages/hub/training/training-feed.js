@@ -21,6 +21,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { deriveTrainingSessionAccuracy } from '../../../src/lib/training/sessionEvidence.mjs';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-2b — adoption: shared empty-state primitive
 
 
@@ -59,7 +60,6 @@ function TrophySvg({ size })   { return <_Svg size={size}><path d="M6 9H4.5a2.5 
 function StarSvg({ size })     { return <_Svg size={size}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></_Svg>; }
 function ChartSvg({ size })    { return <_Svg size={size}><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="13" width="3" height="7"/><rect x="10" y="8" width="3" height="12"/><rect x="15" y="4" width="3" height="16"/></_Svg>; }
 function UserSvg({ size })     { return <_Svg size={size}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></_Svg>; }
-function BackArrowSvg({ size }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function EventIcon({ kind, size=10 }) {
   switch (kind) {
     case 'target': return <TargetSvg size={size}/>;
@@ -332,43 +332,7 @@ export default function TrainingFeedPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          className="sp-command-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-FEED-A11Y-1: SVG back arrow replaces ← entity */}
-            <BackArrowSvg size={18} />
-          </button>
-          <div>
-            <h1 style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)', margin: 0 }}>Training Feed</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Your Verified Training Activity</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-training-feed" note="Your Verified Training Activity" />
 
         {/* Filter tabs */}
         <div
@@ -417,8 +381,8 @@ export default function TrainingFeedPage() {
                 margin: '12px 16px 0',
                 padding: '10px 14px',
                 borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(134, 218, 255, 0.4)',
+                background: 'rgba(134, 218, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,

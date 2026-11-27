@@ -483,7 +483,7 @@ export default function HandLabV2() {
       <UniversalHeader pageDepth={2} />
 
       <div style={styles.container}>
-        <BankrollImageHeader art="casino_table" title="Hand Lab" helpContent={<p>Choose A Game, Fill Your Hand And Set A Board. Analyze Compares Your Hand Against The Displayed Opponent.</p>} />
+        <BankrollImageHeader art="training-hand-lab" title="Hand Lab" helpContent={<p>Choose A Game, Fill Your Hand And Set A Board. Analyze Compares Your Hand Against The Displayed Opponent.</p>} />
         <div style={styles.header}>
           <button onClick={clearAll} style={styles.clearBtn}>
             Clear Board

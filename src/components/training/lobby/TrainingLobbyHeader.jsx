@@ -1,4 +1,5 @@
 import { Play } from 'lucide-react';
+import TrainingImageHeader from '../TrainingImageHeader';
 
 export default function TrainingLobbyHeader({ heroGame, continueTarget, fiveMinuteLeakFix, onPlayGame }) {
   const primaryGame = continueTarget?.game || heroGame;
@@ -7,8 +8,8 @@ export default function TrainingLobbyHeader({ heroGame, continueTarget, fiveMinu
   const hasDetectedLeakFix = Boolean(leakFixGame && fiveMinuteLeakFix?.basis && fiveMinuteLeakFix.basis !== 'daily-warmup');
 
   return (
-    <section aria-labelledby="hero-h" className="sp-arena-masthead sp-arena-lobby-title sd-masthead" data-tutorial="hero">
-      <h1 id="hero-h" className="sp-arena-masthead__title">Training Games</h1>
+    <section aria-labelledby="hero-h" className="sp-arena-lobby-title" data-tutorial="hero">
+      <TrainingImageHeader slug="training-lobby" title="Training Games" titleId="hero-h">
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         {hasDetectedLeakFix && (
           <button
@@ -17,18 +18,7 @@ export default function TrainingLobbyHeader({ heroGame, continueTarget, fiveMinu
             data-top-detected-leak-cta="true"
             data-leak-basis={fiveMinuteLeakFix.basis}
             onClick={() => onPlayGame(leakFixGame, fiveMinuteLeakFix.overrides)}
-            style={{
-              minHeight: 38,
-              padding: '6px 12px',
-              borderRadius: 8,
-              border: '1px solid rgba(134, 218, 255, 0.45)',
-              background: 'rgba(13, 32, 54, 0.85)',
-              color: '#86daff',
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
-          >
+            >
             <span>Fix Top Leak (10 Hands)</span>
           </button>
         )}
@@ -47,6 +37,7 @@ export default function TrainingLobbyHeader({ heroGame, continueTarget, fiveMinu
           </span>
         </button>
       </div>
+      </TrainingImageHeader>
     </section>
   );
 }

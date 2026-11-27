@@ -25,6 +25,7 @@ import useSWR, { useSWRConfig } from 'swr';
 
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CATEGORIES
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -61,7 +62,6 @@ function MedalIcon({ size=18 })   {
     </svg>
   );
 }
-function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function CategoryIcon({ kind, size=14 }) {
   switch (kind) {
     case 'trophy': return <TrophyIcon size={size}/>;
@@ -208,44 +208,7 @@ export default function CommunityLeaderboardPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          className="sp-intelligence-header sd-masthead"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-COMMUNITY-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            {/* TRAIN-COMMUNITY-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Community Leaderboard</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Global GTO Rankings</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-community-leaderboard" note="Global GTO Rankings" />
 
         <div className="sp-intelligence-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {!isOnline && (
@@ -256,8 +219,8 @@ export default function CommunityLeaderboardPage() {
                 marginBottom: 14,
                 padding: '10px 14px',
                 borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(134, 218, 255, 0.4)',
+                background: 'rgba(134, 218, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
@@ -309,8 +272,8 @@ export default function CommunityLeaderboardPage() {
                   padding: '6px 12px',
                   borderRadius: 6,
                   flexShrink: 0,
-                  border: `1px solid ${category === c.id ? 'rgba(251,191,36,0.2)' : 'transparent'}`,
-                  background: category === c.id ? 'rgba(251,191,36,0.06)' : 'transparent',
+                  border: `1px solid ${category === c.id ? 'rgba(134, 218, 255, 0.2)' : 'transparent'}`,
+                  background: category === c.id ? 'rgba(134, 218, 255, 0.06)' : 'transparent',
                   color: category === c.id ? '#86daff' : 'var(--sp-fg-dim)',
                   fontSize: 12,
                   fontWeight: 600,

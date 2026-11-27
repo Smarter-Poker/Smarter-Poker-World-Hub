@@ -10,6 +10,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // BUG FIX (TRAIN-TPP-A11Y-1): SVG icons replacing the bare back-arrow +
 // strategy-tip lightbulb. Strict build-safety rules from PR #362/#365/#369
 // — no JSX comments inside conditional expressions, no emoji chars in
@@ -23,14 +24,6 @@ const _TPP_ICON_PROPS = {
   strokeLinejoin: 'round',
   'aria-hidden': true,
 };
-function TppBackArrowIcon({ size = 14 }) {
-  return (
-    <svg {..._TPP_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <line x1="19" y1="12" x2="5" y2="12" />
-      <polyline points="12 19 5 12 12 5" />
-    </svg>
-  );
-}
 function TppLightbulbIcon({ size = 14 }) {
   return (
     <svg {..._TPP_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
@@ -143,23 +136,7 @@ export default function TournamentPrepPlanner() {
       <UniversalHeader pageDepth={2} hideLeftIcon />
 
       <div className="sp-training-command sp-training-command--tournament" style={styles.container}>
-        <div className="sp-command-header" style={styles.header}>
-          <button
-            type="button"
-            aria-label="Back to training hub"
-            onClick={() => router.push('/hub/training')}
-            style={styles.backButton}
-          >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <TppBackArrowIcon size={14} />
-              Hub
-            </span>
-          </button>
-          <div>
-            <h1 style={styles.title}>TOURNAMENT PREP PLANNER</h1>
-            <p style={styles.subtitle}>ICM-Aware Strategy & Structure Analysis</p>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-tournament-prep" note="ICM-Aware Strategy & Structure Analysis" />
 
         <div className="sp-command-main sp-command-tournament-grid" style={styles.content}>
           {/* LEFT COLUMN: Controls */}

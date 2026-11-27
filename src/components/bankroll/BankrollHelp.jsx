@@ -2,6 +2,10 @@ import { useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import styles from './BankrollHelp.module.css';
 
+// The one approved image-header help icon (#SMARTERDESIGN). Copied byte for byte
+// from Club Arena's public/images/header-help-v4.png, which its Cashier uses.
+export const HELP_ICON_SRC = '/images/smarterdesign/help-chrome.png';
+
 const guides = {
   jarvis: ['Select 7, 30 or 90 days to compare recorded gaming sessions. Refresh Analysis reads the current ledger for that window.', 'Open How These Figures Are Calculated for the definitions and exclusions.'],
   settings: ['Manage your bankroll display preferences and preferred currency.'],
@@ -44,7 +48,9 @@ export default function BankrollHelp({ title, section, faqs = [], children, onTu
   return (
     <>
       <button ref={trigger} type="button" className={styles.help} aria-label={`Help For ${title}`} aria-haspopup="dialog" aria-controls={id}
-        onClick={() => { if (!dialog.current.open) dialog.current.showModal(); }}>?</button>
+        onClick={() => { if (!dialog.current.open) dialog.current.showModal(); }}>
+        <img className={styles.helpIcon} src={HELP_ICON_SRC} alt="" width="118" height="120" decoding="async" />
+      </button>
       <dialog id={id} ref={dialog} className={styles.dialog} aria-labelledby={id + '-heading'}
         onClose={() => { trigger.current?.focus({ preventScroll: true }); if (launchTutorial.current) { launchTutorial.current = false; onTutorial?.(); } }}>
         <div className={styles.heading}>

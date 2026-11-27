@@ -24,11 +24,10 @@ export default function BankrollExport() {
                 <div className={layout.export}>
                     <UniversalHeader pageDepth={2} />
                     <main className={`smarterdesign ${layout.exportContent}`}>
-                        <BankrollImageHeader title="Export Data" art="export" parent="Bankroll Manager" className={layout.mast}>
-                            <div className={layout.headerActions}>
-                                <Link href="/hub/bankroll-manager" className="sd-button">Back To Dashboard</Link>
-                            </div>
-                        </BankrollImageHeader>
+                        <div className="sd-back-row">
+                            <Link href="/hub/bankroll-manager" className="sd-button">Back To Dashboard</Link>
+                        </div>
+                        <BankrollImageHeader title="Export Data" art="export" parent="Bankroll Manager" className={layout.mast} />
                         <div className="sd-panel">
                             <BankrollExportFormats />
                         </div>

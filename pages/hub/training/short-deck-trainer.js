@@ -24,6 +24,7 @@ import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
 
 
@@ -276,47 +277,11 @@ export default function ShortDeckTrainerPage() {
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(239,68,68,0.1)',
-                border: 'none',
-                color: 'var(--sp-accent-red)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-              }}
-            >
-              ←
-            </button>
-            <button
-              onClick={() => setInfoOpen(true)}
-              aria-label="How Short Deck Trainer Works"
-              style={{
-                background: 'rgba(var(--sp-accent-red-rgb), 0.08)',
-                border: '1px solid rgba(var(--sp-accent-red-rgb), 0.25)',
-                color: 'var(--sp-accent-red)',
-                fontSize: 12,
-                fontWeight: 700,
-                padding: '4px 12px',
-                borderRadius: 12,
-                cursor: 'pointer',
-                letterSpacing: 0.4,
-                textTransform: 'uppercase',
-              }}
-            >
-              How It Works
-            </button>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
-                Short Deck (Six Plus)
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-accent-red)' }}>36-Card Dynamics Trainer</div>
-            </div>
-          </div>
+          <TrainingPageHead slug="training-short-deck-trainer">
+          <button type="button" className="sd-button" onClick={() => setInfoOpen(true)}>
+            How It Works
+          </button>
+        </TrainingPageHead>
           {/* Mode Toggle */}
           <div style={{ display: 'flex', gap: 4 }}>
             {['calc', 'quiz'].map((m) => (

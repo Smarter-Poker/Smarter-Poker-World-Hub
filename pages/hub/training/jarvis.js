@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -44,7 +45,6 @@ const ICON_PROPS = {
 function _Svg({ size=24, vb='0 0 24 24', children }) {
   return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
 }
-function BrainIcon({ size=48 })       { return <_Svg size={size}><path d="M9 4a4 4 0 0 0-4 4c0 1-1 2-1 4s1 3 1 4a4 4 0 0 0 4 4"/><path d="M15 4a4 4 0 0 1 4 4c0 1 1 2 1 4s-1 3-1 4a4 4 0 0 1-4 4"/><line x1="12" y1="4" x2="12" y2="20"/></_Svg>; }
 function ChartIcon({ size=18 })       { return <_Svg size={size}><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="13" width="3" height="7"/><rect x="10" y="8" width="3" height="12"/><rect x="15" y="4" width="3" height="16"/></_Svg>; }
 function LightbulbIcon({ size=18 })   { return <_Svg size={size}><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.65V17h8v-2.35A7 7 0 0 0 12 2z"/></_Svg>; }
 function SearchIcon({ size=18 })      { return <_Svg size={size}><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></_Svg>; }
@@ -244,16 +244,9 @@ export default function JarvisDashboard() {
       <div style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
+        <TrainingPageHead slug="training-jarvis" note="Your AI Training Coach" />
         <div style={styles.content}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); loadInsights(); }} />
-          <div style={styles.header}>
-            {/* TRAIN-JARVIS-A11Y-1: SVG brain replaces ◇ hero */}
-            <div style={{ ...styles.jarvisIcon, color: '#86daff', display: 'inline-flex', justifyContent: 'center' }} aria-hidden>
-              <BrainIcon size={48} />
-            </div>
-            <h1 style={styles.title}>JARVIS Dashboard</h1>
-            <p style={styles.subtitle}>Your AI Training Coach</p>
-          </div>
 
           <div
             data-dynamic-leak-curriculum="true"
@@ -266,7 +259,7 @@ export default function JarvisDashboard() {
               marginBottom: 20,
               padding: 18,
               borderRadius: 12,
-              border: '1px solid rgba(251, 191, 36, 0.42)',
+              border: '1px solid rgba(134, 218, 255, 0.42)',
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85))',
             }}
           >
@@ -296,7 +289,7 @@ export default function JarvisDashboard() {
                 padding: '0 16px',
                 borderRadius: 8,
                 border: '1px solid #fbbf24',
-                background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
+                background: 'linear-gradient(180deg, rgba(134, 218, 255, 0.48), rgba(146, 64, 14, 0.72))',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 900,
@@ -670,7 +663,7 @@ const styles = {
   },
   adviceBox: {
     padding: '20px',
-    background: 'linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(139, 92, 246, 0.1))',
+    background: 'linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(134, 218, 255, 0.1))',
     border: '1px solid rgba(0, 224, 255, 0.3)',
     borderRadius: '12px',
   },

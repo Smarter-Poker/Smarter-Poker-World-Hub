@@ -21,6 +21,7 @@ import {
   buildCustomTrainingArenaHref,
 } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const ICM_SIM_HERO_CARDS_BY_VARIANT = {
   nlh: ['Ad', 'Js'],
   plo4: ['Ad', 'Kd', 'Qs', 'Js'],
@@ -158,35 +159,7 @@ export default function IcmSimulatorPage() {
           fontFamily: "'Inter', sans-serif",
         }}
       >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              marginRight: 16,
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>ICM Simulator</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Final Table Math & Deal Calculator</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-icm-simulator" note="Final Table Math & Deal Calculator" />
 
         <div
           style={{

@@ -23,6 +23,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-5a — adoption: shared empty-state primitive
 
 
@@ -274,16 +275,7 @@ export default function TournamentsPage() {
         <UniversalHeader pageDepth={2} />
 
         <div className="sp-training-tool sp-training-tool--tournaments" style={styles.content}>
-          {/* Header */}
-          <div style={styles.header}>
-            <h1 style={styles.title}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#86daff' }}>
-                <TrophyIcon size={22} />
-                Training Tournaments
-              </span>
-            </h1>
-            <p style={styles.subtitle}>Compete Against Other Players In Timed GTO Challenges</p>
-          </div>
+          <TrainingPageHead slug="training-tournaments" note="Compete Against Other Players In Timed GTO Challenges" />
 
           {!isOnline && (
             <div
@@ -293,8 +285,8 @@ export default function TournamentsPage() {
                 marginBottom: 16,
                 padding: '10px 14px',
                 borderRadius: 0,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(134, 218, 255, 0.4)',
+                background: 'rgba(134, 218, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,

@@ -21,6 +21,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const DEFAULT_MISTAKE_QUEUE = [
   {
     questionId: 'cash-002-flop-btn-bb-ak',
@@ -667,38 +668,7 @@ export default function FlashcardsPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>GTO Flashcards</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Spaced Repetition (SM-2)</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-flashcards" note="Spaced Repetition (SM-2)" />
 
         {/* Stats Bar */}
         <div
@@ -796,7 +766,7 @@ export default function FlashcardsPage() {
                   cursor: flipped ? 'default' : 'pointer',
                   background: flipped
                     ? 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.02))'
-                    : 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(139,92,246,0.04))',
+                    : 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(134, 218, 255, 0.04))',
                   border: `1px solid ${flipped ? 'rgba(34,197,94,0.15)' : 'rgba(0,212,255,0.12)'}`,
                   display: 'flex',
                   flexDirection: 'column',
@@ -950,8 +920,8 @@ export default function FlashcardsPage() {
                   flex: 1,
                   padding: '14px 4px',
                   borderRadius: 12,
-                  border: '1px solid rgba(251,191,36,0.2)',
-                  background: 'rgba(251,191,36,0.06)',
+                  border: '1px solid rgba(134, 218, 255, 0.2)',
+                  background: 'rgba(134, 218, 255, 0.06)',
                   color: '#86daff',
                   fontSize: 13,
                   fontWeight: 700,

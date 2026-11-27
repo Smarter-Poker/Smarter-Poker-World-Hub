@@ -23,6 +23,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-6a — adoption: shared empty-state primitive
 
 export const analyzeData = analyzeVerifiedTrainingWeaknesses;
@@ -130,44 +131,7 @@ export default function WeaknessScannerPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <div
-          className="sp-training-analysis-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #688299',
-            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-WEAKNESS-A11Y-1: SVG back arrow */}
-            <WeaknessBackArrowIcon size={18} />
-          </button>
-          <div>
-            {/* TRAIN-WEAKNESS-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Weakness Scanner</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Verified Session Analysis</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-weakness-scanner" note="Verified Session Analysis" />
 
         <div className="sp-training-analysis-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {/* Time Filter */}
@@ -307,8 +271,8 @@ export default function WeaknessScannerPage() {
                           flex: medCount,
                           padding: '8px 10px',
                           borderRadius: 8,
-                          background: 'rgba(251,191,36,0.06)',
-                          border: '1px solid rgba(251,191,36,0.12)',
+                          background: 'rgba(134, 218, 255, 0.06)',
+                          border: '1px solid rgba(134, 218, 255, 0.12)',
                           textAlign: 'center',
                         }}
                       >
@@ -399,7 +363,7 @@ export default function WeaknessScannerPage() {
                       borderRadius: 12,
                       marginBottom: 12,
                       background: 'rgba(0,0,0,0.2)',
-                      border: `1px solid ${leak.sev === 'High' ? 'rgba(239,68,68,0.3)' : leak.sev === 'Medium' ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.05)'}`,
+                      border: `1px solid ${leak.sev === 'High' ? 'rgba(239,68,68,0.3)' : leak.sev === 'Medium' ? 'rgba(134, 218, 255, 0.3)' : 'rgba(255,255,255,0.05)'}`,
                     }}
                   >
                     <div
@@ -423,7 +387,7 @@ export default function WeaknessScannerPage() {
                                 leak.sev === 'High'
                                   ? 'rgba(239,68,68,0.1)'
                                   : leak.sev === 'Medium'
-                                    ? 'rgba(251,191,36,0.1)'
+                                    ? 'rgba(134, 218, 255, 0.1)'
                                     : 'rgba(255,255,255,0.05)',
                               color:
                                 leak.sev === 'High'
@@ -520,7 +484,7 @@ export default function WeaknessScannerPage() {
                           padding: '10px',
                           borderRadius: 8,
                           border: 'none',
-                          background: 'rgba(168,85,247,0.1)',
+                          background: 'rgba(134, 218, 255, 0.1)',
                           color: '#86daff',
                           fontSize: 12,
                           fontWeight: 700,

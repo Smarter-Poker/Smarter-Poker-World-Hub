@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RAKE PRESETS
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -174,34 +175,7 @@ export default function CustomRakePage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #3a3b3c' }}>
-          <button
-            onClick={() => router.back()}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#b0b3b8',
-              fontSize: 14,
-              cursor: 'pointer',
-              marginBottom: 4,
-            }}
-          >
-            Back To Training
-          </button>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              margin: 0,
-              fontFamily: "'Rajdhani', sans-serif",
-            }}
-          >
-            Rake Cost Estimator
-          </h1>
-          <p style={{ fontSize: 14, color: '#b0b3b8', margin: '2px 0 0' }}>
-            Transparent Teaching Model • Not A Solver • Not Strategy Advice
-          </p>
-        </div>
+        <TrainingPageHead slug="training-custom-rake" note="Transparent Teaching Model • Not A Solver • Not Strategy Advice" />
 
         <div style={{ padding: '16px 20px', maxWidth: 900, margin: '0 auto' }}>
           {/* Rake Preset Grid */}
@@ -435,7 +409,7 @@ export default function CustomRakePage() {
               marginTop: 16,
               padding: '14px 18px',
               borderRadius: 10,
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04))',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(134, 218, 255, 0.04))',
               border: '1px solid rgba(99,102,241,0.2)',
               borderLeft: '3px solid #818cf8',
             }}

@@ -20,6 +20,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES, glossaryTermPath } from '../../../src/content/glossary/terms';
 import { authedFetch } from '../../../src/lib/authUtils';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-3c — adoption: shared empty-state primitive
 
 
@@ -38,14 +39,6 @@ const ICON_PROPS = {
   strokeLinejoin: 'round',
   'aria-hidden': true,
 };
-function BackArrowIcon({ size=18 }) {
-  return (
-    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <line x1="19" y1="12" x2="5" y2="12"/>
-      <polyline points="12 19 5 12 12 5"/>
-    </svg>
-  );
-}
 function StarToggleIcon({ filled=false, size=14 }) {
   // Filled uses currentColor for both fill+stroke; outline uses stroke only.
   return (
@@ -168,44 +161,7 @@ export default function GlossaryPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back To Training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-GLOSSARY-A11Y-1: SVG arrow + button hardening */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            {/* TRAIN-GLOSSARY-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Glossary Study Tool</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              {TERMS.length} Terms · {TERMS.filter((t) => favorites.has(t.term)).length} Saved
-            </div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-glossary" />
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
 
           {!online && <p role="status">Glossary Terms Are Available Offline.</p>}
@@ -277,7 +233,7 @@ export default function GlossaryPage() {
                 borderRadius: 10,
                 marginBottom: 4,
                 background: 'rgba(0,0,0,0.15)',
-                border: `1px solid ${favorites.has(t.term) ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)'}`,
+                border: `1px solid ${favorites.has(t.term) ? 'rgba(134, 218, 255, 0.15)' : 'rgba(255,255,255,0.04)'}`,
                 cursor: 'pointer',
               }}
             >

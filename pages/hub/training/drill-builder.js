@@ -25,6 +25,7 @@ import { encodeSharedDrillPack } from '../../../src/lib/training/trainingPresets
 
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 let _supabase = null;
 function getSupabase() {
   if (typeof window === 'undefined') return null;
@@ -461,42 +462,7 @@ export default function DrillBuilderPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #688299',
-            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            &larr;
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
-              Custom Drill Builder
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Create Focused Practice Sessions</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-drill-builder" note="Create Focused Practice Sessions" />
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {saveError && (

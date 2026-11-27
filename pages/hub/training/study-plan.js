@@ -23,6 +23,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-9 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -652,75 +653,24 @@ export default function StudyPlanPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          className="sp-journey-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #688299',
-            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              ←
-            </button>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                Weekly Study Plan
-              </h1>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                {loading
-                  ? 'Loading Verified Training History'
-                  : signedOut
-                    ? 'Sign In To Build Your Schedule'
-                    : fetchError
-                      ? 'Training History Unavailable'
-                      : isAuthoredStarterPlan
-                        ? 'Authored Starter Schedule'
-                        : 'Personalized From Verified Training History'}
-              </div>
-            </div>
-          </div>
+        <TrainingPageHead slug="training-study-plan">
+          <p className="sp-head-note">
+            {loading
+              ? 'Loading Verified Training History'
+              : signedOut
+                ? 'Sign In To Build Your Schedule'
+                : fetchError
+                  ? 'Training History Unavailable'
+                  : isAuthoredStarterPlan
+                    ? 'Authored Starter Schedule'
+                    : 'Personalized From Verified Training History'}
+          </p>
           {plan && (
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.95 }}
-              onClick={regeneratePlan}
-              style={{
-                padding: '8px 14px',
-                borderRadius: 8,
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.03)',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
+            <button type="button" className="sd-button" onClick={regeneratePlan}>
               New Plan
-            </motion.button>
+            </button>
           )}
-        </div>
+        </TrainingPageHead>
 
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           <div
@@ -765,7 +715,7 @@ export default function StudyPlanPage() {
                 padding: '0 16px',
                 borderRadius: 8,
                 border: '1px solid #fbbf24',
-                background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
+                background: 'linear-gradient(180deg, rgba(134, 218, 255, 0.48), rgba(146, 64, 14, 0.72))',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 900,
@@ -829,7 +779,7 @@ export default function StudyPlanPage() {
               borderRadius: 14,
               marginBottom: 20,
               background:
-                'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(139,92,246,0.04) 100%)',
+                'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(134, 218, 255, 0.04) 100%)',
               border: '1px solid rgba(0,212,255,0.12)',
             }}
           >

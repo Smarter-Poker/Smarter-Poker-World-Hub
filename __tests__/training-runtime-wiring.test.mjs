@@ -926,7 +926,7 @@ test('training hub keeps its signed-out primary action live and uses canonical l
   assert.match(hub, /pathname: '\/hub\/training\/arena\/\[gameId\]'/);
   assert.match(arena, /router\.replace\(`\/auth\/login\?redirect=\$\{encodeURIComponent\(router\.asPath\)\}`\)/);
   assert.doesNotMatch(surface, /disabled=\{!jarvisPick\}/);
-  assert.match(surface, /<h1[^>]*>Training Games<\/h1>/);
+  assert.match(surface, /<TrainingImageHeader slug=\"training-lobby\" title=\"Training Games\" titleId=\"hero-h\">/);
   assert.match(hub, /label: 'Cash Games'/);
   assert.match(hub, /label: 'Mental Game'/);
 });

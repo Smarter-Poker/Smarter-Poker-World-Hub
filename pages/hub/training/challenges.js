@@ -27,7 +27,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import casinoStyles from '../../../src/styles/training/challenges-casino.module.css';
 import sd from '../../../src/styles/training/training-smarterdesign.module.css';
-import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
+import TrainingPageHead, { TrainingDailyNav } from '../../../src/components/training/TrainingPageHead';
 
 
 
@@ -73,25 +73,6 @@ const GOALS_HELP = (
     <p>Review Historical Weekly And Monthly Challenge Definitions And Access Daily Solver Assignments. A Historical Snapshot Shows Progress Recorded Before Tracking Was Paused.</p>
   </>
 );
-
-function SubpageNavigation() {
-  return (
-    <nav className={`${casinoStyles.subpageNav} ${sd.chips}`} aria-label="Daily Challenges Subpages">
-      <Link href="/hub/training/daily-challenge" className="sd-button">
-        Hand Of The Day
-      </Link>
-      <Link href="/hub/training/daily-goals" className="sd-button">
-        Daily Goals Vault
-      </Link>
-      <Link href="/hub/training/challenges" className="sd-button" aria-current="page">
-        Weekly &amp; Monthly Goals
-      </Link>
-      <Link href="/hub/training" className="sd-button">
-        Training Arena
-      </Link>
-    </nav>
-  );
-}
 
 export default function ChallengesPage() {
   const router = useRouter();
@@ -174,9 +155,8 @@ export default function ChallengesPage() {
           <UniversalHeader pageDepth={2} />
           <div className={sd.page}>
             <div className={casinoStyles.marquee}>
-              <BankrollImageHeader art="training-goals" title="Training Challenges" section="training-goals" helpContent={GOALS_HELP} />
+              <TrainingPageHead slug="training-goals" title="Training Challenges" helpContent={GOALS_HELP} nav={<TrainingDailyNav current="/hub/training/challenges" />} />
             </div>
-            <SubpageNavigation />
             {renderBrainPanel()}
             <section className={`sd-panel ${sd.panel} ${sd.state}`} aria-labelledby="goals-sign-in-title">
               <h2 id="goals-sign-in-title" className={sd.sectionTitle}>Sign In To Track Goals</h2>
@@ -207,9 +187,8 @@ export default function ChallengesPage() {
 
           <div className={sd.page}>
             <div className={casinoStyles.marquee}>
-              <BankrollImageHeader art="training-goals" title="Your Goals" section="training-goals" helpContent={GOALS_HELP} />
+              <TrainingPageHead slug="training-goals" title="Your Goals" helpContent={GOALS_HELP} nav={<TrainingDailyNav current="/hub/training/challenges" />} />
             </div>
-            <SubpageNavigation />
             {renderBrainPanel()}
 
             <section className={sd.metrics} aria-label="Challenge Ledger Summary">

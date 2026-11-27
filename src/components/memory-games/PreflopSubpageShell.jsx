@@ -50,10 +50,9 @@ export default function PreflopSubpageShell({ eyebrow, title, description, metri
 
             </div>
 
-            <PreflopSubpageNav current={current} />
-
-            <BankrollImageHeader art={({stats:'reports', leaderboard:'players', achievements:'goals', tutorial:'rules'})[current.split('/').pop()] || 'series'} title={title}
+            <BankrollImageHeader art={({ stats: 'preflop-stats', leaderboard: 'preflop-leaderboard', achievements: 'preflop-achievements', tutorial: 'preflop-tutorial' })[current.split('/').pop()] || 'preflop-charts'} title={title}
               helpContent={<p>{description}</p>} />
+            <PreflopSubpageNav current={current} />
             {metric && <strong>{metric}</strong>}
 
             {children}

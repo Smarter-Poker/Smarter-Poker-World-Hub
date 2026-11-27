@@ -53,7 +53,8 @@ test('hero and HUD overlays have smaller modern-format delivery paths', () => {
 
 test('category artwork stays out of normal flow so Play stays beside the title', () => {
   const source = fs.readFileSync(path.join(ROOT, 'pages/hub/training/category/[categoryId].js'), 'utf8');
-  assert.match(source, /<div className="sp-category-hero-art" aria-hidden="true">\s*<TrainingGameArt/);
-  assert.match(source, /\.sp-category-hero-art \{ position: absolute; inset: 0;/);
-  assert.match(source, /\.sp-category-hero-art :global\(img\) \{ object-fit: cover;/);
+  // The category hero is the #SMARTERDESIGN image header (its own seal and
+  // scene per category); Play Now sits directly under it, never behind art.
+  assert.match(source, /<TrainingImageHeader slug=\{`training-category-\$\{String\(categoryId\)\.toLowerCase\(\)\}`\}/);
+  assert.match(source, /data-category-quick-start="true"/);
 });

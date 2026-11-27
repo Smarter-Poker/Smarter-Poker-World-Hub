@@ -16,6 +16,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import { motion } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import TrainingPageHead, { TrainingDailyNav } from '../../../src/components/training/TrainingPageHead';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
@@ -313,8 +314,8 @@ export default function StreaksPage() {
         marginBottom: 16,
         padding: '10px 14px',
         borderRadius: 2,
-        border: '1px solid rgba(251, 191, 36, 0.4)',
-        background: 'rgba(251, 191, 36, 0.08)',
+        border: '1px solid rgba(134, 218, 255, 0.4)',
+        background: 'rgba(134, 218, 255, 0.08)',
         color: '#86daff',
         fontSize: 12,
         fontWeight: 700,
@@ -343,23 +344,7 @@ export default function StreaksPage() {
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
           <div style={styles.content}>
-            <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
-              <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
-                Hand Of The Day
-              </Link>
-              <Link href="/hub/training/daily-goals" style={styles.navPlate}>
-                Daily Goals Vault
-              </Link>
-              <Link href="/hub/training/challenges" style={styles.navPlate}>
-                Weekly &amp; Monthly Goals
-              </Link>
-              <Link href="/hub/training/achievements" style={styles.navPlate}>
-                Achievements Vault
-              </Link>
-              <Link href="/hub/training/streaks" style={styles.navPlateActive}>
-                Streaks Vault
-              </Link>
-            </nav>
+            <TrainingPageHead slug="training-streaks" nav={<TrainingDailyNav current="/hub/training/streaks" />} />
             {offlineNotice}
             <TrainerEmptyState
               variant="locked"
@@ -380,23 +365,7 @@ export default function StreaksPage() {
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
           <div style={styles.content}>
-            <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
-              <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
-                Hand Of The Day
-              </Link>
-              <Link href="/hub/training/daily-goals" style={styles.navPlate}>
-                Daily Goals Vault
-              </Link>
-              <Link href="/hub/training/challenges" style={styles.navPlate}>
-                Weekly &amp; Monthly Goals
-              </Link>
-              <Link href="/hub/training/achievements" style={styles.navPlate}>
-                Achievements Vault
-              </Link>
-              <Link href="/hub/training/streaks" style={styles.navPlateActive}>
-                Streaks Vault
-              </Link>
-            </nav>
+            <TrainingPageHead slug="training-streaks" nav={<TrainingDailyNav current="/hub/training/streaks" />} />
             {offlineNotice}
             <ErrorBanner message="Unable to verify your training streak." onRetry={() => refreshStreak()} />
             <TrainerEmptyState
@@ -428,23 +397,7 @@ export default function StreaksPage() {
         <UniversalHeader pageDepth={2} />
 
         <div className="sp-journey-main" style={styles.content}>
-          <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
-            <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
-              Hand Of The Day
-            </Link>
-            <Link href="/hub/training/daily-goals" style={styles.navPlate}>
-              Daily Goals Vault
-            </Link>
-            <Link href="/hub/training/challenges" style={styles.navPlate}>
-              Weekly &amp; Monthly Goals
-            </Link>
-            <Link href="/hub/training/achievements" style={styles.navPlate}>
-              Achievements Vault
-            </Link>
-            <Link href="/hub/training/streaks" style={styles.navPlateActive}>
-              Streaks Vault
-            </Link>
-          </nav>
+          <TrainingPageHead slug="training-streaks" nav={<TrainingDailyNav current="/hub/training/streaks" />} />
 
           {offlineNotice}
 

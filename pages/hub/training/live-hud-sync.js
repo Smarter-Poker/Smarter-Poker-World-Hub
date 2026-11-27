@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const SAMPLE_CLUB_ARENA_HAND = `PokerStars Hand #994810241: Hold'em No Limit ($1/$2 USD) - 2026/11/09 15:30:00 ET
 Table 'ClubArena_6Max_1' 6-max Seat #1 is the button
 Seat 1: Hero ($200.00 in chips)
@@ -194,14 +195,15 @@ export default function LiveHudSyncPage() {
       </Head>
       <UniversalHeader pageDepth={2} />
       <main style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)', color: '#f7fbff' }}>
+        <TrainingPageHead slug="training-live-hud-sync" />
         <section style={{ position: 'relative', maxWidth: 860, margin: '0 auto', border: '1px solid #688299', borderTopColor: '#aec0d0', background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%)', boxShadow: 'inset 0 1px rgba(255,255,255,.25), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
           <div aria-hidden="true" style={{ position: 'absolute', inset: 7, border: '1px solid rgba(93,201,240,.16)', pointerEvents: 'none' }} />
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#86daff', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffb84d', boxShadow: '0 0 12px rgba(255,184,77,.8)' }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffb84d', boxShadow: '0 0 12px rgba(134, 218, 255, .8)' }} />
               Integration Status
             </div>
-            <h1 style={{ margin: '14px 0 10px', fontSize: 'clamp(32px, 7vw, 62px)', lineHeight: .98, textTransform: 'capitalize' }}>Live HUD Sync</h1>
+            <h2 style={{ margin: '14px 0 10px', fontSize: 'clamp(32px, 7vw, 62px)', lineHeight: .98, textTransform: 'capitalize' }}>Live HUD Sync</h2>
             <p style={{ margin: 0, maxWidth: 670, color: '#b8cad7', lineHeight: 1.7 }}>Physical Beacon Discovery And Bluetooth Pairing Are Not Connected To A Production Service Yet. This Page Will Not Simulate A Device, Connection, Signal Strength, Battery, Or Firmware Version.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginTop: 28 }}>
@@ -406,7 +408,7 @@ export default function LiveHudSyncPage() {
                       style={{
                         padding: '14px 16px',
                         border: hand.leakPriorityRank === 1
-                          ? '1px solid rgba(251,191,36,.65)'
+                          ? '1px solid rgba(134, 218, 255, .65)'
                           : '1px solid rgba(132,213,242,.26)',
                         background: hand.leakPriorityRank === 1
                           ? 'rgba(30,22,12,.86)'
@@ -427,7 +429,7 @@ export default function LiveHudSyncPage() {
                                 ? '1px solid #fbbf24'
                                 : '1px solid rgba(132,213,242,.35)',
                               background: hand.leakPriorityRank === 1
-                                ? 'rgba(217,119,6,.32)'
+                                ? 'rgba(134, 218, 255, .32)'
                                 : 'rgba(20,48,66,.55)',
                               color: hand.leakPriorityRank === 1 ? '#86daff' : '#82e7ff',
                               fontSize: 12,

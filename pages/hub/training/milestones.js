@@ -23,12 +23,13 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const TIERS = {
-  Bronze: { color: '#86daff', bg: 'rgba(205,127,50,0.1)' },
+  Bronze: { color: '#86daff', bg: 'rgba(134, 218, 255, 0.1)' },
   Silver: { color: 'var(--sp-fg)', bg: 'rgba(203,213,225,0.1)' },
-  Gold: { color: '#86daff', bg: 'rgba(251,191,36,0.1)' },
+  Gold: { color: '#86daff', bg: 'rgba(134, 218, 255, 0.1)' },
   Diamond: { color: 'var(--sp-accent-cyan)', bg: 'rgba(0,212,255,0.1)' },
-  Master: { color: '#86daff', bg: 'rgba(168,85,247,0.1)' },
+  Master: { color: '#86daff', bg: 'rgba(134, 218, 255, 0.1)' },
 };
 
 
@@ -496,58 +497,11 @@ export default function MilestonesPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <div
-          className="sp-journey-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-MILESTONES-A11Y-1: SVG back arrow replaces '←' entity */}
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <line x1="19" y1="12" x2="5" y2="12"/>
-              <polyline points="12 19 5 12 12 5"/>
-            </svg>
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Milestones</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Verified Session Thresholds</div>
-          </div>
-          <div
-            style={{
-              marginLeft: 'auto',
-              padding: '4px 10px',
-              borderRadius: 6,
-              background: 'rgba(251,191,36,0.08)',
-              border: '1px solid rgba(251,191,36,0.2)',
-            }}
-          >
-            {/* TRAIN-MILESTONES-A11Y-1: status role for the reached counter */}
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#86daff' }} role="status" aria-label={`${reached.length} of ${MILESTONE_DEFS.length} thresholds reached`}>{reached.length}</span>
-            <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>/{MILESTONE_DEFS.length}</span>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-milestones" note="Verified Session Thresholds">
+          <p className="sp-head-note" role="status" aria-label={`${reached.length} of ${MILESTONE_DEFS.length} thresholds reached`}>
+            <strong>{reached.length}</strong> / {MILESTONE_DEFS.length} Reached
+          </p>
+        </TrainingPageHead>
 
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {!isOnline && (
@@ -558,8 +512,8 @@ export default function MilestonesPage() {
                 marginBottom: 14,
                 padding: '10px 14px',
                 borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(134, 218, 255, 0.4)',
+                background: 'rgba(134, 218, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,

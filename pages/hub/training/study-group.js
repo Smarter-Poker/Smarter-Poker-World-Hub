@@ -10,6 +10,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { authedFetch } from '../../../src/lib/authUtils';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-5f — adoption: shared empty-state primitive
 
 
@@ -193,24 +194,7 @@ export default function StudyGroupRoom() {
       <UniversalHeader pageDepth={2} hideLeftIcon />
 
       <div className="sp-training-command sp-training-command--study-room" style={styles.container}>
-        <div className="sp-command-header" style={styles.header}>
-          <button
-            type="button"
-            aria-label="Back to training hub"
-            onClick={() => router.push('/hub/training')}
-            style={styles.backButton}
-          >
-            {/* TRAIN-STUDYGROUP-A11Y-1: SVG back arrow + visible label */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <BackArrowIcon size={14} />
-              Hub
-            </span>
-          </button>
-          <div>
-            <h1 style={styles.title}>{group?.name || 'COLLABORATIVE STUDY ROOM'}</h1>
-            <p style={styles.subtitle}>Persistent Member Room · Live Discussion Sync</p>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-study-group" note="Persistent Member Room · Live Discussion Sync" />
 
         <ErrorBanner message={error} onRetry={() => loadRoom()} />
 
@@ -222,8 +206,8 @@ export default function StudyGroupRoom() {
               marginBottom: 16,
               padding: '10px 14px',
               borderRadius: 10,
-              border: '1px solid rgba(251, 191, 36, 0.4)',
-              background: 'rgba(251, 191, 36, 0.08)',
+              border: '1px solid rgba(134, 218, 255, 0.4)',
+              background: 'rgba(134, 218, 255, 0.08)',
               color: '#86daff',
               fontSize: 12,
               fontWeight: 700,

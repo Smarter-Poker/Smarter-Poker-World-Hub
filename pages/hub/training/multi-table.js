@@ -22,6 +22,7 @@ import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PokerSoundManager from '../../../src/components/poker/PokerSoundManager';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 function computePaneSpatialPan(paneIndex, totalTables) {
   const count = Math.max(1, Number(totalTables) || 1);
   if (count <= 1) return 0;
@@ -890,20 +891,7 @@ export default function MultiTablePage() {
           <div
             style={{ padding: '60px 20px', maxWidth: 500, margin: '0 auto', textAlign: 'center' }}
           >
-            <div style={{ fontSize: 48, marginBottom: 16 }}>◆</div>
-            <h1
-              style={{
-                fontSize: 24,
-                fontWeight: 800,
-                margin: '0 0 8px',
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #86daff)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Multi-Table Practice
-            </h1>
+            <TrainingPageHead slug="training-multi-table" />
             <p style={{ fontSize: 13, color: 'var(--sp-fg-muted)', marginBottom: 18 }}>
               Train On Multiple Tables Simultaneously To Build Speed And Accuracy Under Pressure.
             </p>
@@ -1113,22 +1101,6 @@ export default function MultiTablePage() {
               START {tableCount} TABLES
             </motion.button>
 
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                display: 'block',
-                margin: '16px auto 0',
-                padding: '8px 20px',
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                color: 'var(--sp-fg-dim)',
-                fontSize: 12,
-                cursor: 'pointer',
-              }}
-            >
-              ← Back To Training
-            </button>
 
           </div>
         ) : (
@@ -1330,12 +1302,12 @@ export default function MultiTablePage() {
                       border: isFocusedTable
                         ? '1px solid rgba(0, 212, 255, 0.65)'
                         : isPendingDecision
-                          ? '1px solid rgba(251, 191, 36, 0.45)'
+                          ? '1px solid rgba(134, 218, 255, 0.45)'
                           : '1px solid rgba(255, 255, 255, 0.12)',
                       background: isFocusedTable
                         ? 'rgba(0, 212, 255, 0.18)'
                         : isPendingDecision
-                          ? 'rgba(251, 191, 36, 0.1)'
+                          ? 'rgba(134, 218, 255, 0.1)'
                           : 'rgba(255, 255, 255, 0.04)',
                       color: isFocusedTable ? '#67e8f9' : '#e2e8f0',
                     }}

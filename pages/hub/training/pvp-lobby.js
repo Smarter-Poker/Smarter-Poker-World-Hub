@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const PRACTICE_ROUTE = '/hub/training/arena/mtt-015?level=1&source=pvp-lobby';
 
 
@@ -175,14 +176,15 @@ export default function PvPLobbyPage() {
       </Head>
       <UniversalHeader pageDepth={2} />
       <main className="sp-training-command sp-training-command--pvp" style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: '#040d18', color: '#f7fbff' }}>
+        <TrainingPageHead slug="training-pvp-lobby" />
         <section className="sp-command-main" style={{ position: 'relative', maxWidth: 920, margin: '0 auto', border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7, background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)', boxShadow: 'inset 0 1px rgba(255,255,255,.22), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
           <div aria-hidden="true" style={{ position: 'absolute', inset: 7, border: '1px solid rgba(93,201,240,.16)', pointerEvents: 'none' }} />
           <div style={{ position: 'relative' }}>
             <div className="sp-command-header" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#86daff', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffb84d', boxShadow: '0 0 12px rgba(255,184,77,.8)' }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffb84d', boxShadow: '0 0 12px rgba(134, 218, 255, .8)' }} />
               Competitive Service Status
             </div>
-            <h1 style={{ margin: '14px 0 10px', fontSize: 'clamp(34px, 7vw, 66px)', lineHeight: .96, textTransform: 'capitalize' }}>PvP Lobby</h1>
+            <h2 style={{ margin: '14px 0 10px', fontSize: 'clamp(34px, 7vw, 66px)', lineHeight: .96, textTransform: 'capitalize' }}>PvP Lobby</h2>
             <p style={{ margin: 0, maxWidth: 700, color: '#b8cad7', lineHeight: 1.7 }}>Real-Player Matchmaking Is Not Connected To A Production Realtime Match Service. The Lobby Will Not Present Simulated Searches, Invented Opponents, Random Scores, Ratings, Or Diamond Rewards As Real PvP Activity.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginTop: 28 }}>

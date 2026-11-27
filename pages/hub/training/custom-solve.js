@@ -19,6 +19,7 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTrainingFetch';
 import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
 
@@ -610,41 +611,7 @@ export default function CustomSolvePage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            &larr;
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Custom Solve</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Query Authored Preflop And Audited Root-Node Data
-            </div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-custom-solve" note="Query Authored Preflop And Audited Root-Node Data" />
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {/* Supported corpus — variants are not offered as no-op controls. */}
@@ -832,7 +799,7 @@ export default function CustomSolvePage() {
               border: '1px solid rgba(0,212,255,0.3)',
               background: loading
                 ? 'rgba(0,212,255,0.03)'
-                : 'linear-gradient(135deg, rgba(0,212,255,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+                : 'linear-gradient(135deg, rgba(0,212,255,0.12) 0%, rgba(134, 218, 255, 0.08) 100%)',
               color: 'var(--sp-accent-cyan)',
               fontSize: 14,
               fontWeight: 800,

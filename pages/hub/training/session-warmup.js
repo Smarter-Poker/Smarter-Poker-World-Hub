@@ -18,6 +18,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-8 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -48,7 +49,6 @@ function PawnIcon({ size=40 })   { return <_Svg size={size}><circle cx="12" cy="
 function StopIcon({ size=40 })   { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><line x1="6" y1="6" x2="18" y2="18"/></_Svg>; }
 function ClockIcon({ size=40 })  { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></_Svg>; }
 function CheckIcon({ size=36 })  { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
-function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function StepIcon({ kind, size=40 }) {
   switch (kind) {
     case 'brain':  return <BrainIcon size={size}/>;
@@ -249,29 +249,7 @@ export default function SessionWarmupPage() {
         }}
       >
         {/* Back Button */}
-        <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-WARMUP-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-        </div>
+        <TrainingPageHead slug="training-session-warmup" />
 
         {/* Completion Counter */}
         <div
@@ -384,7 +362,7 @@ export default function SessionWarmupPage() {
                   System Check {step + 1} Of {PROTOCOL_STEPS.length}
                 </div>
                 {/* TRAIN-WARMUP-A11Y-1: semantic h1 per active step */}
-                <h1
+                <h2
                   style={{
                     fontSize: 28,
                     fontWeight: 900,
@@ -395,7 +373,7 @@ export default function SessionWarmupPage() {
                   }}
                 >
                   {currentStep.title}
-                </h1>
+                </h2>
                 <div
                   style={{
                     fontSize: 14,
@@ -546,7 +524,7 @@ export default function SessionWarmupPage() {
                 <CheckIcon size={36} />
               </div>
               {/* TRAIN-WARMUP-A11Y-1: semantic h1 for completion screen */}
-              <h1
+              <h2
                 style={{
                   fontSize: 32,
                   fontWeight: 900,
@@ -557,7 +535,7 @@ export default function SessionWarmupPage() {
                 }}
               >
                 You Are Prepared.
-              </h1>
+              </h2>
               <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 32 }}>
                 Protocol Verified. Execute Your Strategy.
               </div>

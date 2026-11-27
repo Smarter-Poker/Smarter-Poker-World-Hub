@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -320,8 +321,8 @@ export default function TrainingProgress() {
         marginBottom: 16,
         padding: '10px 14px',
         borderRadius: 8,
-        border: '1px solid rgba(251, 191, 36, 0.4)',
-        background: 'rgba(251, 191, 36, 0.08)',
+        border: '1px solid rgba(134, 218, 255, 0.4)',
+        background: 'rgba(134, 218, 255, 0.08)',
         color: '#86daff',
         fontSize: 12,
         fontWeight: 700,
@@ -397,10 +398,10 @@ export default function TrainingProgress() {
       <div className="sp-training-journey sp-training-journey--progress" style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
+        <TrainingPageHead slug="training-progress" />
         <div className="sp-journey-main" style={styles.content}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); loadProgress(); }} />
 
-          <h1 className="sp-journey-title" style={styles.title}>Your Training Progress</h1>
 
           {offlineNotice}
 

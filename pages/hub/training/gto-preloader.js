@@ -29,6 +29,7 @@ import {
   setOfflineQuestions,
 } from '../../../src/lib/training/offlineQuestionCache';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const OFFLINE_PACK_DELIVERY_CONTRACT = createOfflineQuestionCacheContract({
   difficulty: 'standard',
   gameMode: 'full',
@@ -341,30 +342,7 @@ export default function GtoPreloaderPage() {
             background: '#0f172a',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              ←
-            </button>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Preloader</div>
-              <div style={{ fontSize: 12, color: '#b9cbd4' }}>Signed Question Cache Sync</div>
-            </div>
-          </div>
+          <TrainingPageHead slug="training-gto-preloader" note="Signed Question Cache Sync" />
         </div>
 
         <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>

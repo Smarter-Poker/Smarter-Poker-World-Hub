@@ -21,6 +21,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-1c - adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-JOURNAL-A11Y-1): SVG icons replacing the mental-journal
@@ -53,7 +54,6 @@ function StateIcon({ kind, size=20 }) {
   }
 }
 function CheckIcon({ size=14 }) { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
-function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function MoonIcon({ size=12 })   { return <_Svg size={size}><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></_Svg>; }
 function CoffeeIcon({ size=12 }) { return <_Svg size={size}><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></_Svg>; }
 
@@ -247,34 +247,7 @@ export default function MentalJournalPage() {
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              aria-label="Back to training"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* TRAIN-JOURNAL-A11Y-1: SVG back arrow */}
-              <BackArrowIcon size={18} />
-            </button>
-            <div>
-              {/* TRAIN-JOURNAL-A11Y-1: semantic h1 */}
-              <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Mental Journal</h1>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Tilt & Trigger Tracking</div>
-            </div>
-          </div>
+          <TrainingPageHead slug="training-mental-journal" note="Tilt & Trigger Tracking" />
         </div>
 
         <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>

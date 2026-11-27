@@ -129,32 +129,27 @@
 }
 .help {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  z-index: 2;
+  top: 3px;
+  right: 3px;
   display: grid;
-  place-items: center;
+  place-items: start end;
   width: 44px;
   height: 44px;
   border: 0;
   background: none;
-  color: #f2f7ff;
   text-decoration: none;
   cursor: pointer;
   touch-action: manipulation;
 }
-.help span {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 2px solid #c9d9e7;
-  background: radial-gradient(circle at 35% 30%, #35506b, #0a1826 70%);
-  box-shadow:
-    0 0 0 1px #09121c,
-    0 2px 5px #000,
-    inset 0 1px 0 #ffffff55;
-  font: 800 18px/1 var(--vk-type);
+/* The approved painted chrome "?" (#SMARTERDESIGN): the same one on every image header. */
+.helpIcon {
+  display: block;
+  width: 34px;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
 }
 .help:focus-visible,
 .close:focus-visible {

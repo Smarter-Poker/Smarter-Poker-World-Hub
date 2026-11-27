@@ -17,6 +17,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-6 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -150,41 +151,7 @@ export default function QREExplorerPage() {
           paddingBottom: 60,
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>QRE Toy Model</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Authored Illustration • No Solver Or Population Data
-            </div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-qre-explorer" note="Authored Illustration • No Solver Or Population Data" />
 
         <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
           {/* λ Slider */}
@@ -284,9 +251,9 @@ export default function QREExplorerPage() {
                 style={{
                   padding: 12,
                   borderRadius: 10,
-                  border: `1px solid ${activePreset === p.id ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.05)'}`,
+                  border: `1px solid ${activePreset === p.id ? 'rgba(134, 218, 255, 0.4)' : 'rgba(255,255,255,0.05)'}`,
                   background:
-                    activePreset === p.id ? 'rgba(167,139,250,0.1)' : 'rgba(255,255,255,0.02)',
+                    activePreset === p.id ? 'rgba(134, 218, 255, 0.1)' : 'rgba(255,255,255,0.02)',
                   color: activePreset === p.id ? '#86daff' : 'var(--sp-fg-muted)',
                   cursor: 'pointer',
                   textAlign: 'center',
@@ -368,7 +335,7 @@ export default function QREExplorerPage() {
                   fontWeight: 700,
                   padding: '3px 8px',
                   borderRadius: 4,
-                  background: 'rgba(167,139,250,0.1)',
+                  background: 'rgba(134, 218, 255, 0.1)',
                   color: '#86daff',
                 }}
               >
@@ -519,8 +486,8 @@ export default function QREExplorerPage() {
             style={{
               padding: 20,
               borderRadius: 16,
-              background: 'rgba(251,191,36,0.05)',
-              border: '1px solid rgba(251,191,36,0.15)',
+              background: 'rgba(134, 218, 255, 0.05)',
+              border: '1px solid rgba(134, 218, 255, 0.15)',
             }}
           >
             <div

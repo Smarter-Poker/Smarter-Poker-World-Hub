@@ -24,6 +24,7 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-22 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -396,50 +397,7 @@ export default function RangeBuilder() {
             borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              ← Training
-            </button>
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Range Builder
-            </h1>
-            <span
-              style={{
-                fontSize: 12,
-                color: '#86daff',
-                background: 'rgba(249,115,22,0.1)',
-                padding: '3px 8px',
-                borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(249,115,22,0.2)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              PHASE 18
-            </span>
-          </div>
+          <TrainingPageHead slug="training-range-builder" />
 
           {/* Position Selector */}
           <div data-pills-row
@@ -499,9 +457,9 @@ export default function RangeBuilder() {
               maxWidth: 680,
               margin: '12px auto 0',
               padding: '8px 12px',
-              border: '1px solid rgba(251,191,36,0.28)',
+              border: '1px solid rgba(134, 218, 255, 0.28)',
               borderRadius: 8,
-              background: 'rgba(251,191,36,0.07)',
+              background: 'rgba(134, 218, 255, 0.07)',
               color: 'var(--sp-fg-muted)',
               textAlign: 'center',
               fontSize: 12,
@@ -637,9 +595,9 @@ export default function RangeBuilder() {
                     role="note"
                     style={{
                       padding: '8px 10px',
-                      border: '1px solid rgba(251,191,36,0.24)',
+                      border: '1px solid rgba(134, 218, 255, 0.24)',
                       borderRadius: 8,
-                      background: 'rgba(251,191,36,0.06)',
+                      background: 'rgba(134, 218, 255, 0.06)',
                       color: 'var(--sp-fg-muted)',
                       fontSize: 12,
                       lineHeight: 1.5,

@@ -106,7 +106,9 @@ test('the app-level social defaults say what the product is', () => {
 test('the training heading never ends in a loading message', () => {
   const src = `${read('pages/hub/training.js')}\n${read('src/components/training/lobby/TrainingLobbyHeader.jsx')}`;
   assert.doesNotMatch(src, /<h1[^>]*>[^<]*Loading/i);
-  assert.match(src, /<h1[^>]*>Training Games<\/h1>/);
+  // The page heading is the image header's live title (#SMARTERDESIGN, 2026-11-27).
+  assert.match(src, /<TrainingImageHeader slug=\"training-lobby\" title=\"Training Games\" titleId=\"hero-h\">/);
+  assert.doesNotMatch(src, /title="[^"]*Loading/i);
 });
 
 test('every public page title fits a search result once SEOHead has added the site name', () => {

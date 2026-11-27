@@ -974,7 +974,7 @@ export default function EquityCalculatorPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <BankrollImageHeader art="jarvis" title="Equity Calculator" helpContent={<><p>Choose A Game And Enter Each Hand. Add Community Cards To Compare Win, Tie And Pot Equity. PLO8 Splits The Pot When A Low Qualifies.</p>
+        <BankrollImageHeader art="training-equity-calculator" title="Equity Calculator" helpContent={<><p>Choose A Game And Enter Each Hand. Add Community Cards To Compare Win, Tie And Pot Equity. PLO8 Splits The Pot When A Low Qualifies.</p>
           {/* About Section */}
           <div
             className="sp-equity-aeo-kernel"
@@ -983,7 +983,7 @@ export default function EquityCalculatorPage() {
               padding: '16px 20px',
               background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 0.12), rgba(255,255,255,0.02))',
               borderRadius: 12,
-              border: '1px solid rgba(168,85,247,0.3)',
+              border: '1px solid rgba(134, 218, 255, 0.3)',
             }}
           >
             <div
@@ -1268,7 +1268,7 @@ export default function EquityCalculatorPage() {
                 padding: '12px 14px',
                 marginBottom: 16,
                 borderRadius: 10,
-                border: '1px solid rgba(251, 191, 36, 0.45)',
+                border: '1px solid rgba(134, 218, 255, 0.45)',
                 background: 'rgba(120, 53, 15, 0.22)',
                 color: '#86daff',
                 fontSize: 12,
@@ -1287,8 +1287,8 @@ export default function EquityCalculatorPage() {
                   style={{
                     padding: '4px 10px',
                     borderRadius: 6,
-                    border: '1px solid rgba(251, 191, 36, 0.5)',
-                    background: 'rgba(217, 119, 6, 0.28)',
+                    border: '1px solid rgba(134, 218, 255, 0.5)',
+                    background: 'rgba(134, 218, 255, 0.28)',
                     color: '#86daff',
                     fontSize: 12,
                     fontWeight: 800,
@@ -1367,7 +1367,7 @@ export default function EquityCalculatorPage() {
                 style={{
                   background:
                     'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                  border: '1px solid rgba(168,85,247,0.2)',
+                  border: '1px solid rgba(134, 218, 255, 0.2)',
                   borderRadius: 14,
                   padding: 20,
                   marginBottom: 20,

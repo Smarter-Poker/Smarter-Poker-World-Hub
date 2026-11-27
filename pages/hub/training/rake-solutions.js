@@ -17,6 +17,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-21 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -184,41 +185,7 @@ export default function RakeSolutionsPage() {
           paddingBottom: 60,
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Rake Sensitivity Model</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Authored Toy Curve • Not Solver Or Strategy Data
-            </div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-rake-solutions" note="Authored Toy Curve • Not Solver Or Strategy Data" />
 
         <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
           <div
@@ -227,8 +194,8 @@ export default function RakeSolutionsPage() {
             style={{
               padding: 14,
               marginBottom: 20,
-              border: '1px solid rgba(251,191,36,0.28)',
-              background: 'rgba(251,191,36,0.06)',
+              border: '1px solid rgba(134, 218, 255, 0.28)',
+              background: 'rgba(134, 218, 255, 0.06)',
               color: 'var(--sp-fg-muted)',
               fontSize: 12,
               lineHeight: 1.6,
@@ -466,8 +433,8 @@ export default function RakeSolutionsPage() {
               marginTop: 24,
               padding: 20,
               borderRadius: 16,
-              background: 'rgba(251,191,36,0.05)',
-              border: '1px solid rgba(251,191,36,0.15)',
+              background: 'rgba(134, 218, 255, 0.05)',
+              border: '1px solid rgba(134, 218, 255, 0.15)',
             }}
           >
             <div

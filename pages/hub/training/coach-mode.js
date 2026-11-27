@@ -21,6 +21,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { encodeCoopStudyRoom } from '../../../src/lib/training/trainingPresets.mjs';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
 
 
@@ -518,7 +519,7 @@ export default function CoachModePage() {
                 </div>
                 <div className="sp-coach-console-content">
                   <div className="sp-coach-kicker"><i /> Concept {step + 1}</div>
-                  <h1>{activeLesson.name}</h1>
+                  <h2>{activeLesson.name}</h2>
                   <p>{activeLesson.concepts[step]}</p>
                   <div className="sp-coach-console-rule" />
                   <div className="sp-coach-console-meta">
@@ -554,7 +555,7 @@ export default function CoachModePage() {
                 </div>
                 <div className="sp-coach-console-content sp-coach-question-panel">
                   <div className="sp-coach-kicker"><i /> Read The Table</div>
-                  <h1>{currentQuestion.q}</h1>
+                  <h2>{currentQuestion.q}</h2>
                   <div className="sp-coach-options" role="group" aria-label="Answer Choices">
                     {currentQuestion.opts.map((opt, i) => {
                       const optionState = selected === null
@@ -624,7 +625,7 @@ export default function CoachModePage() {
                 </div>
                 <div className="sp-coach-results-content">
                   <div className="sp-coach-kicker"><i /> Local Review Finished</div>
-                  <h1>Practice Review Finished</h1>
+                  <h2>Practice Review Finished</h2>
                   <p>{activeLesson.name}</p>
                   <div className="sp-coach-score">
                     <strong>{score}<span>/{activeLesson.quiz.length}</span></strong>
@@ -657,33 +658,20 @@ export default function CoachModePage() {
       />
       <div className="sp-training-command sp-training-command--coach sp-coach-casino">
         <main className="sp-command-main sp-coach-home">
-          <section className="sp-command-header sp-coach-hero" aria-labelledby="coach-mode-title">
-            <img className="sp-coach-hero-art" src="/images/training/coach-mode/strategy-chamber-hero.webp" alt="" width="1600" height="901" fetchpriority="high" />
-            <div className="sp-coach-hero-vignette" />
-            <button type="button" className="sp-coach-back sp-coach-hero-back" aria-label="Back To Training Hub" onClick={() => router.push('/hub/training')}>
-              <BackArrowIcon size={18} />
-              <span>Training Hub</span>
-            </button>
-            <div className="sp-coach-hero-copy">
-              <div className="sp-coach-kicker"><i /> Private Strategy Chamber / Local Practice</div>
-              <h1 id="coach-mode-title">Train Every Decision Until It Becomes Instinct.</h1>
-              <p>Review Audited Concepts With Local Feedback. Recorded Progress, Unlocks, And Rewards Exist Only In The Verified Training Arena.</p>
-              <div className="sp-coach-hero-actions">
-                <motion.button className="sp-coach-primary" whileTap={{ scale: 0.98 }} onClick={() => startLesson(recommendedLesson)}>
-                  {reviewedThisVisit.size ? 'Continue Local Module' : 'Initialize Local Coach Review'}
-                  <span aria-hidden>›</span>
-                </motion.button>
-                <div className="sp-coach-completion" role="status" aria-label={`${reviewedThisVisit.size} of ${LESSONS.length} lessons reviewed this visit`}>
-                  <strong>{String(reviewedThisVisit.size).padStart(2, '0')}</strong>
-                  <span>Of {String(LESSONS.length).padStart(2, '0')} Reviewed This Visit</span>
-                </div>
-              </div>
+          <TrainingPageHead
+            slug="training-coach-mode"
+            note="Private Strategy Chamber / Local Practice"
+            help="Review Audited Concepts With Local Feedback. Recorded Progress, Unlocks, And Rewards Exist Only In The Verified Training Arena."
+          >
+            <div className="sp-coach-hero-actions">
+              <motion.button className="sp-coach-primary sd-button sd-primary" whileTap={{ scale: 0.98 }} onClick={() => startLesson(recommendedLesson)}>
+                {reviewedThisVisit.size ? 'Continue Local Module' : 'Start Local Coach Review'}
+              </motion.button>
+              <p className="sp-head-note" role="status" aria-label={`${reviewedThisVisit.size} of ${LESSONS.length} lessons reviewed this visit`}>
+                <strong>{reviewedThisVisit.size}</strong> Of {LESSONS.length} Reviewed This Visit
+              </p>
             </div>
-              <div className="sp-coach-hero-plate" aria-hidden>
-              <span>GTO Training Core</span>
-              <strong>Coach / 11</strong>
-            </div>
-          </section>
+          </TrainingPageHead>
 
 
 

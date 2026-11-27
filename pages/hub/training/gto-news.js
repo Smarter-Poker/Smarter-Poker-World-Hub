@@ -19,6 +19,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { authedFetch } from '../../../src/lib/authUtils';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-3d — adoption: shared empty-state primitive
 
 // SAMPLE FALLBACK ONLY — these twenty tips are fixed editorial examples, not
@@ -280,7 +281,6 @@ function AbacusIcon({ size=14 })  { return <_Svg size={size}><rect x="3" y="3" w
 function BrainIcon({ size=14 })   { return <_Svg size={size}><path d="M9 4a4 4 0 0 0-4 4c0 1-1 2-1 4s1 3 1 4a4 4 0 0 0 4 4"/><path d="M15 4a4 4 0 0 1 4 4c0 1 1 2 1 4s-1 3-1 4a4 4 0 0 1-4 4"/><line x1="12" y1="4" x2="12" y2="20"/></_Svg>; }
 function LightbulbIcon({ size=14 }) { return <_Svg size={size}><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.65V17h8v-2.35A7 7 0 0 0 12 2z"/></_Svg>; }
 function CheckIcon({ size=12 })   { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
-function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function StarToggleIcon({ filled=false, size=14 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24"
@@ -477,66 +477,19 @@ export default function GtoNewsPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
+        <TrainingPageHead slug="training-gto-news">
           <button
             type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-NEWS-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div style={{ flex: 1 }}>
-            {/* TRAIN-NEWS-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO News</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${readCount} of ${items.length} articles read`}>
-              {readCount}/{items.length} Articles Read
-            </div>
-          </div>
-          <button
-            type="button"
+            className="sd-button"
             aria-label={showBookmarksOnly ? 'Show all articles' : 'Show only bookmarked articles'}
             aria-pressed={showBookmarksOnly}
             onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
-            style={{
-              background: showBookmarksOnly ? 'rgba(251,191,36,0.1)' : 'transparent',
-              border: `1px solid ${showBookmarksOnly ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.08)'}`,
-              borderRadius: 6,
-              padding: '4px 10px',
-              color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              {/* TRAIN-NEWS-A11Y-1: SVG star filled */}
-              <StarToggleIcon filled size={12} /> {bookmarks.size}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <StarToggleIcon filled size={13} /> Saved ({bookmarks.size})
             </span>
           </button>
-        </div>
+        </TrainingPageHead>
 
         <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
           {/* Sample-content notice — only when the live feed came back empty.
@@ -549,8 +502,8 @@ export default function GtoNewsPage() {
                 padding: '12px 14px',
                 borderRadius: 12,
                 marginBottom: 16,
-                background: 'rgba(251,191,36,0.06)',
-                border: '1px solid rgba(251,191,36,0.25)',
+                background: 'rgba(134, 218, 255, 0.06)',
+                border: '1px solid rgba(134, 218, 255, 0.25)',
               }}
             >
               <div
@@ -580,7 +533,7 @@ export default function GtoNewsPage() {
                 padding: '14px 16px',
                 borderRadius: 12,
                 marginBottom: 16,
-                background: 'linear-gradient(135deg, rgba(0,212,255,0.04), rgba(168,85,247,0.04))',
+                background: 'linear-gradient(135deg, rgba(0,212,255,0.04), rgba(134, 218, 255, 0.04))',
                 border: '1px solid rgba(0,212,255,0.12)',
               }}
             >
@@ -741,7 +694,7 @@ export default function GtoNewsPage() {
                       style={{
                         padding: '1px 6px',
                         borderRadius: 3,
-                        background: 'rgba(251,191,36,0.1)',
+                        background: 'rgba(134, 218, 255, 0.1)',
                         color: '#86daff',
                         fontSize: 12,
                         fontWeight: 700,

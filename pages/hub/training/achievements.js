@@ -21,6 +21,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import casinoStyles from '../../../src/styles/training/achievements-casino.module.css';
+import TrainingPageHead, { TrainingDailyNav } from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-2c - adoption: shared empty-state primitive
 
 
@@ -91,17 +92,6 @@ function CategoryIcon({ kind, size = 14 }) {
   return null;
 }
 
-function MedalIcon({ size = 22 }) {
-  // header medal (replaces ★)
-  const props = { ...ICON_PROPS, width: size, height: size };
-  return (
-    <svg {...props}>
-      <circle cx="12" cy="14" r="7" />
-      <path d="M8.21 13.89 6 22l6-3 6 3-2.21-8.12" />
-      <path d="M9 7h6" />
-    </svg>
-  );
-}
 
 function TrophyIcon({ size = 32 }) {
   // ach card fallback icon (replaces ★)
@@ -200,39 +190,7 @@ export default function TrainingAchievements() {
       <div className={`sp-training-journey sp-training-journey--achievements ${casinoStyles.shell}`} style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
-        <header className={casinoStyles.marquee}>
-          <div className={casinoStyles.marqueeArtwork} aria-hidden="true" />
-          <div className={casinoStyles.marqueeContent}>
-            <span className={casinoStyles.eyebrow}>Casino Realism Vault · Milestone Ledger</span>
-            {/* TRAIN-ACHIEVEMENTS-A11Y-1: semantic h1 with SVG medal icon replaces
-                the prior bare '★ Training Achievements' string. Icon has
-                aria-hidden so the heading reads cleanly as 'Training Achievements'. */}
-            <h1 className="sp-journey-title" style={styles.title}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-                <MedalIcon size={26} />
-                Training Achievements
-              </span>
-            </h1>
-
-            <nav className={casinoStyles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
-              <Link href="/hub/training/daily-challenge" className={casinoStyles.navPlate}>
-                Hand Of The Day
-              </Link>
-              <Link href="/hub/training/daily-goals" className={casinoStyles.navPlate}>
-                Daily Goals Vault
-              </Link>
-              <Link href="/hub/training/challenges" className={casinoStyles.navPlate}>
-                Weekly &amp; Monthly Goals
-              </Link>
-              <Link href="/hub/training/achievements" className={`${casinoStyles.navPlate} ${casinoStyles.navPlateActive}`}>
-                Achievements Vault
-              </Link>
-              <Link href="/hub/training/streaks" className={casinoStyles.navPlate}>
-                Streaks Vault
-              </Link>
-            </nav>
-          </div>
-        </header>
+        <TrainingPageHead slug="training-achievements" nav={<TrainingDailyNav current="/hub/training/achievements" />} />
 
         <div className={`sp-journey-main ${casinoStyles.mainDeck}`} style={styles.content}>
           {!isOnline && (
@@ -243,8 +201,8 @@ export default function TrainingAchievements() {
                 marginBottom: 16,
                 padding: '10px 14px',
                 borderRadius: 2,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(134, 218, 255, 0.4)',
+                background: 'rgba(134, 218, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,

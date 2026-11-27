@@ -17,7 +17,7 @@ const routes = [
 
 test('the Goals page is rebuilt on #SMARTERDESIGN with its own image header (2026-11-27)', () => {
   const source = read('pages/hub/training/challenges.js');
-  assert.match(source, /<BankrollImageHeader art="training-goals" title="Your Goals"/);
+  assert.match(source, /<TrainingPageHead slug="training-goals" title="Your Goals"/);
   assert.match(source, /training-smarterdesign\.module\.css/);
   assert.match(source, /className=\{sd\.page\}/);
   // The retired command-deck shell repainted every button border and drew a
@@ -92,7 +92,8 @@ test('Coach Mode is an image-led casino-realism chamber, not a generic dashboard
     assert.ok(fs.statSync(asset).size < 200_000, `Coach Mode artwork is not delivery-optimized: ${publicPath}`);
   }
 
-  assert.match(source, /strategy-chamber-hero\.webp/);
+  // The chamber render is now the scene of its image header.
+  assert.match(source, /<TrainingPageHead\s+slug="training-coach-mode"/);
   assert.match(source, /sp-coach-casino/);
   assert.match(source, /sp-coach-console--concept/);
   assert.match(source, /sp-coach-console--quiz/);
@@ -149,7 +150,7 @@ test('the global header stays outside every scoped Phase 11 redesign', () => {
     assert.ok(source.indexOf('<UniversalHeader') < source.lastIndexOf('sp-training-command'));
   }
   const goals = read('pages/hub/training/challenges.js');
-  assert.ok(goals.indexOf('<UniversalHeader') < goals.lastIndexOf('<BankrollImageHeader'));
+  assert.ok(goals.indexOf('<UniversalHeader') < goals.lastIndexOf('<TrainingPageHead'));
   const css = read('src/styles/worlds/training.css');
   assert.doesNotMatch(css, /\.universal-header[^\n]*sp-training-command/);
 });

@@ -40,7 +40,7 @@ test('grade copy is unambiguous and page-owned tokens cannot bleed into the glob
   const css = read('src/styles/worlds/training.css');
   const transition = read('src/components/transitions/PageTransition.js');
 
-  assert.match(`${hub}\n${header}`, /<h1[^>]*>Training Games<\/h1>/);
+  assert.match(`${hub}\n${header}`, /<TrainingImageHeader slug=\"training-lobby\" title=\"Training Games\" titleId=\"hero-h\">/);
   assert.match(hub, /<span>\{delta\} \{delta === 1 \? 'correct hand' : 'correct hands'\} To \{next\}<\/span>/);
   assert.match(
     hub,

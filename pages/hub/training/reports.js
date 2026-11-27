@@ -11,6 +11,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const PERIOD_OPTIONS = [
   { value: 'week', label: 'Last 7 Days' },
   { value: 'month', label: 'Last 30 Days' },
@@ -190,17 +191,7 @@ export default function VerifiedTrainingReports() {
       </Head>
       <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', paddingBottom: 76, background: '#040d18', color: 'var(--sp-fg)' }}>
         <header className="sp-intelligence-header sd-masthead" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid #688299', background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button type="button" className="sd-button" onClick={() => router.push(backHref)} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label={isPaSource ? 'Back To Personal Assistant' : 'Return To Training Hub'}>
-              <BackArrowIcon />
-              <span>{backLabel}</span>
-            </button>
-            <div>
-              <h1 style={{ margin: '3px 0 0', fontSize: 'clamp(21px, 4vw, 34px)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", color: '#f4fbff', textShadow: '0 2px 0 #000, 0 0 20px rgba(69,230,255,.35)' }}>
-                Verified Training Reports
-              </h1>
-            </div>
-          </div>
+          <TrainingPageHead slug="training-reports" backHref={backHref} backLabel={backLabel} />
         </header>
 
         <main className="sp-intelligence-main" style={{ width: 'min(1100px, calc(100% - 28px))', margin: '0 auto', paddingTop: 20 }}>
@@ -250,7 +241,7 @@ export default function VerifiedTrainingReports() {
                 <MetricCard label="Measured EV Loss" value={formatEv(report.totalMeasuredEvLoss)} detail={`${report.measuredEvDecisions || 0} Solver-Measured Decisions`} accent="#86daff" />
               </section>
 
-              <aside style={{ ...panelStyle('rgba(255,202,92,.38)'), padding: 14, marginBottom: 14, color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.55 }}>
+              <aside style={{ ...panelStyle('rgba(134, 218, 255, .38)'), padding: 14, marginBottom: 14, color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.55 }}>
                 <strong style={{ color: 'var(--sd-ice)' }}>Evidence Boundary:</strong>{' '}
                 Accuracy And Classifications Come From Completed, Non-Practice Server Attempts. EV Appears Only For Solver-Verified Decisions With Measured Loss. Frequency-Based VPIP, PFR, Three-Bet, And “GTO Proximity” Scores Are Not Inferred From Quiz Accuracy.
               </aside>

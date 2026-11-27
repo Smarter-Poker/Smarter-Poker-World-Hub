@@ -20,6 +20,7 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-17 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -304,58 +305,7 @@ export default function PositionMasteryPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '20px 24px 12px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              &larr; Training
-            </button>
-            <h1
-              style={{
-                fontSize: 20,
-                fontWeight: 800,
-                margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #06b6d4)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Position Mastery
-            </h1>
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--sp-accent-green)',
-                background: 'rgba(34,197,94,0.1)',
-                padding: '3px 8px',
-                borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(34,197,94,0.2)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              PHASE 23
-            </span>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-position-mastery" />
 
         <div style={{ padding: '16px 24px', maxWidth: 700, margin: '0 auto' }}>
           {/* Error */}

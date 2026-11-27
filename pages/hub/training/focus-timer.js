@@ -17,6 +17,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const PHASES = {
   FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: 'var(--sp-accent-blue)' },
   SHORT_BREAK: { id: 'short', label: 'Short Break', mins: 5, color: 'var(--sp-accent-green)' },
@@ -38,14 +39,6 @@ const ICON_PROPS = {
 };
 function _Svg({ size = 14, vb = '0 0 24 24', children }) {
   return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
-}
-function FtBackArrowIcon({ size = 18 }) {
-  return (
-    <_Svg size={size}>
-      <line x1="19" y1="12" x2="5" y2="12" />
-      <polyline points="12 19 5 12 12 5" />
-    </_Svg>
-  );
 }
 function BellIcon({ size = 20 }) {
   return (
@@ -219,40 +212,7 @@ export default function FocusTimerPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <FtBackArrowIcon size={18} />
-          </button>
-          <div>
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Focus Timer</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Pomodoro Training</div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-focus-timer" note="Pomodoro Training" />
 
         <div style={{ padding: '40px 16px', maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
           {/* Phase Selectors */}

@@ -25,6 +25,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import casinoStyles from '../../../src/styles/training/daily-goals-casino.module.css';
 
+import TrainingPageHead, { TrainingDailyNav } from '../../../src/components/training/TrainingPageHead';
 const ICON_PROPS = {
   fill: 'none',
   stroke: 'currentColor',
@@ -43,7 +44,6 @@ function GamepadIcon({ size })    { return <_Svg size={size}><line x1="6" y1="11
 function FlameIcon({ size })      { return <_Svg size={size}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.5-.5-2.5-2-3.5l-2 2c-.5-.5-1-1-1-2 0-1 1.5-2 1.5-2s-3 1-4 3.5C5 14 6 17 8.5 19c1.5 1.5 4 2 5.5 1.5C17 19.5 19 17 19 13c0-3-1-5-2.5-7C15 4 12 2 12 2s1 4-1 7c-.7 1-1.5 1.5-2.5 2.5z"/></_Svg>; }
 function CrownIcon({ size })      { return <_Svg size={size}><path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z"/><path d="M4 19h16"/></_Svg>; }
 function CheckIcon({ size })      { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
-function BackArrowIcon({ size })  { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function GoalIcon({ kind, size=20 }) {
   switch (kind) {
     case 'target':      return <TargetIcon size={size}/>;
@@ -216,34 +216,7 @@ export default function DailyGoalsPage() {
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div className={`sp-training-journey sp-training-journey--daily-goals ${casinoStyles.shell}`}>
-        <div className={`sp-journey-header ${casinoStyles.header}`}>
-          <div className={casinoStyles.headerLead}>
-            <button
-              type="button"
-              aria-label="Back To Training"
-              className={casinoStyles.backButton}
-              onClick={() => router.push('/hub/training')}
-            >
-              <BackArrowIcon size={18} />
-            </button>
-            <div className={casinoStyles.headerCopy}>
-              <h1>Daily Goals</h1>
-              <div>Casino Realism Vault · Resets At Midnight</div>
-            </div>
-          </div>
-
-          <nav className={casinoStyles.subpageNav} aria-label="Daily Challenges Subpages">
-            <Link href="/hub/training/daily-challenge" className={casinoStyles.navPlate}>
-              Hand Of The Day
-            </Link>
-            <Link href="/hub/training/daily-goals" className={`${casinoStyles.navPlate} ${casinoStyles.navPlateActive}`}>
-              Daily Goals Vault
-            </Link>
-            <Link href="/hub/training/challenges" className={casinoStyles.navPlate}>
-              Weekly &amp; Monthly Goals
-            </Link>
-          </nav>
-        </div>
+        <TrainingPageHead slug="training-daily-goals" note="Resets At Midnight" nav={<TrainingDailyNav current="/hub/training/daily-goals" />} />
 
         <div className={`sp-journey-main ${casinoStyles.main}`}>
 

@@ -20,6 +20,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const CALIBRATION_HERO_CARDS_BY_VARIANT = Object.freeze({
   nlh: ['As', 'Ks'],
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
@@ -328,62 +329,11 @@ export default function MultiwayPreflopPage() {
           </div>
         </BottomSheet>
 
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8,
-              padding: '6px 12px',
-              color: 'var(--sp-fg-muted)',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            ← Training
-          </button>
-          <button
-            onClick={() => setInfoOpen(true)}
-            aria-label="How Multiway Preflop works"
-            style={{
-              background: 'rgba(var(--sp-accent-purple-rgb), 0.08)',
-              border: '1px solid rgba(var(--sp-accent-purple-rgb), 0.25)',
-              color: '#86daff',
-              fontSize: 12,
-              fontWeight: 700,
-              padding: '6px 12px',
-              borderRadius: 12,
-              cursor: 'pointer',
-              letterSpacing: 0.4,
-              textTransform: 'uppercase',
-            }}
-          >
+        <TrainingPageHead slug="training-multiway-preflop" note="Authored 3+ Player Preflop Examples">
+          <button type="button" className="sd-button" onClick={() => setInfoOpen(true)}>
             How It Works
           </button>
-          <h1
-            style={{
-              fontSize: 20,
-              fontWeight: 800,
-              margin: 0,
-              background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-            }}
-          >
-            Multiway Preflop Reference
-          </h1>
-        </div>
+        </TrainingPageHead>
 
         <div style={{ padding: '20px 16px', maxWidth: 800, margin: '0 auto' }}>
           <div
@@ -392,8 +342,8 @@ export default function MultiwayPreflopPage() {
             style={{
               marginBottom: 18,
               padding: '12px 15px',
-              border: '1px solid rgba(251,191,36,0.35)',
-              background: 'rgba(251,191,36,0.07)',
+              border: '1px solid rgba(134, 218, 255, 0.35)',
+              background: 'rgba(134, 218, 255, 0.07)',
               color: 'var(--sp-fg-muted)',
               fontSize: 12,
               lineHeight: 1.6,
@@ -423,8 +373,8 @@ export default function MultiwayPreflopPage() {
                   cursor: 'pointer',
                   textAlign: 'left',
                   background:
-                    selectedScenario === key ? 'rgba(168,85,247,0.1)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${selectedScenario === key ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                    selectedScenario === key ? 'rgba(134, 218, 255, 0.1)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${selectedScenario === key ? 'rgba(134, 218, 255, 0.3)' : 'rgba(255,255,255,0.06)'}`,
                 }}
               >
                 <div
@@ -448,8 +398,8 @@ export default function MultiwayPreflopPage() {
               padding: '12px 16px',
               borderRadius: 10,
               marginBottom: 20,
-              background: 'rgba(168,85,247,0.05)',
-              border: '1px solid rgba(168,85,247,0.15)',
+              background: 'rgba(134, 218, 255, 0.05)',
+              border: '1px solid rgba(134, 218, 255, 0.15)',
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>

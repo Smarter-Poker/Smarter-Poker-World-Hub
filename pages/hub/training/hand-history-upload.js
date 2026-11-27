@@ -30,6 +30,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
 // TRAIN-WIRE-EMPTY-7b — adoption: shared empty-state primitive
 
@@ -365,8 +366,8 @@ const GRADE_TIERS = {
     label: 'Inaccuracy',
     icon: '~',
     color: '#86daff',
-    bg: 'rgba(251,191,36,0.1)',
-    border: 'rgba(251,191,36,0.3)',
+    bg: 'rgba(134, 218, 255, 0.1)',
+    border: 'rgba(134, 218, 255, 0.3)',
   },
   MISTAKE: {
     label: 'Mistake',
@@ -1258,48 +1259,7 @@ export default function HandHistoryUploadPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label={backLabel}
-            onClick={() => router.push(backHref)}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: isPaSource ? 12 : 18,
-              fontWeight: isPaSource ? 700 : 400,
-              cursor: 'pointer',
-              minWidth: 36,
-              height: 36,
-              padding: isPaSource ? '0 12px' : 0,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}
-          >
-            {isPaSource ? '← Back To Personal Assistant' : '←'}
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
-              Hand History Review
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Replay Every Hand · Grade Only Provenance-Complete Server Audits
-            </div>
-          </div>
-        </div>
+        <TrainingPageHead slug="training-hand-history-upload" note="Replay Every Hand · Grade Only Provenance-Complete Server Audits" backHref={backHref} backLabel={isPaSource ? "Back To Personal Assistant" : "Training"} />
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
 

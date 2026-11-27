@@ -306,7 +306,8 @@ test('Phase 6 of 6: 12-Item Master Expansion — 30 Official Rules, 15 Game Vari
       `${trainingRel} adopts #SmarterCasinoRealism visual tokens`
     );
   }
-  const dailySrc = read('pages/hub/training/daily-challenge.js');
+  // The family links live in the shared Daily tabs the page renders.
+  const dailySrc = `${read('pages/hub/training/daily-challenge.js')}\n${read('src/components/training/TrainingPageHead.jsx')}`;
   assert.ok(dailySrc.includes('CitationBacklinkBox'), 'daily-challenge.js wires CitationBacklinkBox');
   assert.ok(dailySrc.includes('/hub/training/achievements'), 'daily-challenge.js links to Achievements Vault');
   assert.ok(dailySrc.includes('/hub/training/streaks'), 'daily-challenge.js links to Streaks Vault');

@@ -22,6 +22,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-25 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -450,83 +451,19 @@ export default function SkillTreePage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* Header */}
-        <div
-          className="sp-journey-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          {/* TRAIN-SKILL-TREE-A11Y-1: aria-label + SVG arrow (was bare '←' text
-              which screen readers announce as 'left pointing arrow'). */}
-          <button
-            type="button"
-            onClick={() => router.push('/hub/training')}
-            aria-label="Back To Training"
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-          </button>
-          <div style={{ flex: 1 }}>
-            {/* TRAIN-SKILL-TREE-A11Y-1: page heading uses semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Skill Tree</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Mastery From Sealed Training Sessions
-            </div>
-          </div>
-          {/* TRAIN-SKILL-TREE-A11Y-1: status role + readable aria-label */}
-          <div
+        <TrainingPageHead slug="training-skill-tree" note="Mastery From Sealed Training Sessions">
+          <p
+            className="sp-head-note"
             role="status"
             aria-label={
               stats
                 ? `${masteredCount} of ${totalNodes} skill nodes mastered from verified sessions`
                 : 'Verified skill mastery unavailable'
             }
-            style={{
-              padding: '6px 12px',
-              borderRadius: 8,
-              background: 'rgba(251,191,36,0.08)',
-              border: '1px solid rgba(251,191,36,0.2)',
-            }}
           >
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#86daff', fontVariantNumeric: 'tabular-nums' }}>
-              {stats ? `${masteredCount}/${totalNodes}` : '-'}
-            </span>
-            <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginLeft: 4 }}>
-              Verified Mastery
-            </span>
-          </div>
-        </div>
+            <strong>{stats ? `${masteredCount}/${totalNodes}` : '-'}</strong> Verified Mastery
+          </p>
+        </TrainingPageHead>
 
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
 
@@ -541,7 +478,7 @@ export default function SkillTreePage() {
               borderRadius: 14,
               marginBottom: 20,
               background:
-                'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(139,92,246,0.04) 100%)',
+                'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(134, 218, 255, 0.04) 100%)',
               border: '1px solid rgba(0,212,255,0.12)',
             }}
           >

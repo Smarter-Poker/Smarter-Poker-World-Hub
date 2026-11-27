@@ -17,6 +17,7 @@ import { useOnlineStatus } from '../../../src/hooks/useOnlineStatus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-3b - adoption: shared empty-state primitive
 
 const TAG_COLORS = ['var(--sp-accent-red)', 'var(--sp-accent-orange)', 'var(--sp-accent-amber)', 'var(--sp-accent-emerald)', '#0ea5e9', 'var(--sp-accent-purple)'];
@@ -69,14 +70,6 @@ function CloseIcon({ size=16 }) {
     <_Svg size={size}>
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
-    </_Svg>
-  );
-}
-function BackArrowIcon({ size=18 }) {
-  return (
-    <_Svg size={size}>
-      <line x1="19" y1="12" x2="5" y2="12"/>
-      <polyline points="12 19 5 12 12 5"/>
     </_Svg>
   );
 }
@@ -204,35 +197,10 @@ export default function MyPlaybookPage() {
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              aria-label="Back to training"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* TRAIN-PLAYBOOK-A11Y-1: SVG back arrow */}
-              <BackArrowIcon size={18} />
-            </button>
-            <div>
-              {/* TRAIN-PLAYBOOK-A11Y-1: semantic h1 */}
-              <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>My Playbook</h1>
-              {!online && <div role="status">Offline. Cloud Sync Is Unavailable.</div>}
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} Plays Saved</div>
-            </div>
-          </div>
+          <TrainingPageHead slug="training-my-playbook">
+          {!online && <p className="sp-head-note" role="status">Offline. Cloud Sync Is Unavailable.</p>}
+          <p className="sp-head-note" role="status" aria-label={`${plays.length} plays saved`}><strong>{plays.length}</strong> {plays.length === 1 ? 'Play' : 'Plays'} Saved</p>
+        </TrainingPageHead>
           {view === 'list' && (
             <button
               type="button"
@@ -499,7 +467,7 @@ export default function MyPlaybookPage() {
                   transition={{ delay: i * 0.05 }}
                   style={{
                     background: 'rgba(0,0,0,0.2)',
-                    border: `1px solid ${p.pinned ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)'}`,
+                    border: `1px solid ${p.pinned ? 'rgba(134, 218, 255, 0.15)' : 'rgba(255,255,255,0.05)'}`,
                     borderRadius: 16,
                     overflow: 'hidden',
                   }}

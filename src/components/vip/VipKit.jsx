@@ -3,6 +3,7 @@ import { forwardRef, useEffect, useId, useRef } from 'react';
 import { useVipIntroPrompt } from '../../lib/store/useVipIntroOffer';
 import { VIP_MONTHLY_PURCHASE_PATH } from '../../lib/store/vipIntroPrompt.mjs';
 import styles from './VipKit.module.css';
+import { HELP_ICON_SRC } from '../bankroll/BankrollHelp';
 
 /*
  * The VIP offer kit (#SMARTERDESIGN). Every surface that sells or pitches VIP
@@ -18,6 +19,7 @@ import styles from './VipKit.module.css';
  * Presentation only. The price wording comes from vipIntroPrompt.mjs and the
  * server decides again at checkout.
  */
+
 
 export const VIP_SEAL_SRC = '/images/smarterdesign/headers/vip-seal.webp';
 export const VIP_CREST_SRC = '/images/smarterdesign/headers/vip-crest.webp';
@@ -53,7 +55,7 @@ export function VipMasthead({
       </div>
       {helpHref && (
         <a className={styles.help} href={helpHref} aria-label={helpLabel || `${title} Help And Frequently Asked Questions`}>
-          <span aria-hidden="true">?</span>
+          <img className={styles.helpIcon} src={HELP_ICON_SRC} alt="" width="118" height="120" decoding="async" />
         </a>
       )}
     </header>
