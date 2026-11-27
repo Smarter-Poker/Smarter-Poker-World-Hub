@@ -20,6 +20,7 @@ import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShar
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderOutsCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const DRAW_PRESETS = [
   { id: 'gutshot', label: 'Gutshot (4 Outs)', outs: 4 },
@@ -599,5 +600,6 @@ export async function getServerSideProps({ req, res, query }) {
       return { props: {} };
     }
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }

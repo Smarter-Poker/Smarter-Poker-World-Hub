@@ -8,6 +8,7 @@ import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
   CHECKED_LABEL,
   COMPARE_BASE,
@@ -1161,6 +1162,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }
 

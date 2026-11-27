@@ -563,6 +563,9 @@ export default function FeatureLanderLayout({
               <Link href="/about" style={styles.footerLink}>
                 About Smarter.Poker
               </Link>
+              <Link href="/sitemap" style={styles.footerLink}>
+                HTML Sitemap
+              </Link>
             </div>
           </footer>
         </article>

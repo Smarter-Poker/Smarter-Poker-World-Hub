@@ -17,6 +17,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const STANDARD_BET_SIZES = [
   { label: '20% Pot (Block Bet)', pct: 20, ratio: '6.0 : 1', reqEquity: '14.3%', mdf: '83.3%', bluffRatio: '16.7% Bluffs / 83.3% Value' },
@@ -435,6 +436,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialPot: Number(query?.pot) || 100,

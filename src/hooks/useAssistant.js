@@ -24,11 +24,87 @@ async function getAuthToken() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Account-Scoped Short-Lived SWR Cache (30s TTL, zero cross-account leakage)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const PA_SWR_TTL_MS = 30000;
+
+const assistantSwrCache = new Map();
+const boundInvalidationWindows = typeof WeakSet !== 'undefined' ? new WeakSet() : null;
+
+function ensureCacheWindowListeners() {
+  if (typeof window === 'undefined' || !window || typeof window.addEventListener !== 'function') return;
+  if (boundInvalidationWindows && boundInvalidationWindows.has(window)) return;
+  const invalidateAll = () => {
+    assistantSwrCache.clear();
+  };
+  window.addEventListener('pa-data-updated', invalidateAll);
+  window.addEventListener('pa-leak-review-updated', invalidateAll);
+  if (boundInvalidationWindows) boundInvalidationWindows.add(window);
+}
+
+export function clearAssistantClientCache(userId) {
+  ensureCacheWindowListeners();
+  if (userId === undefined || userId === null || userId === '') {
+    assistantSwrCache.clear();
+    return;
+  }
+  const cleanUser = String(userId).trim();
+  if (!cleanUser) {
+    assistantSwrCache.clear();
+    return;
+  }
+  const prefix = `${cleanUser}::`;
+  for (const cacheKey of Array.from(assistantSwrCache.keys())) {
+    if (cacheKey.startsWith(prefix)) {
+      assistantSwrCache.delete(cacheKey);
+    }
+  }
+}
+
+export function readAssistantCache(userId, key, nowMs = Date.now()) {
+  ensureCacheWindowListeners();
+  if (!userId || typeof userId !== 'string' || !userId.trim()) return null;
+  if (!key || typeof key !== 'string' || !key.trim()) return null;
+  const compositeKey = `${userId.trim()}::${key.trim()}`;
+  const entry = assistantSwrCache.get(compositeKey);
+  if (!entry) return null;
+  const now = Number.isFinite(Number(nowMs)) ? Number(nowMs) : Date.now();
+  if (now < entry.updatedAt || now - entry.updatedAt >= PA_SWR_TTL_MS) {
+    assistantSwrCache.delete(compositeKey);
+    return null;
+  }
+  return entry.value;
+}
+
+export function writeAssistantCache(userId, key, value, nowMs = Date.now()) {
+  ensureCacheWindowListeners();
+  if (!userId || typeof userId !== 'string' || !userId.trim()) return null;
+  if (!key || typeof key !== 'string' || !key.trim()) return null;
+  if (value === undefined || value === null) return null;
+  const cleanUser = userId.trim();
+  const cleanKey = key.trim();
+  const now = Number.isFinite(Number(nowMs)) ? Number(nowMs) : Date.now();
+  const compositeKey = `${cleanUser}::${cleanKey}`;
+  assistantSwrCache.set(compositeKey, {
+    userId: cleanUser,
+    key: cleanKey,
+    value,
+    updatedAt: now,
+  });
+  return value;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // useAssistantStats — Fetch user's assistant statistics
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useAssistantStats(authState) {
-  const [stats, setStats] = useState({
+  const hasExplicitAuth = authState !== undefined;
+  const authReady = !hasExplicitAuth || authState?.ready !== false;
+  const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
+  const initialCached = authReady && authUserId ? readAssistantCache(authUserId, 'stats') : null;
+  const [stats, setStats] = useState(() => initialCached?.stats || {
     sessionsReviewed: null,
     handsAnalyzed: null,
     availableClubArenaHands: null,
@@ -37,27 +113,46 @@ export function useAssistantStats(authState) {
     sandboxSessions: null,
     avgEvLoss: null,
   });
-  const [isDemo, setIsDemo] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(() => Boolean(initialCached?.isDemo));
+  const [isLoading, setIsLoading] = useState(() => !initialCached);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
   const activeAbortRef = useRef(null);
-  const hasExplicitAuth = authState !== undefined;
-  const authReady = !hasExplicitAuth || authState?.ready !== false;
-  const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
+  const prevUserIdRef = useRef(authUserId);
+
+  useEffect(() => {
+    if (prevUserIdRef.current !== authUserId) {
+      if (prevUserIdRef.current) {
+        clearAssistantClientCache(prevUserIdRef.current);
+      }
+      if (!authUserId) {
+        clearAssistantClientCache();
+      }
+      prevUserIdRef.current = authUserId;
+    }
+  }, [authUserId]);
 
   const fetchStats = useCallback(async () => {
     activeAbortRef.current?.abort();
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     activeAbortRef.current = controller;
     const requestId = ++requestIdRef.current;
-    setIsLoading(true);
+    const cached = authReady && authUserId ? readAssistantCache(authUserId, 'stats') : null;
+    if (cached) {
+      setStats(cached.stats);
+      setIsDemo(Boolean(cached.isDemo));
+      setError(null);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
     setError(null);
     // AvatarContext deliberately exposes an unresolved auth phase. Do not
     // fetch guest/sample stats during that window or they can win the race and
     // remain visible after the signed-in identity hydrates.
     if (!authReady) return;
     if (hasExplicitAuth && !authUserId) {
+      clearAssistantClientCache();
       setStats({
         sessionsReviewed: 0,
         handsAnalyzed: 0,
@@ -97,16 +192,20 @@ export function useAssistantStats(authState) {
 
       if (data.success) {
         const demo = !!data.isDemo;
-        // Keep the flag on the stats object too — consumers read either.
-        setStats({
+        const nextStats = {
           ...data.stats,
           isDemo: demo,
           partial: !!data.partial,
           failedSources: Array.isArray(data.failedSources) ? data.failedSources : [],
           dataSources: data.dataSources || {},
-        });
+        };
+        // Keep the flag on the stats object too — consumers read either.
+        setStats(nextStats);
         setIsDemo(demo);
         setError(null);
+        if (authUserId) {
+          writeAssistantCache(authUserId, 'stats', { stats: nextStats, isDemo: demo });
+        }
       }
     } catch (err) {
       if (err?.name === 'AbortError') return;
@@ -116,20 +215,25 @@ export function useAssistantStats(authState) {
     } finally {
       if (requestId === requestIdRef.current && authReady) setIsLoading(false);
     }
-  }, [authReady, authUserId]);
+  }, [authReady, authUserId, hasExplicitAuth]);
 
   useEffect(() => {
     fetchStats();
 
     // 🔄 BUS LISTENER for real-time Stat updates
-    const handleUpdate = () => fetchStats();
+    const handleUpdate = () => {
+      clearAssistantClientCache(authUserId);
+      fetchStats();
+    };
     window.addEventListener('pa-data-updated', handleUpdate);
+    window.addEventListener('pa-leak-review-updated', handleUpdate);
     return () => {
       requestIdRef.current += 1;
       activeAbortRef.current?.abort();
       window.removeEventListener('pa-data-updated', handleUpdate);
+      window.removeEventListener('pa-leak-review-updated', handleUpdate);
     };
-  }, [fetchStats]);
+  }, [fetchStats, authUserId]);
 
   return { stats, isDemo, isLoading, error, refetch: fetchStats };
 }
@@ -139,21 +243,36 @@ export function useAssistantStats(authState) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useLeaks(statusFilter = null, authState) {
-  const [leaks, setLeaks] = useState([]);
-  const [isDemo, setIsDemo] = useState(false);
-  // Onboarding sample leaks the API ships alongside an empty result set. Kept
-  // separate from `leaks` so they can never be mistaken for the user's own data.
-  const [demoLeaks, setDemoLeaks] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [partial, setPartial] = useState(false);
-  const [unavailableSources, setUnavailableSources] = useState([]);
-  const requestIdRef = useRef(0);
-  const activeAbortRef = useRef(null);
-  const eventOriginRef = useRef({ source: 'useLeaks' });
   const hasExplicitAuth = authState !== undefined;
   const authReady = !hasExplicitAuth || authState?.ready !== false;
   const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
+  const leaksCacheKey = statusFilter ? `leaks:${statusFilter}` : 'leaks';
+  const initialCached = authReady && authUserId ? readAssistantCache(authUserId, leaksCacheKey) : null;
+  const [leaks, setLeaks] = useState(() => initialCached?.leaks || []);
+  const [isDemo, setIsDemo] = useState(() => Boolean(initialCached?.isDemo));
+  // Onboarding sample leaks the API ships alongside an empty result set. Kept
+  // separate from `leaks` so they can never be mistaken for the user's own data.
+  const [demoLeaks, setDemoLeaks] = useState(() => initialCached?.demoLeaks || []);
+  const [isLoading, setIsLoading] = useState(() => !initialCached);
+  const [error, setError] = useState(null);
+  const [partial, setPartial] = useState(() => Boolean(initialCached?.partial));
+  const [unavailableSources, setUnavailableSources] = useState(() => initialCached?.unavailableSources || []);
+  const requestIdRef = useRef(0);
+  const activeAbortRef = useRef(null);
+  const eventOriginRef = useRef({ source: 'useLeaks' });
+  const prevUserIdRef = useRef(authUserId);
+
+  useEffect(() => {
+    if (prevUserIdRef.current !== authUserId) {
+      if (prevUserIdRef.current) {
+        clearAssistantClientCache(prevUserIdRef.current);
+      }
+      if (!authUserId) {
+        clearAssistantClientCache();
+      }
+      prevUserIdRef.current = authUserId;
+    }
+  }, [authUserId]);
 
   const fetchLeaks = useCallback(async () => {
     activeAbortRef.current?.abort();
@@ -161,10 +280,22 @@ export function useLeaks(statusFilter = null, authState) {
     activeAbortRef.current = controller;
     const requestId = ++requestIdRef.current;
     try {
-      setIsLoading(true);
+      const cached = authReady && authUserId ? readAssistantCache(authUserId, leaksCacheKey) : null;
+      if (cached) {
+        setLeaks(cached.leaks || []);
+        setDemoLeaks(cached.demoLeaks || []);
+        setIsDemo(Boolean(cached.isDemo));
+        setPartial(Boolean(cached.partial));
+        setUnavailableSources(cached.unavailableSources || []);
+        setError(null);
+        setIsLoading(false);
+      } else {
+        setIsLoading(true);
+      }
       setError(null);
       if (!authReady) return;
       if (hasExplicitAuth && !authUserId) {
+        clearAssistantClientCache();
         setLeaks([]);
         setDemoLeaks([]);
         setIsDemo(true);
@@ -199,17 +330,29 @@ export function useLeaks(statusFilter = null, authState) {
       }
 
       if (data.success) {
-        setIsDemo(!!data.isDemo);
-        setPartial(!!data.partial);
-        setUnavailableSources([
+        const formattedLeaks = (data.leaks || []).map(formatLeak);
+        const formattedDemoLeaks = (data.demoLeaks || []).map(formatLeak);
+        const nextUnavailable = [
           ...(Array.isArray(data.failedSources) ? data.failedSources : []),
           ...(Array.isArray(data.truncatedSources) ? data.truncatedSources : []),
-        ]);
+        ];
+        setIsDemo(!!data.isDemo);
+        setPartial(!!data.partial);
+        setUnavailableSources(nextUnavailable);
         setError(null);
         // Transform API response to match UI format
-        setLeaks((data.leaks || []).map(formatLeak));
+        setLeaks(formattedLeaks);
         // Onboarding samples the API returns with an empty result set.
-        setDemoLeaks((data.demoLeaks || []).map(formatLeak));
+        setDemoLeaks(formattedDemoLeaks);
+        if (authUserId) {
+          writeAssistantCache(authUserId, leaksCacheKey, {
+            leaks: formattedLeaks,
+            demoLeaks: formattedDemoLeaks,
+            isDemo: !!data.isDemo,
+            partial: !!data.partial,
+            unavailableSources: nextUnavailable,
+          });
+        }
       }
     } catch (err) {
       if (err?.name === 'AbortError') return;
@@ -219,7 +362,7 @@ export function useLeaks(statusFilter = null, authState) {
     } finally {
       if (requestId === requestIdRef.current && authReady) setIsLoading(false);
     }
-  }, [statusFilter, authReady, authUserId]);
+  }, [statusFilter, leaksCacheKey, authReady, authUserId, hasExplicitAuth]);
 
   useEffect(() => {
     fetchLeaks();
@@ -227,15 +370,18 @@ export function useLeaks(statusFilter = null, authState) {
     // 🔄 BUS LISTENER for real-time Leak updates
     const handleUpdate = (event) => {
       if (event?.detail?.origin === eventOriginRef.current) return;
+      clearAssistantClientCache(authUserId);
       fetchLeaks();
     };
     window.addEventListener('pa-data-updated', handleUpdate);
+    window.addEventListener('pa-leak-review-updated', handleUpdate);
     return () => {
       requestIdRef.current += 1;
       activeAbortRef.current?.abort();
       window.removeEventListener('pa-data-updated', handleUpdate);
+      window.removeEventListener('pa-leak-review-updated', handleUpdate);
     };
-  }, [fetchLeaks]);
+  }, [fetchLeaks, authUserId]);
 
   const updateLeakStatus = async (leakId, newStatus) => {
     try {
@@ -250,6 +396,7 @@ export function useLeaks(statusFilter = null, authState) {
       });
       const data = await response.json();
       if (data.success) {
+        clearAssistantClientCache(authUserId);
         await fetchLeaks();
         // 📢 Dispatch BUS LISTENER update
         if (typeof window !== 'undefined') {

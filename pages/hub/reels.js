@@ -3352,7 +3352,7 @@ null
           fullVideoHref={videoId ? `/hub/video-library?v=${encodeURIComponent(videoId)}` : null}
           onAskGeeves={() => window.dispatchEvent(new window.CustomEvent('geeves-open'))}
           quizHref={`/hub/trivia?topic=${encodeURIComponent(currentTopicLabel || 'poker')}`}
-          sandboxHref="/hub/personal-assistant/sandbox"
+          sandboxHref="/hub/personal-assistant/leaks"
         />
           <ReelAction onClick={() => {
             const ytVid = getYouTubeVideoId(currentReel?.video_url);

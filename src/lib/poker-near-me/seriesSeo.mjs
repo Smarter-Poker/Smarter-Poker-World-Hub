@@ -486,7 +486,7 @@ export function seriesSchema(v) {
       event.sameAs = wikidataLinks;
     }
     if (v.endDate) event.endDate = v.endDate;
-    if (v.logoUrl) event.image = v.logoUrl;
+    event.image = v.logoUrl || `${site}/images/og-default.png`;
     if (v.mainEventBuyin) {
       event.offers = {
         '@type': 'Offer',

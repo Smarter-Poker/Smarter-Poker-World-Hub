@@ -19,6 +19,7 @@ import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../src/components/seo/GeoFollowUpChain';
+import { setPublicSeoHtmlCache } from '../src/lib/seo/edgeCacheHeaders.mjs';
 import {
   SMARTER_POKER_CANONICAL_FACTS,
   renderCanonicalFactsMarkdown,
@@ -41,6 +42,7 @@ export async function getServerSideProps(context) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(context.res);
   return { props: {} };
 }
 

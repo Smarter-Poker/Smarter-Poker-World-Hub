@@ -17,6 +17,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const STAKES_WINRATE_BENCHMARKS = [
   { gameFormat: 'Live $1/$2 & $1/$3 No-Limit Hold\'em', handsPerHour: '28 Hands/Hr', solidWinrate: '8.0 BB/100', crusherWinrate: '12.5 BB/100', solidBbPerHr: '2.24 BB/Hr', crusherBbPerHr: '3.50 BB/Hr' },
@@ -419,6 +420,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialProfitDollars: Number(query?.profitDollars) || 4500,

@@ -31,6 +31,7 @@ import { POKER_ROOMS_BY_GAME, byGameGuidePath } from '../../src/content/guides/b
 import { POKER_MARKET_GUIDES, marketGuidePath } from '../../src/content/guides/markets';
 import { US_POKER_STATES, stateGuidePath } from '../../src/content/guides/states';
 import { INTERNATIONAL_POKER_GUIDES, internationalGuidePath } from '../../src/content/guides/internationalMarkets';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const GEO_DIRECTORY_HUBS = [
   {
@@ -149,6 +150,7 @@ export async function getServerSideProps(context) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(context.res);
   return { props: {} };
 }
 

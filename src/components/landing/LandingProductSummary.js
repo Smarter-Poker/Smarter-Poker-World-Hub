@@ -315,6 +315,14 @@ export default function LandingProductSummary() {
           First-Time Casino Guide
         </Link>
         {' '}
+        <Link href="/learn/best-poker-players" style={styles.inlineLink}>
+          Best Poker Players
+        </Link>
+        {' '}
+        <Link href="/sitemap" style={styles.inlineLink}>
+          HTML Sitemap
+        </Link>
+        {' '}
         <Link href="/poker-rooms/comps-and-tipping-guide" style={styles.inlineLink}>
           Casino Comps &amp; Tipping
         </Link>

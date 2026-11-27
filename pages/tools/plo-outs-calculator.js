@@ -19,6 +19,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const PLO_WRAP_TYPES = [
   {
@@ -645,6 +646,26 @@ export default function PloOutsCalculatorPage() {
           </div>
         </section>
 
+        <section style={{ marginBottom: 32, padding: 20, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+            Related Pot-Limit Omaha Tools &amp; Variance Research
+          </h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <Link href="/tools/plo-bet-calculator" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+              PLO Pot-Limit Bet Sizing Calculator
+            </Link>
+            <Link href="/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Study: PLO4 Vs PLO5 Vs PLO6 Equity &amp; Variance
+            </Link>
+            <Link href="/games/pot-limit-omaha" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Pot-Limit Omaha Strategy &amp; Rules Guide
+            </Link>
+            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Multiway PLO4 / PLO5 / PLO6 Odds Calculator
+            </Link>
+          </div>
+        </section>
+
         <FaqSection faqs={PLO_OUTS_FAQS} />
 
         <CitationBacklinkBox
@@ -685,5 +706,6 @@ export async function getServerSideProps({ req, res, query }) {
       return { props: {} };
     }
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }

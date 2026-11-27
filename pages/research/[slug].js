@@ -15,6 +15,7 @@ import { firstThatFits, fitMetaDescription } from '../../src/lib/seo/titleFit.js
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
   RESEARCH_REPORTS,
   RESEARCH_BASE_PATH,
@@ -44,6 +45,7 @@ export async function getServerSideProps({ req, res, params, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return { props: { report } };
 }
 

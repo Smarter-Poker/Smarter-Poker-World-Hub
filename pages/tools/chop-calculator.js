@@ -20,6 +20,7 @@ import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShar
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderChopCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const DEFAULT_STACKS = [450000, 320000, 210000, 120000, 80000, 50000];
 const DEFAULT_PAYOUTS = [15000, 10000, 7000, 5000, 3500, 2500];
@@ -718,5 +719,6 @@ export async function getServerSideProps({ req, res, query }) {
       return { props: {} };
     }
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }

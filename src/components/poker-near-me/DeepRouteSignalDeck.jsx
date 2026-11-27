@@ -131,6 +131,8 @@ export default function DeepRouteSignalDeck({
           <img
             src={visual}
             alt=""
+            width="1200"
+            height="514"
             loading={compact ? 'lazy' : 'eager'}
             fetchpriority={compact ? 'auto' : 'high'}
             decoding="async"
