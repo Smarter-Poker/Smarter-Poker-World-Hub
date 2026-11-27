@@ -130,6 +130,7 @@ import './module-parse-and-bindings.law.test.mjs';
 import './vercel-json-is-deployable.law.test.mjs';
 import './shared-game-links.test.mjs';
 import './vercel-build-hardening.law.test.mjs';
+import './pg17-parallel-and-build-parity.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
