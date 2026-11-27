@@ -190,4 +190,6 @@ _legacy_sql/
 !/__tests__/vip-first-month-one-dollar.test.mjs
 !/__tests__/vip-intro-knowledge.test.mjs
 !/__tests__/vip-lifecycle-notices.test.mjs
+!/__tests__/vip-failed-renewal-revokes.test.mjs
+!/supabase/migrations/20261127171926_vip_failed_renewal_revokes_card_vip.sql
 !/__tests__/vip-first-month-hardening.test.mjs
