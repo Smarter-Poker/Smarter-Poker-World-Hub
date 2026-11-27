@@ -182,6 +182,14 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: npm ci --ignore-scripts
 
+      # CHECK 28 (incident 86bcafc1 / VercelDeploymentFailed): Full-tree AST
+      # parse, duplicate-binding/export, case-exact local import, local ESM
+      # export-parity, Next.js route-collision, and simulated merge-tree check.
+      - name: "CHECK 28: Module parse, bindings, exports, routes & merge-tree parity"
+        run: |
+          node scripts/ci/check-module-parse-and-bindings.mjs --merge-against "origin/${{ github.base_ref || 'main' }}"
+          node --test __tests__/module-parse-and-bindings.law.test.mjs
+
       - name: Operational Alert Delivery Contracts
         run: node --test __tests__/tournament-critical-pager-chat-only.test.mjs __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs __tests__/operational-notification-destination.test.mjs __tests__/operational-push-routing.test.mjs __tests__/operational-push-metadata.test.mjs __tests__/notifications-send-operational-persistence.test.mjs
 
