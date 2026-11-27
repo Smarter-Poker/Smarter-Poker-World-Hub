@@ -71,3 +71,40 @@ export function resolveDailyHeroHand(raw, scenario = raw?.scenario || {}) {
   }
   return materializeCanonicalHeroHand(raw?.heroCards, boardCards);
 }
+
+/**
+ * Normalize a /api/training/hand-of-the-day payload for Personal Assistant Home.
+ * Supports both card-based daily hands and cardless conceptual/psychology daily
+ * challenges (e.g. PSYCHOLOGY_BANK / scenario.isPsychology) while failing closed
+ * on malformed payloads that lack both a legal hero hand and a valid question.
+ */
+export function normalizeDailyHandPayload(payload) {
+  const raw = payload?.hand || payload?.question;
+  if (!raw || typeof raw !== 'object') return null;
+  const scenario = raw.scenario && typeof raw.scenario === 'object' ? raw.scenario : {};
+  const board = raw.board || raw.board_cards || raw.boardCards || scenario.board || null;
+  const heroHand = resolveDailyHeroHand(raw, scenario);
+
+  const rawTitle = String(raw.title || raw.scenario_text || raw.question || scenario.context || '').trim();
+  const rawDescription = typeof scenario.description === 'string' ? scenario.description.trim() : '';
+  const hasChoices = Array.isArray(raw.options) && raw.options.length >= 2;
+  const isPsychologySource =
+    scenario.isPsychology === true ||
+    String(raw.source || '').toUpperCase() === 'PSYCHOLOGY_BANK';
+  const isConceptual = !heroHand && isPsychologySource && rawTitle.length > 0 && hasChoices;
+
+  if (!heroHand && !isConceptual) return null;
+
+  return {
+    ...raw,
+    id: raw.id || payload?.dailyId || null,
+    heroHand: heroHand || null,
+    isConceptual,
+    categoryLabel: isConceptual ? 'Mental Game' : (raw.position || raw.hero_position || scenario.heroPosition || 'Daily Spot'),
+    position: isConceptual ? null : (raw.position || raw.hero_position || scenario.heroPosition || null),
+    board: isConceptual ? null : board,
+    pot: isConceptual ? null : (raw.pot ?? raw.pot_size ?? scenario.potSize ?? scenario.pot ?? null),
+    title: rawTitle || 'What Is The Best Line?',
+    description: rawDescription || null,
+  };
+}

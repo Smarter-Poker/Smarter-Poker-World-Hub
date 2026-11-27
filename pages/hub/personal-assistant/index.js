@@ -51,7 +51,7 @@ import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssi
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import styles from '../../../src/styles/worlds/PersonalAssistantHub.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
-import { resolveDailyHeroHand } from '../../../src/lib/personal-assistant/dailyHandContract.mjs';
+import { normalizeDailyHandPayload } from '../../../src/lib/personal-assistant/dailyHandContract.mjs';
 import {
   PA_ANALYSIS_DEFAULTS,
   describePracticePreset,
@@ -98,26 +98,8 @@ const LIVE_SPOT_ENTRY = {
 };
 
 const DAILY_HAND_MAX_ATTEMPTS = 2;
-const DAILY_HAND_TIMEOUT_MS = 6000;
+const DAILY_HAND_TIMEOUT_MS = 9000;
 const DAILY_HAND_RETRY_DELAY_MS = 350;
-
-function normalizeDailyHandPayload(payload) {
-  const raw = payload?.hand || payload?.question;
-  if (!raw || typeof raw !== 'object') return null;
-  const scenario = raw.scenario && typeof raw.scenario === 'object' ? raw.scenario : {};
-  const board = raw.board || raw.board_cards || raw.boardCards || scenario.board || null;
-  const heroHand = resolveDailyHeroHand(raw, scenario);
-  if (!heroHand) return null;
-  return {
-    ...raw,
-    id: raw.id || payload?.dailyId || null,
-    heroHand,
-    position: raw.position || raw.hero_position || scenario.heroPosition || null,
-    board,
-    pot: raw.pot ?? raw.pot_size ?? scenario.potSize ?? scenario.pot ?? null,
-    title: raw.title || raw.scenario_text || raw.question || scenario.context || 'What Is The Best Line?',
-  };
-}
 
 const toTitleWords = (value) => String(value || '')
   .replace(/_/g, ' ')
@@ -885,29 +867,40 @@ export default function PersonalAssistantPage() {
             <SectionBar
               id="daily-title"
               title="Daily Hand"
-              meta={dailyHand ? (dailyHand.position || 'Daily Spot') : 'Daily Drill'}
+              meta={dailyHand ? (dailyHand.position || dailyHand.categoryLabel || 'Daily Spot') : 'Daily Drill'}
             />
             <div className={styles.dailyFrame}>
               {dailyHand ? (
                 <div className={styles.dailyInner}>
-                  <div className={styles.holeCards} aria-label={`Hero Hand ${dailyHand.heroHand || 'Unknown'}`} data-pa-verbatim="true">
-                    {(heroCards.length ? heroCards : [formatCard('?'), formatCard('?')]).map((card, index) => (
-                      <span
-                        className={`${styles.playingCard} ${card.suitClass}`}
-                        data-suit={card.suitCode}
-                        data-pa-verbatim="true"
-                        key={`${card.rank}${card.suit}-${index}`}
-                      >
-                        {card.rank}<i>{card.suit}</i>
-                      </span>
-                    ))}
-                  </div>
+                  {dailyHand.isConceptual ? (
+                    <span className={styles.dailyConceptBadge} aria-hidden="true" data-testid="daily-concept-badge">
+                      <Target size={22} />
+                    </span>
+                  ) : (
+                    <div className={styles.holeCards} aria-label={`Hero Hand ${dailyHand.heroHand || 'Unknown'}`} data-pa-verbatim="true">
+                      {(heroCards.length ? heroCards : [formatCard('?'), formatCard('?')]).map((card, index) => (
+                        <span
+                          className={`${styles.playingCard} ${card.suitClass}`}
+                          data-suit={card.suitCode}
+                          data-pa-verbatim="true"
+                          key={`${card.rank}${card.suit}-${index}`}
+                        >
+                          {card.rank}<i>{card.suit}</i>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className={styles.dailyCopy}>
                     <span className={styles.dailyEyebrow}>
-                      {dailyHand.position || 'Daily Spot'} · {Number(dailyHand.pot) > 0 ? `Pot ${Number(dailyHand.pot)} BB` : 'Daily Scenario'}
+                      {dailyHand.isConceptual
+                        ? `${dailyHand.categoryLabel || 'Mental Game'} · Daily Challenge`
+                        : `${dailyHand.position || 'Daily Spot'} · ${Number(dailyHand.pot) > 0 ? `Pot ${Number(dailyHand.pot)} BB` : 'Daily Scenario'}`}
                     </span>
                     <h3>{dailyHand.title || 'What Is The Best Line?'}</h3>
-                    {boardCards.length > 0 && (
+                    {dailyHand.isConceptual && dailyHand.description && (
+                      <p className={styles.dailyDescription}>{dailyHand.description}</p>
+                    )}
+                    {!dailyHand.isConceptual && boardCards.length > 0 && (
                       <div className={styles.boardCards} aria-label={`Board ${dailyHand.board}`} data-pa-verbatim="true">
                         {boardCards.map((card, index) => (
                           <span
