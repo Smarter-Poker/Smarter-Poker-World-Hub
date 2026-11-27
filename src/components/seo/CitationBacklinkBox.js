@@ -180,9 +180,12 @@ export default function CitationBacklinkBox({
         marginTop: 28,
         marginBottom: 28,
         padding: '22px 24px',
-        background: 'rgba(15, 23, 42, 0.86)',
-        border: '1px solid rgba(56, 189, 248, 0.28)',
-        borderRadius: 12,
+        background:
+          'radial-gradient(120% 70% at 50% -10%, #1b426e 0%, transparent 62%), linear-gradient(160deg, #15293e 0%, #0a1a2b 44%, #040d18 100%)',
+        border: '6px solid transparent',
+        borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+        borderRadius: 0,
+        boxShadow: '0 14px 28px rgba(0, 0, 0, 0.65), 0 0 0 1px #02070d',
       }}
     >
       <div
@@ -228,9 +231,9 @@ export default function CitationBacklinkBox({
         style={{
           marginBottom: 16,
           padding: '12px 14px',
-          background: '#090d16',
-          border: '1px solid rgba(56, 189, 248, 0.35)',
-          borderRadius: 8,
+          background: '#050d17',
+          border: '1px solid #2b4663',
+          borderRadius: 0,
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
@@ -238,21 +241,22 @@ export default function CitationBacklinkBox({
           gap: 10,
         }}
       >
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>
           Instant Solved-Spot Permalink &amp; Group-Chat Share:
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           <button
             type="button"
             onClick={() => handleCopy('permalink', sharePermalink)}
             style={{
-              background: copiedKey === 'permalink' ? '#059669' : '#0284c7',
+              background: copiedKey === 'permalink' ? '#059669' : 'linear-gradient(180deg, #1f6feb 0%, #11449e 100%)',
               color: '#ffffff',
-              border: 0,
-              borderRadius: 6,
-              padding: '6px 12px',
+              border: '1px solid #5bc0ff',
+              borderRadius: 0,
+              padding: '8px 12px',
+              minHeight: 38,
               fontSize: 11.5,
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
             }}
           >
@@ -262,11 +266,12 @@ export default function CitationBacklinkBox({
             type="button"
             onClick={() => handleCopy('discord-quick', discordCitation)}
             style={{
-              background: copiedKey === 'discord-quick' ? '#059669' : '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #38bdf8',
-              borderRadius: 6,
-              padding: '6px 12px',
+              background: copiedKey === 'discord-quick' ? '#059669' : 'linear-gradient(180deg, #172b42 0%, #0b1827 100%)',
+              color: '#f2f7ff',
+              border: '1px solid #3f5d7b',
+              borderRadius: 0,
+              padding: '8px 12px',
+              minHeight: 38,
               fontSize: 11.5,
               fontWeight: 700,
               cursor: 'pointer',
@@ -281,13 +286,16 @@ export default function CitationBacklinkBox({
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              background: '#0f172a',
-              color: '#94a3b8',
-              border: '1px solid #334155',
-              borderRadius: 6,
-              padding: '6px 10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: '#081626',
+              color: '#86daff',
+              border: '1px solid #2b4663',
+              borderRadius: 0,
+              padding: '8px 10px',
+              minHeight: 38,
               fontSize: 11.5,
-              fontWeight: 600,
+              fontWeight: 700,
               textDecoration: 'none',
             }}
           >
@@ -296,16 +304,16 @@ export default function CitationBacklinkBox({
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {formats.map((item) => {
           const isCopied = copiedKey === item.key;
           return (
             <div
               key={item.key}
               style={{
-                background: '#090d16',
-                border: '1px solid #1e293b',
-                borderRadius: 8,
+                background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+                border: '1px solid #2b4663',
+                borderRadius: 0,
                 padding: '10px 12px',
               }}
             >
@@ -325,13 +333,13 @@ export default function CitationBacklinkBox({
                   type="button"
                   onClick={() => handleCopy(item.key, item.code)}
                   style={{
-                    background: isCopied ? '#059669' : '#1d4ed8',
+                    background: isCopied ? '#059669' : 'linear-gradient(180deg, #1f6feb 0%, #11449e 100%)',
                     color: '#ffffff',
-                    border: 0,
-                    borderRadius: 6,
-                    padding: '4px 10px',
+                    border: '1px solid #5bc0ff',
+                    borderRadius: 0,
+                    padding: '5px 12px',
                     fontSize: 11,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
@@ -342,7 +350,7 @@ export default function CitationBacklinkBox({
                 style={{
                   margin: 0,
                   fontSize: 12,
-                  color: '#a5b4fc',
+                  color: '#86daff',
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-all',

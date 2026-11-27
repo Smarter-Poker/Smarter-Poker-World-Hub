@@ -953,6 +953,7 @@ import './seo-aeo-geo-phase7-20261126.law.test.mjs';
 import './gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs';
 import './smarterdesign-organic-cro-20261127.law.test.mjs';
 import './all-105-clicked-pages-hardening-20261127.law.test.mjs';
+import './smarterdesign-seo-kit-foundation.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';
