@@ -321,7 +321,7 @@ test('auditParsedHands falls through from empty training_question_cache to certi
   assert.equal(result.analyses[0].decisions[0].optimalFrequency, 100);
 });
 
-test('auditJobRuntime preserves caHandFactsSummary, incrementalStop, and forwards fullRescan to audit-worker', async () => {
+test('auditJobRuntime preserves caHandFactsSummary, incrementalStop, and forwards fullRescan to audit-worker', async t => {
   const merged = mergeAuditJobProgress({}, {
     success: true,
     leaksDetected: 2,
@@ -334,8 +334,13 @@ test('auditJobRuntime preserves caHandFactsSummary, incrementalStop, and forward
   assert.equal(merged.caHandFactsSummary.tournamentHands, 80);
 
   let sentBody = null;
-  process.env.PA_AUDIT_JOB_SECRET = process.env.PA_AUDIT_JOB_SECRET || 'test-secret-for-unit-test-only-1234567890';
-  await kickAuditWorker(
+  const previousSecret = process.env.NEXTAUTH_SECRET;
+  t.after(() => {
+    if (previousSecret === undefined) delete process.env.NEXTAUTH_SECRET;
+    else process.env.NEXTAUTH_SECRET = previousSecret;
+  });
+  process.env.NEXTAUTH_SECRET = 'audit-worker-unit-test-signing-key';
+  const result = await kickAuditWorker(
     { id: 'job-1', user_id: 'user-1' },
     {
       origin: 'https://smarter.poker',
@@ -346,6 +351,7 @@ test('auditJobRuntime preserves caHandFactsSummary, incrementalStop, and forward
       },
     },
   );
+  assert.deepEqual(result, { ok: true, status: 202 });
   assert.equal(sentBody?.jobId, 'job-1');
   assert.equal(sentBody?.fullRescan, true);
 });

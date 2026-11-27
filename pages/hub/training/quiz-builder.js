@@ -373,6 +373,7 @@ export default function QuizBuilderPage() {
       const saved = localStorage.getItem('custom-quizzes');
       if (saved) setSavedQuizzes(JSON.parse(saved));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    if (!getAuthUser()?.id) return;
     authedFetch('/api/training/tool-records?tool_id=quiz-builder&limit=20')
       .then((res) => (res && res.ok ? res.json() : null))
       .then((json) => {
@@ -516,7 +517,7 @@ export default function QuizBuilderPage() {
             ←
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Quiz Builder</div>
+            <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#ffffff' }}>Quiz Builder</h1>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Create Custom GTO Scenarios</div>
           </div>
         </div>

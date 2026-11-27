@@ -6,10 +6,9 @@
  *     semantic <main> + <h1>, >=7.5:1 #9eb4c8 contrast on footer & Vs divider, deduplicated PlayingCard with
  *     high-contrast 4-color suits, cached SSR imgRef.current?.complete check + imageError fallback, royal-blue
  *     CTAs with hover/active/focus-visible & prefers-reduced-motion guards, plus all OG & view=review invariants.
- *  2. pages/hub/personal-assistant/index.js & PersonalAssistantHub.module.css: GPU-composited opacity skeleton pulse,
- *     reduced-motion-guarded connected .statusDot pulse, composited hover + tactile :active scale(0.985) across all
- *     interactive triggers, tactile .playingCard/.boardCard sheen + 'T' -> '10' formatting, removal of 11 dead CSS
- *     classes, and [Personal Assistant]-tagged console warnings.
+ *  2. pages/hub/personal-assistant/index.js & PersonalAssistantHub.module.css: opt-in opacity skeleton motion,
+ *     accessible illustrated landing controls, proportional artwork, removal of retired layout classes,
+ *     and [Personal Assistant]-tagged console warnings.
  *  3. pages/hub/personal-assistant/sandbox.js: :hover, :active scale(0.985) under prefers-reduced-motion: no-preference,
  *     :focus-visible 2px solid #83deff, and rotating chevron on .summary-disclosure > summary and .destination.
  *  4. pages/features/virtual-poker-sandbox.js: >=12px font-size override on citation/permalink controls, 44px hero CTAs,
@@ -65,41 +64,32 @@ test('1. pages/share/hand.js enforces #SmarterDesign obsidian-navy theme, semant
   assert.match(src, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test('2. PersonalAssistantHub.module.css and index.js use GPU opacity skeleton pulse, statusDot pulse, tactile transitions, 10-rank formatting, and zero dead classes', () => {
+test('2. PA Home keeps opt-in skeleton motion, accessible live controls, proportional artwork, and no retired classes', () => {
   const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
   const home = read('pages/hub/personal-assistant/index.js');
 
-  // GPU-composited opacity skeleton pulse (0.42 -> 0.85 -> 0.42), zero background-position animation
+  // GPU-composited opacity skeleton motion is opt-in, with no background-position animation.
   assert.doesNotMatch(css, /background-position/);
-  assert.match(css, /@keyframes pa-skel\s*\{\s*0%,\s*100%\s*\{\s*opacity:\s*0\.42;\s*\}\s*50%\s*\{\s*opacity:\s*0\.85;\s*\}\s*\}/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.skelBlock\s*\{\s*animation:\s*none;/);
+  assert.match(css, /@keyframes pa-skel\s*\{\s*0%,\s*100%\s*\{\s*opacity:[^}]*\}\s*50%\s*\{\s*opacity:/);
+  assert.match(css, /@media \(prefers-reduced-motion: no-preference\)\s*\{\s*\.skelBlock\s*\{\s*animation:\s*pa-skel/);
 
-  // Connected live status pulse on .statusDot
-  assert.match(css, /\.statusBadge:not\(\.statusWarning\)\s+\.statusDot\s*\{\s*animation:\s*pa-status-pulse/);
-  assert.match(css, /@keyframes pa-status-pulse/);
-
-  // Smooth composited hover + tactile :active scale(0.985) across all interactive triggers
+  // Existing live actions retain hover and keyboard feedback after the layout replacement.
   for (const selector of [
-    '.tabs :is(a, button)',
-    '.primaryButton',
-    '.secondaryButton',
-    '.statCard',
-    '.loopStep',
-    '.systemCardTrigger',
-    '.liveSpotTrigger',
-    '.sessionRow',
-    '.disclosure > summary',
+    '.settingsButton:hover',
+    '.featureCtaPrimary:hover',
+    '.featureCtaSecondary:hover',
+    '.leaksLink:hover',
+    '.utilityCard:hover',
   ]) {
-    assert.ok(css.includes(selector), `Expected ${selector} in interactive transition list`);
+    assert.ok(css.includes(selector), `Expected feedback for ${selector}`);
   }
-  assert.match(css, /transform:\s*scale\(0\.985\)/);
+  assert.match(css, /\.page :is\(a, button\):focus-visible\s*\{[^}]*outline:/);
 
-  // Obsidian 4-color beveled card surfaces + crisp suit contrast + approved landing artwork
-  assert.match(css, /\.playingCard,\s*\.boardCard\s*\{[\s\S]{0,360}linear-gradient\(180deg,\s*#132238 0%,\s*#08101c 100%\)/i);
-  assert.match(css, /\.suitHearts\s*\{[^}]*color:\s*#ff6b7a;/i);
-  assert.match(home, /\/images\/personal-assistant\/review-my-play\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/my-leaks\.webp/);
+  // The three image subjects remain complete rather than being cropped or stretched.
+  assert.match(css, /\.featureArt\s*\{[^}]*object-fit:\s*contain;/);
+  assert.match(home, /\/images\/personal-assistant\/review-my-play-chrome\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox-chrome\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/my-leaks-chrome\.webp/);
 
   // Confirmed unused CSS classes removed
   for (const deadClass of [

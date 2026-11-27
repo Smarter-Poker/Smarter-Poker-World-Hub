@@ -930,7 +930,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 onClick={() => router.push('/hub/poker-series')}
-                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', border: 'none', borderRadius: 20, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#ffffff', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: 20, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               >
                 Browse All Series
               </button>
@@ -1140,7 +1140,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             </div>
             <div className="stat-card">
               <dt className="stat-label">Main Event Buy-In</dt>
-              <dd className="stat-value gold">{series.main_event_buyin ? formatMoney(series.main_event_buyin) : 'TBD'}</dd>
+              <dd className="stat-value">{series.main_event_buyin ? formatMoney(series.main_event_buyin) : 'TBD'}</dd>
             </div>
             <div className="stat-card">
               <dt className="stat-label">Total Events</dt>
@@ -1153,7 +1153,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               return minBuy ? (
                 <div className="stat-card">
                   <dt className="stat-label">Buy-In Range</dt>
-                  <dd className="stat-value gold">{formatMoney(minBuy)} - {formatMoney(maxBuy)}</dd>
+                  <dd className="stat-value">{formatMoney(minBuy)} - {formatMoney(maxBuy)}</dd>
                 </div>
               ) : null;
             })()}
@@ -1163,14 +1163,14 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               return seriesGtd ? (
                 <div className="stat-card">
                   <dt className="stat-label">Total Guaranteed</dt>
-                  <dd className="stat-value gold">{formatMoney(seriesGtd)}</dd>
+                  <dd className="stat-value">{formatMoney(seriesGtd)}</dd>
                 </div>
               ) : null;
             })()}
             {series.main_event_guaranteed && (
               <div className="stat-card">
                 <dt className="stat-label">Main Event GTD</dt>
-                <dd className="stat-value gold">{formatMoney(series.main_event_guaranteed)}</dd>
+                <dd className="stat-value">{formatMoney(series.main_event_guaranteed)}</dd>
               </div>
             )}
             <div className="stat-card">
@@ -2429,7 +2429,7 @@ const styles = `
   margin: 0;
 }
 .series-summary a {
-  color: #d4a853;
+  color: #38bdf8;
 }
 .series-summary-schedule-heading {
   font-size: 16px;

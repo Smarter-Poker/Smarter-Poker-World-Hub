@@ -105,8 +105,8 @@ test('no hidden horizontal rail anywhere on the surface', () => {
     const src = read(rel);
     for (const re of banned) assert.doesNotMatch(src, re, `${rel} reintroduced a hidden rail (${re})`);
   }
-  // The specific carousels this phase replaced.
-  assert.match(read(HUB_CSS), /grid-template-columns: repeat\(auto-fit, minmax\(104px, 1fr\)\)/, 'the anchors wrap');
+  // The approved home exposes a vertical deck instead of the former anchor carousel.
+  assert.match(read(HUB_CSS), /\.deck\s*\{[^}]*flex-direction:\s*column;/, 'the home destinations do not become a horizontal rail');
   assert.match(read(LEAKS_PAGE), /trendPointRow: \{\s*display: 'flex',\s*flexWrap: 'wrap',/, 'the trend row wraps');
   assert.match(read(COACH_CSS), /\.viewNav \{ display: grid; grid-template-columns: repeat\(auto-fit, minmax\(104px, 1fr\)\); \}/,
     'the coaching views wrap');
@@ -121,11 +121,10 @@ test('nothing on the surface is culled with display none', () => {
       .filter(([, line]) => /display:\s*none/i.test(line));
     assert.deepEqual(hits, [], `${rel} culls content:\n${hits.map(([n, l]) => `${n}: ${l.trim()}`).join('\n')}`);
   }
-  // The two named in ROLLOUT-PLAN, by class, so a rename cannot hide them.
-  const hub = read(HUB_CSS);
-  assert.doesNotMatch(hub, /\.loopLabel \{ display: none/, 'the Decision Loop keeps its label');
-  assert.doesNotMatch(hub, /\.sessionDate \{ display: none/, 'a session keeps its date');
-  assert.match(hub, /\.sessionDate \{ grid-column: 2; grid-row: 2;/, 'the date is laid out, not hidden');
+  // The retired Decision Loop and session list no longer appear on this home.
+  // Keep the new utility actions available at phone widths instead of culling them.
+  assert.match(read(HUB_CSS), /@media \(max-width: 600px\)[\s\S]*\.utilityBar\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\);/,
+    'the illustrated utility actions reflow into one column');
 });
 
 test('100dvh everywhere and no bare overflow-x hidden', () => {

@@ -179,7 +179,7 @@ export default function QREExplorerPage() {
             ←
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>QRE Toy Model</div>
+            <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#ffffff' }}>QRE Toy Model</h1>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               Authored Illustration • No Solver Or Population Data
             </div>
@@ -236,7 +236,7 @@ export default function QREExplorerPage() {
                 setLambda(parseFloat(e.target.value));
                 setActivePreset(null);
               }}
-              style={{ width: '100%', accentColor: 'var(--sp-accent-purple)' }}
+              style={{ width: '100%', accentColor: '#38bdf8' }}
             />
             <div
               style={{
@@ -314,8 +314,8 @@ export default function QREExplorerPage() {
           <div
             style={{
               display: 'flex',
-              gap: 6,
-              overflowX: 'auto',
+              flexWrap: 'wrap',
+              gap: 8,
               paddingBottom: 8,
               marginBottom: 20,
             }}
@@ -323,17 +323,20 @@ export default function QREExplorerPage() {
             {Object.entries(SPOT_LABELS || {}).map(([key, info]) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setSelectedSpot(key)}
                 style={{
-                  padding: '8px 14px',
+                  padding: '10px 14px',
+                  minHeight: 44,
                   borderRadius: 8,
-                  border: 'none',
+                  border: selectedSpot === key ? '1px solid rgba(56,189,248,0.6)' : '1px solid rgba(148,184,224,0.22)',
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  background: selectedSpot === key ? 'var(--sp-accent-purple)' : 'rgba(255,255,255,0.04)',
-                  color: selectedSpot === key ? '#fff' : 'var(--sp-fg-muted)',
+                  flex: '0 0 auto',
+                  background: selectedSpot === key ? '#1d4ed8' : 'rgba(255,255,255,0.05)',
+                  color: selectedSpot === key ? '#ffffff' : '#cbd5e1',
                 }}
               >
                 {info.icon} {info.label}
@@ -493,7 +496,7 @@ export default function QREExplorerPage() {
                       <motion.div
                         animate={{ width: `${a.modelFreq}%` }}
                         transition={{ duration: MOTION.slow }}
-                        style={{ height: '100%', background: 'var(--sp-accent-purple)', borderRadius: 3 }}
+                        style={{ height: '100%', background: '#38bdf8', borderRadius: 3 }}
                       />
                     </div>
                   </div>

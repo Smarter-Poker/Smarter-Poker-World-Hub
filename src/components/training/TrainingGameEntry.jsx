@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { ArrowLeft, Play } from 'lucide-react';
 import SEOHead from '../seo/SEOHead';
+import SmarterConversionCta from '../seo/SmarterConversionCta';
 import TrainingGameArt from './TrainingGameArt';
 
 export default function TrainingGameEntry({ title, description, gameId, gameHref, allowAutoRedirect = false }) {
@@ -35,6 +36,18 @@ export default function TrainingGameEntry({ title, description, gameId, gameHref
             </Link>
           </div>
         </section>
+        <div style={{ marginTop: 18 }}>
+          <SmarterConversionCta
+            compact
+            eyebrow="Free GTO Training Account"
+            title={`Track Your ${title} Progress & Unlock 107 Free GTO Games`}
+            description="Create A Free Smarter.Poker Account To Save Session Accuracy, Track Skill Tree Mastery, And Earn Daily Training Rewards."
+            primaryLabel="Create Free Account"
+            primaryHref={`/auth/signup?redirect=${encodeURIComponent(gameHref || '/hub/training')}&src=training-entry`}
+            secondaryLabel="Sign In"
+            secondaryHref={`/auth/login?redirect=${encodeURIComponent(gameHref || '/hub/training')}`}
+          />
+        </div>
       </main>
       <style jsx>{`
         .game-entry { max-width: 780px; padding: 18px 18px 90px; margin: 0 auto; color: #eff8fc; }

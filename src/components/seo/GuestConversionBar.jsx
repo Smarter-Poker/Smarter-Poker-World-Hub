@@ -63,10 +63,45 @@ function readDismissed() {
   }
 }
 
+const STATIC_HEADER_PREFIXES = [
+  '/hub',
+  '/authors',
+  '/compare',
+  '/facts',
+  '/freerolls',
+  '/games',
+  '/learn/best-poker-players',
+  '/learn/board-textures',
+  '/learn/cheat-sheets',
+  '/learn/famous-hands',
+  '/learn/format-migration-guide',
+  '/learn/formulas',
+  '/learn/hud-stats',
+  '/learn/leaks',
+  '/learn/live-poker-tells',
+  '/learn/matchups',
+  '/learn/mental-game',
+  '/learn/online-vs-live-poker',
+  '/learn/player-types',
+  '/learn/poker-as-a-business',
+  '/learn/poker-hand-rankings',
+  '/learn/poker-math',
+  '/learn/poker-myths-debunked',
+  '/learn/positions',
+  '/learn/roadmaps',
+  '/learn/stakes',
+  '/learn/tournament-stages',
+];
+
+function routeMountsApprovedHeader(path) {
+  return STATIC_HEADER_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
 export default function GuestConversionBar() {
   const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [detectedHeader, setDetectedHeader] = useState(false);
 
   const rawPath = router?.asPath || router?.pathname || '/';
   const currentPath = normalizePath(rawPath);
@@ -76,10 +111,15 @@ export default function GuestConversionBar() {
     const syncState = () => {
       setSignedIn(hasStoredAuthSession());
       setDismissed(readDismissed());
+      if (typeof document !== 'undefined') {
+        setDetectedHeader(Boolean(document.querySelector('.approved-global-header')));
+      }
     };
     syncState();
+    const timer = window.setTimeout(syncState, 250);
     window.addEventListener('storage', syncState);
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener('storage', syncState);
     };
   }, [currentPath]);
@@ -89,7 +129,7 @@ export default function GuestConversionBar() {
   const encodedRedirect = encodeURIComponent(currentPath);
   const signupHref = `/auth/signup?redirect=${encodedRedirect}&src=guest-bar`;
   const loginHref = `/auth/login?redirect=${encodedRedirect}`;
-  const isHubRoute = currentPath === '/hub' || currentPath.startsWith('/hub/');
+  const belowHeader = routeMountsApprovedHeader(currentPath) || detectedHeader;
 
   const handleDismiss = () => {
     try {
@@ -102,7 +142,7 @@ export default function GuestConversionBar() {
 
   return (
     <aside
-      className={`sd-guest-bar${isHubRoute ? ' sd-guest-bar--below-header' : ''}`}
+      className={`sd-guest-bar${belowHeader ? ' sd-guest-bar--below-header' : ''}`}
       aria-label="Free Smarter.Poker Account Bar"
       data-testid="guest-conversion-bar"
     >
@@ -284,18 +324,14 @@ export default function GuestConversionBar() {
           outline-offset: 2px;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 640px) {
           .sd-guest-bar__inner {
-            padding: 6px 10px;
+            padding: 5px 10px;
             gap: 6px 8px;
           }
 
           .sd-guest-bar__copy {
-            flex: 1 1 100%;
-          }
-
-          .sd-guest-bar__text {
-            font-size: 12px;
+            display: none;
           }
 
           .sd-guest-bar__actions {

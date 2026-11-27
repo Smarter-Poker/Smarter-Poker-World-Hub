@@ -100,15 +100,15 @@ test('2. normalizeDailyHandPayload keeps card-based hands intact and fails close
   );
 });
 
-test('3. PA Home preserves approved landing page artwork, #SMARTERDESIGN card styles, and internal routes', () => {
+test('3. PA Home preserves approved landing artwork and live saved-hand and coaching states', () => {
   const home = read('pages/hub/personal-assistant/index.js');
-  const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
 
-  assert.match(home, /\/images\/personal-assistant\/review-my-play\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/my-leaks\.webp/);
-  assert.match(css, /\.dailyConceptBadge\s*\{[\s\S]*width:\s*48px;[\s\S]*height:\s*52px;/);
-  assert.match(css, /\.dailyDescription\s*\{[\s\S]*font-size:\s*13px;/);
+  assert.match(home, /\/images\/personal-assistant\/review-my-play-chrome\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox-chrome\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/my-leaks-chrome\.webp/);
+  assert.match(home, /savedHandsLoading/);
+  assert.match(home, /readyToReviewText/);
+  assert.match(home, /coachingSnapshot/);
 });
 
 test('4. scripts/e2e/pa-two-account-e2e.mjs fails closed without credentials, never reads .env, and passes --check-only', () => {

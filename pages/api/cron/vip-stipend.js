@@ -172,6 +172,7 @@ async function handler(req, res) {
         failed:         0,   // RPC errors
         introPeriodSkipped: 0, // first-ever monthly subscribers inside the $1 period
         introUnknownSkipped: 0, // first-period subscribers Stripe could not classify this run
+        comebackPeriodSkipped: 0, // members inside a comeback-price ($10) first month
         truncated:      false,
         lifetimeScanned: 0,
         lifetimeEligible: 0,
@@ -206,6 +207,7 @@ async function handler(req, res) {
         ).toISOString();
         const introCandidateUserIds = new Set();
         const introCandidateSubscriptionIds = new Map();
+        const eligibleSubscriptionIds = new Map();
 
         for (let page = 0; page < MAX_PAGES; page++) {
             const from = page * PAGE_SIZE;
@@ -246,6 +248,7 @@ async function handler(req, res) {
                 if (row.current_period_end && row.current_period_end < periodFloorISO) continue;
 
                 eligibleUserIds.add(row.user_id);
+                eligibleSubscriptionIds.set(row.user_id, row.stripe_subscription_id);
                 if (row.tier === 'monthly' && row.created_at && row.created_at > introPeriodFloorISO) {
                     introCandidateUserIds.add(row.user_id);
                     introCandidateSubscriptionIds.set(row.user_id, row.stripe_subscription_id);
@@ -304,6 +307,32 @@ async function handler(req, res) {
                 if (soldOnIntro === true) stats.introPeriodSkipped += 1;
                 else stats.introUnknownSkipped += 1;
             }
+        }
+
+        /* THE COMEBACK PRICE DOES NOT EARN THE STIPEND EITHER (2026-11-27).
+           A lapsed member who returns at $10 for the first month is treated
+           like a $1 member: the stipend starts with the first full-price
+           renewal. vip_subscriptions recycles one row per user, so the row's
+           age cannot show a comeback month; the webhook's record of it
+           (vip_comeback_redemptions, written when the comeback subscription
+           was admitted) can. Only the SAME subscription, inside one period of
+           that record, is skipped. An unreadable record fails the run, as the
+           intro lookup does: unknown is not eligible. */
+        const { data: comebackRows, error: comebackError } = eligibleUserIds.size === 0
+            ? { data: [], error: null }
+            : await supabase
+                .from('vip_comeback_redemptions')
+                .select('user_id, stripe_subscription_id')
+                .gt('created_at', introPeriodFloorISO);
+        if (comebackError) {
+            console.error('[cron/vip-stipend] comeback lookup failed:', comebackError.message);
+            return res.status(500).json({ success: false, error: comebackError.message, stats });
+        }
+        for (const row of comebackRows || []) {
+            if (!row?.user_id || !eligibleUserIds.has(row.user_id)) continue;
+            if (eligibleSubscriptionIds.get(row.user_id) !== row.stripe_subscription_id) continue;
+            eligibleUserIds.delete(row.user_id);
+            stats.comebackPeriodSkipped += 1;
         }
 
         const userIds = Array.from(eligibleUserIds).slice(0, maxAwards);

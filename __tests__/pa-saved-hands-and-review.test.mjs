@@ -1191,9 +1191,9 @@ test('approved Personal Assistant landing page preserves artwork, order, interna
   assert.ok(sandboxIdx > reviewIdx, 'Virtual Sandbox follows Review My Play');
   assert.ok(leaksIdx > sandboxIdx, 'My Leaks follows Virtual Sandbox');
 
-  assert.match(hub, /\/images\/personal-assistant\/review-my-play\.webp/);
-  assert.match(hub, /\/images\/personal-assistant\/virtual-sandbox\.webp/);
-  assert.match(hub, /\/images\/personal-assistant\/my-leaks\.webp/);
+  assert.match(hub, /\/images\/personal-assistant\/review-my-play-chrome\.webp/);
+  assert.match(hub, /\/images\/personal-assistant\/virtual-sandbox-chrome\.webp/);
+  assert.match(hub, /\/images\/personal-assistant\/my-leaks-chrome\.webp/);
   assert.match(hub, /\/hub\/personal-assistant\/review/);
   assert.match(hub, /\/hub\/personal-assistant\/sandbox/);
   assert.match(hub, /\/hub\/personal-assistant\/leaks/);
@@ -1202,9 +1202,9 @@ test('approved Personal Assistant landing page preserves artwork, order, interna
   assert.doesNotMatch(hub, /\/hub\/training/, 'landing-page body has no Training Games redirects');
 
   for (const img of [
-    'public/images/personal-assistant/review-my-play.webp',
-    'public/images/personal-assistant/virtual-sandbox.webp',
-    'public/images/personal-assistant/my-leaks.webp',
+    'public/images/personal-assistant/review-my-play-chrome.webp',
+    'public/images/personal-assistant/virtual-sandbox-chrome.webp',
+    'public/images/personal-assistant/my-leaks-chrome.webp',
   ]) {
     assert.ok(fs.existsSync(path.join(ROOT, img)), `artwork asset exists: ${img}`);
   }

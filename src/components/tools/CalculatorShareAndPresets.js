@@ -302,7 +302,7 @@ export default function CalculatorShareAndPresets({
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
             <div style={{ background: '#020608', padding: 10, borderRadius: '2px', border: '1px solid #334155' }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#f2b84b', marginBottom: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#38bdf8', marginBottom: 4 }}>
                 Baseline Spot A
               </div>
               <div style={{ fontSize: 12.5, color: '#cbd5e1', lineHeight: 1.45 }}>
@@ -371,8 +371,8 @@ export default function CalculatorShareAndPresets({
             style={{
               padding: '7px 12px',
               background: pinnedFeedback ? '#059669' : '#101a20',
-              color: pinnedFeedback ? '#020608' : '#f2b84b',
-              border: '1px solid #f2b84b',
+              color: pinnedFeedback ? '#ffffff' : '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.5)',
               borderRadius: '2px',
               fontSize: 12,
               fontWeight: 700,
@@ -387,8 +387,8 @@ export default function CalculatorShareAndPresets({
             onClick={() => setShowSavedDrawer((prev) => !prev)}
             style={{
               padding: '7px 12px',
-              background: showSavedDrawer ? 'rgba(242, 184, 75, 0.16)' : '#101a20',
-              color: '#f2b84b',
+              background: showSavedDrawer ? 'rgba(56, 189, 248, 0.16)' : '#101a20',
+              color: '#38bdf8',
               border: '1px solid #334155',
               borderRadius: '2px',
               fontSize: 12,
@@ -458,7 +458,7 @@ export default function CalculatorShareAndPresets({
             background: '#101a20',
             border: '1px solid #334155',
             borderRadius: '2px',
-            color: '#f2b84b',
+            color: '#38bdf8',
             fontSize: 12,
             fontWeight: 700,
             textDecoration: 'none',
@@ -489,7 +489,7 @@ export default function CalculatorShareAndPresets({
               marginBottom: 10,
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#f2b84b', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase' }}>
               Pinned Favorite Spots ({savedSpots.length})
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
