@@ -72,8 +72,8 @@ export function withMagazineUtm(rawUrl, issueNumber, contentTag = '') {
 function selectCuratedEmailToc(norm) {
     const fallbackToc = [
         { pageNumber: 12, title: norm.coverHeadline, subtitle: '4-Page Cover Story Investigation' },
-        { pageNumber: 20, title: 'Global Player Of The Year Top 25', subtitle: 'Official Standings & Movers' },
-        { pageNumber: 24, title: 'Kings Club 25450 Monthly Champions', subtitle: 'Completed Majors In Chips' },
+        { pageNumber: 20, title: 'Champions Board', subtitle: "The Month's Title Winners" },
+        { pageNumber: 24, title: 'Kings Club 25450 Results', subtitle: 'Biggest Completed Prize Pools' },
         { pageNumber: 26, title: 'The Strategy Lab: NLH, ICM & PLO', subtitle: 'Solver Verdicts & Community Votes' },
         { pageNumber: 34, title: 'The Smarter.Poker Test', subtitle: '4-Question Poker IQ Challenge' },
         { pageNumber: 38, title: '60-Day Live Series & Room Radar', subtitle: 'Coast-To-Coast Stops Across America' },

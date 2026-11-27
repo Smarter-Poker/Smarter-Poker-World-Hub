@@ -370,9 +370,9 @@ function renderFrontCoverPdfPage(doc, page, issueMeta, coverJpegDataUri) {
             : Array.isArray(issueMeta?.coverLines) && issueMeta.coverLines.length > 0
               ? issueMeta.coverLines
               : [
-                    'Global Player Of The Year Top 25 Standings',
+                    'Champions Board: The Month\'s Title Winners',
                     'NLH, ICM & PLO5 Solver Strategy Columns',
-                    'Kings Club 25450 Monthly Champions Circle',
+                    'Kings Club 25450: The Month\'s Biggest Prize Pools',
                 ];
 
     let calloutY = 2.35;
@@ -621,7 +621,9 @@ function renderStandingsPdfPage(doc, page, issueMeta) {
     doc.setFontSize(8.2);
     setTextRgb(doc, RGB.tealInk);
     doc.text(
-        isKingsClub ? 'CLUB ARENA | KINGS CLUB ID 25450 CHAMPIONS' : 'GLOBAL TOURNAMENT LEADERBOARD',
+        isKingsClub
+            ? 'CLUB ARENA | KINGS CLUB ID 25450 RESULTS'
+            : toPdfSafeText(page?.kicker, 'Player Of The Year').toUpperCase(),
         MARGIN_X,
         0.82
     );
@@ -631,7 +633,7 @@ function renderStandingsPdfPage(doc, page, issueMeta) {
     setTextRgb(doc, RGB.obsidian);
     const hEnd = drawWrappedLines(
         doc,
-        toPdfSafeText(page?.headline, isKingsClub ? 'Kings Club 25450 Monthly Champions' : 'Player Of The Year Standings'),
+        toPdfSafeText(page?.headline, isKingsClub ? 'Kings Club 25450 Results' : 'Player Of The Year Standings'),
         MARGIN_X,
         1.1,
         CONTENT_W,
@@ -654,9 +656,12 @@ function renderStandingsPdfPage(doc, page, issueMeta) {
     doc.setFontSize(8);
     setTextRgb(doc, RGB.teal);
     doc.text('RANK', MARGIN_X + 0.1, y + 0.2);
-    doc.text(isKingsClub ? 'CHAMPIONSHIP EVENT' : 'CONTENDER', MARGIN_X + 0.72, y + 0.2);
-    doc.text(isKingsClub ? 'FORMAT & FIELD' : 'TOUR / CIRCUIT', MARGIN_X + 3.85, y + 0.2);
-    doc.text(isKingsClub ? 'PRIZE POOL (CHIPS)' : 'POY POINTS', PAGE_W - MARGIN_X - 0.1, y + 0.2, { align: 'right' });
+    // A page's own labels win, so a money list or champions board is never
+    // printed as points (MAG LAW 26).
+    const labels = page?.standingsLabels && typeof page.standingsLabels === 'object' ? page.standingsLabels : {};
+    doc.text(isKingsClub ? 'CHAMPIONSHIP EVENT' : toPdfSafeText(labels.player, 'Contender').toUpperCase(), MARGIN_X + 0.72, y + 0.2);
+    doc.text(isKingsClub ? 'FORMAT & FIELD' : labels.player ? '' : 'TOUR / CIRCUIT', MARGIN_X + 3.85, y + 0.2);
+    doc.text(isKingsClub ? 'PRIZE POOL (CHIPS)' : toPdfSafeText(labels.value, 'POY Points').toUpperCase(), PAGE_W - MARGIN_X - 0.1, y + 0.2, { align: 'right' });
     y += 0.32;
 
     rows.forEach((row, idx) => {
@@ -672,10 +677,12 @@ function renderStandingsPdfPage(doc, page, issueMeta) {
             : toPdfSafeText(row?.playerName || row?.name || `Contender #${rank}`);
         const detail = isKingsClub
             ? toPdfSafeText(String(row?.eventDetail || row?.gameType || 'NLH').replace(/\$/g, ''))
-            : toPdfSafeText(row?.tour || 'Global POY Contender');
+            : toPdfSafeText(row?.detail || row?.tour || '');
         const metric = isKingsClub
             ? formatSafePdfChips(row)
-            : `${Number(row?.points || 0).toLocaleString('en-US')} Pts`;
+            : Number.isFinite(Number(row?.points)) && String(row?.points ?? '').trim() !== ''
+              ? `${Number(row.points).toLocaleString('en-US')} Pts`
+              : toPdfSafeText(row?.points || '');
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8.8);
