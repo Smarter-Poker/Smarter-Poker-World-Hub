@@ -428,8 +428,9 @@ test('PA Home: approved illustrated landing cards, Log A Hand modal, My Coaching
   assert.match(src, /onClick=\{openLiveSpot\}/);
   assert.match(src, /import\('..\/..\/..\/src\/components\/personal-assistant\/LiveSpotQuickEntry'\)/);
   assert.doesNotMatch(src, /\/hub\/training/, 'Landing page body must not redirect to Training Games');
-  assert.match(css, /\.recapStrip/);
-  assert.doesNotMatch(css, /\.recapStrip[^}]*display:\s*none/);
+  assert.match(src, /readyToReviewText/);
+  assert.match(src, /leaksSummaryText/);
+  assert.match(css, /\.syncAlert\s*\{/, 'The live-data failure remains visible after the landing redesign');
 });
 
 test('Leak Finder: verified-live badges, due count tab, quick spot triggers, share review and ?quickspot=1', () => {

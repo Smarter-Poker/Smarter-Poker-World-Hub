@@ -11,6 +11,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
+import pathPatterns from 'next/dist/compiled/path-to-regexp/index.js';
 import {
     buyInRangeWords,
     chipAmount,
@@ -455,17 +457,32 @@ test('next.config.js, vercel.json, and middleware.ts do not intercept /g/*, /l/*
     const extractBlock = (label, pattern) => {
         const match = middleware.match(pattern);
         assert.ok(match, `Expected middleware.ts to define ${label}`);
-        return match[0];
+        return match[1];
     };
-    const authAlwaysAllowBlock = extractBlock('AUTH_ALWAYS_ALLOW', /const AUTH_ALWAYS_ALLOW\s*=\s*\[[\s\S]*?\];/);
-    const destructiveBlock = extractBlock('DESTRUCTIVE_POKER_ROUTES', /const DESTRUCTIVE_POKER_ROUTES\s*=\s*\[[\s\S]*?\];/);
-    const requiresAuthBlock = extractBlock('requiresAuthPrefix', /const requiresAuthPrefix\s*=\s*\[[\s\S]*?\];/);
-    const tombstonedBlock = extractBlock('TOMBSTONED_PATHS', /const TOMBSTONED_PATHS\s*=\s*new Set(?:<[^>]+>)?\(\[[\s\S]*?\]\);/);
-    const matcherBlock = extractBlock('config.matcher', /export const config\s*=\s*\{[\s\S]*?matcher:\s*\[[\s\S]*?\],[\s\S]*?\};/);
+    const authAlwaysAllowBlock = extractBlock('AUTH_ALWAYS_ALLOW', /const AUTH_ALWAYS_ALLOW\s*=\s*(\[[\s\S]*?\]);/);
+    const destructiveBlock = extractBlock('DESTRUCTIVE_POKER_ROUTES', /const DESTRUCTIVE_POKER_ROUTES\s*=\s*(\[[\s\S]*?\]);/);
+    const requiresAuthBlock = extractBlock('requiresAuthPrefix', /const requiresAuthPrefix\s*=\s*(\[[\s\S]*?\]);/);
+    const tombstonedBlock = extractBlock('TOMBSTONED_PATHS', /const TOMBSTONED_PATHS\s*=\s*new Set(?:<[^>]+>)?\((\[[\s\S]*?\])\);/);
+    const matcherBlock = extractBlock('config.matcher', /export const config\s*=\s*(\{[\s\S]*?matcher:\s*\[[\s\S]*?\],[\s\S]*?\});\s*$/);
 
     assert.match(authAlwaysAllowBlock, /['"]\/api\/og\/['"]/, '/api/og/ must stay in AUTH_ALWAYS_ALLOW so preview crawlers are never geo-blocked');
     assert.doesNotMatch(destructiveBlock, /\/api\/og/);
     assert.doesNotMatch(requiresAuthBlock, /\/api\/og/);
     assert.doesNotMatch(tombstonedBlock, /\/api\/og/);
     assert.doesNotMatch(matcherBlock, /\/api\/og/);
+
+    // Evaluate the same extracted literals so a broader API matcher or auth
+    // prefix cannot silently catch OG paths without spelling out /api/og.
+    const config = runInNewContext(`(${matcherBlock})`, {}, { timeout: 1000 });
+    const authPrefixes = runInNewContext(requiresAuthBlock, {}, { timeout: 1000 });
+    assert.ok(Array.isArray(config.matcher) && config.matcher.length > 0);
+    assert.ok(Array.isArray(authPrefixes) && authPrefixes.length > 0);
+    const matchers = config.matcher.map(source => pathPatterns.pathToRegexp(source));
+    for (const pathname of ['/api/og/club-game', '/api/og/club-game/']) {
+        assert.equal(matchers.some(pattern => pattern.test(pathname)), false, `${pathname} must bypass middleware`);
+        assert.equal(authPrefixes.some(prefix => pathname.startsWith(prefix)), false, `${pathname} must remain public`);
+    }
+    // Positive controls prevent an empty or unparsed guard from passing.
+    assert.equal(matchers.some(pattern => pattern.test('/api/admin/status')), true);
+    assert.equal(authPrefixes.some(prefix => '/api/user/profile'.startsWith(prefix)), true);
 });

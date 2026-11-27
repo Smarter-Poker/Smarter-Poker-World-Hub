@@ -260,27 +260,28 @@ test('Personal Assistant landing page satisfies optimize-image-priority LCP stan
   const src = read(LANDING_PAGE);
   const imgs = getJsxElementsByName(src, 'img');
 
-  const reviewImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/review-my-play.webp');
-  const sandboxImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/virtual-sandbox.webp');
-  const leaksImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/my-leaks.webp');
+  const reviewImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/review-my-play-chrome.webp');
+  const sandboxImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/virtual-sandbox-chrome.webp');
+  const leaksImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/my-leaks-chrome.webp');
 
-  assert.ok(reviewImg, 'review-my-play.webp exists');
-  assert.equal(getJsxAttrStringValue(reviewImg, 'fetchPriority'), 'high', 'LCP hero image has fetchPriority="high"');
-  assert.equal(getJsxAttrStringValue(reviewImg, 'width'), 308);
-  assert.equal(getJsxAttrStringValue(reviewImg, 'height'), 230);
-  assert.equal(getJsxAttrStringValue(reviewImg, 'loading'), null, 'LCP hero image MUST NOT be lazy-loaded');
+  assert.ok(reviewImg, 'approved Review My Play artwork exists');
+  // React 18 uses the lowercase DOM prop, as Next's Image component does.
+  assert.equal(getJsxAttrStringValue(reviewImg, 'fetchpriority'), 'high', 'LCP hero image has high fetch priority');
+  assert.equal(getJsxAttrStringValue(reviewImg, 'width'), 1600);
+  assert.equal(getJsxAttrStringValue(reviewImg, 'height'), 900);
+  assert.equal(getJsxAttrStringValue(reviewImg, 'loading'), 'eager', 'LCP hero image MUST NOT be lazy-loaded');
 
-  assert.ok(sandboxImg, 'virtual-sandbox.webp exists');
+  assert.ok(sandboxImg, 'approved Virtual Sandbox artwork exists');
   assert.equal(getJsxAttrStringValue(sandboxImg, 'fetchPriority'), null, 'virtual-sandbox omits fetchPriority');
   assert.equal(getJsxAttrStringValue(sandboxImg, 'loading'), null, 'virtual-sandbox is not lazy-loaded');
-  assert.equal(getJsxAttrStringValue(sandboxImg, 'width'), 308);
-  assert.equal(getJsxAttrStringValue(sandboxImg, 'height'), 202);
+  assert.equal(getJsxAttrStringValue(sandboxImg, 'width'), 1600);
+  assert.equal(getJsxAttrStringValue(sandboxImg, 'height'), 672);
 
-  assert.ok(leaksImg, 'my-leaks.webp exists');
+  assert.ok(leaksImg, 'approved My Leaks artwork exists');
   assert.equal(getJsxAttrStringValue(leaksImg, 'loading'), 'lazy', 'below-the-fold my-leaks image has loading="lazy"');
   assert.equal(getJsxAttrStringValue(leaksImg, 'fetchPriority'), null, 'below-the-fold my-leaks omits fetchPriority');
-  assert.equal(getJsxAttrStringValue(leaksImg, 'width'), 720);
-  assert.equal(getJsxAttrStringValue(leaksImg, 'height'), 402);
+  assert.equal(getJsxAttrStringValue(leaksImg, 'width'), 1600);
+  assert.equal(getJsxAttrStringValue(leaksImg, 'height'), 533);
 
   // Live signed-in counts with AbortController + timeout
   assert.match(src, /\/api\/poker\/saved-hands\?limit=1/);

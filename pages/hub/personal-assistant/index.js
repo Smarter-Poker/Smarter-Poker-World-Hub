@@ -21,14 +21,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronRight,
-  ClipboardList,
-  PlusSquare,
   RotateCw,
   Settings,
+  Target,
 } from 'lucide-react';
 
 import SEOHead from '../../../src/components/seo/SEOHead';
-import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -78,7 +76,6 @@ export default function PersonalAssistantPage() {
   const menuConfig = getMenuConfig('personal-assistant', user, {}, {});
 
   const {
-    sessions: recentSessions,
     isLoading: sessionsLoading,
     error: sessionsError,
     refetch: refetchSessions,
@@ -330,7 +327,7 @@ export default function PersonalAssistantPage() {
       <PersonalAssistantCopyPolicy />
       <HubPageShell
         className="pa"
-        maxWidth={960}
+        maxWidth={1200}
         header={<UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />}
       >
         <div className={styles.page}>
@@ -345,22 +342,22 @@ export default function PersonalAssistantPage() {
           />
 
           <PullToRefresh onRefresh={retryAssistantData} disabled={showMenu}>
-            <div className={styles.landingMain} id="overview">
+            <div className={styles.landingMain} id="overview" data-tutorial="activity">
               {/* First-frame server-rendered hero header (no data-dependent values) */}
               <section className={`${styles.frame} ${styles.hero}`} aria-labelledby="assistant-title" data-tutorial="nav">
                 <div className={styles.landingHeader}>
                   <div className={styles.landingTitleBlock}>
-                    <span className={styles.landingEyebrow}>Your Game. Your Next Step.</span>
                     <h1 id="assistant-title" className={styles.landingTitle}>Personal Assistant</h1>
                   </div>
                   <button
                     type="button"
                     className={styles.settingsButton}
-                    aria-label="Practice And Audit Settings"
+                    aria-label="Review Settings"
                     title="Review Settings"
                     onClick={() => openInternalRoute('/hub/personal-assistant/leaks?settings=1')}
                   >
-                    <Settings size={18} strokeWidth={2} aria-hidden="true" />
+                    <Settings size={25} strokeWidth={2.5} aria-hidden="true" />
+                    <span>Review Settings</span>
                   </button>
                 </div>
               </section>
@@ -398,24 +395,25 @@ export default function PersonalAssistantPage() {
                     >
                       <div className={styles.featureArtWrap}>
                         <img
-                          src="/images/personal-assistant/review-my-play.webp"
+                          src="/images/personal-assistant/review-my-play-chrome.webp"
                           alt="Review My Play Featuring Ace Of Spades And King Of Spades With Magnifying Glass"
                           className={styles.featureArt}
-                          width={308}
-                          height={230}
-                          fetchPriority="high"
+                          width={1600}
+                          height={900}
+                          loading="eager"
+                          fetchpriority="high"
                         />
                       </div>
                       <div className={styles.featureBody}>
                         <span className={styles.featureEyebrow}>Recommended</span>
                         <h2 id="card-review-title" className={styles.featureTitle}>Review My Play</h2>
-                        <p className={styles.featureSubtitle}>
-                          Your Saved Hands. Your Decisions. Your Next Improvement.
+                        <p className={styles.featureFocus}>
+                          {topFocusTitle ? `Focus: ${topFocusTitle}` : 'Your Saved Hands. Your Next Improvement.'}
                         </p>
-                        {topFocusTitle && (
-                          <p className={styles.featureFocus}>Focus: {topFocusTitle}</p>
-                        )}
-                        <p className={styles.featureMeta}>{readyToReviewText}</p>
+                        <p className={styles.featureMeta} aria-live="polite">
+                          <Target size={27} aria-hidden="true" />
+                          <span>{readyToReviewText}</span>
+                        </p>
                         <div className={styles.featureActions}>
                           <Link
                             href="/hub/personal-assistant/review"
@@ -426,7 +424,6 @@ export default function PersonalAssistantPage() {
                             }}
                           >
                             Start Review
-                            <ChevronRight size={16} aria-hidden="true" />
                           </Link>
                         </div>
                       </div>
@@ -434,17 +431,17 @@ export default function PersonalAssistantPage() {
 
                     {/* 2. Virtual Sandbox (Second Major Illustrated Selection: A♥ 4♠ 5♠) */}
                     <section
-                      className={styles.featureCard}
+                      className={`${styles.featureCard} ${styles.featureCardSandbox}`}
                       aria-labelledby="card-sandbox-title"
                       data-tutorial="systems"
                     >
                       <div className={styles.featureArtWrap}>
                         <img
-                          src="/images/personal-assistant/virtual-sandbox.webp"
+                          src="/images/personal-assistant/virtual-sandbox-chrome.webp"
                           alt="Virtual Sandbox Poker Table Displaying Ace Of Hearts, Four Of Spades, And Five Of Spades"
                           className={styles.featureArt}
-                          width={308}
-                          height={202}
+                          width={1600}
+                          height={672}
                         />
                       </div>
                       <div className={styles.featureBody}>
@@ -462,7 +459,6 @@ export default function PersonalAssistantPage() {
                             }}
                           >
                             Open Sandbox
-                            <ChevronRight size={16} aria-hidden="true" />
                           </Link>
                         </div>
                       </div>
@@ -470,17 +466,17 @@ export default function PersonalAssistantPage() {
 
                     {/* 3. My Leaks (Third Illustrated Selection: K♥ Q♥) */}
                     <section
-                      className={styles.featureCard}
+                      className={`${styles.featureCard} ${styles.featureCardLeaks}`}
                       aria-labelledby="card-leaks-title"
                       data-tutorial="stats"
                     >
                       <div className={styles.featureArtWrap}>
                         <img
-                          src="/images/personal-assistant/my-leaks.webp"
+                          src="/images/personal-assistant/my-leaks-chrome.webp"
                           alt="My Leaks Magnifying Glass Over King Of Hearts And Queen Of Hearts"
                           className={styles.featureArt}
-                          width={720}
-                          height={402}
+                          width={1600}
+                          height={533}
                           loading="lazy"
                         />
                       </div>
@@ -489,24 +485,29 @@ export default function PersonalAssistantPage() {
                         <p className={styles.featureSubtitle}>
                           See The Patterns In Your Play That Need Work.
                         </p>
-                        <p className={styles.featureStatusRow}>
-                          <CheckCircle2 size={14} aria-hidden="true" />
-                          <span>{leaksSummaryText}</span>
-                        </p>
                         <div className={styles.featureActions}>
                           <Link
                             href="/hub/personal-assistant/leaks"
-                            className={styles.featureCtaSecondary}
+                            className={styles.leaksLink}
                             onClick={(event) => {
                               event.preventDefault();
                               openInternalRoute('/hub/personal-assistant/leaks');
                             }}
                           >
                             View My Leaks
-                            <ChevronRight size={16} aria-hidden="true" />
+                            <ChevronRight size={24} aria-hidden="true" />
                           </Link>
                         </div>
                       </div>
+                      <p className={styles.featureStatusRow} aria-live="polite">
+                        <CheckCircle2 size={29} aria-hidden="true" />
+                        {resolvedLeakCount !== null && activeLeakCount !== null ? (
+                          <span>
+                            <strong>{resolvedLeakCount.toLocaleString()} Leaks Fixed</strong>
+                            <small>{activeLeakCount.toLocaleString()} Open</small>
+                          </span>
+                        ) : <span className={styles.statusMessage}>{leaksSummaryText}</span>}
+                      </p>
                     </section>
                   </div>
 
@@ -519,7 +520,7 @@ export default function PersonalAssistantPage() {
                       onClick={openLiveSpot}
                     >
                       <span className={styles.utilityIcon} aria-hidden="true">
-                        <PlusSquare size={22} />
+                        <img src="/images/personal-assistant/log-a-hand.webp" alt="" width={512} height={512} />
                       </span>
                       <span className={styles.utilityCopy}>
                         <strong>Log A Hand</strong>
@@ -536,7 +537,7 @@ export default function PersonalAssistantPage() {
                       }}
                     >
                       <span className={styles.utilityIcon} aria-hidden="true">
-                        <ClipboardList size={22} />
+                        <img src="/images/personal-assistant/coaching-plan.webp" alt="" width={512} height={512} />
                       </span>
                       <span className={styles.utilityCopy}>
                         <strong>My Coaching Plan</strong>
@@ -549,9 +550,6 @@ export default function PersonalAssistantPage() {
                     </Link>
                   </section>
 
-                  <div className={styles.summaryWrap} data-tutorial="activity">
-                    <HubPageSummary page="personal-assistant" />
-                  </div>
                 </>
               )}
             </div>

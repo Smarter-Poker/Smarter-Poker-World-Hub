@@ -132,7 +132,7 @@ test('assistantDefaults: classifyFindingHonesty distinguishes all 5 required hon
   );
 });
 
-test('Personal Assistant surfaces align to approved MTT lobby design tokens, optional disclosures, and reload-safe autorun', () => {
+test('Personal Assistant preserves its approved landing composition, optional disclosures, and reload-safe autorun', () => {
   const hubCss = fs.readFileSync(path.resolve('src/styles/worlds/PersonalAssistantHub.module.css'), 'utf8');
   const toolsCss = fs.readFileSync(path.resolve('src/styles/worlds/PersonalAssistantTools.module.css'), 'utf8');
   const coachCss = fs.readFileSync(path.resolve('src/components/personal-assistant/CoachingWorkspace.module.css'), 'utf8');
@@ -141,17 +141,19 @@ test('Personal Assistant surfaces align to approved MTT lobby design tokens, opt
   const sandboxSrc = fs.readFileSync(path.resolve('pages/hub/personal-assistant/sandbox.js'), 'utf8');
   const paKitSrc = fs.readFileSync(path.resolve('src/components/sandbox/paKit.jsx'), 'utf8');
 
-  // Approved MTT lobby palette & 600px interior
-  for (const [name, css] of [['hub', hubCss], ['tools', toolsCss], ['sandbox', sandboxSrc]]) {
+  // The user-approved illustrated home replaces the former compact MTT interior.
+  // Existing tools and the native Sandbox keep their established palette.
+  for (const [name, css] of [['tools', toolsCss], ['sandbox', sandboxSrc]]) {
     assert.match(css, /#040d18/i, `${name} must use approved #040d18 MTT lobby canvas`);
   }
-  assert.match(hubCss, /min\(600px/, 'Home must use 600px MTT lobby interior');
+  assert.match(homeSrc, /<HubPageShell\b/, 'Home keeps the app-owned responsive shell');
+  assert.match(hubCss, /\.featureArt\s*\{[^}]*object-fit:\s*contain;/, 'Home artwork must remain complete and proportional');
   assert.match(sandboxSrc, /className="sandbox-workspace"/, 'Sandbox workspace must frame the native table');
-  assert.match(hubCss, /#087cfa/, 'Home primary CTA / active tab must use MTT lobby royal blue');
+  assert.match(hubCss, /#087cfa/, 'Home primary CTA must retain the approved royal-blue emphasis');
   assert.match(coachCss, /#087cfa/, 'Coaching Workspace primary CTA / active tab must use MTT lobby royal blue');
 
-  // WCAG 1.4.1 non-color active tab underline indicator
-  assert.match(hubCss, /border-block-end:\s*3px solid/, 'Home active tab needs non-color underline');
+  // Home has direct destinations, while the retained tabbed tools need a non-color indicator.
+  assert.match(hubCss, /:focus-visible\s*\{[^}]*outline:/, 'Home controls retain visible keyboard focus');
   assert.match(coachCss, /border-block-end:\s*3px solid/, 'Coaching active view tab needs non-color underline');
   assert.match(paKitSrc, /border-block-end:\s*3px solid/, 'Segmented active button needs non-color underline');
 

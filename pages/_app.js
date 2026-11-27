@@ -990,9 +990,11 @@ export default function App({ Component, pageProps }) {
       ? 'https://smarter.poker/'
       : `https://smarter.poker${resolvedPath}`;
   // Query-state changes must not remount the full-screen Reel viewer or the
-  // Stable Admin console or browsing search while their in-flight work and keyboard state settle.
+  // Stable Admin console, browsing search, or Personal Assistant settings while
+  // their in-flight work and keyboard state settle. Leaks consumes settings=1
+  // after opening its sheet; remounting here would immediately close it.
   // Other routes retain the historical full-URL error-boundary reset behavior.
-  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/video-library'
+  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/video-library' || resolvedPath === '/hub/personal-assistant/leaks'
     ? resolvedPath
     : router.asPath;
   // Every Poker Near Me route owns a complete SEOHead. Keeping the generic
