@@ -1,30 +1,31 @@
-.planAction {
-  display: inline-flex;
-  min-height: 46px;
-  align-items: center;
-  justify-content: center;
+/* Layout only. The plan panels, price readouts and painted actions come from
+   the VIP kit (src/components/vip/VipKit). */
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.facts {
   margin-top: 18px;
-  padding: 9px 28px;
-  border: 1px solid #627f8f;
-  color: #e9faff;
-  background: #0a151d;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .18),
-    inset 0 -1px 0 rgba(69, 173, 255, .24);
-  font: 800 13px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  letter-spacing: .025em;
-  text-align: center;
-  text-decoration: none;
-  text-shadow: 0 1px 2px #000;
 }
 
-.planAction:focus-visible {
-  outline: 3px solid #45adff !important;
-  outline-offset: 3px !important;
+/* The kit's actions keep a 44px minimum; this keeps a plain fallback link
+   (no stylesheet) reachable too. */
+.planGrid a {
+  min-height: 44px;
 }
 
-@media (max-width: 460px) {
-  .planAction {
-    width: 100%;
+.planGrid a:focus-visible {
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: -6px !important;
+}
+
+@media (max-width: 1000px) {
+  .planGrid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 520px;
+    margin-inline: auto;
   }
 }

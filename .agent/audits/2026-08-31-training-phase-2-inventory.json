@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 402,
-    "componentFiles": 62,
+    "dependencyFiles": 407,
+    "componentFiles": 63,
     "hookFiles": 16,
-    "ctas": 542,
-    "dialogs": 19,
-    "persistenceFiles": 94,
+    "ctas": 543,
+    "dialogs": 21,
+    "persistenceFiles": 95,
     "realtimeFiles": 6,
     "tests": 194,
     "markerCandidates": 391,
-    "possibleUnwiredFunctions": 463,
+    "possibleUnwiredFunctions": 477,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -16866,6 +16866,7 @@
         "src/components/ui/UniversalHeader.js",
         "src/components/ui/VIPGateModal.js",
         "src/components/ui/WorldCommandMenuBoundary.jsx",
+        "src/components/vip/VipKit.jsx",
         "src/config/LevelRegistry.ts",
         "src/config/fallbackMenuSafety.mjs",
         "src/config/hamburgerMenus.js",
@@ -16903,8 +16904,12 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
+        "src/lib/store/checkoutAuthorization.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
         "src/lib/store/walletDescription.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -16966,6 +16971,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/components/ui/ReportBugWidget.jsx",
+            "src/components/vip/VipKit.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -17015,6 +17021,7 @@
             "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutAuthorization.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
@@ -17092,6 +17099,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/store/vipIntroPrompt.mjs",
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
           ],
@@ -18389,6 +18397,7 @@
         "src/components/training/RangeGrid.jsx",
         "src/components/ui/BottomSheet.jsx",
         "src/components/ui/VIPGateModal.js",
+        "src/components/vip/VipKit.jsx",
         "src/config/vip-feature-matrix.js",
         "src/contexts/AvatarContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
@@ -18411,6 +18420,10 @@
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
@@ -18439,6 +18452,7 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/RangeGrid.jsx",
+            "src/components/vip/VipKit.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/ownProfile.js",
             "src/lib/seo/hubPageSchema.js",
@@ -18459,6 +18473,7 @@
             "src/lib/authUtils.js",
             "src/lib/ownProfile.js",
             "src/lib/server/fetchJsonWithDeadline.js",
+            "src/lib/store/checkoutAuthorization.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -18492,6 +18507,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/store/vipIntroPrompt.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -20856,6 +20872,7 @@
         "src/components/training/RangeGrid.jsx",
         "src/components/ui/BottomSheet.jsx",
         "src/components/ui/VIPGateModal.js",
+        "src/components/vip/VipKit.jsx",
         "src/config/vip-feature-matrix.js",
         "src/contexts/AvatarContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
@@ -20878,6 +20895,10 @@
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
@@ -20904,6 +20925,7 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/RangeGrid.jsx",
+            "src/components/vip/VipKit.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/ownProfile.js",
             "src/lib/seo/hubPageSchema.js",
@@ -20921,6 +20943,7 @@
             "src/lib/authUtils.js",
             "src/lib/ownProfile.js",
             "src/lib/server/fetchJsonWithDeadline.js",
+            "src/lib/store/checkoutAuthorization.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -20949,6 +20972,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/store/vipIntroPrompt.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -53527,46 +53551,19 @@
     },
     {
       "file": "src/components/ui/VIPGateModal.js",
-      "imports": [],
+      "imports": [
+        "src/components/vip/VipKit.jsx"
+      ],
       "links": [],
       "apiReferences": [],
       "apiReferencePrefixes": [],
-      "ctas": [
-        {
-          "element": "button",
-          "name": "Get VIP Membership",
-          "line": 76,
-          "handler": "() => { onClose(); router.push('/hub/diamond-store?tab=vip'); }",
-          "destination": null,
-          "type": null,
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "Day Pass - Diamonds (24h)",
-          "line": 91,
-          "handler": "() => { onClose(); router.push('/hub/diamond-store'); }",
-          "destination": null,
-          "type": null,
-          "disabled": null,
-          "wiring": "handler"
-        },
-        {
-          "element": "button",
-          "name": "Maybe Later",
-          "line": 106,
-          "handler": "onClose",
-          "destination": null,
-          "type": null,
-          "disabled": null,
-          "wiring": "handler"
-        }
-      ],
+      "ctas": [],
       "dialogs": {
         "native": 0,
         "aria": 0,
-        "modalComponents": []
+        "modalComponents": [
+          "VipDialog"
+        ]
       },
       "states": {
         "loading": false,
@@ -53595,7 +53592,7 @@
       "functions": [
         {
           "name": "VIPGateModal",
-          "line": 23,
+          "line": 13,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -53711,6 +53708,239 @@
           "rationale": "Explicit function default used to normalize missing display/input values."
         }
       ]
+    },
+    {
+      "file": "src/components/vip/VipKit.jsx",
+      "imports": [
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroPrompt.mjs"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "a",
+          "name": "helpLabel || `${title} Help And Frequently Asked Questions`",
+          "line": 55,
+          "handler": null,
+          "destination": "helpHref",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "<dynamic>",
+          "line": 109,
+          "handler": "onClick",
+          "destination": "href",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 111,
+          "handler": "onClick",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "closeLabel",
+          "line": 315,
+          "handler": "onClose",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 1,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "VipSeal",
+          "line": 29,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipMasthead",
+          "line": 37,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipPricePlate",
+          "line": 67,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipIntroPlateProps",
+          "line": 84,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipIntroPrice",
+          "line": 95,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "Plate",
+          "line": 100,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipCta",
+          "line": 114,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipGhost",
+          "line": 118,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipMonthlyCta",
+          "line": 123,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipUpgradePrompt",
+          "line": 143,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipCrest",
+          "line": 172,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipPlanPanel",
+          "line": 184,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipFacts",
+          "line": 204,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipLead",
+          "line": 218,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipDialog",
+          "line": 242,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "cx",
+          "line": 27,
+          "references": 12,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "focusables",
+          "line": 255,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "onKeyDown",
+          "line": 257,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "VipPlanPanel",
+        "VipFacts",
+        "VipLead"
+      ],
+      "markers": []
     },
     {
       "file": "src/config/GameScenarioMap.ts",
@@ -67860,6 +68090,75 @@
       "markers": []
     },
     {
+      "file": "src/lib/store/checkoutAuthorization.js",
+      "imports": [
+        "src/lib/authUtils.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "authorizationTimeoutError",
+          "line": 5,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "authorizationAbortError",
+          "line": 13,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getVerifiedCheckoutAuthorization",
+          "line": 24,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "getVerifiedCheckoutAuthorization"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/store/checkoutIntentStore.js",
       "imports": [],
       "links": [],
@@ -68189,6 +68488,311 @@
         "marketplacePreservedName",
         "marketplaceFulfillmentStatus",
         "marketplaceCarrierName"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/store/useVipIntroOffer.js",
+      "imports": [
+        "src/lib/authUtils.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/vipIntroPrompt.mjs"
+      ],
+      "links": [],
+      "apiReferences": [
+        "/api/club-arena/store-catalog",
+        "/api/store/vip-membership-status"
+      ],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 1,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "readIntroOffer",
+          "line": 11,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "sharedIntroOffer",
+          "line": 26,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readPublicIntroOffer",
+          "line": 43,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "usePublicVipIntroOffer",
+          "line": 57,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "useVipIntroOffer",
+          "line": 84,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "useVipIntroPrompt",
+          "line": 119,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "useVipIntroPrompt"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/store/vipIntroOffer.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "vipIntroOfferAppliesToPlan",
+          "line": 36,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipIntroCouponMismatch",
+          "line": 50,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipIntroCouponParams",
+          "line": 63,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipIntroOfferPublicTerms",
+          "line": 75,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readVipIntroOfferSwitch",
+          "line": 118,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipIntroOfferCatalogTerms",
+          "line": 138,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "objectId",
+          "line": 164,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isVipIntroSubscription",
+          "line": 170,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipIntroPlanSwitchDecision",
+          "line": 187,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "vipIntroOfferAppliesToPlan",
+        "vipIntroCouponMismatch",
+        "vipIntroCouponParams",
+        "vipIntroOfferCatalogTerms",
+        "vipIntroPlanSwitchDecision"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/store/vipIntroPrompt.mjs",
+      "imports": [
+        "src/lib/store/vipIntroOffer.mjs"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": true,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "parseVipIntroOfferStatus",
+          "line": 38,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseVipIntroCatalogOffer",
+          "line": 54,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipIntroPromptState",
+          "line": 59,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipIntroPromptCopy",
+          "line": 104,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipCheckoutAnalytics",
+          "line": 112,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "parseVipIntroOfferStatus",
+        "parseVipIntroCatalogOffer",
+        "vipIntroPromptCopy",
+        "vipCheckoutAnalytics"
       ],
       "markers": []
     },
@@ -82679,8 +83283,20 @@
       "to": "src/world/components/Geeves/index.ts"
     },
     {
+      "from": "src/components/ui/VIPGateModal.js",
+      "to": "src/components/vip/VipKit.jsx"
+    },
+    {
       "from": "src/components/ui/WorldCommandMenuBoundary.jsx",
       "to": "src/config/worldMenuNavigation.js"
+    },
+    {
+      "from": "src/components/vip/VipKit.jsx",
+      "to": "src/lib/store/useVipIntroOffer.js"
+    },
+    {
+      "from": "src/components/vip/VipKit.jsx",
+      "to": "src/lib/store/vipIntroPrompt.mjs"
     },
     {
       "from": "src/config/hamburgerMenus.js",
@@ -83195,6 +83811,26 @@
       "to": "src/lib/supabaseServerClient.js"
     },
     {
+      "from": "src/lib/store/checkoutAuthorization.js",
+      "to": "src/lib/authUtils.js"
+    },
+    {
+      "from": "src/lib/store/useVipIntroOffer.js",
+      "to": "src/lib/authUtils.js"
+    },
+    {
+      "from": "src/lib/store/useVipIntroOffer.js",
+      "to": "src/lib/store/checkoutAuthorization.js"
+    },
+    {
+      "from": "src/lib/store/useVipIntroOffer.js",
+      "to": "src/lib/store/vipIntroPrompt.mjs"
+    },
+    {
+      "from": "src/lib/store/vipIntroPrompt.mjs",
+      "to": "src/lib/store/vipIntroOffer.mjs"
+    },
+    {
       "from": "src/lib/store/walletDescription.mjs",
       "to": "src/lib/store/marketplaceCopy.js"
     },
@@ -83593,7 +84229,8 @@
     "src/components/ui/SkeletonLoader.jsx",
     "src/components/ui/UniversalHeader.js",
     "src/components/ui/VIPGateModal.js",
-    "src/components/ui/WorldCommandMenuBoundary.jsx"
+    "src/components/ui/WorldCommandMenuBoundary.jsx",
+    "src/components/vip/VipKit.jsx"
   ],
   "hookFiles": [
     "src/hooks/useCurrentUser.js",
@@ -84659,6 +85296,17 @@
     },
     {
       "file": "src/lib/store/checkoutIntentStore.js",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 1,
+        "rpc": 0
+      }
+    },
+    {
+      "file": "src/lib/store/useVipIntroOffer.js",
       "writes": {
         "localStorage": 0,
         "sessionStorage": 0,
@@ -91871,45 +92519,6 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/VIPGateModal.js:76:1",
-      "file": "src/components/ui/VIPGateModal.js",
-      "element": "button",
-      "name": "Get VIP Membership",
-      "line": 76,
-      "handler": "() => { onClose(); router.push('/hub/diamond-store?tab=vip'); }",
-      "destination": null,
-      "type": null,
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "src/components/ui/VIPGateModal.js"
-    },
-    {
-      "id": "src/components/ui/VIPGateModal.js:91:2",
-      "file": "src/components/ui/VIPGateModal.js",
-      "element": "button",
-      "name": "Day Pass - Diamonds (24h)",
-      "line": 91,
-      "handler": "() => { onClose(); router.push('/hub/diamond-store'); }",
-      "destination": null,
-      "type": null,
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "src/components/ui/VIPGateModal.js"
-    },
-    {
-      "id": "src/components/ui/VIPGateModal.js:106:3",
-      "file": "src/components/ui/VIPGateModal.js",
-      "element": "button",
-      "name": "Maybe Later",
-      "line": 106,
-      "handler": "onClose",
-      "destination": null,
-      "type": null,
-      "disabled": null,
-      "wiring": "handler",
-      "effectRef": "src/components/ui/VIPGateModal.js"
-    },
-    {
       "id": "src/components/ui/WorldCommandMenuBoundary.jsx:97:1",
       "file": "src/components/ui/WorldCommandMenuBoundary.jsx",
       "element": "button",
@@ -91947,6 +92556,58 @@
       "disabled": null,
       "wiring": "handler",
       "effectRef": "src/components/ui/WorldCommandMenuBoundary.jsx"
+    },
+    {
+      "id": "src/components/vip/VipKit.jsx:55:1",
+      "file": "src/components/vip/VipKit.jsx",
+      "element": "a",
+      "name": "helpLabel || `${title} Help And Frequently Asked Questions`",
+      "line": 55,
+      "handler": null,
+      "destination": "helpHref",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/vip/VipKit.jsx"
+    },
+    {
+      "id": "src/components/vip/VipKit.jsx:109:2",
+      "file": "src/components/vip/VipKit.jsx",
+      "element": "link",
+      "name": "<dynamic>",
+      "line": 109,
+      "handler": "onClick",
+      "destination": "href",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/vip/VipKit.jsx"
+    },
+    {
+      "id": "src/components/vip/VipKit.jsx:111:3",
+      "file": "src/components/vip/VipKit.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 111,
+      "handler": "onClick",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/vip/VipKit.jsx"
+    },
+    {
+      "id": "src/components/vip/VipKit.jsx:315:4",
+      "file": "src/components/vip/VipKit.jsx",
+      "element": "button",
+      "name": "closeLabel",
+      "line": 315,
+      "handler": "onClose",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/vip/VipKit.jsx"
     }
   ],
   "dialogLedger": [
@@ -92059,10 +92720,22 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
+      "id": "src/components/ui/VIPGateModal.js:dialog:1",
+      "file": "src/components/ui/VIPGateModal.js",
+      "kind": "VipDialog",
+      "effectRef": "src/components/ui/VIPGateModal.js"
+    },
+    {
       "id": "src/components/ui/WorldCommandMenuBoundary.jsx:dialog:1",
       "file": "src/components/ui/WorldCommandMenuBoundary.jsx",
       "kind": "aria-dialog",
       "effectRef": "src/components/ui/WorldCommandMenuBoundary.jsx"
+    },
+    {
+      "id": "src/components/vip/VipKit.jsx:dialog:1",
+      "file": "src/components/vip/VipKit.jsx",
+      "kind": "aria-dialog",
+      "effectRef": "src/components/vip/VipKit.jsx"
     }
   ],
   "sourceEffects": [
@@ -102359,6 +103032,7 @@
         "src/components/ui/UniversalHeader.js",
         "src/components/ui/VIPGateModal.js",
         "src/components/ui/WorldCommandMenuBoundary.jsx",
+        "src/components/vip/VipKit.jsx",
         "src/config/LevelRegistry.ts",
         "src/config/fallbackMenuSafety.mjs",
         "src/config/hamburgerMenus.js",
@@ -102396,8 +103070,12 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
+        "src/lib/store/checkoutAuthorization.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
         "src/lib/store/walletDescription.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -102420,6 +103098,7 @@
         "/api/auth/ensure-profile",
         "/api/avatar/generate-from-photo",
         "/api/avatar/generate-from-text",
+        "/api/club-arena/store-catalog",
         "/api/friends",
         "/api/games/",
         "/api/geeves/chat",
@@ -102432,6 +103111,7 @@
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
+        "/api/store/vip-membership-status",
         "/api/training/challenges",
         "/api/training/progress",
         "/api/training/save-session",
@@ -102595,6 +103275,17 @@
         },
         {
           "file": "src/lib/store/checkoutIntentStore.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/store/useVipIntroOffer.js",
           "writes": {
             "localStorage": 0,
             "sessionStorage": 0,
@@ -102833,6 +103524,7 @@
         "src/components/training/RangeGrid.jsx",
         "src/components/ui/BottomSheet.jsx",
         "src/components/ui/VIPGateModal.js",
+        "src/components/vip/VipKit.jsx",
         "src/config/vip-feature-matrix.js",
         "src/contexts/AvatarContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
@@ -102855,6 +103547,10 @@
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
@@ -102865,6 +103561,8 @@
         "/api/auth/ensure-profile",
         "/api/avatar/generate-from-photo",
         "/api/avatar/generate-from-text",
+        "/api/club-arena/store-catalog",
+        "/api/store/vip-membership-status",
         "/api/training/challenges",
         "/api/training/preflop-ranges",
         "/api/training/save-session",
@@ -102925,6 +103623,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/store/useVipIntroOffer.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
           }
         },
         {
@@ -108765,6 +109474,7 @@
         "src/components/training/LevelSelector.tsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/ui/VIPGateModal.js",
+        "src/components/vip/VipKit.jsx",
         "src/config/LevelRegistry.ts",
         "src/config/vip-feature-matrix.js",
         "src/contexts/AvatarContext.jsx",
@@ -108782,6 +109492,10 @@
         "src/lib/headerStats.js",
         "src/lib/ownProfile.js",
         "src/lib/server/fetchJsonWithDeadline.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
@@ -108793,7 +109507,9 @@
         "/api/auth/ensure-profile",
         "/api/avatar/generate-from-photo",
         "/api/avatar/generate-from-text",
+        "/api/club-arena/store-catalog",
         "/api/games/",
+        "/api/store/vip-membership-status",
         "/api/training/challenges",
         "/api/training/progress",
         "/api/training/save-session",
@@ -108854,6 +109570,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/store/useVipIntroOffer.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
           }
         },
         {
@@ -110336,10 +111063,58 @@
     {
       "file": "src/components/ui/VIPGateModal.js",
       "reachableFiles": [
-        "src/components/ui/VIPGateModal.js"
+        "src/components/ui/VIPGateModal.js",
+        "src/components/vip/VipKit.jsx",
+        "src/lib/authUtils.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
+        "src/lib/supabase.js",
+        "src/lib/supabaseKeys.js",
+        "src/lib/training/boundedTrainingFetch.js"
       ],
-      "apiReferences": [],
-      "persistence": [],
+      "apiReferences": [
+        "/api/club-arena/store-catalog",
+        "/api/store/vip-membership-status",
+        "/api/training/challenges",
+        "/api/training/save-session"
+      ],
+      "persistence": [
+        {
+          "file": "src/lib/authUtils.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/store/useVipIntroOffer.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/training/boundedTrainingFetch.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        }
+      ],
       "realtime": [],
       "tests": []
     },
@@ -110351,6 +111126,63 @@
       ],
       "apiReferences": [],
       "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/components/vip/VipKit.jsx",
+      "reachableFiles": [
+        "src/components/vip/VipKit.jsx",
+        "src/lib/authUtils.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
+        "src/lib/supabase.js",
+        "src/lib/supabaseKeys.js",
+        "src/lib/training/boundedTrainingFetch.js"
+      ],
+      "apiReferences": [
+        "/api/club-arena/store-catalog",
+        "/api/store/vip-membership-status",
+        "/api/training/challenges",
+        "/api/training/save-session"
+      ],
+      "persistence": [
+        {
+          "file": "src/lib/authUtils.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/store/useVipIntroOffer.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/training/boundedTrainingFetch.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        }
+      ],
       "realtime": [],
       "tests": []
     },
@@ -113772,6 +114604,46 @@
       "tests": []
     },
     {
+      "file": "src/lib/store/checkoutAuthorization.js",
+      "reachableFiles": [
+        "src/lib/authUtils.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/supabase.js",
+        "src/lib/supabaseKeys.js",
+        "src/lib/training/boundedTrainingFetch.js"
+      ],
+      "apiReferences": [
+        "/api/training/challenges",
+        "/api/training/save-session"
+      ],
+      "persistence": [
+        {
+          "file": "src/lib/authUtils.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/training/boundedTrainingFetch.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/store/checkoutIntentStore.js",
       "reachableFiles": [
         "src/lib/store/checkoutIntentStore.js"
@@ -113797,6 +114669,83 @@
       "file": "src/lib/store/marketplaceCopy.js",
       "reachableFiles": [
         "src/lib/store/marketplaceCopy.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/lib/store/useVipIntroOffer.js",
+      "reachableFiles": [
+        "src/lib/authUtils.js",
+        "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/useVipIntroOffer.js",
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs",
+        "src/lib/supabase.js",
+        "src/lib/supabaseKeys.js",
+        "src/lib/training/boundedTrainingFetch.js"
+      ],
+      "apiReferences": [
+        "/api/club-arena/store-catalog",
+        "/api/store/vip-membership-status",
+        "/api/training/challenges",
+        "/api/training/save-session"
+      ],
+      "persistence": [
+        {
+          "file": "src/lib/authUtils.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/store/useVipIntroOffer.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/training/boundedTrainingFetch.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/lib/store/vipIntroOffer.mjs",
+      "reachableFiles": [
+        "src/lib/store/vipIntroOffer.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/lib/store/vipIntroPrompt.mjs",
+      "reachableFiles": [
+        "src/lib/store/vipIntroOffer.mjs",
+        "src/lib/store/vipIntroPrompt.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -121880,6 +122829,52 @@
         "externalReferenceFiles": []
       },
       {
+        "file": "src/components/vip/VipKit.jsx",
+        "name": "VipPlanPanel",
+        "line": 184,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/vip-membership/compare.js"
+        ]
+      },
+      {
+        "file": "src/components/vip/VipKit.jsx",
+        "name": "VipFacts",
+        "line": 204,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/vip-membership/compare.js"
+        ]
+      },
+      {
+        "file": "src/components/vip/VipKit.jsx",
+        "name": "VipLead",
+        "line": 218,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/vip-membership/compare.js",
+          "pages/hub/vip-membership/manage.js"
+        ]
+      },
+      {
         "file": "src/config/GameScenarioMap.ts",
         "name": "getGameScenarioConfig",
         "line": 200,
@@ -123879,6 +124874,29 @@
         ]
       },
       {
+        "file": "src/lib/store/checkoutAuthorization.js",
+        "name": "getVerifiedCheckoutAuthorization",
+        "line": 24,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/club-shop/[itemId].js",
+          "pages/hub/diamond-store.js",
+          "pages/hub/diamond-store/cart.js",
+          "pages/hub/memory-games.js",
+          "src/components/store/ClubShopPurchaseLedger.jsx",
+          "src/components/store/ClubShopSalesAnalytics.jsx",
+          "src/components/store/MerchStore.jsx",
+          "src/components/store/VipGifts.jsx",
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
         "file": "src/lib/store/checkoutIntentStore.js",
         "name": "inspectCommerceRequestRecovery",
         "line": 232,
@@ -124039,6 +125057,167 @@
           "pages/hub/diamond-store/orders.js",
           "pages/hub/diamond-store/orders/[orderId].js",
           "pages/hub/merch-store/fulfillment.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/useVipIntroOffer.js",
+        "name": "useVipIntroPrompt",
+        "line": 119,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/gates/GameCostPopup.jsx",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroOfferAppliesToPlan",
+        "line": 36,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-one-dollar.test.mjs",
+          "pages/api/store/create-checkout-session.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroCouponMismatch",
+        "line": 50,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-one-dollar.test.mjs",
+          "pages/api/store/create-checkout-session.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroCouponParams",
+        "line": 63,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-one-dollar.test.mjs",
+          "pages/api/store/create-checkout-session.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroOfferCatalogTerms",
+        "line": 138,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-hardening.test.mjs",
+          "pages/api/club-arena/store-catalog.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroPlanSwitchDecision",
+        "line": 187,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-hardening.test.mjs",
+          "pages/api/store/switch-vip-plan.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroPrompt.mjs",
+        "name": "parseVipIntroOfferStatus",
+        "line": 38,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroPrompt.mjs",
+        "name": "parseVipIntroCatalogOffer",
+        "line": 54,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroPrompt.mjs",
+        "name": "vipIntroPromptCopy",
+        "line": 104,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroPrompt.mjs",
+        "name": "vipCheckoutAnalytics",
+        "line": 112,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store.js"
         ]
       },
       {
@@ -132958,6 +134137,52 @@
         "externalReferenceFiles": []
       },
       {
+        "file": "src/components/vip/VipKit.jsx",
+        "name": "VipPlanPanel",
+        "line": 184,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/vip-membership/compare.js"
+        ]
+      },
+      {
+        "file": "src/components/vip/VipKit.jsx",
+        "name": "VipFacts",
+        "line": 204,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/vip-membership/compare.js"
+        ]
+      },
+      {
+        "file": "src/components/vip/VipKit.jsx",
+        "name": "VipLead",
+        "line": 218,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/vip-membership/compare.js",
+          "pages/hub/vip-membership/manage.js"
+        ]
+      },
+      {
         "file": "src/config/GameScenarioMap.ts",
         "name": "getGameScenarioConfig",
         "line": 200,
@@ -134957,6 +136182,29 @@
         ]
       },
       {
+        "file": "src/lib/store/checkoutAuthorization.js",
+        "name": "getVerifiedCheckoutAuthorization",
+        "line": 24,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/club-shop/[itemId].js",
+          "pages/hub/diamond-store.js",
+          "pages/hub/diamond-store/cart.js",
+          "pages/hub/memory-games.js",
+          "src/components/store/ClubShopPurchaseLedger.jsx",
+          "src/components/store/ClubShopSalesAnalytics.jsx",
+          "src/components/store/MerchStore.jsx",
+          "src/components/store/VipGifts.jsx",
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
         "file": "src/lib/store/checkoutIntentStore.js",
         "name": "inspectCommerceRequestRecovery",
         "line": 232,
@@ -135117,6 +136365,167 @@
           "pages/hub/diamond-store/orders.js",
           "pages/hub/diamond-store/orders/[orderId].js",
           "pages/hub/merch-store/fulfillment.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/useVipIntroOffer.js",
+        "name": "useVipIntroPrompt",
+        "line": 119,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/gates/GameCostPopup.jsx",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroOfferAppliesToPlan",
+        "line": 36,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-one-dollar.test.mjs",
+          "pages/api/store/create-checkout-session.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroCouponMismatch",
+        "line": 50,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-one-dollar.test.mjs",
+          "pages/api/store/create-checkout-session.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroCouponParams",
+        "line": 63,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-one-dollar.test.mjs",
+          "pages/api/store/create-checkout-session.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroOfferCatalogTerms",
+        "line": 138,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-hardening.test.mjs",
+          "pages/api/club-arena/store-catalog.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroOffer.mjs",
+        "name": "vipIntroPlanSwitchDecision",
+        "line": 187,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
+          "__tests__/vip-first-month-hardening.test.mjs",
+          "pages/api/store/switch-vip-plan.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroPrompt.mjs",
+        "name": "parseVipIntroOfferStatus",
+        "line": 38,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroPrompt.mjs",
+        "name": "parseVipIntroCatalogOffer",
+        "line": 54,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroPrompt.mjs",
+        "name": "vipIntroPromptCopy",
+        "line": 104,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/vipIntroPrompt.mjs",
+        "name": "vipCheckoutAnalytics",
+        "line": 112,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store.js"
         ]
       },
       {

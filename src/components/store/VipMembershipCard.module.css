@@ -1,43 +1,88 @@
-/* Bespoke membership controls: opaque metal, four inset layers, live text. */
+/* VIP plan cards on #SMARTERDESIGN: one approved steel nine-slice rim per
+   plan, a cobalt lit rim when selected, the approved VIP crest as the plan
+   marker, and live lettering. The price is the largest thing on the card. */
 .vipCard {
+  --vc-type: var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif;
   position: relative;
   display: grid;
-  grid-template-columns: 1fr;
-  justify-items: start;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 10px;
   min-width: 0;
   margin: 0;
-  padding: 24px;
-  border: 1px solid #637b90;
-  background: linear-gradient(135deg, #263542, #080d14 35%, #030609 80%);
-  box-shadow: inset 0 1px #b5c4d0, inset 0 0 0 4px #020408, inset 0 0 0 5px #344656, inset 0 -8px 14px #000, 0 5px 0 #17232e, 0 6px 0 #40586a, 0 12px 20px #000;
-  color: #edf6ff;
+  padding: 16px 14px 14px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 6px stretch;
+  background:
+    radial-gradient(120% 90px at 50% 0, #1a3a5e 0, transparent 75%),
+    linear-gradient(170deg, #142639 0%, #091726 46%, #030a13 100%);
+  box-shadow: inset 0 3px 10px rgb(0 0 0 / 70%), 0 8px 16px rgb(0 0 0 / 60%);
+  color: #f2f7ff;
   cursor: pointer;
   font: inherit;
-  text-align: left;
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
-.vipCardSelected { border-color: #71c5ff; background: linear-gradient(135deg, #173a58, #080e18 42%, #030609 80%); box-shadow: inset 0 1px #c1e8ff, inset 0 0 0 4px #020408, inset 0 0 0 5px #3978a5, inset 0 -8px 14px #000, 0 5px 0 #15314b, 0 6px 0 #458dc4, 0 12px 20px #000; }
-.vipCardCrown { display: grid; place-items: center; width: 56px; height: 48px; color: #b5c4d0; filter: drop-shadow(0 2px 1px #000); }
-.vipCardCrown svg { width: 56px; height: 46px; }
-.vipCardReadout { display: grid; min-width: 0; gap: 9px; }
-.vipPlanName { color: #edf6ff; font-size: 18px; font-weight: 800; }
-.vipPriceRow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
-.vipPriceRow strong { color: #fff; font-size: 32px; line-height: 1; font-weight: 800; }
-.vipPriceRow > span { color: #aabcc9; font-size: 13px; }
-.vipDiamondPrice { color: #78caff; font-size: 13px; }
-.vipPlanDetail { color: #aabcc9; font-size: 13px; }
-.vipSelection { display: flex; align-items: center; gap: 8px; color: #b5c4d0; font-size: 13px; }
-.vipSelection::before { content: ''; width: 14px; height: 14px; border: 1px solid #7590a4; background: #000; box-shadow: inset 0 0 0 3px #000; border-radius: 50%; }
-.vipCardSelected .vipSelection { color: #78caff; }
-.vipCardSelected .vipSelection::before { background: #45adff; border-color: #78caff; }
-.vipCard:focus-visible { outline: 2px solid #9bf4ff !important; outline-offset: 3px !important; }
+.vipCardSelected {
+  border-image-source: url('/images/smarterdesign/chrome-active.webp');
+  border-image-slice: 11;
+  background:
+    radial-gradient(120% 130px at 50% 0, #1c64b4 0, transparent 78%),
+    linear-gradient(170deg, #123760 0%, #0a1f3a 48%, #040c18 100%);
+  box-shadow: inset 0 3px 10px rgb(0 0 0 / 55%), 0 0 22px rgb(38 136 255 / 38%), 0 8px 16px rgb(0 0 0 / 60%);
+}
+.vipCardCrown { display: block; width: 62px; height: 49px; filter: drop-shadow(0 3px 4px #000); }
+.vipCardCrown img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.vipCardReadout { display: grid; justify-items: center; min-width: 0; gap: 6px; width: 100%; }
+.vipPlanName { color: #f2f7ff; font: 750 21px/1.1 var(--vc-type); letter-spacing: 0.02em; text-shadow: 0 2px 0 #243951, 0 3px 5px #020914; }
+.vipOfferTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 10px;
+  border: 1px solid #3a7fbd;
+  background: linear-gradient(180deg, #12406f, #082341);
+  box-shadow: inset 0 1px 0 rgb(134 218 255 / 45%);
+  color: #86daff;
+  font: 700 11.5px/1.2 var(--vc-type);
+  letter-spacing: 0.08em;
+}
+.vipPriceRow { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 8px; }
+.vipPriceRow strong {
+  color: #fff;
+  font: 800 54px/0.95 var(--vc-type);
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 0 #d4e8f8, 0 2px 0 #86a2ba, 0 3px 0 #3f5870, 0 5px 8px #000, 0 0 20px rgb(47 157 255 / 45%);
+}
+.vipPriceRow > span { color: #f2f7ff; font: 700 19px/1.1 var(--vc-type); text-shadow: 0 2px 3px #000; }
+.vipPlanDetail { color: #bdd0e2; font: 600 13px/1.35 var(--font-inter), Arial, sans-serif; }
+.vipDiamondPrice {
+  width: 100%;
+  margin-top: 4px;
+  padding-top: 9px;
+  border-top: 1px solid #34506c;
+  color: #86daff;
+  font: 600 13px/1.3 var(--font-inter), Arial, sans-serif;
+}
+.vipSelection { display: inline-flex; align-items: center; gap: 8px; min-height: 22px; color: #bdd0e2; font: 700 13px/1 var(--vc-type); letter-spacing: 0.06em; }
+.vipSelection::before { content: ''; width: 14px; height: 14px; border: 2px solid #8fa9c0; border-radius: 50%; background: #020812; box-shadow: inset 0 0 0 3px #020812; }
+.vipCardSelected .vipSelection { color: #f2f7ff; }
+.vipCardSelected .vipSelection::before { border-color: #d6f1ff; background: #45adff; box-shadow: inset 0 0 0 3px #04101f, 0 0 10px #2d9dff; }
+.vipCard:focus-visible { outline: 2px solid #9ee3ff !important; outline-offset: 3px !important; }
 .vipCard:active { transform: translateY(2px); }
 @media (max-width: 640px) {
-  .vipCard { grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 20px 16px; }
-  .vipCardCrown, .vipCardCrown svg { width: 40px; height: 38px; }
-  .vipCardReadout { gap: 7px; }
-  .vipPlanName { font-size: 16px; }
-  .vipPriceRow strong { font-size: 27px; }
-  .vipSelection { font-size: 0; gap: 0; }
-  .vipPlanDetail { font-size: 12px; }
+  /* Phone: marker and name on one line, the price across the full width. */
+  .vipCard { grid-template-columns: 46px minmax(0, 1fr) auto; justify-items: stretch; align-items: center; gap: 8px 12px; padding: 12px 12px 11px; text-align: left; }
+  .vipCardCrown { width: 46px; height: 36px; grid-row: 1; grid-column: 1; }
+  .vipCardReadout { display: contents; }
+  .vipPlanName { grid-row: 1; grid-column: 2; font-size: 20px; }
+  .vipSelection { grid-row: 1; grid-column: 3; justify-self: end; }
+  .vipOfferTag { grid-column: 1 / -1; justify-self: start; }
+  .vipPriceRow { grid-column: 1 / -1; justify-content: flex-start; }
+  .vipPriceRow strong { font-size: 52px; }
+  .vipPlanDetail, .vipDiamondPrice { grid-column: 1 / -1; }
+  .vipDiamondPrice { margin-top: 2px; }
 }
+@media (prefers-reduced-motion: reduce) { .vipCard:active { transform: none; } }

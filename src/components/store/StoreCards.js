@@ -36,20 +36,23 @@ export function VIPCard({ plan, isSelected, onSelect, introOffer = false }) {
         : `Select ${marketplaceCopy(plan.name)}, ${regularPrice} ${spokenTerm}`}
     >
       <span className={styles.vipCardCrown} aria-hidden="true">
-        <svg viewBox="0 0 64 52" fill="none"><path d="M8 14L20 25L32 5L44 25L56 14L50 42H14L8 14Z" stroke="currentColor" strokeWidth="2"/><path d="M16 46H48M18 36H46" stroke="currentColor" strokeWidth="2"/><path d="M28 28L32 23L36 28L32 33L28 28Z" fill="#45adff"/></svg>
+        <img src="/images/smarterdesign/headers/vip-crest.webp" alt="" width="168" height="132" decoding="async" />
       </span>
       <span className={styles.vipCardReadout}>
         <span className={styles.vipPlanName}>{marketplaceCopy(plan.name)}</span>
+        {intro && <span className={styles.vipOfferTag}>New Member Offer</span>}
         <span className={styles.vipPriceRow}>
           <strong>{intro ? '$1' : regularPrice}</strong>
           <span>{intro ? 'First Month' : term}</span>
         </span>
+        <span className={styles.vipPlanDetail}>{lifetime ? 'Never Expires. No Renewal.' : plan.interval === 'year' ? 'A Full Year Of VIP. Cancel Anytime.' : intro ? `Then ${regularPrice}/Month. Cancel Anytime.` : 'Flexible Monthly Access. Cancel Anytime.'}</span>
+        {/* The Diamond route is its own price for its own term, never a
+            conversion of the Card price above it. */}
         <span className={styles.vipDiamondPrice}>
-          {Math.round((Number(plan.price) || 0) * 100).toLocaleString()} Diamonds
+          Or {Math.round((Number(plan.price) || 0) * 100).toLocaleString()} Diamonds {lifetime ? 'Once' : plan.interval === 'year' ? 'For 365 Days' : 'For 30 Days'}
         </span>
-        <span className={styles.vipPlanDetail}>{lifetime ? 'Never Expires' : plan.interval === 'year' ? 'A Full Year Of VIP' : intro ? `Then ${regularPrice}/Month. Cancel Anytime.` : 'Flexible Monthly Access'}</span>
       </span>
-      <span className={styles.vipSelection} aria-hidden="true">{isSelected ? 'Selected' : 'Select Plan'}</span>
+      <span className={styles.vipSelection} aria-hidden="true">{isSelected ? 'Selected' : 'Select'}</span>
     </button>
   );
 }

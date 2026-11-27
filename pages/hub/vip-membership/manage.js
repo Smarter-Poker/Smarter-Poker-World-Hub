@@ -3,7 +3,18 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
-import styles from '../../../src/components/store/VipMembershipConsole.module.css';
+import {
+  VIP_SCENE_SRC,
+  VipCrest,
+  VipCta,
+  VipGhost,
+  VipLead,
+  VipMasthead,
+  VipPricePlate,
+  VipSeal,
+  vipKitStyles as k,
+} from '../../../src/components/vip/VipKit';
+import m from '../../../src/components/vip/VipManage.module.css';
 import { authedFetch, ensureAuthReady, getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { acquireScrollLock } from '../../../src/lib/scrollLock';
@@ -25,6 +36,8 @@ const EMPTY_MEMBERSHIP = {
 const MEMBERSHIP_ACTION_TIMEOUT_MS = 20_000;
 const MEMBERSHIP_READ_TIMEOUT_MS = 20_000;
 const MAX_RETAINED_MEMBERSHIP_ACTIONS = 32;
+const BILLING_PORTAL_HOST = 'billing.stripe.com';
+const CANCEL_DETAILS_MAX_LENGTH = 500;
 const membershipActionKeys = new Map();
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -58,6 +71,17 @@ function formatDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'Pending Verification';
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function verifiedBillingPortalUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'https:' && url.hostname === BILLING_PORTAL_HOST
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function sourceLabel(source) {
@@ -98,6 +122,10 @@ export default function VipManagePage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
   const [cancelReason, setCancelReason] = useState('not_using');
+  const [cancelDetails, setCancelDetails] = useState('');
+  const [portal, setPortal] = useState({ status: 'idle', message: '' });
+  const [portalOwnerId, setPortalOwnerId] = useState(null);
+  const portalBusyRef = useRef(false);
   const dialogTitleRef = useRef(null);
   const dialogRef = useRef(null);
   const cancelTriggerRef = useRef(null);
@@ -128,6 +156,10 @@ export default function VipManagePage() {
     setAction({ status: 'idle', message: '' });
     setConfirmOpen(false);
     setPendingPlan(null);
+    setCancelDetails('');
+    portalBusyRef.current = false;
+    setPortalOwnerId(committedAccountId);
+    setPortal({ status: 'idle', message: '' });
   }, [committedAccountId]);
 
   const loadMembership = useCallback(async () => {
@@ -262,7 +294,9 @@ export default function VipManagePage() {
       }
       if (event.key !== 'Tab') return;
       const focusable = Array.from(
-        dialogRef.current?.querySelectorAll('button:not(:disabled), select:not(:disabled)') || []
+        dialogRef.current?.querySelectorAll(
+          'button:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]'
+        ) || []
       );
       if (!focusable.length) return;
       const first = focusable[0];
@@ -413,12 +447,68 @@ export default function VipManagePage() {
       { tier: plan, cancelAtPeriodEnd: false, canCancel: true, canSwitch: true }
     );
 
-  const scheduleCancellation = () =>
-    runAction(
+  const scheduleCancellation = () => {
+    const details = cancelDetails.trim().slice(0, CANCEL_DETAILS_MAX_LENGTH);
+    return runAction(
       '/api/store/cancel-vip',
-      { reason: cancelReason },
+      details ? { reason: cancelReason, reasonText: details } : { reason: cancelReason },
       { cancelAtPeriodEnd: true, canCancel: false, canSwitch: false }
     );
+  };
+
+  // Opens Stripe's own card page for this member's customer. The server picks
+  // the customer from the signed-in profile; this only follows a verified
+  // billing.stripe.com address.
+  const openBillingPortal = async () => {
+    const expectedAccountId = committedAccountId;
+    if (
+      portalBusyRef.current ||
+      !expectedAccountId ||
+      activeAccountIdRef.current !== expectedAccountId ||
+      getAuthUser()?.id !== expectedAccountId
+    )
+      return;
+    portalBusyRef.current = true;
+    setPortalOwnerId(expectedAccountId);
+    setPortal({ status: 'busy', message: '' });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), MEMBERSHIP_ACTION_TIMEOUT_MS);
+    try {
+      const response = await authedFetch('/api/store/billing-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({}),
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => null);
+      if (activeAccountIdRef.current !== expectedAccountId) return;
+      if (getAuthUser()?.id !== expectedAccountId) return;
+      const url = verifiedBillingPortalUrl(payload?.url);
+      if (!response.ok || !payload?.success || !url) {
+        throw new Error(payload?.error || 'The Card Update Page Could Not Be Opened.');
+      }
+      setPortal({ status: 'leaving', message: 'Opening The Secure Card Page.' });
+      window.location.assign(url);
+    } catch (error) {
+      if (activeAccountIdRef.current !== expectedAccountId) return;
+      setPortal({
+        status: 'error',
+        message:
+          error?.name === 'AbortError'
+            ? 'The Card Update Page Timed Out. Please Try Again.'
+            : error?.message || 'The Card Update Page Could Not Be Opened.',
+      });
+    } finally {
+      clearTimeout(timer);
+      portalBusyRef.current = false;
+    }
+  };
+
+  const accountPortal =
+    portalOwnerId === committedAccountId ? portal : { status: 'idle', message: '' };
+  const accessEndLabel = formatDate(
+    accountView.membership.currentPeriodEnd || accountView.membership.expiresAt
+  );
 
   const membership = accountView.membership;
   const stateLabel =
@@ -437,6 +527,13 @@ export default function VipManagePage() {
     url: `https://smarter.poker${canonical}`,
   };
 
+  const busyPortal = accountPortal.status === 'busy' || accountPortal.status === 'leaving';
+  const renewalLabel = membership.cancelAtPeriodEnd
+    ? 'Access Ends'
+    : membership.recurring
+      ? 'Next Renewal'
+      : 'Expiration';
+
   return (
     <MarketplaceDetailExperience
       canonical={canonical}
@@ -452,135 +549,166 @@ export default function VipManagePage() {
       ]}
       status={stateLabel}
       presentation="membership"
-      actions={
-        <>
-          <Link href="/hub/vip-membership">VIP Storefront</Link>
-          <Link href="/hub/vip-membership/compare">Compare Plans</Link>
-        </>
+      masthead={
+        <div>
+          <VipMasthead
+            parent="Smarter.Poker VIP"
+            title="VIP Command Center"
+            helpHref="/hub/vip-membership#vip-faq"
+            helpLabel="VIP Command Center Help And Frequently Asked Questions"
+          />
+          <VipLead
+            actions={
+              <>
+                <VipGhost href="/hub/vip-membership">VIP Storefront</VipGhost>
+                <VipGhost href="/hub/vip-membership/compare">Compare Plans</VipGhost>
+              </>
+            }
+          >
+            <span className={m.stateChip} data-state={membership.isVip ? 'on' : 'off'}>
+              {stateLabel}
+            </span>{' '}
+            Your Renewal, Plan And Card, Read From Your Verified Account.
+          </VipLead>
+        </div>
       }
       structuredData={schema}
       noindex
     >
       {accountView.status === 'loading' && (
-        <section className={`${styles.panel} ${styles.loading}`} role="status" aria-live="polite">
-          <h2>Synchronizing VIP Record</h2>
-          <p>Reading Your Private Entitlement And Recurring Billing State…</p>
+        <section className={`${k.kit} ${k.frame} ${m.panel}`} role="status" aria-live="polite">
+          <h2 className={m.panelTitle}>Synchronizing VIP Record</h2>
+          <p className={m.copy}>Reading Your Private Entitlement And Recurring Billing State…</p>
         </section>
       )}
 
       {accountView.status === 'signed-out' && (
-        <section className={styles.signedOut}>
-          <h2>Connect Your Private Membership Record</h2>
-          <p>
+        <section className={`${k.kit} ${k.frame} ${m.panel}`}>
+          <div className={m.panelHead}>
+            <VipCrest />
+            <h2 className={m.panelTitle}>Connect Your Private Membership Record</h2>
+          </div>
+          <p className={m.copy}>
             Sign In To Review Your VIP Source, Renewal Date, Plan, And Secure Management Controls.
           </p>
-          <Link href={`/auth/login?redirect=${encodeURIComponent(canonical)}`}>
+          <VipCta href={`/auth/login?redirect=${encodeURIComponent(canonical)}`}>
             Sign In To Manage VIP
-          </Link>
+          </VipCta>
         </section>
       )}
 
       {accountView.status === 'error' && (
-        <section className={styles.signedOut} role="alert">
-          <h2>Membership Link Interrupted</h2>
-          <p>{marketplaceCopy(accountView.message)}</p>
-          <button className={styles.button} type="button" onClick={loadMembership}>
-            Retry Secure Read
-          </button>
+        <section className={`${k.kit} ${k.frame} ${m.panel}`} role="alert">
+          <h2 className={m.panelTitle}>Membership Link Interrupted</h2>
+          <p className={m.copy}>{marketplaceCopy(accountView.message)}</p>
+          <VipCta onClick={loadMembership}>Retry Secure Read</VipCta>
         </section>
       )}
 
       {accountView.status === 'ready' && (
-        <div className={styles.console}>
+        <div className={m.console}>
           <section
-            className={`${styles.panel} ${styles.panelGold}`}
+            className={`${k.kit} ${k.frame} ${m.panel}`}
             aria-labelledby="entitlement-signal-title"
           >
-            <h2 id="entitlement-signal-title">Entitlement Signal</h2>
-            <p>The Server, Not This Browser, Decides Whether Your VIP Access Is Active.</p>
-            <div className={styles.statusLine}>
+            <div className={m.panelHead}>
+              <VipCrest />
               <div>
-                <span>Access State</span>
-                <strong>{membership.isVip ? 'Active' : 'Inactive'}</strong>
-              </div>
-              <div>
-                <span>Settlement Source</span>
-                <strong>{sourceLabel(membership.source)}</strong>
-              </div>
-              <div>
-                <span>Current Tier</span>
-                <strong>{marketplaceCopy(membership.tier || 'None')}</strong>
-              </div>
-              <div>
-                <span>
-                  {membership.cancelAtPeriodEnd
-                    ? 'Access Ends'
-                    : membership.recurring
-                      ? 'Next Renewal'
-                      : 'Expiration'}
-                </span>
-                <strong>{formatDate(membership.currentPeriodEnd || membership.expiresAt)}</strong>
+                <h2 id="entitlement-signal-title" className={m.panelTitle}>
+                  Your Membership
+                </h2>
+                <p className={m.sub}>
+                  The Server, Not This Browser, Decides Whether Your VIP Access Is Active.
+                </p>
               </div>
             </div>
+            <dl className={m.readouts}>
+              <div>
+                <dt>Access State</dt>
+                <dd>{membership.isVip ? 'Active' : 'Inactive'}</dd>
+              </div>
+              <div>
+                <dt>Settlement Source</dt>
+                <dd>{sourceLabel(membership.source)}</dd>
+              </div>
+              <div>
+                <dt>Current Tier</dt>
+                <dd>{marketplaceCopy(membership.tier || 'None')}</dd>
+              </div>
+              <div>
+                <dt>{renewalLabel}</dt>
+                <dd>{formatDate(membership.currentPeriodEnd || membership.expiresAt)}</dd>
+              </div>
+            </dl>
             {membership.cancelAtPeriodEnd && (
-              <div className={styles.notice}>
+              <p className={m.notice}>
                 Cancellation Is Scheduled. VIP Remains Active Through The Date Shown Above And No
                 New Renewal Will Be Created.
-              </div>
+              </p>
             )}
             {membership.partial && (
-              <div className={styles.notice}>
+              <p className={m.notice}>
                 Your Entitlement Is Verified, But Detailed Subscription Telemetry Is Temporarily
                 Partial.
-              </div>
+              </p>
             )}
           </section>
 
-          <section className={styles.panel} aria-labelledby="secure-controls-title">
-            <h2 id="secure-controls-title">Secure Controls</h2>
+          <section
+            className={`${k.kit} ${k.frame} ${m.panel}`}
+            aria-labelledby="secure-controls-title"
+          >
+            <h2 id="secure-controls-title" className={m.panelTitle}>
+              Secure Controls
+            </h2>
             {!membership.isVip && (
               <>
-                <p>
+                <p className={m.copy}>
                   No Active VIP Entitlement Was Found. Choose A Monthly, Yearly, Or Lifetime Plan To
                   Activate The Suite.
                 </p>
-                <p>
-                  <Link href="/hub/vip-membership">Choose A VIP Plan</Link>
+                <VipCta href="/hub/vip-membership">Choose A VIP Plan</VipCta>
+                <p className={m.notice}>
+                  Did A Renewal Payment Fail? VIP From A Card Subscription Turns Off Until The
+                  Payment Succeeds. Update Your Card And VIP Returns When The Payment Goes Through.
                 </p>
+                <VipGhost disabled={busyPortal} onClick={openBillingPortal}>
+                  {accountPortal.status === 'busy' ? 'Opening…' : 'Update Payment Card'}
+                </VipGhost>
               </>
             )}
 
             {membership.isVip && !membership.recurring && (
               <>
-                <p>
+                <p className={m.copy}>
                   {marketplaceCopy(
                     membership.source === 'lifetime'
                       ? 'Lifetime VIP has no recurring bill to manage.'
                       : 'Diamond VIP passes expire automatically and never renew a card.'
                   )}
                 </p>
-                <div className={styles.notice}>
-                  No Cancellation Is Needed For This Membership Source.
-                </div>
+                <p className={m.notice}>No Cancellation Is Needed For This Membership Source.</p>
               </>
             )}
 
             {membership.recurring && (
               <>
-                <p>
+                <p className={m.copy}>
                   Switching Plans Keeps Your Renewal Date. Stripe Applies Unused Paid Time As A
                   Prorated Credit To The Next Invoice.
                 </p>
-                <div className={styles.planGrid} role="group" aria-label="VIP Recurring Plan Controls">
+                <div className={m.planGrid} role="group" aria-label="VIP Recurring Plan Controls">
                   <div
-                    className={`${styles.plan} ${membership.tier === 'monthly' ? styles.planActive : ''}`}
+                    className={`${m.plan} ${membership.tier === 'monthly' ? m.planCurrent : ''}`}
                   >
-                    <span className={styles.planLabel}>Flexible Access</span>
-                    <strong>$20 / Month</strong>
-                    <p>Monthly Renewal With Full VIP Access.</p>
-                    <button
-                      className={styles.button}
-                      type="button"
+                    <VipPricePlate
+                      compact
+                      tag={membership.tier === 'monthly' ? 'Your Current Plan' : 'Flexible Access'}
+                      amount="$20"
+                      unit="/Month"
+                      note="Monthly Renewal With Full VIP Access."
+                    />
+                    <VipGhost
                       disabled={
                         !membership.canSwitch ||
                         membership.tier === 'monthly' ||
@@ -588,18 +716,20 @@ export default function VipManagePage() {
                       }
                       onClick={() => setPendingPlan('monthly')}
                     >
-                      Switch To Monthly
-                    </button>
+                      {membership.tier === 'monthly' ? 'Current Plan' : 'Switch To Monthly'}
+                    </VipGhost>
                   </div>
                   <div
-                    className={`${styles.plan} ${membership.tier === 'yearly' ? styles.planActive : ''}`}
+                    className={`${m.plan} ${membership.tier === 'yearly' ? m.planCurrent : ''}`}
                   >
-                    <span className={styles.planLabel}>Best Card Rate</span>
-                    <strong>$200 / Year</strong>
-                    <p>Yearly Renewal With The Same Full VIP Suite.</p>
-                    <button
-                      className={styles.button}
-                      type="button"
+                    <VipPricePlate
+                      compact
+                      tag={membership.tier === 'yearly' ? 'Your Current Plan' : 'Best Card Rate'}
+                      amount="$200"
+                      unit="/Year"
+                      note="Yearly Renewal With The Same Full VIP Suite."
+                    />
+                    <VipCta
                       disabled={
                         !membership.canSwitch ||
                         membership.tier === 'yearly' ||
@@ -607,114 +737,178 @@ export default function VipManagePage() {
                       }
                       onClick={() => setPendingPlan('yearly')}
                     >
-                      Switch To Yearly
-                    </button>
+                      {membership.tier === 'yearly' ? 'Current Plan' : 'Switch To Yearly'}
+                    </VipCta>
                   </div>
                 </div>
-                {membership.canCancel && (
-                  <button
-                    ref={cancelTriggerRef}
-                    className={styles.dangerButton}
-                    type="button"
-                    onClick={() => setConfirmOpen(true)}
-                  >
-                    Schedule End Of Membership
-                  </button>
+                {membership.tier === 'monthly' && !membership.cancelAtPeriodEnd && (
+                  <p className={m.notice}>
+                    $200/Year Is Two Months Free Versus Monthly. After Your First Renewal You Can
+                    Switch To Yearly.
+                  </p>
                 )}
-                <p className={styles.finePrint}>
+                <div className={m.actions}>
+                  <VipGhost disabled={busyPortal} onClick={openBillingPortal}>
+                    {accountPortal.status === 'busy' ? 'Opening…' : 'Update Payment Card'}
+                  </VipGhost>
+                  {membership.canCancel && (
+                    <VipGhost ref={cancelTriggerRef} onClick={() => setConfirmOpen(true)}>
+                      Schedule End Of Membership
+                    </VipGhost>
+                  )}
+                </div>
+                <p className={m.finePrint}>
                   Plan Changes And Cancellations Require Your Verified Session. Cancellation Takes
                   Effect At The End Of The Paid Billing Period.
                 </p>
               </>
             )}
 
+            {accountPortal.message && (
+              <p
+                className={`${m.notice} ${accountPortal.status === 'error' ? m.noticeError : ''}`}
+                role={accountPortal.status === 'error' ? 'alert' : 'status'}
+                aria-live="polite"
+              >
+                {marketplaceCopy(accountPortal.message)}
+              </p>
+            )}
+
             {accountAction.message && (
-              <div
-                className={`${styles.notice} ${accountAction.status === 'error' ? styles.noticeError : ''}`}
+              <p
+                className={`${m.notice} ${accountAction.status === 'error' ? m.noticeError : ''}`}
                 role={accountAction.status === 'error' ? 'alert' : 'status'}
                 aria-live="polite"
               >
                 {marketplaceCopy(accountAction.message)}
-              </div>
+              </p>
             )}
           </section>
         </div>
       )}
 
       {accountView.status === 'ready' && (confirmOpen || pendingPlan) && (
-        <div className={styles.dialogBackdrop}>
+        <div className={`${k.kit} ${k.backdrop}`}>
           <section
             ref={dialogRef}
-            className={styles.dialog}
+            className={`${k.frame} ${k.dialog} ${m.dialog}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="vip-action-title"
             aria-describedby="vip-action-copy"
           >
-            <h2 id="vip-action-title" ref={dialogTitleRef} tabIndex={-1}>
-              {pendingPlan ? 'Confirm Plan Switch' : 'Confirm End Of Membership'}
-            </h2>
-            <p id="vip-action-copy">
-              {pendingPlan
-                ? `Switch To The ${marketplaceCopy(pendingPlan)} Plan While Keeping Your Current Renewal Date? Stripe Will Apply Eligible Unused Paid Time As A Prorated Credit On Your Next Invoice.`
-                : marketplaceCopy(
-                    'Your card will not renew. VIP access stays active until the current paid period ends.'
-                  )}
-            </p>
-            {confirmOpen && (
-              <>
-                <label htmlFor="cancel-reason">Why Are You Leaving?</label>
-                <select
-                  id="cancel-reason"
-                  value={cancelReason}
-                  onChange={(event) => setCancelReason(event.target.value)}
+            <div className={k.dialogHead}>
+              <img
+                className={k.scene}
+                src={VIP_SCENE_SRC}
+                alt=""
+                width="620"
+                height="196"
+                decoding="async"
+                aria-hidden="true"
+              />
+              <VipSeal />
+              <div className={k.mastCopy}>
+                <p className={k.parent}>VIP Command Center</p>
+                <h2
+                  id="vip-action-title"
+                  className={k.dialogTitle}
+                  ref={dialogTitleRef}
+                  tabIndex={-1}
                 >
-                  <option value="not_using">Not Using It Enough</option>
-                  <option value="too_expensive">Price</option>
-                  <option value="missing_features">Missing Features</option>
-                  <option value="technical_issues">Technical Issues</option>
-                  <option value="other">Other</option>
-                </select>
-              </>
-            )}
-            {accountAction.status === 'error' && (
-              <div className={`${styles.notice} ${styles.noticeError}`} role="alert">
-                {marketplaceCopy(accountAction.message)}
+                  {pendingPlan ? 'Confirm Plan Switch' : 'Confirm End Of Membership'}
+                </h2>
               </div>
-            )}
-            <div className={styles.dialogActions}>
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                disabled={accountAction.status === 'busy'}
-                onClick={() => {
-                  setConfirmOpen(false);
-                  setPendingPlan(null);
-                }}
-              >
-                {pendingPlan ? 'Keep Current Plan' : 'Keep Membership'}
-              </button>
-              {pendingPlan ? (
-                <button
-                  className={styles.button}
-                  type="button"
-                  disabled={accountAction.status === 'busy'}
-                  onClick={() => switchPlan(pendingPlan)}
-                >
-                  {accountAction.status === 'busy'
-                    ? 'Switching…'
-                    : `Confirm ${marketplaceCopy(pendingPlan)} Plan`}
-                </button>
-              ) : (
-                <button
-                  className={styles.dangerButton}
-                  type="button"
-                  disabled={accountAction.status === 'busy'}
-                  onClick={scheduleCancellation}
-                >
-                  {accountAction.status === 'busy' ? 'Scheduling…' : 'Confirm End At Renewal'}
-                </button>
+            </div>
+            <div className={`${k.dialogBody} ${m.dialogBody}`}>
+              <p id="vip-action-copy" className={k.dialogLead}>
+                {pendingPlan
+                  ? `Switch To The ${marketplaceCopy(pendingPlan)} Plan While Keeping Your Current Renewal Date? Stripe Will Apply Eligible Unused Paid Time As A Prorated Credit On Your Next Invoice.`
+                  : marketplaceCopy(
+                      'Your card will not renew. VIP access stays active until the current paid period ends.'
+                    )}
+              </p>
+              {confirmOpen && (
+                <>
+                  <ul className={k.checks}>
+                    <li>Every VIP Benefit Stays On Through {accessEndLabel}.</li>
+                    <li>
+                      After That Date VIP Turns Off And Your Account Returns To Standard Access.
+                    </li>
+                    <li>Your Card Is Not Charged Again.</li>
+                    <li>
+                      Coming Back Later Is At The Regular Price. The $1 First Month Is One Time Per
+                      Account.
+                    </li>
+                  </ul>
+                  <p className={m.dialogNote}>
+                    {membership.tier === 'monthly'
+                      ? 'Staying Costs Less On Yearly: $200/Year Is Two Months Free Versus Monthly. After Your First Renewal You Can Switch To Yearly. A Diamond VIP Pass Is Another Way Back, And It Never Renews A Card.'
+                      : 'A Diamond VIP Pass Is Another Way Back Later, And It Never Renews A Card.'}{' '}
+                    <Link href="/hub/vip-membership/compare">See Every VIP Benefit</Link>
+                  </p>
+                  <label className={m.label} htmlFor="cancel-reason">
+                    Why Are You Leaving?
+                  </label>
+                  <select
+                    id="cancel-reason"
+                    className={m.field}
+                    value={cancelReason}
+                    onChange={(event) => setCancelReason(event.target.value)}
+                  >
+                    <option value="not_using">Not Using It Enough</option>
+                    <option value="too_expensive">Price</option>
+                    <option value="missing_features">Missing Features</option>
+                    <option value="found_alternative">Found Something Else</option>
+                    <option value="technical_issues">Technical Issues</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <label className={m.label} htmlFor="cancel-details">
+                    Anything We Should Know? (Optional)
+                  </label>
+                  <textarea
+                    id="cancel-details"
+                    className={m.field}
+                    value={cancelDetails}
+                    maxLength={CANCEL_DETAILS_MAX_LENGTH}
+                    rows={3}
+                    onChange={(event) => setCancelDetails(event.target.value)}
+                  />
+                </>
               )}
+              {accountAction.status === 'error' && (
+                <p className={`${m.notice} ${m.noticeError}`} role="alert">
+                  {marketplaceCopy(accountAction.message)}
+                </p>
+              )}
+              <div className={k.dialogPair}>
+                <VipCta
+                  disabled={accountAction.status === 'busy'}
+                  onClick={() => {
+                    setConfirmOpen(false);
+                    setPendingPlan(null);
+                  }}
+                >
+                  {pendingPlan ? 'Keep Current Plan' : 'Keep Membership'}
+                </VipCta>
+                {pendingPlan ? (
+                  <VipGhost
+                    disabled={accountAction.status === 'busy'}
+                    onClick={() => switchPlan(pendingPlan)}
+                  >
+                    {accountAction.status === 'busy'
+                      ? 'Switching…'
+                      : `Confirm ${marketplaceCopy(pendingPlan)} Plan`}
+                  </VipGhost>
+                ) : (
+                  <VipGhost
+                    disabled={accountAction.status === 'busy'}
+                    onClick={scheduleCancellation}
+                  >
+                    {accountAction.status === 'busy' ? 'Scheduling…' : 'Confirm End At Renewal'}
+                  </VipGhost>
+                )}
+              </div>
             </div>
           </section>
         </div>

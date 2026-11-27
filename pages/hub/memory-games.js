@@ -205,6 +205,14 @@ import {
 } from '../../src/lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../src/lib/store/checkoutAuthorization';
 import { useVipIntroOffer } from '../../src/lib/store/useVipIntroOffer';
+import { VIP_INTRO_VERIFY_REASON } from '../../src/lib/store/vipIntroPrompt.mjs';
+import {
+  VipCta,
+  VipPricePlate,
+  VipSeal,
+  vipIntroPlateProps,
+  vipKitStyles as vipKit,
+} from '../../src/components/vip/VipKit';
 import { VIP_INTRO_OFFER } from '../../src/lib/store/vipIntroOffer.mjs';
 import { leaveForCheckout } from '../../src/lib/store/leaveForCheckout.mjs';
 import { VIP_MEMBERSHIP } from '../../src/data/diamondStoreData';
@@ -2849,23 +2857,48 @@ export default function MemoryGamesPage() {
 
                   {/* VIP Upsell - only for confirmed non-VIP users */}
                   {isVIP === false && (
-                    <div className="preflop-vip-panel">
-                      <div className="preflop-vip-seal">VIP</div>
-                      <div className="preflop-vip-copy">
-                        <div>{vipIntro.display ? 'Go VIP - $1 First Month, Then $20/Month' : 'Go VIP - $20/Month'}</div>
-                        <p>Unlock Verified AI Scenario Generation And Other VIP Features.</p>
+                    <section
+                      className={`${vipKit.kit} ${vipKit.frame} ${vipKit.prompt} preflop-vip-upgrade`}
+                      aria-labelledby="preflop-vip-title"
+                      data-vip-upgrade-prompt=""
+                    >
+                      <div className={vipKit.promptHead}>
+                        <VipSeal />
+                        <div>
+                          <h3 id="preflop-vip-title" className={vipKit.promptTitle}>
+                            Go VIP
+                          </h3>
+                          <p className={vipKit.promptCopy}>
+                            Unlock Verified AI Scenario Generation And Other VIP Features.
+                          </p>
+                        </div>
                       </div>
-                      <button
-                        type="button"
+                      {/* The price this account pays: $1 First Month only when the
+                          server confirmed it (vipIntro.display); checkout decides again. */}
+                      <VipPricePlate
+                        compact
+                        {...vipIntroPlateProps(
+                          vipIntro.display
+                            ? 'intro'
+                            : vipIntro.reason === VIP_INTRO_VERIFY_REASON
+                              ? 'verify'
+                              : 'regular'
+                        )}
+                      />
+                      <VipCta
                         onClick={() => {
                           haptic('light');
                           handleVipUpgrade();
                         }}
                         disabled={vipCheckoutPending}
+                        sub={vipIntro.display ? 'Then $20/Month. Cancel Anytime.' : 'Cancel Anytime.'}
                       >
-                        {vipCheckoutPending ? 'Opening Checkout...' : 'Upgrade To VIP'}{' '}
-                        <ChevronRight size={18} aria-hidden />
-                      </button>
+                        {vipCheckoutPending
+                          ? 'Opening Checkout...'
+                          : vipIntro.display
+                            ? 'Go VIP - $1 First Month'
+                            : 'Go VIP - $20/Month'}
+                      </VipCta>
                       {gameNotice?.context === 'checkout' && (
                         <div className="preflop-vip-notice" role="status">
                           <span>{gameNotice.message}</span>
@@ -2878,7 +2911,7 @@ export default function MemoryGamesPage() {
                           </button>
                         </div>
                       )}
-                    </div>
+                    </section>
                   )}
                 </div>
               </PullToRefresh>

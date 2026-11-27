@@ -200,8 +200,10 @@ test('every dialog the page opens is a back-gesture sheet with a 44px close', ()
   const ood = read('src/components/gates/OutOfDiamondsModal.jsx');
   assert.match(ood, /useModalHistory\(!!isOpen, onClose\)/);
   assert.match(ood, /useScrimDismiss\(onClose\)/);
-  assert.match(ood, /\.sp-ood-close \{[^}]*min-width: 44px;[^}]*min-height: 44px;/);
-  assert.match(ood, /@media \(max-width: 600px\)/);
+  // The popup is the VIP kit dialog: a labeled close with a 44px target.
+  assert.match(ood, /<VipDialog[\s\S]*?closeLabel="Close"/);
+  const kitCss = read('src/components/vip/VipKit.module.css');
+  assert.match(kitCss, /\.close \{[^}]*min-width: 44px;[^}]*min-height: 44px;/);
   assert.match(read(PAGE), /useModalHistory\(showFilters, closeFilters\)/);
 });
 
