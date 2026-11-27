@@ -26,6 +26,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { compareFixtureValues, matchesFixtureOr, compareFixtureOrders } from './helpers/saved-hand-query-fixture.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
@@ -59,6 +61,8 @@ function createInstrumentedSupabase({
   const queryLog = [];
 
   const matchesFilters = (row, filters) => filters.every((f) => {
+    if (f.type === 'or') return matchesFixtureOr(row, f.expression);
+    if (f.type === 'lte') return row[f.col] !== null && row[f.col] !== undefined && compareFixtureValues(row[f.col], f.val) <= 0;
     if (f.type === 'eq') return String(row[f.col] ?? '') === String(f.val ?? '');
     if (f.type === 'in') return f.vals.map(String).includes(String(row[f.col] ?? ''));
     if (f.type === 'is') {
@@ -94,8 +98,7 @@ function createInstrumentedSupabase({
       filters: [],
       mode: 'select',
       payload: null,
-      orderCol: null,
-      orderDesc: false,
+      orders: [],
       limitN: null,
     };
 
@@ -139,14 +142,7 @@ function createInstrumentedSupabase({
       }
 
       let rows = list.filter((r) => matchesFilters(r, state.filters)).map((r) => structuredClone(r));
-      if (state.orderCol) {
-        const col = state.orderCol;
-        rows.sort((a, b) => {
-          const av = String(a[col] ?? '');
-          const bv = String(b[col] ?? '');
-          return state.orderDesc ? bv.localeCompare(av) : av.localeCompare(bv);
-        });
-      }
+      if (state.orders.length) rows.sort((a, b) => compareFixtureOrders(a, b, state.orders));
       if (state.limitN) rows = rows.slice(0, state.limitN);
       return { data: singleMode ? (rows[0] || null) : rows, error: null };
     };
@@ -172,7 +168,9 @@ function createInstrumentedSupabase({
         }
         return api;
       },
-      order(col, opts) { state.orderCol = col; state.orderDesc = opts?.ascending === false; return api; },
+      or(expression) { state.filters.push({ type: 'or', expression }); return api; },
+      lte(col, val) { state.filters.push({ type: 'lte', col, val }); return api; },
+      order(col, opts) { state.orders.push({ col, descending: opts?.ascending === false }); return api; },
       limit(n) { state.limitN = n; return api; },
       maybeSingle() { return execute(true); },
       then(resolve, reject) { return execute(false).then(resolve, reject); },

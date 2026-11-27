@@ -489,8 +489,17 @@ export function summarizeLiveSpotAudit(payload) {
     }
   }
   const verifiedCount = decisions.filter((d) => d.verified).length;
+  const savedHandIds = payload?.reviewQueue?.saved === true && Array.isArray(payload.reviewQueue.handIds)
+    ? [...new Set(payload.reviewQueue.handIds.filter((id) => typeof id === 'string' && id.trim()))]
+    : [];
   return {
     handsParsed: finiteOrNull(payload?.handsParsed) ?? analyses.length,
+    savedForReview: savedHandIds.length > 0,
+    savedHandCount: savedHandIds.length,
+    savedHandIds,
+    reviewHref: savedHandIds.length > 0
+      ? `/hub/personal-assistant/review?hand=${encodeURIComponent(savedHandIds[0])}`
+      : null,
     decisionsAnalyzed: decisions.length,
     verifiedCount,
     unpricedCount: decisions.length - verifiedCount,

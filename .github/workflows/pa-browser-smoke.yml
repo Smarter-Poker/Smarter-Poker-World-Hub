@@ -11,23 +11,38 @@ on:
       - 'pages/share/hand.js'
       - 'pages/_app.js'
       - 'pages/api/assistant/**'
+      - 'pages/api/poker/saved-hands.js'
       - 'pages/api/sandbox/**'
       - 'pages/api/training/audit-hand-history.js'
       - 'pages/api/og/hand-card.js'
       - 'src/components/personal-assistant/**'
       - 'src/components/sandbox/**'
       - 'src/lib/personal-assistant/**'
+      - 'src/lib/sandbox/**'
       - 'src/lib/training/handAuditEngine.js'
       - 'src/lib/push/push-prefs.js'
       - 'src/config/diamondRewards.js'
       - 'src/hooks/useAssistant.js'
+      - 'src/styles/worlds/PersonalAssistant*.module.css'
+      - 'public/images/personal-assistant/**'
       - 'scripts/ci/pa-browser-smoke.mjs'
+      - 'scripts/qualification/personalAssistantBrowser.mjs'
       - 'scripts/verify-pa-production-hardening.mjs'
       - 'scripts/openclaw-cron-dispatcher.py'
       - 'supabase/migrations/**'
       - 'next.config.js'
+      - 'package.json'
+      - 'package-lock.json'
       - 'tests/pa-*.test.mjs'
+      - 'tests/personal-assistant-simplification.test.mjs'
+      - 'tests/personal-assistant-math-and-worker.test.mjs'
+      - '__tests__/pa-*.test.mjs'
+      - '__tests__/helpers/saved-hand-query-fixture.mjs'
+      - 'e2e/021-personal-assistant.spec.ts'
+      - 'e2e/personal-assistant-completion.spec.ts'
+      - 'e2e/fixtures/personalAssistantBrowser.ts'
       - '.github/workflows/pa-browser-smoke.yml'
+      - '.github/workflows/global-footer-e2e.yml'
   workflow_dispatch:
 
 permissions:
@@ -67,5 +82,5 @@ jobs:
       - name: Run Personal Assistant Contract Smoke
         run: node scripts/ci/pa-browser-smoke.mjs --check-only
 
-      - name: Run Personal Assistant Phase 4 and 5 Unit Gates
-        run: node --test tests/pa-*.test.mjs tests/personal-assistant-simplification.test.mjs
+      - name: Run Personal Assistant Unit And Regression Gates
+        run: node --test tests/pa-*.test.mjs tests/personal-assistant-simplification.test.mjs tests/personal-assistant-math-and-worker.test.mjs __tests__/pa-*.test.mjs

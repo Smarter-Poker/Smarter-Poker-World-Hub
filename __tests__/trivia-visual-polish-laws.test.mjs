@@ -47,7 +47,7 @@ test('PvP top Elo strip renders exact integer Elo with zero K truncation and glo
     assert.match(pvpCss, /\.trivia-pvp-elo-badge\s*\{/);
 });
 
-test('Lobby uses singular 1 Diamond grammar, exact live All count, spaced tab labels, and scroll-fade hint', () => {
+test('Lobby uses singular Diamond grammar and reports visible games and server-owned availability counts', () => {
     const briefing = read('src/components/trivia/competitive/CompetitiveLobbyBriefing.jsx');
     const lobby = read('src/components/trivia/TriviaLobby.jsx');
 
@@ -57,9 +57,10 @@ test('Lobby uses singular 1 Diamond grammar, exact live All count, spaced tab la
     assert.doesNotMatch(briefing, /formatMetric\(featuredTournament\?\.rakePerEntry,\s*' Diamonds'\)/);
 
     assert.match(lobby, /cost === 1 \? 'Diamond' : 'Diamonds'/);
-    assert.match(lobby, /filter\.id === 'all'\s*\?\s*MODE_CARDS\.filter/);
-    assert.match(lobby, /<span>\{printTitle\(filter\.label\)\}<\/span>\s*\{' '\}\s*<span className="mode-filter__count"/);
-    assert.match(lobby, /mask-image:\s*linear-gradient\(to right/);
+    assert.match(lobby, /filteredModes\.filter\(\(mode\) => availabilityFor\(mode\.id\)\.enabled\)\.length/);
+    assert.match(lobby, /maintenanceModeCount = filteredModes\.length - liveModeCount/);
+    assert.match(lobby, /\{filteredModes\.length\} \{filteredModes\.length === 1 \? 'Game' : 'Games'\}/);
+    assert.match(lobby, /\{liveModeCount\} Live\. \{maintenanceModeCount\} In Maintenance\./);
 });
 
 test('Study SRS tabs have uniform row height, spaced label/count, and reduced-motion guard', () => {
@@ -129,6 +130,8 @@ test('Zero forbidden warm/purple colors across owned Trivia visual polish files'
         'src/components/trivia/TriviaResult.jsx',
         'src/components/trivia/phase9/Phase9SettlementReceipt.jsx',
         'src/components/trivia/TriviaLobby.jsx',
+        'src/components/trivia/TriviaLobby.module.css',
+        'src/config/triviaLobbyPresentation.mjs',
         'src/components/trivia/competitive/CompetitiveLobbyBriefing.jsx',
         'pages/hub/trivia/study.js',
         'src/components/trivia/PrizeWheel.module.css',

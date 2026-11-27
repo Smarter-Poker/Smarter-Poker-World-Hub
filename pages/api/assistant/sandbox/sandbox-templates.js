@@ -49,7 +49,7 @@ export default async function handler(req, res) {
                 .select('*')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
-                .limit(20);
+                .limit(30);
 
             if (error) {
                 if (error.code === '42P01') return res.status(503).json(persistenceFailure(
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
                 return res.status(413).json({ error: 'Scenario too large' });
             }
 
-            // Per-user template cap (GET only lists 20; inserts were unbounded). Fail closed on DB error.
+            // Keep the per-user write cap aligned with the complete owner list.
             const { count, error: countErr } = await getSupabase()
                 .from('sandbox_templates')
                 .select('id', { count: 'exact', head: true })

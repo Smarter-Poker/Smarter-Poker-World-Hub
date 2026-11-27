@@ -33,8 +33,11 @@ test('1. PA Home wires its labeled Settings control, approved PA destinations, a
   assert.match(home, /aria-label="Review Settings"/);
   assert.match(home, /openInternalRoute\('\/hub\/personal-assistant\/leaks\?settings=1'\)/);
   assert.match(home, /<span>Review Settings<\/span>/);
-  assert.match(css, /\.settingsButton\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/,
-    'The labeled Settings pill retains a usable touch target');
+  const settingsCss = css.match(/\.settingsButton\s*\{([^}]+)\}/)?.[1] || '';
+  assert.ok(Number(settingsCss.match(/min-width:\s*(\d+)px/)?.[1]) >= 44,
+    'The labeled Settings pill retains a 44px minimum touch width');
+  assert.ok(Number(settingsCss.match(/min-height:\s*(\d+)px/)?.[1]) >= 44,
+    'The labeled Settings pill retains a 44px minimum touch height');
 
   assert.match(home, /getMenuConfig\('personal-assistant',\s*user,\s*\{\},\s*\{\}\)/);
   assert.match(home, /<HamburgerMenu[\s\S]{0,220}theme="pa"[\s\S]{0,120}user=\{user\}/);
@@ -51,11 +54,12 @@ test('2. PA Home keeps approved card artwork complete and proportional', () => {
   const home = read('pages/hub/personal-assistant/index.js');
   const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
 
-  assert.match(css, /\.featureArt\s*\{[^}]*object-fit:\s*contain;/);
+  const art = read('src/components/personal-assistant/ApprovedLandingArt.jsx');
+  assert.match(art, /preserveAspectRatio="xMidYMid meet"/);
   assert.doesNotMatch(css, /\.featureArt\s*\{[^}]*object-fit:\s*(?:cover|fill);/);
-  assert.match(home, /\/images\/personal-assistant\/review-my-play-chrome\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox-chrome\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/my-leaks-chrome\.webp/);
+  assert.match(home, /<ApprovedIllustration\s+kind="review"/);
+  assert.match(home, /<ApprovedIllustration\s+kind="sandbox"/);
+  assert.match(home, /<ApprovedIllustration\s+kind="leaks"/);
 
   assert.match(home, /A♠ K♠/);
   assert.match(home, /A♥ 4♠ 5♠/);

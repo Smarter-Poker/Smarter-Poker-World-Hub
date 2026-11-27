@@ -25,7 +25,6 @@ import {
   decodeSavedHandsCursor,
   rowEffectiveTimestamp,
   compareSavedHandRowsDesc,
-  isRowAfterCursor,
   isSavedHandUnreviewed,
   inferSavedHandFormat,
   matchesSavedHandFilters,
@@ -37,6 +36,105 @@ import {
 const DEFAULT_PROBE_WINDOW_MS = 10 * 60 * 1000;
 const DEFAULT_PROBE_BLOCK_THRESHOLD = 5;
 const MAX_PROBE_TRACKER_KEYS = 5000;
+const SAVED_HANDS_BATCH_SIZE = 200;
+const MAX_SAVED_HANDS_SCAN_ROWS = 1000;
+const EXPORT_CHUNK_SIZE = 100;
+const MAX_SAVED_HANDS_RESPONSE_BYTES = 2 * 1024 * 1024;
+const SAVED_HANDS_DATA_BYTES = MAX_SAVED_HANDS_RESPONSE_BYTES - 32 * 1024;
+
+// Read the coalesced saved timestamp without a database migration. Each legacy
+// stream is owner-scoped and keyset-paginated before data leaves PostgREST.
+// The merge preserves nullable created_at records and deterministic ID ties.
+async function readSavedHandsBatch(supabase, userId, cursor, limit) {
+  const columns = ['created_at', 'completed_at', 'started_at'];
+  const results = await Promise.all(columns.map(async (column, index) => {
+    let query = supabase.from('hand_histories').select(SAVED_HAND_LIST_COLUMNS).eq('user_id', userId);
+    for (const earlier of columns.slice(0, index)) query = query.is(earlier, null);
+    query = query.not(column, 'is', null);
+    if (cursor) {
+      if (cursor.id) {
+        const timestamp = JSON.stringify(cursor.createdAt);
+        const id = JSON.stringify(cursor.id);
+        query = query.or(`${column}.lt.${timestamp},and(${column}.eq.${timestamp},id.lt.${id})`);
+      } else {
+        query = query.lte(column, cursor.createdAt);
+      }
+    }
+    return query.order(column, { ascending: false }).order('id', { ascending: false }).limit(limit + 1);
+  }));
+  const failure = results.find((result) => result.error);
+  if (failure) return { rows: [], hasMore: false, error: failure.error };
+  if (results.some((result) => !Array.isArray(result.data))) {
+    return { rows: [], hasMore: false, error: new Error('Saved Hand Query Returned Incomplete Data') };
+  }
+  const merged = results.flatMap((result) => result.data).sort(compareSavedHandRowsDesc);
+  return { rows: merged.slice(0, limit), hasMore: merged.length > limit, error: null };
+}
+
+function savedRowCursor(row) {
+  return row ? encodeSavedHandsCursor({ createdAt: rowEffectiveTimestamp(row), id: row.id }) : null;
+}
+
+async function readSavedHandsPage(supabase, userId, cursor, limit, filters) {
+  let scanCursor = cursor;
+  let scanned = 0;
+  let reachedEnd = false;
+  let lastScanned = null;
+  let totalCount = 0;
+  let unreviewedCount = 0;
+  const matches = [];
+  let responseBytes = 0;
+  let byteLimited = false;
+
+  while (scanned < MAX_SAVED_HANDS_SCAN_ROWS && matches.length <= limit && !reachedEnd && !byteLimited) {
+    const batch = await readSavedHandsBatch(supabase, userId, scanCursor, SAVED_HANDS_BATCH_SIZE);
+    if (batch.error) return { error: batch.error };
+    for (const rawRow of batch.rows) {
+      const row = decorateSavedRow(rawRow);
+      if (matchesSavedHandFilters(row, filters)) {
+        totalCount += 1;
+        if (matches.length <= limit) {
+          const bytes = Buffer.byteLength(JSON.stringify(row), 'utf8');
+          if (responseBytes + bytes > SAVED_HANDS_DATA_BYTES) {
+            if (matches.length === 0) return { error: new Error('Saved Hand Exceeds Response Size Budget') };
+            byteLimited = true;
+            break;
+          }
+          responseBytes += bytes;
+          matches.push(row);
+        }
+      }
+      if (isSavedHandUnreviewed(row)) unreviewedCount += 1;
+      lastScanned = rawRow;
+      scanned += 1;
+    }
+    reachedEnd = !batch.hasMore && !byteLimited;
+    if (!reachedEnd && lastScanned) {
+      const next = decodeSavedHandsCursor(savedRowCursor(lastScanned));
+      if (scanCursor && next.createdAt === scanCursor.createdAt && next.id === scanCursor.id) {
+        return { error: new Error('Saved Hand Cursor Did Not Advance') };
+      }
+      scanCursor = next;
+    }
+    if (batch.rows.length === 0) break;
+  }
+
+  const hands = matches.slice(0, limit);
+  const hasExtraMatch = matches.length > limit;
+  const nextCursor = hasExtraMatch
+    ? savedRowCursor(hands[hands.length - 1])
+    : !reachedEnd
+      ? savedRowCursor(lastScanned)
+      : null;
+  const countsComplete = !cursor && reachedEnd;
+  return {
+    hands,
+    nextCursor,
+    countsComplete,
+    totalCount: countsComplete ? totalCount : null,
+    unreviewedCount: countsComplete ? unreviewedCount : null,
+  };
+}
 
 // Verified against supabase/migrations/20260831094000_version_private_club_arena_hand_facts.sql
 const HERO_HAND_FACT_SELECT = [
@@ -428,25 +526,6 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
     });
   }
 
-  const { data: savedRows, error: savedError } = await supabase
-    .from('hand_histories')
-    .select('hand_id, hand_data')
-    .eq('user_id', user.id)
-    .limit(1000);
-
-  if (savedError) {
-    console.warn('[saved-hands] suggested saved-index lookup failed:', savedError.message);
-    return res.status(500).json({ success: false, error: 'Could Not Load Suggested Hands' });
-  }
-
-  const savedSourceHandIds = new Set();
-  for (const row of Array.isArray(savedRows) ? savedRows : []) {
-    const fromData = row?.hand_data?.sourceHandId;
-    if (isValidUuid(fromData)) savedSourceHandIds.add(String(fromData).trim().toLowerCase());
-    const fromKey = extractSourceHandIdFromKey(row?.hand_id);
-    if (fromKey) savedSourceHandIds.add(fromKey);
-  }
-
   let factsQuery = supabase
     .from('ca_hand_facts')
     .select(SUGGESTED_FACTS_SELECT)
@@ -462,6 +541,50 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
   if (factsError) {
     console.warn('[saved-hands] suggested facts lookup failed:', factsError.message);
     return res.status(500).json({ success: false, error: 'Could Not Load Suggested Hands' });
+  }
+
+  // Check only the bounded candidate set, so an older saved copy cannot fall
+  // outside an arbitrary first-1000 account index and reappear as a suggestion.
+  const recentIds = [...new Set((Array.isArray(factRows) ? factRows : [])
+    .map((row) => String(row?.hand_id || '').trim().toLowerCase())
+    .filter(isValidUuid))];
+  const savedSourceHandIds = new Set();
+  for (let offset = 0; offset < recentIds.length; offset += MAX_BATCH_HAND_IDS) {
+    let pendingIds = recentIds.slice(offset, offset + MAX_BATCH_HAND_IDS);
+    while (pendingIds.length) {
+      // Only validated UUIDs enter these anchored expressions. imatch retains
+      // the trim/case behavior of legacy keys and JSON-only source identities.
+      const ids = pendingIds.join('|');
+      const keyPattern = JSON.stringify(String.raw`^\s*(club-arena:|ca:)?(${ids})\s*$`);
+      const sourcePattern = JSON.stringify(String.raw`^\s*(${ids})\s*$`);
+      const { data: savedRows, error: savedError } = await supabase
+        .from('hand_histories')
+        .select('hand_id,source_hand_id:hand_data->>sourceHandId')
+        .eq('user_id', user.id)
+        .or(`hand_id.imatch.${keyPattern},hand_data->>sourceHandId.imatch.${sourcePattern}`)
+        .order('id', { ascending: true })
+        .limit(MAX_BATCH_HAND_IDS);
+      if (savedError || !Array.isArray(savedRows)) {
+        console.warn('[saved-hands] suggested saved-index lookup failed:', savedError?.message || 'Incomplete Data');
+        return res.status(500).json({ success: false, error: 'Could Not Load Suggested Hands' });
+      }
+      if (savedRows.length === 0) break;
+      for (const row of savedRows) {
+        const fromData = row?.source_hand_id;
+        if (isValidUuid(fromData)) savedSourceHandIds.add(String(fromData).trim().toLowerCase());
+        const fromKey = extractSourceHandIdFromKey(row?.hand_id);
+        if (fromKey) savedSourceHandIds.add(fromKey);
+      }
+      // A legacy source may have many copies. Remove each confirmed candidate
+      // before querying again so those copies cannot hide another saved hand.
+      // Every nonempty read must resolve at least one of at most 50 candidates.
+      const remaining = pendingIds.filter(id => !savedSourceHandIds.has(id));
+      if (remaining.length === pendingIds.length) {
+        console.warn('[saved-hands] suggested saved-index lookup made no progress');
+        return res.status(500).json({ success: false, error: 'Could Not Load Suggested Hands' });
+      }
+      pendingIds = remaining;
+    }
   }
 
   const candidateFacts = (Array.isArray(factRows) ? factRows : []).filter((row) => {
@@ -558,19 +681,60 @@ async function handleExport(req, res, supabase, user, { startedAt }) {
     });
   }
 
-  const { data, error } = await supabase
-    .from('hand_histories')
-    .select(SAVED_HAND_LIST_COLUMNS)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1000);
-
-  if (error) {
-    console.warn('[saved-hands] export failed:', error.message);
+  const rawCursor = queryParam(req, 'cursor');
+  const cursor = rawCursor ? decodeSavedHandsCursor(rawCursor) : null;
+  if (cursor?.error) return res.status(400).json({ success: false, error: cursor.error });
+  const chunked = isTruthyFlag(queryParam(req, 'chunk'));
+  if (cursor && !chunked) {
+    return res.status(400).json({ success: false, error: 'Export Continuation Requires Chunk Mode' });
+  }
+  const batch = await readSavedHandsBatch(supabase, user.id, cursor, EXPORT_CHUNK_SIZE);
+  if (batch.error) {
+    console.warn('[saved-hands] export failed:', batch.error.message);
     return res.status(500).json({ success: false, error: 'Could Not Export Your Saved Hands' });
   }
-
-  const decorated = (data || []).map(decorateSavedRow).filter(Boolean).sort(compareSavedHandRowsDesc);
+  const decorated = [];
+  let bytes = 0;
+  for (const rawRow of batch.rows) {
+    const row = decorateSavedRow(rawRow);
+    const encoded = format === 'json'
+      ? JSON.stringify(formatSavedHandForExport(row))
+      : JSON.stringify(formatSavedHandsAsText([row]));
+    const rowBytes = Buffer.byteLength(encoded, 'utf8');
+    if (bytes + rowBytes > SAVED_HANDS_DATA_BYTES) break;
+    decorated.push(row);
+    bytes += rowBytes;
+  }
+  if (batch.rows.length && !decorated.length) {
+    return res.status(413).json({ success: false, error: 'A Saved Hand Is Too Large To Export Safely' });
+  }
+  const hasMore = batch.hasMore || decorated.length < batch.rows.length;
+  const nextCursor = hasMore ? savedRowCursor(decorated[decorated.length - 1]) : null;
+  if (chunked) {
+    return res.status(200).json({
+      success: true,
+      schemaVersion: 1,
+      source: 'smarter.poker',
+      exportedAt: new Date().toISOString(),
+      format,
+      count: decorated.length,
+      ids: decorated.map((row) => row.id),
+      nextCursor,
+      complete: !nextCursor,
+      ...(format === 'json'
+        ? { hands: decorated.map(formatSavedHandForExport) }
+        : { text: formatSavedHandsAsText(decorated) }),
+    });
+  }
+  // Existing direct downloads remain compatible for a complete small export.
+  // Never label a truncated server batch as an export of the entire account.
+  if (hasMore) {
+    return res.status(409).json({
+      success: false,
+      code: 'EXPORT_REQUIRES_PAGINATION',
+      error: 'Open Review My Play To Download Your Complete Saved Hand Export',
+    });
+  }
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
   if (format === 'json') {
@@ -1125,45 +1289,12 @@ export async function executeSavedHandsRequest(req, res, {
         q: queryParam(req, 'q'),
       };
 
-      const { data, error } = await supabase
-        .from('hand_histories')
-        .select(SAVED_HAND_LIST_COLUMNS)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1000);
-
-      if (error) {
-        console.warn('[saved-hands] list failed:', error.message);
+      const page = await readSavedHandsPage(supabase, user.id, cursor, limit, filters);
+      if (page.error) {
+        console.warn('[saved-hands] list failed:', page.error.message);
         return res.status(500).json({ success: false, error: 'Could Not Load Your Saved Hands' });
       }
-
-      const allDecorated = (data || [])
-        .map(decorateSavedRow)
-        .filter(Boolean)
-        .sort(compareSavedHandRowsDesc);
-
-      const unreviewedCount = allDecorated.filter(isSavedHandUnreviewed).length;
-      const filtered = allDecorated.filter((row) => matchesSavedHandFilters(row, filters));
-      const totalCount = filtered.length;
-      const afterCursor = cursor
-        ? filtered.filter((row) => isRowAfterCursor(row, cursor))
-        : filtered;
-
-      const hands = afterCursor.slice(0, limit);
-      const hasMore = afterCursor.length > limit;
-      const lastItem = hands[hands.length - 1];
-      const lastItemTimestamp = lastItem ? rowEffectiveTimestamp(lastItem) : null;
-      const nextCursor = hasMore && lastItem && lastItemTimestamp
-        ? encodeSavedHandsCursor({ createdAt: lastItemTimestamp, id: lastItem.id })
-        : null;
-
-      return res.status(200).json({
-        success: true,
-        hands,
-        nextCursor,
-        totalCount,
-        unreviewedCount,
-      });
+      return res.status(200).json({ success: true, ...page });
     }
 
     if (req.method === 'PATCH') {

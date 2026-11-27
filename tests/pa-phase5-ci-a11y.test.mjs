@@ -16,11 +16,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
+const { load: parseYaml } = createRequire(import.meta.url)('js-yaml');
 
 test('pa-browser-smoke.yml follows all repository CI and workflow laws', () => {
   const workflowPath = '.github/workflows/pa-browser-smoke.yml';
@@ -32,23 +34,38 @@ test('pa-browser-smoke.yml follows all repository CI and workflow laws', () => {
     'pages/share/hand.js',
     'pages/_app.js',
     'pages/api/assistant/**',
+    'pages/api/poker/saved-hands.js',
     'pages/api/sandbox/**',
     'pages/api/training/audit-hand-history.js',
     'pages/api/og/hand-card.js',
     'src/components/personal-assistant/**',
     'src/components/sandbox/**',
     'src/lib/personal-assistant/**',
+    'src/lib/sandbox/**',
     'src/lib/training/handAuditEngine.js',
     'src/lib/push/push-prefs.js',
     'src/config/diamondRewards.js',
     'src/hooks/useAssistant.js',
+    'src/styles/worlds/PersonalAssistant*.module.css',
+    'public/images/personal-assistant/**',
     'scripts/ci/pa-browser-smoke.mjs',
+    'scripts/qualification/personalAssistantBrowser.mjs',
     'scripts/verify-pa-production-hardening.mjs',
     'scripts/openclaw-cron-dispatcher.py',
     'supabase/migrations/**',
     'next.config.js',
+    'package.json',
+    'package-lock.json',
     'tests/pa-*.test.mjs',
+    'tests/personal-assistant-simplification.test.mjs',
+    'tests/personal-assistant-math-and-worker.test.mjs',
+    '__tests__/pa-*.test.mjs',
+    '__tests__/helpers/saved-hand-query-fixture.mjs',
+    'e2e/021-personal-assistant.spec.ts',
+    'e2e/personal-assistant-completion.spec.ts',
+    'e2e/fixtures/personalAssistantBrowser.ts',
     '.github/workflows/pa-browser-smoke.yml',
+    '.github/workflows/global-footer-e2e.yml',
   ];
   for (const expectedPath of expectedPaths) {
     assert.ok(yml.includes(`'${expectedPath}'`), `missing path filter: ${expectedPath}`);
@@ -77,6 +94,52 @@ test('pa-browser-smoke.yml follows all repository CI and workflow laws', () => {
   // 7. Executes check-only contract smoke and unit test suite
   assert.match(yml, /node scripts\/ci\/pa-browser-smoke\.mjs --check-only/);
   assert.match(yml, /node --test tests\/pa-\*\.test\.mjs tests\/personal-assistant-simplification\.test\.mjs/);
+});
+
+test('the Personal Assistant unit gate executes saved-hand, import and native Sandbox regressions', () => {
+  const workflow = parseYaml(read('.github/workflows/pa-browser-smoke.yml'));
+  const unitSteps = workflow.jobs['smoke-and-unit'].steps.filter(step => step.run?.startsWith('node --test '));
+  assert.equal(unitSteps.length, 1, 'keep the existing finite unit gate instead of adding a duplicate suite');
+  const step = unitSteps[0];
+  assert.equal(step['continue-on-error'], undefined, 'regression failures must fail the gate');
+  const selection = step.run.trim().split(/\s+/).slice(2);
+  for (const suite of [
+    'tests/pa-*.test.mjs',
+    'tests/personal-assistant-simplification.test.mjs',
+    'tests/personal-assistant-math-and-worker.test.mjs',
+    '__tests__/pa-*.test.mjs',
+  ]) assert.ok(selection.includes(suite), `regression suite is not executed: ${suite}`);
+  // The import suite is intentionally covered by the maintained pa-* selection.
+  assert.ok(read('tests/pa-imported-review-queue.test.mjs').includes("from 'node:test'"));
+  assert.equal(workflow.on.schedule, undefined);
+});
+
+test('the shared Footer production build runs finite Personal Assistant browser qualification first and retains evidence', () => {
+  const workflow = parseYaml(read('.github/workflows/global-footer-e2e.yml'));
+  const steps = workflow.jobs.footer.steps;
+  const buildSteps = steps.filter(step => step.run === 'npm run build -- --webpack');
+  assert.equal(buildSteps.length, 1, 'reuse the existing full production build');
+  const build = buildSteps[0];
+  assert.equal(build.id, 'production_build');
+  const qualifications = steps.filter(step => step.run === 'node scripts/qualification/personalAssistantBrowser.mjs');
+  assert.equal(qualifications.length, 1, 'the finite browser matrix must execute exactly once');
+  const qualification = qualifications[0];
+  assert.equal(steps.indexOf(qualification), steps.indexOf(build) + 1,
+    'unrelated later browser failures must not skip Personal Assistant qualification');
+  assert.equal(qualification.id, 'personal_assistant_browser');
+  assert.equal(qualification.if, "${{ !cancelled() && steps.production_build.outcome == 'success' }}");
+  assert.equal(qualification['continue-on-error'], undefined, 'browser failures must remain visible');
+  assert.deepEqual(qualification.env, {
+    CI: true,
+    PERSONAL_ASSISTANT_BROWSER_WORK_ROOT: '${{ runner.temp }}',
+    PERSONAL_ASSISTANT_BROWSER_EVIDENCE: '${{ github.workspace }}/test-results/personal-assistant',
+  });
+  const evidence = steps.find(step => step.uses === 'actions/upload-artifact@v4'
+    && step.with?.path?.split(/\r?\n/).includes('test-results/'));
+  assert.ok(evidence, 'the existing browser artifact must retain the Personal Assistant evidence directory');
+  assert.equal(evidence.if, 'always()', 'failed qualification evidence must still be uploaded');
+  assert.equal(workflow.on.schedule, undefined);
+  assert.equal(workflow.on.push, undefined);
 });
 
 test('scripts/ci/pa-browser-smoke.mjs preserves core contract and adds a11y & SSR checks', async () => {

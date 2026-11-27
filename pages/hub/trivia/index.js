@@ -449,7 +449,7 @@ export default function TriviaHubPage({ modeAvailability }) {
         <PageTransition>
             <SEOHead
                 title="Poker Trivia - Test Your Knowledge"
-                description="Put Your Poker Knowledge To The Test With Multiple Game Modes: Endless, Survival, Time Attack, Mixed, PvP, And Tournaments."
+                description="Explore 12 Poker Trivia Games, Starting With 1v1 Battle And Daily Tournament. Play Free Daily Trivia, Strategy Challenges, Poker History, And More."
                 canonical="/hub/trivia"
             />
 

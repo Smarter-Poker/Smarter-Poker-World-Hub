@@ -225,12 +225,14 @@ test('countdown and lobby state model cover every truthful Phase 7 briefing stat
     assert.equal(deriveCompetitiveLobbyState({ ...base, pvpResource: ready(resume) }).key, 'resume');
 });
 
-test('the briefing renders on TriviaConsole in the lobby and keeps mobile stacked', () => {
+test('the briefing remains reachable in lobby Help and keeps its truthful mobile presentation', () => {
     const masthead = LOBBY.indexOf('lobby-masthead');
-    const catalogue = LOBBY.indexOf('className="modes-section"');
+    const catalogue = LOBBY.indexOf('modes-section');
+    const help = LOBBY.indexOf('<TriviaConsoleDialog');
     const quickStakes = LOBBY.indexOf('quick-stakes-card');
     const briefing = LOBBY.indexOf('<CompetitiveLobbyBriefing');
-    assert.ok(masthead >= 0 && masthead < catalogue && catalogue < quickStakes && quickStakes < briefing);
+    assert.ok(masthead >= 0 && masthead < catalogue && catalogue < help && help < quickStakes && quickStakes < briefing);
+    assert.ok(briefing < LOBBY.indexOf('</TriviaConsoleDialog>'));
 
     assert.match(BRIEFING, /import TriviaConsole from '\.\.\/console\/TriviaConsole'/);
     assert.match(BRIEFING, /title=\{getTournamentHeadline\(featuredTournament, scheduleNow\)\}/);
