@@ -97,7 +97,7 @@ export function VipIntroPrice({ accountId = null, enabled = true, compact = fals
   return <VipPricePlate {...vipIntroPlateProps(state)} state={state} compact={compact} className={className} />;
 }
 
-const Plate = forwardRef(function Plate({ variant, href, sub, children, className = '', ...rest }, ref) {
+const Plate = forwardRef(function Plate({ variant, href, sub, onClick, children, className = '', ...rest }, ref) {
   const names = cx(variant === 'ghost' ? styles.ghost : styles.cta, className);
   const body = (
     <>
@@ -106,9 +106,9 @@ const Plate = forwardRef(function Plate({ variant, href, sub, children, classNam
     </>
   );
   if (href) {
-    return <Link ref={ref} href={href} className={names} {...rest}>{body}</Link>;
+    return <Link ref={ref} href={href} className={names} onClick={onClick} {...rest}>{body}</Link>;
   }
-  return <button ref={ref} type="button" className={names} {...rest}>{body}</button>;
+  return <button ref={ref} type="button" className={names} onClick={onClick} {...rest}>{body}</button>;
 });
 
 export const VipCta = forwardRef(function VipCta(props, ref) {
