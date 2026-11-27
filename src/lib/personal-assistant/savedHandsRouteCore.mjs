@@ -287,7 +287,8 @@ async function readExistingClubArenaSave(supabase, userId, sourceHandId) {
     .select(SAVED_HAND_LIST_COLUMNS)
     .eq('user_id', userId);
   if (typeof query.in === 'function' && keys.length > 1) {
-    query = query.in('hand_id', keys);
+    // in-list: bounded single hand lookup (<= 2 canonical/legacy keys)
+    query = query.in('hand_id', keys.slice(0, 2));
   } else {
     query = query.eq('hand_id', primaryKey);
   }
@@ -339,7 +340,8 @@ async function handleBatchLookup(req, res, supabase, user) {
     .eq('user_id', user.id);
 
   if (typeof query.in === 'function') {
-    query = query.in('hand_id', lookupKeys);
+    // in-list: bounded by MAX_BATCH_HAND_IDS (<= 50 UUIDs / 100 lookup keys)
+    query = query.in('hand_id', lookupKeys.slice(0, MAX_BATCH_HAND_IDS * 2));
   }
 
   const { data, error } = await query;
@@ -447,7 +449,8 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
       .from('hand_history')
       .select(SUGGESTED_HISTORY_ENRICH_SELECT);
     if (typeof historyQuery.in === 'function') {
-      historyQuery = historyQuery.in('id', candidateHandIds);
+      // in-list: bounded to <= 50 recent completed Club Arena fact IDs
+      historyQuery = historyQuery.in('id', candidateHandIds.slice(0, 50));
       const { data: historyRows, error: histErr } = await historyQuery;
       if (!histErr && Array.isArray(historyRows)) {
         for (const hr of historyRows) {
@@ -468,7 +471,8 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
     try {
       let tableQuery = supabase.from('tables').select('id, name');
       if (typeof tableQuery.in === 'function') {
-        tableQuery = tableQuery.in('id', [...tableIds]);
+        // in-list: bounded table IDs from <= 50 recent Club Arena facts
+        tableQuery = tableQuery.in('id', [...tableIds].slice(0, 50));
         const { data: tableRows, error: tblErr } = await tableQuery;
         if (!tblErr && Array.isArray(tableRows)) {
           for (const tr of tableRows) {
