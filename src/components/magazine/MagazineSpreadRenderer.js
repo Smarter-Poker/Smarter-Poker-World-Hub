@@ -206,12 +206,15 @@ function MagLink({ href, mode, className, children }) {
     return <span className={className}>{children}</span>;
 }
 
-function Figure({ src, alt, caption, credit, mode, ratio = '3 / 2', contain = false, flex, play = false, href }) {
+function Figure({ src, alt, caption, credit, mode, ratio = '3 / 2', contain = false, flex, fill = false, play = false, href }) {
     if (!src) return null;
+    // fill: the figure takes whatever height the page has left and, through a
+    // container query in magazine-print.css, drops out entirely when that space
+    // is too shallow to show the art, so a crowded page never prints a sliver.
     const frame = (
         <div
             className={`spm-figure__frame${contain ? ' spm-figure__frame--contain' : ''}`}
-            style={flex ? { flex: '1 1 auto', minHeight: 0 } : { aspectRatio: ratio }}
+            style={flex ? { flex: '1 1 auto', minHeight: 0 } : fill ? undefined : { aspectRatio: ratio }}
         >
             <MagImg src={src} alt={alt || caption || ''} mode={mode} />
             {play ? <span className="spm-play" aria-hidden="true" /> : null}
@@ -219,7 +222,7 @@ function Figure({ src, alt, caption, credit, mode, ratio = '3 / 2', contain = fa
     );
     return (
         <figure
-            className="spm-figure"
+            className={`spm-figure${fill ? ' spm-figure--fill' : ''}`}
             data-spm-figure="1"
             style={flex ? { flex, minHeight: '18cqw', display: 'flex', flexDirection: 'column' } : undefined}
         >
@@ -1028,7 +1031,7 @@ function StrategyColumnLayout({ page, issueMeta, mode }) {
         return (
             <Frame page={page} issueMeta={issueMeta} mode={mode} section="The Strategy Lab">
                 <SectionHead kicker={`The Strategy Lab • ${labLabel}`} headline={page?.headline} size="md" deck={page?.subheadline} byline={page?.byline} />
-                <Figure src={spotCard} mode={mode} ratio="1200 / 630" contain alt={cleanText(spot.title)} />
+                <Figure src={spotCard} mode={mode} fill contain alt={cleanText(spot.title)} />
                 <div className="spm-box">
                     <div className="spm-box__title">The Situation</div>
                     <div className="spm-hand">

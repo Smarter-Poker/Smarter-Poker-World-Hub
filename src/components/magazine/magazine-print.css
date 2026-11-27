@@ -350,6 +350,25 @@
     background: var(--spm-navy);
 }
 
+/* A fill figure (the Strategy Lab table art) takes only the height the page has
+   left. Below a 9:2 shape there is not enough room to show the cards, so the art
+   is left out rather than printed as a thin strip. */
+.spm-figure--fill {
+    flex: 1 1 0;
+    min-height: 0;
+    container-type: size;
+}
+
+.spm-figure--fill .spm-figure__frame {
+    height: 100%;
+}
+
+@container (min-aspect-ratio: 9 / 2) {
+    .spm-figure--fill .spm-figure__frame {
+        display: none;
+    }
+}
+
 .spm-caption {
     font-family: var(--spm-sans);
     font-size: 1.42cqw;
