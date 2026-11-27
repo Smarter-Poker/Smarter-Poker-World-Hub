@@ -9,20 +9,22 @@
  * about 200ms, for up to 6.4 seconds: the 2026-11-26 CI probe scrolled the
  * Series route to y = 10073 and found it back at y = 341.
  *
- * The same probe settled the Global Footer E2E flake on
- * e2e/024-world-menu-mobile-phase3.spec.ts ("Poker Near Me deep Series route
- * keeps its approved header trigger after document scroll", WebKit only):
- * the fixed header was painted at the top, getBoundingClientRect said y = 0
- * and elementFromPoint hit the trigger once a frame had rendered, while
- * Playwright's WebKit protocol box (Page.getContentQuads) read y = 1979 until
- * the next rendering update. The spec now reads the pin from the DOM, proves
- * the trigger is reachable, and only then lets the protocol box converge.
+ * The Global Footer E2E flake on e2e/024-world-menu-mobile-phase3.spec.ts
+ * ("Poker Near Me deep Series route keeps its approved header trigger after
+ * document scroll", WebKit only) was NOT settled here. A later probe
+ * (2026-11-27) found the page collapsing its first-paint skeletons above the
+ * reader, which shrank the document by about 2000px, clamped the scroll and
+ * left WebKit laying the fixed header out against a stale layout viewport:
+ * getBoundingClientRect read y = 1974 in that window too, not only the
+ * protocol box. That root cause and its law live in
+ * poker-near-me-sections-never-collapse-above-the-reader.law.test.mjs.
  *
  * Laws: a scroll that moved both the document and the held section ends the
  * hold before the next realignment, while growth above the section and
  * browser scroll anchoring do not; nothing in the global cascade turns <html>
  * or <body> (the portaled header's only ancestors) into a containing block for
- * fixed descendants; and the e2e pin keeps its DOM and hit-test reads.
+ * fixed descendants; and the e2e pin keeps its immediate DOM and protocol
+ * reads and its hit-test.
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -165,12 +167,14 @@ describe('the e2e pin measures what a visitor gets', () => {
   const start = spec.indexOf("test('Poker Near Me deep Series route keeps its approved header trigger after document scroll'");
   const body = spec.slice(start, spec.indexOf('\ntest(', start + 1));
 
-  it('reads the DOM pin, requires a reachable trigger and full viewport containment', () => {
+  it('reads the DOM pin and the protocol box at once, requires a reachable trigger and full viewport containment', () => {
     assert.ok(start > 0, 'the deep Series pin test must remain in e2e/024');
     assert.match(body, /getBoundingClientRect\(\)/);
     assert.match(body, /document\.elementFromPoint\(/);
     assert.match(body, /message: 'a tap at the trigger centre reaches the trigger'/);
     assert.match(body, /expect\(pin\.y \+ pin\.height\)\.toBeLessThanOrEqual\(PHONE\.height \+ 1\)/);
+    assert.match(body, /const box = await trigger\.boundingBox\(\);\s*expect\(box\)\.not\.toBeNull\(\);/, 'the immediate protocol box read stays');
+    assert.match(body, /expect\(box!\.y \+ box!\.height\)\.toBeLessThanOrEqual\(PHONE\.height \+ 1\)/);
     assert.match(body, /toBeInViewport\(\{ ratio: 1 \}\)/);
     assert.match(body, /expect\.poll\(async \(\) => \{\s*const box = await trigger\.boundingBox\(\);/);
   });
