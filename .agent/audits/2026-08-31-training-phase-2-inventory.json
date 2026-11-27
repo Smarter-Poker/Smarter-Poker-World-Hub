@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 409,
+    "dependencyFiles": 410,
     "componentFiles": 64,
     "hookFiles": 16,
     "ctas": 547,
@@ -20,7 +20,7 @@
     "realtimeFiles": 7,
     "tests": 199,
     "markerCandidates": 393,
-    "possibleUnwiredFunctions": 483,
+    "possibleUnwiredFunctions": 490,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -17013,6 +17013,7 @@
         "src/lib/store/checkoutAuthorization.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -17118,6 +17119,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
+            "src/components/vip/VipKit.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
             "src/contexts/PushContext.jsx",
@@ -17132,6 +17134,7 @@
             "src/lib/store/checkoutAuthorization.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/store/marketplaceCopy.js",
+            "src/lib/store/phoneWelcomeOfferTerms.mjs",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -17208,6 +17211,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/store/phoneWelcomeOfferTerms.mjs",
             "src/lib/store/vipIntroPrompt.mjs",
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
@@ -17238,6 +17242,7 @@
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/UniversalHeader.js",
+            "src/components/vip/VipKit.jsx",
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
@@ -18550,6 +18555,7 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -18598,11 +18604,13 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/preflop-charts.js",
+            "src/components/vip/VipKit.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/authUtils.js",
             "src/lib/ownProfile.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/checkoutAuthorization.js",
+            "src/lib/store/phoneWelcomeOfferTerms.mjs",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -18636,6 +18644,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/store/phoneWelcomeOfferTerms.mjs",
             "src/lib/store/vipIntroPrompt.mjs",
             "src/services/avatar-service.js"
           ],
@@ -18650,6 +18659,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/SmarterConversionCta.jsx",
+            "src/components/vip/VipKit.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useVIP.js",
             "src/lib/authUtils.js",
@@ -21067,6 +21077,7 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -21110,11 +21121,13 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/preflop-charts.js",
+            "src/components/vip/VipKit.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/authUtils.js",
             "src/lib/ownProfile.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/checkoutAuthorization.js",
+            "src/lib/store/phoneWelcomeOfferTerms.mjs",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -21143,6 +21156,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/store/phoneWelcomeOfferTerms.mjs",
             "src/lib/store/vipIntroPrompt.mjs",
             "src/services/avatar-service.js"
           ],
@@ -21154,6 +21168,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/SmarterConversionCta.jsx",
+            "src/components/vip/VipKit.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useVIP.js",
             "src/lib/authUtils.js",
@@ -54076,6 +54091,7 @@
     {
       "file": "src/components/vip/VipKit.jsx",
       "imports": [
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroPrompt.mjs"
       ],
@@ -54086,7 +54102,7 @@
         {
           "element": "a",
           "name": "helpLabel || `${title} Help And Frequently Asked Questions`",
-          "line": 55,
+          "line": 64,
           "handler": null,
           "destination": "helpHref",
           "type": null,
@@ -54096,7 +54112,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 109,
+          "line": 118,
           "handler": "onClick",
           "destination": "href",
           "type": null,
@@ -54106,7 +54122,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 111,
+          "line": 120,
           "handler": "onClick",
           "destination": null,
           "type": "button",
@@ -54116,7 +54132,7 @@
         {
           "element": "button",
           "name": "closeLabel",
-          "line": 315,
+          "line": 449,
           "handler": "onClose",
           "destination": null,
           "type": "button",
@@ -54132,10 +54148,10 @@
       "states": {
         "loading": false,
         "empty": true,
-        "error": false,
+        "error": true,
         "retry": false,
         "offline": false,
-        "stale": false,
+        "stale": true,
         "success": false,
         "authExpiry": false
       },
@@ -54156,15 +54172,15 @@
       "functions": [
         {
           "name": "VipSeal",
-          "line": 29,
-          "references": 4,
+          "line": 38,
+          "references": 5,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "VipMasthead",
-          "line": 37,
+          "line": 46,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54172,7 +54188,7 @@
         },
         {
           "name": "VipPricePlate",
-          "line": 67,
+          "line": 76,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -54180,7 +54196,7 @@
         },
         {
           "name": "vipIntroPlateProps",
-          "line": 84,
+          "line": 93,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54188,7 +54204,7 @@
         },
         {
           "name": "VipIntroPrice",
-          "line": 95,
+          "line": 104,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -54196,7 +54212,7 @@
         },
         {
           "name": "Plate",
-          "line": 100,
+          "line": 109,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -54204,31 +54220,79 @@
         },
         {
           "name": "VipCta",
-          "line": 114,
-          "references": 5,
+          "line": 123,
+          "references": 7,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "VipGhost",
-          "line": 118,
-          "references": 3,
+          "line": 127,
+          "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "VipMonthlyCta",
-          "line": 123,
+          "line": 132,
           "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "sessionStore",
+          "line": 150,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "currentHubPath",
+          "line": 154,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "usePhoneOfferStep",
+          "line": 174,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipPhoneOfferBody",
+          "line": 194,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipPhoneOfferStep",
+          "line": 222,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "VipPhoneOfferGate",
+          "line": 242,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "VipUpgradePrompt",
-          "line": 143,
+          "line": 263,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54236,7 +54300,7 @@
         },
         {
           "name": "VipCrest",
-          "line": 172,
+          "line": 306,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54244,7 +54308,7 @@
         },
         {
           "name": "VipPlanPanel",
-          "line": 184,
+          "line": 318,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54252,7 +54316,7 @@
         },
         {
           "name": "VipFacts",
-          "line": 204,
+          "line": 338,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54260,7 +54324,7 @@
         },
         {
           "name": "VipLead",
-          "line": 218,
+          "line": 352,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54268,7 +54332,7 @@
         },
         {
           "name": "VipDialog",
-          "line": 242,
+          "line": 376,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54276,15 +54340,15 @@
         },
         {
           "name": "cx",
-          "line": 27,
-          "references": 12,
+          "line": 36,
+          "references": 19,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "focusables",
-          "line": 255,
+          "line": 389,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -54292,7 +54356,7 @@
         },
         {
           "name": "onKeyDown",
-          "line": 257,
+          "line": 391,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -54300,6 +54364,7 @@
         }
       ],
       "possibleUnwiredFunctions": [
+        "VipPhoneOfferGate",
         "VipPlanPanel",
         "VipFacts",
         "VipLead"
@@ -69025,10 +69090,115 @@
       "markers": []
     },
     {
+      "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": true,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "parsePhoneWelcomeOffer",
+          "line": 24,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "safeHubReturnPath",
+          "line": 39,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "phoneVerifyHref",
+          "line": 55,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "phoneOfferCopy",
+          "line": 61,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readPhoneOfferSkipped",
+          "line": 80,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "rememberPhoneOfferSkipped",
+          "line": 85,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "decidePhoneWelcomeOffer",
+          "line": 99,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "parsePhoneWelcomeOffer",
+        "phoneVerifyHref",
+        "phoneOfferCopy",
+        "readPhoneOfferSkipped",
+        "rememberPhoneOfferSkipped",
+        "decidePhoneWelcomeOffer"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/store/useVipIntroOffer.js",
       "imports": [
         "src/lib/authUtils.js",
         "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/vipIntroPrompt.mjs"
       ],
       "links": [],
@@ -69070,7 +69240,7 @@
       "functions": [
         {
           "name": "readIntroOffer",
-          "line": 11,
+          "line": 14,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -69078,7 +69248,7 @@
         },
         {
           "name": "sharedIntroOffer",
-          "line": 26,
+          "line": 29,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -69086,7 +69256,7 @@
         },
         {
           "name": "readPublicIntroOffer",
-          "line": 43,
+          "line": 46,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -69094,7 +69264,7 @@
         },
         {
           "name": "usePublicVipIntroOffer",
-          "line": 57,
+          "line": 60,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -69102,7 +69272,7 @@
         },
         {
           "name": "useVipIntroOffer",
-          "line": 84,
+          "line": 87,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -69110,7 +69280,7 @@
         },
         {
           "name": "useVipIntroPrompt",
-          "line": 119,
+          "line": 125,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -83852,6 +84022,10 @@
     },
     {
       "from": "src/components/vip/VipKit.jsx",
+      "to": "src/lib/store/phoneWelcomeOfferTerms.mjs"
+    },
+    {
+      "from": "src/components/vip/VipKit.jsx",
       "to": "src/lib/store/useVipIntroOffer.js"
     },
     {
@@ -84381,6 +84555,10 @@
     {
       "from": "src/lib/store/useVipIntroOffer.js",
       "to": "src/lib/store/checkoutAuthorization.js"
+    },
+    {
+      "from": "src/lib/store/useVipIntroOffer.js",
+      "to": "src/lib/store/phoneWelcomeOfferTerms.mjs"
     },
     {
       "from": "src/lib/store/useVipIntroOffer.js",
@@ -93196,11 +93374,11 @@
       "effectRef": "src/components/ui/WorldCommandMenuBoundary.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:55:1",
+      "id": "src/components/vip/VipKit.jsx:64:1",
       "file": "src/components/vip/VipKit.jsx",
       "element": "a",
       "name": "helpLabel || `${title} Help And Frequently Asked Questions`",
-      "line": 55,
+      "line": 64,
       "handler": null,
       "destination": "helpHref",
       "type": null,
@@ -93209,11 +93387,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:109:2",
+      "id": "src/components/vip/VipKit.jsx:118:2",
       "file": "src/components/vip/VipKit.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 109,
+      "line": 118,
       "handler": "onClick",
       "destination": "href",
       "type": null,
@@ -93222,11 +93400,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:111:3",
+      "id": "src/components/vip/VipKit.jsx:120:3",
       "file": "src/components/vip/VipKit.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 111,
+      "line": 120,
       "handler": "onClick",
       "destination": null,
       "type": "button",
@@ -93235,11 +93413,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:315:4",
+      "id": "src/components/vip/VipKit.jsx:449:4",
       "file": "src/components/vip/VipKit.jsx",
       "element": "button",
       "name": "closeLabel",
-      "line": 315,
+      "line": 449,
       "handler": "onClose",
       "destination": null,
       "type": "button",
@@ -103767,6 +103945,7 @@
         "src/lib/store/checkoutAuthorization.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -104248,6 +104427,7 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -110238,6 +110418,7 @@
         "src/lib/ownProfile.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -111815,6 +111996,7 @@
         "src/components/vip/VipKit.jsx",
         "src/lib/authUtils.js",
         "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -111883,6 +112065,7 @@
         "src/components/vip/VipKit.jsx",
         "src/lib/authUtils.js",
         "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -115458,10 +115641,21 @@
       "tests": []
     },
     {
+      "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+      "reachableFiles": [
+        "src/lib/store/phoneWelcomeOfferTerms.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/store/useVipIntroOffer.js",
       "reachableFiles": [
         "src/lib/authUtils.js",
         "src/lib/store/checkoutAuthorization.js",
+        "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroOffer.mjs",
         "src/lib/store/vipIntroPrompt.mjs",
@@ -123738,8 +123932,24 @@
       },
       {
         "file": "src/components/vip/VipKit.jsx",
+        "name": "VipPhoneOfferGate",
+        "line": 242,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store.js",
+          "pages/hub/memory-games.js"
+        ]
+      },
+      {
+        "file": "src/components/vip/VipKit.jsx",
         "name": "VipPlanPanel",
-        "line": 184,
+        "line": 318,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -123754,7 +123964,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipFacts",
-        "line": 204,
+        "line": 338,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -123769,7 +123979,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipLead",
-        "line": 218,
+        "line": 352,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -126057,9 +126267,105 @@
         ]
       },
       {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "parsePhoneWelcomeOffer",
+        "line": 24,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "phoneVerifyHref",
+        "line": 55,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "phoneOfferCopy",
+        "line": 61,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "readPhoneOfferSkipped",
+        "line": 80,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "rememberPhoneOfferSkipped",
+        "line": 85,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "decidePhoneWelcomeOffer",
+        "line": 99,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/lib/store/phoneWelcomeOffer.js"
+        ]
+      },
+      {
         "file": "src/lib/store/useVipIntroOffer.js",
         "name": "useVipIntroPrompt",
-        "line": 119,
+        "line": 125,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135241,8 +135547,24 @@
       },
       {
         "file": "src/components/vip/VipKit.jsx",
+        "name": "VipPhoneOfferGate",
+        "line": 242,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store.js",
+          "pages/hub/memory-games.js"
+        ]
+      },
+      {
+        "file": "src/components/vip/VipKit.jsx",
         "name": "VipPlanPanel",
-        "line": 184,
+        "line": 318,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135257,7 +135579,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipFacts",
-        "line": 204,
+        "line": 338,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -135272,7 +135594,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipLead",
-        "line": 218,
+        "line": 352,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -137560,9 +137882,105 @@
         ]
       },
       {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "parsePhoneWelcomeOffer",
+        "line": 24,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/lib/store/useVipIntroOffer.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "phoneVerifyHref",
+        "line": 55,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "phoneOfferCopy",
+        "line": 61,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "readPhoneOfferSkipped",
+        "line": 80,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "rememberPhoneOfferSkipped",
+        "line": 85,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/components/vip/VipKit.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/phoneWelcomeOfferTerms.mjs",
+        "name": "decidePhoneWelcomeOffer",
+        "line": 99,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/vip-phone-offer-first.test.mjs",
+          "src/lib/store/phoneWelcomeOffer.js"
+        ]
+      },
+      {
         "file": "src/lib/store/useVipIntroOffer.js",
         "name": "useVipIntroPrompt",
-        "line": 119,
+        "line": 125,
         "references": 1,
         "exported": true,
         "defaultExport": false,

@@ -197,3 +197,4 @@ _legacy_sql/
 !/__tests__/vip-first-month-hardening.test.mjs
 !/__tests__/vip-one-first-month-per-card.test.mjs
 !/__tests__/vip-comeback-price.test.mjs
+!/__tests__/vip-phone-offer-first.test.mjs
