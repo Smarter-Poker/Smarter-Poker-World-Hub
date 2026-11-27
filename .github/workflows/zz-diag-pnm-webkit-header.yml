@@ -32,7 +32,7 @@ jobs:
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
       - name: Build production application
-        run: npm run build -- --webpack
+        run: node scripts/copy-reader-assets.mjs && node scripts/patch-next.js && NODE_OPTIONS='--max-old-space-size=7168' node node_modules/next/dist/bin/next build --webpack
         env:
           PWA_ENABLED: '1'
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
