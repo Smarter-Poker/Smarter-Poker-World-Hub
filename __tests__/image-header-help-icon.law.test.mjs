@@ -42,11 +42,11 @@ test('the one approved "?" icon exists and is the only one the shared constant n
 
 test('every image-header help control renders the painted icon, never a text "?"', () => {
   const help = read('src/components/bankroll/BankrollHelp.jsx');
-  assert.match(help, /className="sd-header-help"[\s\S]{0,400}<img src=\{SD_HEADER_HELP_ICON\}/);
+  assert.match(help, /className="sd-header-help" data-focus-custom=""[\s\S]{0,400}<img src=\{SD_HEADER_HELP_ICON\}/);
   assert.doesNotMatch(help, />\s*\?\s*<\/button>/, 'no text "?" in the Bankroll/Toke header');
 
   const vip = read('src/components/vip/VipKit.jsx');
-  assert.match(vip, /className="sd-header-help"[\s\S]{0,300}<img src=\{SD_HEADER_HELP_ICON\}/);
+  assert.match(vip, /className="sd-header-help" data-focus-custom=""[\s\S]{0,300}<img src=\{SD_HEADER_HELP_ICON\}/);
   assert.doesNotMatch(vip, /aria-hidden="true">\?<\/span>/, 'no CSS-circle "?" in the VIP masthead');
 
   // No other image header may grow its own "?". A header that hosts help must
@@ -68,6 +68,10 @@ test('the "?" sits 3px inside the painted rim, top and right, by arithmetic', as
   assert.match(rule, /right: var\(--sd-help-at\);/);
   assert.match(rule, /width: 44px;/);
   assert.match(rule, /height: 44px;/);
+  // Even the keyboard focus ring stays clear of the rim: it is drawn on a
+  // circle exactly behind the 36px icon, not around the 44px target.
+  assert.match(css, /\.sd-header-help::after \{[^}]*inset: 4px;[^}]*box-shadow: 0 0 0 2px/);
+  assert.match(css, /\.sd-header-help\.sd-header-help\.sd-header-help:focus-visible \{ box-shadow: none; outline: none; \}/);
   // The two frames that host it today both paint chrome-readout.webp at 8px,
   // whose opaque chrome is 9 of its 21px slice = 3.43px (the 3.5px default):
   // the #SMARTERDESIGN masthead (5px CSS border) and the VIP frame (6px).

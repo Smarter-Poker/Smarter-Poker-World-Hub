@@ -93,7 +93,23 @@
   filter: drop-shadow(0 2px 3px #000000b3);
 }
 .sd-header-help:active > img { transform: scale(.94); }
-.sd-header-help:focus-visible { outline: 2px solid #94deff; outline-offset: -2px; }
+/* The focus ring hugs the icon so even the ring stays clear of the rim. The
+   site's focus indicator is premium.css's box-shadow ring (a global
+   `button:focus { outline: none !important }` removes outlines), and on a 44px
+   target that ring spilled 4px over the frame. Here the ring is drawn on a
+   36px circle exactly behind the icon instead. Tripled class outranks both the
+   premium ring and the .smarterdesign focus rule. */
+.sd-header-help::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #94deff;
+  opacity: 0;
+  pointer-events: none;
+}
+.sd-header-help.sd-header-help.sd-header-help:focus-visible { box-shadow: none; outline: none; }
+.sd-header-help.sd-header-help.sd-header-help:focus-visible::after { opacity: 1; }
 /* "Back To Dashboard" is never inside an image header: it sits directly above
    it (Dan, 2026-11-27). BankrollImageHeader renders this row from its `back`
    prop so no page can put the link back inside the frame. */

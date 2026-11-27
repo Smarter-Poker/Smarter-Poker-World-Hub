@@ -44,7 +44,7 @@ export default function BankrollHelp({ title, section, faqs = [], children, onTu
   const steps = guides[section] || (children ? [] : [`Review your ${title.toLowerCase()} here. Use the top actions to add supported records or return to the dashboard.`]);
   return (
     <>
-      <button ref={trigger} type="button" className="sd-header-help" aria-label={`Help For ${title}`} aria-haspopup="dialog" aria-controls={id}
+      <button ref={trigger} type="button" className="sd-header-help" data-focus-custom="" aria-label={`Help For ${title}`} aria-haspopup="dialog" aria-controls={id}
         onClick={() => { if (!dialog.current.open) dialog.current.showModal(); }}>
         <img src={SD_HEADER_HELP_ICON} alt="" width="36" height="37" draggable={false} />
       </button>

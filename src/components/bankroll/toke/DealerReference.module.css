@@ -8,6 +8,13 @@
   border: 0;
   border-image: none;
 }
+/* This header has no rim of its own: the steel is the panel's (5px border,
+   3.5px painted chrome), so the chrome ends 1.5px before this header's edge.
+   The shared "?" geometry then lands 3px clear of that chrome. */
+.reference .mast :global(.sd-header-help) {
+  --sd-help-border: 0px;
+  --sd-help-rim: -1.5px;
+}
 .disclosure {
   display: flex;
   align-items: center;

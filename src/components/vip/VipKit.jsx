@@ -53,7 +53,7 @@ export function VipMasthead({
         <Heading id={titleId} className={styles.title}>{title}</Heading>
       </div>
       {helpHref && (
-        <a className="sd-header-help" href={helpHref} aria-label={helpLabel || `${title} Help And Frequently Asked Questions`}>
+        <a className="sd-header-help" data-focus-custom="" href={helpHref} aria-label={helpLabel || `${title} Help And Frequently Asked Questions`}>
           <img src={SD_HEADER_HELP_ICON} alt="" width="36" height="37" draggable={false} />
         </a>
       )}

@@ -16,5 +16,10 @@
  * (styles/smarterdesign.css), which owns the corner geometry. A text "?", a
  * CSS circle or an icon-font glyph is the thing Dan rejected and is refused by
  * __tests__/image-header-help-icon.law.test.mjs.
+ *
+ * Render the control with `data-focus-custom=""`: .sd-header-help draws its
+ * own focus ring hugging the icon, and that attribute is how the training
+ * world's square page-stage ring (src/styles/worlds/training.css) is told to
+ * stand down, so it never boxes the icon over the frame.
  */
 export const SD_HEADER_HELP_ICON = '/images/smarterdesign/header-help.webp';
