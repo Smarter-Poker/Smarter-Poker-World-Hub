@@ -1,0 +1,71 @@
+{
+  "id": "adv-001",
+  "name": "Solver Mimicry",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:56:35.600Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Solver Mimicry.\nSubject: Solver Mimicry: a physical poker-chip arrangement and its precise mirrored counterpart align across a thin sheet of blue glass\nCamera: high oblique analytical still life\nComposition: The original chip pattern fills the lower left and the silver-cobalt mirror pattern appears upper right across a diagonal glass partition. Near-perfect matching with one intentional calibration point, not a screen or graph. No numbers or generated cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Solver Mimicry: a physical poker-chip arrangement and its precise mirrored counterpart align across a thin sheet of blue glass",
+  "camera": "high oblique analytical still life",
+  "composition": "The original chip pattern fills the lower left and the silver-cobalt mirror pattern appears upper right across a diagonal glass partition. Near-perfect matching with one intentional calibration point, not a screen or graph. No numbers or generated cards.",
+  "source": {
+    "fileName": "exec-b062dcff-b915-4dfe-918e-d372fd5a79dd.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2547185,
+    "sha256": "bd3f989eed4a6cdfbcf05df775faee15a4b29ba8afdb2963891eff6a7dc5253e"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-001.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 42332,
+      "sha256": "d11df288166adece14de91d22d1f43f1f68f80f2ddefee07df3c38317ab3049e"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-001.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 40585,
+      "sha256": "488f66ec80a9312f4c5b41b96a9c5678251e7f9190829157c41152dbb5689011"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-001.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 82372,
+      "sha256": "0dd15612637fc4d4af10a871c4e9c40f8ccb30748d7465fe841c92a071133ea7"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-001.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 77280,
+      "sha256": "946770fd4ef1fa7bab18c6825f22f720e7a51db3f3520153d68eea033680d3e1"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-001.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 158684,
+      "sha256": "e974380f0dd73975bc9ecf33f853e78db4311f2ede144da292462093a3e9a122"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-001.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 130233,
+      "sha256": "07874e6f93ddb41dc52476c778ff2f49361d93b6c08a1762b68e6b881d32fbef"
+    }
+  ]
+}

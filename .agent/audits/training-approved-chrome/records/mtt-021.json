@@ -1,0 +1,71 @@
+{
+  "id": "mtt-021",
+  "name": "Check-Shove Power",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:51:32.987Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Check-Shove Power.\nSubject: Check-Shove Power: a low quiet checking position transforms into a powerful forward surge of cobalt chips over the betting line\nCamera: dynamic near-table slow-motion perspective\nComposition: A clean dark left foreground contrasts with a broad fan of chips exploding forward from the right stack, metallic edges in focus and controlled motion blur toward the far rail. No lightning weapon, lever or central stage.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Check-Shove Power: a low quiet checking position transforms into a powerful forward surge of cobalt chips over the betting line",
+  "camera": "dynamic near-table slow-motion perspective",
+  "composition": "A clean dark left foreground contrasts with a broad fan of chips exploding forward from the right stack, metallic edges in focus and controlled motion blur toward the far rail. No lightning weapon, lever or central stage.",
+  "source": {
+    "fileName": "exec-9146b6fc-dad4-4b3c-83bb-08a597cc0532.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2039869,
+    "sha256": "295e389ec9c7dda5dadea2c731cb7ebf4f74cde3f4b9ce1b205715d3408831e9"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-021.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 30636,
+      "sha256": "c11720db0662e42288562f68082e415fce8a231ef3c54606fc0321338fbdd2f5"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-021.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 26273,
+      "sha256": "9c371612b495a75fcaeff15bcca91d2e3b52b118d4025316a8808e99259bad18"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-021.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 54920,
+      "sha256": "351da7969ed49717479151c18e046f7cf92f8c9915a5d4d1adbe45e475445cb7"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-021.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 43310,
+      "sha256": "cbe9e58af2bde38822db472e492cb697bcc6336cf4add0ddb3caf302e6dac026"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-021.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 96010,
+      "sha256": "5a74f0215a37d3bafc5d9700b94f484da53dd65b515f81047f1911cceef8d9f2"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-021.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 67371,
+      "sha256": "bec7cf66bb5488e4ffc3ba5b0727c09f8cb77c58732849992c9e70af87230510"
+    }
+  ]
+}

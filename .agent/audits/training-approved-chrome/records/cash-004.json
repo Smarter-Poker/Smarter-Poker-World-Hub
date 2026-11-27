@@ -1,0 +1,71 @@
+{
+  "id": "cash-004",
+  "name": "Value Extractor",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:47:30.999Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Value Extractor.\nSubject: An extreme close-up of one extra matching cobalt chip being slid into the edge of a modest pot by a black-sleeved human hand. That small final chip, almost touching the larger collection, communicates extracting one more call.\nCamera: Macro at felt level, with the focal plane on the narrow gap between the moving chip and the pot.\nComposition: The fingertips enter from the upper-right crop; the existing pot is cropped large on the lower-left. The final chip lies between them with its polished silver edge catching a narrow light. Most of the frame is tactile felt and the edges of real poker chips. No machine, plate, circular stage or generic stack display.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "An extreme close-up of one extra matching cobalt chip being slid into the edge of a modest pot by a black-sleeved human hand. That small final chip, almost touching the larger collection, communicates extracting one more call.",
+  "camera": "Macro at felt level, with the focal plane on the narrow gap between the moving chip and the pot.",
+  "composition": "The fingertips enter from the upper-right crop; the existing pot is cropped large on the lower-left. The final chip lies between them with its polished silver edge catching a narrow light. Most of the frame is tactile felt and the edges of real poker chips. No machine, plate, circular stage or generic stack display.",
+  "source": {
+    "fileName": "exec-8ca4c38f-cda0-4377-bba9-869d970b9da7.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2046349,
+    "sha256": "245e814d87f02063aeb7e239a4a7c831bffda4c7538d52e7e275851ac1487553"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-004.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 28486,
+      "sha256": "dc4c7ae5057394727aa08daafc006f48d22cd913216fed790123b4b50e175de5"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-004.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 21962,
+      "sha256": "2ca9e98daba8779b93c9203b249fe3db5fc91a621f05917df0b3d7c0d661824e"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-004.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 52560,
+      "sha256": "ef19e007d3cdaa74d9a7d35d98ef8195f760af8799517063b34b8c7982afd72f"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-004.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 37955,
+      "sha256": "ea03eb720a89e399d39b4634dbbe534767be613799841d8135c09831e4b5feee"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-004.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 95168,
+      "sha256": "2656ae7818f1e8a191943ca5c87d23b03acad763545dafd29686b5708b5ab99a"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-004.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 62741,
+      "sha256": "5de5c8cfc6263983bfa92bf0cd1377851fb2f32cc03820dd6de12c83ba51d46e"
+    }
+  ]
+}

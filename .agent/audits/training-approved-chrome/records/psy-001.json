@@ -1,0 +1,71 @@
+{
+  "id": "psy-001",
+  "name": "Tilt Control",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v1",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:34:41.057Z",
+  "prompt": "Use case: stylized-concept. Create one premium 3D studio illustration for a Smarter.Poker poker training game, landscape 16:9, ideally 1536x864. The approved #SMARTERDESIGN look is glossy black and deep ink navy, polished mirror CHROME AND SILVER, rich COBALT and controlled electric-blue rim lighting. Render large tactile hero objects on a close-up black mirrored circular studio platform with beautiful realistic reflections and sculpted chrome edges, crisp high-definition product-photography quality. No wide room, no distant environment, no tiny details, no text or typography, no logo, no UI, no frames surrounding the picture, no watermarks. NO PLAYING CARDS OF ANY KIND, NO CARD BACKS OR CARD FACES, NO SUIT/RANK MARKINGS, NO LETTERS OR NUMBERS. Real card faces will be composited by the application later. No gold, yellow, orange, purple or pink accent lighting. Black, blue, silver and clear glass only. Keep important objects inside 8% safe margins. Objects must fill the image and remain easily readable in a mobile game card. Subject: A finely sculpted chrome brain suspended inside a calm concentric blue-lit gyroscope, perfectly balanced and centered. Center the specified 3D hero subject and make it fill roughly 65% of the picture width and 80% of the height, with clean breathing room. No playing cards are needed in this illustration. Preserve clean true object proportions and ensure the lighting is bright enough to recognize all central objects. The artwork should feel like an exquisite collectible game cover in a chrome-and-cobalt poker training lobby.",
+  "subject": "A finely sculpted chrome brain suspended inside a calm concentric blue-lit gyroscope, perfectly balanced and centered",
+  "source": {
+    "fileName": "exec-ed6ec6d6-6349-4d70-9c34-b5b8ff13d193.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1991360,
+    "sha256": "1441e5a3780deb0222777f93767e45381c892a83a74917744c58b80846c7209a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-001.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 37868,
+      "sha256": "0d7443b0d25c508bb00a3e2c8586c3256a5a0332788ad3bd22768b5a657f87a3"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-001.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 37888,
+      "sha256": "a229a93a781a032875d005c320728d1d05ca3030883d9d3e20f16cbbe89601db"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-001.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 67934,
+      "sha256": "5acebd35a2a6b091ec1dd0bdf2ddf347ead3a28ca1c19428d65216d57f8e26aa"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-001.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 61899,
+      "sha256": "8464aacb9fb3afa1de9999940be31f14bb5d7bf1f47432bcc34f01effd6464a8"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-001.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 122092,
+      "sha256": "75042f7c3cd944266132aed962c21dedb124b8968dc500c39f7c12d6609145b8"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-001.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 96179,
+      "sha256": "ed1fd44108da02983c6995ca64a0b3da7844fab221eeb8f66171ba8ba485bf44"
+    }
+  ],
+  "acceptedForVersion": "approved-chrome-v2",
+  "reuseReason": "Retained as the single focused chrome brain-and-gyroscope scene in the varied catalogue."
+}

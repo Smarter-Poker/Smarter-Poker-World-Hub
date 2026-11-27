@@ -1,0 +1,71 @@
+{
+  "id": "mtt-020",
+  "name": "Multi-way Bounty",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:51:32.986Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Multi-way Bounty.\nSubject: Multi-way Bounty: three separate silver bounty medallions and three unequal chip commitments converge into one contested tournament pot\nCamera: overhead fisheye-like close poker-table view\nComposition: The pot is an irregular spread near upper right, with three sharply angled streams entering from different edges. One medallion remains caught between two stacks to suggest competing incentives. No geometric platform; real textured felt and busy but legible poker objects.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Multi-way Bounty: three separate silver bounty medallions and three unequal chip commitments converge into one contested tournament pot",
+  "camera": "overhead fisheye-like close poker-table view",
+  "composition": "The pot is an irregular spread near upper right, with three sharply angled streams entering from different edges. One medallion remains caught between two stacks to suggest competing incentives. No geometric platform; real textured felt and busy but legible poker objects.",
+  "source": {
+    "fileName": "exec-54a64af8-c51a-47a6-b2c3-c9e58c6bb7a6.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 3007413,
+    "sha256": "658bfa5d87f87cc886b332e2b7a69b163afb72db729e983d5f31a0d661709d0c"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-020.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 63230,
+      "sha256": "ae14a687ca4d5fbe4a650d33886ea484179da2f6484d353b5093ace733684e3e"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-020.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 64944,
+      "sha256": "c902a1a7e0d8023cd46af96882f27dcf461f4c615c5402846cb1a94816cdcaf6"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-020.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 125124,
+      "sha256": "5bf7ff37c12fba36d8bdec41bd241fb29f402cd5d5b1fc130ec480dfd7f043d4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-020.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 120311,
+      "sha256": "253b0cc0c1ac9eee0103c33d18f0f088c560e577dddf660bb993e2ca01032a84"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-020.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 235240,
+      "sha256": "e4f2058a0e24fa47d8fa7c8615ae6d3d3aa20df8b773467aa440c448b2e4b8ac"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-020.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 203805,
+      "sha256": "ea406a91167cdd389af8c5874a304e87e0a78db1de948cd6cf1008a85e3279af"
+    }
+  ]
+}

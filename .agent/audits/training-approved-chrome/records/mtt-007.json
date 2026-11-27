@@ -1,0 +1,71 @@
+{
+  "id": "mtt-007",
+  "name": "Deep Stack MTT",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:48:37.887Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Deep Stack MTT.\nSubject: Deep Stack MTT: two immense columns of cobalt poker chips seen from table level, dwarfing a fresh compact opening pot between them\nCamera: dramatic low-angle macro with a wide lens close to the felt\nComposition: Chip towers rise out of frame on opposite diagonal planes, leaving a visible valley of deep black felt between them. Chips fill the foreground and show real edge textures; strong depth without a circular platform.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Deep Stack MTT: two immense columns of cobalt poker chips seen from table level, dwarfing a fresh compact opening pot between them",
+  "camera": "dramatic low-angle macro with a wide lens close to the felt",
+  "composition": "Chip towers rise out of frame on opposite diagonal planes, leaving a visible valley of deep black felt between them. Chips fill the foreground and show real edge textures; strong depth without a circular platform.",
+  "source": {
+    "fileName": "exec-7269143c-8bab-4122-afcd-1faa450b7901.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2408778,
+    "sha256": "ce157c79768b86450e3787b38024487f4fbe5d9737c29b976c40492fecc9b3da"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-007.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 43846,
+      "sha256": "6d890bc99728c90acf3dbdd2a0edd8c541d4d68a07677f258d2503afa972ad2d"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-007.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 41051,
+      "sha256": "fc4db1f7946e25cb911a582e20ee7bc7ee1d21182f2290c881177a9f3c6db2a5"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-007.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 85374,
+      "sha256": "4882782f7e6f450f8b363235af834fa4fb12186f9b8e8c7c25dd705fbac6c74e"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-007.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 73056,
+      "sha256": "bc14424b803ffd6afa3ebf20f4cd402a22ed1aa2267a3ddef1fa9f884c047440"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-007.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 155448,
+      "sha256": "bfcd6eed72bb38120034d2153b716a3fed843c2d53319696a201dc35011e556e"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-007.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 121443,
+      "sha256": "d3a19de9fbd0695e3759be67e8a8deb556bd5a5634f244c9cb5262f8a6989e8e"
+    }
+  ]
+}

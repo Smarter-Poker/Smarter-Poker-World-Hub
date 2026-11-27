@@ -1,0 +1,71 @@
+{
+  "id": "psy-014",
+  "name": "Bankroll Mind",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:55:31.072Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Bankroll Mind.\nSubject: Bankroll Mind: poker chips are methodically divided into several transparent budgeting compartments, with a separate small playable stack kept outside\nCamera: top-down practical workstation view\nComposition: A rectangular clear organizer spans the left two thirds, equal silver dividers separate cobalt reserves, and a modest session stack sits alone on the right. Clean orderly money discipline, no currency symbols, vault doors or pedestal.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Bankroll Mind: poker chips are methodically divided into several transparent budgeting compartments, with a separate small playable stack kept outside",
+  "camera": "top-down practical workstation view",
+  "composition": "A rectangular clear organizer spans the left two thirds, equal silver dividers separate cobalt reserves, and a modest session stack sits alone on the right. Clean orderly money discipline, no currency symbols, vault doors or pedestal.",
+  "source": {
+    "fileName": "exec-d942cc0c-2699-49cf-beb0-7cadd69485b1.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2671482,
+    "sha256": "f086864994cd50be707911d77ce53c1d60e511531e6ba9bacb1446e110d9236e"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-014.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 44104,
+      "sha256": "6da1d46c7f3b6a1b6ee8ca72c6198e34bad243e8d8e5fb2bb035d4c14c7f0358"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-014.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 40736,
+      "sha256": "c24b71e892dabe80ef3fae2d9e36821e6bddf931fe00b38524b373fad58d394d"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-014.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 89058,
+      "sha256": "e756420817028f1f3ba7d8fca031bc70fa49fd8d37f9e9032c11badb280474a1"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-014.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 78977,
+      "sha256": "7f3fe95b1156b32178d76bfe7d6070916edbf8c5a6886ab978fc469bfaa7dc77"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-014.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 176154,
+      "sha256": "10cf6b83b5e3e2a0b3bf75d5f5b12f4be6231c4bc1edbd273a3f6878c8202bf3"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-014.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 138775,
+      "sha256": "3d17cd0a5001305af423f9fdb6586f31d7d529f26a3df0d1760729c48418a764"
+    }
+  ]
+}

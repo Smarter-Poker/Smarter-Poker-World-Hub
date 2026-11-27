@@ -1,0 +1,71 @@
+{
+  "id": "psy-019",
+  "name": "Autopilot Escape",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:56:35.508Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Autopilot Escape.\nSubject: Autopilot Escape: a monotonous conveyor of identical poker-chip motions is interrupted by one deliberately lifted cobalt chip taking a new route\nCamera: top-down industrial tabletop composition\nComposition: Repeated dark chips run on a straight track from left to right; a single bright blue chip rises off the track near the right third toward a clean open direction. The departure is the focal point, no robot, arrows or glowing brain.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Autopilot Escape: a monotonous conveyor of identical poker-chip motions is interrupted by one deliberately lifted cobalt chip taking a new route",
+  "camera": "top-down industrial tabletop composition",
+  "composition": "Repeated dark chips run on a straight track from left to right; a single bright blue chip rises off the track near the right third toward a clean open direction. The departure is the focal point, no robot, arrows or glowing brain.",
+  "source": {
+    "fileName": "exec-1b3f8e8c-28a2-4422-bde3-9d8a6710e179.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2619587,
+    "sha256": "21b6978ef7d4aefa18960a66949d7d9aeace0096861e256b8211b7f90fb5c102"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-019.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 29504,
+      "sha256": "55cda504d081c2d3b3e7041b132179a84278a74055496c326a873497b5ac842f"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-019.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 24757,
+      "sha256": "0dcd094b6e3f05f8cb679c3491121691ccecbeefc6479a5e8b78d62ae7378179"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-019.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 64236,
+      "sha256": "a012c17f540a43ff365cc4c4185355c8122624075dca7ba759283c639a68e9c5"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-019.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 52013,
+      "sha256": "70059e18c6f495ee57f6e78d72b4b71e1c38e088e6178665e0bfaf29cf2ce5af"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-019.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 134974,
+      "sha256": "cf4d8fe9118a9e36ef3cb307be0fe470181348448db7a0add571c69061f866bd"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-019.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 101861,
+      "sha256": "b3add9d86bb92524e696902e03af54d75b39d84dda3efb79ac5b79a1f39094c5"
+    }
+  ]
+}

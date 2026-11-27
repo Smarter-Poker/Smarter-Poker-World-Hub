@@ -1,0 +1,71 @@
+{
+  "id": "spins-010",
+  "name": "Level 10: Spin Master",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:02:26.785Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Level 10: Spin Master.\nSubject: A complete three-player spin tournament condensed into three bold overlapping snapshots: three active seats and balanced opening reserves, two remaining seats in a close contest, then one collected winning pot. The changing table population tells the full simulation story.\nCamera: Layered isometric editorial view with each snapshot at a different angle.\nComposition: Three large slices of black felt overlap down a diagonal from upper left to lower right. The first shows three big seat arcs, the second two, and the final a single dominant winning reserve beside an empty seat. Each slice is broad and simple enough to read on mobile. Use brushed silver and matte cobalt; no spiral trophy, roulette wheel, common display stage or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A complete three-player spin tournament condensed into three bold overlapping snapshots: three active seats and balanced opening reserves, two remaining seats in a close contest, then one collected winning pot. The changing table population tells the full simulation story.",
+  "camera": "Layered isometric editorial view with each snapshot at a different angle.",
+  "composition": "Three large slices of black felt overlap down a diagonal from upper left to lower right. The first shows three big seat arcs, the second two, and the final a single dominant winning reserve beside an empty seat. Each slice is broad and simple enough to read on mobile. Use brushed silver and matte cobalt; no spiral trophy, roulette wheel, common display stage or cards.",
+  "source": {
+    "fileName": "exec-64c39ad7-ddae-4a6e-80a0-117a29f11a04.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2076104,
+    "sha256": "6beb39e424b5ab283aa0d28c9d1e280caabb0cbba64c3436a36119a44e322cb4"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-010.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 32694,
+      "sha256": "9212f1385d94a7c63c180b28a49d40c8dae4147886bc3cafb35267cbe5e89d50"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-010.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 29087,
+      "sha256": "fb9f2243ef53ea11caba07064a9c92cf02e1fd68ababb758537ece6e06d5a6d9"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-010.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 59770,
+      "sha256": "b725baa5b9cdaf7ea52e55e99b66e01a9b303de67f80c91fd1d50f9a3d91c4bc"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-010.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 50040,
+      "sha256": "b1048173baa0fe0ce6d7edb7f40d70a9ebc954aa5b3cd3b4dff0ec1770931f19"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-010.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 109500,
+      "sha256": "0da49c4812678b7039501d9169474c9412c407827642d191b82e62978e79344d"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-010.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 83906,
+      "sha256": "8135cf8f0393453c889eeaffc60ecfb7e18b3f5bda7f0f2fae078698ae8ac302"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "id": "spins-005",
+  "name": "Phase Shifting",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:49:49.712Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Phase Shifting.\nSubject: A continuous poker-chip reserve changes from deep to medium to short as it advances along three sharply stepped layers of felt. The available action lanes visibly narrow alongside the shrinking reserves, expressing the changing strategy with stack depth.\nCamera: Side-on isometric cutaway of a long descending structure.\nComposition: A tall reserve at upper left leads diagonally down to a compact middle stack and then a short stub at lower right. Three broad layers of black felt and chrome edges overlap; the perspective is architectural and asymmetric. No rotating rings, circular platform or card space.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A continuous poker-chip reserve changes from deep to medium to short as it advances along three sharply stepped layers of felt. The available action lanes visibly narrow alongside the shrinking reserves, expressing the changing strategy with stack depth.",
+  "camera": "Side-on isometric cutaway of a long descending structure.",
+  "composition": "A tall reserve at upper left leads diagonally down to a compact middle stack and then a short stub at lower right. Three broad layers of black felt and chrome edges overlap; the perspective is architectural and asymmetric. No rotating rings, circular platform or card space.",
+  "source": {
+    "fileName": "exec-46e8d3b3-3a07-46fe-a36f-5f9d4e2a66b7.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2319736,
+    "sha256": "116546e9caa3a8d0ac6c69aa776819cfe8716c19f3caf5d5de38c6b9b7e0e172"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-005.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 32936,
+      "sha256": "55e325fe5ff474b25bfbdd2965e4ecc356a27fffc603b73e850cd22a2e1a6cd8"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-005.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 30309,
+      "sha256": "0d0a6f34eabae0e2222db4068604cf5248ac2034d036b03418db6148f9fc6eab"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-005.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 64214,
+      "sha256": "260219ce79624f51464ae7bcad60e0000df745c736ad80925593bc5eded334d4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-005.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 58025,
+      "sha256": "8a7eaef693c596561cd59d7f73632345d8146fc846441707422864ed163d1e16"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-005.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 125744,
+      "sha256": "75bdae475a84ecbc0c8879c48f8b7c5a730cb1763f9c03261a5ec64234ae989d"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-005.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 99099,
+      "sha256": "866abe5eed2ba0572aee75012fa06edc18b1dbe298febd9adee1ab6297c098fc"
+    }
+  ]
+}

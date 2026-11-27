@@ -1,0 +1,71 @@
+{
+  "id": "psy-010",
+  "name": "Ego Killer",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:54:39.295Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Ego Killer.\nSubject: Ego Killer: a polished silver crown is set aside beside an open unmarked study notebook and one humble stack of cobalt chips\nCamera: honest overhead editorial still life\nComposition: The crown is partly cropped and resting sideways in the upper-left corner, while the notebook and chips occupy the brighter center-right. Learning takes visual priority over status. Matte navy desk, soft daylight-style silver reflections, no podium.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Ego Killer: a polished silver crown is set aside beside an open unmarked study notebook and one humble stack of cobalt chips",
+  "camera": "honest overhead editorial still life",
+  "composition": "The crown is partly cropped and resting sideways in the upper-left corner, while the notebook and chips occupy the brighter center-right. Learning takes visual priority over status. Matte navy desk, soft daylight-style silver reflections, no podium.",
+  "source": {
+    "fileName": "exec-f8ac5587-00ff-4234-ba62-6600d9515179.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2641058,
+    "sha256": "545b0ea149deb6780f89d14e59d773f85ec5303ea204111475122b2a971147ed"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-010.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 28508,
+      "sha256": "bce17771406a5824a7870bcb7a3c57d349170750a9f4f2bb7d641eef84e5cfcf"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-010.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 22346,
+      "sha256": "f253cc190c8dfa1b15616314a88d9017270eb5899f332dd6d908fca91ae01260"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-010.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 61396,
+      "sha256": "b2745a75f4a3e08f7bbb12734a3c135ff787cbc9d29cca18bc32110e5028fc6e"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-010.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 47219,
+      "sha256": "1adcde2bbaf8844a1b37c4c0765e619333b336fc6d87ee802da1f352b8d71cd1"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-010.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 127714,
+      "sha256": "e997845ae52ef9758f935481805d05bf2069f150bfb2115ab2cdc297071f5d22"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-010.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 90342,
+      "sha256": "e26e1371cdaede50bc21cd338bca1b6aede591fa39ca62ce20346ae504b5884e"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "id": "cash-011",
+  "name": "Donk Defense",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:51:37.361Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Donk Defense.\nSubject: An unexpected lead bet arrives from the near blind seat before the far aggressor can act. The leading chips cross the usual flow of action at a sharp angle, while a defender's larger reserve and real hole cards wait beyond the crossing.\nCamera: Tight three-quarter view from just behind the leading seat, emphasizing the surprising diagonal entry.\nComposition: The lead bet enters large from the lower-left and cuts across the frame; the far player's chip reserve is at upper right. The actual A-heart and Q-spade cards sit in a modest natural patch of felt to the right. Include one chrome table-rail corner for orientation. No shields, cages or product stage.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "An unexpected lead bet arrives from the near blind seat before the far aggressor can act. The leading chips cross the usual flow of action at a sharp angle, while a defender's larger reserve and real hole cards wait beyond the crossing.",
+  "camera": "Tight three-quarter view from just behind the leading seat, emphasizing the surprising diagonal entry.",
+  "composition": "The lead bet enters large from the lower-left and cuts across the frame; the far player's chip reserve is at upper right. The actual A-heart and Q-spade cards sit in a modest natural patch of felt to the right. Include one chrome table-rail corner for orientation. No shields, cages or product stage.",
+  "source": {
+    "fileName": "exec-4081251d-538f-4196-a2d1-d8bedac7c295.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2266967,
+    "sha256": "f8a0bbc4fd465d7d0929c0b6f2bbc5a7b372517101adab3ea384500572414798"
+  },
+  "nativeCards": [
+    "Ah",
+    "Qs"
+  ],
+  "placement": "right",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-011.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 33688,
+      "sha256": "535596dd21c1f3a7f80ab7456dd41b115979cf566ec9fa00d6c390029c199364"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-011.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 28192,
+      "sha256": "0f3ac04019cc3d8bf06b367c9fc2049c0092698273a6c24b58243616d1882aae"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-011.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 63792,
+      "sha256": "fcf85f27d13ebc6dec32aca667e7e07cb9456bf3d429292cd16a47c0efe800ae"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-011.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 50413,
+      "sha256": "f010d6c46388ade6a181def8fda85d169d89341c7b5d9f044807ee47e9afb6aa"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-011.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 117060,
+      "sha256": "38d780d7560eb35ab73d45b7914e42d78859654f5aedbabb181738ddeb2d65a4"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-011.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 84988,
+      "sha256": "6d2bc43304b637943477213d6b4115bcf1f98aa6248691aed4566ed49b3f5e3e"
+    }
+  ],
+  "overlay": {
+    "left": 74,
+    "bottom": 5,
+    "width": 36,
+    "height": 58
+  },
+  "overlayReview": "Adjusted after direct scene review to keep the native cards in the natural lower felt area without obscuring the wager or divider.",
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

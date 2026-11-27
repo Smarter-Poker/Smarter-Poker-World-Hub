@@ -1,0 +1,71 @@
+{
+  "id": "cash-025",
+  "name": "Level 10: Cash King",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:00:02.763Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Level 10: Cash King.\nSubject: A seasoned adult cash-game player at the end of a demanding session, calmly organizing multiple chip racks while the last active cash table glows behind. The subject is mastery and endurance across a session, not a crown floating over generic chips.\nCamera: Cinematic three-quarter rear view at shoulder height, with the player close and the felt visible beyond.\nComposition: A black jacket and the player's composed profile occupy the left third in silver monochrome. Large orderly chip racks stretch across the lower foreground; the far table fades into ink navy at upper right. A single cobalt desk light creates a human, late-session atmosphere. No crown, circular stage or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A seasoned adult cash-game player at the end of a demanding session, calmly organizing multiple chip racks while the last active cash table glows behind. The subject is mastery and endurance across a session, not a crown floating over generic chips.",
+  "camera": "Cinematic three-quarter rear view at shoulder height, with the player close and the felt visible beyond.",
+  "composition": "A black jacket and the player's composed profile occupy the left third in silver monochrome. Large orderly chip racks stretch across the lower foreground; the far table fades into ink navy at upper right. A single cobalt desk light creates a human, late-session atmosphere. No crown, circular stage or cards.",
+  "source": {
+    "fileName": "exec-4943baa8-8cbd-4795-9616-c1c68bb7ea44.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2296429,
+    "sha256": "3e323f0e838bdbdba59d3958d34a697956d87300593d51fa8afa6c4a17b54a1a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-025.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 39482,
+      "sha256": "aa55ac5fe80969c4f7e915a06a6780bd4a8d6cc8d7eef33173890c6e351b0acd"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-025.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 37757,
+      "sha256": "393136bd96b6400f291aadb6dfa8309fe041f99282d22cc734fbe8cf06ad3769"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-025.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 73948,
+      "sha256": "486f460a2cff5871942f71263d83bb82baa8f404efc8a6b757de63d27f4608d4"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-025.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 67099,
+      "sha256": "803c35b2396f9f754e8ec65fceccee7f9be5ad848dd567cfeb077f31b21fc4d6"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-025.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 134250,
+      "sha256": "29b8b999d630626b2e0302af5296071d7f2fd6212f9bafeda1b40d24c83dfb4e"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-025.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 112365,
+      "sha256": "3bc121e97a2e80383851b802e7aa8b801dc92b5589fef1eb88a0819e13417973"
+    }
+  ]
+}

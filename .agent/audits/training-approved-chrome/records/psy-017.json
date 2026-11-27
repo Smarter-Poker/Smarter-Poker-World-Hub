@@ -1,0 +1,71 @@
+{
+  "id": "psy-017",
+  "name": "Study Habits",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:55:37.557Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Study Habits.\nSubject: Study Habits: a thoughtfully used poker study desk with an open blank notebook, neat chrome pen, arranged chips, and a small focused task lamp\nCamera: over-the-shoulder desk-level editorial view without a person\nComposition: The lamp's cone illuminates the notebook in the right half, chips form a simple exercise on the left, and the rest fades to deep navy. Tangible repeated practice, no letters, charts with labels or computer UI.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Study Habits: a thoughtfully used poker study desk with an open blank notebook, neat chrome pen, arranged chips, and a small focused task lamp",
+  "camera": "over-the-shoulder desk-level editorial view without a person",
+  "composition": "The lamp's cone illuminates the notebook in the right half, chips form a simple exercise on the left, and the rest fades to deep navy. Tangible repeated practice, no letters, charts with labels or computer UI.",
+  "source": {
+    "fileName": "exec-4137d7cb-a0f1-4040-87c0-7f55cf2c44f2.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2182811,
+    "sha256": "749b2c0667b21f3c237723a07335293222bd09541b690a1264a72e6d97f8f485"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-017.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 31376,
+      "sha256": "a04a081d7e184d57940094de37d2c2c3bee77fcf41b41401aee72d977e8669c1"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-017.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 27398,
+      "sha256": "02c2f6050a99336795cb425fed9083692412aa37f5a3b323be6322b1587a82b8"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-017.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 60142,
+      "sha256": "ffc01fe248c5c53b8e8e214ef139cc755355c512578bb6c6c3d13bb2c39d7346"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-017.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 48785,
+      "sha256": "f10249be9396f784524109b5d4d8aadbe7491f3f1cd42b728f20932c1627d88e"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-017.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 110928,
+      "sha256": "ff92fef3b3475e7d0c30a75c6e857709cfe9e2eb9d7eecb2acb0b692dd3375bd"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-017.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 82337,
+      "sha256": "2a073b7ec7b9c48a77e7ed35f2b18861139c4a9d2609737358d0a4e42a252811"
+    }
+  ]
+}

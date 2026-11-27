@@ -1,0 +1,71 @@
+{
+  "id": "spins-002",
+  "name": "Jackpot Pressure",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:00:27.061Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Jackpot Pressure.\nSubject: An intimidating high-multiplier prize looms above a tight three-player decision: a huge wall of cobalt prize chips rises behind the small active table, dwarfing the players' immediate betting resources.\nCamera: Low eye-level view from the table edge, looking upward at the prize scale.\nComposition: The near table rail and a small live wager form a narrow foreground band. The huge prize-chip wall rises asymmetrically across the upper-right, while three cool monochrome player silhouettes are compressed along the lower-left. Use vertical tension and heavy shadows. No printed multiplier, slot machine, roulette wheel or display platform.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "An intimidating high-multiplier prize looms above a tight three-player decision: a huge wall of cobalt prize chips rises behind the small active table, dwarfing the players' immediate betting resources.",
+  "camera": "Low eye-level view from the table edge, looking upward at the prize scale.",
+  "composition": "The near table rail and a small live wager form a narrow foreground band. The huge prize-chip wall rises asymmetrically across the upper-right, while three cool monochrome player silhouettes are compressed along the lower-left. Use vertical tension and heavy shadows. No printed multiplier, slot machine, roulette wheel or display platform.",
+  "source": {
+    "fileName": "exec-3e8628ac-abe4-490b-889b-bee79f9627be.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2396781,
+    "sha256": "e313b21e985e794f7a610e2a6611291e20014d7c34fa2130aedc93615068c018"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-002.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 44914,
+      "sha256": "edd8bec855369a3422feaa49b074c9b23484aed97b64609413b145e05743de63"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-002.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 45281,
+      "sha256": "db7cfac67c3776b0d2d3eb7b19c34a9109b118bfe0a27abc7fce9117a43760a7"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-002.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 84332,
+      "sha256": "3504919e8a21d7dbcea0013707301ada66bcc8e797eacbe230a49c4ddbd29b9b"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-002.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 79474,
+      "sha256": "86dd04562f9fdf513a448f113b9474708ac23da207db90a7253dc297efaf9928"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-002.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 152804,
+      "sha256": "f9017a71efee1ed6ccbbf2a7f1945b8523862444c25c88f52afe4ae50d736959"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-002.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 132943,
+      "sha256": "08ec2b8993cd36ad80e83fddf64f1bb6ca0275afff2f9e687dd8306996f1f669"
+    }
+  ]
+}

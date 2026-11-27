@@ -1,0 +1,729 @@
+{
+  "version": "approved-chrome-v2",
+  "method": "Direct inspection of each scene, including small contact sheets with each image at360px width. Actual DOM overlay verification belongs to hosted preview.",
+  "reviews": [
+    {
+      "id": "mtt-002",
+      "reviewedAt": "2026-11-27T18:50:48.910Z",
+      "pass": true,
+      "notes": "Large diagonal balance compares chip quantity and prize value; actual felt setting and readable asymmetric scale.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "18f4bfff45ea4965cf36d1e04459ffad9eb0cf111e4c3f1ae5bd64c2c7951012",
+      "outputSha256": "5a78368cbe6b7384965458250b2ed64adc40ae4f266d210a7019fb704809ace6"
+    },
+    {
+      "id": "mtt-004",
+      "reviewedAt": "2026-11-27T18:50:48.911Z",
+      "pass": true,
+      "notes": "Table-rail curve and escalating silver payout steps communicate pay jumps; clearly different architectural composition.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "410b69c47e3353862510e4e8b3a33c985fd80261e215e5e7ebf29bddd2fe3fe2",
+      "outputSha256": "f2ab2d619635a79f7052b1859a86a13509397ab42f0bbea90f4ee0ec0aaa1a4a"
+    },
+    {
+      "id": "mtt-005",
+      "reviewedAt": "2026-11-27T18:50:48.911Z",
+      "pass": true,
+      "notes": "Overhead split bounty medallion and two payout paths; strong distinct game-specific action.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "14e1e23b19fbc3bf8d21e8b27cc74d88faf0aa0589995b7aaf0387d0c6ab461a",
+      "outputSha256": "967bf39e7a9ed7fcd2c79dfb564181a41028d6c37d6876d178ce695cb22486a6"
+    },
+    {
+      "id": "mtt-006",
+      "reviewedAt": "2026-11-27T18:50:48.911Z",
+      "pass": true,
+      "notes": "Finite tournament seating beyond a gate; large empty seat and admission queue communicate survival.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "ccf5a1ac2a879f3aaffdcc6499bc61c82fdb6dc0404c487318467d51e23e3030",
+      "outputSha256": "6e544ba3ce99dfa6a912387c7271e735ab3da8eace9dd5e11bbd14e4b86c3134"
+    },
+    {
+      "id": "mtt-007",
+      "reviewedAt": "2026-11-27T18:50:48.911Z",
+      "pass": true,
+      "notes": "Low-angle chip canyon makes deep stacks dominant; tactile edges and long decision horizon.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "ce157c79768b86450e3787b38024487f4fbe5d9737c29b976c40492fecc9b3da",
+      "outputSha256": "bfcd6eed72bb38120034d2153b716a3fed843c2d53319696a201dc35011e556e"
+    },
+    {
+      "id": "tournament-prep",
+      "reviewedAt": "2026-11-27T18:50:48.911Z",
+      "pass": true,
+      "notes": "Overhead working study desk, notebook, clock and structure model; practical preparation scene.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "2d31e8369e82c6b00d6a4325c884d885252ed3297fa11dd0f7ea98eec0916c6a",
+      "outputSha256": "a9eb0318622fe9887b05fc79a74f85c086f67861320d0dd61bafed7c29da166e"
+    },
+    {
+      "id": "psy-006",
+      "reviewedAt": "2026-11-27T18:50:48.911Z",
+      "pass": true,
+      "notes": "Diagonal optical bench and one clear beam through apertures; strong focused concept with no chip-template repetition.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "a5e66cf341afcf834258758edc472f4b58a79fbf9f91ae70900c351fe1e8a7f8",
+      "outputSha256": "54f97a515bca3bc1ab248682457006d9f6f0396d380ef68afbaa607bb76b14f0"
+    },
+    {
+      "id": "mtt-001",
+      "reviewedAt": "2026-11-27T18:57:20.007Z",
+      "pass": true,
+      "notes": "Retained approved Push/Fold stage; central clean space fits source-exact A/K native pair.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "920ecce74f92ee83846ceb148540056a584cbdd87a356ffb69961fa1f69ade35",
+      "outputSha256": "cb3fa3f807602f50ceabee44e0796149b604b92c335005ba53a926fe4fed8496"
+    },
+    {
+      "id": "mtt-003",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Retained approved pressure dome; clear central interior fits the native K/Q pair.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "04529ddc97d07f1c755f3e3a65b0dcb45346301db90d60c792220759e21a12af",
+      "outputSha256": "39504243ee89bcd97b68e17085813d9ea3d7d572fde23db547a26a20053546f8"
+    },
+    {
+      "id": "psy-001",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Retained single chrome brain/gyroscope scene; distinctive mental-control subject, no native cards.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "1441e5a3780deb0222777f93767e45381c892a83a74917744c58b80846c7209a",
+      "outputSha256": "75042f7c3cd944266132aed962c21dedb124b8968dc500c39f7c12d6609145b8"
+    },
+    {
+      "id": "adv-003",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Asymmetric branching decision sculpture with a visibly locked node and rerouted blue branch.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "f9aa626b468f8c64db2e684c332b0484cb24e89be939c290b3578dcded08ac9a",
+      "outputSha256": "cddf13c009f47db308912f6234f769fffc20104b5978652d29a58b35713c416d"
+    },
+    {
+      "id": "mtt-008",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Overhead compact chip group threading between larger formations; short-stack tactical passage is clear.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "06bff59b81236b1f086508ff9ecc7bc53eea19b1a0cc3199e39c53fcf3900711",
+      "outputSha256": "6877790856b595a670c6b8cfd1f7ef27d6a9d9f3878e9657d541ed8491341851"
+    },
+    {
+      "id": "mtt-009",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Low opposing wager lines show counterpressure, distinct black opener and advancing blue chips.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "666e6e1eca760608dc26e10d9c54b32cf62a8fe66f7cc54dbeb9e509715bdf29",
+      "outputSha256": "6816ea5c8316ccd0a4428489469ec499437e7e0c603de0e69f68bf9132757752"
+    },
+    {
+      "id": "mtt-010",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Three-way pot geometry with an oversized squeeze commitment; clear overhead table scene.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "f856ac1205be66052086a7b431203445d4ab233c0cf19751f50e83bc26d39415",
+      "outputSha256": "3d2723a99b386a1964e5ca5d6537dfd69633d282d06558e19bca23a2c074edba"
+    },
+    {
+      "id": "mtt-011",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Large chip rake collecting scattered antes; close action and clean diagonal composition.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "9be510da977fda375e2f275bf46339143ca2c17a2b1d2434222c114d5ba31f1c",
+      "outputSha256": "de003bd5ae9eb3325d3ec6a4d608517304b2ea495c056dd7a4b810781b4731a9"
+    },
+    {
+      "id": "mtt-012",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Frontal overwhelming chip wall looms over three short stacks; covering-stack pressure is legible.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "cd674bd907794b1cc81d0559c0f9a9ef6e8aa5b85021e1184896784d02926be6",
+      "outputSha256": "e5ea93f9bf0c46766b9d54f3f86a5694ed8e31fe394cd373d609c5109158f3e3"
+    },
+    {
+      "id": "mtt-013",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Spare side-view payout staircase with one patient chip; strong horizontal graphic silhouette.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "5167b3e71bf946cf6b085b73ba3db4d805e0859f5179122523ab84b482d9c526",
+      "outputSha256": "c1ac01dd4e78fdd5bc39c7a50add4c526d70f9e8d48bfdd7e6be507bf46e2d1d"
+    },
+    {
+      "id": "mtt-014",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Three-seat triangular table with converging chip action; fast final-three scene.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "6fd30c660c4e19647c591f3742155c3aaad687a274bb017704b5818ada91a090",
+      "outputSha256": "36c22795d3d972cb6526d68e5ba36e20905b38b9b07b5ffafc2f939d19de51a2"
+    },
+    {
+      "id": "mtt-015",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "First-person heads-up table and opposing chair; natural lower-left felt is clear for native pair.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "13970eef68aa0b2bae6f567e0d33e821c2392a46951258c7f7886ff2488cc1e9",
+      "outputSha256": "b49b53739bfc734a7827d6ea3643de5fec65da8d1cd8fc76351789c54201fffa"
+    },
+    {
+      "id": "mtt-016",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "One large solitary chip before a single chair, distant opponent reserve; comeback concept clear.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "06a5ff87edc6199f3fe5080b107d7e0cdf40df83f3ca4f766a34756ff9a67113",
+      "outputSha256": "2341db33a4eee8f9fb409751953133b09293a14cf3cb960b41f4d3e01af3acca"
+    },
+    {
+      "id": "mtt-017",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Low stack at curved rail faces incoming hand/wager; lower-right felt remains clear for native pair.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "6d7593defcacd2e5da775694065dd2d02ee6b03b40714174bf9878d912b631f0",
+      "outputSha256": "1199e1d912e33960f424afc2aba5ded9160cb49b50f9bdce9892aef219c0fc87"
+    },
+    {
+      "id": "mtt-018",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Extreme overhead dealer disc with routing paths to neighboring positions; macro spatial strategy.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "f774014903871b978b80656c381d4b7fecc12ce4306a1df7c24bf760a3fb4959",
+      "outputSha256": "31244045de0dc5e15d2d5199d613a72c468e578154af47159d9d4b94f6b107ac"
+    },
+    {
+      "id": "mtt-019",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Lifted mechanical betting gate releases waiting chips into a clear lane; two-phase delayed action.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "b98c2747df451692f042d199b2ea9e9b14f01854f2684238184a75a92c047080",
+      "outputSha256": "99044241abd6aca79f9dbcc99eadd382dc3b7b0a3e56ced945b4d43f5ecd1392"
+    },
+    {
+      "id": "mtt-020",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Three bounty contributions converge into an irregular shared pot; medallions clearly distinguish incentives.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "658bfa5d87f87cc886b332e2b7a69b163afb72db729e983d5f31a0d661709d0c",
+      "outputSha256": "e4f2058a0e24fa47d8fa7c8615ae6d3d3aa20df8b773467aa440c448b2e4b8ac"
+    },
+    {
+      "id": "mtt-021",
+      "reviewedAt": "2026-11-27T18:57:20.009Z",
+      "pass": true,
+      "notes": "Large chips surge past a betting line in a forceful single postflop action; close and readable.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "295e389ec9c7dda5dadea2c731cb7ebf4f74cde3f4b9ce1b205715d3408831e9",
+      "outputSha256": "5a74f0215a37d3bafc5d9700b94f484da53dd65b515f81047f1911cceef8d9f2"
+    },
+    {
+      "id": "mtt-022",
+      "reviewedAt": "2026-11-27T18:57:40.497Z",
+      "pass": true,
+      "notes": "Large unnumbered timebank clock with orderly reserve tokens; clear calm timing subject.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "6e93843b1d64043174d0b94defa3a398dda4b772ac5fdcd56e7480b863c11d11",
+      "outputSha256": "d261bd37a90f0c5b7f35e6440f2a7687e44e1299a442560dcaf06c8c8a7c3445"
+    },
+    {
+      "id": "mtt-023",
+      "reviewedAt": "2026-11-27T18:57:40.498Z",
+      "pass": true,
+      "notes": "Close blank admission ticket at an entry slot with stacks beyond; no playing-card appearance.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "d3744d278a942629b3567f8cf0b15e05895271f41bfc8211aaa7496d29567dc4",
+      "outputSha256": "13770889b6e5e9315741140f7d4e3a78f0ee8b09aaed1885130eea506b400ed9"
+    },
+    {
+      "id": "mtt-024",
+      "reviewedAt": "2026-11-27T18:57:40.498Z",
+      "pass": true,
+      "notes": "Three physically separated escalating wagers on actual felt; progression is legible without labels.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "dd936cd170b11ee8ebaf18ade6b3ab2c42d022e7503e092d993ac5bc562d8478",
+      "outputSha256": "6446ef6beca36fac2bbd1cfff693811f13702df2107eca888a87026c2067c60c"
+    },
+    {
+      "id": "final-table-sim",
+      "reviewedAt": "2026-11-27T18:57:40.498Z",
+      "pass": true,
+      "notes": "Full oval final table with distinct equity-ribbon sculpture at active seats; no repeated central trophy.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "e0ff4c43958df9401adad0cb81129dfbf6ef25852cab99c3c8b68375268f24d7",
+      "outputSha256": "93f7063354117c4945ecfa1a9b4ffb59957593e01a64ebbcacdd9ada2808308d"
+    },
+    {
+      "id": "mtt-025",
+      "reviewedAt": "2026-11-27T18:57:40.498Z",
+      "pass": true,
+      "notes": "Cinematic final-table winner trophy with rail, chips and silver confetti; strong championship treatment.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "4ac7ae11901daafdf9e41bf72b32a351c298bbc86c81f998d09b96c3538aa473",
+      "outputSha256": "15d81e4d9140b08367216415b0805b7b0ec041b6e1732f925794f416de07ea3c"
+    },
+    {
+      "id": "psy-002",
+      "reviewedAt": "2026-11-27T18:57:40.498Z",
+      "pass": true,
+      "notes": "Side-view metronome and evenly spaced chips; visual rhythm clearly differentiates timing discipline.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "a6e9d11bbf9c14f516a437ec13b83e64f7fb3422573e072e80afd27bd870cdb8",
+      "outputSha256": "589e06f01c2b88891bcd957b0f315dae9a04dbb3db6e06a516f77a588c24bd8b"
+    },
+    {
+      "id": "psy-003",
+      "reviewedAt": "2026-11-27T18:58:32.056Z",
+      "pass": true,
+      "notes": "Large protected chip in angular cage with frozen ice impact; resilience subject is immediate.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "87e2ba5af1ad9c1b79d1f669d857c2f04abd211d7f7227339839c032992315b9",
+      "outputSha256": "6d4ab3d22290c1ab29e91ade9c4b7f4c53c9272863e5baeeecb1c5e0327e9bc5"
+    },
+    {
+      "id": "psy-004",
+      "reviewedAt": "2026-11-27T18:58:32.057Z",
+      "pass": true,
+      "notes": "Steady chip between massive rectangular press plates; concentrated pressure without a repeated dome.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "19a61d9d2fa0e6b128e4c857a26030943f466a6afe9967f3923d4a13d37df0c3",
+      "outputSha256": "86079e8c08ffcb7dea9b19d8c0c93d8cbf17ba75af5140e248cd221c65548038"
+    },
+    {
+      "id": "psy-005",
+      "reviewedAt": "2026-11-27T18:58:32.057Z",
+      "pass": true,
+      "notes": "Close hourglass and untouched chip create a patient, tactile scene with clear negative space.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "4b8e78134b3c52a3267fde55fe39218ce16df732dc2524934bbdfef1125f073a",
+      "outputSha256": "75c82c270f0e40b95bc888243a529063120eec6da5caff04a15b07b3a52fd273"
+    },
+    {
+      "id": "psy-007",
+      "reviewedAt": "2026-11-27T18:58:32.057Z",
+      "pass": true,
+      "notes": "Compassing a fork between gains and losses communicates process independent of outcomes.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "9749954ba98621150e8275c011ace5eafa2c8a1db5daab2124230687f4c1b1f6",
+      "outputSha256": "723bded94b76f40df9cfd4ca9705b3315458d801541b87cc79106950476195ba"
+    },
+    {
+      "id": "psy-008",
+      "reviewedAt": "2026-11-27T18:58:32.057Z",
+      "pass": true,
+      "notes": "Natural human hand confidently places one chip across the betting line; strong decisive gesture.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "f547291079e3544bbf683a65bb25df4d886645ab9357d81958a0ab440dd51a41",
+      "outputSha256": "ef6a40afb8944375a125bd47f9602b3ba2495e18fbaba3c590dbdade09c7c1e7"
+    },
+    {
+      "id": "psy-009",
+      "reviewedAt": "2026-11-27T18:58:32.057Z",
+      "pass": true,
+      "notes": "Single chip breaks through fogged glass into clarity; dynamic clean courage composition.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "7fee3f50a70ed73dae50afd37c0efee396b61637a23b10b008a0530a76d0a57f",
+      "outputSha256": "57585f01db0ddb3b6cea97719dc7d1a06391da9d63d03a007d657eff4ba7b2ca"
+    },
+    {
+      "id": "adv-002",
+      "reviewedAt": "2026-11-27T19:01:51.256Z",
+      "pass": true,
+      "notes": "Physical blocked-combination grid; the two strategic blockers remain clear, with a natural lower-left area for native cards.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "7738602904ca3ef2424e1ac79c77c5b33dbe1ff04e23c29f83436d59c2ef263a",
+      "outputSha256": "fd28a5257fffe2f365d50e7e138b795247fba6062fe09d692934d35503fe26f4"
+    },
+    {
+      "id": "adv-004",
+      "reviewedAt": "2026-11-27T19:01:51.257Z",
+      "pass": true,
+      "notes": "Partially assembled cobalt-and-silver tile range with hovering pieces; actual construction concept.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "0e956193436ea650b3446ab2197bbf32164febcf687547aee8543932a5529f43",
+      "outputSha256": "b6b5eb6f8cd20c1b2edc1b2dd06f11df3fef4eab15fca52d94dcd2f199580e51"
+    },
+    {
+      "id": "adv-005",
+      "reviewedAt": "2026-11-27T19:01:51.257Z",
+      "pass": true,
+      "notes": "Transparent horizontal distributor visibly splits one input into uneven output streams.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "70271276899be47bcb34e946b09c6806212a69e2c157165c22d9e00eb223181c",
+      "outputSha256": "694e24823b73d2e1928e82028d8632037fc098e9633631fe77075044adcc7aae"
+    },
+    {
+      "id": "adv-006",
+      "reviewedAt": "2026-11-27T19:01:51.257Z",
+      "pass": true,
+      "notes": "Cantilever compares a large reward with smaller cost through blue probability blocks; clear EV balance.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "598fa7b56da21cb81db9fa304c08641727e9c1645d809dc4f7c63b02b4ce183a",
+      "outputSha256": "678ec808c08523046ee84c9a350918ebfb813504e3e974451a9b0b9a6c8a2134"
+    },
+    {
+      "id": "adv-007",
+      "reviewedAt": "2026-11-27T19:01:51.257Z",
+      "pass": true,
+      "notes": "Spare side-profile beam presents equal options around a balanced chip; intentional minimalist indifference composition.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "ebd8a694064c92ea14715aaeda3a6a25207f233c7096d7c56a7bf7d67e237035",
+      "outputSha256": "38196bd4fd8f5c252cd0ebdbf4b86dbc9f3cedca07efc2ac24ca27d9d9103ddb"
+    },
+    {
+      "id": "adv-008",
+      "reviewedAt": "2026-11-27T19:01:51.257Z",
+      "pass": true,
+      "notes": "Two tactile equity landscapes form clearly different distributions; angled block field fills the frame.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "fa28350609895324fcd4336d17d3c8d616114fe456884299839c0401a1d8eb08",
+      "outputSha256": "ea4fc897c46e59b2f936c362c66545fb67388ba5def5685b00462eee9e5fb93d"
+    },
+    {
+      "id": "psy-010",
+      "reviewedAt": "2026-11-27T19:01:52.433Z",
+      "pass": true,
+      "notes": "Crown set aside for an open study notebook; clear humility and learning scene.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "545b0ea149deb6780f89d14e59d773f85ec5303ea204111475122b2a971147ed",
+      "outputSha256": "e997845ae52ef9758f935481805d05bf2069f150bfb2115ab2cdc297071f5d22"
+    },
+    {
+      "id": "psy-011",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Long chip path with steady illuminated finish; perspective and rhythm communicate session endurance.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "b2312fc0c5e7fc183bc4748d22032617d03b5615edb52db616a39e702f4d3cbe",
+      "outputSha256": "8fa234eb1e6e947b383e05139541c2fed085621fdda84a54c32fe967b3edd562"
+    },
+    {
+      "id": "psy-012",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Fast fingertip sends one chip through a closing gate; tight freeze-frame decision moment.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "ac86c34ae7bf9f53e8fd19e44af45870ce9abe2260d969c733ce64785f8121b9",
+      "outputSha256": "d08a103fe1239e582b2f4d65f4e3670f4dd75fe4ee02953a74ae310dc3f61955"
+    },
+    {
+      "id": "psy-013",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Visor focuses on actual wager chips while vague gestures blur outside; evidence over false tells.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "2a7a559254b076eb765faa39752a3385ba8a748e3ea8dcea2dda97197f085724",
+      "outputSha256": "ce61987198201f510b330dc97ab80235340bcef0f943454617ec22a79338df3a"
+    },
+    {
+      "id": "psy-014",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Transparent reserve compartments and one modest session stack; orderly bankroll discipline.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "f086864994cd50be707911d77ce53c1d60e511531e6ba9bacb1446e110d9236e",
+      "outputSha256": "10cf6b83b5e3e2a0b3bf75d5f5b12f4be6231c4bc1edbd273a3f6878c8202bf3"
+    },
+    {
+      "id": "psy-015",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Leaning winning stack steadied by a spirit level; restraint after success is visually clear.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "ebc465f2706cf42b0892959110cd7657cc02b109cc7b10f49317667e7313c8fb",
+      "outputSha256": "d9de03b2c80a3070f12a4a2524e2a9998af0a36b3d7e7ef1d044c229cdce5a33"
+    },
+    {
+      "id": "psy-016",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Calm chip and stone over smooth alternating waves; distinct serene matte treatment.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "a078f17c8a62533ca6a131cfac65e3c65e3caa307f1779d81bc2a1b5b98a03ff",
+      "outputSha256": "3be2db7e870eec43b94680fe15d5810be797c2014d331f314558ecbaae9e3c22"
+    },
+    {
+      "id": "psy-017",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Lamp-lit study notebook and simple chip exercise; intimate desk-level practice scene.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "749b2c0667b21f3c237723a07335293222bd09541b690a1264a72e6d97f8f485",
+      "outputSha256": "ff92fef3b3475e7d0c30a75c6e857709cfe9e2eb9d7eecb2acb0b692dd3375bd"
+    },
+    {
+      "id": "psy-018",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Angled mirrors show contrasting views of one empty poker chair; perception theme is legible.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "2cedb0d2fc676d7814e4ea449eda521ba48e5cf5269f2ac54f824959f1d35554",
+      "outputSha256": "a05903d41ca1e4ed13f0cf4becb2a707f75603535c86441df660b6e1faf24a13"
+    },
+    {
+      "id": "psy-019",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "One cobalt chip deliberately leaves a repetitive dark-chip conveyor; clear break from autopilot.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "21b6978ef7d4aefa18960a66949d7d9aeace0096861e256b8211b7f90fb5c102",
+      "outputSha256": "cf4d8fe9118a9e36ef3cb307be0fe470181348448db7a0add571c69061f866bd"
+    },
+    {
+      "id": "psy-020",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Calm seated competitor from behind with an orderly table; human composure, no duplicate brain motif.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "bc1f9350638223c47f06ef8371d1a2e96a7909935b813b5c0cb6286b9835d90f",
+      "outputSha256": "c9a5395db6d66146bd57292281189b9a03e5a23f864a0872a5a2c18a6ef5ddd4"
+    },
+    {
+      "id": "adv-001",
+      "reviewedAt": "2026-11-27T19:01:52.434Z",
+      "pass": true,
+      "notes": "Chip arrangement and its glass reflection create a precise solver-matching visual.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "bd3f989eed4a6cdfbcf05df775faee15a4b29ba8afdb2963891eff6a7dc5253e",
+      "outputSha256": "e974380f0dd73975bc9ecf33f853e78db4311f2ede144da292462093a3e9a122"
+    },
+    {
+      "id": "adv-009",
+      "reviewedAt": "2026-11-27T19:02:37.495Z",
+      "pass": true,
+      "notes": "Rare silver pinnacle above ordinary blue pieces; strong top-end strength visual without a trophy.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "94343a3d2c608d8ff5b46fc0ac3fa3a034a4a3d322eda4389a78815bf252e1d7",
+      "outputSha256": "84bed83f6ce43a00957c16bc40c5884df76acb32c8ce523a3b2741c26158d685"
+    },
+    {
+      "id": "adv-010",
+      "reviewedAt": "2026-11-27T19:02:37.496Z",
+      "pass": true,
+      "notes": "Fine silver mesh covers smooth, stepped and jagged terrains; range coverage metaphor is tactile and distinct.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "822043625f971043e364b3b0cc53c1e8ae14dde6a302a31a6afc7e01188fc48a",
+      "outputSha256": "d06f09ccc60b901969220eae852ac0c27e71c3b20b8615ecf19b91c9984faeab"
+    },
+    {
+      "id": "adv-011",
+      "reviewedAt": "2026-11-27T19:02:37.496Z",
+      "pass": true,
+      "notes": "Tall remaining stack, shallow pot and proportional divider directly compare stack-to-pot scale.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "81a01ef0be86d35052307f108f822fc7269a107c89fe2019ab0d83c252035917",
+      "outputSha256": "9f69664ad4b536b3fbac7df7ddb415c40633551232086059305e806e478234ab"
+    },
+    {
+      "id": "adv-012",
+      "reviewedAt": "2026-11-27T19:02:37.496Z",
+      "pass": true,
+      "notes": "Selective blue barriers respond to incoming pressure pieces; tactical minimum-defense scene.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "7300f971c7fc36a623038716251695b48b144e2eb43e36813c2a06a44d178554",
+      "outputSha256": "c37f9af0ed2ecac86a9de612e30873fdb38f57dfb2703a175d52895ebbd32a5b"
+    },
+    {
+      "id": "adv-013",
+      "reviewedAt": "2026-11-27T19:02:37.496Z",
+      "pass": true,
+      "notes": "Separated paired markers in a counting tray; lower-left felt supports native card pair without hiding the combinations.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "72f8de08f649495aff7373196d4498b437d873230cdfe24d39d38358749da036",
+      "outputSha256": "04e036d6af0df4897783f4379f351fb0fa905b0f6fd93a59a85756ddfe88f0bd"
+    },
+    {
+      "id": "adv-014",
+      "reviewedAt": "2026-11-27T19:02:37.496Z",
+      "pass": true,
+      "notes": "Geometrically expanding wagers measured by a sweeping divider; different camera and tool treatment.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "479f6f43b8e9df1ba69260405988141161c9aa7ff10cc84972277c4ca1f703d6",
+      "outputSha256": "19ae65b835f5546dd038b776d764cb168b54e61f03959d9ad60e7cacbe0a42eb"
+    },
+    {
+      "id": "adv-015",
+      "reviewedAt": "2026-11-27T19:05:40.228Z",
+      "pass": true,
+      "notes": "Large analytical lens reveals clusters in a broad population mosaic; collective read is clear.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "5b01ed509fc4facb170f2184f0509d9082df873548f62403ecbf32ff059b03d0",
+      "outputSha256": "516fa5e2df9ed484b7118b7a6beffe8c0ed0775e6dcd940e67b8c89993c7f1b7"
+    },
+    {
+      "id": "adv-016",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Blue route climbs through weaknesses in a regular silver lattice; deviation strategy is visually distinct.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "3ab148578b6897442723a4799d49174b1ef0e0983015d55f378562fc64323dbb",
+      "outputSha256": "4954aa3dc74159000445452a51d0bfc4150de6fc2c8804f9823574e4cab6ebd5"
+    },
+    {
+      "id": "quiz-gauntlet",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Low tracking view through a sequence of different decision gates; rapid challenge rhythm.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "bd0a9bc72f29f66adcffe655b8b9f3c5022096a3a0809e190c6bb16244ce6a22",
+      "outputSha256": "dd6e7e74d8ab9ca28b4cbed03dee4b5552da52817e9e341674e86107c26fc372"
+    },
+    {
+      "id": "adv-017",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Final corrected scene replaces unintended chess pieces with capped cobalt range blocks and poker-chip columns beneath a glass ceiling; one silver reserve exceeds the cap.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "f405999242cf79ea44104c86a8d2bb43cc04301bb76ee17ba926f11ff629c16d",
+      "outputSha256": "eaa488969d192157d11dc68f6fda5e5246b4bda65475fbcf5fd00499b1770743"
+    },
+    {
+      "id": "adv-018",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Two dense poles of blue and silver chips separate across a broad empty diagonal; range polarization is immediate.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "0dde7c7555082b5cdf0214f86d35e49dbd18fb02293d16558d6b115fe1d2329c",
+      "outputSha256": "6549fa1a6ca3c4c67a623f53b45c2a6d5670de4180f3df9e0433ee6c83248bbe"
+    },
+    {
+      "id": "adv-019",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Layered simulation plates align under a reading arm; interpretation rather than raw code or screen.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "16f70c5fdfc5f2be0662439a9641a4c7e6258e7af6adb827afe7dddc9c4fc67a",
+      "outputSha256": "1f1392ca3f01a37a5fabae8970d26a47eb36b2945d5af832092dac4f38c951e3"
+    },
+    {
+      "id": "hand-lab",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Equity-analysis prism and adjustable sliders on a workbench; natural lower-left felt is clear for native pair.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "3e964a82a74aac9a3c457a99a494a4666fa8b4c7367b48a6e7b28b8f45c8acca",
+      "outputSha256": "14acccc1a9d4cb6846db58db33152fbc0238b0224b68b1d2942b87790eda03aa"
+    },
+    {
+      "id": "bluff-catcher",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Large lens exposes a hollow wager stack; left felt is clear for native K/Q pair and forensic hand-reading.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "b0f0cf73e5ebaa988497ded6321c32761fd6087c84559ec17fe209419d4e026a",
+      "outputSha256": "6647a9bcf63b50a9ac730c54abe7c73bc01424d5b0958dae734abde96d531300"
+    },
+    {
+      "id": "mixed-strategy-lab",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Asymmetric mixing channels produce varied chip outcomes from a partial probability wheel; distinctive flowing lab composition.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "bb33aa7e455acc640818def3375ed4236cb0c6354fd9bcf6cc2b1416950b5b0d",
+      "outputSha256": "7aff466a45e6dd2c9ae708f2d39ded3e354a873c74e74582863ae41c51056f3c"
+    },
+    {
+      "id": "study-group",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Several natural hands collaborate over one chip exercise with blank notebooks; direct human learning scene.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "70812a330806acbd998d7668e8dad02b039a69ceb64b150f3a62807537fd578f",
+      "outputSha256": "510179eb80c7dcca234783e30a987af2802b0654aa86c379e1f78d4d494789f8"
+    },
+    {
+      "id": "adv-020",
+      "reviewedAt": "2026-11-27T19:05:40.229Z",
+      "pass": true,
+      "notes": "Distinct sculptural strategy landscape converges at a silver summit with cobalt routes; bold full-scene apex metaphor.",
+      "generatedCardsSeen": false,
+      "unwantedTextSeen": false,
+      "sourceSha256": "5d9024809b05c8c4e75e58487262cb284bbae7c164a88633c8699d5afd3b522e",
+      "outputSha256": "fb0ca1b7e8c9f06f5b7b087cbdb3ed183e8073b5da5e7cf8d333bf2c6889649d"
+    }
+  ],
+  "completedAt": "2026-11-27T19:05:40.232Z",
+  "count": 72,
+  "nativeOverlayVerification": "Planned clean space and percentage geometry inspected; actual browser crop verification deferred to root hosted preview."
+}

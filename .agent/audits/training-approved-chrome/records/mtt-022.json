@@ -1,0 +1,71 @@
+{
+  "id": "mtt-022",
+  "name": "Clock Management",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:51:39.439Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Clock Management.\nSubject: Clock Management: a precision chrome tournament timebank with a large analog sweep hand, beside a finite ordered row of small timebank chips\nCamera: editorial close-up from slightly above, asymmetrical crop\nComposition: The clock fills the left two-thirds, its face has only clean tick marks and no numbers or writing; timebank chips recede along the felt toward the right. Cool calm control, crisp white reflections, no decorative orbit or platform.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Clock Management: a precision chrome tournament timebank with a large analog sweep hand, beside a finite ordered row of small timebank chips",
+  "camera": "editorial close-up from slightly above, asymmetrical crop",
+  "composition": "The clock fills the left two-thirds, its face has only clean tick marks and no numbers or writing; timebank chips recede along the felt toward the right. Cool calm control, crisp white reflections, no decorative orbit or platform.",
+  "source": {
+    "fileName": "exec-30c94b17-07c2-43f9-b634-99effdbedf90.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2256510,
+    "sha256": "6e93843b1d64043174d0b94defa3a398dda4b772ac5fdcd56e7480b863c11d11"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-022.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 33950,
+      "sha256": "6e01c6430977a4e4b6217aa4072dbbc4efc18f5830580ae077fe6e019cf8daee"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-022.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 27589,
+      "sha256": "9b2a3cf4b512d5e293e28f43ef928412098164141e9260e95bf9254ce40a15fa"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-022.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 62624,
+      "sha256": "03184b9ad8af15897f1752be678618417d5ea01ba526c9712239919ac94836f6"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-022.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 47367,
+      "sha256": "0eb433d0b18e9849a2f06ab8cf83c393abd662614feb7093a8541ab14d68eab6"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-022.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 111386,
+      "sha256": "d261bd37a90f0c5b7f35e6440f2a7687e44e1299a442560dcaf06c8c8a7c3445"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-022.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 75737,
+      "sha256": "5ac300e23f3d94d7d280050c1e11e0a76f995ce9c3f3ff64d83f8e9ad2d6cfcf"
+    }
+  ]
+}

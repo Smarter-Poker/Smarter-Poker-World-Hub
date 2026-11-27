@@ -1,0 +1,71 @@
+{
+  "id": "cash-023",
+  "name": "Equity Denial",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:59:35.631Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Equity Denial.\nSubject: A firm betting barrier closes the routes that drawing hands could otherwise take to a protected pot. Thin cobalt paths approach from the left and terminate at a broad angular chrome shutter driven into place by a compact wager.\nCamera: Side-on horizontal cutaway, close to the moving shutter and the interrupted paths.\nComposition: The betting shutter slices diagonally down through the middle. Several delicate incoming paths occupy the left third; the protected pot is partly visible behind the shutter at far right. The shutter and the cut-off glow carry the image, not a chip tower. No round stage, shields or cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A firm betting barrier closes the routes that drawing hands could otherwise take to a protected pot. Thin cobalt paths approach from the left and terminate at a broad angular chrome shutter driven into place by a compact wager.",
+  "camera": "Side-on horizontal cutaway, close to the moving shutter and the interrupted paths.",
+  "composition": "The betting shutter slices diagonally down through the middle. Several delicate incoming paths occupy the left third; the protected pot is partly visible behind the shutter at far right. The shutter and the cut-off glow carry the image, not a chip tower. No round stage, shields or cards.",
+  "source": {
+    "fileName": "exec-5fe024f3-0c92-4ac0-9c90-79f0233543fa.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2349273,
+    "sha256": "4a74469c49c363089b2006627948094e4af729fb19f9569e8a0e108187b60c6f"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-023.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 33970,
+      "sha256": "a566bf744ecf17a7593348aa44c2f106aecb7b022652a9b10fff03b8f4ceaba3"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-023.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 27850,
+      "sha256": "0ed9868982bfef76cb92d02a2952a0cd690d53cd640787dd210eddb12fe990ea"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-023.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 67366,
+      "sha256": "58d1af758bb8559794d1505df6ca6f8228994a0714ed395e10a2bb024127a1fe"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-023.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 51402,
+      "sha256": "3a86827854f997dda8948fdf482be3471bc2efafb7f09bcdd4210af9c787b659"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-023.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 123064,
+      "sha256": "bf4b91fc5ec71cdf645fdb0f63c6c17f9d6d848299841ed23a208a7231d6ae41"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-023.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 88723,
+      "sha256": "69241fc65cd13f7a27c93ce10d8c583197b9b72641241ba986fc125be7b751b3"
+    }
+  ]
+}

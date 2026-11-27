@@ -1,0 +1,71 @@
+{
+  "id": "mtt-024",
+  "name": "Triple Barrel",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:05.707Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Triple Barrel.\nSubject: Triple Barrel: three successive waves of cobalt betting chips grow in size across three connected sections of a poker table\nCamera: long low perspective along a diagonal sequence\nComposition: A small first wager at lower left, medium second wager in center, and a large final shove at upper right create a clearly escalating rhythm. Three silver seams in the black felt separate the streets. No guns, cylinders, arrows or podiums.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Triple Barrel: three successive waves of cobalt betting chips grow in size across three connected sections of a poker table",
+  "camera": "long low perspective along a diagonal sequence",
+  "composition": "A small first wager at lower left, medium second wager in center, and a large final shove at upper right create a clearly escalating rhythm. Three silver seams in the black felt separate the streets. No guns, cylinders, arrows or podiums.",
+  "source": {
+    "fileName": "exec-686afb22-69e9-4808-84b6-de41410528c5.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2280942,
+    "sha256": "dd936cd170b11ee8ebaf18ade6b3ab2c42d022e7503e092d993ac5bc562d8478"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-024.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 35148,
+      "sha256": "ec8e2b3fcb73c788418a8f9751e5ff0e209ec1a2a9f84183460b19a5325fec07"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-024.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 32288,
+      "sha256": "ca335a8bca6a9056752b61d42c9486c43ade565059e7b02e5afb00963154c8b9"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-024.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 67330,
+      "sha256": "65563cb3a525f4772c3a57ef761882e053a6d98da4183a6b058fbdc6b603f8e3"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-024.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 58882,
+      "sha256": "86dfed8bff3bbc13c545596d2061fddfb5645325ecab9e05be011d8cb93595d2"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-024.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 125328,
+      "sha256": "6446ef6beca36fac2bbd1cfff693811f13702df2107eca888a87026c2067c60c"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-024.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 98857,
+      "sha256": "4819c0850d8bab4175eec84b242dc24d3d7797f16e84c8b2f00f3eef54ba53bd"
+    }
+  ]
+}

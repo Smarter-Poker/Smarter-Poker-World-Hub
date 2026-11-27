@@ -1,0 +1,7 @@
+{
+  "tool": "imagegen",
+  "source": "/workspace/scratch/c868e812eb6b/generated_images/exec-88ed0cd5-4102-4e97-8431-8fed0b3e7467.png",
+  "prompt": "Edit the provided existing poker-table image with a precise cleanup only. Remove BOTH overlapping white blank playing-card rectangles in the LOWER-LEFT corner, including every card edge, outline, shadow and white pixel belonging to those rectangles. Fill their former area seamlessly with uninterrupted dark navy poker felt matching the surrounding weave and lighting. Preserve the single cobalt limp chip at center, the diagonal white betting line, the plain silver dealer disc at lower right, the shadowed chip reserves at upper right, the table rail and all camera framing exactly. Do not add any new objects. The finished scene must contain NO playing cards of any kind, NO blank white rectangles, NO card backs or faces, NO suits or ranks, and NO printed text. Source-exact real cards will be layered by application code later, so render no cards. Preserve original image dimensions and quality.",
+  "requestedAt": "2026-11-27T19:02:25.023Z",
+  "reason": "Remove all generated playing-card pixels; keep only game-specific scene."
+}

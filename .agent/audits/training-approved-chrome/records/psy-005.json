@@ -1,0 +1,71 @@
+{
+  "id": "psy-005",
+  "name": "Patience Master",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:53:31.189Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Patience Master.\nSubject: Patience Master: a silver hourglass slowly releases a few cobalt grains beside one carefully untouched poker chip\nCamera: intimate side-on macro with shallow depth of field\nComposition: The hourglass is tall and cropped at upper left; its falling grain stream is sharply visible, while the lone chip rests in clear space at lower right. Warmth comes only from soft white light, with restrained matte navy and brushed metal.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Patience Master: a silver hourglass slowly releases a few cobalt grains beside one carefully untouched poker chip",
+  "camera": "intimate side-on macro with shallow depth of field",
+  "composition": "The hourglass is tall and cropped at upper left; its falling grain stream is sharply visible, while the lone chip rests in clear space at lower right. Warmth comes only from soft white light, with restrained matte navy and brushed metal.",
+  "source": {
+    "fileName": "exec-811ac2dd-0037-4e8a-8b9d-c9a7530b5a52.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2026382,
+    "sha256": "4b8e78134b3c52a3267fde55fe39218ce16df732dc2524934bbdfef1125f073a"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-005.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 26462,
+      "sha256": "80f50f49d3dc6841aa0313a7b7996aca5b1f4a25f7779a966bf6587b0cc40935"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-005.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 21731,
+      "sha256": "0bc026aa1997aa1a5e4f103e3b6e98e248a0ddf4f4589aa43a8d7c6408922e78"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-005.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 48846,
+      "sha256": "c936afcc0753caa753d904f4f88d0063095ad72cd4017e92f94e40fcb3f35336"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-005.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 38765,
+      "sha256": "4c3caa5c759fea1d9c7d9900fbda0a8ddeb8f9a4c5d49b9ec795f7376e72d77a"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-005.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 89440,
+      "sha256": "75c82c270f0e40b95bc888243a529063120eec6da5caff04a15b07b3a52fd273"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-005.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 64931,
+      "sha256": "c867181883d1281244c8203809081362c2bf7a307365156ef140b9474b61a644"
+    }
+  ]
+}

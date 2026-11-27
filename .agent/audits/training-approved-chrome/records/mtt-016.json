@@ -1,0 +1,71 @@
+{
+  "id": "mtt-016",
+  "name": "Chip & Chair",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:31.546Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Chip & Chair.\nSubject: Chip & Chair: one lone cobalt chip on the felt in front of a single empty black tournament chair, with a distant mountain of rival chips softly out of focus\nCamera: intimate low table-level portrait of the last chip\nComposition: The lone chip is oversized in the lower-left foreground, the chair rises off-center right, and a focused silver light connects them. Minimal resilient mood, shallow depth, no stage or additional hero ornament.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Chip & Chair: one lone cobalt chip on the felt in front of a single empty black tournament chair, with a distant mountain of rival chips softly out of focus",
+  "camera": "intimate low table-level portrait of the last chip",
+  "composition": "The lone chip is oversized in the lower-left foreground, the chair rises off-center right, and a focused silver light connects them. Minimal resilient mood, shallow depth, no stage or additional hero ornament.",
+  "source": {
+    "fileName": "exec-01b92b81-84e1-4400-b46c-2e964f84a002.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2523144,
+    "sha256": "06a5ff87edc6199f3fe5080b107d7e0cdf40df83f3ca4f766a34756ff9a67113"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-016.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 31180,
+      "sha256": "08a5fa4731f1f20f761d667362831e64edefe1fa8b9cfe554e96e3bcfeb7e370"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-016.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 26460,
+      "sha256": "ee7fe1552ce6fc2bad19b5bf440a21905cab968844a5cab07b88aa11fcf3677d"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-016.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 71392,
+      "sha256": "841700d7fe2ba1dfaa10957a565e744f213df060de5ba02f80b66ee9ce75f588"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-016.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 59784,
+      "sha256": "438ad564f7b6fcaabbbeeb84cfce965110bc13d7f899e0bd22b8235da21b34e6"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-016.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 152382,
+      "sha256": "2341db33a4eee8f9fb409751953133b09293a14cf3cb960b41f4d3e01af3acca"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-016.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 117932,
+      "sha256": "b624dc3f707e390c3010b46c9b7378036a66ed6a90fa36d63a6367c4e378cc1b"
+    }
+  ]
+}

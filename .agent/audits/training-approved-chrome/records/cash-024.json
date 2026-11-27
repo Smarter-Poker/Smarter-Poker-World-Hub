@@ -1,0 +1,71 @@
+{
+  "id": "cash-024",
+  "name": "Pot Control",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:59:35.816Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Pot Control.\nSubject: A calm human hand holds back further chips at the rim of a modest existing pot. A low transparent acrylic stop, lit silver-blue, makes the intentional limit visible without portraying the hand as weak or passive.\nCamera: Intimate over-the-shoulder crop, focused on the flat restraining hand and the manageable pot size.\nComposition: The forearm makes a broad diagonal from lower left; the stopped chip group stays at the near edge; the small pot rests beyond the acrylic stop on the right. The rest is textured dark felt and a soft chrome rail. No regulator wheel, bowl, concentric rings or display base.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A calm human hand holds back further chips at the rim of a modest existing pot. A low transparent acrylic stop, lit silver-blue, makes the intentional limit visible without portraying the hand as weak or passive.",
+  "camera": "Intimate over-the-shoulder crop, focused on the flat restraining hand and the manageable pot size.",
+  "composition": "The forearm makes a broad diagonal from lower left; the stopped chip group stays at the near edge; the small pot rests beyond the acrylic stop on the right. The rest is textured dark felt and a soft chrome rail. No regulator wheel, bowl, concentric rings or display base.",
+  "source": {
+    "fileName": "exec-5a5e0672-b793-46b3-8dec-918051e406f6.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2360394,
+    "sha256": "52429e8b08687f8be721679c719a13a467b8040eb77c34ae89f7b88a43993300"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-024.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 31498,
+      "sha256": "2c895998fe16e57f2979c3347bb6db1f0cb00570a3bd2a2c81a3c6b240b0acff"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-024.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 25723,
+      "sha256": "f486f966e951dc14011e7ee72184f83b03d5a6ef1b4e0b8fcc92da7bb577b3b0"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-024.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 64486,
+      "sha256": "0eb23babb7f2b4320599a8ce94187d082a4e7bff71f8ad07ba3ee1f50b5a3c71"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-024.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 51130,
+      "sha256": "fadba4775808603528224367e5d5430c672ac6080c439f0a91c14a03c6ec29bc"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-024.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 122680,
+      "sha256": "dadec145b5cc1aadddc0a854777214aaa4a3c0a513fe6ec4ddcdfe16c5b9f846"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-024.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 91710,
+      "sha256": "231ddd5eb224a23838a52215e873335b6235055d8a4d4f2d4a6467e258b2dc5b"
+    }
+  ]
+}

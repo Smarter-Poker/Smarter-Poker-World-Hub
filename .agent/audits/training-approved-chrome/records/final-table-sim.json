@@ -1,0 +1,71 @@
+{
+  "id": "final-table-sim",
+  "name": "Final Table Sim",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:52:21.181Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Final Table Sim.\nSubject: Final Table Sim: a complete final poker table rendered as a precise cutaway model, with remaining seat stacks and silver equity ribbons of unequal height rising from each position\nCamera: wide isometric architectural model view\nComposition: An oval black table stretches left to right and nearly fills the picture; a few empty seats are dark while the active stacks emit simple transparent cobalt vertical ribbons. This is a living tournament simulation cover, no trophy and no circular display stand.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Final Table Sim: a complete final poker table rendered as a precise cutaway model, with remaining seat stacks and silver equity ribbons of unequal height rising from each position",
+  "camera": "wide isometric architectural model view",
+  "composition": "An oval black table stretches left to right and nearly fills the picture; a few empty seats are dark while the active stacks emit simple transparent cobalt vertical ribbons. This is a living tournament simulation cover, no trophy and no circular display stand.",
+  "source": {
+    "fileName": "exec-e0f05301-7555-4dcd-9401-1a337ef0e13b.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2201011,
+    "sha256": "e0ff4c43958df9401adad0cb81129dfbf6ef25852cab99c3c8b68375268f24d7"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/final-table-sim.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 32368,
+      "sha256": "6eef7e3c9b974b6598d0696c157f88b0491952c60292275a06ad7722726faf31"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/final-table-sim.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 31439,
+      "sha256": "b21e05bdd9d69147905fc150ff82b41e4a80f57035d60cecddd729b221665dbe"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/final-table-sim.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 58460,
+      "sha256": "d1eab284077b4c0feb27fc1dc0614f937489478679146761b2806d56b177053d"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/final-table-sim.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 52247,
+      "sha256": "5526738815017cf502b80fede03ef9255f581bc2d347cd12238f7c0c15f526b4"
+    },
+    {
+      "path": "/images/training/approved-chrome/final-table-sim.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 106688,
+      "sha256": "93f7063354117c4945ecfa1a9b4ffb59957593e01a64ebbcacdd9ada2808308d"
+    },
+    {
+      "path": "/images/training/approved-chrome/final-table-sim.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 86330,
+      "sha256": "e8095d7b8826402ddef0dc43a1c552326cd9a1d9bfcb96661e32666b764f91ef"
+    }
+  ]
+}

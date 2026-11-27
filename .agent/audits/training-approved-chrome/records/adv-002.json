@@ -1,0 +1,81 @@
+{
+  "id": "adv-002",
+  "name": "Blocker Logic",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:56:41.522Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Blocker Logic.\nSubject: Blocker Logic: a polished mechanical combination grid with several routes visibly closed by two strategically placed silver blockers\nCamera: tight overhead puzzle-board view\nComposition: A large black-and-cobalt grid fills the right side, with blocked recesses and clean open channels. Reserve a small natural clear area on the lower left for two real Arena card faces added by the app; do not draw any cards. Strong forensic logic theme, no central stage.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "Blocker Logic: a polished mechanical combination grid with several routes visibly closed by two strategically placed silver blockers",
+  "camera": "tight overhead puzzle-board view",
+  "composition": "A large black-and-cobalt grid fills the right side, with blocked recesses and clean open channels. Reserve a small natural clear area on the lower left for two real Arena card faces added by the app; do not draw any cards. Strong forensic logic theme, no central stage.",
+  "source": {
+    "fileName": "exec-7d945bac-9469-42b6-80a5-147563acf371.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2783342,
+    "sha256": "7738602904ca3ef2424e1ac79c77c5b33dbe1ff04e23c29f83436d59c2ef263a"
+  },
+  "nativeCards": [
+    "As",
+    "Kd"
+  ],
+  "placement": "left",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-002.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 34062,
+      "sha256": "daa6ff9875f5511e67601d7c39df12814050b9587df4d4555eb8180046ca12b5"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-002.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 32900,
+      "sha256": "78453e5c08e154b0e8b9d02d3cd69037e030018f3abd3491994cab82be05764c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-002.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 77808,
+      "sha256": "6568fd5b963ee8b290bd3ca43006e32e320efda76d6d6fa7e2a70df4ea484f83"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-002.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 69512,
+      "sha256": "7c08617a9cc5ed2f25b605b983daebfae5de359e2c883f16248235d44e979b3f"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-002.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 162886,
+      "sha256": "fd28a5257fffe2f365d50e7e138b795247fba6062fe09d692934d35503fe26f4"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-002.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 134164,
+      "sha256": "7baa5f3386f321e468216363df4936605f88c18416dec2a5bfa7ccbe26339801"
+    }
+  ],
+  "overlay": {
+    "left": 26,
+    "bottom": 17,
+    "width": 36,
+    "height": 58
+  },
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

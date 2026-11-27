@@ -1,0 +1,83 @@
+{
+  "id": "cash-002",
+  "name": "C-Bet Academy",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:48:24.803Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: C-Bet Academy.\nSubject: A close poker-table decision scene in which a modest continuation bet has just slid away from a larger existing pot. Two unlettered chrome sizing dividers compare the bet footprint with the pot footprint, making the sizing relationship the subject.\nCamera: Low oblique viewpoint from the flop side of a real black felt table, shallow enough to see chip heights.\nComposition: A natural patch of felt at lower left accommodates a real three-card flop overlay. The pot sits high at center; the smaller bet runs diagonally toward lower right. The two sizing dividers cut across the diagonal rather than forming a platform. The felt, real table rail and asymmetric chip movement fill the scene.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "A close poker-table decision scene in which a modest continuation bet has just slid away from a larger existing pot. Two unlettered chrome sizing dividers compare the bet footprint with the pot footprint, making the sizing relationship the subject.",
+  "camera": "Low oblique viewpoint from the flop side of a real black felt table, shallow enough to see chip heights.",
+  "composition": "A natural patch of felt at lower left accommodates a real three-card flop overlay. The pot sits high at center; the smaller bet runs diagonally toward lower right. The two sizing dividers cut across the diagonal rather than forming a platform. The felt, real table rail and asymmetric chip movement fill the scene.",
+  "source": {
+    "fileName": "exec-27f26bff-c1a3-4277-bd7a-0fd604f00d27.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2498679,
+    "sha256": "822885cc547bd952330ea3063dc37d5b3aaf36f0690695e2931ddcbf7967e1b9"
+  },
+  "nativeCards": [
+    "As",
+    "7h",
+    "2c"
+  ],
+  "placement": "left",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-002.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 32592,
+      "sha256": "bd81c1686c33b8fc5e30d6681b980e7f7f55476b577730725c3e759be83ee972"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-002.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 28725,
+      "sha256": "f0d738945d0f6ae8c66720a6a0e5c974296a5fda7bb731943ae8608d652da53a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-002.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 70830,
+      "sha256": "fe98e5eba33a49738ac784e1b93ba02597feeae9ab116eb77ff49fc949f024a2"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-002.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 59506,
+      "sha256": "a01f8a71e524ca4d86b7c68b96e866b1b9d60e929f8961b88c84814916c8b19e"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-002.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 138892,
+      "sha256": "85d0ac7e4636239306c4fba07ce93ddcd5cd142df6f1ba26e95d8a47b352e6bd"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-002.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 108254,
+      "sha256": "a444bb2342c40ae26668c8fd04d0d8c2cf67c72badf2ce9ef5586e16fcc1274d"
+    }
+  ],
+  "overlay": {
+    "left": 31,
+    "bottom": 7,
+    "width": 52,
+    "height": 45
+  },
+  "overlayReview": "Adjusted after direct scene review to keep the native cards in the natural lower felt area without obscuring the wager or divider.",
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

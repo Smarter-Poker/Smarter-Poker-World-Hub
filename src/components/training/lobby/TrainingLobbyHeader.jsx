@@ -1,52 +1,76 @@
-import { Play } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import { Play, X } from 'lucide-react';
+import TrainingLobbyDialog from './TrainingLobbyDialog';
+import styles from './TrainingLobby.module.css';
 
-export default function TrainingLobbyHeader({ heroGame, continueTarget, fiveMinuteLeakFix, onPlayGame }) {
+export default function TrainingLobbyHeader({
+  heroGame,
+  continueTarget,
+  onPlayGame,
+  jarvisImageSrc = '/images/jarvis-avatar.webp',
+}) {
+  const [helpOpen, setHelpOpen] = useState(false);
   const primaryGame = continueTarget?.game || heroGame;
   const actionLabel = continueTarget?.game ? 'Play Again' : 'Quick Play';
-  const leakFixGame = fiveMinuteLeakFix?.game || null;
-  const hasDetectedLeakFix = Boolean(leakFixGame && fiveMinuteLeakFix?.basis && fiveMinuteLeakFix.basis !== 'daily-warmup');
 
   return (
-    <section aria-labelledby="hero-h" className="sp-arena-masthead sp-arena-lobby-title sd-masthead" data-tutorial="hero">
-      <h1 id="hero-h" className="sp-arena-masthead__title">Training Games</h1>
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        {hasDetectedLeakFix && (
-          <button
-            type="button"
-            className="sd-button"
-            data-top-detected-leak-cta="true"
-            data-leak-basis={fiveMinuteLeakFix.basis}
-            onClick={() => onPlayGame(leakFixGame, fiveMinuteLeakFix.overrides)}
-            style={{
-              minHeight: 38,
-              padding: '6px 12px',
-              borderRadius: 8,
-              border: '1px solid rgba(134, 218, 255, 0.45)',
-              background: 'rgba(13, 32, 54, 0.85)',
-              color: '#86daff',
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
-          >
-            <span>Fix Top Leak (10 Hands)</span>
-          </button>
-        )}
+    <section aria-labelledby="hero-h" className={styles.lobbyHeader} data-tutorial="hero">
+      <div className={styles.titleBar}>
+        <h1 id="hero-h">Training Games</h1>
         <button
           type="button"
-          className="sp-arena-quick-play sd-button sd-primary"
+          className={`${styles.chromeButton} ${styles.helpButton}`}
+          aria-label="Training Games Help"
+          aria-haspopup="dialog"
+          onClick={() => setHelpOpen(true)}
+        >?</button>
+      </div>
+      <div className={styles.launchActions}>
+        <button
+          type="button"
+          className={`${styles.chromeButton} ${styles.primaryButton} ${styles.quickPlay}`}
           data-start-training-cta="true"
           data-continue-training-cta={continueTarget?.game ? 'true' : undefined}
           disabled={!primaryGame}
+          title={primaryGame?.name}
           onClick={() => onPlayGame(primaryGame, continueTarget?.preset)}
         >
-          <Play size={15} aria-hidden="true" />
-          <span>
-            <strong>{actionLabel}</strong>
-            {primaryGame && <span>{primaryGame.name}</span>}
-          </span>
+          <Play aria-hidden="true" /><span>{actionLabel}</span>
         </button>
+        <Link
+          href="/hub/personal-assistant/leaks?source=training-home"
+          className={`${styles.chromeButton} ${styles.assistantAction}`}
+          data-personal-assistant-leaks="true"
+        >
+          {/* Existing assistant destination only; new recommendation wiring is separate. */}
+          <span className={styles.jarvisPortrait} aria-hidden="true">
+            <img src={jarvisImageSrc} width={1024} height={680} alt="" />
+          </span>
+          <span className={styles.assistantCopy}>
+            <strong>Fix My Top Leaks</strong><span>Personal Assistant</span>
+          </span>
+        </Link>
       </div>
+      <TrainingLobbyDialog open={helpOpen} onClose={() => setHelpOpen(false)} labelledBy="training-help-title" data-training-help="true">
+        <header className={styles.dialogHeader}>
+          <h2 id="training-help-title">Training Games Help</h2>
+          <button type="button" className={`${styles.chromeButton} ${styles.iconButton}`} aria-label="Close Training Help" onClick={() => setHelpOpen(false)}><X size={21} aria-hidden="true" /></button>
+        </header>
+        <div className={`${styles.dialogBody} ${styles.helpContent}`}>
+          <h3>Find Your Game</h3>
+          <p>Choose Cash Games, Tournaments, Strategy, Mental Games, Or Spins. Search By A Game Name Or Poker Topic, Then Use Filters To Choose A Variant, Level, Or Training Style.</p>
+          <h3>Play Or Configure</h3>
+          <p>Tap Play To Start A Game With Its Preset. Configure Opens The Available Poker Variant And Street Focus Before You Begin. The Star Saves A Game To Favorites.</p>
+          <h3>Explore The Shelves</h3>
+          <p>Swipe A Shelf Or Use Its Arrows To Browse More Games. View All Opens That Collection. The Grid And List Buttons Change How Matching Games Are Displayed.</p>
+          <h3>Practice And Review</h3>
+          <p>10-Hand Warmup Starts A Short Session. History Shows Previous Sessions. Fix My Top Leaks Opens Your Personal Assistant Leak Finder.</p>
+        </div>
+        <footer className={styles.dialogFooter}>
+          <button type="button" className={`${styles.chromeButton} ${styles.primaryButton}`} onClick={() => setHelpOpen(false)}>Got It</button>
+        </footer>
+      </TrainingLobbyDialog>
     </section>
   );
 }
