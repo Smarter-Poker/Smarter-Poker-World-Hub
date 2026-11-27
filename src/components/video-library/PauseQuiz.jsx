@@ -96,11 +96,9 @@ export default function PauseQuiz({ iframeRef, videoId, active = true, markers =
     };
     return <section className="vl-pause-quiz" aria-label="What Would You Do?">
         <h3>What Would You Do?</h3>
-        <p>Pause A Hand, Choose Your Action, Then Watch What Happens.</p>
-        <p>Your Decision, Not A Solver Answer. Choices And Notes Last For This Viewing Session.</p>
+        {/* How the pause works lives behind the page's "?" (Dan, 2026-11-27). */}
         <button type="button" disabled={!ready || !active || !!prompt} onClick={() => begin(null)}>What Would You Do?</button>
         <label><input type="checkbox" checked={autoPause} disabled={!active} onChange={event => setAutoPause(event.target.checked)} />Pause At Hand Markers</label>
-        {!ready && <p>Available When The Player Reports Its Timeline.</p>}
         {autoPause && markers.length === 0 && <p>Mark A Hand On The Timeline To Add A Decision Pause.</p>}
         {error && <p role="alert">{error}</p>}
         {prompt && <div className="vl-quiz-prompt" aria-label="Your Hand Decision" aria-live="polite">

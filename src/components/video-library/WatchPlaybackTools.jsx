@@ -128,7 +128,8 @@ export default function WatchPlaybackTools({ iframeRef, active = true, attemptPl
             </label>
             <div className="vl-timeline-marks" aria-hidden="true">{markers.map(second => <span key={second} style={{ left: `${duration > 0 ? second / duration * 100 : 0}%` }} />)}</div>
             <button type="button" disabled={!ready || markers.length >= 50} onClick={() => setMarkers(current => addHandMarker(current, position, duration))}>Mark This Hand</button>
-            <p>{ready ? 'Hand Markers Last For This Viewing Session.' : 'Timeline Available When Playback Starts.'}</p>
+            {/* When the timeline opens and how long markers last live behind the
+                page's "?" (Dan, 2026-11-27); the disabled slider already shows it. */}
             {markers.length > 0 && <ul aria-label="Hand Markers">{markers.map((second, index) => <li key={second}>
                 <button type="button" onClick={() => seek(second)}>Hand {index + 1} · {timestamp(second)}</button>
                 <button type="button" aria-label={`Remove Hand Marker At ${timestamp(second)}`} onClick={() => setMarkers(current => current.filter(value => value !== second))}>Remove</button>

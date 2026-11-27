@@ -4,6 +4,8 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
+import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 import { useAvatar } from '../../../../src/contexts/AvatarContext';
 import { getAuthUserId } from '../../../../src/lib/authUtils';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
@@ -13,12 +15,17 @@ import { shuffleQueueItems, playlistPath, MAX_QUEUE_ITEMS } from '../../../../sr
 import useVideoLibraryQueue from '../../../../src/components/video-library/useVideoLibraryQueue';
 import { watchPath } from '../../../../src/lib/videoLibraryWatch.mjs';
 import VideoThumbnail from '../../../../src/components/video-library/VideoThumbnail';
-import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 const UniversalHeader = dynamic(() => import('../../../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../../../src/components/ui/HamburgerMenu'), { ssr: false });
 import { LEGACY_VIDEO_ID_ALIASES } from '../../../../src/data/videoLibraryCompatibility';
 const canonicalId = id => LEGACY_VIDEO_ID_ALIASES[id] || id;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Page explanations live behind the mast's chrome "?" (Dan, 2026-11-27).
+const PLAYLIST_HELP_STEPS = Object.freeze([
+    { id: 'play', title: 'Play All Or Shuffle', body: 'Plays Your Playlist In Order Or Shuffled. The Playback Queue Is Saved For This Browser Session Only.', target: 'playlist-overview' },
+    { id: 'order', title: 'Playlist Order', body: 'Move A Video Up Or Down To Reorder The Playlist. Each Change Is Saved To Your Profile.', target: 'playlist-videos' },
+]);
+
 export default function VideoPlaylistPage() {
     const router = useRouter();
     const playlistId = typeof router.query.playlistId === 'string' ? router.query.playlistId : null;
@@ -95,15 +102,16 @@ export default function VideoPlaylistPage() {
         try { if (!await router.push(`${watchPath(started.items[0])}?play=1`)) throw new Error('Navigation Did Not Complete.'); }
         catch { setState(previous => ({ ...previous, notice: 'The Queue Is Saved. Open The First Video To Play.' })); }
     };
-    return <><SEOHead title={current?.playlist?.name ? `${current.playlist.name} | Video Library` : 'Your Playlist | Video Library'} noindex /><div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}><article className="vl-playlist-page"><nav className="vl-breadcrumbs" aria-label="Breadcrumb"><Link href="/hub/video-library?filter=playlists">Playlists</Link><span aria-hidden="true">/</span><span aria-current="page" data-user-content>{current?.playlist?.name || 'Your Playlist'}</span></nav>
-        {!ownerId ? <div className="vl-empty-state"><h1>Sign In To Open Your Playlist</h1><Link className="vl-pill-button" href={`/auth/login?redirect=${encodeURIComponent(playlistPath(playlistId || ''))}`} rel="nofollow" prefetch={false}>Sign In</Link></div> : !UUID.test(playlistId || '') ? <div className="vl-empty-state"><h1>Playlist Unavailable</h1><Link href="/hub/video-library?filter=playlists">Browse Your Playlists</Link></div> : !current || current.status === 'loading' ? <p role="status">Loading Your Playlist</p> : current.status === 'error' ? <div className="vl-empty-state"><h1>Playlist Could Not Load</h1><p role="alert">{current.error}</p><button type="button" className="vl-pill-button" onClick={() => setReload(value => value + 1)}>Reload Playlist</button></div> : <><header className="vl-playlist-page-header"><h1 data-user-content>{current.playlist.name}</h1><p>{`${videos.length} Available Video${videos.length === 1 ? '' : 's'}`}</p><div className="vl-playlist-play-actions"><button type="button" className="vl-pill-button is-primary" disabled={!videos.length || current.status !== 'ready'} onClick={() => void play(false)}>Play All</button><button type="button" className="vl-pill-button" disabled={!videos.length || current.status !== 'ready'} onClick={() => void play(true)}>Shuffle</button></div><p>Playback Queue Is Saved For This Browser Session Only.{videos.length > MAX_QUEUE_ITEMS ? ` The First ${MAX_QUEUE_ITEMS} Videos Are Queued.` : ''}</p>{queue.error && <p role="alert">{queue.error}</p>}{current.notice && <p role="status">{current.notice}</p>}</header>
-        {!current.playlist.items.length ? <div className="vl-empty-state"><h2>This Playlist Is Empty</h2><p>Save Videos From The Library To Build Your Playlist.</p><Link href="/hub/video-library">Browse Videos</Link></div> : <ol className="vl-playlist-video-list">{current.playlist.items.map((item, index) => { const video = current.catalog.get(canonicalId(item.video_id)); return <li key={item.id} className="vl-playlist-video-row"><span className="vl-playlist-position">{index + 1}</span>{video ? <Link href={watchPath(video)} className="vl-playlist-video-link"><div className="vl-playlist-thumb"><VideoThumbnail video={video} priority={index === 0} /></div><strong>{video.title}</strong></Link> : <span className="vl-playlist-unavailable">Video Currently Unavailable</span>}<div className="vl-playlist-reorder"><button type="button" className="vl-text-button" disabled={index === 0 || current.status !== 'ready'} aria-label={`Move Video ${index + 1} Up`} onClick={() => void reorder(index, -1)}>Move Up</button><button type="button" className="vl-text-button" disabled={index === current.playlist.items.length - 1 || current.status !== 'ready'} aria-label={`Move Video ${index + 1} Down`} onClick={() => void reorder(index, 1)}>Move Down</button></div></li>; })}</ol>}</>}
-    <div style={{ marginTop: 24 }}>
-        <SmarterAccountUnlockGate
-            variant="video-drill"
-            context="video-library-playlist-detail"
-            redirectPath={playlistPath(playlistId || '')}
-        />
-    </div>
+    return <><SEOHead title={current?.playlist?.name ? `${current.playlist.name} | Video Library` : 'Your Playlist | Video Library'} noindex /><div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}><article className="vl-playlist-page vl-console-page"><nav className="vl-breadcrumbs" aria-label="Breadcrumb"><Link href="/hub/video-library?filter=playlists">Playlists</Link><span aria-hidden="true">/</span><span aria-current="page" data-user-content>{current?.playlist?.name || 'Your Playlist'}</span></nav>
+        <VideoLibraryWorkspaceHeader title={current?.status === 'ready' || current?.status === 'saving' ? <span data-user-content>{current.playlist.name}</span> : 'Your Playlist'} eyebrow="Your Playlist" emblem="playlist" helpId="playlist" helpSteps={PLAYLIST_HELP_STEPS} />
+        {!ownerId ? <div className="vl-console-frame vl-empty-state"><h2>Sign In To Open Your Playlist</h2><Link className="vl-pill-button" href={`/auth/login?redirect=${encodeURIComponent(playlistPath(playlistId || ''))}`} rel="nofollow" prefetch={false}>Sign In</Link></div> : !UUID.test(playlistId || '') ? <div className="vl-console-frame vl-empty-state"><h2>Playlist Unavailable</h2><Link className="vl-pill-button" href="/hub/video-library?filter=playlists">Browse Your Playlists</Link></div> : !current || current.status === 'loading' ? <div className="vl-console-frame"><p role="status">Loading Your Playlist</p></div> : current.status === 'error' ? <div className="vl-console-frame vl-empty-state"><h2>Playlist Could Not Load</h2><p role="alert">{current.error}</p><button type="button" className="vl-pill-button" onClick={() => setReload(value => value + 1)}>Reload Playlist</button></div> : <><section className="vl-playlist-page-header vl-console-frame" data-tutorial="playlist-overview" aria-label="Playlist Overview"><dl className="vl-console-stats"><div className="vl-console-stat"><dt>Available Videos</dt><dd>{videos.length.toLocaleString()}</dd></div></dl><div className="vl-playlist-play-actions vl-console-actions"><button type="button" className="vl-pill-button is-primary" disabled={!videos.length || current.status !== 'ready'} onClick={() => void play(false)}>Play All</button><button type="button" className="vl-pill-button" disabled={!videos.length || current.status !== 'ready'} onClick={() => void play(true)}>Shuffle</button></div>{videos.length > MAX_QUEUE_ITEMS && <p role="status">{`The First ${MAX_QUEUE_ITEMS} Videos Are Queued.`}</p>}{queue.error && <p role="alert">{queue.error}</p>}{current.notice && <p role="status">{current.notice}</p>}</section>
+        {!current.playlist.items.length ? <div className="vl-console-frame vl-empty-state"><h2>This Playlist Is Empty</h2><p>Save Videos From The Library To Build Your Playlist.</p><Link className="vl-pill-button" href="/hub/video-library">Browse Videos</Link></div> : <section className="vl-console-frame" data-tutorial="playlist-videos" aria-label="Playlist Videos"><ol className="vl-playlist-video-list">{current.playlist.items.map((item, index) => { const video = current.catalog.get(canonicalId(item.video_id)); return <li key={item.id} className="vl-playlist-video-row"><span className="vl-playlist-position">{index + 1}</span>{video ? <Link href={watchPath(video)} className="vl-playlist-video-link"><div className="vl-playlist-thumb"><VideoThumbnail video={video} priority={index === 0} /></div><strong>{video.title}</strong></Link> : <span className="vl-playlist-unavailable">Video Currently Unavailable</span>}<div className="vl-playlist-reorder"><button type="button" className="vl-text-button" disabled={index === 0 || current.status !== 'ready'} aria-label={`Move Video ${index + 1} Up`} onClick={() => void reorder(index, -1)}>Move Up</button><button type="button" className="vl-text-button" disabled={index === current.playlist.items.length - 1 || current.status !== 'ready'} aria-label={`Move Video ${index + 1} Down`} onClick={() => void reorder(index, 1)}>Move Down</button></div></li>; })}</ol></section>}</>}
+        <div style={{ marginTop: 24 }}>
+            <SmarterAccountUnlockGate
+                variant="video-drill"
+                context="video-library-playlist"
+                redirectPath={playlistId ? `/hub/video-library/playlists/${playlistId}` : '/hub/video-library'}
+            />
+        </div>
     </article></HubPageShell></div></>;
 }

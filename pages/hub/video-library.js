@@ -25,6 +25,7 @@ import SEOHead from '../../src/components/video-library/VideoLibrarySEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import VideoLibraryWorkspaceHeader from '../../src/components/video-library/VideoLibraryWorkspaceHeader';
 
 // AEO phase 3 & 4 (2026-10-29).
 const VIDEO_LIBRARY_SCHEMA = hubProductSchema({
@@ -165,6 +166,67 @@ const LIBRARY_VIEW_META = {
         description: 'Browse Every Video Organized Inside Your Named Study Playlists.',
     },
 };
+
+// Everything the index used to explain in grey sentences, behind the mast's
+// chrome "?" (Dan, 2026-11-27: "REMOVE ANY AND ALL UN NECESSARY EXPLANATIONS
+// (ADD A QUESTION MARK ICON) IF ITS NEEDED"). Title Case, no em dashes.
+// Each target is a data-tutorial attribute on this page.
+const VIDEO_LIBRARY_HELP_STEPS = Object.freeze([
+    {
+        id: 'welcome',
+        title: 'Poker Video Library',
+        body: 'Poker Sessions, Strategy And Live Coverage. Study Complete Sessions, Tournament Coverage And Creator Breakdowns In One Place.',
+        target: 'mast',
+    },
+    {
+        id: 'search',
+        title: 'Search And Browse',
+        body: 'Search Every Published Poker Video, Then Use The Chips To Switch Between Cash Games, Tournaments, Reels, Latest, Trending And Your Saved Lists.',
+        target: 'search',
+    },
+    {
+        id: 'filters',
+        title: 'Game, Stakes And Skill Level',
+        body: 'Filters Match Published Titles And Tags. Unlabeled Videos Appear In All. With A Filter On, Search Matches Published Titles And Channels.',
+        target: 'filters',
+    },
+    {
+        id: 'upload',
+        title: 'Upload Poker Clip',
+        body: 'Share Your Own Poker Clip In Poker Reels. Sign In And Confirm Your Sharing Rights Before Publishing.',
+        target: 'upload',
+    },
+    {
+        id: 'sources',
+        title: 'Channels',
+        body: 'Pick A Channel To See Only Its Videos. Show All Channels Lists Every Channel In The Library.',
+        target: 'sources',
+    },
+    {
+        id: 'study',
+        title: 'Diamond Study Streak',
+        body: 'Counts Days With Verified Video Watch Diamond Credits. Watch Rewards Use Existing Eligibility And Limits. No Extra Streak Bonus. Earn A Video Watch Reward Each Day To Continue Your Streak.',
+        target: 'study',
+    },
+    {
+        id: 'live',
+        title: 'Live Now',
+        body: 'Featured Channels Streaming Right Now. Checked Shows When Live Status Was Last Confirmed. Live Videos Open On YouTube.',
+        target: 'live',
+    },
+    {
+        id: 'timeline',
+        title: 'Hand Timeline',
+        body: 'In The Video Viewer, The Hand Timeline Becomes Available When Playback Starts. Hand Markers Last For This Viewing Session.',
+        target: null,
+    },
+    {
+        id: 'pause-quiz',
+        title: 'What Would You Do?',
+        body: 'Pause A Hand, Choose Your Action, Then Watch What Happens. Your Decision, Not A Solver Answer. It Is Available When The Player Reports Its Timeline, And Choices And Notes Last For This Viewing Session.',
+        target: null,
+    },
+]);
 
 class VideoLibraryReelsBoundary extends Component {
     constructor(props) {
@@ -2077,12 +2139,20 @@ export default function VideoLibraryPage() {
                     )}
                 >
                 <div className="vl-yt" data-tutorial="main">
+                    {/* The Player Stats mast (Dan, 2026-11-27): every explanation
+                        that sat on the page as a grey sentence lives behind
+                        its chrome "?" (VIDEO_LIBRARY_HELP_STEPS). */}
+                    <div className="vl-library-heading vl-library-mast">
+                        <VideoLibraryWorkspaceHeader
+                            title={currentViewMeta.title}
+                            eyebrow={currentViewMeta.kicker}
+                            helpTitle="Poker Video Library"
+                            helpId="index"
+                            helpSteps={VIDEO_LIBRARY_HELP_STEPS}
+                        />
+                    </div>
                     {/* Search, then one row of chips: the YouTube phone layout. */}
                     <div className="vl-topbar">
-                        <div className="vl-library-heading">
-                            <h1>{currentViewMeta.title}</h1>
-                            <p>Poker Sessions, Strategy And Live Coverage.</p>
-                        </div>
                         <BrowseSearch
                             inputRef={searchInputRef}
                             value={searchQuery}
@@ -2106,7 +2176,7 @@ export default function VideoLibraryPage() {
                         />
                     </div>
 
-                    <section className="vl-browse-filters" aria-label="Poker Video Filters">
+                    <section className="vl-browse-filters" aria-label="Poker Video Filters" data-tutorial="filters">
                         <div className="vl-browse-filter-fields">
                             {Object.entries({ game: 'Game', stakes: 'Stakes', skill: 'Skill Level' }).map(([key, label]) => (
                                 <label key={key}>{label}
@@ -2122,12 +2192,14 @@ export default function VideoLibraryPage() {
                             ))}
                             {Object.values(browseFilters).some(value => value !== 'ALL') && <button type="button" onClick={clearAllFilters}>Clear Filters</button>}
                         </div>
-                        <p>Filters Match Published Titles And Tags. Unlabeled Videos Appear In All.
-                            {Object.values(browseFilters).some(value => value !== 'ALL') && ' Filtered Search Matches Published Titles And Channels.'}</p>
                     </section>
 
-                    <nav className="vl-learning-navigation" aria-label="Poker Learning"><Link href="/hub/video-library/players">Poker Players</Link><button type="button" className="vl-pill-button" disabled={catalogLoading || visibleLibrarySyncState === 'loading'} onClick={() => void refreshLibrary()}>Refresh Library</button></nav>
-                    <MemberClipUpload />
+                    {/* One centred row of three controls: Poker Players, Refresh
+                        Library and Upload Poker Clip (its explanation is in the "?"). */}
+                    <div className="vl-library-actions">
+                        <nav className="vl-learning-navigation" aria-label="Poker Learning"><Link href="/hub/video-library/players">Poker Players</Link><button type="button" className="vl-pill-button" disabled={catalogLoading || visibleLibrarySyncState === 'loading'} onClick={() => void refreshLibrary()}>Refresh Library</button></nav>
+                        <MemberClipUpload />
+                    </div>
                     {/* Channels: round avatars like YouTube subscriptions, laid out
                         in rows (no hidden sideways rail), the rest behind Show All. */}
                     <div className={`vl-source-pills${sourcesExpanded ? ' is-expanded' : ''}`} data-tutorial="sources" role="group" aria-label="Channels">
@@ -2235,7 +2307,7 @@ export default function VideoLibraryPage() {
                     )}
 
                     {hasActiveFilters && (
-                        <div className="vl-active-view" aria-label="Active Video Filters">
+                        <div className="vl-active-view" aria-label="Active video filters">
                             <span className="vl-active-filter-list">{activeFilterLabels.join(' · ')}</span>
                             <button type="button" className="vl-text-button" onClick={clearAllFilters}>Reset</button>
                         </div>
@@ -2339,7 +2411,7 @@ export default function VideoLibraryPage() {
                        aria-prohibited-attr, serious). A labelled region is
                        what the command rail's aria-controls points at. */
                     role="region"
-                    aria-label="Poker Videos"
+                    aria-label="Poker videos"
                 >
                     {catalogLoading && videos.length === 0 && Array.from({ length: 6 }, (_, index) => (
                         <div key={`catalog-skeleton-${index}`} className="vl-video-skeleton" aria-hidden="true">
@@ -2462,7 +2534,7 @@ export default function VideoLibraryPage() {
                                 <div className="vl-shelf-header">
                                     <h2 id="vl-discovery-title">Explore</h2>
                                 </div>
-                                <div className="vl-explore-tabs" role="tablist" aria-label="Video Discovery Views">
+                                <div className="vl-explore-tabs" role="tablist" aria-label="Video discovery views">
                                     {exploreViews.map(view => (
                                         <button
                                             type="button"
@@ -2578,7 +2650,7 @@ export default function VideoLibraryPage() {
                                     className="vl-player-nav"
                                     data-side="previous"
                                     onClick={handlePrevVideo}
-                                    aria-label="Play Previous Video"
+                                    aria-label="Play previous video"
                                     title="Previous Video"
                                 >Previous</button>
                                 <button
@@ -2586,7 +2658,7 @@ export default function VideoLibraryPage() {
                                     className="vl-player-nav"
                                     data-side="next"
                                     onClick={handleNextVideo}
-                                    aria-label="Play Next Video"
+                                    aria-label="Play next video"
                                     title="Next Video"
                                 >Next</button>
                               </span>
@@ -2715,7 +2787,7 @@ export default function VideoLibraryPage() {
                         <div
                             className="vl-hud"
                             role="group"
-                            aria-label="Video Actions"
+                            aria-label="Video actions"
                             onFocusCapture={vlRevealHud}
                         >
                             <button
@@ -2735,7 +2807,7 @@ export default function VideoLibraryPage() {
                             </button>
                             <button
                                 type="button"
-                                aria-label="Copy Video Link"
+                                aria-label="Copy video link"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (selectedVideo) handleShareVideo(selectedVideo);
@@ -2763,7 +2835,7 @@ export default function VideoLibraryPage() {
                             <button
                                 ref={playlistTriggerRef}
                                 type="button"
-                                aria-label="Save Video To A Playlist"
+                                aria-label="Save video to a playlist"
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     if (!userId) {
@@ -2813,7 +2885,7 @@ export default function VideoLibraryPage() {
                                         body: JSON.stringify({ ref: 'video-library', vid: ctx.vid, title: ctx.title, source: ctx.source, tags, matchedGameIds: gameIds.slice(0, 3) }),
                                     }).catch(error => reportVideoLibraryIssue('training_log_request', error));
                                 }}
-                                title="Open GTO Trainer With AI-Matched Drills From This Video"
+                                title="Open GTO Trainer with AI-matched drills from this video"
                             >
                                 <span className="vl-hud-command">Train This Spot</span>
                             </button>
@@ -2932,7 +3004,7 @@ export default function VideoLibraryPage() {
 
             {/* Reels Modal — full-screen TikTok doom-scroll */}
             {showReelsModal && (
-                <div ref={reelsDialogRef} className="vl-reels-dialog" role="dialog" aria-modal="true" aria-label="Video Reels" tabIndex={-1}>
+                <div ref={reelsDialogRef} className="vl-reels-dialog" role="dialog" aria-modal="true" aria-label="Video reels" tabIndex={-1}>
                     <VideoLibraryReelsBoundary onClose={() => setShowReelsModal(false)}>
                         <ReelsViewer onClose={() => setShowReelsModal(false)} />
                     </VideoLibraryReelsBoundary>
@@ -2964,7 +3036,7 @@ export default function VideoLibraryPage() {
                         <div className="vl-playlist-header">
                             <h2 id="vl-playlist-title">Save To Playlist</h2>
                             <button onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}
-                                type="button" aria-label="Close Playlist Dialog"
+                                type="button" aria-label="Close playlist dialog"
                                 className="vl-text-button">Close</button>
                         </div>
                         <div className="vl-playlist-list">
@@ -3022,7 +3094,7 @@ export default function VideoLibraryPage() {
                                 value={newPlaylistName}
                                 onChange={e => setNewPlaylistName(e.target.value)}
                                 onKeyDown={(e) => { if (e.key === 'Enter' && newPlaylistName.trim() && !isCreatingPlaylist) { e.preventDefault(); createPlaylistButtonRef.current?.click(); } }}
-                                placeholder="New Playlist Name..."
+                                placeholder="New playlist name..."
                                 disabled={isCreatingPlaylist}
                             />
                             <button
@@ -3116,7 +3188,7 @@ export default function VideoLibraryPage() {
             only body copy a crawler that runs no JavaScript ever sees here. */}
         {/* as="h1" while the body did not server-render and this was the only
             heading a crawler saw. The body renders now and brings its own. */}
-        <div style={{ maxWidth: 1200, margin: '24px auto', padding: '0 16px' }}>
+        <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
             <SmarterAccountUnlockGate
                 variant="video-drill"
                 context="video-library-index"

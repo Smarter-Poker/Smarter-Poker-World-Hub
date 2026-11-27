@@ -9,6 +9,9 @@ export function watchSignInHref(returnPath) {
 
 export default function WatchTracking({ tracking, ownerId, returnPath }) {
     if (!ownerId) return <p className="vl-watch-tracking" data-watch-tracking="anonymous"><Link href={watchSignInHref(returnPath)} rel="nofollow" prefetch={false}>Sign In To Save Watch Progress</Link></p>;
+    // The steady state says nothing: that progress saves while you watch lives
+    // behind the watch page's "?" (Dan, 2026-11-27). Real events still show.
+    if (tracking.status === 'ready') return null;
     const labels = {
         loading: 'Loading Watch Progress', ready: 'Watch Progress Saves While You Watch',
         saving: 'Saving Watch Progress', saved: 'Watch Progress Saved',
