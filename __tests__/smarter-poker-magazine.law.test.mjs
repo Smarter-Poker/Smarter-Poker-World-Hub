@@ -2623,6 +2623,10 @@ test('MAG LAW 25: decks and paragraphs clip on a full sentence, never mid-word, 
     const harvester = read('src/lib/magazine/vaultHarvester.mjs');
     assert.doesNotMatch(harvester, /return cand\.slice\(0, 280\)/, 'Decks must not be sliced mid-word');
     assert.doesNotMatch(harvester, /paragraphs\.push\(text\.slice\(0, 700\)\)/, 'Paragraphs must not be sliced mid-word');
+    const { MAGAZINE_BRAND_ART } = await import('../src/lib/magazine/magazineArtDirection.mjs');
+    assert.notEqual(MAGAZINE_BRAND_ART.back_cover[0], '/images/og-card.jpg', 'The back cover must not sit on the text-heavy share card');
+    const art = Object.values(MAGAZINE_BRAND_ART).flat().filter(Boolean);
+    assert.equal(new Set(art).size, art.length, 'Each piece of brand art prints on one page only');
     const css = read('src/components/magazine/magazine-print.css');
     assert.match(css, /\.spm-sheet \.spm-pullquote,\s*\n\.spm-pullquote \{/, 'The pull quote must out-rank the .spm-sheet blockquote reset so its quote mark never overlaps the text');
 });
