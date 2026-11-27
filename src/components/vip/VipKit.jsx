@@ -168,6 +168,45 @@ export function VipUpgradePrompt({
   );
 }
 
+/**
+ * A member's own VIP status: the crown seal, the plan, one framed row of
+ * dates, an optional warning line and one action. The membership card the
+ * Settings page shows in place of the upgrade prompt.
+ */
+export function VipMembershipStatus({
+  title = 'Active VIP Member',
+  plan,
+  facts = [],
+  warning,
+  action,
+  heading: Heading = 'h3',
+  className = '',
+}) {
+  return (
+    <section className={cx(styles.kit, styles.frame, styles.prompt, styles.status, className)} data-vip-membership-status="">
+      <div className={styles.promptHead}>
+        <VipSeal />
+        <div>
+          <Heading className={styles.promptTitle}>{title}</Heading>
+          {plan && <p className={styles.promptCopy}>{plan}</p>}
+        </div>
+      </div>
+      {facts.length > 0 && (
+        <dl className={styles.statusFacts}>
+          {facts.map(({ label, value, tone }) => (
+            <div key={label} data-tone={tone || undefined}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {warning && <p className={styles.statusWarning} role="status">{warning}</p>}
+      {action}
+    </section>
+  );
+}
+
 /** The approved painted VIP crest (Club Arena top-vip master), as a mark. */
 export function VipCrest({ className = '' }) {
   return (

@@ -6,7 +6,7 @@
 
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { VipUpgradePrompt } from '../../src/components/vip/VipKit';
+import { VipGhost, VipMembershipStatus, VipUpgradePrompt } from '../../src/components/vip/VipKit';
 import { useState, useEffect } from 'react';
 import Switch from '../../src/components/ui/Switch';
 // useTheme removed — unused (DarkModeToggle handles theme internally)
@@ -1720,78 +1720,32 @@ export default function SettingsPage() {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
 
                                         {/* ── VIP Membership Status ── */}
-                                        <div style={{
-                                            background: '#242526',
-                                            border: '1px solid #3a3b3c',
-                                            borderRadius: 12,
-                                            padding: 28,
-                                        }}>
-                                            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb', margin: '0 0 20px 0' }}>VIP Membership</h3>
+                                        <section aria-label="VIP Membership">
                                             {isVip ? (
-                                                <>
-                                                    <div style={{
-                                                        display: 'flex', alignItems: 'center', gap: 16,
-                                                        padding: 20, background: '#3a3b3c', borderRadius: 10,
-                                                    }}>
-                                                        <div style={{
-                                                            width: 52, height: 52, borderRadius: 12,
-                                                            background: 'linear-gradient(135deg, #2374e1, #1a5cc7)',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1,
-                                                        }}>VIP</div>
-                                                        <div style={{ flex: 1 }}>
-                                                            <div style={{ fontSize: 17, fontWeight: 700, color: '#e4e6eb' }}>Active VIP Member</div>
-                                                            <div style={{ fontSize: 13, color: '#65676b', marginTop: 4 }}>
-                                                                {billingVipSub?.tier ? `${billingVipSub.tier.charAt(0).toUpperCase() + billingVipSub.tier.slice(1)} Plan` : 'Premium Plan'}
-                                                                {billingVipSub?.source === 'diamonds' ? ' · Paid With Diamonds' : ''}
-                                                                {billingVipSub?.source === 'lifetime' ? ' · Lifetime Access' : ''}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {billingVipSub?.current_period_end && (
-                                                        <div style={{
-                                                            marginTop: 16, padding: '14px 18px',
-                                                            background: '#18191a', borderRadius: 8,
-                                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                        }}>
-                                                            <span style={{ fontSize: 13, color: '#65676b' }}>
-                                                                {billingVipSub.cancel_at_period_end
-                                                                    ? 'Cancels On'
-                                                                    : billingVipSub.recurring ? 'Next Billing Date' : 'Access Through'}
-                                                            </span>
-                                                            <span style={{ fontSize: 14, fontWeight: 600, color: billingVipSub.cancel_at_period_end ? '#f02849' : '#e4e6eb' }}>
-                                                                {new Date(billingVipSub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {billingVipSub?.cancel_at_period_end && (
-                                                        <div style={{
-                                                            marginTop: 14, padding: '12px 16px',
-                                                            background: 'rgba(240, 40, 73, 0.08)', border: '1px solid rgba(240, 40, 73, 0.25)',
-                                                            borderRadius: 8, fontSize: 13, color: '#f02849', lineHeight: 1.5,
-                                                        }}>
-                                                            Your Membership Will End At The Current Billing Period. You Can Still Enjoy Benefits Until Then.
-                                                        </div>
-                                                    )}
-
-                                                    {billingVipSub?.can_cancel && !billingVipSub?.cancel_at_period_end && (
-                                                        <button
-                                                            onClick={() => router.push('/hub/vip-membership/manage')}
-                                                            style={{
-                                                                marginTop: 20, padding: '10px 20px',
-                                                                background: 'transparent',
-                                                                border: '1px solid #4e4f50',
-                                                                borderRadius: 8, color: '#65676b',
-                                                                fontSize: 13, fontWeight: 500,
-                                                                cursor: 'pointer', transition: 'all 0.2s ease',
-                                                            }}
-                                                        >
+                                                <VipMembershipStatus
+                                                    plan={[
+                                                        billingVipSub?.tier
+                                                            ? `${billingVipSub.tier.charAt(0).toUpperCase() + billingVipSub.tier.slice(1)} Plan`
+                                                            : 'Premium Plan',
+                                                        billingVipSub?.source === 'diamonds' ? 'Paid With Diamonds' : null,
+                                                        billingVipSub?.source === 'lifetime' ? 'Lifetime Access' : null,
+                                                    ].filter(Boolean).join(' · ')}
+                                                    facts={billingVipSub?.current_period_end ? [{
+                                                        label: billingVipSub.cancel_at_period_end
+                                                            ? 'Cancels On'
+                                                            : billingVipSub.recurring ? 'Next Billing Date' : 'Access Through',
+                                                        value: new Date(billingVipSub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                                                        tone: billingVipSub.cancel_at_period_end ? 'end' : undefined,
+                                                    }] : []}
+                                                    warning={billingVipSub?.cancel_at_period_end
+                                                        ? 'Your Membership Will End At The Current Billing Period. You Can Still Enjoy Benefits Until Then.'
+                                                        : null}
+                                                    action={billingVipSub?.can_cancel && !billingVipSub?.cancel_at_period_end ? (
+                                                        <VipGhost onClick={() => router.push('/hub/vip-membership/manage')}>
                                                             Manage Membership
-                                                        </button>
-                                                    )}
-                                                </>
+                                                        </VipGhost>
+                                                    ) : null}
+                                                />
                                             ) : (
                                                 <VipUpgradePrompt
                                                     accountId={user?.id || null}
@@ -1799,7 +1753,7 @@ export default function SettingsPage() {
                                                     copy="Upgrade To VIP For Premium Benefits Across Smarter.Poker And Club Arena."
                                                 />
                                             )}
-                                        </div>
+                                        </section>
 
                                         {/* ── Diamond Balance & Transactions ── */}
                                         <div style={{
