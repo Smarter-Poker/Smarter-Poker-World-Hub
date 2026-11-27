@@ -75,7 +75,7 @@ const LOBBY_CATEGORY_TABS = Object.freeze([
 const LOBBY_TAB_COUNTS = Object.freeze(Object.fromEntries(
   LOBBY_CATEGORY_TABS.map((tab) => [
     tab.id,
-    tab.modeIds ? tab.modeIds.length : (MODE_CARDS.length + 2),
+    tab.modeIds ? tab.modeIds.length : MODE_CARDS.length,
   ]),
 ));
 
@@ -412,7 +412,7 @@ export default function TriviaLobby({
     if (variableCost) return 'Variable';
     if (arcadeTicketCount > 0 && modeId === 'arcade') return '1 Free Entry Ticket';
     if (isVip) return 'VIP Free';
-    return `${cost} Diamonds`;
+    return `${cost} ${cost === 1 ? 'Diamond' : 'Diamonds'}`;
   };
 
   const quickStakesCostText = formatEntryCost(TRIVIA_QUICK_STAKES_MODE.id, !quickStakesAvailability.enabled);
@@ -610,29 +610,35 @@ export default function TriviaLobby({
           role="tablist"
           aria-label="Trivia Mode Categories"
         >
-          {LOBBY_CATEGORY_TABS.map((filter, filterIndex) => (
-            <button
-              key={filter.id}
-              ref={(node) => {
-                filterButtonRefs.current[filterIndex] = node;
-              }}
-              type="button"
-              role="tab"
-              data-lobby-tab={filter.id}
-              className={`sd-button mode-filter${activeFilter === filter.id ? ' active' : ''}`}
-              onClick={() => selectFilter(filter.id, filterIndex)}
-              onKeyDown={(event) => handleFilterKeyDown(event, filterIndex)}
-              tabIndex={activeFilter === filter.id ? 0 : -1}
-              aria-selected={activeFilter === filter.id}
-              aria-controls="trivia-mode-grid"
-              aria-label={`${printTitle(filter.label)}, ${LOBBY_TAB_COUNTS[filter.id]} Modes`}
-            >
-              <span>{printTitle(filter.label)}</span>
-              <span className="mode-filter__count" aria-hidden="true">
-                {LOBBY_TAB_COUNTS[filter.id]}
-              </span>
-            </button>
-          ))}
+          {LOBBY_CATEGORY_TABS.map((filter, filterIndex) => {
+            const tabCount = filter.id === 'all'
+              ? MODE_CARDS.filter((mode) => availabilityFor(mode.id).enabled).length
+              : LOBBY_TAB_COUNTS[filter.id];
+            return (
+              <button
+                key={filter.id}
+                ref={(node) => {
+                  filterButtonRefs.current[filterIndex] = node;
+                }}
+                type="button"
+                role="tab"
+                data-lobby-tab={filter.id}
+                className={`sd-button mode-filter${activeFilter === filter.id ? ' active' : ''}`}
+                onClick={() => selectFilter(filter.id, filterIndex)}
+                onKeyDown={(event) => handleFilterKeyDown(event, filterIndex)}
+                tabIndex={activeFilter === filter.id ? 0 : -1}
+                aria-selected={activeFilter === filter.id}
+                aria-controls="trivia-mode-grid"
+                aria-label={`${printTitle(filter.label)}, ${tabCount} ${tabCount === 1 ? 'Mode' : 'Modes'}`}
+              >
+                <span>{printTitle(filter.label)}</span>
+                {' '}
+                <span className="mode-filter__count" aria-hidden="true">
+                  {tabCount}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="modes-grid" id="trivia-mode-grid" role="tabpanel">
@@ -1188,6 +1194,9 @@ export default function TriviaLobby({
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             gap: 8px;
+            padding-right: 28px;
+            -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
           }
 
           .lobby-utility-bar::-webkit-scrollbar,
@@ -1216,7 +1225,9 @@ export default function TriviaLobby({
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             gap: 6px;
-            padding-bottom: 2px;
+            padding: 0 28px 2px 0;
+            -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
           }
 
           .mode-filter {

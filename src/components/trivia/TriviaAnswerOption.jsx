@@ -81,6 +81,7 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
     // toggle and the rest as plain buttons.
     'aria-pressed': selectedAnswer === index,
     'data-trivia-answer': true,
+    'data-reveal': showResult ? 'true' : undefined,
     'data-correct': isCorrect ? 'true' : undefined,
     'data-wrong': isWrong ? 'true' : undefined,
     'data-eliminated': eliminated ? 'true' : undefined,

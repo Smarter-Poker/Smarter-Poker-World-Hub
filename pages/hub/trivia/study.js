@@ -554,6 +554,7 @@ export default function TriviaStudyDeck() {
                                                         onClick={() => handleSelectStudyMode(tab.id)}
                                                     >
                                                         <span>{tab.label}</span>
+                                                        {' '}
                                                         <span className="study-mode-tab__count">
                                                             {formatTriviaDisplayNumber(tabCountFor(tab.id))}
                                                         </span>
@@ -765,14 +766,18 @@ export default function TriviaStudyDeck() {
                     .study-mode-tabs {
                         display: grid;
                         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                        grid-auto-rows: 1fr;
+                        align-items: stretch;
                         gap: 8px;
                     }
                     .study-mode-tab {
+                        min-height: 44px;
                         display: inline-flex;
                         align-items: center;
                         justify-content: space-between;
                         gap: 8px;
-                        min-height: 44px;
+                        width: 100%;
+                        height: 100%;
                         padding: 10px 12px;
                         border-radius: 10px;
                         border: 1px solid rgba(154, 194, 242, 0.28);
@@ -780,8 +785,13 @@ export default function TriviaStudyDeck() {
                         color: #bdd0e2;
                         font-size: 13px;
                         font-weight: 700;
+                        text-align: left;
                         cursor: pointer;
                         touch-action: manipulation;
+                        transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease;
+                    }
+                    .study-mode-tab:active {
+                        transform: scale(0.985);
                     }
                     .study-mode-tab--active {
                         background: linear-gradient(180deg, rgba(25, 129, 236, 0.34), rgba(12, 85, 192, 0.44));
@@ -1114,6 +1124,14 @@ export default function TriviaStudyDeck() {
                     .study-inline-btn {
                         margin-top: 10px;
                         min-height: 44px;
+                    }
+                    @media (prefers-reduced-motion: reduce) {
+                        .study-mode-tab {
+                            transition: none;
+                        }
+                        .study-mode-tab:active {
+                            transform: none;
+                        }
                     }
                 `}</style>
             </>

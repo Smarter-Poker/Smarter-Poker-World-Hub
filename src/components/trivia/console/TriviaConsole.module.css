@@ -115,6 +115,11 @@
     padding: 8px 14px;
     cursor: pointer;
     touch-action: manipulation;
+    transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease;
+}
+
+.plate:active:not(:disabled) {
+    transform: scale(0.985);
 }
 
 .plateWell {
@@ -167,6 +172,11 @@
     line-height: 1.2;
     cursor: pointer;
     touch-action: manipulation;
+    transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease;
+}
+
+.word:active:not(:disabled) {
+    transform: scale(0.985);
 }
 
 .word:disabled {
@@ -211,8 +221,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .plate,
+    .word {
+        transition: none;
+    }
+
     .plate:active,
     .word:active {
         filter: none;
+        transform: none;
     }
 }

@@ -80,18 +80,18 @@ export default function Phase9SettlementReceipt({
                 </p>
             )}
             <dl className="phase9-settlement__rows">
-                <div><dt>Mode</dt><dd>{modeLabel}</dd></div>
-                <div><dt>Session</dt><dd data-preserve-case="true">{sessionId}</dd></div>
-                {receipt?.scoreId && <div><dt>Score Record</dt><dd data-preserve-case="true">{receipt.scoreId}</dd></div>}
-                {receipt?.settlementReference && <div><dt>Settlement Reference</dt><dd data-preserve-case="true">{receipt.settlementReference}</dd></div>}
-                {receipt?.requestId && <div><dt>Request</dt><dd data-preserve-case="true">{receipt.requestId}</dd></div>}
-                {receipt?.resultHash && <div><dt>Result Hash</dt><dd data-preserve-case="true">{receipt.resultHash}</dd></div>}
+                <div><dt>Mode</dt><dd className="tc-ink--white">{modeLabel}</dd></div>
+                <div><dt>Session</dt><dd className="tc-ink--white" data-preserve-case="true">{sessionId}</dd></div>
+                {receipt?.scoreId && <div><dt>Score Record</dt><dd className="tc-ink--white" data-preserve-case="true">{receipt.scoreId}</dd></div>}
+                {receipt?.settlementReference && <div><dt>Settlement Reference</dt><dd className="tc-ink--white" data-preserve-case="true">{receipt.settlementReference}</dd></div>}
+                {receipt?.requestId && <div><dt>Request</dt><dd className="tc-ink--white" data-preserve-case="true">{receipt.requestId}</dd></div>}
+                {receipt?.resultHash && <div><dt>Result Hash</dt><dd className="tc-ink--white" data-preserve-case="true">{receipt.resultHash}</dd></div>}
                 {receipt?.submittedAt && (
-                    <div><dt>Submitted</dt><dd><time data-preserve-case="true" dateTime={receipt.submittedAt}>{receipt.submittedAt}</time></dd></div>
+                    <div><dt>Submitted</dt><dd className="tc-ink--silver"><time data-preserve-case="true" dateTime={receipt.submittedAt}>{receipt.submittedAt}</time></dd></div>
                 )}
-                <div><dt>Server Grade</dt><dd>{formatTriviaDisplayNumber(correct)} / {formatTriviaDisplayNumber(total)}</dd></div>
-                <div><dt>Reward</dt><dd className={reward > 0 ? 'tc-ink--green' : undefined}>{formatTriviaDisplayNumber(reward)} Diamonds</dd></div>
-                <div><dt>Voided</dt><dd>{formatTriviaDisplayNumber(Math.max(0, Number(settlement?.voided) || 0))}</dd></div>
+                <div><dt>Server Grade</dt><dd className="tc-ink--white">{formatTriviaDisplayNumber(correct)} / {formatTriviaDisplayNumber(total)}</dd></div>
+                <div><dt>Reward</dt><dd className={reward > 0 ? 'tc-ink--green' : 'tc-ink--silver'}>{formatTriviaDisplayNumber(reward)} {reward === 1 ? 'Diamond' : 'Diamonds'}</dd></div>
+                <div><dt>Voided</dt><dd className="tc-ink--silver">{formatTriviaDisplayNumber(Math.max(0, Number(settlement?.voided) || 0))}</dd></div>
             </dl>
             {receipt && transactions.length > 0 ? (
                 <ol className="phase9-settlement__transactions" aria-label="Verified Diamond Transactions">
@@ -99,9 +99,9 @@ export default function Phase9SettlementReceipt({
                         <li key={transaction.id || transaction.referenceId || index}>
                             <strong>{transactionLabel(transaction.role)}</strong>
                             <span className={Number(transaction.amount) > 0 ? 'tc-ink--green' : 'tc-ink--silver'}>
-                                {Number(transaction.amount) > 0 ? '+' : ''}{formatTriviaDisplayNumber(Number(transaction.amount) || 0)} Diamonds
+                                {Number(transaction.amount) > 0 ? '+' : ''}{formatTriviaDisplayNumber(Number(transaction.amount) || 0)} {Math.abs(Number(transaction.amount) || 0) === 1 ? 'Diamond' : 'Diamonds'}
                             </span>
-                            {transaction.referenceId && <small data-preserve-case="true">{transaction.referenceId}</small>}
+                            {transaction.referenceId && <small className="tc-ink--silver" data-preserve-case="true">{transaction.referenceId}</small>}
                         </li>
                     ))}
                 </ol>
@@ -117,14 +117,14 @@ export default function Phase9SettlementReceipt({
                             className="tc-word tc-ink--cyan phase9-settlement__action"
                             onClick={() => setShareCardOpen(true)}
                         >
-                            Share Score Card
+                            Share Result Card
                         </button>
                         <button
                             type="button"
                             className="tc-word tc-ink--blue phase9-settlement__action"
                             onClick={() => setReviewDrawerOpen(true)}
                         >
-                            Review Questions
+                            Review Answers
                         </button>
                     </div>
                     <ShareResultCardModal
