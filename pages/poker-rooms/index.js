@@ -25,6 +25,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
+import MagazineNewsstandBanner from '../../src/components/magazine/MagazineNewsstandBanner';
 import { POKER_TRAVEL_CORRIDORS, corridorGuidePath } from '../../src/content/guides/corridors';
 import { POKER_ROOMS_BY_GAME, byGameGuidePath } from '../../src/content/guides/byGame';
 import { POKER_MARKET_GUIDES, marketGuidePath } from '../../src/content/guides/markets';
@@ -246,6 +247,10 @@ export default function PokerRoomsMasterHubPage() {
             </Link>
           </div>
         </header>
+
+        <div style={{ marginBottom: 24 }}>
+          <MagazineNewsstandBanner variant="cardrooms" />
+        </div>
 
         {/* 8 Core Geographic & Cardroom Hubs */}
         <section aria-label="Eight Core Geographic And Cardroom Hubs" style={styles.sectionPlate}>

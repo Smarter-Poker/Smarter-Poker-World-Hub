@@ -16,6 +16,7 @@
  */
 import { buildPromoSignupUrl } from '../promoCampaigns/promoSignupToken.mjs';
 import { isCompetitorSponsoredPost, normalizeEditorialTitle } from '../newsletter/editorialCleaners.mjs';
+import { appendMagazineQrUtm } from '../newsletter/utmAttribution.mjs';
 import { isEchoingOrEmptyBlurb } from '../newsletter/weeklyWireEngine.mjs';
 import {
     PLATFORM_UPDATES_CATALOG,
@@ -1923,7 +1924,52 @@ export function buildMagazineManifestFromVault({
         },
     ];
 
-    const signaturePageCount = normalizeSignaturePageCount(rawPages.length);
+    const taggedPages = rawPages.map((p, idx) => {
+        const pageNum = Number(p.pageNumber) || idx + 1;
+        const pageKind = String(p.kind || '');
+        const taggedQrUrl = p.qrUrl
+            ? appendMagazineQrUtm(p.qrUrl, {
+                  issuePeriod: period,
+                  pageNumber: pageNum,
+                  kind: pageKind,
+              })
+            : p.qrUrl;
+
+        const taggedItems = Array.isArray(p.items)
+            ? p.items.map((it) => {
+                  if (!it || typeof it !== 'object') return it;
+                  if (typeof it.qrUrl === 'string' && it.qrUrl) {
+                      return {
+                          ...it,
+                          qrUrl: appendMagazineQrUtm(it.qrUrl, {
+                              issuePeriod: period,
+                              pageNumber: pageNum,
+                              kind: pageKind,
+                          }),
+                      };
+                  }
+                  if (pageNum >= 36 && pageNum <= 41 && typeof it.url === 'string' && it.url) {
+                      return {
+                          ...it,
+                          qrUrl: appendMagazineQrUtm(it.url, {
+                              issuePeriod: period,
+                              pageNumber: pageNum,
+                              kind: pageKind,
+                          }),
+                      };
+                  }
+                  return it;
+              })
+            : p.items;
+
+        return {
+            ...p,
+            ...(taggedQrUrl !== undefined ? { qrUrl: taggedQrUrl } : {}),
+            ...(taggedItems !== undefined ? { items: taggedItems } : {}),
+        };
+    });
+
+    const signaturePageCount = normalizeSignaturePageCount(taggedPages.length);
     const title = stripMagazineDashes(`${MAGAZINE_MASTHEAD} - Issue #${issueNum} (${periodLabel})`).slice(0, 240);
 
     return normalizeIssueManifest({
@@ -1947,7 +1993,7 @@ export function buildMagazineManifestFromVault({
             customCoverSubheadline: Boolean(overrides?.customCoverSubheadline ?? overrides?.coverSubheadline),
             coverImageStoragePath,
         },
-        pages: rawPages,
+        pages: taggedPages,
     });
 }
 
@@ -2132,6 +2178,8 @@ export async function compileMonthlyMagazineIssue(
             status: nextStatus,
             page_count: manifest.pageCount,
             manifest_json: manifest,
+            pdf_url: null,
+            pdf_storage_path: null,
             ...(nextStatus === 'published' && !existingIssue?.published_at ? { published_at: nowIso } : {}),
             updated_at: nowIso,
         };

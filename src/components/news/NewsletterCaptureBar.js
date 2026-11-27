@@ -57,6 +57,8 @@ export function isNewsletterCaptureRoute(rawPath) {
     if (
         norm === '/hub/magazine/print' ||
         norm.startsWith('/hub/magazine/print/') ||
+        norm === '/hub/magazine/table-tent' ||
+        norm.startsWith('/hub/magazine/table-tent/') ||
         norm === '/hub/magazine/poker-rooms' ||
         norm.startsWith('/hub/magazine/poker-rooms/') ||
         norm === '/hub/magazine/rss.xml'

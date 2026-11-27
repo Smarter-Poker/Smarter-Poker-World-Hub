@@ -255,6 +255,7 @@ export const STATIC_PAGES = [
   { path: '/hub/wire', priority: '0.85', changefreq: 'weekly' },
   { path: '/hub/magazine', priority: '0.85', changefreq: 'monthly' },
   { path: '/hub/magazine/poker-rooms', priority: '0.8', changefreq: 'monthly' },
+  { path: '/hub/magazine/table-tent', priority: '0.75', changefreq: 'monthly' },
   { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/video-library/channels', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/video-library/players', priority: '0.8', changefreq: 'weekly' },

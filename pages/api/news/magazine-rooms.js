@@ -15,8 +15,12 @@
  */
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth.js';
 import { reportApiError } from '../../../src/lib/apiErrorHandler.js';
+import { resendApiKey, resendFrom } from '../../../src/lib/email/resendAccount.mjs';
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
+const DEFAULT_CARDROOM_FROM = 'Smarter.Poker Magazine <news@smarter.poker>';
+const CARDROOM_POSTAL_ADDRESS = 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453';
+const EXCLUDED_CARDROOM_VENUE_TYPES = ['series', 'tour', 'home_game'];
 const ALLOWED_ROOM_STATUSES = ['pending', 'verified', 'active', 'paused', 'cancelled'];
 const ACTIVE_COPY_STATUSES = ['pending', 'verified', 'active'];
 const ACTIVE_COPY_STATUS_SET = new Set(ACTIVE_COPY_STATUSES);
@@ -157,6 +161,226 @@ async function checkRoomsRateLimit(req, res, mode = 'write') {
 
 function escapeIlikeExact(value) {
     return String(value || '').replace(/([\\%_])/g, '\\$1');
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function normalizeVenueAlphaNum(value) {
+    return stripMagazineDashes(value)
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function normalizeVenueMatchCore(name, city = '') {
+    const base = normalizeVenueAlphaNum(name);
+    if (!base) return '';
+    let stripped = ` ${base} `
+        .replace(/\b(?:poker\s+room|poker\s+club|card\s+club|card\s+room|hotel|casino|resort|and\s+spa|spa)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/^the\s+/, '');
+    const normCity = normalizeVenueAlphaNum(city);
+    if (normCity && stripped.endsWith(` ${normCity}`)) {
+        const withoutCity = stripped.slice(0, stripped.length - normCity.length - 1).trim();
+        if (withoutCity.length >= 3) stripped = withoutCity;
+    }
+    return stripped.length >= 2 ? stripped : base;
+}
+
+export async function resolveMatchingPokerVenueId(sb, record = {}) {
+    if (!sb || typeof sb.from !== 'function') {
+        return { venueId: null, slug: null };
+    }
+    const targetState = String(record.state || '').trim().toUpperCase();
+    const rawRoomName = String(record.room_name ?? record.roomName ?? '').trim();
+    const targetCity = normalizeVenueAlphaNum(record.city || '');
+    if (!targetState || !rawRoomName) {
+        return { venueId: null, slug: null };
+    }
+
+    try {
+        let query = sb
+            .from('poker_venues')
+            .select(
+                'id, name, slug, city, state, is_active, is_suppressed, canonical_venue_id, source, data_quality, venue_type'
+            );
+        if (typeof query.eq === 'function') {
+            query = query.eq('state', targetState).eq('is_active', true).eq('is_suppressed', false);
+        }
+        const res = typeof query.limit === 'function' ? await query.limit(60) : await query;
+        const candidates = (Array.isArray(res?.data) ? res.data : []).filter((v) => {
+            if (!v || v.id == null || !v.name) return false;
+            if (v.is_active === false || v.is_suppressed === true) return false;
+            if (Number(v.id) === 3109) return false;
+            if (v.canonical_venue_id != null) return false;
+            const venueType = String(v.venue_type || '').trim().toLowerCase();
+            if (EXCLUDED_CARDROOM_VENUE_TYPES.includes(venueType)) return false;
+            const source = String(v.source || '').trim().toLowerCase();
+            const quality = String(v.data_quality || '').trim().toLowerCase();
+            if (
+                source === 'self_registration' &&
+                quality !== 'scraped_verified' &&
+                quality !== 'manual_research'
+            ) {
+                return false;
+            }
+            return String(v.state || '').trim().toUpperCase() === targetState;
+        });
+
+        if (candidates.length === 0) {
+            return { venueId: null, slug: null };
+        }
+
+        const targetFull = normalizeVenueAlphaNum(rawRoomName);
+        const targetCore = normalizeVenueMatchCore(rawRoomName, record.city || '');
+
+        // Pass 1: exact normalized full or core name match in the same city + state
+        const sameCityExact = candidates.find((v) => {
+            const vCity = normalizeVenueAlphaNum(v.city || '');
+            if (targetCity && vCity !== targetCity) return false;
+            const vFull = normalizeVenueAlphaNum(v.name);
+            const vCore = normalizeVenueMatchCore(v.name, v.city || '');
+            return (vCore && vCore === targetCore) || (vFull && vFull === targetFull);
+        });
+        if (sameCityExact) {
+            return {
+                venueId: Number(sameCityExact.id),
+                slug: sameCityExact.slug ? String(sameCityExact.slug) : null,
+            };
+        }
+
+        // Pass 2: containment match (>= 4 chars) in the exact same city + state
+        if (targetCity && targetCore.length >= 4) {
+            const sameCityContained = candidates.find((v) => {
+                const vCity = normalizeVenueAlphaNum(v.city || '');
+                if (vCity !== targetCity) return false;
+                const vCore = normalizeVenueMatchCore(v.name, v.city || '');
+                return (
+                    vCore.length >= 4 &&
+                    (vCore.includes(targetCore) || targetCore.includes(vCore))
+                );
+            });
+            if (sameCityContained) {
+                return {
+                    venueId: Number(sameCityContained.id),
+                    slug: sameCityContained.slug ? String(sameCityContained.slug) : null,
+                };
+            }
+        }
+
+        return { venueId: null, slug: null };
+    } catch {
+        return { venueId: null, slug: null };
+    }
+}
+
+export async function sendCardroomConfirmationEmail(
+    record,
+    { matchedVenueSlug = null, deduplicated = false, fetchImpl = null } = {}
+) {
+    const apiKey = resendApiKey();
+    const sendFetch = typeof fetchImpl === 'function' ? fetchImpl : globalThis.fetch;
+    if (!apiKey || typeof sendFetch !== 'function' || !record?.contact_email) {
+        return { sent: false, reason: 'unavailable' };
+    }
+
+    const from = resendFrom(DEFAULT_CARDROOM_FROM);
+    const newsstandUrl = new URL('/hub/magazine', 'https://smarter.poker').href;
+    const tentUrlObj = new URL('/hub/magazine/table-tent', 'https://smarter.poker');
+    tentUrlObj.searchParams.set('room', String(record.room_name || ''));
+    tentUrlObj.searchParams.set('city', String(record.city || ''));
+    tentUrlObj.searchParams.set('state', String(record.state || ''));
+    if (matchedVenueSlug) {
+        tentUrlObj.searchParams.set('slug', String(matchedVenueSlug));
+    }
+    const tableTentUrl = tentUrlObj.href;
+
+    const cleanRoom = stripMagazineDashes(record.room_name || 'Poker Room');
+    const cleanManager = stripMagazineDashes(record.contact_name || 'Poker Room Manager');
+    const cleanStreet = stripMagazineDashes(record.shipping_address_json?.street || '');
+    const cleanCity = stripMagazineDashes(record.city || '');
+    const cleanState = stripMagazineDashes(record.state || '');
+    const cleanZip = stripMagazineDashes(record.postal_code || '');
+    const copies = Math.max(5, Number(record.requested_copies || 50));
+
+    const subject = deduplicated
+        ? `Smarter.Poker Magazine Bundle Updated - ${cleanRoom}`
+        : `Smarter.Poker Magazine Cardroom Bundle Confirmation - ${cleanRoom}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px 12px;background:#05070a;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;background:#0b1520;border:1px solid #1b2c3d;border-radius:14px;overflow:hidden;">
+    <tr>
+      <td style="padding:28px 28px 20px 28px;background:#102131;border-bottom:1px solid #1b2c3d;">
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;color:#4fc1b3;margin-bottom:8px;">Official Cardroom Print Program</div>
+        <h1 style="margin:0;font-size:22px;line-height:1.25;color:#ffffff;font-family:Georgia,'Times New Roman',serif;">${escapeHtml(cleanRoom)} Print Bundle ${deduplicated ? 'Updated' : 'Recorded'}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:24px 28px;">
+        <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#9fb3c8;">Hello ${escapeHtml(cleanManager)},</p>
+        <p style="margin:0 0 18px 0;font-size:15px;line-height:1.6;color:#9fb3c8;">Our Oak Lawn distribution desk has recorded your request for <strong style="color:#ffffff;">${copies} monthly print copies</strong> of Smarter.Poker Magazine (${escapeHtml(cleanStreet)}, ${escapeHtml(cleanCity)}, ${escapeHtml(cleanState)} ${escapeHtml(cleanZip)}).</p>
+        <p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#9fb3c8;">While your shipment is queued for the first-of-month press run, you can print your complimentary 300-DPI Cardroom QR Table-Tent Kit right now for your brush stand and waiting-list podium:</p>
+        <div style="margin:0 0 22px 0;">
+          <a href="${escapeHtml(tableTentUrl)}" style="display:inline-block;background:#4fc1b3;color:#05070a;font-size:14px;font-weight:900;text-decoration:none;padding:13px 22px;border-radius:10px;">Print Your Complimentary QR Table-Tent Kit &rarr;</a>
+        </div>
+        <p style="margin:0;font-size:13.5px;line-height:1.55;color:#9fb3c8;">Browse the latest 44-page digital issue anytime at <a href="${escapeHtml(newsstandUrl)}" style="color:#60a5fa;text-decoration:none;font-weight:700;">${escapeHtml(newsstandUrl)}</a>.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:16px 28px;border-top:1px solid #1b2c3d;font-size:12px;color:#9fb3c8;line-height:1.5;">
+        Smarter.Poker Magazine Distribution Desk &bull; ${CARDROOM_POSTAL_ADDRESS}
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const text = [
+        `Smarter.Poker Magazine Cardroom Print Program`,
+        ``,
+        `Hello ${cleanManager},`,
+        `Your request for ${copies} monthly print copies for ${cleanRoom} (${cleanStreet}, ${cleanCity}, ${cleanState} ${cleanZip}) has been recorded.`,
+        ``,
+        `Print Your Complimentary QR Table-Tent Kit: ${tableTentUrl}`,
+        `Browse Latest 44-Page Digital Issue: ${newsstandUrl}`,
+        ``,
+        `Smarter.Poker Magazine - ${CARDROOM_POSTAL_ADDRESS}`,
+    ].join('\n');
+
+    try {
+        const res = await sendFetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                from,
+                to: [record.contact_email],
+                reply_to: 'support@smarter.poker',
+                subject,
+                html,
+                text,
+            }),
+            signal: AbortSignal.timeout(3500),
+        });
+        return { sent: Boolean(res?.ok), status: Number(res?.status || 0) };
+    } catch {
+        return { sent: false, reason: 'network_error' };
+    }
 }
 
 async function authorizeRoomAdmin(req, sbClient = null) {
@@ -315,6 +539,20 @@ async function findExistingActiveRoomSubscription(sb, contactEmail, roomName) {
     }
 }
 
+function isMissingVenueIdColumnError(err) {
+    const msg = String(err?.message || err?.details || '');
+    return /\bvenue_id\b/i.test(msg) && /column|schema cache/i.test(msg);
+}
+
+async function runRoomWriteWithOptionalVenueId(writeFn, payload) {
+    const firstRes = await writeFn(payload);
+    if (!firstRes?.error || !('venue_id' in payload) || !isMissingVenueIdColumnError(firstRes.error)) {
+        return firstRes;
+    }
+    const { venue_id: _omittedVenueId, ...fallbackPayload } = payload;
+    return writeFn(fallbackPayload);
+}
+
 async function upsertOrInsertRoomSubscription(sb, record) {
     const existing = await findExistingActiveRoomSubscription(sb, record.contact_email, record.room_name);
     if (existing?.id) {
@@ -328,22 +566,35 @@ async function upsertOrInsertRoomSubscription(sb, record) {
             shipping_address_json: record.shipping_address_json,
             table_count: record.table_count,
             requested_copies: record.requested_copies,
+            ...(record.venue_id != null ? { venue_id: record.venue_id } : {}),
             ...(record.contact_phone !== undefined ? { contact_phone: record.contact_phone } : {}),
             ...(record.notes !== undefined ? { notes: record.notes } : {}),
             updated_at: new Date().toISOString(),
         };
-        const updQuery = sb.from('magazine_room_subscriptions').update(updatePayload).eq('id', existing.id);
-        const updRes = typeof updQuery.select === 'function' ? await updQuery.select('*').limit(1) : await updQuery;
+        const updRes = await runRoomWriteWithOptionalVenueId((payload) => {
+            const updQuery = sb.from('magazine_room_subscriptions').update(payload).eq('id', existing.id);
+            return typeof updQuery.select === 'function' ? updQuery.select('*').limit(1) : updQuery;
+        }, updatePayload);
         if (updRes?.error) throw updRes.error;
         const row = Array.isArray(updRes?.data) ? updRes.data[0] : updRes?.data;
-        return { row: row || { ...existing, ...updatePayload }, deduplicated: true };
+        const mergedRow = row || { ...existing, ...updatePayload };
+        if (record.venue_id != null && mergedRow.venue_id === undefined) {
+            mergedRow.venue_id = record.venue_id;
+        }
+        return { row: mergedRow, deduplicated: true };
     }
 
-    const insQuery = sb.from('magazine_room_subscriptions').insert(record);
-    const insRes = typeof insQuery.select === 'function' ? await insQuery.select('*').limit(1) : await insQuery;
+    const insRes = await runRoomWriteWithOptionalVenueId((payload) => {
+        const insQuery = sb.from('magazine_room_subscriptions').insert(payload);
+        return typeof insQuery.select === 'function' ? insQuery.select('*').limit(1) : insQuery;
+    }, record);
     if (!insRes?.error) {
         const created = Array.isArray(insRes?.data) ? insRes.data[0] : insRes?.data || record;
-        return { row: created, deduplicated: false };
+        const mergedCreated = created && typeof created === 'object' ? { ...created } : { ...record };
+        if (record.venue_id != null && mergedCreated.venue_id === undefined) {
+            mergedCreated.venue_id = record.venue_id;
+        }
+        return { row: mergedCreated, deduplicated: false };
     }
 
     const code = String(insRes.error.code || '');
@@ -359,16 +610,22 @@ async function upsertOrInsertRoomSubscription(sb, record) {
                 shipping_address_json: record.shipping_address_json,
                 table_count: record.table_count,
                 requested_copies: record.requested_copies,
+                ...(record.venue_id != null ? { venue_id: record.venue_id } : {}),
                 ...(record.contact_phone !== undefined ? { contact_phone: record.contact_phone } : {}),
                 ...(record.notes !== undefined ? { notes: record.notes } : {}),
                 updated_at: new Date().toISOString(),
             };
-            const retryQuery = sb.from('magazine_room_subscriptions').update(updatePayload).eq('id', raced.id);
-            const retryRes =
-                typeof retryQuery.select === 'function' ? await retryQuery.select('*').limit(1) : await retryQuery;
+            const retryRes = await runRoomWriteWithOptionalVenueId((payload) => {
+                const retryQuery = sb.from('magazine_room_subscriptions').update(payload).eq('id', raced.id);
+                return typeof retryQuery.select === 'function' ? retryQuery.select('*').limit(1) : retryQuery;
+            }, updatePayload);
             if (!retryRes?.error) {
                 const row = Array.isArray(retryRes?.data) ? retryRes.data[0] : retryRes?.data;
-                return { row: row || { ...raced, ...updatePayload }, deduplicated: true };
+                const mergedRaced = row || { ...raced, ...updatePayload };
+                if (record.venue_id != null && mergedRaced.venue_id === undefined) {
+                    mergedRaced.venue_id = record.venue_id;
+                }
+                return { row: mergedRaced, deduplicated: true };
             }
         }
     }
@@ -396,11 +653,36 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, error: validation.error });
             }
 
-            const { row: saved, deduplicated } = await upsertOrInsertRoomSubscription(sb, validation.record);
+            const explicitVenueId = Number.parseInt(String(body.venue_id ?? body.venueId ?? ''), 10);
+            const recordToSave = {
+                ...validation.record,
+                ...(Number.isInteger(explicitVenueId) && explicitVenueId > 0 && explicitVenueId !== 3109
+                    ? { venue_id: explicitVenueId }
+                    : {}),
+            };
+
+            let matchedVenueSlug = null;
+            if (recordToSave.venue_id == null) {
+                const venueMatch = await resolveMatchingPokerVenueId(sb, recordToSave);
+                if (venueMatch?.venueId) {
+                    recordToSave.venue_id = venueMatch.venueId;
+                    matchedVenueSlug = venueMatch.slug || null;
+                }
+            }
+
+            const { row: saved, deduplicated } = await upsertOrInsertRoomSubscription(sb, recordToSave);
+
+            const emailOutcome = await sendCardroomConfirmationEmail(recordToSave, {
+                matchedVenueSlug,
+                deduplicated,
+                fetchImpl: req?._fetchImpl,
+            });
 
             return res.status(deduplicated ? 200 : 201).json({
                 success: true,
                 deduplicated,
+                matchedVenueSlug,
+                confirmationEmailSent: Boolean(emailOutcome?.sent),
                 subscription: saved,
                 message: deduplicated
                     ? 'Active Cardroom Print Bundle Request Updated With Your Latest Shipping And Copy Details.'

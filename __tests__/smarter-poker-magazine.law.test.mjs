@@ -1768,3 +1768,710 @@ test('MAG LAW 17: competitor online-poker promos/outlets never leak into vault o
     assert.ok(queriedTables.includes('poker_series'), 'Harvester must query poker_series');
     assert.ok(queriedTables.includes('tournament_series'), 'Harvester must query tournament_series');
 });
+
+// ── MAG LAW 18: Commercial Saddle-Stitch Imposition & Cardroom Fulfillment CSV/Label Engine ──
+test('MAG LAW 18: computeSaddleStitchSpreads enforces exact 16.75x10.875 signature sheet pairing across 36/40/44/48 pages, and buildCardroomFulfillmentCsv computes 10% overage + neutralizes CSV formula injection', async () => {
+    const {
+        IMPOSITION_SHEET_TRIM,
+        buildCardroomFulfillmentCsv,
+        computeSaddleStitchSpreads,
+        escapeFulfillmentCsvCell,
+        padPagesToSignature,
+    } = await import('../src/lib/magazine/magazineImposition.mjs');
+
+    assert.equal(IMPOSITION_SHEET_TRIM.spreadWidthIn, 16.75);
+    assert.equal(IMPOSITION_SHEET_TRIM.spreadHeightIn, 10.875);
+    assert.equal(IMPOSITION_SHEET_TRIM.bleedSpreadWidthIn, 17.0);
+    assert.equal(IMPOSITION_SHEET_TRIM.bleedSpreadHeightIn, 11.125);
+
+    // Non-multiples of 4 MUST throw RangeError; padPagesToSignature rounds cleanly to 4-page signatures
+    assert.throws(() => computeSaddleStitchSpreads([{ pageNumber: 1 }, { pageNumber: 2 }]), RangeError);
+    assert.throws(
+        () => computeSaddleStitchSpreads(Array.from({ length: 42 }, (_, i) => ({ pageNumber: i + 1 }))),
+        RangeError
+    );
+    assert.equal(padPagesToSignature([{ pageNumber: 1 }, { pageNumber: 2 }, { pageNumber: 3 }]).length, 4);
+
+    for (const totalPages of [36, 40, 44, 48]) {
+        const fakePages = Array.from({ length: totalPages }, (_, idx) => ({
+            pageNumber: idx + 1,
+            headline: `Page ${idx + 1}`,
+        }));
+        const spreads = computeSaddleStitchSpreads(fakePages);
+        assert.equal(spreads.length, totalPages / 2, `${totalPages}p must produce ${totalPages / 2} printer spreads`);
+
+        // Sheet 1 Front = [P.N | P.1], Sheet 1 Back = [P.2 | P.N-1], Centerfold = [P.N/2 | P.N/2 + 1]
+        assert.equal(spreads[0].leftPageNumber, totalPages);
+        assert.equal(spreads[0].rightPageNumber, 1);
+        assert.equal(spreads[0].side, 'front');
+        assert.equal(spreads[1].leftPageNumber, 2);
+        assert.equal(spreads[1].rightPageNumber, totalPages - 1);
+        assert.equal(spreads[1].side, 'back');
+        const lastSpread = spreads[spreads.length - 1];
+        assert.equal(lastSpread.leftPageNumber, totalPages / 2);
+        assert.equal(lastSpread.rightPageNumber, totalPages / 2 + 1);
+
+        const seen = new Set();
+        for (const sp of spreads) {
+            assert.equal(
+                sp.leftPageNumber + sp.rightPageNumber,
+                totalPages + 1,
+                `Every saddle-stitch spread must sum to N+1 (${totalPages + 1})`
+            );
+            seen.add(sp.leftPageNumber);
+            seen.add(sp.rightPageNumber);
+        }
+        assert.equal(seen.size, totalPages, `All ${totalPages} pages must appear bijectively across spreads`);
+    }
+
+    // Print proof route wires booklet imposition, center spine fold ticks, registration bullseyes & Vanguard color bars
+    const printProofSrc = read('pages/hub/magazine/print/[issue].js');
+    assert.match(printProofSrc, /computeSaddleStitchSpreads/);
+    assert.match(printProofSrc, /imposition.*booklet/);
+    assert.match(printProofSrc, /16\.75in\s+10\.875in/);
+    assert.match(printProofSrc, /17\.0in\s+11\.125in/);
+    assert.match(printProofSrc, /RegistrationBullseye/);
+    assert.match(printProofSrc, /VanguardColorBars/);
+
+    // CSV formula-injection guard + shipping_address_json extraction + 10% overage press-run calculation
+    assert.equal(escapeFulfillmentCsvCell('=CMD|\' /C calc\'!A0'), "'=CMD|' /C calc'!A0");
+    assert.equal(escapeFulfillmentCsvCell('+18005550199'), "'+18005550199");
+
+    const fulfillment = buildCardroomFulfillmentCsv(
+        [
+            {
+                id: 'r1',
+                room_name: 'The Lodge Card Club',
+                contact_name: '=EvilManager',
+                contact_email: 'floor@thelodgepokerclub.com',
+                contact_phone: '512-555-0199',
+                shipping_address_json: { street: '2055 S Interstate 35, Suite 150', postalCode: '78664' },
+                city: 'Round Rock',
+                state: 'TX',
+                table_count: 85,
+                requested_copies: 100,
+                status: 'verified',
+            },
+            {
+                id: 'r2',
+                room_name: 'Texas Card House Dallas',
+                contact_name: 'Cardroom Desk',
+                contact_email: 'desk@texascardhouse.com',
+                shipping_address_json: { street: '11834 Harry Hines Blvd' },
+                city: 'Dallas',
+                state: 'TX',
+                postal_code: '75234',
+                requested_copies: 75,
+                status: 'active',
+            },
+            {
+                id: 'r3-pending',
+                room_name: 'Pending Room Excluded By Default',
+                requested_copies: 500,
+                status: 'pending',
+            },
+        ],
+        { issuePeriod: '2026-11', overagePct: 10 }
+    );
+    assert.equal(fulfillment.activeRoomsCount, 2);
+    assert.equal(fulfillment.netCopies, 175);
+    assert.equal(fulfillment.overageCopies, 18); // Math.ceil(175 * 0.10) = 18
+    assert.equal(fulfillment.totalPressRunCopies, 193);
+    assert.match(fulfillment.csv, /"2055 S Interstate 35, Suite 150"/);
+    assert.match(fulfillment.csv, /'=EvilManager/);
+    assert.doesNotMatch(fulfillment.csv, /Pending Room Excluded By Default/);
+
+    const adminSrc = read('pages/admin/newsletter.js');
+    assert.match(adminSrc, /exportMagazineFulfillmentCsv/);
+    assert.match(adminSrc, /printMagazinePackingLabels/);
+});
+
+// ── MAG LAW 19: 44-Page Commercial PDF Builder, Cache Invalidation & /api/news/magazine-pdf Trace Law ──
+test('MAG LAW 19: buildMagazineIssuePdfBuffer generates a valid 44-page %PDF-1.x binary with SSRF protection, /api/news/magazine-pdf enforces refresh auth + published-only caching, compileMonthlyMagazineIssue invalidates stale pdf_url, and @vercel/nft traces zero pages/hub/* files', async () => {
+    const { buildMagazineManifestFromVault, compileMonthlyMagazineIssue } = await import(
+        '../src/lib/magazine/magazineCompiler.mjs'
+    );
+    const { buildMagazineIssuePdfBuffer, isAllowedMagazineAssetImageUrl } = await import(
+        '../src/lib/magazine/magazinePdfBuilder.mjs'
+    );
+    const { default: pdfHandler } = await import('../pages/api/news/magazine-pdf.js');
+
+    // 1. Strict SSRF allowlist on embedded PDF images
+    assert.equal(
+        isAllowedMagazineAssetImageUrl(
+            'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/cover.jpg'
+        ),
+        true
+    );
+    assert.equal(isAllowedMagazineAssetImageUrl('http://169.254.169.254/latest/meta-data/'), false);
+    assert.equal(isAllowedMagazineAssetImageUrl('https://evil.example.com/storage/v1/object/public/magazine-assets/a.jpg'), false);
+    assert.equal(
+        isAllowedMagazineAssetImageUrl(
+            'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/../private/secret.jpg'
+        ),
+        false
+    );
+
+    // 2. Real 44-page PDF binary generation
+    const manifest = buildMagazineManifestFromVault({
+        issueNumber: 1,
+        volumeNumber: 1,
+        issuePeriod: '2026-11',
+        vaultItems: [],
+    });
+    const pdfBuf = await buildMagazineIssuePdfBuffer(manifest, { embedImages: false });
+    assert.ok(Buffer.isBuffer(pdfBuf), 'PDF output must be a Node Buffer');
+    assert.ok(pdfBuf.byteLength > 25_000, `Expected substantial 44-page PDF binary, got ${pdfBuf.byteLength} bytes`);
+    const pdfAscii = pdfBuf.toString('latin1');
+    assert.equal(pdfAscii.startsWith('%PDF-1.'), true, 'PDF buffer must start with %PDF-1. header');
+    assert.match(pdfAscii, /\/Count\s+44\b/, 'PDF page tree must declare /Count 44 pages');
+
+    // 3. /api/news/magazine-pdf endpoint behavior (400 bad selector, 401 unauth refresh, 200 build+upload on published, 302 cached, no DB cache write on draft preview)
+    let uploadedBytes = 0;
+    let dbUpdatedPayload = null;
+    const cachedPublicPdfUrl =
+        'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/smarter-poker-magazine-2026-11.pdf';
+
+    const makePdfMockSb = (issueRow) => ({
+        from(table) {
+            const chain = {
+                select: () => chain,
+                in: () => chain,
+                eq: () => chain,
+                order: () => chain,
+                limit: async () => ({
+                    data: table === 'magazine_issues' && issueRow ? [issueRow] : [],
+                    error: null,
+                }),
+                update: (payload) => {
+                    dbUpdatedPayload = payload;
+                    return { eq: async () => ({ data: [payload], error: null }) };
+                },
+            };
+            return chain;
+        },
+        storage: {
+            from: () => ({
+                upload: async (_p, buf) => {
+                    uploadedBytes = buf.byteLength;
+                    return { data: { path: _p }, error: null };
+                },
+                getPublicUrl: () => ({ data: { publicUrl: cachedPublicPdfUrl } }),
+            }),
+        },
+    });
+
+    const callPdfApi = async ({ query = {}, issueRow = null }) => {
+        let statusCode = 200;
+        let headers = {};
+        let bodyOut = null;
+        let redirectTarget = null;
+        const req = {
+            method: 'GET',
+            headers: {},
+            query,
+            _rateLimitFn: () => true,
+            _fetchImpl: async () => ({ ok: false }),
+            _supabase: makePdfMockSb(issueRow),
+        };
+        const res = {
+            setHeader(k, v) {
+                headers[k.toLowerCase()] = v;
+            },
+            status(c) {
+                statusCode = c;
+                return this;
+            },
+            redirect(c, url) {
+                statusCode = c;
+                redirectTarget = url;
+                return this;
+            },
+            send(b) {
+                bodyOut = b;
+                return this;
+            },
+            end(b) {
+                if (b !== undefined) bodyOut = b;
+                return this;
+            },
+            json(p) {
+                bodyOut = p;
+                return this;
+            },
+        };
+        await pdfHandler(req, res);
+        return { statusCode, headers, bodyOut, redirectTarget };
+    };
+
+    const badSel = await callPdfApi({ query: { issue: '../etc/passwd' } });
+    assert.equal(badSel.statusCode, 400);
+
+    const unauthRefresh = await callPdfApi({ query: { issue: '2026-11', refresh: '1' } });
+    assert.equal(unauthRefresh.statusCode, 401);
+
+    // Draft preview generates PDF with private,no-store and NEVER persists pdf_url to DB
+    uploadedBytes = 0;
+    dbUpdatedPayload = null;
+    const draftRes = await callPdfApi({
+        query: { issue: '2026-11', preview: '1', download: '1' },
+        issueRow: {
+            id: 'draft-id-1',
+            issue_number: 1,
+            volume_number: 1,
+            issue_period: '2026-11',
+            slug: '2026-11',
+            status: 'review',
+            manifest_json: manifest,
+            pdf_url: null,
+        },
+    });
+    assert.equal(draftRes.statusCode, 200);
+    assert.equal(draftRes.headers['content-type'], 'application/pdf');
+    assert.equal(draftRes.headers['cache-control'], 'private, no-store');
+    assert.equal(uploadedBytes, 0, 'Draft preview must not overwrite published storage PDF');
+    assert.equal(dbUpdatedPayload, null, 'Draft preview must not persist pdf_url on review issue');
+
+    // Published issue builds PDF, uploads to magazine-assets, and caches pdf_url
+    const pubRes = await callPdfApi({
+        query: { issue: '2026-11', download: '1' },
+        issueRow: {
+            id: 'pub-id-1',
+            issue_number: 1,
+            volume_number: 1,
+            issue_period: '2026-11',
+            slug: '2026-11',
+            status: 'published',
+            manifest_json: manifest,
+            pdf_url: null,
+        },
+    });
+    assert.equal(pubRes.statusCode, 200);
+    assert.ok(uploadedBytes > 25_000);
+    assert.equal(dbUpdatedPayload?.pdf_url, cachedPublicPdfUrl);
+
+    // Subsequent published request redirects (302) to cached magazine-assets PDF URL
+    const cachedRes = await callPdfApi({
+        query: { issue: '2026-11', download: '1' },
+        issueRow: {
+            id: 'pub-id-1',
+            issue_number: 1,
+            volume_number: 1,
+            issue_period: '2026-11',
+            slug: '2026-11',
+            status: 'published',
+            manifest_json: manifest,
+            pdf_url: cachedPublicPdfUrl,
+        },
+    });
+    assert.equal(cachedRes.statusCode, 302);
+    assert.match(String(cachedRes.redirectTarget), /magazine-assets\/2026-11\/smarter-poker-magazine-2026-11\.pdf/);
+
+    // Re-compiling an issue resets pdf_url: null so stale PDFs are never served after manifest edits
+    let persistedIssueRow = null;
+    const compileMockSb = {
+        from(table) {
+            const chain = {
+                select: () => chain,
+                eq: () => chain,
+                order: () => chain,
+                limit: async () => ({
+                    data:
+                        table === 'magazine_issues'
+                            ? [{ id: 'pub-id-1', issue_number: 1, issue_period: '2026-11', status: 'published', pdf_url: cachedPublicPdfUrl }]
+                            : [],
+                    error: null,
+                }),
+                update: (payload) => {
+                    persistedIssueRow = payload;
+                    return {
+                        eq: () => ({
+                            select: () => ({ limit: async () => ({ data: [payload], error: null }) }),
+                        }),
+                    };
+                },
+            };
+            return chain;
+        },
+    };
+    await compileMonthlyMagazineIssue(compileMockSb, { issuePeriod: '2026-11' });
+    assert.equal(persistedIssueRow?.pdf_url, null, 'Re-compiling an issue must reset pdf_url to null');
+
+    // 4. Next.js @vercel/nft trace check: magazine-pdf.js must NEVER trace any pages/hub/* static page
+    const nftRes = await nextFileTracer.nodeFileTrace(['pages/api/news/magazine-pdf.js'], {
+        base: REPO,
+        processCwd: REPO,
+    });
+    const leakedPages = [...nftRes.fileList].filter(
+        (f) => f.startsWith('pages/hub/') || f.startsWith('pages/poker-rooms/')
+    );
+    assert.deepEqual(
+        leakedPages,
+        [],
+        `pages/api/news/magazine-pdf.js leaked page traces into serverless bundle: ${leakedPages.join(', ')}`
+    );
+});
+
+// ── MAG LAW 20: Printable 300-DPI Cardroom Table-Tent Kit, Print Chrome Isolation & Sitemap Parity ──
+test('MAG LAW 20: /hub/magazine/table-tent exports getServerSideProps, <=60-char title, 4x6 & 5x7 @page specs, ISO 18004 QR codes, _app.js + NewsletterCaptureBar print isolation, and dual sitemaps', async () => {
+    const tentSrc = read('pages/hub/magazine/table-tent.js');
+    assert.match(tentSrc, /export\s+async\s+function\s+getServerSideProps/);
+    assert.match(tentSrc, /buildMagazineQrDataUri/);
+    assert.match(tentSrc, /@page\s*\{\s*size:\s*8\.5in\s+6\.5in/);
+    assert.match(tentSrc, /@page\s*\{\s*size:\s*5in\s+7in/);
+    assert.match(tentSrc, /utm_source=table_tent&utm_medium=qr&utm_campaign=cardroom_kit/);
+
+    const titleMatch = tentSrc.match(/const\s+pageTitle\s*=\s*['"]([^'"]+)['"]/);
+    assert.ok(titleMatch?.[1], 'table-tent.js must define static pageTitle');
+    const escapedLen = titleMatch[1].replace(/&/g, '&amp;').length;
+    assert.ok(escapedLen <= 60, `table-tent.js <title> exceeds 60 chars (${escapedLen}): "${titleMatch[1]}"`);
+    assert.equal((titleMatch[1].match(/Smarter\.Poker/gi) || []).length, 1);
+
+    // Print isolation in _app.js + NewsletterCaptureBar exclusion
+    const appSrc = read('pages/_app.js');
+    assert.match(appSrc, /\/hub\/magazine\/table-tent/);
+
+    const captureSrc = read('src/components/news/NewsletterCaptureBar.js');
+    const fnStart = captureSrc.indexOf('export function normalizeCapturePath');
+    const fnEnd = captureSrc.indexOf('export default function NewsletterCaptureBar');
+    const pureSnippet = captureSrc.slice(fnStart, fnEnd).replace(/^export\s+function\s+/gm, 'function ');
+    const capSb = { exports: {} };
+    vm.runInNewContext(`${pureSnippet}\nexports.isNewsletterCaptureRoute = isNewsletterCaptureRoute;`, capSb);
+    assert.equal(capSb.exports.isNewsletterCaptureRoute('/hub/magazine/table-tent'), false);
+    assert.equal(capSb.exports.isNewsletterCaptureRoute('/hub/magazine/table-tent?room=Lodge'), false);
+
+    // Registered in both sitemaps
+    assert.match(read('src/lib/seo/sitemapBuilders.mjs'), /\/hub\/magazine\/table-tent/);
+    assert.match(read('pages/sitemap.xml.js'), /['"]\/hub\/magazine\/table-tent['"]/);
+});
+
+// ── MAG LAW 21: Interactive Flipbook Live Spot Voting, Reading Progress/Bookmarks, Instant Search, Zoom & Audio Speech Cleanup ──
+test('MAG LAW 21: MagazineSpreadRenderer + [issue].js + index.js wire live /api/news/spot-vote tallies with AbortController, localStorage reading progress & bookmarks, instant 44-page search, 135% spread zoom, and speechSynthesis cleanup on unmount', () => {
+    const rendererSrc = read('src/components/magazine/MagazineSpreadRenderer.js');
+    const fnStart = rendererSrc.indexOf('export function parseLiveSpotVotePayload');
+    const fnEnd = rendererSrc.indexOf('function StrategyColumnLayout');
+    assert.ok(fnStart >= 0 && fnEnd > fnStart, 'parseLiveSpotVotePayload must exist in MagazineSpreadRenderer.js');
+    const fnSnippet = rendererSrc.slice(fnStart, fnEnd).replace(/^export\s+function\s+/, 'function ');
+    const sb = { Math, Number, exports: {} };
+    vm.runInNewContext(`${fnSnippet}\nexports.parseLiveSpotVotePayload = parseLiveSpotVotePayload;`, sb);
+
+    const normalizedTallies = sb.exports.parseLiveSpotVotePayload({
+        votes: { A: 14, B: 26, C: 10, total: 50 },
+    });
+    assert.deepEqual({ ...normalizedTallies }, { A: 14, B: 26, C: 10, total: 50 });
+
+    assert.match(rendererSrc, /\/api\/news\/spot-vote/);
+    assert.match(rendererSrc, /new\s+AbortController\(\)/);
+    assert.match(rendererSrc, /sp_magazine_spot_vote_updated/);
+
+    const issueSrc = read('pages/hub/magazine/[issue].js');
+    assert.match(issueSrc, /sp_mag_progress_v1:/);
+    assert.match(issueSrc, /sp_mag_bookmarks_v1:/);
+    assert.match(issueSrc, /speechSynthesis/);
+    assert.match(issueSrc, /\.cancel\(\)/, 'Audio narration must cancel speechSynthesis cleanly on stop/unmount');
+    assert.match(issueSrc, /zoomScale|1\.35|135%/);
+    assert.match(issueSrc, /\/api\/og\/magazine-card\?/);
+    assert.match(issueSrc, /\/api\/news\/spot-vote/);
+
+    const indexSrc = read('pages/hub/magazine/index.js');
+    assert.match(indexSrc, /sp_mag_progress_v1:/);
+    assert.match(indexSrc, /Continue Reading Issue #/);
+    assert.match(indexSrc, /\/api\/news\/magazine-pdf\?issue=/);
+    assert.match(indexSrc, /\/hub\/magazine\/table-tent/);
+});
+
+// ── MAG LAW 22: Dynamic 1200x630 Magazine OG Card Satori Compliance & Geo/Middleware Public Allowlisting ──
+test('MAG LAW 22: /api/og/magazine-card enforces Edge runtime, Satori display:flex on all multi-child JSX containers, ASCII/no-$ cardText, Vanguard palette, and geo-blocks + middleware allowlists', () => {
+    const ogSrc = read('pages/api/og/magazine-card.js');
+    assert.match(ogSrc, /export\s+const\s+config\s*=\s*\{\s*runtime:\s*['"]edge['"]\s*\}/);
+    assert.match(ogSrc, /new\s+ImageResponse\(/);
+    assert.match(ogSrc, /width:\s*1200/);
+    assert.match(ogSrc, /height:\s*630/);
+    assert.doesNotMatch(ogSrc, /#fbbf24|#f59e0b|#eab308|#c084fc|#a855f7|#ec4899/i);
+
+    // Every <div style={{ ... }}> in Satori OG card must explicitly include display: 'flex'
+    const divStyleMatches = [...ogSrc.matchAll(/<div\s+style=\{\{([\s\S]*?)\}\}/g)];
+    assert.ok(divStyleMatches.length >= 15, 'Expected Satori JSX layout containers in magazine-card.js');
+    for (const m of divStyleMatches) {
+        assert.match(
+            m[1],
+            /display:\s*['"]flex['"]/,
+            `Every <div> in pages/api/og/magazine-card.js must declare display: 'flex' for Satori: ${m[1].slice(0, 80)}`
+        );
+    }
+
+    // Verify cardText sanitizes non-ASCII, em/en dashes, and '$' symbols
+    const fnStart = ogSrc.indexOf('export function cardText');
+    const fnEnd = ogSrc.indexOf('function clampText');
+    const fnSnippet = ogSrc.slice(fnStart, fnEnd).replace(/^export\s+function\s+/, 'function ');
+    const sb = { exports: {} };
+    vm.runInNewContext(`${fnSnippet}\nexports.cardText = cardText;`, sb);
+    assert.equal(sb.exports.cardText('Kings Club — $500,000 Chips \u{1F525}'), 'Kings Club - 500,000 Chips');
+
+    // Public allowlists in config/geo-blocks.json and middleware.ts
+    const geoBlocks = JSON.parse(read('config/geo-blocks.json'));
+    const allowPaths = geoBlocks.allow_paths || [];
+    assert.ok(allowPaths.includes('/api/news/magazine-pdf'), 'geo-blocks.json must allow /api/news/magazine-pdf');
+    assert.ok(allowPaths.includes('/api/og/'), 'geo-blocks.json must allow /api/og/');
+
+    const mwSrc = read('middleware.ts');
+    assert.match(mwSrc, /['"]\/api\/news\/magazine-pdf['"]/);
+    assert.match(mwSrc, /['"]\/api\/og\/['"]/);
+});
+
+// ── MAG LAW 23: Per-Page Print QR UTMs, Venue Auto-Linking, Pro-Account Confirmation Email & Cross-Hub Showcases ──
+test('MAG LAW 23: appendMagazineQrUtm tags all 44 QR URLs without mutating ctaUrl or dropping ?pt=, resolveMatchingPokerVenueId auto-links verified venues while rejecting id=3109 & unverified self-reg, sendCardroomConfirmationEmail uses resendAccount.mjs within <=30 @vercel/nft files, and MagazineNewsstandBanner mounts on /hub/news & /poker-rooms', async () => {
+    const { appendMagazineQrUtm, classifyClickedEmailSection } = await import(
+        '../src/lib/newsletter/utmAttribution.mjs'
+    );
+    const { buildMagazineManifestFromVault } = await import('../src/lib/magazine/magazineCompiler.mjs');
+    const {
+        default: roomsHandler,
+        resolveMatchingPokerVenueId,
+        sendCardroomConfirmationEmail,
+    } = await import('../pages/api/news/magazine-rooms.js');
+
+    // 1. Per-page QR UTM attribution across all 44 pages while keeping web ctaUrl clean & preserving ?pt=
+    const taggedPromoQr = appendMagazineQrUtm(
+        'https://smarter.poker/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450&pt=signed_token_xyz',
+        { issuePeriod: '2026-11', pageNumber: 2, kind: 'house_promo_spread' }
+    );
+    const parsedPromoQr = new URL(taggedPromoQr);
+    assert.equal(parsedPromoQr.searchParams.get('pt'), 'signed_token_xyz');
+    assert.equal(parsedPromoQr.searchParams.get('utm_source'), 'mag_qr');
+    assert.equal(parsedPromoQr.searchParams.get('utm_medium'), 'qr');
+    assert.equal(parsedPromoQr.searchParams.get('utm_campaign'), 'mag_2026-11');
+    assert.equal(parsedPromoQr.searchParams.get('utm_content'), 'p02_house_promo_spread');
+
+    assert.equal(classifyClickedEmailSection('https://smarter.poker/hub/magazine/table-tent?room=Lodge'), 'cardrooms');
+    assert.equal(classifyClickedEmailSection('https://smarter.poker/api/news/magazine-pdf?issue=2026-11'), 'magazine');
+
+    const manifest = buildMagazineManifestFromVault({
+        issueNumber: 1,
+        volumeNumber: 1,
+        issuePeriod: '2026-11',
+        vaultItems: [],
+    });
+    assert.equal(manifest.pages.length, 44);
+    for (const pg of manifest.pages) {
+        if (pg.qrUrl) {
+            assert.match(
+                pg.qrUrl,
+                /utm_source=mag_qr/,
+                `Page ${pg.pageNumber} (${pg.kind}) qrUrl must include utm_source=mag_qr: ${pg.qrUrl}`
+            );
+            assert.match(pg.qrUrl, /utm_campaign=mag_2026-11/);
+        }
+        if (pg.ctaUrl) {
+            assert.doesNotMatch(
+                pg.ctaUrl,
+                /utm_source=mag_qr/,
+                `Page ${pg.pageNumber} web ctaUrl must stay clean of print QR UTMs: ${pg.ctaUrl}`
+            );
+        }
+    }
+
+    // 2. Verified Poker Venue Auto-Linking (matches real room, rejects id=3109 & unverified self_registration)
+    const mockVenuesSb = (rows) => ({
+        from: () => {
+            const chain = {
+                select: () => chain,
+                eq: () => chain,
+                limit: async () => ({ data: rows, error: null }),
+            };
+            return chain;
+        },
+    });
+
+    const verifiedMatch = await resolveMatchingPokerVenueId(
+        mockVenuesSb([
+            {
+                id: 3109,
+                name: 'The Lodge Card Club',
+                slug: 'suppressed-3109',
+                city: 'Round Rock',
+                state: 'TX',
+                is_active: true,
+                is_suppressed: false,
+                canonical_venue_id: null,
+                source: 'pokeratlas',
+                data_quality: 'scraped_verified',
+                venue_type: 'card_room',
+            },
+            {
+                id: 9001,
+                name: 'The Lodge Card Club',
+                slug: 'unverified-self-reg',
+                city: 'Round Rock',
+                state: 'TX',
+                is_active: true,
+                is_suppressed: false,
+                canonical_venue_id: null,
+                source: 'self_registration',
+                data_quality: 'pending',
+                venue_type: 'card_room',
+            },
+            {
+                id: 4242,
+                name: 'The Lodge Card Club & Poker Room',
+                slug: 'the-lodge-card-club-round-rock',
+                city: 'Round Rock',
+                state: 'TX',
+                is_active: true,
+                is_suppressed: false,
+                canonical_venue_id: null,
+                source: 'pokeratlas',
+                data_quality: 'scraped_verified',
+                venue_type: 'card_room',
+            },
+        ]),
+        { room_name: 'The Lodge Card Club', city: 'Round Rock', state: 'TX' }
+    );
+    assert.deepEqual(verifiedMatch, {
+        venueId: 4242,
+        slug: 'the-lodge-card-club-round-rock',
+    });
+
+    // 3. Automated Cardroom Confirmation Email via resendAccount.mjs + POST /api/news/magazine-rooms end-to-end
+    const savedBulkKey = process.env.RESEND_BULK_API_KEY;
+    process.env.RESEND_BULK_API_KEY = 're_test_pro_key_mag23';
+    try {
+        let capturedEmailReq = null;
+        const emailResult = await sendCardroomConfirmationEmail(
+            {
+                room_name: 'The Lodge Card Club',
+                contact_name: 'Floor Manager',
+                contact_email: 'floor@thelodgepokerclub.com',
+                city: 'Round Rock',
+                state: 'TX',
+                postal_code: '78664',
+                requested_copies: 75,
+                shipping_address_json: { street: '2055 S Interstate 35' },
+            },
+            {
+                matchedVenueSlug: 'the-lodge-card-club-round-rock',
+                fetchImpl: async (url, init) => {
+                    capturedEmailReq = { url, headers: init.headers, body: JSON.parse(init.body) };
+                    return { ok: true, status: 200 };
+                },
+            }
+        );
+        assert.equal(emailResult.sent, true);
+        assert.equal(capturedEmailReq?.url, 'https://api.resend.com/emails');
+        assert.equal(capturedEmailReq?.headers?.Authorization, 'Bearer re_test_pro_key_mag23');
+        assert.match(capturedEmailReq?.body?.from || '', /@mail\.smarter\.poker/);
+        assert.match(capturedEmailReq?.body?.html || '', /\/hub\/magazine\/table-tent\?/);
+        assert.match(capturedEmailReq?.body?.html || '', /the-lodge-card-club-round-rock/);
+
+        // End-to-end POST handler links venue_id and returns matched_venue_slug + confirmationEmailSent
+        let insertedPayload = null;
+        let postStatus = 200;
+        let postJson = null;
+        const mockPostSb = {
+            from(table) {
+                if (table === 'poker_venues') {
+                    const chain = {
+                        select: () => chain,
+                        eq: () => chain,
+                        limit: async () => ({
+                            data: [
+                                {
+                                    id: 4242,
+                                    name: 'The Lodge Card Club',
+                                    slug: 'the-lodge-card-club-round-rock',
+                                    city: 'Round Rock',
+                                    state: 'TX',
+                                    is_active: true,
+                                    is_suppressed: false,
+                                    canonical_venue_id: null,
+                                    source: 'pokeratlas',
+                                    data_quality: 'scraped_verified',
+                                    venue_type: 'card_room',
+                                },
+                            ],
+                            error: null,
+                        }),
+                    };
+                    return chain;
+                }
+                const chain = {
+                    select: () => chain,
+                    ilike: () => chain,
+                    in: () => chain,
+                    limit: async () => ({ data: [], error: null }),
+                    insert: (payload) => {
+                        insertedPayload = payload;
+                        return {
+                            select: () => ({
+                                limit: async () => ({
+                                    data: [{ id: 'sub-uuid-1', ...payload }],
+                                    error: null,
+                                }),
+                            }),
+                        };
+                    },
+                };
+                return chain;
+            },
+        };
+        await roomsHandler(
+            {
+                method: 'POST',
+                headers: {},
+                body: {
+                    room_name: 'The Lodge Card Club',
+                    contact_name: 'Floor Manager',
+                    contact_email: 'floor@thelodgepokerclub.com',
+                    shipping_address: '2055 S Interstate 35',
+                    city: 'Round Rock',
+                    state: 'TX',
+                    postal_code: '78664',
+                    requested_copies: 50,
+                },
+                _rateLimitFn: () => true,
+                _supabase: mockPostSb,
+                _fetchImpl: async () => ({ ok: true, status: 200 }),
+            },
+            {
+                setHeader() {},
+                status(c) {
+                    postStatus = c;
+                    return this;
+                },
+                json(p) {
+                    postJson = p;
+                    return this;
+                },
+            }
+        );
+        assert.equal(postStatus, 201);
+        assert.equal(insertedPayload?.venue_id, 4242);
+        assert.equal(postJson?.subscription?.venue_id, 4242);
+    } finally {
+        if (savedBulkKey === undefined) delete process.env.RESEND_BULK_API_KEY;
+        else process.env.RESEND_BULK_API_KEY = savedBulkKey;
+    }
+
+    // 4. @vercel/nft serverless trace stays <= 30 files and 0 pages/hub/* files on magazine-rooms.js
+    const roomsNft = await nextFileTracer.nodeFileTrace(['pages/api/news/magazine-rooms.js'], {
+        base: REPO,
+        processCwd: REPO,
+    });
+    assert.ok(
+        roomsNft.fileList.size <= 30,
+        `pages/api/news/magazine-rooms.js trace grew to ${roomsNft.fileList.size} files (max 30)`
+    );
+    const leakedRoomPages = [...roomsNft.fileList].filter((f) => f.startsWith('pages/hub/'));
+    assert.deepEqual(leakedRoomPages, []);
+
+    // 5. Cross-hub MagazineNewsstandBanner mounted on /hub/news and /poker-rooms + Table-Tent CTA on /hub/magazine/poker-rooms
+    const bannerSrc = read('src/components/magazine/MagazineNewsstandBanner.js');
+    assert.match(bannerSrc, /minHeight:\s*['"]44px['"]/);
+    assert.match(bannerSrc, /href="\/hub\/magazine"/);
+    assert.match(bannerSrc, /href="\/hub\/magazine\/poker-rooms"/);
+    assert.doesNotMatch(bannerSrc, /#fbbf24|#c084fc|\u2014|\u2013/i);
+
+    assert.match(read('pages/hub/news.js'), /MagazineNewsstandBanner/);
+    assert.match(read('pages/poker-rooms/index.js'), /MagazineNewsstandBanner/);
+    assert.match(read('pages/hub/magazine/poker-rooms.js'), /\/hub\/magazine\/table-tent/);
+});
