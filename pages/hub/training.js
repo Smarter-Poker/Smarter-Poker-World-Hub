@@ -266,12 +266,12 @@ export default function TrainingPage() {
     setResumableSession(loadResumableTrainingSession(authUser?.id));
   }, [authUser?.id]);
 
-  const playGame = useCallback((game, rawFocus) => {
+  const playGame = useCallback((game, focus) => {
     if (!game || !requireOnline()) return;
     haptic('light');
-    const focus = paLaunchContext
-      ? { ...paLaunchContext, ...(rawFocus || {}) }
-      : rawFocus;
+    if (paLaunchContext) {
+      focus = { ...paLaunchContext, ...(focus || {}) };
+    }
     const query = { gameId: game.id, start: '1', source: 'training-home' };
     if (focus?.from || focus?.source) {
       query.source = focus.from || focus.source;

@@ -111,7 +111,7 @@ test('P1-3: Training lobby preserves PA context on fallback launches without aut
   assert.match(src, /if\s*\(!rawAutoLaunch\s*&&\s*!rawFocus\s*&&\s*!rawCategory\s*&&\s*!hasPaContext\)\s*return;/);
 
   // Merges preserved PA context into playGame and forwards leak, returnTo, from, format, street, position
-  assert.match(src, /const\s+focus\s*=\s*paLaunchContext\s*\?\s*\{\s*\.\.\.paLaunchContext,\s*\.\.\.\(rawFocus\s*\|\|\s*\{\}\)\s*\}\s*:\s*rawFocus/);
+  assert.match(src, /if\s*\(paLaunchContext\)\s*\{\s*focus\s*=\s*\{\s*\.\.\.paLaunchContext,\s*\.\.\.\(focus\s*\|\|\s*\{\}\)\s*\};/);
   assert.match(src, /const\s+effectiveStreet\s*=\s*focus\?\.street\s*\|\|\s*focus\?\.targetStreet/);
   assert.match(src, /query\.street\s*=\s*effectiveStreet/);
   assert.match(src, /query\.targetStreet\s*=\s*effectiveStreet/);
