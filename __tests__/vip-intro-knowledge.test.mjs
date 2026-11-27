@@ -47,7 +47,7 @@ test('the help assistants know the real VIP prices and terms', async () => {
     assert.match(source, /\$20\/month/i, `${name}: monthly price`);
     assert.match(
       source,
-      /first month (is )?\$1 for a first-time card subscriber with a verified email or phone \(one time per account, card only\)/i,
+      /first month (is )?\$1 for a first-time card subscriber with a confirmed email \(one time per account, card only\)/i,
       `${name}: first month`
     );
     assert.match(source, /\$200/, `${name}: yearly price`);

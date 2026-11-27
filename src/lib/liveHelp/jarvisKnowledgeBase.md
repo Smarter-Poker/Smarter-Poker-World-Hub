@@ -289,7 +289,7 @@ Available bundles(prices may vary):
 - ** Ultimate Pack **: 50,000 💎
 
 ### VIP Membership Plans
-- ** Monthly VIP **: $20/month by card. The first month is $1 for a first-time card subscriber with a verified email or phone (one time per account, card only)
+- ** Monthly VIP **: $20/month by card. The first month is $1 for a first-time card subscriber with a confirmed email (one time per account, card only)
 - ** Yearly VIP **: $200/year by card
 - ** Lifetime VIP **: $500, one payment, never renews
 - ** Diamond-funded month **: 2,000 Diamonds for 30 days, with no first-month discount

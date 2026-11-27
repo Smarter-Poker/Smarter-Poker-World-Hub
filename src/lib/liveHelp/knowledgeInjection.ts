@@ -154,7 +154,7 @@ ${JARVIS_KNOWLEDGE.worldHub.orbs.map(orb =>
                 knowledgeSections.push(`
 ## DIAMOND STORE
 - **Bundles**: Starter (1,000💎), Value (5,000💎), Premium (10,000💎), Ultimate (50,000💎)
-- **VIP Membership**: Monthly $20/month by card, first month $1 for a first-time card subscriber with a verified email or phone (one time per account, card only); Yearly $200; Lifetime $500 (one payment)
+- **VIP Membership**: Monthly $20/month by card, first month $1 for a first-time card subscriber with a confirmed email (one time per account, card only); Yearly $200; Lifetime $500 (one payment)
 - **VIP With Diamonds**: A Diamond-funded month is 2,000 Diamonds with no first-month discount
 - **VIP Terms**: Cancel anytime. The 500 Diamond monthly stipend starts with the first full-price renewal. Purchase at /hub/vip-membership/monthly
 - **Checkout**: Add to cart → cart badge → review → Stripe payment → instant delivery
