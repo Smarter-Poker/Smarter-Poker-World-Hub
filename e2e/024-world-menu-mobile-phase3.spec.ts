@@ -351,12 +351,42 @@ test('Poker Near Me deep Series route keeps its approved header trigger after do
   });
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await expect(trigger).toBeVisible();
-  const box = await trigger.boundingBox();
-  expect(box).not.toBeNull();
-  expect(box!.x).toBeGreaterThanOrEqual(0);
-  expect(box!.y).toBeGreaterThanOrEqual(0);
-  expect(box!.x + box!.width).toBeLessThanOrEqual(PHONE.width + 1);
-  expect(box!.y + box!.height).toBeLessThanOrEqual(PHONE.height + 1);
+
+  // The pin is read from the engine's own layout at this instant.
+  // WebKit's protocol box (Playwright's boundingBox, Page.getContentQuads)
+  // and its hit-testing for a position: fixed element lag the layout viewport
+  // until the next rendering update after a programmatic scroll while the
+  // document is still growing: CI recorded y = 1979 for a header that the same
+  // frame's screenshot painted at the top and getBoundingClientRect placed at
+  // y = 0 (2026-11-26 probe, about half of WebKit runs; never in Chromium).
+  // A single protocol read is therefore not evidence either way; the DOM is.
+  const pin = await trigger.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, scrollY: window.scrollY };
+  });
+  expect(pin.scrollY).toBeGreaterThan(0);
+  expect(pin.x).toBeGreaterThanOrEqual(0);
+  expect(pin.y).toBeGreaterThanOrEqual(0);
+  expect(pin.x + pin.width).toBeLessThanOrEqual(PHONE.width + 1);
+  expect(pin.y + pin.height).toBeLessThanOrEqual(PHONE.height + 1);
+
+  // A tap at the trigger centre must reach the trigger, not something above it.
+  await expect.poll(() => trigger.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    return Boolean(hit) && (hit === element || element.contains(hit));
+  }), { message: 'a tap at the trigger centre reaches the trigger', timeout: 5_000 }).toBe(true);
+  await expect(trigger).toBeInViewport({ ratio: 1 });
+
+  // The protocol box must agree once WebKit's layout viewport has caught up.
+  await expect.poll(async () => {
+    const box = await trigger.boundingBox();
+    return Boolean(box)
+      && box!.x >= 0
+      && box!.y >= 0
+      && box!.x + box!.width <= PHONE.width + 1
+      && box!.y + box!.height <= PHONE.height + 1;
+  }, { timeout: 5_000 }).toBe(true);
 });
 
 test('Social Media remains on its preserved Facebook composition', async ({ page }) => {
