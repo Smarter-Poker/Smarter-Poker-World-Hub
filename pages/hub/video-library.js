@@ -210,8 +210,20 @@ const VIDEO_LIBRARY_HELP_STEPS = Object.freeze([
     {
         id: 'live',
         title: 'Live Now',
-        body: 'Featured Channels Streaming Right Now. Live Videos Open On YouTube.',
+        body: 'Featured Channels Streaming Right Now. Checked Shows When Live Status Was Last Confirmed. Live Videos Open On YouTube.',
         target: 'live',
+    },
+    {
+        id: 'timeline',
+        title: 'Hand Timeline',
+        body: 'In The Video Viewer, The Hand Timeline Becomes Available When Playback Starts. Hand Markers Last For This Viewing Session.',
+        target: null,
+    },
+    {
+        id: 'pause-quiz',
+        title: 'What Would You Do?',
+        body: 'Pause A Hand, Choose Your Action, Then Watch What Happens. Your Decision, Not A Solver Answer. It Is Available When The Player Reports Its Timeline, And Choices And Notes Last For This Viewing Session.',
+        target: null,
     },
 ]);
 

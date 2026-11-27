@@ -36,7 +36,7 @@ export default function LiveNow({ channelId }) {
                 </a><Link className="vl-channel-link" href={channelPath(item.channelId)}>{item.channelName}</Link>
             </article>)}</div> : <p>No Verified Live Streams Right Now.</p>}
             {visible.unavailableChannels > 0 && <p className="vl-live-note">Live Status Could Not Be Confirmed For Some Channels.</p>}
-            <p className="vl-live-note">{channelId ? 'Channel Live Status' : 'Featured Channel Live Status'} Checked {new Date(visible.checkedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+            <p className="vl-live-note">Checked {new Date(visible.checkedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
         </>}
     </section>;
 }

@@ -78,6 +78,7 @@ const HamburgerMenu = dynamic(() => import('../../../../../src/components/ui/Ham
 const WATCH_HELP_STEPS = Object.freeze([
     { id: 'player', title: 'Video Player', body: 'The Privacy-Enhanced YouTube Player. Mini-Player Keeps It On Screen While You Scroll, And Autoplay Next Opens The Next Video When This One Ends.', target: 'watch-player' },
     { id: 'timeline', title: 'Hand Timeline', body: 'The Timeline Becomes Available When Playback Starts. Hand Markers Last For This Viewing Session.', target: 'watch-player' },
+    { id: 'pause-quiz', title: 'What Would You Do?', body: 'Pause A Hand, Choose Your Action, Then Watch What Happens. Your Decision, Not A Solver Answer. It Is Available When The Player Reports Its Timeline, And Choices And Notes Last For This Viewing Session.', target: 'watch-player' },
     { id: 'progress', title: 'Watch Progress', body: 'Signed In, Your Watch Progress Saves While You Watch And Verified Watch Time Can Earn A Diamond Reward.', target: 'watch-title' },
     { id: 'actions', title: 'Video Actions', body: 'Share To Your Feed, Queue The Next Video, Save It To Playlists And Training, Or Watch On YouTube.', target: 'watch-actions' },
     { id: 'more', title: 'More To Watch', body: 'More From This Channel And Related Videos Are Picked From The Verified Library.', target: 'watch-more' },

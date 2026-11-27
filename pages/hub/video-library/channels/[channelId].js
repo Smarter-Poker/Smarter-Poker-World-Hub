@@ -35,7 +35,7 @@ export async function getServerSideProps({ params, res }) {
 // Page explanations live behind the mast's chrome "?" (Dan, 2026-11-27).
 const CHANNEL_HELP_STEPS = Object.freeze([
     { id: 'channel', title: 'Verified Channel', body: 'Every Video Here Comes From This Channel And Passed The Verified Library Checks.', target: 'channel-identity' },
-    { id: 'follow', title: 'Follow And Live', body: 'Follow Channels And Choose New Video Notifications. Notifications Appear In Your Smarter.Poker Inbox. Live Now Shows When The Channel Is Streaming.', target: 'channel-follow' },
+    { id: 'follow', title: 'Follow And Live', body: 'Follow Channels And Choose New Video Notifications. Notifications Appear In Your Smarter.Poker Inbox. Live Now Shows When The Channel Is Streaming, And Checked Shows When That Was Last Confirmed. Live Videos Open On YouTube.', target: 'channel-follow' },
     { id: 'videos', title: 'Newest Videos', body: 'The Newest Verified Videos From This Channel. Load More Brings In The Next Set.', target: 'channel-videos' },
 ]);
 
