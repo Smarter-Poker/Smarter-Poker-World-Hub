@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     MAGAZINE_MASTHEAD,
     MAGAZINE_POSTAL_ADDRESS,
@@ -1561,9 +1561,128 @@ function StandingsTableLayout({ page, issueMeta, theme }) {
     );
 }
 
+const SPOT_VOTE_BUS_EVENT = 'sp_magazine_spot_vote_updated';
+const spotVoteSessionCache = new Map();
+
+export function parseLiveSpotVotePayload(data, fallbackVotes = null) {
+    const src = data?.votes || data?.counts || fallbackVotes;
+    if (!src || typeof src !== 'object') return null;
+    const a = Math.max(0, Math.floor(Number(src.A || 0)));
+    const b = Math.max(0, Math.floor(Number(src.B || 0)));
+    const c = Math.max(0, Math.floor(Number(src.C || 0)));
+    const computedTotal = a + b + c;
+    const rawTotal = Number(data?.total ?? src.total ?? computedTotal);
+    const total = Number.isFinite(rawTotal) && rawTotal >= computedTotal ? Math.floor(rawTotal) : computedTotal;
+    return { A: a, B: b, C: c, total };
+}
+
 function StrategyColumnLayout({ page, issueMeta, theme }) {
     const [pickedOption, setPickedOption] = useState('');
     const spot = page?.spot || {};
+    const spotSlug = String(spot?.slug || '').trim();
+    const [liveVotes, setLiveVotes] = useState(() => {
+        if (spotSlug && spotVoteSessionCache.has(spotSlug)) {
+            return spotVoteSessionCache.get(spotSlug);
+        }
+        return parseLiveSpotVotePayload(null, spot?.communityVotes);
+    });
+    const voteReqSeqRef = useRef(0);
+    const voteAbortRef = useRef(null);
+
+    useEffect(() => {
+        setPickedOption('');
+        if (!spotSlug) {
+            setLiveVotes(parseLiveSpotVotePayload(null, spot?.communityVotes));
+            return undefined;
+        }
+        if (spotVoteSessionCache.has(spotSlug)) {
+            setLiveVotes(spotVoteSessionCache.get(spotSlug));
+        } else {
+            setLiveVotes(parseLiveSpotVotePayload(null, spot?.communityVotes));
+        }
+        if (theme.isPrint || typeof window === 'undefined' || typeof fetch !== 'function') {
+            return undefined;
+        }
+
+        const reqId = voteReqSeqRef.current + 1;
+        voteReqSeqRef.current = reqId;
+        const controller = new AbortController();
+
+        fetch(`/api/news/spot-vote?spot=${encodeURIComponent(spotSlug)}`, {
+            method: 'GET',
+            signal: controller.signal,
+        })
+            .then((res) => (res.ok ? res.json().catch(() => null) : null))
+            .then((data) => {
+                if (controller.signal.aborted || voteReqSeqRef.current !== reqId) return;
+                const parsed = parseLiveSpotVotePayload(data);
+                if (parsed) {
+                    spotVoteSessionCache.set(spotSlug, parsed);
+                    setLiveVotes(parsed);
+                }
+            })
+            .catch(() => {});
+
+        const onExternalVote = (evt) => {
+            const detail = evt?.detail;
+            if (detail && detail.slug === spotSlug && detail.votes) {
+                setLiveVotes(detail.votes);
+            }
+        };
+        window.addEventListener(SPOT_VOTE_BUS_EVENT, onExternalVote);
+
+        return () => {
+            controller.abort();
+            if (voteAbortRef.current) {
+                voteAbortRef.current.abort();
+                voteAbortRef.current = null;
+            }
+            window.removeEventListener(SPOT_VOTE_BUS_EVENT, onExternalVote);
+        };
+    }, [spotSlug, theme.isPrint, spot?.communityVotes]);
+
+    const handleSpotOptionPick = useCallback(
+        (optKey) => {
+            const cleanKey = String(optKey || 'A').trim().toUpperCase();
+            setPickedOption(cleanKey);
+            if (theme.isPrint || !spotSlug || !['A', 'B', 'C'].includes(cleanKey)) return;
+            if (typeof fetch !== 'function') return;
+
+            if (voteAbortRef.current) {
+                voteAbortRef.current.abort();
+            }
+            const postController = new AbortController();
+            voteAbortRef.current = postController;
+            const reqId = voteReqSeqRef.current + 1;
+            voteReqSeqRef.current = reqId;
+
+            fetch('/api/news/spot-vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ spot: spotSlug, pick: cleanKey }),
+                signal: postController.signal,
+            })
+                .then((res) => (res.ok ? res.json().catch(() => null) : null))
+                .then((data) => {
+                    if (postController.signal.aborted || voteReqSeqRef.current !== reqId) return;
+                    const parsed = parseLiveSpotVotePayload(data);
+                    if (parsed) {
+                        spotVoteSessionCache.set(spotSlug, parsed);
+                        setLiveVotes(parsed);
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(
+                                new CustomEvent(SPOT_VOTE_BUS_EVENT, {
+                                    detail: { slug: spotSlug, votes: parsed },
+                                })
+                            );
+                        }
+                    }
+                })
+                .catch(() => {});
+        },
+        [theme.isPrint, spotSlug]
+    );
+
     const cardImg =
         spot?.cardImageUrl ||
         spot?.imageUrl ||
@@ -1586,7 +1705,13 @@ function StrategyColumnLayout({ page, issueMeta, theme }) {
         rawSolverPct != null && Number.isFinite(Number(rawSolverPct))
             ? Math.min(100, Math.max(0, Number(rawSolverPct)))
             : null;
+    const effectiveVotes = !theme.isPrint && liveVotes ? liveVotes : spot?.communityVotes;
+    const liveCorrectPct =
+        !theme.isPrint && liveVotes && Number(liveVotes.total) > 0
+            ? Math.round((Number(liveVotes[correctKey] || 0) / Number(liveVotes.total)) * 100)
+            : null;
     const rawCommunityPct =
+        liveCorrectPct ??
         spot?.communityPct ??
         (Number(spot?.communityVotes?.total) > 0 ? spot.communityVotes.solverAgreementPct : null);
     const communityPct =
@@ -1596,7 +1721,6 @@ function StrategyColumnLayout({ page, issueMeta, theme }) {
     const isSetupHalf =
         page?.meta?.spreadHalf === 'setup' ||
         (page?.meta?.spreadHalf !== 'verdict' && Array.isArray(page?.items) && page.items.length > 0);
-    const spotSlug = String(spot?.slug || '');
     const handLabHref = spotSlug
         ? `/hub/training/hand-lab?spot=${encodeURIComponent(spotSlug)}`
         : toInternalMagazineHref(page?.ctaUrl, '/hub/training/hand-lab');
@@ -1693,21 +1817,30 @@ function StrategyColumnLayout({ page, issueMeta, theme }) {
 
                                         const showRight = Boolean(pickedOption) && isGto;
                                         const showWrong = isPicked && !isGto;
+                                        const setupTotalVotes = Number(effectiveVotes?.total || 0);
+                                        const setupOptVotes = Number(effectiveVotes?.[optKey] || 0);
+                                        const setupVotePct =
+                                            setupTotalVotes > 0
+                                                ? Math.round((setupOptVotes / setupTotalVotes) * 100)
+                                                : null;
 
                                         return (
                                             <button
                                                 key={idx}
                                                 type="button"
-                                                onClick={() => setPickedOption(optKey)}
+                                                onClick={() => handleSpotOptionPick(optKey)}
                                                 style={{
                                                     display: 'flex',
                                                     justifyContent: 'space-between',
                                                     alignItems: 'center',
+                                                    gap: '6px',
                                                     width: '100%',
                                                     textAlign: 'left',
                                                     padding: '5px 8px',
                                                     borderRadius: '6px',
                                                     cursor: 'pointer',
+                                                    position: 'relative',
+                                                    overflow: 'hidden',
                                                     background: showRight
                                                         ? '#102131'
                                                         : showWrong
@@ -1720,33 +1853,54 @@ function StrategyColumnLayout({ page, issueMeta, theme }) {
                                                     color: showRight ? '#4fc1b3' : showWrong ? '#f87171' : theme.ink,
                                                 }}
                                             >
-                                                <span style={{ fontWeight: showRight || showWrong ? 800 : 600 }}>
+                                                {setupVotePct != null && (
+                                                    <span
+                                                        aria-hidden="true"
+                                                        style={{
+                                                            position: 'absolute',
+                                                            left: 0,
+                                                            top: 0,
+                                                            bottom: 0,
+                                                            width: `${Math.min(100, Math.max(0, setupVotePct))}%`,
+                                                            background: isGto
+                                                                ? 'rgba(79, 193, 179, 0.12)'
+                                                                : 'rgba(96, 165, 250, 0.1)',
+                                                            pointerEvents: 'none',
+                                                        }}
+                                                    />
+                                                )}
+                                                <span style={{ position: 'relative', zIndex: 1, fontWeight: showRight || showWrong ? 800 : 600 }}>
                                                     {`${cleanText(optKey, 'A')}. ${cleanText(opt?.label)}`}
                                                 </span>
-                                                {showRight && (
-                                                    <span
-                                                        style={{
-                                                            fontSize: '8px',
-                                                            fontWeight: 900,
-                                                            color: '#4fc1b3',
-                                                            textTransform: 'uppercase',
-                                                        }}
-                                                    >
-                                                        GTO Preferred
-                                                    </span>
-                                                )}
-                                                {showWrong && (
-                                                    <span
-                                                        style={{
-                                                            fontSize: '8px',
-                                                            fontWeight: 900,
-                                                            color: '#f87171',
-                                                            textTransform: 'uppercase',
-                                                        }}
-                                                    >
-                                                        Selected
-                                                    </span>
-                                                )}
+                                                <span
+                                                    style={{
+                                                        position: 'relative',
+                                                        zIndex: 1,
+                                                        fontSize: '8px',
+                                                        fontWeight: 900,
+                                                        color: showRight
+                                                            ? '#4fc1b3'
+                                                            : showWrong
+                                                              ? '#f87171'
+                                                              : setupVotePct != null
+                                                                ? '#60a5fa'
+                                                                : theme.inkMuted,
+                                                        textTransform: 'uppercase',
+                                                        flexShrink: 0,
+                                                    }}
+                                                >
+                                                    {showRight
+                                                        ? setupVotePct != null
+                                                            ? `GTO \u2022 ${setupVotePct}%`
+                                                            : 'GTO Preferred'
+                                                        : showWrong
+                                                          ? setupVotePct != null
+                                                              ? `Picked \u2022 ${setupVotePct}%`
+                                                              : 'Selected'
+                                                          : setupVotePct != null
+                                                            ? `${setupVotePct}% Vote`
+                                                            : 'Vote'}
+                                                </span>
                                             </button>
                                         );
                                     })}
@@ -1840,8 +1994,8 @@ function StrategyColumnLayout({ page, issueMeta, theme }) {
                                     {spot.options.slice(0, 4).map((opt, idx) => {
                                         const optKey = String(opt?.key || String.fromCharCode(65 + idx));
                                         const isGto = optKey === correctKey;
-                                        const totalVotes = Number(spot?.communityVotes?.total || 0);
-                                        const optVotes = Number(spot?.communityVotes?.[optKey] || 0);
+                                        const totalVotes = Number(effectiveVotes?.total || 0);
+                                        const optVotes = Number(effectiveVotes?.[optKey] || 0);
                                         const votePct =
                                             totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : null;
                                         return (
@@ -1853,20 +2007,41 @@ function StrategyColumnLayout({ page, issueMeta, theme }) {
                                                     alignItems: 'center',
                                                     padding: '4px 8px',
                                                     borderRadius: '6px',
+                                                    position: 'relative',
+                                                    overflow: 'hidden',
                                                     background: isGto ? (theme.isPrint ? '#f1f5f9' : '#102131') : theme.cardBg,
                                                     border: `1px solid ${isGto ? theme.accentTeal : theme.border}`,
                                                     fontSize: '8.8px',
                                                 }}
                                             >
-                                                <span style={{ color: theme.ink, fontWeight: isGto ? 800 : 600 }}>
+                                                {!theme.isPrint && votePct != null && (
+                                                    <span
+                                                        aria-hidden="true"
+                                                        style={{
+                                                            position: 'absolute',
+                                                            left: 0,
+                                                            top: 0,
+                                                            bottom: 0,
+                                                            width: `${Math.min(100, Math.max(0, votePct))}%`,
+                                                            background: isGto
+                                                                ? 'rgba(79, 193, 179, 0.14)'
+                                                                : 'rgba(96, 165, 250, 0.1)',
+                                                            pointerEvents: 'none',
+                                                        }}
+                                                    />
+                                                )}
+                                                <span style={{ position: 'relative', zIndex: 1, color: theme.ink, fontWeight: isGto ? 800 : 600 }}>
                                                     {`${cleanText(optKey, 'A')}. ${cleanText(opt?.label)}`}
                                                 </span>
                                                 <span
                                                     style={{
+                                                        position: 'relative',
+                                                        zIndex: 1,
                                                         fontSize: '8px',
                                                         fontWeight: 900,
                                                         color: isGto ? theme.accentTeal : theme.inkMuted,
                                                         textTransform: 'uppercase',
+                                                        flexShrink: 0,
                                                     }}
                                                 >
                                                     {votePct != null

@@ -1004,7 +1004,10 @@ export default function App({ Component, pageProps }) {
   const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
   const isPrintProofRoute =
     router.pathname === '/hub/magazine/print/[issue]' ||
-    resolvedPath.startsWith('/hub/magazine/print/');
+    router.pathname === '/hub/magazine/table-tent' ||
+    resolvedPath.startsWith('/hub/magazine/print/') ||
+    resolvedPath === '/hub/magazine/table-tent' ||
+    resolvedPath.startsWith('/hub/magazine/table-tent/');
   const suppressWorldFooterOnMarketplaceStore =
     MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(resolvedPath) ||
     MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(router.pathname);
