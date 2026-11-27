@@ -87,6 +87,11 @@ async function once(browserType, name, i) {
         const chain = []; for (let n = h && h.parentElement; n && chain.length < 6; n = n.parentElement) chain.push(n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + '.' + String(n.className).trim().split(/\s+/).slice(0, 2).join('.'));
         log.push({ ms: Math.round(performance.now() - t0), why, y: Math.round(r.y), all: all.length, sY: Math.round(scrollY), dH: document.documentElement.scrollHeight, hdr: pick(cs), hdrRectTop: h && Math.round(h.getBoundingClientRect().top), chain, html: pick(H), body: pick(B), htmlStyle: document.documentElement.getAttribute('style'), bodyStyle: document.body.getAttribute('style'), bodyClass: document.body.className, vvTop: window.visualViewport && Math.round(window.visualViewport.offsetTop) });
       };
+      const secs = () => { const o = {}; document.querySelectorAll('[id^="pnm-section-"]').forEach((n) => { o[n.id.replace('pnm-section-', '')] = Math.round(n.getBoundingClientRect().height); }); const shell = document.querySelector('.pnm-shell'); o.__shell = shell ? shell.scrollHeight : null; o.__doc = document.documentElement.scrollHeight; const after = []; let n = shell && shell.nextElementSibling; while (n) { after.push(n.tagName.toLowerCase() + '.' + String(n.className).slice(0, 20) + ':' + Math.round(n.getBoundingClientRect().height)); n = n.nextElementSibling; } o.__after = after.slice(0, 8).join(','); return o; };
+      window.__secLog = [];
+      let prev = secs();
+      const watchShrink = () => { const cur = secs(); if (cur.__doc < prev.__doc - 200) { const diff = {}; for (const k of Object.keys(cur)) if (cur[k] !== prev[k]) diff[k] = [prev[k], cur[k]]; window.__secLog.push({ ms: Math.round(performance.now() - t0), sY: Math.round(scrollY), diff }); } prev = cur; };
+      new MutationObserver(watchShrink).observe(document.body, { childList: true, subtree: true, attributes: true });
       const loop = () => { sample('raf'); if (performance.now() - t0 < 3500) requestAnimationFrame(loop); };
       requestAnimationFrame(loop);
       const mo = new MutationObserver(() => sample('mutation'));
@@ -117,6 +122,7 @@ async function once(browserType, name, i) {
     console.log('HIT ' + name + ' #' + i + ' ' + JSON.stringify(hit1));
     await page.waitForTimeout(1200);
     const hl = await page.evaluate(() => window.__hdrLog);
+    console.log('SHRINK ' + name + ' #' + i + ' ' + JSON.stringify(await page.evaluate(() => window.__secLog.slice(0, 4))));
     console.log('HDRLOG ' + name + ' #' + i + ' n=' + hl.length + ' ' + JSON.stringify(hl.slice(0, 6)));
     console.log('SERIES ' + name + ' #' + i + ' ' + series.join(' ; '));
     await page.waitForTimeout(100);
@@ -134,6 +140,6 @@ async function once(browserType, name, i) {
 (async () => {
   for (let i = 0; i < RUNS; i++) {
     await once(webkit, 'webkit', i);
-    if (i % 2 === 0) await once(chromium, 'chromium', i);
+    
   }
 })();
