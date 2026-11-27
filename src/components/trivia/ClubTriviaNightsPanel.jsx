@@ -2,11 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { TriviaGlassAction } from './console/TriviaConsole';
 import TriviaAnswerOption from './TriviaAnswerOption';
+import {
+    aggregateClubAllTimeStandings,
+    buildNextWeekFreerollDraft,
+} from './tournaments/tournamentModel.mjs';
 import { authedFetch } from '../../lib/authUtils';
 import { toTitleCase } from '../../lib/trivia/titleCase';
 
 const MAX_PLAYER_OPTIONS = [16, 32, 64, 128, 256];
 const QUESTION_COUNT_OPTIONS = [10, 20];
+
+function dateToLocalInputValue(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 function defaultStartLocalValue() {
     const now = new Date();
@@ -15,8 +25,7 @@ function defaultStartLocalValue() {
     if (target.getTime() <= now.getTime() + 15 * 60 * 1000) {
         target.setHours(target.getHours() + 1);
     }
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`;
+    return dateToLocalInputValue(target);
 }
 
 function formatClubNightStart(isoValue) {
@@ -142,6 +151,8 @@ export default function ClubTriviaNightsPanel({
 
     // Active standings / winner / post-settlement review drawer state
     const [resultsView, setResultsView] = useState(null);
+    const [settledResultsById, setSettledResultsById] = useState({});
+    const [subTab, setSubTab] = useState('events');
     const [lastSubmission, setLastSubmission] = useState(null);
     const loadRequestIdRef = useRef(0);
 
@@ -185,6 +196,40 @@ export default function ClubTriviaNightsPanel({
         ),
         [clubs, invitedClubCode],
     );
+
+    const allTimeStandings = useMemo(() => {
+        const enriched = items.map((item) => {
+            const cached = settledResultsById[item.id];
+            if (!cached) return item;
+            return {
+                ...item,
+                standings: Array.isArray(cached.standings) ? cached.standings : item.standings,
+                champion: cached.champion || item.champion,
+            };
+        });
+        return aggregateClubAllTimeStandings(enriched);
+    }, [items, settledResultsById]);
+
+    const handleScheduleNextWeek = useCallback((night) => {
+        if (!night) return;
+        const draft = buildNextWeekFreerollDraft(night);
+        if (night.clubId && hostableClubs.some((c) => c.id === night.clubId)) {
+            setClubId(night.clubId);
+        }
+        setTitle(draft.title);
+        const draftDate = new Date(draft.scheduledStartIso);
+        if (!Number.isNaN(draftDate.getTime())) {
+            setScheduledStartLocal(dateToLocalInputValue(draftDate));
+        }
+        setQuestionCount(QUESTION_COUNT_OPTIONS.includes(draft.questionCount) ? draft.questionCount : 10);
+        if (MAX_PLAYER_OPTIONS.includes(Number(night.maxPlayers))) {
+            setMaxPlayers(Number(night.maxPlayers));
+        }
+        setSubTab('events');
+        setShowCreateForm(true);
+        setError('');
+        setNotice('Pre-Filled Next Week Freeroll Draft (0 Diamonds). Review And Submit To Schedule.');
+    }, [hostableClubs]);
 
     const loadClubNights = useCallback(async (signal) => {
         const requestId = ++loadRequestIdRef.current;
@@ -354,6 +399,15 @@ export default function ClubTriviaNightsPanel({
                 throw new Error(friendlyClubNightError(payload?.error, 'Could Not Load Club Standings.'));
             }
             setResultsView(payload);
+            if (payload?.status === 'settled' && Array.isArray(payload?.standings)) {
+                setSettledResultsById((prev) => ({
+                    ...prev,
+                    [tournamentId]: {
+                        standings: payload.standings,
+                        champion: payload.champion || null,
+                    },
+                }));
+            }
         } catch (err) {
             setError(err?.message || 'Could Not Load Club Standings.');
         } finally {
@@ -783,7 +837,128 @@ export default function ClubTriviaNightsPanel({
                 </p>
             ) : null}
 
-            {signedIn && !loading && clubs.length === 0 ? (
+            {signedIn && !loading ? (
+                <div
+                    role="tablist"
+                    aria-label="Club Trivia Sections"
+                    style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                    }}
+                >
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={subTab === 'events'}
+                        className={`sd-button${subTab === 'events' ? ' sd-primary' : ''}`}
+                        onClick={() => setSubTab('events')}
+                        style={{
+                            minHeight: '44px',
+                            minWidth: '44px',
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: subTab === 'events'
+                                ? '1px solid #86daff'
+                                : '1px solid rgba(148, 163, 184, 0.35)',
+                            background: subTab === 'events'
+                                ? 'rgba(12, 85, 192, 0.32)'
+                                : 'rgba(10, 18, 32, 0.72)',
+                            color: subTab === 'events' ? '#86daff' : '#e2e8f0',
+                        }}
+                    >
+                        Club Events
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={subTab === 'standings'}
+                        data-club-standings-tab="true"
+                        className={`sd-button${subTab === 'standings' ? ' sd-primary' : ''}`}
+                        onClick={() => setSubTab('standings')}
+                        style={{
+                            minHeight: '44px',
+                            minWidth: '44px',
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: subTab === 'standings'
+                                ? '1px solid #86daff'
+                                : '1px solid rgba(148, 163, 184, 0.35)',
+                            background: subTab === 'standings'
+                                ? 'rgba(12, 85, 192, 0.32)'
+                                : 'rgba(10, 18, 32, 0.72)',
+                            color: subTab === 'standings' ? '#86daff' : '#e2e8f0',
+                        }}
+                    >
+                        Club Standings
+                    </button>
+                </div>
+            ) : null}
+
+            {signedIn && !loading && subTab === 'standings' ? (
+                <div
+                    role="tabpanel"
+                    aria-label="All-Time Club Trivia Standings"
+                    data-club-standings-board="true"
+                    style={PANEL_BOX_STYLE}
+                >
+                    <div className="tt-section-head">
+                        <strong className="tc-ink--blue">All-Time Club Trivia Standings</strong>
+                        <span className="tc-ink--silver" style={{ fontSize: '13px' }}>
+                            Ranked By Wins, Podiums, Events, And Best Score
+                        </span>
+                    </div>
+
+                    {allTimeStandings.length === 0 ? (
+                        <p className="trivia-console-copy tc-ink--muted" style={{ margin: 0 }}>
+                            No Settled Club Nights Yet - Complete A Freeroll Club Night To Start Club Standings.
+                        </p>
+                    ) : (
+                        <ol
+                            className="tc-rows"
+                            aria-label="All-Time Club Standings Table"
+                            style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: 0, padding: 0, listStyle: 'none' }}
+                        >
+                            {allTimeStandings.map((entry, idx) => (
+                                <li
+                                    key={entry.playerId}
+                                    className="tc-row"
+                                    style={{
+                                        padding: '10px 12px',
+                                        borderRadius: '8px',
+                                        border: idx === 0
+                                            ? '1px solid rgba(134, 218, 255, 0.6)'
+                                            : '1px solid rgba(148, 163, 184, 0.22)',
+                                        background: idx === 0
+                                            ? 'rgba(12, 85, 192, 0.16)'
+                                            : 'rgba(10, 18, 32, 0.55)',
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                    }}
+                                >
+                                    <span className={idx === 0 ? 'tc-ink--blue' : 'tc-ink--silver'} style={{ fontWeight: 700, fontSize: '14px' }}>
+                                        #{idx + 1} {entry.displayName}
+                                    </span>
+                                    <span className="tc-ink--green" style={{ fontSize: '13px', fontWeight: 700 }}>
+                                        {entry.wins} {entry.wins === 1 ? 'Win' : 'Wins'} | {entry.podiums} {entry.podiums === 1 ? 'Podium' : 'Podiums'} | {entry.eventsPlayed} {entry.eventsPlayed === 1 ? 'Event' : 'Events'} | Best {entry.bestScore} Pts
+                                    </span>
+                                </li>
+                            ))}
+                        </ol>
+                    )}
+                </div>
+            ) : null}
+
+            {signedIn && !loading && subTab === 'events' && clubs.length === 0 ? (
                 <div
                     style={{
                         display: 'flex',
@@ -808,7 +983,7 @@ export default function ClubTriviaNightsPanel({
                 </div>
             ) : null}
 
-            {signedIn && !loading && clubs.length > 0 ? (
+            {signedIn && !loading && subTab === 'events' && clubs.length > 0 ? (
                 <>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span className="tc-ink--silver">
@@ -949,6 +1124,7 @@ export default function ClubTriviaNightsPanel({
                                 const isReg = item.status === 'registration';
                                 const isLive = item.status === 'live';
                                 const isSettled = item.status === 'settled';
+                                const canCreate = Boolean(item.viewerCanManage || hostableClubs.some((c) => c.id === item.clubId));
                                 const isInvitedMatch = isItemInvitedMatch(item);
                                 const entrants = Number(item.entrantCount || 0);
                                 const isFull = entrants >= Number(item.maxPlayers || 64);
@@ -1061,6 +1237,14 @@ export default function ClubTriviaNightsPanel({
                                                         ink="red"
                                                         disabled={cancelPending}
                                                         onClick={() => handleCancelNight(item)}
+                                                    />
+                                                ) : null}
+                                                {canCreate ? (
+                                                    <TriviaGlassAction
+                                                        label="Schedule Next Week (Freeroll)"
+                                                        ink="blue"
+                                                        data-schedule-next-week="true"
+                                                        onClick={() => handleScheduleNextWeek(item)}
                                                     />
                                                 ) : null}
                                             </div>
