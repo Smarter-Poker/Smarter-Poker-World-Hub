@@ -37,7 +37,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -46,10 +46,59 @@ const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 const deployedBuild = `${vercel.buildCommand}\n${pkg.scripts['build:vercel'] || ''}`;
 
-// Vercel's route-object schema. Anything else is rejected at deploy time.
+// Vercel's route-object & top-level schema. Anything else is rejected at deploy time.
+const ALLOWED_TOP_LEVEL_KEYS = new Set([
+  '$schema',
+  'alias',
+  'build',
+  'buildCommand',
+  'builds',
+  'cleanUrls',
+  'crons',
+  'devCommand',
+  'env',
+  'fluid',
+  'framework',
+  'functions',
+  'git',
+  'github',
+  'headers',
+  'ignoreCommand',
+  'images',
+  'installCommand',
+  'name',
+  'outputDirectory',
+  'public',
+  'redirects',
+  'regions',
+  'rewrites',
+  'routes',
+  'scope',
+  'trailingSlash',
+  'version',
+]);
 const ALLOWED_HEADER_KEYS = new Set(['source', 'headers', 'has', 'missing']);
 const ALLOWED_REWRITE_KEYS = new Set(['source', 'destination', 'has', 'missing']);
+const ALLOWED_REDIRECT_KEYS = new Set([
+  'source',
+  'destination',
+  'permanent',
+  'statusCode',
+  'has',
+  'missing',
+  'basePath',
+  'locale',
+]);
 const ALLOWED_CRON_KEYS = new Set(['path', 'schedule']);
+
+test('no top-level property in vercel.json will be refused by Vercel schema validation', () => {
+  const offenders = Object.keys(vercel).filter((k) => !ALLOWED_TOP_LEVEL_KEYS.has(k));
+  assert.deepEqual(
+    offenders,
+    [],
+    `Unknown top-level vercel.json key(s) will fail deploy schema validation before build starts: ${offenders.join(', ')}`,
+  );
+});
 
 test('no header entry carries a property Vercel will refuse', () => {
   const offenders = [];
@@ -68,15 +117,91 @@ test('no header entry carries a property Vercel will refuse', () => {
   );
 });
 
-test('no rewrite or cron entry carries a property Vercel will refuse', () => {
+test('no rewrite, redirect, or cron entry carries a property Vercel will refuse', () => {
   const offenders = [];
   (vercel.rewrites ?? []).forEach((e, i) => {
     for (const k of Object.keys(e)) if (!ALLOWED_REWRITE_KEYS.has(k)) offenders.push(`rewrites[${i}].${k}`);
+  });
+  (vercel.redirects ?? []).forEach((e, i) => {
+    for (const k of Object.keys(e)) if (!ALLOWED_REDIRECT_KEYS.has(k)) offenders.push(`redirects[${i}].${k}`);
   });
   (vercel.crons ?? []).forEach((e, i) => {
     for (const k of Object.keys(e)) if (!ALLOWED_CRON_KEYS.has(k)) offenders.push(`crons[${i}].${k}`);
   });
   assert.deepEqual(offenders, [], `unknown keys: ${offenders.join(', ')}`);
+});
+
+test('every vercel.json cron has a unique path resolving to a real API handler and valid 5-field schedule', () => {
+  const seen = new Set();
+  const missingRoutes = [];
+  const badSchedules = [];
+  const duplicates = [];
+
+  for (const cron of vercel.crons ?? []) {
+    assert.equal(typeof cron.path, 'string', 'cron.path must be a string');
+    assert.ok(cron.path.startsWith('/'), `cron.path must start with /: ${cron.path}`);
+    assert.equal(typeof cron.schedule, 'string', `cron.schedule must be a string for ${cron.path}`);
+
+    if (seen.has(cron.path)) {
+      duplicates.push(cron.path);
+    }
+    seen.add(cron.path);
+
+    const fields = cron.schedule.trim().split(/\s+/);
+    if (fields.length !== 5 || fields.some((f) => !/^[0-9*,/-]+$/.test(f))) {
+      badSchedules.push(`${cron.path}: "${cron.schedule}"`);
+    }
+
+    const clean = cron.path.split('?')[0].replace(/^\//, '');
+    const candidates = [
+      `pages/${clean}.js`,
+      `pages/${clean}.ts`,
+      `pages/${clean}.mjs`,
+      `pages/${clean}/index.js`,
+      `pages/${clean}/index.ts`,
+      `app/${clean}/route.js`,
+      `app/${clean}/route.ts`,
+    ];
+    if (!candidates.some((rel) => existsSync(join(ROOT, rel)))) {
+      missingRoutes.push(cron.path);
+    }
+  }
+
+  assert.deepEqual(duplicates, [], `Duplicate vercel.json cron path(s): ${duplicates.join(', ')}`);
+  assert.deepEqual(badSchedules, [], `Invalid 5-field vercel.json cron schedule(s): ${badSchedules.join(', ')}`);
+  assert.deepEqual(
+    missingRoutes,
+    [],
+    `vercel.json cron path(s) have no matching pages/api or app/api route: ${missingRoutes.join(', ')}`,
+  );
+});
+
+test('package.json and package-lock.json root dependency specifiers stay in sync for Vercel npm ci', () => {
+  const lock = JSON.parse(readFileSync(join(ROOT, 'package-lock.json'), 'utf8'));
+  const rootLock = lock.packages?.[''];
+  assert.ok(rootLock && typeof rootLock === 'object', 'package-lock.json must contain packages[""] root metadata');
+
+  const mismatches = [];
+  for (const section of ['dependencies', 'devDependencies']) {
+    const pkgDeps = pkg[section] || {};
+    const lockDeps = rootLock[section] || {};
+    for (const [name, spec] of Object.entries(pkgDeps)) {
+      if (lockDeps[name] !== spec) {
+        mismatches.push(`${section}.${name}: package.json="${spec}" vs package-lock.json="${lockDeps[name] ?? '<missing>'}"`);
+      }
+    }
+    for (const name of Object.keys(lockDeps)) {
+      if (!(name in pkgDeps)) {
+        mismatches.push(`${section}.${name}: present in package-lock.json ("${lockDeps[name]}") but missing from package.json`);
+      }
+    }
+  }
+  assert.deepEqual(
+    mismatches,
+    [],
+    'package.json and package-lock.json are out of sync (cached CI can miss this while Vercel npm ci fails):\n  ' +
+      mismatches.join('\n  '),
+  );
 });
 
 test('every header entry is actually shaped like a header entry', () => {

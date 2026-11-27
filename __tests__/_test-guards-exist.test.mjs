@@ -123,6 +123,11 @@ import './horses-tournament-intent-storage.test.mjs';
 import './api-routes-never-trace-static-pages.law.test.mjs';
 // Full-tree AST parse, duplicate-binding/export, local-import, route-collision & merge-tree guard (incident 86bcafc1, 2026-11-27).
 import './module-parse-and-bindings.law.test.mjs';
+// Extended Vercel deployability (vercel.json schema/crons + package-lock parity),
+// shared-game-links middleware contract, and alias/dynamic-import/Next.js page hardening.
+import './vercel-json-is-deployable.law.test.mjs';
+import './shared-game-links.test.mjs';
+import './vercel-build-hardening.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
