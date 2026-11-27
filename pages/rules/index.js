@@ -160,33 +160,32 @@ export default function PokerRulesIndexPage() {
           <span style={styles.crumbCurrent}>Official Poker Rules &amp; Floor Rulings</span>
         </nav>
 
-        <header style={styles.heroPlate}>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="rules"
+            eyebrow="Official Poker TDA & RROP Rulebook"
+            title="Official Poker Rules, Tournament TDA Standards & Live Floor Rulings Encyclopedia"
+            lead="Every Binding Action, Showdown Priority, Side Pot Split & Cardroom Floor Ruling Indexed For Live & Club Play."
+            stats={[
+              { label: 'Official Rulings', value: `${POKER_RULES.length} Rules` },
+              { label: 'Standards', value: 'TDA & RROP' },
+              { label: 'Club Tools', value: 'Free Clocks' },
+              { label: 'Access', value: '100% Free' },
+            ]}
+            redirectPath="/rules"
+            unlockKey="masthead-rules"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/tools/side-pot-calculator"
+            secondaryLabel="Side Pot Calculator"
+          />
+        </div>
+
+        <section aria-label="Official Poker Rules Filter Bar" style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.primaryBadge}>OFFICIAL TDA &amp; RROP STANDARD</span>
             <span style={styles.cyanBadge}>30 AUTHORITATIVE FLOOR RULINGS</span>
             <a href="/rules.md" style={styles.mdBadge}>
               RAW MARKDOWN (/RULES.MD)
             </a>
-          </div>
-
-          <div style={{ marginBottom: 18 }}>
-            <SmarterSeoMasthead
-              vertical="rules"
-              eyebrow="Official Poker TDA & RROP Rulebook"
-              title="Official Poker Rules, Tournament TDA Standards & Live Floor Rulings Encyclopedia"
-              lead="Every Binding Action, Showdown Priority, Side Pot Split & Cardroom Floor Ruling Indexed For Live & Club Play."
-              stats={[
-                { label: 'Official Rulings', value: `${POKER_RULES.length} Rules` },
-                { label: 'Standards', value: 'TDA & RROP' },
-                { label: 'Club Tools', value: 'Free Clocks' },
-                { label: 'Access', value: '100% Free' },
-              ]}
-              redirectPath="/rules"
-              unlockKey="masthead-rules"
-              primaryCtaLabel="Create Free Account"
-              secondaryHref="/tools/side-pot-calculator"
-              secondaryLabel="Side Pot Calculator"
-            />
           </div>
 
           <p style={styles.lead}>
@@ -285,7 +284,7 @@ export default function PokerRulesIndexPage() {
               </div>
             </div>
           </div>
-        </header>
+        </section>
 
         <style
           dangerouslySetInnerHTML={{

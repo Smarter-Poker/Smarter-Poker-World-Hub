@@ -21,6 +21,8 @@ import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox
 import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
+import { capture } from '../../../src/lib/analytics';
 import { firstThatFits, fitMetaDescription } from '../../../src/lib/seo/titleFit.js';
 import {
   SITE_URL,
@@ -587,7 +589,17 @@ export default function StartingHandDetailPage({ hand }) {
                   key={option}
                   type="button"
                   aria-pressed={isSelected}
-                  onClick={() => setSpotSelection({ slug: hand.slug, choice: option })}
+                  onClick={() => {
+                    setSpotSelection({ slug: hand.slug, choice: option });
+                    try {
+                      capture('seo_gto_spot_check_answered', { hand: hand.code, slug: hand.slug, choice: option });
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('sp:seo-tool-engaged', { detail: { hand: hand.code } }));
+                      }
+                    } catch (_) {
+                      /* non-blocking */
+                    }
+                  }}
                   style={{
                     minHeight: 44,
                     minWidth: 128,
@@ -634,24 +646,37 @@ export default function StartingHandDetailPage({ hand }) {
               <p style={{ fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: '0 0 14px 0' }}>
                 {spotResult.explanation}
               </p>
-              <Link
-                href={`/auth/signup?redirect=/hub/training&src=hand-${encodeURIComponent(hand.slug)}`}
+              <a
+                href={`/auth/signup?redirect=/hub/training&unlock=hand-${encodeURIComponent(hand.slug)}&src=hand-${encodeURIComponent(hand.slug)}`}
+                data-testid="hand-spot-check-signup-cta"
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                  e.preventDefault();
+                  openQuickSignup({
+                    unlockKey: `hand-${hand.slug}`,
+                    eyebrow: `Free GTO Hand Drill · ${hand.code}`,
+                    title: `Drill ${hand.code} & Unlock All 169 Solver Matrices Free`,
+                    subtitle: `You Answered ${activeChoice}. Create Your Free Smarter.Poker Account To Drill ${hand.code} Across Every Position & Stack Depth.`,
+                    redirectPath: `/learn/hands/${hand.slug}`,
+                    source: `hand-spot-check-${hand.slug}`,
+                  });
+                }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   minHeight: 44,
                   padding: '10px 18px',
                   borderRadius: 0,
-                  background: '#1d4ed8',
+                  background: 'linear-gradient(180deg, #1f6feb 0%, #11449e 100%)',
                   color: '#f2f7ff',
                   fontSize: 14,
                   fontWeight: 700,
                   textDecoration: 'none',
-                  border: '1px solid #38bdf8',
+                  border: '1px solid #5bc0ff',
                 }}
               >
                 Drill {hand.code} Free In GTO Training
-              </Link>
+              </a>
             </div>
           )}
         </section>

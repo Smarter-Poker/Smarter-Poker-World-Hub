@@ -161,6 +161,7 @@ export default function NewsletterCaptureBar({
     const [ready, setReady] = useState(false);
     const [hidden, setHidden] = useState(false);
     const [quickSignupOpen, setQuickSignupOpen] = useState(false);
+    const [hasScrolled, setHasScrolled] = useState(false);
     const [email, setEmail] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [subscribed, setSubscribed] = useState(false);
@@ -233,14 +234,22 @@ export default function NewsletterCaptureBar({
         const syncQuickSignup = (ev) => {
             if (active) setQuickSignupOpen(Boolean(ev?.detail?.open));
         };
+        const syncScroll = () => {
+            if (active && window.scrollY >= 320) {
+                setHasScrolled(true);
+            }
+        };
+        syncScroll();
         window.addEventListener(WIRE_SUBSCRIPTION_CHANGED_EVENT, syncFromStorage);
         window.addEventListener('storage', syncFromStorage);
         window.addEventListener('sp:quick-signup-state', syncQuickSignup);
+        window.addEventListener('scroll', syncScroll, { passive: true });
         return () => {
             active = false;
             window.removeEventListener(WIRE_SUBSCRIPTION_CHANGED_EVENT, syncFromStorage);
             window.removeEventListener('storage', syncFromStorage);
             window.removeEventListener('sp:quick-signup-state', syncQuickSignup);
+            window.removeEventListener('scroll', syncScroll);
         };
     }, [activePath, alwaysVisible]);
 
@@ -267,7 +276,7 @@ export default function NewsletterCaptureBar({
         return null;
     }
 
-    if (!isInline && !alwaysVisible && quickSignupOpen) {
+    if (!isInline && !alwaysVisible && (quickSignupOpen || !hasScrolled)) {
         return null;
     }
 

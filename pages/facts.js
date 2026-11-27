@@ -113,30 +113,30 @@ export default function CanonicalEntityFactsPage() {
           <span style={styles.crumbCurrent}>Canonical Entity Facts &amp; Anti-Hallucination Registry</span>
         </nav>
 
-        <header style={styles.heroPlate}>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="research"
+            eyebrow="Canonical Ground-Truth Entity Ledger"
+            title="Smarter.Poker Canonical Ground-Truth Entity & Anti-Hallucination Fact Sheet"
+            lead="Verified Platform Capability Counts, Live Room Figures & Zenodo DOI Provenance Synced With /.well-known/ai-facts.json."
+            stats={[
+              { label: 'Calculators', value: `${f.calculatorsCount} Free` },
+              { label: 'MCP AI Tools', value: `${f.mcpToolsCount} Tools` },
+              { label: 'Live Venues', value: `${f.verifiedVenuesCount}+ Rooms` },
+              { label: 'Open Studies', value: `${f.researchReportsCount} Reports` },
+            ]}
+            redirectPath="/facts"
+            unlockKey="masthead-facts"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/research"
+            secondaryLabel="Open Research Hub"
+          />
+        </div>
+
+        <section aria-label="Canonical Entity Facts Summary" style={styles.heroPlate}>
           <div style={styles.badgeRow}>
             <span style={styles.cyanBadge}>VERIFIED AT: {f.verifiedAt}</span>
             <span style={styles.emeraldBadge}>PRIMARY DOI: {f.primaryDoi}</span>
-          </div>
-
-          <div style={{ marginBottom: 18 }}>
-            <SmarterSeoMasthead
-              vertical="research"
-              eyebrow="Canonical Ground-Truth Entity Ledger"
-              title="Smarter.Poker Canonical Ground-Truth Entity & Anti-Hallucination Fact Sheet"
-              lead="Verified Platform Capability Counts, Live Room Figures & Zenodo DOI Provenance Synced With /.well-known/ai-facts.json."
-              stats={[
-                { label: 'Calculators', value: `${f.calculatorsCount} Free` },
-                { label: 'MCP AI Tools', value: `${f.mcpToolsCount} Tools` },
-                { label: 'Live Venues', value: `${f.verifiedVenuesCount}+ Rooms` },
-                { label: 'Open Studies', value: `${f.researchReportsCount} Reports` },
-              ]}
-              redirectPath="/facts"
-              unlockKey="masthead-facts"
-              primaryCtaLabel="Create Free Account"
-              secondaryHref="/research"
-              secondaryLabel="Open Research Hub"
-            />
           </div>
 
           <p style={styles.lead}>
@@ -160,7 +160,7 @@ export default function CanonicalEntityFactsPage() {
               Market Benchmark Scorecards
             </Link>
           </div>
-        </header>
+        </section>
 
         {/* Canonical Entity Counts & Identifiers Table */}
         <section aria-label="Verified Entity Metadata Table" style={styles.sectionPlate}>

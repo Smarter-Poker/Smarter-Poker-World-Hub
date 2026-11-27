@@ -581,6 +581,10 @@ export default function SignUpPage() {
     if (!router.isReady) return;
 
     const one = (v) => (Array.isArray(v) ? v[0] : v);
+    const emailParam = one(router.query.email);
+    if (typeof emailParam === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailParam.trim())) {
+      setFormData((prev) => (prev.email && prev.email.trim() ? prev : { ...prev, email: emailParam.trim().toLowerCase() }));
+    }
     const codeRaw = one(router.query.authError);
     const providerRaw = one(router.query.provider);
     const provider =
@@ -1630,6 +1634,12 @@ export default function SignUpPage() {
                     appearance: auto !important;
                     cursor: pointer;
                   }
+                  @media (min-width: 769px) {
+                    select.auth-input-styled {
+                      font-size: 13px !important;
+                      padding: 0 4px !important;
+                    }
+                  }
                   /* United States / Outside The US: buttons, not inputs, so the
                      16px iOS-zoom floor does not apply; keep each label on one line. */
                   .auth-input-styled.auth-country-choice {
@@ -1912,6 +1922,24 @@ export default function SignUpPage() {
                   />
                 </svg>
                 <span>{oauthLoading === 'google' ? 'Connecting To Google...' : 'Continue With Google'}</span>
+              </button>
+              <button
+                type="button"
+                className="sp-facebook-cta"
+                onClick={() => handleOAuthSignIn('facebook')}
+                disabled={!!oauthLoading}
+                data-testid="signup-mobile-facebook-cta"
+                style={{
+                  ...phoneStyles.googlePrimaryCta,
+                  marginTop: 8,
+                  background: 'linear-gradient(180deg, #172b42 0%, #0b1827 100%)',
+                  border: '1px solid #3f5d7b',
+                  color: '#f2f7ff',
+                  opacity: oauthLoading ? 0.7 : 1,
+                  cursor: oauthLoading ? 'wait' : 'pointer',
+                }}
+              >
+                <span>{oauthLoading === 'facebook' ? 'Connecting To Facebook...' : 'Continue With Facebook'}</span>
               </button>
               <div style={phoneStyles.orDivider}>
                 <span style={phoneStyles.orLine} />
