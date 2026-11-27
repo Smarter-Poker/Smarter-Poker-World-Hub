@@ -635,8 +635,8 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                     <div className="odds-toolbar">
                         <GameSelector game={game} onChange={changeGame} />
                         {!isEmbedMode && <nav className="odds-shortcuts" aria-label="Calculator Shortcuts">
-                            <Link href="/hub/training/equity-calculator"><ChartPie size={18} aria-hidden />Equity Calculator</Link>
-                            <Link href="/hub/training/icm-calculator"><Calculator size={18} aria-hidden />ICM Calculator</Link>
+                            <Link href="/hub/training/equity-calculator" prefetch={false}><ChartPie size={18} aria-hidden />Equity Calculator</Link>
+                            <Link href="/hub/training/icm-calculator" prefetch={false}><Calculator size={18} aria-hidden />ICM Calculator</Link>
                         </nav>}
                     </div>
 

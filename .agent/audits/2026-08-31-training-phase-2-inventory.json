@@ -18,7 +18,7 @@
     "dialogs": 19,
     "persistenceFiles": 94,
     "realtimeFiles": 6,
-    "tests": 194,
+    "tests": 195,
     "markerCandidates": 391,
     "possibleUnwiredFunctions": 463,
     "routeStateCells": 752,
@@ -9495,6 +9495,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
@@ -9526,6 +9527,7 @@
             "src/utils/v2Matrix.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
@@ -9553,6 +9555,7 @@
             "src/utils/trainingApiUtils.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
@@ -9571,6 +9574,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
@@ -9592,6 +9596,7 @@
             "src/lib/training/solverMatrixTrust.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
@@ -9612,6 +9617,7 @@
             "src/utils/v2Matrix.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
@@ -9627,6 +9633,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
@@ -9642,6 +9649,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
@@ -9651,6 +9659,7 @@
         }
       },
       "existingTests": [
+        "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
         "__tests__/gsc-series2-phase2.test.mjs",
         "__tests__/gsc-series3-phase2.test.mjs",
         "__tests__/phase23-calculator-schema.test.mjs",
@@ -12889,6 +12898,7 @@
             "pages/hub/training/icm-calculator.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
@@ -12911,6 +12921,7 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
@@ -12934,6 +12945,7 @@
             "src/hooks/useOnlineStatus.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
@@ -12955,6 +12967,7 @@
             "pages/hub/training/icm-calculator.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
@@ -12977,6 +12990,7 @@
             "src/lib/poker/tournamentEquity.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
@@ -12998,6 +13012,7 @@
             "src/hooks/useOnlineStatus.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
@@ -13020,6 +13035,7 @@
             "src/hooks/useOnlineStatus.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
@@ -13041,6 +13057,7 @@
             "pages/hub/training/icm-calculator.js"
           ],
           "tests": [
+            "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
@@ -13058,6 +13075,7 @@
         }
       },
       "existingTests": [
+        "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
         "__tests__/aeo-dynamic-og-cards.test.mjs",
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
@@ -83615,6 +83633,7 @@
   ],
   "tests": [
     "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+    "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
     "__tests__/aeo-ai-agent-api.test.mjs",
     "__tests__/aeo-dynamic-og-cards.test.mjs",
     "__tests__/aeo-freerolls-global-wiring.test.mjs",
@@ -115468,6 +115487,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/a-shortcut-link-does-not-preload-its-page.law.test.mjs",
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-dynamic-og-cards.test.mjs",
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
