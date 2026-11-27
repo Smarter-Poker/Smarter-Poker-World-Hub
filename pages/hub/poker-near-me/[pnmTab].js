@@ -3081,11 +3081,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // Intent is not only wheel/touch/pointer/key input. A scrollbar drag,
   // find-in-page, an anchor link, assistive technology or another script
   // moves the document with none of those events, and the hold used to drag
-  // the document straight back for up to 6.4 seconds. In WebKit that fight
-  // also displaced the fixed global header far below the screen
-  // (isForeignScroll in pnmSections.js explains why), so every scroll is
-  // checked: one that moved both the position and the held section ends the
-  // hold before the next realignment can run.
+  // the document straight back for up to 6.4 seconds. Every scroll is now
+  // checked (isForeignScroll in pnmSections.js): one that moved both the
+  // position and the held section ends the hold before the next realignment
+  // can run.
   useEffect(() => {
     if (loading || !landingSectionRef.current || typeof window === 'undefined') return undefined;
     const key = landingSectionRef.current;

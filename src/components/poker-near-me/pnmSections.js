@@ -101,12 +101,10 @@ export function sectionAnchorDelta(key, { extraOffset = 0 } = {}) {
  *   section both move. Only this is a foreign scroll, and the hold must stop
  *   at once instead of dragging the document back.
  *
- * Fighting a foreign scroll was not only rude: the hold's jump back, issued
- * while WebKit was still settling the visitor's jump, left WebKit's layout
- * viewport (which places every `position: fixed` element, including the
- * approved global header) out of step with the visual viewport, so WebKit's
- * own render geometry put the header almost 2000px below the screen until
- * the fight ended (e2e/024, Poker Near Me deep Series route, WebKit only).
+ * The hold used to stop only on wheel, touchstart, pointerdown and keydown,
+ * so every other scroll was dragged back to the section within about 200ms
+ * for up to 6.4 seconds (seen on /hub/poker-near-me/series in the 2026-11-26
+ * WebKit and Chromium probe: a scroll to y = 10073 was back at y = 341).
  */
 export function isForeignScroll({ heldY, scrollY, anchorDelta, viewportHeight = 0 }) {
   if (!Number.isFinite(heldY) || !Number.isFinite(scrollY)) return false;
