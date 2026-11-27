@@ -68986,8 +68986,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "readOfferDisabledSwitch",
+          "line": 126,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "vipIntroOfferCatalogTerms",
-          "line": 138,
+          "line": 146,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -68995,7 +69003,7 @@
         },
         {
           "name": "objectId",
-          "line": 164,
+          "line": 172,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -69003,7 +69011,7 @@
         },
         {
           "name": "isVipIntroSubscription",
-          "line": 170,
+          "line": 178,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -69011,8 +69019,16 @@
         },
         {
           "name": "vipIntroPlanSwitchDecision",
-          "line": 187,
+          "line": 195,
           "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "vipFullPriceRenewalDecision",
+          "line": 206,
+          "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -125813,7 +125829,7 @@
       {
         "file": "src/lib/store/vipIntroOffer.mjs",
         "name": "vipIntroOfferCatalogTerms",
-        "line": 138,
+        "line": 146,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -125830,18 +125846,17 @@
       {
         "file": "src/lib/store/vipIntroOffer.mjs",
         "name": "vipIntroPlanSwitchDecision",
-        "line": 187,
+        "line": 195,
         "references": 1,
         "exported": true,
         "defaultExport": false,
         "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
+        "disposition": "test-or-audit-entrypoint",
         "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
+        "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
         "externalReferenceFiles": [
           "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
-          "__tests__/vip-first-month-hardening.test.mjs",
-          "pages/api/store/switch-vip-plan.js"
+          "__tests__/vip-first-month-hardening.test.mjs"
         ]
       },
       {
@@ -137314,7 +137329,7 @@
       {
         "file": "src/lib/store/vipIntroOffer.mjs",
         "name": "vipIntroOfferCatalogTerms",
-        "line": 138,
+        "line": 146,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -137331,18 +137346,17 @@
       {
         "file": "src/lib/store/vipIntroOffer.mjs",
         "name": "vipIntroPlanSwitchDecision",
-        "line": 187,
+        "line": 195,
         "references": 1,
         "exported": true,
         "defaultExport": false,
         "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
+        "disposition": "test-or-audit-entrypoint",
         "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
+        "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
         "externalReferenceFiles": [
           "__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs",
-          "__tests__/vip-first-month-hardening.test.mjs",
-          "pages/api/store/switch-vip-plan.js"
+          "__tests__/vip-first-month-hardening.test.mjs"
         ]
       },
       {
