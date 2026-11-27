@@ -49,6 +49,7 @@ import {
     currentIssuePeriod,
     formatChipsOnly,
     isValidIssuePeriod,
+    isVanguardPlateVaultRecord,
     stripMagazineDashes,
 } from './magazineSchema.mjs';
 import { IMAGE_VAULT_FALLBACK_URL, vaultMagazineImage } from './imageVault.mjs';
@@ -680,10 +681,14 @@ export async function harvestMonthlyMagazineVault(
         }
 
         let vaultImg;
+        // Reuse a vaulted photo only when it is a real photograph. A stored
+        // editorial plate (the placeholder written after a failed download) is
+        // retried on every harvest until the real source photo is captured.
         if (
             existing?.vaulted_image_url &&
             existing.vaulted_image_url !== IMAGE_VAULT_FALLBACK_URL &&
-            existing?.vaulted_master_url
+            existing?.vaulted_master_url &&
+            !isVanguardPlateVaultRecord(existing)
         ) {
             vaultImg = {
                 vaultedImageUrl: existing.vaulted_image_url,
@@ -1045,26 +1050,42 @@ export async function harvestMonthlyMagazineVault(
             if (!cleanVideoTitle) continue;
             const existingVid = existingMap.get(`video_library::${vidId}`);
             let vidVault;
-            if (existingVid?.vaulted_image_url && existingVid.vaulted_image_url !== IMAGE_VAULT_FALLBACK_URL) {
+            if (
+                existingVid?.vaulted_image_url &&
+                existingVid.vaulted_image_url !== IMAGE_VAULT_FALLBACK_URL &&
+                !isVanguardPlateVaultRecord(existingVid)
+            ) {
                 vidVault = {
                     vaultedImageUrl: existingVid.vaulted_image_url,
                     vaultedMasterUrl: existingVid.vaulted_master_url || existingVid.vaulted_image_url,
                     storagePath: existingVid.vaulted_storage_path || null,
                     width: Number(existingVid.image_width || 1200),
                     height: Number(existingVid.image_height || 800),
+                    usedFallback: false,
                 };
             } else {
-                const allowRemoteThumb = Date.now() < externalDeadlineMs - 400;
-                vidVault = await vaultMagazineImage(client, {
-                    sourceUrl: allowRemoteThumb ? v.thumbnail || '' : '',
-                    issuePeriod: period,
-                    hintKey: `video:${vidId}`,
-                    fallbackHeadline: cleanVideoTitle,
-                    fallbackTag: 'Strategy Video',
-                    fetchImpl,
-                    assertFetchableFn,
-                    timeoutMs: Math.min(4000, Math.max(400, externalDeadlineMs - Date.now())),
-                });
+                // Shorts and older uploads often have no maxresdefault frame, so walk
+                // YouTube's thumbnail ladder until one decodes instead of vaulting a plate.
+                const thumbLadder = [
+                    v.thumbnail,
+                    `https://i.ytimg.com/vi/${encodeURIComponent(vidId)}/hqdefault.jpg`,
+                    `https://i.ytimg.com/vi/${encodeURIComponent(vidId)}/sddefault.jpg`,
+                    `https://i.ytimg.com/vi/${encodeURIComponent(vidId)}/mqdefault.jpg`,
+                ].filter((u, i, arr) => u && arr.indexOf(u) === i);
+                for (const thumbUrl of thumbLadder) {
+                    const allowRemoteThumb = Date.now() < externalDeadlineMs - 400;
+                    vidVault = await vaultMagazineImage(client, {
+                        sourceUrl: allowRemoteThumb ? thumbUrl : '',
+                        issuePeriod: period,
+                        hintKey: `video:${vidId}`,
+                        fallbackHeadline: cleanVideoTitle,
+                        fallbackTag: 'Strategy Video',
+                        fetchImpl,
+                        assertFetchableFn,
+                        timeoutMs: Math.min(4000, Math.max(400, externalDeadlineMs - Date.now())),
+                    });
+                    if (!vidVault?.usedFallback || !allowRemoteThumb) break;
+                }
             }
 
             const vPath = watchPath(v) || `/hub/video-library/watch/${encodeURIComponent(vidId)}`;
@@ -1093,6 +1114,7 @@ export async function harvestMonthlyMagazineVault(
                         is_pinned: false,
                         is_excluded: false,
                         metadata: {
+                            usedFallbackImage: Boolean(vidVault?.usedFallback),
                             videoId: vidId,
                             sourceName: stripMagazineDashes(v.sourceName || ''),
                             duration: v.duration || '',

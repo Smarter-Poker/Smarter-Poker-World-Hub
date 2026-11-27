@@ -2475,3 +2475,133 @@ test('MAG LAW 23: appendMagazineQrUtm tags all 44 QR URLs without mutating ctaUr
     assert.match(read('pages/poker-rooms/index.js'), /MagazineNewsstandBanner/);
     assert.match(read('pages/hub/magazine/poker-rooms.js'), /\/hub\/magazine\/table-tent/);
 });
+
+// ── MAG LAW 24: Print-Edition Art Direction, QR Discipline & Zero Duplication ──
+test('MAG LAW 24: every printed picture is real and unique, placeholder plates never print or get reused, QR codes print only on join or destination pages, pull quotes come from their own story, and the renderer honors the plan', async () => {
+    const { buildMagazineManifestFromVault } = await import('../src/lib/magazine/magazineCompiler.mjs');
+    const { finalizeMagazineIssueManifest, listPrintedMagazinePictures } = await import('../src/lib/magazine/magazineArtDirection.mjs');
+    const {
+        normalizeIssueManifest,
+        isMagazineFallbackImageUrl,
+        isSelfReferentialMagazineQr,
+        MAGAZINE_QR_PAGE_KINDS,
+        planMagazineQrCodes,
+    } = await import('../src/lib/magazine/magazineSchema.mjs');
+
+    const asset = (name) => `https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/${name}-web.jpg`;
+    const shared = asset('0123456789abcdef01234567');
+    const plate = asset('fedcba9876543210fedcba98');
+    const vaultItems = [
+        {
+            id: 'l18-cover',
+            issue_period: '2026-11',
+            section: 'cover_candidate',
+            headline: 'Circuit Finale Draws Record Field In Cherokee',
+            body_text:
+                'The circuit finale opened with a record 1,240 entries across the first two flights of the Main Event.\n\nOrganizers added a third starting flight after the opening day sold out within four hours of registration.\n\nLast year the same event drew 980 players and paid 140 places, with the winner taking home a career-best score.',
+            vaulted_image_url: shared,
+            vaulted_master_url: shared,
+            image_width: 1200,
+            image_height: 800,
+            editorial_score: 99,
+            is_pinned: true,
+        },
+        {
+            id: 'l18-feature',
+            issue_period: '2026-11',
+            section: 'feature_story',
+            headline: 'Island Festival Adds A Five Million Guarantee',
+            body_text:
+                'The island festival announced a five million guarantee for its championship event starting next week.\n\nQualifiers from the season will receive travel packages and a seat in the opening flight of the event.',
+            vaulted_image_url: shared,
+            vaulted_master_url: shared,
+            image_width: 1200,
+            image_height: 800,
+            editorial_score: 90,
+        },
+        {
+            id: 'l18-news-plate',
+            issue_period: '2026-11',
+            section: 'news_brief',
+            headline: 'Regional Series Posts Strong Turnout',
+            summary: 'A regional series posted strong turnout across its opening weekend of events.',
+            vaulted_image_url: plate,
+            vaulted_master_url: plate,
+            image_width: 1600,
+            image_height: 2000,
+            metadata_json: { usedFallbackImage: true },
+            editorial_score: 80,
+        },
+    ];
+
+    const manifest = buildMagazineManifestFromVault({ issueNumber: 1, volumeNumber: 1, issuePeriod: '2026-11', vaultItems });
+
+    // 1. Every printed picture is real (never a fallback or a plate) and prints exactly once.
+    const pictures = listPrintedMagazinePictures(manifest);
+    assert.ok(pictures.length > 0, 'Issue must print pictures');
+    const plateKey = 'vault:fedcba9876543210fedcba98';
+    for (const pic of pictures) {
+        assert.equal(isMagazineFallbackImageUrl(pic.url), false, `Page ${pic.pageNumber} prints a fallback image`);
+        assert.notEqual(pic.key, plateKey, `Page ${pic.pageNumber} prints a placeholder plate`);
+    }
+    const keys = pictures.map((p) => p.key);
+    assert.equal(new Set(keys).size, keys.length, `Duplicate printed pictures: ${keys.join(', ')}`);
+    for (const page of manifest.pages) {
+        if (page.imageRole === 'none') continue;
+        assert.ok(page.imageUrl && !isMagazineFallbackImageUrl(page.imageUrl), `Page ${page.pageNumber} has a role but no real picture`);
+    }
+
+    // 2. QR codes: allowed kinds only, never pointing back at the magazine, each destination once.
+    const qrPages = manifest.pages.filter((p) => p.showQr);
+    assert.ok(qrPages.length >= 3 && qrPages.length <= 16, `Expected a disciplined QR count, got ${qrPages.length}`);
+    const qrTargets = new Set();
+    for (const page of qrPages) {
+        assert.ok(new Set(MAGAZINE_QR_PAGE_KINDS).has(page.kind), `QR printed on disallowed page kind ${page.kind}`);
+        assert.equal(isSelfReferentialMagazineQr(page.qrUrl), false, `Page ${page.pageNumber} QR points back at the magazine`);
+        assert.ok(page.qrLabel && /^Scan To |^Scan For /.test(page.qrLabel), `Page ${page.pageNumber} QR needs an action label`);
+        const target = String(page.qrUrl).replace(/#.*$/, '').replace(/[?&]utm_[^&]*/g, '').replace(/\/$/, '');
+        assert.equal(qrTargets.has(target), false, `QR destination printed twice: ${target}`);
+        qrTargets.add(target);
+    }
+    assert.equal(manifest.pages.find((p) => p.kind === 'front_cover').showQr, false, 'Front cover never carries a QR code');
+    assert.ok(planMagazineQrCodes(manifest.pages) instanceof Map);
+
+    // 3. Feature pull quotes are sentences of their own story; no pull quote or stat prints twice.
+    const storyText = manifest.pages
+        .filter((p) => p.kind === 'cover_feature')
+        .flatMap((p) => p.paragraphs)
+        .join(' ')
+        .toLowerCase();
+    for (const page of manifest.pages.filter((p) => p.kind === 'cover_feature' && p.pullQuote)) {
+        assert.ok(storyText.includes(page.pullQuote.toLowerCase().slice(0, 40)), `Page ${page.pageNumber} pull quote is not from the story`);
+    }
+    const quotes = manifest.pages.map((p) => p.pullQuote).filter(Boolean);
+    assert.equal(new Set(quotes).size, quotes.length, 'A pull quote prints twice');
+    const statKeys = manifest.pages.flatMap((p) => (p.stats || []).map((s) => `${s.label}|${s.value}`.toLowerCase()));
+    assert.equal(new Set(statKeys).size, statKeys.length, 'A stat prints twice');
+    for (const page of manifest.pages.filter((p) => p.kind === 'cover_feature' || p.kind === 'secondary_feature')) {
+        if (page.runIndex > 0) assert.equal(page.subheadline, '', `Page ${page.pageNumber} continuation carries an invented deck`);
+        assert.doesNotMatch(page.headline, /Tactical Blueprint/);
+    }
+
+    // 4. Runs are derived and finalize is idempotent.
+    const cover = manifest.pages.filter((p) => p.kind === 'cover_feature');
+    assert.deepEqual(cover.map((p) => `${p.runIndex}/${p.runLength}`), ['0/4', '1/4', '2/4', '3/4']);
+    const again = normalizeIssueManifest(finalizeMagazineIssueManifest(manifest, { vaultItems }));
+    assert.equal(JSON.stringify(again.pages), JSON.stringify(manifest.pages), 'finalizeMagazineIssueManifest must be idempotent');
+
+    // 5. The harvester retries plates instead of reusing them forever.
+    const harvesterSrc = read('src/lib/magazine/vaultHarvester.mjs');
+    assert.match(harvesterSrc, /!isVanguardPlateVaultRecord\(existing\)/, 'Harvester must never reuse a placeholder plate');
+    assert.match(harvesterSrc, /usedFallbackImage:\s*Boolean\(vidVault\?\.usedFallback\)/, 'Video plates must be recorded');
+
+    // 6. The renderer prints exactly what the plan says.
+    const rendererSrc = read('src/components/magazine/MagazineSpreadRenderer.js');
+    assert.match(rendererSrc, /if \(!page\?\.showQr\) return null;/, 'QrBlock must render only when the plan prints a QR');
+    assert.match(rendererSrc, /page\.imageRole === 'none'/, 'Pages without a picture must print no picture');
+    assert.match(rendererSrc, /deckEchoesCopy/, 'Decks that repeat the first paragraph must be dropped');
+    assert.match(rendererSrc, /smarter-poker-logo-final\.png/, 'Running heads must carry the Smarter.Poker logo');
+    assert.match(rendererSrc, /brand-text-trimmed\.png/, 'The cover masthead must carry the Smarter.Poker wordmark');
+    assert.match(read('pages/_app.js'), /magazine-print\.css/, 'The print stylesheet must load globally');
+    assert.doesNotMatch(rendererSrc, /Scan At The Table/, 'Generic QR badges must not return');
+});

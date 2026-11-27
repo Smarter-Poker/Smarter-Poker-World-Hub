@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     FALLBACK_MAGAZINE_IMAGE,
     MagazinePageSheet,
+    deckEchoesCopy,
     handleMagazineImageError,
     parseLiveSpotVotePayload,
     toInternalMagazineHref,
@@ -367,17 +368,20 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
         (page?.meta?.spreadHalf === 'setup' ||
             (page?.meta?.spreadHalf !== 'verdict' && Array.isArray(page?.items) && page.items.length > 0));
     const isVerdictSpotHalf = isStrategySpot && !isSetupSpotHalf;
-    const isCoverContinuation = page?.kind === 'cover_feature' && Number(page?.pageNumber) > 12;
-    const isFallbackBanner =
-        !spot?.cardImageUrl &&
-        String(page?.imageUrl || '').includes('/api/news/email-image?fallback=1');
+    // Art direction decides which pages carry a picture (imageRole 'none' prints none), so the
+    // reader view shows exactly the pictures the printed page shows and never a placeholder.
+    const readerPicture =
+        page?.imageRole === 'none'
+            ? ''
+            : String((isStrategySpot ? spot?.cardImageUrl || page?.imageUrl : page?.imageUrl) || '');
+    const isFallbackBanner = !readerPicture || readerPicture.includes('/api/news/email-image?fallback=1');
     const showHeroImage =
-        Boolean(spot?.cardImageUrl || page?.imageUrl) &&
+        !isFallbackBanner &&
         page?.kind !== 'toc_left' &&
         page?.kind !== 'toc_right' &&
-        !isCoverContinuation &&
-        !isVerdictSpotHalf &&
-        !(isFallbackBanner && (isPoy || isKings || isQuiz));
+        !isVerdictSpotHalf;
+    const readerDeck =
+        page?.subheadline && !deckEchoesCopy(page.subheadline, page?.paragraphs || []) ? page.subheadline : '';
     const spotOptions =
         Array.isArray(page?.items) && page.items.length > 0
             ? page.items
@@ -465,16 +469,16 @@ function ArticleReaderSectionCard({ page, onJumpFlipbookPage }) {
                 </div>
             )}
 
-            {page.subheadline && (
+            {readerDeck && (
                 <p style={{ margin: '0 0 14px 0', fontSize: '15px', lineHeight: 1.55, color: '#9fb3c8' }}>
-                    {stripMagazineDashes(page.subheadline)}
+                    {stripMagazineDashes(readerDeck)}
                 </p>
             )}
 
             {showHeroImage && (
                 <div style={{ marginBottom: '14px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #1b2c3d' }}>
                     <img
-                        src={spot?.cardImageUrl || page.imageUrl || FALLBACK_MAGAZINE_IMAGE}
+                        src={readerPicture || FALLBACK_MAGAZINE_IMAGE}
                         alt={stripMagazineDashes(page.headline || `Magazine Page ${page.pageNumber}`)}
                         loading="lazy"
                         onError={handleMagazineImageError}

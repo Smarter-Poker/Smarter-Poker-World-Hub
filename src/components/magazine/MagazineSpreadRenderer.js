@@ -1,3 +1,16 @@
+/**
+ * Smarter.Poker Magazine page renderer.
+ *
+ * Every page renders as a true 8.375in x 10.875in magazine sheet styled by
+ * magazine-print.css (container query units, so a page scales like paper on a
+ * phone, in the desktop flipbook and in the print proof).
+ *
+ * Art direction comes from finalizeMagazineIssueManifest:
+ *   - page.imageRole: 'photo' | 'art' | 'spot' | 'video' | 'none'. A page with
+ *     'none' prints no picture at all, so no placeholder plate ever shows.
+ *   - page.showQr / page.qrLabel: a QR code prints only where the plan put one.
+ *   - page.runIndex / page.runLength: opener versus continuation pages.
+ */
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -6,21 +19,34 @@ import {
     MAGAZINE_SITE_URL,
     MAGAZINE_TAGLINE,
     MAGAZINE_TOC_GROUPS,
-    MAGAZINE_TRIM,
     buildMagazineQrDataUri,
     formatChipsOnly,
     formatPeriodLabel,
+    isMagazineFallbackImageUrl,
     stripMagazineDashes,
 } from '../../lib/magazine/magazineSchema.mjs';
 
 export const FALLBACK_MAGAZINE_IMAGE = '/api/news/email-image?fallback=1&w=960&h=540';
 
+const LOGO_LIGHT = '/smarter-poker-logo-final.png';
+const BRAIN_MARK = '/brain-icon.webp';
+const WORDMARK = '/images/brand-text-trimmed.png';
+
+/**
+ * Shared image error handler. A picture inside a figure is removed from the
+ * layout (the page never shows a broken frame or a stand-in plate); any other
+ * image swaps once to the neutral fallback. dataset.fb stops retry loops.
+ */
 export function handleMagazineImageError(e) {
-    if (!e?.currentTarget) return;
-    if (!e.currentTarget.dataset.fb) {
-        e.currentTarget.dataset.fb = '1';
-        e.currentTarget.src = FALLBACK_MAGAZINE_IMAGE;
+    const el = e?.currentTarget;
+    if (!el || el.dataset.fb) return;
+    el.dataset.fb = '1';
+    const figure = typeof el.closest === 'function' ? el.closest('[data-spm-figure]') : null;
+    if (figure) {
+        figure.style.display = 'none';
+        return;
     }
+    el.src = FALLBACK_MAGAZINE_IMAGE;
 }
 
 export function toInternalMagazineHref(rawUrl, fallback = '/hub/magazine') {
@@ -45,6 +71,7 @@ export function formatReadableShortPath(rawUrl) {
                   p.delete('utm_medium');
                   p.delete('utm_campaign');
                   p.delete('utm_content');
+                  p.delete('redirect');
                   const rest = p.toString();
                   return rest ? `?${rest}` : '';
               })()
@@ -76,9 +103,7 @@ function formatSafeChips(item) {
         if (Number.isFinite(Number(rawNum)) && Number(rawNum) > 0) {
             return formatChipsOnly(Number(rawNum));
         }
-        const rawLabel = String(
-            item.prizePoolLabel || item.prizeLabel || item.prize || item.value || ''
-        )
+        const rawLabel = String(item.prizePoolLabel || item.prizeLabel || item.prize || item.value || '')
             .replace(/\$/g, '')
             .trim();
         if (rawLabel) {
@@ -90,1479 +115,868 @@ function formatSafeChips(item) {
     return Number.isFinite(parsed) && parsed > 0 ? formatChipsOnly(parsed) : '0 Chips';
 }
 
-function getThemeTokens(mode) {
-    const isPrint = mode === 'print';
-    if (isPrint) {
-        return {
-            isPrint: true,
-            sheetBg: '#ffffff',
-            cardBg: '#f8fafc',
-            subtleBg: '#f1f5f9',
-            ink: '#05070a',
-            inkSecondary: '#0f172a',
-            inkMuted: '#334155',
-            border: '#cbd5e1',
-            borderStrong: '#0f172a',
-            accent: '#05070a',
-            accentTeal: '#0d9488',
-            accentBlue: '#2563eb',
-            badgeBg: '#05070a',
-            badgeInk: '#ffffff',
-        };
-    }
-    return {
-        isPrint: false,
-        sheetBg: '#0b1520',
-        cardBg: '#05070a',
-        subtleBg: '#102131',
-        ink: '#ffffff',
-        inkSecondary: '#e2e8f0',
-        inkMuted: '#9fb3c8',
-        border: '#1b2c3d',
-        borderStrong: '#4fc1b3',
-        accent: '#4fc1b3',
-        accentTeal: '#4fc1b3',
-        accentBlue: '#60a5fa',
-        badgeBg: '#4fc1b3',
-        badgeInk: '#05070a',
-    };
+function normKey(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
 }
 
-function QrActionBadge({ page, theme, compact = false, printMode = null, darkSurface = false }) {
-    const isPrintMode = printMode != null ? Boolean(printMode) : Boolean(theme?.isPrint);
-    const useLightCard = isPrintMode && !darkSurface;
-    const qrTarget = page?.qrUrl || page?.ctaUrl || `${MAGAZINE_SITE_URL}/hub/magazine`;
-    const qrSrc = buildMagazineQrDataUri(qrTarget, compact ? 64 : 76);
-    const shortPath = formatReadableShortPath(qrTarget);
-    const href = toInternalMagazineHref(page?.ctaUrl || qrTarget, '/hub/magazine');
-    const ctaText = cleanText(page?.ctaLabel, 'Open Interactive Feature');
+/** A deck that only repeats the opening paragraph is dropped (it would print twice). */
+export function deckEchoesCopy(deck, paragraphs = []) {
+    const d = normKey(deck);
+    if (!d) return true;
+    const first = normKey(paragraphs[0]);
+    if (!first) return false;
+    return first.startsWith(d.slice(0, Math.min(d.length, 80))) || d.startsWith(first.slice(0, 80));
+}
 
+function firstSentence(text, max = 170) {
+    const clean = cleanText(text);
+    if (clean.length <= max) return clean;
+    const cut = clean.split(/(?<=[.!?])\s+/)[0] || clean;
+    return cut.length <= max ? cut : `${cut.slice(0, max - 3).replace(/\s+\S*$/, '')}...`;
+}
+
+function stripContinued(headline) {
+    return cleanText(headline).replace(/\s*\(continued\)\s*$/i, '');
+}
+
+function isPrint(mode) {
+    return mode === 'print';
+}
+
+function pagePicture(page, mode) {
+    if (!page || page.imageRole === 'none') return '';
+    const url = isPrint(mode) ? page.masterImageUrl || page.imageUrl : page.imageUrl;
+    if (!url || isMagazineFallbackImageUrl(url)) return '';
+    return url;
+}
+
+function itemPicture(item, mode) {
+    const url = isPrint(mode) ? item?.masterImageUrl || item?.imageUrl : item?.imageUrl;
+    if (!url || isMagazineFallbackImageUrl(url)) return '';
+    return url;
+}
+
+function isRedCard(card) {
+    return /[♥♦]|[hd]$/i.test(String(card || ''));
+}
+
+/* ------------------------------------------------------------------ */
+/* Building blocks                                                     */
+/* ------------------------------------------------------------------ */
+
+function MagImg({ src, alt = '', className, mode, style }) {
     return (
-        <div
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: compact ? '8px' : '10px',
-                padding: compact ? '6px 8px' : '8px 10px',
-                borderRadius: '8px',
-                background: useLightCard ? '#f8fafc' : '#05070a',
-                border: `1px solid ${useLightCard ? '#0f172a' : '#1b2c3d'}`,
-            }}
-        >
-            <img
-                src={qrSrc}
-                alt="Scan Smarter.Poker Page QR Code"
-                width={compact ? 52 : 62}
-                height={compact ? 52 : 62}
-                onError={handleMagazineImageError}
-                style={{
-                    width: compact ? '52px' : '62px',
-                    height: compact ? '52px' : '62px',
-                    borderRadius: '4px',
-                    background: '#ffffff',
-                    padding: '2px',
-                    flexShrink: 0,
-                }}
-            />
-            <div style={{ minWidth: 0, flex: 1 }}>
-                <div
-                    style={{
-                        fontSize: '8.5px',
-                        fontWeight: 800,
-                        letterSpacing: '1.2px',
-                        textTransform: 'uppercase',
-                        color: useLightCard ? '#2563eb' : '#4fc1b3',
-                        marginBottom: '2px',
-                    }}
-                >
-                    Scan At The Table
-                </div>
-                {isPrintMode ? (
-                    <div
-                        style={{
-                            fontSize: '10.5px',
-                            fontWeight: 800,
-                            color: useLightCard ? theme.ink : '#ffffff',
-                            lineHeight: 1.25,
-                            marginBottom: '2px',
-                        }}
-                    >
-                        {ctaText}
-                    </div>
-                ) : (
-                    <Link
-                        href={href}
-                        style={{
-                            display: 'inline-block',
-                            fontSize: '10.5px',
-                            fontWeight: 800,
-                            color: '#60a5fa',
-                            textDecoration: 'none',
-                            lineHeight: 1.25,
-                            marginBottom: '2px',
-                        }}
-                    >
-                        {ctaText} &rarr;
-                    </Link>
-                )}
-                <div
-                    className="no-capitalize"
-                    style={{
-                        fontSize: '8.5px',
-                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                        color: useLightCard ? theme.inkMuted : '#9fb3c8',
-                        wordBreak: 'break-all',
-                    }}
-                >
-                    {shortPath}
-                </div>
-            </div>
-        </div>
+        <img
+            src={src}
+            alt={alt}
+            className={className}
+            style={style}
+            onError={handleMagazineImageError}
+            loading={isPrint(mode) ? 'eager' : 'lazy'}
+            decoding="async"
+        />
     );
 }
 
-function SheetRunningChrome({ page, issueMeta, theme, children }) {
-    const pageNum = Number(page?.pageNumber || 1);
-    const isEven = pageNum % 2 === 0;
-    const dept = cleanText(page?.department, MAGAZINE_MASTHEAD);
-    const headerLabel = cleanText(page?.runningHeader, issueMeta?.periodLabel || MAGAZINE_MASTHEAD);
-
-    return (
-        <div
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                width: '100%',
-                padding: theme.isPrint ? '0.42in 0.46in 0.38in 0.46in' : '18px 20px 16px 20px',
-                boxSizing: 'border-box',
-                background: theme.sheetBg,
-                color: theme.ink,
-                justifyContent: 'space-between',
-            }}
-        >
-            <header
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderBottom: `2px solid ${theme.isPrint ? '#0f172a' : '#1b2c3d'}`,
-                    paddingBottom: '6px',
-                    marginBottom: '10px',
-                    flexShrink: 0,
-                }}
-            >
-                <span
-                    style={{
-                        fontSize: '9px',
-                        fontWeight: 800,
-                        letterSpacing: '1.6px',
-                        textTransform: 'uppercase',
-                        color: theme.isPrint ? '#2563eb' : '#4fc1b3',
-                    }}
-                >
-                    {isEven ? MAGAZINE_MASTHEAD : dept}
-                </span>
-                <span
-                    style={{
-                        fontSize: '8.5px',
-                        fontWeight: 700,
-                        letterSpacing: '1.2px',
-                        textTransform: 'uppercase',
-                        color: theme.inkMuted,
-                    }}
-                >
-                    {isEven ? dept : headerLabel}
-                </span>
-            </header>
-
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+/** Internal links stay in the app; external sources open in a new tab; print renders plain text. */
+function MagLink({ href, mode, className, children }) {
+    const raw = String(href || '').trim();
+    if (!raw || isPrint(mode)) return <span className={className}>{children}</span>;
+    const internal = toInternalMagazineHref(raw, '');
+    if (internal) {
+        return (
+            <Link href={internal} className={className}>
                 {children}
-            </div>
+            </Link>
+        );
+    }
+    if (/^https:\/\//i.test(raw)) {
+        return (
+            <a href={raw} className={className} target="_blank" rel="noopener noreferrer">
+                {children}
+            </a>
+        );
+    }
+    return <span className={className}>{children}</span>;
+}
 
-            <footer
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderTop: `1px solid ${theme.border}`,
-                    paddingTop: '6px',
-                    marginTop: '8px',
-                    flexShrink: 0,
-                    fontSize: '8.5px',
-                    fontWeight: 700,
-                    color: theme.inkMuted,
-                }}
-            >
-                <span>
-                    {isEven
-                        ? `Page ${pageNum} \u2022 ${MAGAZINE_MASTHEAD}`
-                        : `${issueMeta?.periodLabel || 'Monthly Edition'} \u2022 Vol. ${issueMeta?.volumeNumber || 1} No. ${issueMeta?.issueNumber || 1}`}
-                </span>
-                <span>
-                    {isEven
-                        ? `${issueMeta?.periodLabel || 'Monthly Edition'} \u2022 Smarter.Poker`
-                        : `Page ${pageNum} \u2022 ${MAGAZINE_MASTHEAD}`}
-                </span>
-            </footer>
+function Figure({ src, alt, caption, credit, mode, ratio = '3 / 2', contain = false, flex, play = false, href }) {
+    if (!src) return null;
+    const frame = (
+        <div
+            className={`spm-figure__frame${contain ? ' spm-figure__frame--contain' : ''}`}
+            style={flex ? { flex: '1 1 auto', minHeight: 0 } : { aspectRatio: ratio }}
+        >
+            <MagImg src={src} alt={alt || caption || ''} mode={mode} />
+            {play ? <span className="spm-play" aria-hidden="true" /> : null}
+        </div>
+    );
+    return (
+        <figure
+            className="spm-figure"
+            data-spm-figure="1"
+            style={flex ? { flex, minHeight: '18cqw', display: 'flex', flexDirection: 'column' } : undefined}
+        >
+            {href && !isPrint(mode) ? (
+                <MagLink href={href} mode={mode} className="spm-figure__link">
+                    {frame}
+                </MagLink>
+            ) : (
+                frame
+            )}
+            {caption || credit ? (
+                <figcaption className="spm-caption">
+                    {credit ? <b>{credit}</b> : null}
+                    {caption}
+                </figcaption>
+            ) : null}
+        </figure>
+    );
+}
+
+function QrBlock({ page, mode }) {
+    if (!page?.showQr) return null;
+    const target = page.qrUrl || page.ctaUrl;
+    if (!target) return null;
+    const label = cleanText(page.qrLabel, 'Scan To Open On Smarter.Poker');
+    const path = formatReadableShortPath(target);
+    return (
+        <div className="spm-qr">
+            <MagImg src={buildMagazineQrDataUri(target, 240)} alt={label} mode={mode} />
+            <div>
+                <div className="spm-qr__label">{label}</div>
+                <MagLink href={page.ctaUrl || target} mode={mode} className="spm-qr__path">
+                    {path}
+                </MagLink>
+            </div>
         </div>
     );
 }
 
-function FrontCoverLayout({ page, issueMeta, theme }) {
-    const heroImg = (theme.isPrint ? page?.masterImageUrl : page?.imageUrl) || issueMeta?.coverImageUrl || FALLBACK_MAGAZINE_IMAGE;
-    const rawLines = Array.isArray(page?.meta?.coverLines) && page.meta.coverLines.length > 0
-        ? page.meta.coverLines
-        : Array.isArray(issueMeta?.coverLines) && issueMeta.coverLines.length > 0
-          ? issueMeta.coverLines
-          : (page?.items || []).map((it) => it?.headline || it?.title).filter(Boolean);
-    const callouts = (
-        rawLines.length > 0
-            ? rawLines
-            : [
-                  'Global Player Of The Year Top 25 Standings',
-                  'NLH, ICM & PLO5 Solver Strategy Columns',
-                  'Kings Club 25450 Monthly Champions Circle',
-              ]
-    )
-        .slice(0, 3)
-        .map((c) => cleanText(c));
+function Stats({ stats, cols = 3 }) {
+    const list = (Array.isArray(stats) ? stats : []).filter((s) => s && (s.value || s.label));
+    if (!list.length) return null;
+    return (
+        <div className="spm-stats" style={{ gridTemplateColumns: `repeat(${Math.min(cols, list.length)}, 1fr)` }}>
+            {list.map((s, i) => (
+                <div key={`${s.label}-${i}`}>
+                    <div className="spm-stat__value">{cleanText(s.value)}</div>
+                    <div className="spm-stat__label">{cleanText(s.label)}</div>
+                    {s.detail ? <div className="spm-stat__detail">{cleanText(s.detail)}</div> : null}
+                </div>
+            ))}
+        </div>
+    );
+}
 
+function Copy({ paragraphs, dropcap = false, cols = false, endmark = false, style }) {
+    const list = (Array.isArray(paragraphs) ? paragraphs : []).map((p) => cleanText(p)).filter(Boolean);
+    if (!list.length) return null;
+    return (
+        <div className={`spm-copy${cols ? ' spm-copy--cols' : ''}${dropcap ? ' spm-copy--dropcap' : ''}`} style={style}>
+            {list.map((p, i) => (
+                <p key={i}>
+                    {p}
+                    {endmark && i === list.length - 1 ? (
+                        <span className="spm-endmark" aria-hidden="true">
+                            {'■'}
+                        </span>
+                    ) : null}
+                </p>
+            ))}
+        </div>
+    );
+}
+
+function PullQuote({ text }) {
+    const clean = cleanText(text);
+    if (!clean) return null;
+    return <blockquote className="spm-pullquote">{clean}</blockquote>;
+}
+
+function Byline({ byline, label = 'By' }) {
+    const clean = cleanText(byline);
+    if (!clean) return null;
+    return (
+        <div className="spm-byline">
+            {label ? `${label} ` : ''}
+            <span>{clean}</span>
+        </div>
+    );
+}
+
+function Folio({ page, issueMeta }) {
+    const num = Number(page?.pageNumber || 1);
+    const period = issueMeta?.periodLabel || formatPeriodLabel(issueMeta?.issuePeriod);
+    const brand = `${MAGAZINE_MASTHEAD} • ${period}`;
+    const even = num % 2 === 0;
+    return (
+        <footer className="spm-folio">
+            {even ? <span className="spm-folio__num">{num}</span> : <span className="spm-folio__brand">{brand}</span>}
+            {even ? <span className="spm-folio__brand">{brand}</span> : <span className="spm-folio__num">{num}</span>}
+        </footer>
+    );
+}
+
+/** Standard interior page: navy running head with the logo, editorial body, folio. */
+function Frame({ page, issueMeta, mode, section, children }) {
+    const label = cleanText(section || page?.department, MAGAZINE_MASTHEAD);
+    return (
+        <div className="spm-frame">
+            <header className="spm-runhead">
+                <MagImg src={LOGO_LIGHT} alt={MAGAZINE_MASTHEAD} className="spm-runhead__logo" mode={mode} />
+                <span className="spm-runhead__section">{label}</span>
+            </header>
+            <div className="spm-body">{children}</div>
+            <Folio page={page} issueMeta={issueMeta} />
+        </div>
+    );
+}
+
+function SectionHead({ kicker, headline, deck, size = '', byline, bylineLabel }) {
+    return (
+        <div className="spm-head">
+            {kicker ? <div className="spm-kicker">{cleanText(kicker)}</div> : null}
+            {headline ? <h2 className={`spm-headline${size ? ` spm-headline--${size}` : ''}`}>{cleanText(headline)}</h2> : null}
+            {deck ? <p className="spm-deck">{cleanText(deck)}</p> : null}
+            {byline ? <Byline byline={byline} label={bylineLabel} /> : null}
+        </div>
+    );
+}
+
+function Briefs({ items, mode, grid = false }) {
+    if (!items.length) return null;
+    return (
+        <div className={grid ? 'spm-grid-2' : undefined}>
+            {items.map((it, i) => {
+                const thumb = itemPicture(it, mode);
+                const meta = [it.duration, it.category, it.sourceName || it.byline].filter(Boolean).map((v) => cleanText(v));
+                return (
+                    <article key={i} className={`spm-brief${thumb ? '' : ' spm-brief--noimg'}`}>
+                        {thumb ? (
+                            <div className="spm-brief__thumb" data-spm-figure="1">
+                                <MagImg src={thumb} alt={cleanText(it.headline || it.title)} mode={mode} />
+                            </div>
+                        ) : null}
+                        <div>
+                            {it.badge ? <div className="spm-kicker spm-kicker--sm">{cleanText(it.badge)}</div> : null}
+                            <h4 className="spm-brief__title">
+                                <MagLink href={it.url} mode={mode}>
+                                    {cleanText(it.headline || it.title)}
+                                </MagLink>
+                            </h4>
+                            {it.summary ? <p className="spm-brief__text">{cleanText(it.summary)}</p> : null}
+                            {meta.length ? <div className="spm-brief__source">{meta.join(' • ')}</div> : null}
+                        </div>
+                    </article>
+                );
+            })}
+        </div>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/* Page layouts                                                        */
+/* ------------------------------------------------------------------ */
+
+const COVER_LINE_LABELS = [
+    [/\b(poy|player of the year)\b/i, 'Player Of The Year'],
+    [/\bkings club\b/i, 'Kings Club'],
+    [/\bstrategy\b|\bsolver\b|\bgto\b/i, 'The Strategy Lab'],
+    [/\bseries\b|\btour\b|\bradar\b/i, 'Live Series'],
+    [/\bquiz\b|\btest\b/i, 'The Test'],
+];
+
+export function parseCoverLine(raw) {
+    const text = cleanText(raw);
+    const pageMatch = /\(p\.?\s*(\d+)\)\s*$/i.exec(text);
+    const body = text.replace(/\s*\(p\.?\s*\d+\)\s*$/i, '');
+    const label = (COVER_LINE_LABELS.find(([re]) => re.test(body)) || [null, 'Inside This Issue'])[1];
+    const colon = body.indexOf(':');
+    const line = colon > 0 && colon < 48 ? body.slice(colon + 1).trim() : body;
+    return { label, line: line || body, pageNumber: pageMatch ? Number(pageMatch[1]) : null };
+}
+
+function FrontCoverLayout({ page, issueMeta, mode, onSelectPage }) {
+    const fromIssue = issueMeta?.coverImageUrl && !isMagazineFallbackImageUrl(issueMeta.coverImageUrl) ? issueMeta.coverImageUrl : '';
+    const hero = pagePicture(page, mode) || fromIssue;
+    const rawLines =
+        Array.isArray(page?.meta?.coverLines) && page.meta.coverLines.length
+            ? page.meta.coverLines
+            : Array.isArray(issueMeta?.coverLines)
+              ? issueMeta.coverLines
+              : [];
+    const lines = rawLines.slice(0, 3).map(parseCoverLine);
     const vol = issueMeta?.volumeNumber || page?.meta?.volumeNumber || 1;
     const iss = issueMeta?.issueNumber || page?.meta?.issueNumber || 1;
-    const periodLabel = issueMeta?.periodLabel || formatPeriodLabel(issueMeta?.issuePeriod);
-    const coverHeadline = cleanText(page?.headline || issueMeta?.coverHeadline, 'Inside The Month In Poker');
-    const rawPageSub = String(page?.subheadline || '').trim();
-    const pageSubIsVolumeLine = /^vol(?:ume)?\.?\s*\d+/i.test(rawPageSub);
-    const coverSub = cleanText(
-        issueMeta?.coverSubheadline ||
-            page?.paragraphs?.[0] ||
-            (pageSubIsVolumeLine ? '' : rawPageSub),
-        'Major Champions, GTO Solver Labs, POY Standings & Coast-To-Coast Live Series'
-    );
+    const period = issueMeta?.periodLabel || formatPeriodLabel(issueMeta?.issuePeriod);
+    const headline = cleanText(page?.headline || issueMeta?.coverHeadline, 'Inside The Month In Poker');
+    const deck = firstSentence(issueMeta?.coverSubheadline || page?.subheadline || page?.paragraphs?.[0] || '', 150);
+    const canJump = !isPrint(mode) && typeof onSelectPage === 'function';
 
     return (
-        <div
-            style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                background: '#05070a',
-                color: '#ffffff',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-            }}
-        >
-            <img
-                src={heroImg}
-                alt={coverHeadline}
-                onError={handleMagazineImageError}
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    opacity: 0.62,
-                }}
-            />
-            <div
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background:
-                        'linear-gradient(180deg, rgba(5,7,10,0.92) 0%, rgba(5,7,10,0.28) 38%, rgba(5,7,10,0.72) 68%, rgba(5,7,10,0.97) 100%)',
-                }}
-            />
-
-            <div style={{ position: 'relative', zIndex: 2, padding: theme.isPrint ? '0.38in 0.44in 0 0.44in' : '18px 20px 0 20px' }}>
-                <div
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        fontSize: '9px',
-                        fontWeight: 800,
-                        letterSpacing: '1.8px',
-                        textTransform: 'uppercase',
-                        color: '#4fc1b3',
-                        borderBottom: '2px solid #4fc1b3',
-                        paddingBottom: '6px',
-                        marginBottom: '8px',
-                    }}
-                >
-                    <span>{`Volume ${vol} \u2022 Issue ${iss} \u2022 ${periodLabel}`}</span>
-                    <span style={{ color: '#60a5fa' }}>Smarter.Poker Print &amp; Digital</span>
+        <>
+            {hero ? (
+                <div className="spm-bleed" data-spm-figure="1">
+                    <MagImg src={hero} alt={headline} mode={mode} />
                 </div>
-
-                <div
-                    style={{
-                        fontSize: theme.isPrint ? '36px' : 'clamp(22px, 3.6vw, 34px)',
-                        fontWeight: 900,
-                        letterSpacing: '2.2px',
-                        lineHeight: 0.98,
-                        textTransform: 'uppercase',
-                        color: '#ffffff',
-                        fontFamily: "Georgia, 'Times New Roman', serif",
-                        textShadow: '0 4px 18px rgba(5,7,10,0.9)',
-                    }}
-                >
-                    SMARTER.POKER
+            ) : null}
+            <div className="spm-shade-top" />
+            <div className="spm-shade-bottom" />
+            <div className="spm-masthead">
+                <div className="spm-masthead__mark">
+                    <MagImg src={BRAIN_MARK} alt="" className="spm-masthead__brain" mode={mode} />
+                    <MagImg src={WORDMARK} alt={MAGAZINE_MASTHEAD} className="spm-masthead__wordmark" mode={mode} />
                 </div>
-                <div
-                    style={{
-                        display: 'inline-block',
-                        marginTop: '4px',
-                        background: '#4fc1b3',
-                        color: '#05070a',
-                        padding: '2px 10px',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: 900,
-                        letterSpacing: '3px',
-                        textTransform: 'uppercase',
-                    }}
-                >
-                    MAGAZINE
+                <div className="spm-masthead__strip">
+                    <b>Magazine</b>
+                    <span>{`Vol. ${vol} • No. ${iss}`}</span>
+                    <span>{period}</span>
                 </div>
             </div>
-
-            <div
-                style={{
-                    position: 'relative',
-                    zIndex: 2,
-                    padding: theme.isPrint ? '0 0.44in' : '0 20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '7px',
-                    maxWidth: '72%',
-                }}
-            >
-                {callouts.map((line, i) => (
-                    <div
-                        key={i}
-                        style={{
-                            borderLeft: `3px solid ${i === 0 ? '#4fc1b3' : '#60a5fa'}`,
-                            paddingLeft: '8px',
-                            background: 'rgba(5, 7, 10, 0.68)',
-                            paddingTop: '4px',
-                            paddingBottom: '4px',
-                            paddingRight: '8px',
-                            borderRadius: '0 6px 6px 0',
-                        }}
-                    >
-                        <div
-                            style={{
-                                fontSize: '8px',
-                                fontWeight: 800,
-                                letterSpacing: '1.4px',
-                                textTransform: 'uppercase',
-                                color: i === 0 ? '#4fc1b3' : '#60a5fa',
-                            }}
-                        >
-                            {i === 0 ? 'Inside This Issue' : i === 1 ? 'The Strategy Lab' : 'Club Arena Spotlight'}
-                        </div>
-                        <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#ffffff', lineHeight: 1.25 }}>
-                            {line}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <div
-                style={{
-                    position: 'relative',
-                    zIndex: 2,
-                    padding: theme.isPrint ? '0 0.44in 0.38in 0.44in' : '0 20px 18px 20px',
-                }}
-            >
-                <div
-                    style={{
-                        display: 'inline-block',
-                        fontSize: '9px',
-                        fontWeight: 800,
-                        letterSpacing: '1.6px',
-                        textTransform: 'uppercase',
-                        color: '#05070a',
-                        background: '#60a5fa',
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        marginBottom: '6px',
-                    }}
-                >
-                    Cover Story
+            {lines.length ? (
+                <div className="spm-coverlines">
+                    {lines.map((l, i) => {
+                        const content = (
+                            <>
+                                <span className="spm-coverline__label">{l.label}</span>
+                                <span className="spm-coverline__text">
+                                    {l.line}
+                                    {l.pageNumber ? <span className="spm-coverline__page">{` p. ${l.pageNumber}`}</span> : null}
+                                </span>
+                            </>
+                        );
+                        return canJump && l.pageNumber ? (
+                            <button type="button" key={i} className="spm-coverline spm-coverline--button" onClick={() => onSelectPage(l.pageNumber)}>
+                                {content}
+                            </button>
+                        ) : (
+                            <div key={i} className="spm-coverline">
+                                {content}
+                            </div>
+                        );
+                    })}
                 </div>
-                <h2
-                    style={{
-                        margin: '0 0 6px 0',
-                        fontSize: theme.isPrint ? '25px' : 'clamp(18px, 2.5vw, 24px)',
-                        fontWeight: 900,
-                        lineHeight: 1.12,
-                        color: '#ffffff',
-                        fontFamily: "Georgia, 'Times New Roman', serif",
-                    }}
-                >
-                    {coverHeadline}
-                </h2>
-                <p
-                    style={{
-                        margin: '0 0 12px 0',
-                        fontSize: '11px',
-                        lineHeight: 1.4,
-                        color: '#cbd5e1',
-                    }}
-                >
-                    {coverSub}
-                </p>
+            ) : null}
+            <div className="spm-cover-story">
+                <div className="spm-kicker">Cover Story</div>
+                <h1 className="spm-headline spm-headline--xl">{headline}</h1>
+                {deck ? <p className="spm-deck">{deck}</p> : null}
+            </div>
+            <div className="spm-cover-foot">
+                <span>Smarter.Poker</span>
+                <span>{MAGAZINE_TAGLINE.split(',')[0]}</span>
+            </div>
+        </>
+    );
+}
 
-                <QrActionBadge
-                    page={{
-                        ...page,
-                        ctaLabel: page?.ctaLabel || 'Read Digital Edition Online',
-                        ctaUrl: page?.ctaUrl || `/hub/magazine/${issueMeta?.slug || 'latest'}`,
-                        qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}/hub/magazine/${issueMeta?.slug || 'latest'}`,
-                    }}
-                    theme={theme}
-                    printMode={theme.isPrint}
-                    darkSurface
-                    compact
-                />
+/** House ads: Kings Club offer (p2), Weekly Wire and cardroom bundles (pp42 to 43). */
+function AdLayout({ page, mode }) {
+    const art = pagePicture(page, mode);
+    const isBundle = page?.kind === 'cardroom_bundle_cta';
+    const href = isBundle ? page?.ctaUrl || '/hub/magazine/poker-rooms' : page?.ctaUrl || '/auth/signup';
+    const items = (Array.isArray(page?.items) ? page.items : []).filter((it) => it && (it.title || it.headline));
+    const badge = isBundle ? (/wire/i.test(href) ? 'Free Every Tuesday' : 'Cardroom Program') : 'Members Offer';
+
+    return (
+        <div className="spm-ad">
+            {art ? (
+                <div className="spm-ad__art" data-spm-figure="1">
+                    <MagImg src={art} alt={cleanText(page?.headline)} mode={mode} />
+                    <div className="spm-ad__fade" />
+                </div>
+            ) : null}
+            <div className={`spm-ad__body${art ? '' : ' spm-ad__body--noart'}`}>
+                <div className="spm-ad__top">
+                    <MagImg src={LOGO_LIGHT} alt={MAGAZINE_MASTHEAD} className="spm-ad__logo" mode={mode} />
+                    <span className="spm-ad__badge">{badge}</span>
+                </div>
+                <h2 className="spm-headline spm-headline--md">{cleanText(page?.headline)}</h2>
+                {page?.subheadline ? <p className="spm-deck">{cleanText(page.subheadline)}</p> : null}
+                {items.length ? (
+                    <ul className="spm-ad__list">
+                        {items.slice(0, 4).map((it, i) => (
+                            <li key={i}>
+                                <div>
+                                    <b>{cleanText(it.title || it.headline)}</b>
+                                    {cleanText(it.summary)}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                ) : null}
+                <Stats stats={page?.stats} cols={3} />
+                {!items.length ? <Copy paragraphs={page?.paragraphs} /> : null}
+                <div className="spm-ad__action">
+                    {page?.ctaLabel ? (
+                        <MagLink href={href} mode={mode} className="spm-cta">
+                            {cleanText(page.ctaLabel)}
+                        </MagLink>
+                    ) : null}
+                    <QrBlock page={page} mode={mode} />
+                </div>
             </div>
         </div>
     );
 }
 
-function HousePromoLayout({ page, issueMeta, theme }) {
-    const pillars =
-        Array.isArray(page?.items) && page.items.length > 0
-            ? page.items.slice(0, 4)
-            : [
-                  {
-                      title: '25 Free Bonus Chips In Kings Club 25450',
-                      summary: 'Jump Straight Into Nightly Tournaments And Ring Action Inside Club Arena.',
-                  },
-                  {
-                      title: '30-Day Free VIP Membership',
-                      summary: 'Unlock Pro Equity Calculators, ICM Simulators, And Unlimited GTO Hand Lab Access.',
-                  },
-                  {
-                      title: '500 Free Smarter.Poker Diamonds',
-                      summary: 'Compete In Daily Poker Trivia Challenges And Climb National Leaderboards.',
-                  },
-                  {
-                      title: 'Coast-To-Coast Live Poker Near Me',
-                      summary: 'Track Verified Cardrooms, Daily Structures, And Major Series Schedules.',
-                  },
-              ];
-
+function EditorFirstHandLayout({ page, issueMeta, mode }) {
+    const art = pagePicture(page, mode);
+    const masthead = (Array.isArray(page?.items) ? page.items : []).filter((it) => it?.name);
     return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div
-                style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    background: '#05070a',
-                    color: '#ffffff',
-                    borderRadius: '12px',
-                    padding: '18px',
-                    border: '2px solid #4fc1b3',
-                }}
-            >
-                <div>
-                    <div
-                        style={{
-                            display: 'inline-block',
-                            background: '#4fc1b3',
-                            color: '#05070a',
-                            fontSize: '9px',
-                            fontWeight: 900,
-                            letterSpacing: '1.6px',
-                            textTransform: 'uppercase',
-                            padding: '3px 9px',
-                            borderRadius: '999px',
-                            marginBottom: '8px',
-                        }}
-                    >
-                        Official Player Welcome Package &bull; Club ID 25450
-                    </div>
-                    <h2
-                        style={{
-                            margin: '0 0 6px 0',
-                            fontSize: '21px',
-                            fontWeight: 900,
-                            lineHeight: 1.15,
-                            color: '#ffffff',
-                        }}
-                    >
-                        {cleanText(page?.headline, 'Train Smarter, Find Live Action & Play In Kings Club 25450')}
-                    </h2>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '11px', lineHeight: 1.45, color: '#9fb3c8' }}>
-                        {cleanText(
-                            page?.subheadline,
-                            'New Readers Claim 25 Free Chips, 30-Day Free VIP Access, And 500 Free Diamonds On Smarter.Poker.'
-                        )}
-                    </p>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                        {pillars.map((item, idx) => (
-                            <div
-                                key={idx}
-                                style={{
-                                    background: '#0b1520',
-                                    border: '1px solid #1b2c3d',
-                                    borderRadius: '8px',
-                                    padding: '10px',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        fontSize: '10.5px',
-                                        fontWeight: 800,
-                                        color: idx % 2 === 0 ? '#4fc1b3' : '#60a5fa',
-                                        marginBottom: '4px',
-                                        lineHeight: 1.25,
-                                    }}
-                                >
-                                    {cleanText(item?.title || item?.headline, 'Smarter.Poker Benefit')}
-                                </div>
-                                <div style={{ fontSize: '9.5px', color: '#cbd5e1', lineHeight: 1.38 }}>
-                                    {cleanText(item?.summary || item?.description, '')}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+        <Frame page={page} issueMeta={issueMeta} mode={mode} section="First Hand">
+            <Figure src={art} mode={mode} ratio="16 / 5" alt="" />
+            <SectionHead kicker="From The Editor" headline={page?.headline} size="md" />
+            <div className="spm-split">
+                <div className="spm-stack">
+                    <Copy paragraphs={page?.paragraphs} dropcap />
+                    <PullQuote text={page?.pullQuote} />
+                    <Byline byline={page?.byline || 'The Smarter.Poker Editorial Desk'} label="" />
                 </div>
-
-                <div style={{ marginTop: '12px' }}>
-                    <QrActionBadge
-                        page={{
-                            ...page,
-                            ctaLabel: page?.ctaLabel || 'Claim Free Kings Club 25450 Welcome Package',
-                            ctaUrl: page?.ctaUrl || '/go/promo',
-                            qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}/go/promo`,
-                        }}
-                        theme={theme}
-                        printMode={theme.isPrint}
-                        darkSurface
-                    />
-                </div>
-            </div>
-        </SheetRunningChrome>
-    );
-}
-
-function EditorFirstHandLayout({ page, issueMeta, theme }) {
-    const paragraphs =
-        Array.isArray(page?.paragraphs) && page.paragraphs.length > 0
-            ? page.paragraphs
-            : [
-                  issueMeta?.editorNote ||
-                      'Welcome To This Month In Smarter.Poker Magazine, Built For Players Studying At Home And Grinding Live Cardrooms Coast To Coast.',
-                  'Every Page Combines Verified Tournament Reporting, Kings Club 25450 Championship Standings, And Pure GTO Solver Breakdowns Ready To Scan Right At The Table.',
-              ];
-    const stats =
-        Array.isArray(page?.stats) && page.stats.length > 0
-            ? page.stats.slice(0, 6)
-            : Array.isArray(issueMeta?.stats) && issueMeta.stats.length > 0
-              ? issueMeta.stats.slice(0, 6)
-              : [
-                    { label: 'Magazine Pages', value: String(issueMeta?.pageCount || 44) },
-                    { label: 'Pro Calculators', value: '42' },
-                    { label: 'POY Contenders', value: 'Top 25' },
-                    { label: 'Strategy Columns', value: '4 Labs' },
-                    { label: 'Kings Club ID', value: '25450' },
-                    { label: 'Poker IQ Spots', value: '4 Questions' },
-                ];
-
-    return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', justifyContent: 'space-between' }}>
-                <div>
-                    <div
-                        style={{
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            letterSpacing: '1.6px',
-                            textTransform: 'uppercase',
-                            color: theme.accentTeal,
-                            marginBottom: '3px',
-                        }}
-                    >
-                        First Hand &bull; From The Editorial Desk
-                    </div>
-                    <h2
-                        style={{
-                            margin: '0 0 8px 0',
-                            fontSize: '18px',
-                            fontWeight: 900,
-                            lineHeight: 1.18,
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            color: theme.ink,
-                        }}
-                    >
-                        {cleanText(page?.headline, 'The Modern Grinder Playbook: Live Felt Meets Solver Precision')}
-                    </h2>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.45fr 1fr', gap: '10px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {paragraphs.slice(0, 4).map((para, idx) => (
-                                <p
-                                    key={idx}
-                                    style={{
-                                        margin: 0,
-                                        fontSize: '9.8px',
-                                        lineHeight: 1.46,
-                                        color: theme.inkSecondary,
-                                    }}
-                                >
-                                    {cleanText(para)}
-                                </p>
+                <div className="spm-stack">
+                    {masthead.length ? (
+                        <div className="spm-box">
+                            <div className="spm-box__title">Masthead</div>
+                            {masthead.map((m, i) => (
+                                <div key={i} className="spm-masthead-row">
+                                    <div className="spm-brief__title">{cleanText(m.name)}</div>
+                                    <div className="spm-brief__source">{cleanText(m.role)}</div>
+                                </div>
                             ))}
-                            {page?.byline && (
-                                <div style={{ fontSize: '9px', fontWeight: 800, color: theme.accentBlue, marginTop: '2px' }}>
-                                    {cleanText(page.byline)}
-                                </div>
-                            )}
                         </div>
-
-                        <aside
-                            style={{
-                                background: theme.cardBg,
-                                border: `1px solid ${theme.border}`,
-                                borderRadius: '8px',
-                                padding: '9px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '5px',
-                            }}
-                        >
-                            <div
-                                style={{
-                                    fontSize: '9px',
-                                    fontWeight: 900,
-                                    letterSpacing: '1.4px',
-                                    textTransform: 'uppercase',
-                                    color: theme.accentTeal,
-                                    borderBottom: `1px solid ${theme.border}`,
-                                    paddingBottom: '4px',
-                                }}
-                            >
-                                Masthead
-                            </div>
-                            <div style={{ fontSize: '10px', fontWeight: 800, color: theme.ink }}>{MAGAZINE_MASTHEAD}</div>
-                            <div style={{ fontSize: '8.5px', lineHeight: 1.35, color: theme.inkMuted }}>{MAGAZINE_TAGLINE}</div>
-                            <div style={{ fontSize: '8.5px', lineHeight: 1.35, color: theme.inkSecondary }}>
-                                <strong>Editorial Desk:</strong> Smarter.Poker Intelligence Team
-                            </div>
-                            <div style={{ fontSize: '8.5px', lineHeight: 1.35, color: theme.inkSecondary }}>
-                                <strong>Strategy Lab:</strong> GTO Hand Lab &amp; ICM Engine
-                            </div>
-                            <div style={{ fontSize: '8px', lineHeight: 1.35, color: theme.inkMuted }}>{MAGAZINE_POSTAL_ADDRESS}</div>
-                        </aside>
-                    </div>
-                </div>
-
-                <div>
-                    <div
-                        style={{
-                            fontSize: '9px',
-                            fontWeight: 900,
-                            letterSpacing: '1.5px',
-                            textTransform: 'uppercase',
-                            color: theme.accentBlue,
-                            marginBottom: '6px',
-                        }}
-                    >
-                        Month By The Numbers
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                        {stats.map((st, idx) => (
-                            <div
-                                key={idx}
-                                style={{
-                                    background: theme.cardBg,
-                                    border: `1px solid ${theme.border}`,
-                                    borderRadius: '6px',
-                                    padding: '7px 8px',
-                                }}
-                            >
-                                <div style={{ fontSize: '13px', fontWeight: 900, color: theme.accentTeal, lineHeight: 1.1 }}>
-                                    {cleanText(String(st?.value ?? '').replace(/\$/g, ''), '100%')}
-                                </div>
-                                <div style={{ fontSize: '8.2px', fontWeight: 700, color: theme.inkMuted, marginTop: '2px' }}>
-                                    {cleanText(st?.label, 'Monthly Metric')}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    ) : null}
+                    {Array.isArray(page?.stats) && page.stats.length ? (
+                        <div className="spm-box">
+                            <div className="spm-box__title">This Issue By The Numbers</div>
+                            <Stats stats={page.stats} cols={2} />
+                        </div>
+                    ) : null}
+                    <div className="spm-caption">{`${MAGAZINE_MASTHEAD}, ${MAGAZINE_POSTAL_ADDRESS}`}</div>
                 </div>
             </div>
-        </SheetRunningChrome>
+        </Frame>
     );
 }
 
-function TocSpreadLayout({ page, issueMeta, theme, onSelectPage }) {
+function TocSpreadLayout({ page, issueMeta, mode, onSelectPage }) {
     const isLeft = page?.kind === 'toc_left';
     const rawItems =
-        Array.isArray(page?.items) && page.items.length > 0
+        Array.isArray(page?.items) && page.items.length
             ? page.items
             : (issueMeta?.toc || []).filter((_, idx) => (isLeft ? idx % 2 === 0 : idx % 2 === 1));
-
     const grouped = MAGAZINE_TOC_GROUPS.map((grp) => ({
         ...grp,
         entries: rawItems.filter((it) => (it?.tocGroup || it?.group || 'departments') === grp.key),
-    })).filter((g) => g.entries.length > 0);
+    })).filter((g) => g.entries.length);
+    const groups = grouped.length ? grouped : [{ key: 'all', label: 'In This Issue', entries: rawItems }];
+    const art = pagePicture(page, mode);
+    const canJump = !isPrint(mode) && typeof onSelectPage === 'function';
+    const period = issueMeta?.periodLabel || formatPeriodLabel(issueMeta?.issuePeriod);
 
-    const displayGroups =
-        grouped.length > 0
-            ? grouped
-            : [
-                  {
-                      key: 'all',
-                      label: isLeft ? 'Features & Departments' : 'The Strategy Lab & Directories',
-                      entries: rawItems,
-                  },
-              ];
+    const entry = (it, i) => {
+        const num = Number(it?.pageNumber) || null;
+        const inner = (
+            <>
+                <span className="spm-toc-entry__num">{num || ''}</span>
+                <span>
+                    <span className="spm-toc-entry__title">{cleanText(it?.title || it?.headline)}</span>
+                    {it?.subtitle || it?.subheadline ? (
+                        <span className="spm-toc-entry__sub">{cleanText(it.subtitle || it.subheadline)}</span>
+                    ) : null}
+                </span>
+            </>
+        );
+        return canJump && num ? (
+            <button type="button" key={i} className="spm-toc-entry" onClick={() => onSelectPage(num)}>
+                {inner}
+            </button>
+        ) : (
+            <div key={i} className="spm-toc-entry spm-toc-entry--static">
+                {inner}
+            </div>
+        );
+    };
 
     return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                <div>
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'baseline',
-                            justifyContent: 'space-between',
-                            borderBottom: `2px solid ${theme.accentTeal}`,
-                            paddingBottom: '6px',
-                            marginBottom: '10px',
-                        }}
-                    >
-                        <h2
-                            style={{
-                                margin: 0,
-                                fontSize: '19px',
-                                fontWeight: 900,
-                                fontFamily: "Georgia, 'Times New Roman', serif",
-                                color: theme.ink,
-                            }}
-                        >
-                            {cleanText(page?.headline, isLeft ? 'Contents: Features & Circuits' : 'Contents: Strategy & Directories')}
-                        </h2>
-                        <span style={{ fontSize: '9px', fontWeight: 800, color: theme.accentBlue, textTransform: 'uppercase' }}>
-                            {issueMeta?.periodLabel || 'Monthly Issue'}
-                        </span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {displayGroups.map((grp) => (
-                            <div key={grp.key}>
-                                <div
-                                    style={{
-                                        fontSize: '9px',
-                                        fontWeight: 900,
-                                        letterSpacing: '1.5px',
-                                        textTransform: 'uppercase',
-                                        color: theme.accentTeal,
-                                        marginBottom: '5px',
-                                    }}
-                                >
-                                    {grp.label}
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    {grp.entries.slice(0, 9).map((entry, idx) => {
-                                        const targetPage = Number(entry?.pageNumber || entry?.page || idx + 1);
-                                        const endPageNumber = Number(entry?.endPageNumber || targetPage);
-                                        const pageRangeLabel =
-                                            endPageNumber > targetPage
-                                                ? `P. ${targetPage}-${endPageNumber}`
-                                                : `P. ${targetPage}`;
-                                        const entryTitle = cleanText(entry?.headline || entry?.title, `Section ${targetPage}`);
-                                        const entrySub = cleanText(
-                                            entry?.subheadline || entry?.subtitle || entry?.summary || entry?.department,
-                                            ''
-                                        );
-                                        const clickable = !theme.isPrint && typeof onSelectPage === 'function';
-
-                                        if (clickable) {
-                                            return (
-                                                <button
-                                                    key={idx}
-                                                    type="button"
-                                                    onClick={() => onSelectPage(targetPage)}
-                                                    style={{
-                                                        display: 'flex',
-                                                        alignItems: 'baseline',
-                                                        justifyContent: 'space-between',
-                                                        gap: '8px',
-                                                        width: '100%',
-                                                        textAlign: 'left',
-                                                        background: theme.cardBg,
-                                                        border: `1px solid ${theme.border}`,
-                                                        borderRadius: '6px',
-                                                        padding: '5px 8px',
-                                                        cursor: 'pointer',
-                                                        color: theme.ink,
-                                                    }}
-                                                >
-                                                    <span style={{ minWidth: 0, flex: 1 }}>
-                                                        <strong style={{ fontSize: '10px', display: 'block', color: theme.ink }}>
-                                                            {entryTitle}
-                                                        </strong>
-                                                        {entrySub && (
-                                                            <span style={{ fontSize: '8.5px', color: theme.inkMuted, display: 'block' }}>
-                                                                {entrySub}
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                    <span
-                                                        style={{
-                                                            fontSize: '11px',
-                                                            fontWeight: 900,
-                                                            color: theme.accentBlue,
-                                                            flexShrink: 0,
-                                                        }}
-                                                    >
-                                                        {pageRangeLabel}
-                                                    </span>
-                                                </button>
-                                            );
-                                        }
-
-                                        return (
-                                            <div
-                                                key={idx}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'baseline',
-                                                    justifyContent: 'space-between',
-                                                    gap: '8px',
-                                                    borderBottom: `1px dotted ${theme.border}`,
-                                                    paddingBottom: '3px',
-                                                }}
-                                            >
-                                                <div style={{ minWidth: 0, flex: 1 }}>
-                                                    <div style={{ fontSize: '10px', fontWeight: 800, color: theme.ink }}>{entryTitle}</div>
-                                                    {entrySub && (
-                                                        <div style={{ fontSize: '8.3px', color: theme.inkMuted }}>{entrySub}</div>
-                                                    )}
-                                                </div>
-                                                <div style={{ fontSize: '10.5px', fontWeight: 900, color: theme.accentBlue, flexShrink: 0 }}>
-                                                    {pageRangeLabel}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+        <Frame page={page} issueMeta={issueMeta} mode={mode} section="Contents">
+            {isLeft ? (
+                <div className="spm-toc-title">
+                    <h2 className="spm-headline spm-headline--xl">Contents</h2>
+                    <span className="spm-kicker">{period}</span>
                 </div>
-
-                {!isLeft && <QrActionBadge page={page} theme={theme} compact />}
+            ) : null}
+            {isLeft ? <Figure src={art} caption={page?.imageCaption} mode={mode} ratio="16 / 8" /> : null}
+            <div className="spm-stack">
+                {groups.map((g) => (
+                    <section key={g.key} className="spm-toc-group">
+                        <div className="spm-toc-group__title">{g.label}</div>
+                        {g.entries.map(entry)}
+                    </section>
+                ))}
             </div>
-        </SheetRunningChrome>
+            {!isLeft ? <Figure src={art} caption={page?.imageCaption} mode={mode} flex="1 1 auto" /> : null}
+        </Frame>
     );
 }
 
-function NewsRailLayout({ page, issueMeta, theme }) {
+function NewsRailLayout({ page, issueMeta, mode }) {
+    const items = (Array.isArray(page?.items) ? page.items : []).filter((it) => it && (it.headline || it.title));
+    const art = pagePicture(page, mode);
+    const leadIdx =
+        Number.isInteger(page?.leadItemIndex) && page.leadItemIndex >= 0 && page.leadItemIndex < items.length
+            ? page.leadItemIndex
+            : 0;
+    const lead = items[leadIdx];
+    const rest = items.filter((_, i) => i !== leadIdx);
+    const isOpener = !page?.runIndex;
     const isFinalTable = page?.kind === 'final_table_live';
-    const stories =
-        Array.isArray(page?.items) && page.items.length > 0
-            ? page.items.slice(0, 3)
-            : [
-                  {
-                      headline: page?.headline || 'Major Live Circuit Guarantees Surge Across Championship Stops',
-                      summary:
-                          page?.subheadline ||
-                          'Mid-Major And Championship Poker Stops Continue Posting Record Main Event Turnouts Across North America.',
-                      sourceName: 'Smarter.Poker Wire',
-                      imageUrl: page?.imageUrl || FALLBACK_MAGAZINE_IMAGE,
-                  },
-              ];
+    const section = isFinalTable ? 'Final Table' : 'The Rail';
+    const leadHeadline = cleanText(lead?.headline || lead?.title);
+    const leadSource = cleanText(lead?.sourceName || lead?.byline);
+    // The caption names the picture; when the picture belongs to the lead story the headline already does.
+    const caption = normKey(page?.imageCaption) === normKey(leadHeadline) ? '' : cleanText(page?.imageCaption);
 
     return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', height: '100%', justifyContent: 'space-between' }}>
-                <div>
-                    <div
-                        style={{
-                            fontSize: '9px',
-                            fontWeight: 900,
-                            letterSpacing: '1.6px',
-                            textTransform: 'uppercase',
-                            color: theme.accentTeal,
-                            marginBottom: '2px',
-                        }}
-                    >
-                        {isFinalTable ? (
-                            <>Final Table Live &bull; Championship Results</>
-                        ) : (
-                            <>The Monthly Wire &bull; Industry &amp; Tour Digest</>
-                        )}
-                    </div>
-                    <h2
-                        style={{
-                            margin: '0 0 8px 0',
-                            fontSize: '17px',
-                            fontWeight: 900,
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            color: theme.ink,
-                        }}
-                    >
-                        {cleanText(page?.headline, 'Around The Poker World')}
-                    </h2>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {stories.map((st, idx) => {
-                            const img =
-                                (theme.isPrint ? st?.masterImageUrl || st?.vaultedMasterUrl : null) ||
-                                st?.imageUrl ||
-                                st?.vaultedImageUrl ||
-                                st?.vaulted_image_url ||
-                                page?.imageUrl ||
-                                FALLBACK_MAGAZINE_IMAGE;
-                            const outlet = cleanText(
-                                st?.sourceName || st?.source_name || st?.outlet || st?.byline || st?.category,
-                                'Smarter.Poker News'
-                            );
-                            return (
-                                <article
-                                    key={idx}
-                                    style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '112px 1fr',
-                                        gap: '10px',
-                                        background: theme.cardBg,
-                                        border: `1px solid ${theme.border}`,
-                                        borderRadius: '8px',
-                                        padding: '8px',
-                                        alignItems: 'start',
-                                    }}
-                                >
-                                    <img
-                                        src={img}
-                                        alt={cleanText(st?.headline || st?.title, 'Poker News Story')}
-                                        onError={handleMagazineImageError}
-                                        style={{
-                                            width: '112px',
-                                            height: '76px',
-                                            objectFit: 'cover',
-                                            borderRadius: '6px',
-                                            background: '#05070a',
-                                        }}
-                                    />
-                                    <div style={{ minWidth: 0 }}>
-                                        <div
-                                            style={{
-                                                fontSize: '8px',
-                                                fontWeight: 800,
-                                                letterSpacing: '1.2px',
-                                                textTransform: 'uppercase',
-                                                color: theme.accentBlue,
-                                                marginBottom: '2px',
-                                            }}
-                                        >
-                                            {outlet}
-                                        </div>
-                                        <h3
-                                            style={{
-                                                margin: '0 0 4px 0',
-                                                fontSize: '11px',
-                                                fontWeight: 800,
-                                                lineHeight: 1.25,
-                                                color: theme.ink,
-                                            }}
-                                        >
-                                            {cleanText(st?.headline || st?.title, 'Poker Headline')}
-                                        </h3>
-                                        <p style={{ margin: 0, fontSize: '9.2px', lineHeight: 1.4, color: theme.inkSecondary }}>
-                                            {cleanText(st?.summary || st?.excerpt || st?.body_text, '').slice(0, 220)}
-                                        </p>
-                                    </div>
-                                </article>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <QrActionBadge page={page} theme={theme} compact />
-            </div>
-        </SheetRunningChrome>
+        <Frame page={page} issueMeta={issueMeta} mode={mode} section={section}>
+            {isOpener ? (
+                <SectionHead kicker={section} headline={page?.headline} size="md" deck={page?.subheadline} />
+            ) : (
+                <div className="spm-continued">{`${section} • ${stripContinued(page?.headline).split(':')[0]}`}</div>
+            )}
+            {lead ? (
+                <article className="spm-stack spm-stack--tight">
+                    <Figure
+                        src={art}
+                        mode={mode}
+                        ratio={isOpener ? '16 / 8' : '16 / 9'}
+                        caption={caption}
+                        credit={leadSource && !caption ? `Photo: ${leadSource}` : caption ? 'Photo' : ''}
+                        href={lead.url}
+                    />
+                    <h3 className="spm-headline spm-headline--md">
+                        <MagLink href={lead.url} mode={mode}>
+                            {leadHeadline}
+                        </MagLink>
+                    </h3>
+                    <Copy paragraphs={[lead.summary]} />
+                    {leadSource ? <div className="spm-brief__source">{`Source: ${leadSource}`}</div> : null}
+                </article>
+            ) : null}
+            <Briefs items={rest} mode={mode} />
+        </Frame>
     );
 }
 
-function CaptureTheMomentLayout({ page, issueMeta, theme }) {
+function CaptureTheMomentLayout({ page, mode }) {
+    const photo = pagePicture(page, mode);
     const isLeft = page?.kind === 'capture_the_moment_left';
-    const heroImg = (theme.isPrint ? page?.masterImageUrl : page?.imageUrl) || FALLBACK_MAGAZINE_IMAGE;
-    const insets = Array.isArray(page?.items) ? page.items.slice(0, 2) : [];
+    const num = Number(page?.pageNumber || 0);
+    const caption = cleanText(page?.imageCaption);
+    return (
+        <>
+            {photo ? (
+                <div className="spm-bleed" data-spm-figure="1">
+                    <MagImg src={photo} alt={caption || cleanText(page?.headline)} mode={mode} />
+                </div>
+            ) : null}
+            <div className="spm-shade-top" style={{ height: '22%' }} />
+            <div className="spm-shade-bottom" style={{ height: '66%' }} />
+            <div className="spm-overlay-head">
+                <MagImg src={LOGO_LIGHT} alt={MAGAZINE_MASTHEAD} className="spm-runhead__logo" mode={mode} />
+                <span className="spm-kicker">Capture The Moment</span>
+            </div>
+            <div className="spm-overlay-story">
+                {isLeft ? <PullQuote text={page?.pullQuote} /> : null}
+                <h2 className="spm-headline spm-headline--md">{cleanText(page?.headline)}</h2>
+                <Copy paragraphs={page?.paragraphs} />
+                {caption && normKey(caption) !== normKey(page?.headline) ? (
+                    <div className="spm-caption">
+                        <b>Photo</b>
+                        {caption}
+                    </div>
+                ) : null}
+            </div>
+            <div className="spm-cover-foot">
+                <span>{num % 2 === 0 ? num : MAGAZINE_MASTHEAD}</span>
+                <span>{num % 2 === 0 ? MAGAZINE_MASTHEAD : num}</span>
+            </div>
+        </>
+    );
+}
+
+const FEATURE_KICKERS = {
+    cover_feature: 'Cover Story',
+    secondary_feature: 'Feature',
+    platform_feature: 'Inside Smarter.Poker',
+    strategy_ai_coach: 'Coaching Desk',
+};
+
+function parseNumberedPoint(text) {
+    const m = /^(\d+)[.)]\s*([^:]{4,90}):\s*([\s\S]+)$/.exec(cleanText(text));
+    return m ? { n: m[1], title: m[2], body: m[3] } : null;
+}
+
+/** Cover story, secondary feature, platform feature and AI coach pages. */
+function FeatureArticleLayout({ page, issueMeta, mode }) {
+    const kind = page?.kind;
+    const runIndex = Number(page?.runIndex || 0);
+    const runLength = Number(page?.runLength || 1);
+    const isOpener = runIndex === 0;
+    const isLast = runIndex === runLength - 1;
+    const pic = pagePicture(page, mode);
+    const paragraphs = Array.isArray(page?.paragraphs) ? page.paragraphs : [];
+    const kicker = FEATURE_KICKERS[kind] || cleanText(page?.department, 'Feature');
+    const deck = page?.subheadline && !deckEchoesCopy(page.subheadline, paragraphs) ? page.subheadline : '';
+    const numbered = kind === 'strategy_ai_coach' ? paragraphs.map(parseNumberedPoint) : [];
+    const allNumbered = numbered.length > 0 && numbered.every(Boolean);
+    const cards = kind === 'platform_feature' ? (page?.items || []).filter((it) => it && (it.title || it.headline)) : [];
+    const isStory = kind === 'cover_feature' || kind === 'secondary_feature';
+    const headline = stripContinued(page?.headline);
 
     return (
-        <div
-            style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                background: '#05070a',
-                color: '#ffffff',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                padding: theme.isPrint ? '0.4in 0.44in' : '18px 20px',
-                boxSizing: 'border-box',
-            }}
-        >
-            <img
-                src={heroImg}
-                alt={cleanText(page?.headline, 'Capture The Moment')}
-                onError={handleMagazineImageError}
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    opacity: 0.72,
-                }}
-            />
-            <div
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background:
-                        'linear-gradient(180deg, rgba(5,7,10,0.82) 0%, rgba(5,7,10,0.12) 45%, rgba(5,7,10,0.92) 100%)',
-                }}
-            />
-
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span
-                    style={{
-                        background: '#4fc1b3',
-                        color: '#05070a',
-                        padding: '3px 9px',
-                        borderRadius: '4px',
-                        fontSize: '8.5px',
-                        fontWeight: 900,
-                        letterSpacing: '1.6px',
-                        textTransform: 'uppercase',
-                    }}
-                >
-                    {isLeft ? 'Capture The Moment \u2022 Part I' : 'Capture The Moment \u2022 Part II'}
-                </span>
-                <span style={{ fontSize: '9px', fontWeight: 800, color: '#cbd5e1' }}>
-                    {`Page ${page?.pageNumber || 10} \u2022 ${MAGAZINE_MASTHEAD}`}
-                </span>
-            </div>
-
-            <div style={{ position: 'relative', zIndex: 2 }}>
-                {insets.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-                        {insets.map((ins, i) => (
-                            <div
-                                key={i}
-                                style={{
-                                    background: 'rgba(11, 21, 32, 0.88)',
-                                    border: '1px solid #1b2c3d',
-                                    borderRadius: '6px',
-                                    padding: '6px',
-                                }}
-                            >
-                                <div style={{ fontSize: '9.5px', fontWeight: 800, color: '#4fc1b3' }}>
-                                    {cleanText(ins?.headline || ins?.title, 'Championship Frame')}
-                                </div>
-                                <div style={{ fontSize: '8.5px', color: '#cbd5e1', lineHeight: 1.3 }}>
-                                    {cleanText(ins?.summary || ins?.caption, '').slice(0, 110)}
-                                </div>
+        <Frame page={page} issueMeta={issueMeta} mode={mode} section={kicker}>
+            {isOpener ? (
+                <SectionHead kicker={kicker} headline={headline} size={headline.length > 64 ? 'md' : ''} deck={deck} byline={page?.byline} />
+            ) : (
+                <div className="spm-head">
+                    <div className="spm-continued">{isStory ? `${kicker} • Continued` : kicker}</div>
+                    <h3 className={`spm-headline${isStory ? ' spm-headline--sm' : ' spm-headline--md'}`}>{headline}</h3>
+                    {deck ? <p className="spm-deck">{cleanText(deck)}</p> : null}
+                </div>
+            )}
+            <Figure src={pic} mode={mode} ratio={isOpener ? '3 / 2' : '16 / 9'} caption={cleanText(page?.imageCaption)} />
+            {allNumbered ? (
+                <div className="spm-stack">
+                    {numbered.map((pt) => (
+                        <div key={pt.n} className="spm-point">
+                            <span className="spm-point__num">{pt.n}</span>
+                            <div>
+                                <div className="spm-point__title">{pt.title}</div>
+                                <p className="spm-point__text">{pt.body}</p>
                             </div>
-                        ))}
-                    </div>
-                )}
-
-                <div
-                    style={{
-                        background: 'rgba(5, 7, 10, 0.86)',
-                        borderLeft: '4px solid #4fc1b3',
-                        borderRadius: '0 8px 8px 0',
-                        padding: '10px 12px',
-                    }}
-                >
-                    <h2 style={{ margin: '0 0 4px 0', fontSize: '17px', fontWeight: 900, color: '#ffffff' }}>
-                        {cleanText(page?.headline, 'Under The Championship Lights')}
-                    </h2>
-                    <p style={{ margin: 0, fontSize: '10px', lineHeight: 1.42, color: '#cbd5e1' }}>
-                        {cleanText(
-                            page?.subheadline || page?.paragraphs?.[0],
-                            'High-Stakes Tension, Trophy Ceremonies, And Deep-Run Drama Captured Across Major Live Stops.'
-                        )}
-                    </p>
+                        </div>
+                    ))}
                 </div>
+            ) : (
+                <Copy
+                    paragraphs={paragraphs}
+                    dropcap={isOpener && kind !== 'platform_feature'}
+                    cols={!pic && isStory}
+                    endmark={isLast && isStory}
+                    style={!pic && isStory ? { fontSize: '2.5cqw' } : undefined}
+                />
+            )}
+            <PullQuote text={page?.pullQuote} />
+            <Briefs items={cards} mode={mode} />
+            {Array.isArray(page?.stats) && page.stats.length ? (
+                <div className="spm-box">
+                    <div className="spm-box__title">By The Numbers</div>
+                    <Stats stats={page.stats} cols={3} />
+                </div>
+            ) : null}
+            <div className="spm-push">
+                <QrBlock page={page} mode={mode} />
             </div>
-        </div>
+        </Frame>
     );
 }
 
-function FeatureArticleLayout({ page, issueMeta, theme }) {
-    const heroImg = (theme.isPrint ? page?.masterImageUrl : page?.imageUrl) || FALLBACK_MAGAZINE_IMAGE;
-    const paragraphs =
-        Array.isArray(page?.paragraphs) && page.paragraphs.length > 0
-            ? page.paragraphs
-            : [
-                  page?.subheadline ||
-                      'Deep-Stack Championship Poker Rewards Preparation, Disciplined Bankroll Structure, And Fearless Late-Stage Execution.',
-                  'Across Major Live Tours And Smarter.Poker Training Labs, Top Performers Pair Relentless Hand Review With Real-Time ICM Awareness.',
-                  'Every Decision Spot Highlighted In This Feature Connects Directly To Interactive Calculators And Solver Trees On Smarter.Poker.',
-              ];
-    const sideStats = Array.isArray(page?.stats) && page.stats.length > 0 ? page.stats.slice(0, 3) : [];
-    const sideItems = Array.isArray(page?.items) && page.items.length > 0 ? page.items.slice(0, 3) : [];
-    const leadPara = cleanText(paragraphs[0], '');
-    const firstChar = leadPara.charAt(0) || 'S';
-    const restLead = leadPara.slice(1);
-
-    return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', height: '100%', justifyContent: 'space-between' }}>
-                <div>
-                    <div
-                        style={{
-                            position: 'relative',
-                            height: '132px',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            marginBottom: '8px',
-                            border: `1px solid ${theme.border}`,
-                        }}
-                    >
-                        <img
-                            src={heroImg}
-                            alt={cleanText(page?.headline, 'Magazine Feature')}
-                            onError={handleMagazineImageError}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                    </div>
-
-                    <div
-                        style={{
-                            fontSize: '8.5px',
-                            fontWeight: 900,
-                            letterSpacing: '1.5px',
-                            textTransform: 'uppercase',
-                            color: theme.accentTeal,
-                            marginBottom: '2px',
-                        }}
-                    >
-                        {cleanText(page?.department, 'Feature Story')}
-                    </div>
-                    <h2
-                        style={{
-                            margin: '0 0 4px 0',
-                            fontSize: '17px',
-                            fontWeight: 900,
-                            lineHeight: 1.15,
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            color: theme.ink,
-                        }}
-                    >
-                        {cleanText(page?.headline, 'Championship Feature')}
-                    </h2>
-                    {page?.subheadline && (
-                        <div style={{ fontSize: '10px', color: theme.inkMuted, marginBottom: '6px', lineHeight: 1.3 }}>
-                            {cleanText(page.subheadline)}
-                        </div>
-                    )}
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', alignItems: 'start' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <p style={{ margin: 0, fontSize: '9.5px', lineHeight: 1.45, color: theme.inkSecondary }}>
-                                <span
-                                    style={{
-                                        float: 'left',
-                                        fontSize: '25px',
-                                        fontWeight: 900,
-                                        lineHeight: 0.88,
-                                        paddingRight: '5px',
-                                        paddingTop: '2px',
-                                        color: theme.accentTeal,
-                                        fontFamily: "Georgia, 'Times New Roman', serif",
-                                    }}
-                                >
-                                    {firstChar}
-                                </span>
-                                {restLead}
-                            </p>
-                            {paragraphs.slice(1, 3).map((p, idx) => (
-                                <p key={idx} style={{ margin: 0, fontSize: '9.4px', lineHeight: 1.44, color: theme.inkSecondary }}>
-                                    {cleanText(p)}
-                                </p>
-                            ))}
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {paragraphs.slice(3, 5).map((p, idx) => (
-                                <p key={idx} style={{ margin: 0, fontSize: '9.4px', lineHeight: 1.44, color: theme.inkSecondary }}>
-                                    {cleanText(p)}
-                                </p>
-                            ))}
-
-                            {page?.pullQuote && (
-                                <blockquote
-                                    style={{
-                                        margin: 0,
-                                        padding: '7px 9px',
-                                        borderLeft: `3px solid ${theme.accentBlue}`,
-                                        background: theme.cardBg,
-                                        borderRadius: '0 6px 6px 0',
-                                        fontSize: '9.8px',
-                                        fontWeight: 800,
-                                        fontStyle: 'italic',
-                                        lineHeight: 1.35,
-                                        color: theme.ink,
-                                    }}
-                                >
-                                    {`"${cleanText(page.pullQuote)}"`}
-                                </blockquote>
-                            )}
-
-                            {sideStats.length > 0 && (
-                                <div style={{ display: 'grid', gap: '4px' }}>
-                                    {sideStats.map((st, idx) => (
-                                        <div
-                                            key={idx}
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                background: theme.cardBg,
-                                                border: `1px solid ${theme.border}`,
-                                                borderRadius: '5px',
-                                                padding: '4px 7px',
-                                                fontSize: '8.8px',
-                                            }}
-                                        >
-                                            <span style={{ color: theme.inkMuted, fontWeight: 700 }}>{cleanText(st?.label)}</span>
-                                            <strong style={{ color: theme.accentTeal }}>
-                                                {cleanText(String(st?.value ?? '').replace(/\$/g, ''))}
-                                            </strong>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {sideItems.map((it, idx) => (
-                                <div
-                                    key={idx}
-                                    style={{
-                                        background: theme.cardBg,
-                                        border: `1px solid ${theme.border}`,
-                                        borderRadius: '6px',
-                                        padding: '6px 8px',
-                                    }}
-                                >
-                                    <div style={{ fontSize: '9.3px', fontWeight: 800, color: theme.accentBlue }}>
-                                        {cleanText(it?.title || it?.headline)}
-                                    </div>
-                                    <div style={{ fontSize: '8.5px', color: theme.inkSecondary, lineHeight: 1.32 }}>
-                                        {cleanText(it?.summary || it?.description, '').slice(0, 120)}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <QrActionBadge page={page} theme={theme} compact />
-            </div>
-        </SheetRunningChrome>
-    );
-}
-
-function StandingsTableLayout({ page, issueMeta, theme }) {
+function StandingsTableLayout({ page, issueMeta, mode }) {
     const isKings = page?.kind === 'kings_club_champions';
-    const isPoy = page?.kind === 'poy_standings';
     const rows =
-        Array.isArray(page?.standings) && page.standings.length > 0
+        Array.isArray(page?.standings) && page.standings.length
             ? page.standings
-            : Array.isArray(page?.items) && page.items.length > 0
+            : Array.isArray(page?.items)
               ? page.items
               : [];
     const displayRows = rows.slice(0, 13);
-    const compactRows = rows.length > 12;
+    const isOpener = !page?.runIndex;
+    const art = pagePicture(page, mode);
+    const kicker = isKings ? 'Kings Club 25450' : 'Player Of The Year';
 
     return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                <div>
-                    <div
-                        style={{
-                            fontSize: '8.5px',
-                            fontWeight: 900,
-                            letterSpacing: '1.6px',
-                            textTransform: 'uppercase',
-                            color: theme.accentTeal,
-                            marginBottom: '2px',
-                        }}
-                    >
-                        {isKings
-                            ? 'Kings Club 25450 \u2022 Monthly Champions Circle'
-                            : isPoy
-                              ? 'Global Player Of The Year Standings'
-                              : 'Final Table Live \u2022 Championship Results'}
-                    </div>
-                    <h2
-                        style={{
-                            margin: '0 0 4px 0',
-                            fontSize: '17px',
-                            fontWeight: 900,
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            color: theme.ink,
-                        }}
-                    >
-                        {cleanText(
-                            page?.headline,
-                            isKings ? 'Kings Club 25450 Champions' : isPoy ? 'POY Top 25 Leaderboard' : 'Major Circuit Results'
-                        )}
-                    </h2>
-                    {page?.subheadline && (
-                        <div style={{ fontSize: '9.5px', color: theme.inkMuted, marginBottom: compactRows ? '6px' : '8px' }}>
-                            {cleanText(page.subheadline)}
-                        </div>
+        <Frame page={page} issueMeta={issueMeta} mode={mode} section={kicker}>
+            <SectionHead kicker={kicker} headline={page?.headline} size="md" deck={isOpener ? page?.subheadline : ''} />
+            {isOpener ? <Figure src={art} mode={mode} ratio={isKings ? '16 / 7' : '16 / 5'} /> : null}
+            <table className="spm-table">
+                <thead>
+                    {isKings ? (
+                        <tr>
+                            <th>#</th>
+                            <th>Event</th>
+                            <th className="spm-num">Entries</th>
+                            <th className="spm-num">Buy-In</th>
+                            <th className="spm-num">Prize Pool</th>
+                        </tr>
+                    ) : (
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th className="spm-num">Points</th>
+                        </tr>
                     )}
-
-                    <div
-                        style={{
-                            border: `1px solid ${theme.border}`,
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            background: theme.cardBg,
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: 'grid',
-                                gridTemplateColumns: '38px 1.3fr 1.2fr 100px',
-                                padding: compactRows ? '5px 8px' : '6px 8px',
-                                background: theme.subtleBg,
-                                borderBottom: `1px solid ${theme.border}`,
-                                fontSize: '8.2px',
-                                fontWeight: 900,
-                                textTransform: 'uppercase',
-                                letterSpacing: '1px',
-                                color: theme.accentBlue,
-                            }}
-                        >
-                            <span>Rank</span>
-                            <span>{isKings ? 'Tournament' : 'Player'}</span>
-                            <span>{isKings ? 'Format & Buy-In' : isPoy ? 'Circuit / Cashes' : 'Event'}</span>
-                            <span style={{ textAlign: 'right' }}>{isPoy ? 'POY Points' : 'Prize Pool'}</span>
-                        </div>
-
-                        {displayRows.length === 0 ? (
-                            <div style={{ padding: '14px', fontSize: '9.5px', color: theme.inkMuted }}>
-                                Verified Monthly Standings Sync Automatically With Official Leaderboard Snapshots.
-                            </div>
+                </thead>
+                <tbody>
+                    {displayRows.map((r, i) =>
+                        isKings ? (
+                            <tr key={i}>
+                                <td className="spm-rank">{r.rank || i + 1}</td>
+                                <td>
+                                    <b>{cleanText(r.name || r.eventName || r.headline)}</b>
+                                    {r.gameType ? <small>{cleanText(r.gameType)}</small> : null}
+                                </td>
+                                <td className="spm-num">{Number(r.players) > 0 ? Number(r.players).toLocaleString('en-US') : ''}</td>
+                                <td className="spm-num">{Number(r.buyInChips) > 0 ? formatChipsOnly(Number(r.buyInChips)) : cleanText(r.buyInLabel)}</td>
+                                <td className="spm-num">{formatSafeChips(r)}</td>
+                            </tr>
                         ) : (
-                            displayRows.map((row, idx) => {
-                                const rank = Number(row?.rank || row?.place || idx + 1);
-                                const primaryLabel = isKings
-                                    ? cleanText(
-                                          row?.name ||
-                                              row?.tournamentName ||
-                                              row?.tournament_name ||
-                                              row?.eventName ||
-                                              row?.headline ||
-                                              row?.playerName,
-                                          `Tournament #${rank}`
-                                      )
-                                    : cleanText(
-                                          row?.playerName || row?.player_name || row?.username || row?.winner || row?.name,
-                                          `Contender #${rank}`
-                                      );
-                                const detail = isKings
-                                    ? cleanText(
-                                          row?.eventDetail ||
-                                              (row?.gameType && row?.buyInLabel
-                                                  ? `${row.gameType} \u2022 ${row.buyInLabel}`
-                                                  : row?.gameType || 'Kings Club Schedule'),
-                                          'Kings Club Schedule'
-                                      )
-                                    : cleanText(
-                                          row?.eventName ||
-                                              row?.tournamentName ||
-                                              row?.tournament_name ||
-                                              row?.tour ||
-                                              row?.headline ||
-                                              row?.summary ||
-                                              (isPoy && row?.year ? `${row.year} Global POY Circuit` : ''),
-                                          'Championship Circuit'
-                                      );
-                                const metric = isPoy
-                                    ? `${Number(row?.points || row?.poy_points || row?.score || 0).toLocaleString('en-US')} Pts`
-                                    : formatSafeChips(row);
-
-                                return (
-                                    <div
-                                        key={idx}
-                                        style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '38px 1.3fr 1.2fr 100px',
-                                            padding: compactRows ? '3.5px 8px' : '5px 8px',
-                                            borderBottom: idx < displayRows.length - 1 ? `1px solid ${theme.border}` : 'none',
-                                            fontSize: compactRows ? '8.6px' : '9px',
-                                            alignItems: 'center',
-                                        }}
-                                    >
-                                        <strong style={{ color: rank <= 3 ? theme.accentTeal : theme.inkMuted }}>{`#${rank}`}</strong>
-                                        <strong
-                                            style={{
-                                                color: theme.ink,
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                paddingRight: '6px',
-                                            }}
-                                        >
-                                            {primaryLabel}
-                                        </strong>
-                                        <span
-                                            style={{
-                                                color: theme.inkSecondary,
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                paddingRight: '6px',
-                                            }}
-                                        >
-                                            {detail}
-                                        </span>
-                                        <strong style={{ textAlign: 'right', color: theme.accentTeal }}>{metric}</strong>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </div>
-
-                <QrActionBadge
-                    page={{
-                        ...page,
-                        ctaLabel:
-                            page?.ctaLabel ||
-                            (isKings ? 'Enter Kings Club 25450 In Club Arena' : 'View Full Live Standings On Smarter.Poker'),
-                        ctaUrl: page?.ctaUrl || (isKings ? '/hub/club-arena/' : '/hub/leaderboards'),
-                    }}
-                    theme={theme}
-                    compact
-                />
+                            <tr key={i}>
+                                <td className="spm-rank">{r.rank || i + 1}</td>
+                                <td>
+                                    <b>{cleanText(r.playerName || r.name)}</b>
+                                    {r.country ? <small>{cleanText(r.country)}</small> : null}
+                                </td>
+                                <td className="spm-num">{Number(r.points) ? Number(r.points).toLocaleString('en-US') : cleanText(r.points)}</td>
+                            </tr>
+                        )
+                    )}
+                </tbody>
+            </table>
+            <Copy paragraphs={page?.paragraphs} />
+            <div className="spm-push">
+                <QrBlock page={page} mode={mode} />
             </div>
-        </SheetRunningChrome>
+        </Frame>
+    );
+}
+
+function PlayingCards({ cards }) {
+    const list = (Array.isArray(cards) ? cards : []).map((c) => String(c || '').trim()).filter(Boolean);
+    if (!list.length) return null;
+    return (
+        <span className="spm-cards">
+            {list.map((c, i) => (
+                <span key={i} className={`spm-card${isRedCard(c) ? ' spm-card--red' : ''}`}>
+                    {c}
+                </span>
+            ))}
+        </span>
+    );
+}
+
+function OptionRow({ option, className, interactive, onPick, children }) {
+    const key = String(option?.key || '');
+    const body = (
+        <>
+            <span className="spm-option__key">{key}</span>
+            <span>
+                {cleanText(option?.label)}
+                {children}
+            </span>
+        </>
+    );
+    return interactive ? (
+        <button type="button" className={`${className} spm-option--button`} onClick={() => onPick(key)}>
+            {body}
+        </button>
+    ) : (
+        <div className={className}>{body}</div>
     );
 }
 
 const SPOT_VOTE_BUS_EVENT = 'sp_magazine_spot_vote_updated';
 const spotVoteSessionCache = new Map();
+
+/**
+ * Live reader tallies for a Strategy Lab spot. Reads the current count from
+ * /api/news/spot-vote, records the reader's pick, and shares fresh tallies
+ * between the setup and verdict pages of the same spot. Print proofs never
+ * fetch: they keep the tallies frozen in the manifest.
+ */
+function useLiveSpotVotes(spotSlug, fallbackVotes, live) {
+    const [votes, setVotes] = useState(() =>
+        spotSlug && spotVoteSessionCache.has(spotSlug)
+            ? spotVoteSessionCache.get(spotSlug)
+            : parseLiveSpotVotePayload(null, fallbackVotes)
+    );
+    const reqSeqRef = useRef(0);
+    const postAbortRef = useRef(null);
+
+    useEffect(() => {
+        setVotes(
+            spotSlug && spotVoteSessionCache.has(spotSlug)
+                ? spotVoteSessionCache.get(spotSlug)
+                : parseLiveSpotVotePayload(null, fallbackVotes)
+        );
+        if (!live || !spotSlug || typeof window === 'undefined' || typeof fetch !== 'function') return undefined;
+
+        const reqId = reqSeqRef.current + 1;
+        reqSeqRef.current = reqId;
+        const controller = new AbortController();
+        fetch(`/api/news/spot-vote?spot=${encodeURIComponent(spotSlug)}`, { method: 'GET', signal: controller.signal })
+            .then((res) => (res.ok ? res.json().catch(() => null) : null))
+            .then((data) => {
+                if (controller.signal.aborted || reqSeqRef.current !== reqId) return;
+                const parsed = parseLiveSpotVotePayload(data);
+                if (parsed) {
+                    spotVoteSessionCache.set(spotSlug, parsed);
+                    setVotes(parsed);
+                }
+            })
+            .catch(() => {});
+
+        const onExternalVote = (evt) => {
+            const detail = evt?.detail;
+            if (detail && detail.slug === spotSlug && detail.votes) setVotes(detail.votes);
+        };
+        window.addEventListener(SPOT_VOTE_BUS_EVENT, onExternalVote);
+        return () => {
+            controller.abort();
+            if (postAbortRef.current) {
+                postAbortRef.current.abort();
+                postAbortRef.current = null;
+            }
+            window.removeEventListener(SPOT_VOTE_BUS_EVENT, onExternalVote);
+        };
+    }, [spotSlug, live, fallbackVotes]);
+
+    const castVote = useCallback(
+        (rawKey) => {
+            const key = String(rawKey || '').trim().toUpperCase();
+            if (!live || !spotSlug || !['A', 'B', 'C'].includes(key) || typeof fetch !== 'function') return;
+            if (postAbortRef.current) postAbortRef.current.abort();
+            const controller = new AbortController();
+            postAbortRef.current = controller;
+            const reqId = reqSeqRef.current + 1;
+            reqSeqRef.current = reqId;
+            fetch('/api/news/spot-vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ spot: spotSlug, pick: key }),
+                signal: controller.signal,
+            })
+                .then((res) => (res.ok ? res.json().catch(() => null) : null))
+                .then((data) => {
+                    if (controller.signal.aborted || reqSeqRef.current !== reqId) return;
+                    const parsed = parseLiveSpotVotePayload(data);
+                    if (!parsed) return;
+                    spotVoteSessionCache.set(spotSlug, parsed);
+                    setVotes(parsed);
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent(SPOT_VOTE_BUS_EVENT, { detail: { slug: spotSlug, votes: parsed } }));
+                    }
+                })
+                .catch(() => {});
+        },
+        [live, spotSlug]
+    );
+
+    return [votes, castVote];
+}
 
 export function parseLiveSpotVotePayload(data, fallbackVotes = null) {
     const src = data?.votes || data?.counts || fallbackVotes;
@@ -1576,1190 +990,359 @@ export function parseLiveSpotVotePayload(data, fallbackVotes = null) {
     return { A: a, B: b, C: c, total };
 }
 
-function StrategyColumnLayout({ page, issueMeta, theme }) {
-    const [pickedOption, setPickedOption] = useState('');
+function StrategyColumnLayout({ page, issueMeta, mode }) {
+    const [picked, setPicked] = useState('');
     const spot = page?.spot || {};
-    const spotSlug = String(spot?.slug || '').trim();
-    const [liveVotes, setLiveVotes] = useState(() => {
-        if (spotSlug && spotVoteSessionCache.has(spotSlug)) {
-            return spotVoteSessionCache.get(spotSlug);
-        }
-        return parseLiveSpotVotePayload(null, spot?.communityVotes);
-    });
-    const voteReqSeqRef = useRef(0);
-    const voteAbortRef = useRef(null);
-
-    useEffect(() => {
-        setPickedOption('');
-        if (!spotSlug) {
-            setLiveVotes(parseLiveSpotVotePayload(null, spot?.communityVotes));
-            return undefined;
-        }
-        if (spotVoteSessionCache.has(spotSlug)) {
-            setLiveVotes(spotVoteSessionCache.get(spotSlug));
-        } else {
-            setLiveVotes(parseLiveSpotVotePayload(null, spot?.communityVotes));
-        }
-        if (theme.isPrint || typeof window === 'undefined' || typeof fetch !== 'function') {
-            return undefined;
-        }
-
-        const reqId = voteReqSeqRef.current + 1;
-        voteReqSeqRef.current = reqId;
-        const controller = new AbortController();
-
-        fetch(`/api/news/spot-vote?spot=${encodeURIComponent(spotSlug)}`, {
-            method: 'GET',
-            signal: controller.signal,
-        })
-            .then((res) => (res.ok ? res.json().catch(() => null) : null))
-            .then((data) => {
-                if (controller.signal.aborted || voteReqSeqRef.current !== reqId) return;
-                const parsed = parseLiveSpotVotePayload(data);
-                if (parsed) {
-                    spotVoteSessionCache.set(spotSlug, parsed);
-                    setLiveVotes(parsed);
-                }
-            })
-            .catch(() => {});
-
-        const onExternalVote = (evt) => {
-            const detail = evt?.detail;
-            if (detail && detail.slug === spotSlug && detail.votes) {
-                setLiveVotes(detail.votes);
-            }
-        };
-        window.addEventListener(SPOT_VOTE_BUS_EVENT, onExternalVote);
-
-        return () => {
-            controller.abort();
-            if (voteAbortRef.current) {
-                voteAbortRef.current.abort();
-                voteAbortRef.current = null;
-            }
-            window.removeEventListener(SPOT_VOTE_BUS_EVENT, onExternalVote);
-        };
-    }, [spotSlug, theme.isPrint, spot?.communityVotes]);
-
-    const handleSpotOptionPick = useCallback(
-        (optKey) => {
-            const cleanKey = String(optKey || 'A').trim().toUpperCase();
-            setPickedOption(cleanKey);
-            if (theme.isPrint || !spotSlug || !['A', 'B', 'C'].includes(cleanKey)) return;
-            if (typeof fetch !== 'function') return;
-
-            if (voteAbortRef.current) {
-                voteAbortRef.current.abort();
-            }
-            const postController = new AbortController();
-            voteAbortRef.current = postController;
-            const reqId = voteReqSeqRef.current + 1;
-            voteReqSeqRef.current = reqId;
-
-            fetch('/api/news/spot-vote', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ spot: spotSlug, pick: cleanKey }),
-                signal: postController.signal,
-            })
-                .then((res) => (res.ok ? res.json().catch(() => null) : null))
-                .then((data) => {
-                    if (postController.signal.aborted || voteReqSeqRef.current !== reqId) return;
-                    const parsed = parseLiveSpotVotePayload(data);
-                    if (parsed) {
-                        spotVoteSessionCache.set(spotSlug, parsed);
-                        setLiveVotes(parsed);
-                        if (typeof window !== 'undefined') {
-                            window.dispatchEvent(
-                                new CustomEvent(SPOT_VOTE_BUS_EVENT, {
-                                    detail: { slug: spotSlug, votes: parsed },
-                                })
-                            );
-                        }
-                    }
-                })
-                .catch(() => {});
-        },
-        [theme.isPrint, spotSlug]
-    );
-
-    const cardImg =
-        spot?.cardImageUrl ||
-        spot?.imageUrl ||
-        (theme.isPrint ? page?.masterImageUrl : page?.imageUrl) ||
-        FALLBACK_MAGAZINE_IMAGE;
-    const options =
-        Array.isArray(page?.items) && page.items.length > 0
-            ? page.items
-            : Array.isArray(spot?.options)
-              ? spot.options
-              : [];
-    const correctKey = String(spot?.correctKey || 'A');
-    const freqMatch =
-        typeof spot?.solverFrequency === 'string'
-            ? /^(\d+(?:\.\d+)?)%/.exec(spot.solverFrequency.trim())
-            : null;
-    const rawSolverPct =
-        spot?.solverPct ?? spot?.solverFreqPct ?? (freqMatch ? Number(freqMatch[1]) : null);
+    const options = Array.isArray(page?.items) && page.items.length ? page.items : Array.isArray(spot.options) ? spot.options : [];
+    const correctKey = String(spot.correctKey || '');
+    const freqMatch = typeof spot.solverFrequency === 'string' ? /^(\d+(?:\.\d+)?)%/.exec(spot.solverFrequency.trim()) : null;
+    const rawSolverPct = spot.solverPct ?? (freqMatch ? Number(freqMatch[1]) : null);
     const solverPct =
-        rawSolverPct != null && Number.isFinite(Number(rawSolverPct))
-            ? Math.min(100, Math.max(0, Number(rawSolverPct)))
-            : null;
-    const effectiveVotes = !theme.isPrint && liveVotes ? liveVotes : spot?.communityVotes;
-    const liveCorrectPct =
-        !theme.isPrint && liveVotes && Number(liveVotes.total) > 0
-            ? Math.round((Number(liveVotes[correctKey] || 0) / Number(liveVotes.total)) * 100)
-            : null;
-    const rawCommunityPct =
-        liveCorrectPct ??
-        spot?.communityPct ??
-        (Number(spot?.communityVotes?.total) > 0 ? spot.communityVotes.solverAgreementPct : null);
-    const communityPct =
-        rawCommunityPct != null && Number.isFinite(Number(rawCommunityPct))
-            ? Math.min(100, Math.max(0, Number(rawCommunityPct)))
-            : null;
-    const isSetupHalf =
+        rawSolverPct != null && Number.isFinite(Number(rawSolverPct)) ? Math.min(100, Math.max(0, Number(rawSolverPct))) : null;
+    const interactive = !isPrint(mode);
+    const spotSlug = String(spot.slug || '').trim();
+    const [liveVotes, castVote] = useLiveSpotVotes(spotSlug, spot.communityVotes, interactive);
+    const votes = (interactive && liveVotes) || spot.communityVotes || {};
+    const totalVotes = Number(votes.total) || 0;
+    const pickOption = (key) => {
+        setPicked(key);
+        castVote(key);
+    };
+    const isSetup =
         page?.meta?.spreadHalf === 'setup' ||
         (page?.meta?.spreadHalf !== 'verdict' && Array.isArray(page?.items) && page.items.length > 0);
-    const handLabHref = spotSlug
-        ? `/hub/training/hand-lab?spot=${encodeURIComponent(spotSlug)}`
-        : toInternalMagazineHref(page?.ctaUrl, '/hub/training/hand-lab');
+    const spotCard = pagePicture(page, mode);
+    const paragraphs = Array.isArray(page?.paragraphs) ? page.paragraphs : [];
+    const labLabel = page?.kind === 'strategy_icm' ? 'ICM Lab' : page?.kind === 'strategy_plo' ? 'PLO Lab' : 'NLH Lab';
 
-    return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '8px' }}>
-                <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                        <span
-                            style={{
-                                fontSize: '8.5px',
-                                fontWeight: 900,
-                                letterSpacing: '1.5px',
-                                textTransform: 'uppercase',
-                                color: theme.accentTeal,
-                            }}
-                        >
-                            {cleanText(page?.department, 'The Strategy Lab')}
-                        </span>
-                        {page?.byline && (
-                            <span style={{ fontSize: '8.5px', fontWeight: 700, color: theme.accentBlue }}>
-                                {cleanText(page.byline)}
-                            </span>
-                        )}
-                    </div>
-
-                    <h2
-                        style={{
-                            margin: '0 0 6px 0',
-                            fontSize: '16.5px',
-                            fontWeight: 900,
-                            lineHeight: 1.16,
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            color: theme.ink,
-                        }}
-                    >
-                        {cleanText(page?.headline || spot?.title, 'GTO Solver Decision Breakdown')}
-                    </h2>
-
-                    {isSetupHalf ? (
-                        <>
-                            <div
-                                style={{
-                                    borderRadius: '8px',
-                                    overflow: 'hidden',
-                                    border: `1px solid ${theme.border}`,
-                                    marginBottom: '7px',
-                                    background: '#05070a',
-                                }}
-                            >
-                                <img
-                                    src={cardImg}
-                                    alt={cleanText(spot?.title || page?.headline, 'Poker Strategy Felt Diagram')}
-                                    onError={handleMagazineImageError}
-                                    style={{ width: '100%', height: '112px', objectFit: 'cover', display: 'block' }}
-                                />
+    if (isSetup) {
+        const [situation, ...rest] = paragraphs;
+        return (
+            <Frame page={page} issueMeta={issueMeta} mode={mode} section="The Strategy Lab">
+                <SectionHead kicker={`The Strategy Lab • ${labLabel}`} headline={page?.headline} size="md" deck={page?.subheadline} byline={page?.byline} />
+                <Figure src={spotCard} mode={mode} ratio="1200 / 630" contain alt={cleanText(spot.title)} />
+                <div className="spm-box">
+                    <div className="spm-box__title">The Situation</div>
+                    <div className="spm-hand">
+                        {Array.isArray(spot.heroCards) && spot.heroCards.some(Boolean) ? (
+                            <div>
+                                <div className="spm-stat__label">Hero</div>
+                                <PlayingCards cards={spot.heroCards} />
                             </div>
-
-                            {(spot?.situation || page?.paragraphs?.[0] || page?.subheadline) && (
-                                <p style={{ margin: '0 0 7px 0', fontSize: '9.4px', lineHeight: 1.42, color: theme.inkSecondary }}>
-                                    {cleanText(spot?.situation || page?.paragraphs?.[0] || page?.subheadline)}
-                                </p>
-                            )}
-
-                            {options.length > 0 && (
-                                <div style={{ display: 'grid', gap: '4px', marginBottom: '7px' }}>
-                                    {options.slice(0, 4).map((opt, idx) => {
-                                        const optKey = String(opt?.key || String.fromCharCode(65 + idx));
-                                        const isPicked = pickedOption === optKey;
-                                        const isGto = optKey === correctKey;
-
-                                        if (theme.isPrint) {
-                                            return (
-                                                <div
-                                                    key={idx}
-                                                    style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '5px 8px',
-                                                        borderRadius: '6px',
-                                                        background: theme.cardBg,
-                                                        border: `1px solid ${theme.border}`,
-                                                        fontSize: '9px',
-                                                    }}
-                                                >
-                                                    <span style={{ color: theme.ink, fontWeight: 700 }}>
-                                                        {`Option ${cleanText(optKey, 'A')}. ${cleanText(opt?.label)}`}
-                                                    </span>
-                                                </div>
-                                            );
-                                        }
-
-                                        const showRight = Boolean(pickedOption) && isGto;
-                                        const showWrong = isPicked && !isGto;
-                                        const setupTotalVotes = Number(effectiveVotes?.total || 0);
-                                        const setupOptVotes = Number(effectiveVotes?.[optKey] || 0);
-                                        const setupVotePct =
-                                            setupTotalVotes > 0
-                                                ? Math.round((setupOptVotes / setupTotalVotes) * 100)
-                                                : null;
-
-                                        return (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                onClick={() => handleSpotOptionPick(optKey)}
-                                                style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    gap: '6px',
-                                                    width: '100%',
-                                                    textAlign: 'left',
-                                                    padding: '5px 8px',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    position: 'relative',
-                                                    overflow: 'hidden',
-                                                    background: showRight
-                                                        ? '#102131'
-                                                        : showWrong
-                                                          ? 'rgba(248, 113, 113, 0.14)'
-                                                          : theme.cardBg,
-                                                    border: `1px solid ${
-                                                        showRight ? '#4fc1b3' : showWrong ? '#f87171' : theme.border
-                                                    }`,
-                                                    fontSize: '9px',
-                                                    color: showRight ? '#4fc1b3' : showWrong ? '#f87171' : theme.ink,
-                                                }}
-                                            >
-                                                {setupVotePct != null && (
-                                                    <span
-                                                        aria-hidden="true"
-                                                        style={{
-                                                            position: 'absolute',
-                                                            left: 0,
-                                                            top: 0,
-                                                            bottom: 0,
-                                                            width: `${Math.min(100, Math.max(0, setupVotePct))}%`,
-                                                            background: isGto
-                                                                ? 'rgba(79, 193, 179, 0.12)'
-                                                                : 'rgba(96, 165, 250, 0.1)',
-                                                            pointerEvents: 'none',
-                                                        }}
-                                                    />
-                                                )}
-                                                <span style={{ position: 'relative', zIndex: 1, fontWeight: showRight || showWrong ? 800 : 600 }}>
-                                                    {`${cleanText(optKey, 'A')}. ${cleanText(opt?.label)}`}
-                                                </span>
-                                                <span
-                                                    style={{
-                                                        position: 'relative',
-                                                        zIndex: 1,
-                                                        fontSize: '8px',
-                                                        fontWeight: 900,
-                                                        color: showRight
-                                                            ? '#4fc1b3'
-                                                            : showWrong
-                                                              ? '#f87171'
-                                                              : setupVotePct != null
-                                                                ? '#60a5fa'
-                                                                : theme.inkMuted,
-                                                        textTransform: 'uppercase',
-                                                        flexShrink: 0,
-                                                    }}
-                                                >
-                                                    {showRight
-                                                        ? setupVotePct != null
-                                                            ? `GTO \u2022 ${setupVotePct}%`
-                                                            : 'GTO Preferred'
-                                                        : showWrong
-                                                          ? setupVotePct != null
-                                                              ? `Picked \u2022 ${setupVotePct}%`
-                                                              : 'Selected'
-                                                          : setupVotePct != null
-                                                            ? `${setupVotePct}% Vote`
-                                                            : 'Vote'}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {page?.paragraphs?.[1] && (
-                                <p
-                                    style={{
-                                        margin: 0,
-                                        padding: '6px 8px',
-                                        borderRadius: '6px',
-                                        background: theme.cardBg,
-                                        border: `1px solid ${theme.border}`,
-                                        fontSize: '8.9px',
-                                        lineHeight: 1.4,
-                                        color: theme.inkSecondary,
-                                    }}
-                                >
-                                    {cleanText(page.paragraphs[1])}
-                                </p>
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            {page?.subheadline && (
-                                <div style={{ fontSize: '9.5px', fontWeight: 700, color: theme.inkMuted, marginBottom: '7px' }}>
-                                    {cleanText(page.subheadline)}
-                                </div>
-                            )}
-
-                            <div
-                                style={{
-                                    background: theme.cardBg,
-                                    border: `1px solid ${theme.border}`,
-                                    borderRadius: '7px',
-                                    padding: '8px 10px',
-                                    marginBottom: '7px',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        gap: '8px',
-                                        fontSize: '8.5px',
-                                        fontWeight: 800,
-                                        marginBottom: '5px',
-                                    }}
-                                >
-                                    <span style={{ color: theme.accentTeal }}>
-                                        {solverPct != null
-                                            ? `GTO Solver Frequency: ${solverPct}%`
-                                            : cleanText(spot?.solverFrequency, `Recommended Line: Option ${correctKey}`)}
-                                    </span>
-                                    <span style={{ color: theme.accentBlue }}>
-                                        {communityPct != null
-                                            ? `Community Agreement: ${communityPct}%`
-                                            : 'Live Reader Poll \u2022 Vote In Hand Lab'}
-                                    </span>
-                                </div>
-                                {solverPct != null && (
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            height: '7px',
-                                            borderRadius: '999px',
-                                            overflow: 'hidden',
-                                            background: theme.subtleBg,
-                                            marginBottom: '6px',
-                                        }}
-                                    >
-                                        <div style={{ width: `${solverPct}%`, background: '#4fc1b3' }} />
-                                        <div style={{ width: `${Math.max(0, 100 - solverPct)}%`, background: '#2563eb' }} />
-                                    </div>
-                                )}
-                                {spot?.solverFrequency && (
-                                    <div style={{ fontSize: '9.2px', fontWeight: 800, color: theme.ink, marginBottom: '4px' }}>
-                                        {cleanText(spot.solverFrequency)}
-                                    </div>
-                                )}
-                                {(spot?.evSummary || page?.paragraphs?.[0]) && (
-                                    <p style={{ margin: 0, fontSize: '9.1px', lineHeight: 1.42, color: theme.inkSecondary }}>
-                                        {cleanText(spot?.evSummary || page?.paragraphs?.[0])}
-                                    </p>
-                                )}
+                        ) : null}
+                        {Array.isArray(spot.boardCards) && spot.boardCards.some(Boolean) ? (
+                            <div>
+                                <div className="spm-stat__label">Board</div>
+                                <PlayingCards cards={spot.boardCards} />
                             </div>
-
-                            {Array.isArray(spot?.options) && spot.options.length > 0 && (
-                                <div style={{ display: 'grid', gap: '4px', marginBottom: '7px' }}>
-                                    {spot.options.slice(0, 4).map((opt, idx) => {
-                                        const optKey = String(opt?.key || String.fromCharCode(65 + idx));
-                                        const isGto = optKey === correctKey;
-                                        const totalVotes = Number(effectiveVotes?.total || 0);
-                                        const optVotes = Number(effectiveVotes?.[optKey] || 0);
-                                        const votePct =
-                                            totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : null;
-                                        return (
-                                            <div
-                                                key={idx}
-                                                style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    padding: '4px 8px',
-                                                    borderRadius: '6px',
-                                                    position: 'relative',
-                                                    overflow: 'hidden',
-                                                    background: isGto ? (theme.isPrint ? '#f1f5f9' : '#102131') : theme.cardBg,
-                                                    border: `1px solid ${isGto ? theme.accentTeal : theme.border}`,
-                                                    fontSize: '8.8px',
-                                                }}
-                                            >
-                                                {!theme.isPrint && votePct != null && (
-                                                    <span
-                                                        aria-hidden="true"
-                                                        style={{
-                                                            position: 'absolute',
-                                                            left: 0,
-                                                            top: 0,
-                                                            bottom: 0,
-                                                            width: `${Math.min(100, Math.max(0, votePct))}%`,
-                                                            background: isGto
-                                                                ? 'rgba(79, 193, 179, 0.14)'
-                                                                : 'rgba(96, 165, 250, 0.1)',
-                                                            pointerEvents: 'none',
-                                                        }}
-                                                    />
-                                                )}
-                                                <span style={{ position: 'relative', zIndex: 1, color: theme.ink, fontWeight: isGto ? 800 : 600 }}>
-                                                    {`${cleanText(optKey, 'A')}. ${cleanText(opt?.label)}`}
-                                                </span>
-                                                <span
-                                                    style={{
-                                                        position: 'relative',
-                                                        zIndex: 1,
-                                                        fontSize: '8px',
-                                                        fontWeight: 900,
-                                                        color: isGto ? theme.accentTeal : theme.inkMuted,
-                                                        textTransform: 'uppercase',
-                                                        flexShrink: 0,
-                                                    }}
-                                                >
-                                                    {votePct != null
-                                                        ? `${isGto ? 'GTO \u2022 ' : ''}${votePct}% Reader Vote`
-                                                        : isGto
-                                                          ? 'GTO Equilibrium'
-                                                          : 'Alternative'}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {page?.paragraphs?.[1] && (
-                                <p
-                                    style={{
-                                        margin: 0,
-                                        padding: '7px 9px',
-                                        borderLeft: `3px solid ${theme.accentTeal}`,
-                                        background: theme.cardBg,
-                                        borderRadius: '0 6px 6px 0',
-                                        fontSize: '9.1px',
-                                        lineHeight: 1.44,
-                                        color: theme.inkSecondary,
-                                    }}
-                                >
-                                    {cleanText(page.paragraphs[1])}
-                                </p>
-                            )}
-                        </>
-                    )}
+                        ) : null}
+                    </div>
+                    <Copy paragraphs={[situation || spot.situation]} style={{ textAlign: 'left' }} />
                 </div>
-
-                <QrActionBadge
-                    page={{
-                        ...page,
-                        ctaLabel: page?.ctaLabel || 'Run Interactive Spot In GTO Hand Lab',
-                        ctaUrl: toInternalMagazineHref(page?.ctaUrl, handLabHref),
-                        qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}${handLabHref}`,
-                    }}
-                    theme={theme}
-                    compact
-                />
-            </div>
-        </SheetRunningChrome>
-    );
-}
-
-function TheTestQuizLayout({ page, issueMeta, theme }) {
-    const [selectedAnswers, setSelectedAnswers] = useState({});
-    const questions =
-        Array.isArray(page?.items) && page.items.length > 0
-            ? page.items.slice(0, 4)
-            : [
-                  {
-                      slug: 'pot-odds-turn',
-                      question: 'Facing A Half-Pot River Bet, What Minimum Equity Is Required To Break Even On A Call?',
-                      options: [
-                          { key: 'A', label: '20% Equity' },
-                          { key: 'B', label: '25% Equity' },
-                          { key: 'C', label: '33% Equity' },
-                          { key: 'D', label: '50% Equity' },
-                      ],
-                      answerKey: 'B',
-                      explanation: 'Calling 0.5 Pot To Win 1.5 Total Pot Requires 0.5 / 2.0 = 25% Equity.',
-                  },
-              ];
-    const hasPrintAnswerKey =
-        Array.isArray(page?.meta?.answerKey) && page.meta.answerKey.length > 0;
-    const answerKeySource = hasPrintAnswerKey
-        ? page.meta.answerKey
-        : Array.isArray(page?.meta?.allQuestions) && page.meta.allQuestions.length > 0
-          ? page.meta.allQuestions
-          : questions;
-
-    return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '6px' }}>
                 <div>
-                    <div
-                        style={{
-                            fontSize: '8.5px',
-                            fontWeight: 900,
-                            letterSpacing: '1.5px',
-                            textTransform: 'uppercase',
-                            color: theme.accentTeal,
-                            marginBottom: '2px',
-                        }}
-                    >
-                        The Smarter.Poker Test &bull; Monthly Poker IQ Challenge
-                    </div>
-                    <h2
-                        style={{
-                            margin: '0 0 6px 0',
-                            fontSize: '16.5px',
-                            fontWeight: 900,
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            color: theme.ink,
-                        }}
-                    >
-                        {cleanText(page?.headline, 'Test Your Table IQ: Four Real Decision Spots')}
-                    </h2>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {questions.map((q, qIdx) => {
-                            const qNum = Number(q?.number || qIdx + 1);
-                            const qKey = String(q?.slug || q?.id || qNum);
-                            const picked = selectedAnswers[qKey] || '';
-                            const correct = String(q?.answerKey || q?.correctKey || 'A');
-                            const opts = Array.isArray(q?.options) ? q.options.slice(0, 4) : [];
-
-                            return (
-                                <div
-                                    key={qKey}
-                                    style={{
-                                        background: theme.cardBg,
-                                        border: `1px solid ${theme.border}`,
-                                        borderRadius: '7px',
-                                        padding: '6px 8px',
-                                    }}
-                                >
-                                    <div style={{ fontSize: '9.4px', fontWeight: 800, color: theme.ink, marginBottom: '4px', lineHeight: 1.3 }}>
-                                        {`${qNum}. ${cleanText(q?.question || q?.headline || q?.title)}`}
-                                    </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-                                        {opts.map((opt) => {
-                                            const optKey = String(opt?.key || 'A');
-                                            const isPicked = picked === optKey;
-                                            const isRight = optKey === correct;
-                                            const isWrongPick = Boolean(picked) && isPicked && !isRight;
-                                            if (theme.isPrint) {
-                                                return (
-                                                    <div
-                                                        key={optKey}
-                                                        style={{
-                                                            fontSize: '8.5px',
-                                                            color: theme.inkSecondary,
-                                                            padding: '2px 4px',
-                                                            border: `1px solid ${theme.border}`,
-                                                            borderRadius: '4px',
-                                                        }}
-                                                    >
-                                                        {`(${optKey}) ${cleanText(opt?.label)}`}
-                                                    </div>
-                                                );
-                                            }
-                                            return (
-                                                <button
-                                                    key={optKey}
-                                                    type="button"
-                                                    onClick={() => setSelectedAnswers((prev) => ({ ...prev, [qKey]: optKey }))}
-                                                    style={{
-                                                        textAlign: 'left',
-                                                        fontSize: '8.5px',
-                                                        fontWeight: 700,
-                                                        padding: '4px 6px',
-                                                        borderRadius: '4px',
-                                                        cursor: 'pointer',
-                                                        background:
-                                                            picked && isRight
-                                                                ? '#102131'
-                                                                : isWrongPick
-                                                                  ? 'rgba(248, 113, 113, 0.14)'
-                                                                  : '#05070a',
-                                                        color:
-                                                            picked && isRight
-                                                                ? '#4fc1b3'
-                                                                : isWrongPick
-                                                                  ? '#f87171'
-                                                                  : '#ffffff',
-                                                        border: `1px solid ${
-                                                            picked && isRight
-                                                                ? '#4fc1b3'
-                                                                : isWrongPick
-                                                                  ? '#f87171'
-                                                                  : '#1b2c3d'
-                                                        }`,
-                                                    }}
-                                                >
-                                                    {`${optKey}. ${cleanText(opt?.label)}`}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                    {!theme.isPrint && picked && (
-                                        <div
-                                            style={{
-                                                marginTop: '4px',
-                                                fontSize: '8.3px',
-                                                color: picked === correct ? '#4fc1b3' : '#f87171',
-                                                lineHeight: 1.3,
-                                            }}
-                                        >
-                                            {`Correct Answer: ${correct}. ${cleanText(q?.explanation, '')}`}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {theme.isPrint && (hasPrintAnswerKey || Number(page?.pageNumber) === 35) ? (
-                    <div
-                        style={{
-                            border: '1.5px solid #0f172a',
-                            borderRadius: '6px',
-                            padding: '6px 8px',
-                            background: '#f8fafc',
-                        }}
-                    >
-                        <div
-                            style={{
-                                fontSize: '8px',
-                                fontWeight: 900,
-                                letterSpacing: '1.3px',
-                                textTransform: 'uppercase',
-                                color: '#2563eb',
-                                marginBottom: '2px',
-                            }}
+                    <div className="spm-box__title">Your Move</div>
+                    {options.map((o) => (
+                        <OptionRow
+                            key={o?.key}
+                            option={o}
+                            className={`spm-option${picked && picked === String(o?.key) ? ' spm-option--picked' : ''}`}
+                            interactive={interactive}
+                            onPick={pickOption}
                         >
-                            Official Answer Key (Inverted For Table Play)
-                        </div>
-                        <div
-                            style={{
-                                fontSize: '8px',
-                                color: '#0f172a',
-                                transform: 'rotate(180deg)',
-                                textAlign: 'right',
-                                lineHeight: 1.32,
-                            }}
-                        >
-                            {answerKeySource
-                                .map(
-                                    (q, i) =>
-                                        `Q${q?.number || i + 1}: ${cleanText(q?.answerKey || q?.correctKey, 'A')} (${cleanText(q?.explanation, '').slice(0, 52)})`
-                                )
-                                .join(' \u2022 ')}
-                        </div>
-                    </div>
-                ) : (
-                    <QrActionBadge
-                        page={{
-                            ...page,
-                            ctaLabel: page?.ctaLabel || 'Play Daily Poker Trivia For Free Diamonds',
-                            ctaUrl: page?.ctaUrl || '/hub/trivia',
-                            qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}/hub/trivia`,
-                        }}
-                        theme={theme}
-                        compact
-                    />
-                )}
-            </div>
-        </SheetRunningChrome>
-    );
-}
-
-function DirectoryGridLayout({ page, issueMeta, theme }) {
-    const kind = page?.kind || 'video_tool_spotlight';
-    const items = Array.isArray(page?.items) ? page.items.slice(0, 6) : [];
-    const eyebrow =
-        kind === 'live_series_radar'
-            ? '60-Day Coast-To-Coast Tournament Radar'
-            : kind === 'poker_rooms_directory'
-              ? 'Featured Cardrooms Across America'
-              : 'Video Library & Pro Calculator Spotlight';
-
-    return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '8px' }}>
-                <div>
-                    <div
-                        style={{
-                            fontSize: '8.5px',
-                            fontWeight: 900,
-                            letterSpacing: '1.5px',
-                            textTransform: 'uppercase',
-                            color: theme.accentTeal,
-                            marginBottom: '2px',
-                        }}
-                    >
-                        {eyebrow}
-                    </div>
-                    <h2
-                        style={{
-                            margin: '0 0 8px 0',
-                            fontSize: '17px',
-                            fontWeight: 900,
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            color: theme.ink,
-                        }}
-                    >
-                        {cleanText(page?.headline, eyebrow)}
-                    </h2>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
-                        {items.map((item, idx) => {
-                            const title = cleanText(item?.title || item?.headline || item?.name || item?.room_name, 'Featured Entry');
-                            const sub = cleanText(
-                                item?.location ||
-                                    (item?.city && item?.state ? `${item.city}, ${item.state}` : '') ||
-                                    item?.category ||
-                                    item?.sourceName ||
-                                    item?.dates,
-                                'Smarter.Poker Verified'
-                            );
-                            const desc = cleanText(item?.summary || item?.tip || item?.description || item?.games, '').slice(0, 115);
-                            const itemHref = toInternalMagazineHref(
-                                item?.ctaUrl || item?.url || item?.watchPath,
-                                kind === 'poker_rooms_directory'
-                                    ? '/hub/poker-near-me'
-                                    : kind === 'live_series_radar'
-                                      ? '/hub/poker-series'
-                                      : '/tools'
-                            );
-
-                            return (
-                                <div
-                                    key={idx}
-                                    style={{
-                                        background: theme.cardBg,
-                                        border: `1px solid ${theme.border}`,
-                                        borderRadius: '7px',
-                                        padding: '8px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        justifyContent: 'space-between',
-                                        gap: '4px',
-                                    }}
-                                >
-                                    <div>
-                                        <div
-                                            style={{
-                                                fontSize: '8px',
-                                                fontWeight: 800,
-                                                textTransform: 'uppercase',
-                                                color: theme.accentBlue,
-                                                marginBottom: '2px',
-                                            }}
-                                        >
-                                            {sub}
-                                        </div>
-                                        <div style={{ fontSize: '10px', fontWeight: 800, color: theme.ink, lineHeight: 1.25 }}>
-                                            {title}
-                                        </div>
-                                        {desc && (
-                                            <div style={{ fontSize: '8.5px', color: theme.inkSecondary, lineHeight: 1.34, marginTop: '3px' }}>
-                                                {desc}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {!theme.isPrint && (
-                                        <Link
-                                            href={itemHref}
-                                            style={{
-                                                fontSize: '8.5px',
-                                                fontWeight: 800,
-                                                color: '#4fc1b3',
-                                                textDecoration: 'none',
-                                            }}
-                                        >
-                                            Open Details &rarr;
-                                        </Link>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                            {picked && totalVotes > 0 ? (
+                                <span className="spm-bar">
+                                    <i style={{ width: `${Math.round(((Number(votes[String(o?.key)]) || 0) * 100) / totalVotes)}%` }} />
+                                </span>
+                            ) : null}
+                        </OptionRow>
+                    ))}
                 </div>
-
-                <QrActionBadge page={page} theme={theme} compact />
-            </div>
-        </SheetRunningChrome>
-    );
-}
-
-function CardroomBundleCtaLayout({ page, issueMeta, theme }) {
-    const rawCtaUrl = String(page?.ctaUrl || '/hub/magazine/poker-rooms').trim() || '/hub/magazine/poker-rooms';
-    const isWeeklyWireCta =
-        rawCtaUrl.includes('/hub/wire') || page?.meta?.ctaVariant === 'weekly_wire';
-    const defaultBenefits = isWeeklyWireCta
-        ? [
-              {
-                  title: 'Every Tuesday At 14:00 UTC',
-                  summary: 'Curated World Poker News, Live Series Storylines, And Championship Results Delivered Free.',
-              },
-              {
-                  title: 'Interactive Spot Of The Week',
-                  summary: 'Vote On Real NLH, ICM, And PLO Decision Spots And Compare Against Solver Equilibrium.',
-              },
-              {
-                  title: 'Poker Trivia & Pro Calculators',
-                  summary: 'Sharpen Table IQ With Weekly Quiz Challenges And Instant Access To 42 Free Poker Tools.',
-              },
-              {
-                  title: 'Kings Club 25450 Highlights',
-                  summary: 'Follow Weekly Champions Circle Standings And Nightly Club Arena Schedules.',
-              },
-          ]
-        : [
-              {
-                  title: '44-Page Monthly Print Bundles',
-                  summary: 'Shipped Directly To Verified Poker Room Podiums, Waiting Lists, And Brush Desks.',
-              },
-              {
-                  title: 'Complimentary Table-Tent QR Kit',
-                  summary: 'Players Scan Between Hands To Study GTO Spots And View Your Live Tournament Clock.',
-              },
-              {
-                  title: 'Featured Poker Near Me Placement',
-                  summary: 'Partner Cardrooms Appear Inside Our Print Directory And Geo-Targeted Weekly Wire.',
-              },
-              {
-                  title: 'Flexible 5 To 1,000 Copy Tiers',
-                  summary: 'Sized For Boutique Charity Rooms, Regional Card Clubs, And Flagship Resort Floors.',
-              },
-          ];
-    const benefits =
-        Array.isArray(page?.items) && page.items.length > 0
-            ? page.items.slice(0, 4)
-            : defaultBenefits;
-    const bodyParagraphs = Array.isArray(page?.paragraphs) ? page.paragraphs.slice(0, 2) : [];
-
-    return (
-        <SheetRunningChrome page={page} issueMeta={issueMeta} theme={theme}>
-            <div
-                style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    background: theme.cardBg,
-                    border: `2px solid ${theme.accentTeal}`,
-                    borderRadius: '10px',
-                    padding: '14px',
-                }}
-            >
-                <div>
-                    <div
-                        style={{
-                            fontSize: '8.5px',
-                            fontWeight: 900,
-                            letterSpacing: '1.6px',
-                            textTransform: 'uppercase',
-                            color: theme.accentTeal,
-                            marginBottom: '4px',
-                        }}
-                    >
-                        {isWeeklyWireCta
-                            ? 'Smarter.Poker Weekly Wire \u2022 Free Tuesday Dispatch'
-                            : 'Cardroom Print Distribution Program'}
-                    </div>
-                    <h2
-                        style={{
-                            margin: '0 0 6px 0',
-                            fontSize: '18.5px',
-                            fontWeight: 900,
-                            lineHeight: 1.16,
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                            color: theme.ink,
-                        }}
-                    >
-                        {cleanText(
-                            page?.headline,
-                            isWeeklyWireCta
-                                ? 'Subscribe Free To The Tuesday Smarter.Poker Weekly Wire'
-                                : 'Stock Smarter.Poker Magazine Free In Your Poker Room'
-                        )}
-                    </h2>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '9.8px', lineHeight: 1.44, color: theme.inkSecondary }}>
-                        {cleanText(
-                            page?.subheadline,
-                            isWeeklyWireCta
-                                ? 'Fresh Solver Spots, POY Updates, And Tour Radar Delivered Straight To Your Inbox Every Tuesday.'
-                                : 'Poker Room Managers And Tournament Directors Can Request Monthly Commercial Print Bundles At Zero Cost.'
-                        )}
-                    </p>
-
-                    {bodyParagraphs.length > 0 && (
-                        <div style={{ display: 'grid', gap: '5px', marginBottom: '9px' }}>
-                            {bodyParagraphs.map((para, pIdx) => (
-                                <p
-                                    key={pIdx}
-                                    style={{ margin: 0, fontSize: '9.1px', lineHeight: 1.42, color: theme.inkSecondary }}
-                                >
-                                    {cleanText(para)}
-                                </p>
-                            ))}
-                        </div>
-                    )}
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                        {benefits.map((b, idx) => (
-                            <div
-                                key={idx}
-                                style={{
-                                    background: theme.subtleBg,
-                                    border: `1px solid ${theme.border}`,
-                                    borderRadius: '7px',
-                                    padding: '8px',
-                                }}
-                            >
-                                <div style={{ fontSize: '9.8px', fontWeight: 800, color: theme.ink, marginBottom: '3px' }}>
-                                    {cleanText(b?.title || b?.headline)}
-                                </div>
-                                <div style={{ fontSize: '8.6px', color: theme.inkSecondary, lineHeight: 1.35 }}>
-                                    {cleanText(b?.summary || b?.description)}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <QrActionBadge
-                    page={{
-                        ...page,
-                        ctaLabel:
-                            page?.ctaLabel ||
-                            (isWeeklyWireCta ? 'Subscribe Free To Weekly Wire' : 'Request Poker Room Print Copies'),
-                        ctaUrl: rawCtaUrl,
-                        qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}${rawCtaUrl.startsWith('/') ? rawCtaUrl : `/${rawCtaUrl}`}`,
-                    }}
-                    theme={theme}
-                />
-            </div>
-        </SheetRunningChrome>
-    );
-}
-
-function BackCoverLayout({ page, issueMeta, theme }) {
-    const bgImg = (theme.isPrint ? page?.masterImageUrl : page?.imageUrl) || issueMeta?.coverImageUrl || FALLBACK_MAGAZINE_IMAGE;
-
-    return (
-        <div
-            style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                background: '#05070a',
-                color: '#ffffff',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                padding: theme.isPrint ? '0.45in' : '22px',
-                boxSizing: 'border-box',
-            }}
-        >
-            <img
-                src={bgImg}
-                alt="Smarter.Poker Ecosystem Back Cover"
-                onError={handleMagazineImageError}
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    opacity: 0.25,
-                }}
-            />
-            <div
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'linear-gradient(180deg, rgba(5,7,10,0.92) 0%, rgba(11,21,32,0.9) 55%, rgba(5,7,10,0.98) 100%)',
-                }}
-            />
-
-            <div style={{ position: 'relative', zIndex: 2 }}>
-                <div
-                    style={{
-                        fontSize: '9px',
-                        fontWeight: 900,
-                        letterSpacing: '2.2px',
-                        textTransform: 'uppercase',
-                        color: '#4fc1b3',
-                        marginBottom: '6px',
-                    }}
-                >
-                    The Complete Modern Poker Ecosystem
-                </div>
-                <h2
-                    style={{
-                        margin: '0 0 8px 0',
-                        fontSize: '24px',
-                        fontWeight: 900,
-                        lineHeight: 1.12,
-                        fontFamily: "Georgia, 'Times New Roman', serif",
-                        color: '#ffffff',
-                    }}
-                >
-                    {cleanText(page?.headline, 'Every Tool, Live Room & Solver Tree In One Hub')}
-                </h2>
-                <p style={{ margin: 0, fontSize: '11px', lineHeight: 1.48, color: '#9fb3c8' }}>
-                    {cleanText(
-                        page?.subheadline,
-                        'Visit Smarter.Poker On Any Phone, Tablet, Or Desktop To Study GTO Spots, Find Live Games Near You, And Compete Free In Kings Club 25450.'
-                    )}
+                <p className="spm-caption spm-caption--note">
+                    {picked
+                        ? `You picked ${picked}. Turn the page for the solver verdict.`
+                        : cleanText(rest.join(' '), 'Lock in your answer, then turn the page for the solver verdict.')}
                 </p>
-            </div>
+                <div className="spm-push">
+                    <QrBlock page={page} mode={mode} />
+                </div>
+            </Frame>
+        );
+    }
 
-            <div style={{ position: 'relative', zIndex: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {[
-                    { badge: '42 Free Tools', title: 'Pro Equity, ICM & Push-Fold Calculators' },
-                    { badge: 'Poker Near Me', title: 'Live Cardroom Games & 60-Day Series Radar' },
-                    { badge: 'GTO Hand Lab', title: 'Interactive NLH, ICM & PLO5 Solver Trees' },
-                    { badge: 'Club ID 25450', title: 'Nightly Kings Club Action & Leaderboards' },
-                ].map((box, idx) => (
-                    <div
-                        key={idx}
-                        style={{
-                            background: 'rgba(16, 33, 49, 0.85)',
-                            border: '1px solid #1b2c3d',
-                            borderRadius: '8px',
-                            padding: '10px',
-                        }}
-                    >
-                        <div
-                            style={{
-                                fontSize: '8.5px',
-                                fontWeight: 900,
-                                letterSpacing: '1.3px',
-                                textTransform: 'uppercase',
-                                color: idx % 2 === 0 ? '#4fc1b3' : '#60a5fa',
-                                marginBottom: '3px',
-                            }}
-                        >
-                            {box.badge}
-                        </div>
-                        <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#ffffff', lineHeight: 1.28 }}>
-                            {box.title}
-                        </div>
+    const takeaway = paragraphs.find((p) => /^key takeaway/i.test(String(p)));
+    const analysis = paragraphs.filter((p) => p !== takeaway);
+    return (
+        <Frame page={page} issueMeta={issueMeta} mode={mode} section="The Strategy Lab">
+            <SectionHead kicker={`Solver Verdict • ${labLabel}`} headline={page?.headline} size="md" deck={page?.subheadline} />
+            <div className="spm-verdict">
+                <div>
+                    {solverPct != null ? <div className="spm-bignum">{`${solverPct}%`}</div> : null}
+                    <div className="spm-stat__label">{cleanText(spot.solverFrequency, 'Solver Frequency')}</div>
+                </div>
+                <div>
+                    {options.map((o) => {
+                        const key = String(o?.key || '');
+                        const share = totalVotes > 0 ? Math.round(((Number(votes[key]) || 0) * 100) / totalVotes) : null;
+                        return (
+                            <OptionRow key={key} option={o} className={`spm-option${key === correctKey ? ' spm-option--correct' : ''}`} interactive={false}>
+                                {share != null ? (
+                                    <span className="spm-bar">
+                                        <i style={{ width: `${share}%` }} />
+                                    </span>
+                                ) : null}
+                            </OptionRow>
+                        );
+                    })}
+                    <div className="spm-caption">
+                        {totalVotes > 0 ? `${totalVotes.toLocaleString('en-US')} reader votes` : 'Reader voting is open on Smarter.Poker'}
                     </div>
-                ))}
+                </div>
             </div>
-
-            <div style={{ position: 'relative', zIndex: 2 }}>
-                <QrActionBadge
-                    page={{
-                        ...page,
-                        ctaLabel: page?.ctaLabel || 'Explore Smarter.Poker World Hub',
-                        ctaUrl: page?.ctaUrl || '/hub',
-                        qrUrl: page?.qrUrl || `${MAGAZINE_SITE_URL}/hub`,
-                    }}
-                    theme={theme}
-                    printMode={theme.isPrint}
-                    darkSurface
-                />
+            <div className="spm-box">
+                <div className="spm-box__title">Why It Works</div>
+                <Copy paragraphs={analysis.length ? analysis : [spot.evSummary]} style={{ textAlign: 'left' }} />
             </div>
-        </div>
+            {takeaway ? <PullQuote text={String(takeaway).replace(/^key takeaway:\s*/i, '')} /> : null}
+            <div className="spm-push">
+                <QrBlock page={page} mode={mode} />
+            </div>
+        </Frame>
     );
 }
+
+function TheTestQuizLayout({ page, issueMeta, mode }) {
+    const [answers, setAnswers] = useState({});
+    const questions = (Array.isArray(page?.items) ? page.items : []).slice(0, 4);
+    const isOpener = !page?.runIndex;
+    const isLast = Number(page?.runIndex || 0) === Number(page?.runLength || 1) - 1;
+    const answerKey = Array.isArray(page?.meta?.answerKey) ? page.meta.answerKey : [];
+    const art = pagePicture(page, mode);
+    const interactive = !isPrint(mode);
+
+    return (
+        <Frame page={page} issueMeta={issueMeta} mode={mode} section="The Smarter.Poker Test">
+            {isOpener ? <Figure src={art} mode={mode} ratio="16 / 5" /> : null}
+            <SectionHead
+                kicker={isOpener ? 'The Smarter.Poker Test' : 'The Test • Continued'}
+                headline={isOpener ? page?.headline : ''}
+                size="md"
+                deck={isOpener ? page?.subheadline : ''}
+            />
+            <div className="spm-stack">
+                {questions.map((q, qIdx) => {
+                    const qNum = Number(q?.number || qIdx + 1);
+                    const qKey = String(q?.slug || qNum);
+                    const correct = String(q?.answerKey || q?.correctKey || '');
+                    const picked = answers[qKey] || '';
+                    return (
+                        <div key={qKey}>
+                            <div className="spm-question">
+                                <span className="spm-toc-entry__num">{qNum}</span>
+                                <div>
+                                    {q?.badge || q?.categoryLabel ? (
+                                        <div className="spm-kicker spm-kicker--sm">{cleanText(q.badge || q.categoryLabel)}</div>
+                                    ) : null}
+                                    <div className="spm-brief__title">{cleanText(q?.question)}</div>
+                                </div>
+                            </div>
+                            {(Array.isArray(q?.options) ? q.options.slice(0, 4) : []).map((o) => {
+                                const key = String(o?.key || '');
+                                const cls = `spm-option${picked && key === correct ? ' spm-option--correct' : ''}${picked && key === picked && key !== correct ? ' spm-option--wrong' : ''}`;
+                                return (
+                                    <OptionRow
+                                        key={key}
+                                        option={o}
+                                        className={cls}
+                                        interactive={interactive && !picked}
+                                        onPick={(k) => setAnswers((prev) => ({ ...prev, [qKey]: k }))}
+                                    />
+                                );
+                            })}
+                            {picked && q?.explanation ? (
+                                <p className="spm-caption spm-caption--note">
+                                    <b>{picked === correct ? 'Correct.' : `Answer: ${correct}.`}</b>
+                                    {cleanText(q.explanation)}
+                                </p>
+                            ) : null}
+                        </div>
+                    );
+                })}
+            </div>
+            {isLast && answerKey.length ? (
+                <div className="spm-box">
+                    <div className="spm-box__title">Answer Key</div>
+                    {answerKey.map((a, i) => (
+                        <p key={i} className="spm-caption spm-answer">
+                            <b>{`${a.number || i + 1}. ${cleanText(a.answerKey)}`}</b>
+                            {cleanText(a.explanation)}
+                        </p>
+                    ))}
+                </div>
+            ) : null}
+            <div className="spm-push">
+                <QrBlock page={page} mode={mode} />
+            </div>
+        </Frame>
+    );
+}
+
+function DirectoryGridLayout({ page, issueMeta, mode }) {
+    const kind = page?.kind;
+    const items = (Array.isArray(page?.items) ? page.items : []).filter((it) => it && (it.headline || it.title));
+    const art = pagePicture(page, mode);
+    const isVideo = kind === 'video_tool_spotlight' && items.some((it) => it.videoId);
+    const isTools = kind === 'video_tool_spotlight' && !isVideo;
+    const isRadar = kind === 'live_series_radar';
+    const isOpener = !page?.runIndex;
+    const section = isVideo ? 'Video Spotlight' : isTools ? 'Pro Tools' : isRadar ? 'Live Series Radar' : 'Poker Rooms';
+    const leadIdx = Number.isInteger(page?.leadItemIndex) && page.leadItemIndex >= 0 ? page.leadItemIndex : -1;
+    const lead = isVideo && leadIdx >= 0 && art ? items[leadIdx] : null;
+    const others = items.filter((it) => it !== lead);
+
+    return (
+        <Frame page={page} issueMeta={issueMeta} mode={mode} section={section}>
+            <SectionHead kicker={section} headline={page?.headline} size="md" deck={page?.subheadline} />
+            {lead ? (
+                <article className="spm-stack spm-stack--tight">
+                    <Figure
+                        src={art}
+                        mode={mode}
+                        ratio="16 / 9"
+                        play
+                        href={lead.url}
+                        credit={cleanText(lead.sourceName)}
+                        caption={lead.duration ? `Runtime ${cleanText(lead.duration)}` : ''}
+                    />
+                    <h3 className="spm-headline spm-headline--md">
+                        <MagLink href={lead.url} mode={mode}>
+                            {cleanText(lead.headline)}
+                        </MagLink>
+                    </h3>
+                    <Copy paragraphs={[lead.summary]} />
+                </article>
+            ) : (
+                <Figure src={art} mode={mode} ratio={isOpener ? '16 / 6' : '16 / 5'} caption={page?.imageCaption} />
+            )}
+            {isRadar ? (
+                <table className="spm-table">
+                    <thead>
+                        <tr>
+                            <th>Dates</th>
+                            <th>Series</th>
+                            <th>Where</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((it, i) => (
+                            <tr key={i}>
+                                <td className="spm-nowrap">{cleanText(it.dates)}</td>
+                                <td>
+                                    <b>
+                                        <MagLink href={it.url} mode={mode}>
+                                            {cleanText(it.headline)}
+                                        </MagLink>
+                                    </b>
+                                </td>
+                                <td>
+                                    {cleanText(it.venueName)}
+                                    {it.city || it.state ? <small>{[it.city, it.state].filter(Boolean).join(', ')}</small> : null}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            ) : (
+                <Briefs items={others} mode={mode} grid={kind === 'poker_rooms_directory'} />
+            )}
+            <div className="spm-push">
+                <QrBlock page={page} mode={mode} />
+            </div>
+        </Frame>
+    );
+}
+
+function BackCoverLayout({ page, mode }) {
+    const art = pagePicture(page, mode);
+    return (
+        <>
+            {art ? (
+                <div className="spm-bleed" data-spm-figure="1">
+                    <MagImg src={art} alt="" mode={mode} />
+                </div>
+            ) : null}
+            <div className="spm-shade-bottom" style={{ height: '80%' }} />
+            <div className="spm-overlay-story spm-overlay-story--back">
+                <MagImg src={WORDMARK} alt={MAGAZINE_MASTHEAD} className="spm-back__wordmark" mode={mode} />
+                <h2 className="spm-headline spm-headline--xl">{cleanText(page?.headline)}</h2>
+                {page?.subheadline ? <p className="spm-deck">{cleanText(page.subheadline)}</p> : null}
+                <Copy paragraphs={page?.paragraphs} />
+                <Stats stats={page?.stats} cols={3} />
+                <QrBlock page={page} mode={mode} />
+            </div>
+            <div className="spm-cover-foot">
+                <span>Smarter.Poker</span>
+                <span className="spm-cover-foot__address">{MAGAZINE_POSTAL_ADDRESS}</span>
+            </div>
+        </>
+    );
+}
+
+const DARK_KINDS = new Set([
+    'front_cover',
+    'house_promo_spread',
+    'capture_the_moment_left',
+    'capture_the_moment_right',
+    'cardroom_bundle_cta',
+    'back_cover',
+]);
 
 export function MagazinePageSheet({ page, issueMeta = {}, mode = 'screen', onSelectPage, style = {} }) {
-    const theme = getThemeTokens(mode);
     const kind = String(page?.kind || 'news_rail');
+    const props = { page, issueMeta, mode };
 
     let inner = null;
     if (kind === 'front_cover') {
-        inner = <FrontCoverLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <FrontCoverLayout {...props} onSelectPage={onSelectPage} />;
     } else if (kind === 'house_promo_spread') {
-        inner = <HousePromoLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <AdLayout {...props} />;
     } else if (kind === 'editor_first_hand') {
-        inner = <EditorFirstHandLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <EditorFirstHandLayout {...props} />;
     } else if (kind === 'toc_left' || kind === 'toc_right') {
-        inner = <TocSpreadLayout page={page} issueMeta={issueMeta} theme={theme} onSelectPage={onSelectPage} />;
+        inner = <TocSpreadLayout {...props} onSelectPage={onSelectPage} />;
     } else if (kind === 'news_rail' || kind === 'final_table_live') {
-        inner = <NewsRailLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <NewsRailLayout {...props} />;
     } else if (kind === 'capture_the_moment_left' || kind === 'capture_the_moment_right') {
-        inner = <CaptureTheMomentLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <CaptureTheMomentLayout {...props} />;
     } else if (
         kind === 'cover_feature' ||
         kind === 'secondary_feature' ||
         kind === 'platform_feature' ||
         kind === 'strategy_ai_coach'
     ) {
-        inner = <FeatureArticleLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <FeatureArticleLayout {...props} />;
     } else if (kind === 'poy_standings' || kind === 'kings_club_champions') {
-        inner = <StandingsTableLayout page={page} issueMeta={issueMeta} theme={theme} />;
-    } else if (
-        kind === 'strategy_nlh' ||
-        kind === 'strategy_icm' ||
-        kind === 'strategy_plo'
-    ) {
-        inner = <StrategyColumnLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <StandingsTableLayout {...props} />;
+    } else if (kind === 'strategy_nlh' || kind === 'strategy_icm' || kind === 'strategy_plo') {
+        inner = <StrategyColumnLayout {...props} />;
     } else if (kind === 'the_test_quiz') {
-        inner = <TheTestQuizLayout page={page} issueMeta={issueMeta} theme={theme} />;
-    } else if (
-        kind === 'video_tool_spotlight' ||
-        kind === 'live_series_radar' ||
-        kind === 'poker_rooms_directory'
-    ) {
-        inner = <DirectoryGridLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <TheTestQuizLayout {...props} />;
+    } else if (kind === 'video_tool_spotlight' || kind === 'live_series_radar' || kind === 'poker_rooms_directory') {
+        inner = <DirectoryGridLayout {...props} />;
     } else if (kind === 'cardroom_bundle_cta') {
-        inner = <CardroomBundleCtaLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <AdLayout {...props} />;
     } else if (kind === 'back_cover') {
-        inner = <BackCoverLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <BackCoverLayout {...props} />;
     } else {
-        inner = <FeatureArticleLayout page={page} issueMeta={issueMeta} theme={theme} />;
+        inner = <FeatureArticleLayout {...props} />;
     }
 
     return (
         <div
+            className={`spm-sheet${DARK_KINDS.has(kind) ? ' spm-sheet--dark' : ''}`}
             data-magazine-page={page?.pageNumber || 1}
             data-magazine-kind={kind}
-            style={{
-                width: '100%',
-                aspectRatio: MAGAZINE_TRIM.aspectRatio,
-                background: theme.sheetBg,
-                color: theme.ink,
-                position: 'relative',
-                overflow: 'hidden',
-                boxSizing: 'border-box',
-                fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-                ...style,
-            }}
+            data-magazine-mode={isPrint(mode) ? 'print' : 'screen'}
+            style={style}
         >
             {inner}
         </div>

@@ -43,6 +43,7 @@ import {
     stripMagazineDashes,
 } from './magazineSchema.mjs';
 import { IMAGE_VAULT_FALLBACK_URL } from './imageVault.mjs';
+import { finalizeMagazineIssueManifest } from './magazineArtDirection.mjs';
 import { buildCleanNonEchoingDeck, stripScraperBylinePrefix } from './vaultHarvester.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -717,14 +718,14 @@ export function buildMagazineManifestFromVault({
         leadCoverItem?.body_text,
         leadCoverItem?.summary,
         [
-            `${coverHeadline} defines the competitive landscape for ${periodLabel}, bringing together deeper championship fields, sharper preflop 3-bet dynamics, and fearless river sizing at the highest levels of the game.`,
-            'Across major stops and online championship series, finalists consistently separated themselves by respecting stack-to-pot geometry early while applying relentless polarized pressure once opponents capped their ranges.',
-            'Tournament directors and cardroom operators likewise reported sustained turnout across mid-major main events, mystery bounty flights, and four- and five-card Pot-Limit Omaha side events.',
-            'Inside the Smarter.Poker Hand Lab, solver diagnostics confirm why modern champions prioritize blocker-driven bluff-catching and disciplined ICM bubble-factor awareness when major pay jumps hang in the balance.',
-            'As the calendar turns toward next month’s headline series, stack preservation on wet multiway textures and decisive turn overbets on brick runouts remain two of the highest-ROI habits any serious player can build.',
-            'Position-aware 3-bet defense also stood out across championship feature tables, with top regulars avoiding passive out-of-position cold calls in favor of linear 4-bets or disciplined folds.',
-            'Late-stage short-stack navigation further rewarded players who mastered 14-to-22 big blind reshove thresholds under big-blind ante structures before blinds eroded fold equity.',
-            'Flip forward to The Strategy Lab beginning on Page 26 to drill the exact No-Limit Holdem, Final-Table ICM, and Pot-Limit Omaha spots shaping championship poker right now.',
+            'Planning to make the trip? Poker Near Me on Smarter.Poker lists verified cardrooms, daily tournament structures, and the full schedule for every major series stop on the calendar.',
+            'The Live Series Radar beginning on Page 38 tracks the next 60 days of festivals coast to coast, with dates, venues, and direct links to each schedule.',
+            'Want to see who is leading the season? The Global Player Of The Year standings on Page 20 rank the Top 25 contenders heading into the final stretch.',
+            'Before your next deep run, drill the exact No-Limit Holdem, Final-Table ICM, and Pot-Limit Omaha spots in The Strategy Lab beginning on Page 26.',
+            'Every spot in the Strategy Lab opens in the free Smarter.Poker Hand Lab, where you can replay the decision and compare your line against the solver.',
+            'Bankroll planning for a festival run starts on Page 33, with the shot-taking budget and downswing rules our coaching desk recommends.',
+            'Kings Club (Club Code 25450) on Club Arena runs nightly online tournaments in Chips, so you can keep your game sharp between live stops.',
+            'Flip forward to The Smarter.Poker Test on Page 34 to check your tournament IQ against this month\u2019s solver questions.',
         ],
         8,
         coverHeadline
@@ -746,6 +747,16 @@ export function buildMagazineManifestFromVault({
         4,
         secondaryHeadline
     );
+
+    const secondaryDeck = secondaryFeatureItem
+        ? buildCleanNonEchoingDeck({
+              title: secondaryHeadline,
+              rawSummary: secondaryFeatureItem.summary || '',
+              paragraphs: secondaryParagraphs,
+              sourceName: readItemMeta(secondaryFeatureItem).byline || secondaryFeatureItem.author_byline || 'Smarter.Poker Tour Desk',
+              category: readItemMeta(secondaryFeatureItem).category || 'Circuit Feature',
+          })
+        : '';
 
     // Platform Highlights (pp. 18-19) - deduplicated by normalized headline
     const vaultPlatform = bySection('platform_highlight').map((item) => {
@@ -1136,7 +1147,7 @@ export function buildMagazineManifestFromVault({
                 editorNote,
                 'Every Tuesday our Weekly Wire intelligence brief captures breaking storylines, fresh solver spots, and live tournament action; each month those verified highlights crystallize into this 44-page edition.',
             ],
-            pullQuote: 'Great poker is built one disciplined range decision at a time - at the felt and in the lab.',
+            pullQuote: 'Great poker is built one disciplined range decision at a time, at the felt and in the lab.',
             stats: issueStats,
             items: [
                 { role: 'Publication', name: MAGAZINE_MASTHEAD },
@@ -1264,12 +1275,9 @@ export function buildMagazineManifestFromVault({
         // pp. 12-15: cover_feature (4 pages, strictly non-overlapping slices)
         ...[0, 1, 2, 3].map((partIdx) => {
             const pSlice = coverStoryParagraphs.slice(partIdx * 2, partIdx * 2 + 2);
-            const subTitles = [
-                coverSubheadline,
-                'Part II: Range Construction & Positional Leverage',
-                'Part III: Navigating Pay Jumps & Deep-Run Inflection Points',
-                'Part IV: Key Takeaways For Your Next Championship Session',
-            ];
+            // Only the opener carries a deck. Continuation pages are marked "Continued" by the
+            // renderer; invented strategy subtitles on a news story read as filler.
+            const subTitles = [coverSubheadline, '', '', ''];
             return {
                 pageNumber: 12 + partIdx,
                 kind: 'cover_feature',
@@ -1285,13 +1293,10 @@ export function buildMagazineManifestFromVault({
                 ctaUrl: '/hub/training/hand-lab',
                 qrUrl: `${siteOrigin}/hub/training/hand-lab`,
                 paragraphs: pSlice,
-                pullQuote:
-                    partIdx === 0
-                        ? 'Uncapped range advantage paired with fearless river sizing separates trophy winners from min-cashers.'
-                        : partIdx === 2
-                          ? 'Respecting Bubble Factor against covering stacks preserves real tournament equity when short stacks are on the ropes.'
-                          : '',
-                stats: issueStats.slice(0, 4),
+                // Pull quotes are lifted from the story itself by finalizeMagazineIssueManifest,
+                // and the issue stats already print on the editor page.
+                pullQuote: '',
+                stats: [],
             };
         }),
         // pp. 16-17: secondary_feature (2 pages, strictly non-overlapping slices)
@@ -1301,11 +1306,8 @@ export function buildMagazineManifestFromVault({
             department: 'Features & Cover Stories',
             tocGroup: 'features',
             runningHeader: `Circuit Feature • Page ${idx + 1} Of 2`,
-            headline: idx === 0 ? secondaryHeadline : `${secondaryHeadline}: Tactical Blueprint`,
-            subheadline:
-                idx === 0
-                    ? 'Inside Multi-Flight Tournament Preparation & Day 2 Stack Accumulation'
-                    : 'Executing 15bb-25bb Reshove & Blind-Defense Adjustments Under Big-Blind Antes',
+            headline: idx === 0 ? secondaryHeadline : `${secondaryHeadline} (Continued)`,
+            subheadline: idx === 0 ? secondaryDeck : '',
             byline: 'Smarter.Poker Tour Desk',
             imageUrl: secondaryImg,
             masterImageUrl: secondaryMaster,
@@ -1313,11 +1315,8 @@ export function buildMagazineManifestFromVault({
             ctaUrl: '/tools/push-fold-calculator',
             qrUrl: `${siteOrigin}/tools/push-fold-calculator`,
             paragraphs: secondaryParagraphs.slice(idx * 2, idx * 2 + 2),
-            pullQuote: 'Winning Day 2 transitions starts with owning the 14bb to 22bb reshove window.',
-            stats: [
-                { label: 'Optimal Reshove Window', value: '14-22 BB', detail: 'High Dead-Money Leverage' },
-                { label: 'BBA Orbit Cost', value: '2.5 BB', detail: 'Standard 8/9-Handed Table' },
-            ],
+            pullQuote: '',
+            stats: [],
         })),
         // pp. 18-19: platform_feature (2 pages)
         ...[0, 1].map((idx) => {
@@ -1972,7 +1971,7 @@ export function buildMagazineManifestFromVault({
     const signaturePageCount = normalizeSignaturePageCount(taggedPages.length);
     const title = stripMagazineDashes(`${MAGAZINE_MASTHEAD} - Issue #${issueNum} (${periodLabel})`).slice(0, 240);
 
-    return normalizeIssueManifest({
+    const assembledManifest = normalizeIssueManifest({
         masthead: MAGAZINE_MASTHEAD,
         issueNumber: issueNum,
         volumeNumber: volNum,
@@ -1995,6 +1994,10 @@ export function buildMagazineManifestFromVault({
         },
         pages: taggedPages,
     });
+
+    // Art direction: one real picture per placement, no placeholders, brand art on
+    // platform and ad pages, and QR codes only where a scan goes somewhere specific.
+    return normalizeIssueManifest(finalizeMagazineIssueManifest(assembledManifest, { vaultItems }));
 }
 
 function isUniqueViolationError(err) {
