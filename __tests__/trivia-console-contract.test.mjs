@@ -292,7 +292,7 @@ test('the #SMARTERDESIGN chrome nine-slice assets exist in public/', () => {
     for (const rel of [
         'public/images/smarterdesign/chrome-readout.webp',
         'public/images/smarterdesign/chrome-row.webp',
-        'public/images/smarterdesign/chrome-active.webp',
+        'public/images/smarterdesign/chrome-active-v2.webp',
         'public/images/smarterdesign/chrome-stat.webp',
     ]) {
         assert.ok(exists(rel), `${rel} exists`);

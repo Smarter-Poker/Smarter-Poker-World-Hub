@@ -60,10 +60,21 @@ export async function verifyBankrollHeader(
   const problems = await header.evaluate(async (element, art) => {
     await document.fonts.ready;
     const problems: string[] = [];
-    const images = Array.from(element.querySelectorAll('img'));
-    await Promise.all(images.map((image) => image.decode()));
+    // The header's artwork is the seal and the scene. The painted help "?"
+    // (#SmarterDesign image-header standard) is the third image and is
+    // checked on its own below, so it is not counted as artwork.
+    const allImages = Array.from(element.querySelectorAll('img'));
+    await Promise.all(allImages.map((image) => image.decode()));
+    const images = allImages.filter((im) => !im.closest('.sd-header-help'));
     if (images.length !== 2 || !images.every((im) => im.naturalWidth >= 150))
       problems.push('Missing artwork');
+    const helpIcons = Array.from(element.querySelectorAll('.sd-header-help img'));
+    if (
+      helpIcons.length !== 1 ||
+      !(helpIcons[0] as HTMLImageElement).src.endsWith('/images/smarterdesign/header-help.webp') ||
+      (helpIcons[0] as HTMLImageElement).naturalWidth === 0
+    )
+      problems.push('Help is not the one painted header icon');
     const badge = images.find((im) => im.src.endsWith('/' + art + '-seal.webp')),
       scene = images.find((im) => im.src.endsWith('/' + art + '-scene.webp'));
     if (!badge || !scene) return ['Incorrect per-page assets'];

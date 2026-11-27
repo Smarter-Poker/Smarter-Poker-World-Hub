@@ -127,36 +127,11 @@
     0 2px 3px #020911,
     0 0 8px #061321;
 }
-.help {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  background: none;
-  color: #f2f7ff;
-  text-decoration: none;
-  cursor: pointer;
-  touch-action: manipulation;
+/* The help control is the shared #SMARTERDESIGN image-header "?"
+   (styles/smarterdesign.css .sd-header-help). This frame's CSS border is 6px. */
+.masthead :global(.sd-header-help) {
+  --sd-help-border: 6px;
 }
-.help span {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 2px solid #c9d9e7;
-  background: radial-gradient(circle at 35% 30%, #35506b, #0a1826 70%);
-  box-shadow:
-    0 0 0 1px #09121c,
-    0 2px 5px #000,
-    inset 0 1px 0 #ffffff55;
-  font: 800 18px/1 var(--vk-type);
-}
-.help:focus-visible,
 .close:focus-visible {
   outline: 2px solid #9ee3ff !important;
   outline-offset: 2px !important;
@@ -561,7 +536,7 @@
   padding: 16px 14px 16px;
 }
 .planFeatured {
-  border-image-source: url('/images/smarterdesign/chrome-active.webp');
+  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
   border-image-slice: 11;
   box-shadow:
     0 18px 34px rgb(0 0 0 / 72%),
@@ -665,10 +640,6 @@
   }
   .scene {
     width: 56%;
-  }
-  .help {
-    top: 10px;
-    right: 10px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

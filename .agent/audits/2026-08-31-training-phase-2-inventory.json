@@ -11,10 +11,10 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 421,
-    "componentFiles": 69,
+    "dependencyFiles": 422,
+    "componentFiles": 70,
     "hookFiles": 16,
-    "ctas": 561,
+    "ctas": 562,
     "dialogs": 21,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
@@ -9663,6 +9663,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/seo/SEOHead.js",
+        "src/components/smarterdesign/headerHelp.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
@@ -12939,6 +12940,7 @@
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -13282,6 +13284,7 @@
         "src/components/seo/AiPromptLauncher.js",
         "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/SEOHead.js",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/training/VerifiedToolGateway.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useOnlineStatus.js",
@@ -17404,6 +17407,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/LevelSelector.tsx",
@@ -19036,6 +19040,7 @@
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/PreflopChartStats.jsx",
@@ -21688,6 +21693,7 @@
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/PreflopChartStats.jsx",
@@ -46138,7 +46144,9 @@
     },
     {
       "file": "src/components/bankroll/BankrollHelp.jsx",
-      "imports": [],
+      "imports": [
+        "src/components/smarterdesign/headerHelp.js"
+      ],
       "links": [],
       "apiReferences": [],
       "apiReferencePrefixes": [],
@@ -46146,7 +46154,7 @@
         {
           "element": "button",
           "name": "`Help For ${title}`",
-          "line": 46,
+          "line": 47,
           "handler": "() => { if (!dialog.current.open) dialog.current.showModal(); }",
           "destination": null,
           "type": "button",
@@ -46156,7 +46164,7 @@
         {
           "element": "button",
           "name": "Close Help",
-          "line": 52,
+          "line": 55,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -46166,7 +46174,7 @@
         {
           "element": "button",
           "name": "Page Tutorial",
-          "line": 56,
+          "line": 59,
           "handler": "() => { launchTutorial.current = true; close(); }",
           "destination": null,
           "type": "button",
@@ -46206,7 +46214,7 @@
       "functions": [
         {
           "name": "BankrollHelp",
-          "line": 37,
+          "line": 38,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -46214,7 +46222,7 @@
         },
         {
           "name": "close",
-          "line": 42,
+          "line": 43,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -46232,7 +46240,18 @@
       "links": [],
       "apiReferences": [],
       "apiReferencePrefixes": [],
-      "ctas": [],
+      "ctas": [
+        {
+          "element": "link",
+          "name": "<dynamic>",
+          "line": 46,
+          "handler": null,
+          "destination": "back.href",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        }
+      ],
       "dialogs": {
         "native": 0,
         "aria": 0,
@@ -46265,7 +46284,7 @@
       "functions": [
         {
           "name": "BankrollImageHeader",
-          "line": 4,
+          "line": 6,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -48192,6 +48211,46 @@
         "promotePendingSeoUnlock",
         "SmarterUnlockedWelcomeBanner"
       ],
+      "markers": []
+    },
+    {
+      "file": "src/components/smarterdesign/headerHelp.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
       "markers": []
     },
     {
@@ -55544,6 +55603,7 @@
     {
       "file": "src/components/vip/VipKit.jsx",
       "imports": [
+        "src/components/smarterdesign/headerHelp.js",
         "src/lib/store/phoneWelcomeOfferTerms.mjs",
         "src/lib/store/useVipIntroOffer.js",
         "src/lib/store/vipIntroPrompt.mjs"
@@ -55555,7 +55615,7 @@
         {
           "element": "a",
           "name": "helpLabel || `${title} Help And Frequently Asked Questions`",
-          "line": 64,
+          "line": 65,
           "handler": null,
           "destination": "helpHref",
           "type": null,
@@ -55565,7 +55625,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 118,
+          "line": 119,
           "handler": "onClick",
           "destination": "href",
           "type": null,
@@ -55575,7 +55635,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 120,
+          "line": 121,
           "handler": "onClick",
           "destination": null,
           "type": "button",
@@ -55585,7 +55645,7 @@
         {
           "element": "button",
           "name": "closeLabel",
-          "line": 449,
+          "line": 450,
           "handler": "onClose",
           "destination": null,
           "type": "button",
@@ -55625,7 +55685,7 @@
       "functions": [
         {
           "name": "VipSeal",
-          "line": 38,
+          "line": 39,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -55633,7 +55693,7 @@
         },
         {
           "name": "VipMasthead",
-          "line": 46,
+          "line": 47,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55641,7 +55701,7 @@
         },
         {
           "name": "VipPricePlate",
-          "line": 76,
+          "line": 77,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -55649,7 +55709,7 @@
         },
         {
           "name": "vipIntroPlateProps",
-          "line": 93,
+          "line": 94,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55657,7 +55717,7 @@
         },
         {
           "name": "VipIntroPrice",
-          "line": 104,
+          "line": 105,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -55665,7 +55725,7 @@
         },
         {
           "name": "Plate",
-          "line": 109,
+          "line": 110,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -55673,7 +55733,7 @@
         },
         {
           "name": "VipCta",
-          "line": 123,
+          "line": 124,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -55681,7 +55741,7 @@
         },
         {
           "name": "VipGhost",
-          "line": 127,
+          "line": 128,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -55689,7 +55749,7 @@
         },
         {
           "name": "VipMonthlyCta",
-          "line": 132,
+          "line": 133,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55697,7 +55757,7 @@
         },
         {
           "name": "sessionStore",
-          "line": 150,
+          "line": 151,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -55705,7 +55765,7 @@
         },
         {
           "name": "currentHubPath",
-          "line": 154,
+          "line": 155,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -55713,7 +55773,7 @@
         },
         {
           "name": "usePhoneOfferStep",
-          "line": 174,
+          "line": 175,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -55721,7 +55781,7 @@
         },
         {
           "name": "VipPhoneOfferBody",
-          "line": 194,
+          "line": 195,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55729,7 +55789,7 @@
         },
         {
           "name": "VipPhoneOfferStep",
-          "line": 222,
+          "line": 223,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -55737,7 +55797,7 @@
         },
         {
           "name": "VipPhoneOfferGate",
-          "line": 242,
+          "line": 243,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55745,7 +55805,7 @@
         },
         {
           "name": "VipUpgradePrompt",
-          "line": 263,
+          "line": 264,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55753,7 +55813,7 @@
         },
         {
           "name": "VipCrest",
-          "line": 306,
+          "line": 307,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55761,7 +55821,7 @@
         },
         {
           "name": "VipPlanPanel",
-          "line": 318,
+          "line": 319,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55769,7 +55829,7 @@
         },
         {
           "name": "VipFacts",
-          "line": 338,
+          "line": 339,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55777,7 +55837,7 @@
         },
         {
           "name": "VipLead",
-          "line": 352,
+          "line": 353,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55785,7 +55845,7 @@
         },
         {
           "name": "VipDialog",
-          "line": 376,
+          "line": 377,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55793,7 +55853,7 @@
         },
         {
           "name": "cx",
-          "line": 36,
+          "line": 37,
           "references": 19,
           "exported": false,
           "defaultExport": false,
@@ -55801,7 +55861,7 @@
         },
         {
           "name": "focusables",
-          "line": 389,
+          "line": 390,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -55809,7 +55869,7 @@
         },
         {
           "name": "onKeyDown",
-          "line": 391,
+          "line": 392,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -86097,6 +86157,10 @@
       "to": "src/lib/training/weaknessAnalysis.mjs"
     },
     {
+      "from": "src/components/bankroll/BankrollHelp.jsx",
+      "to": "src/components/smarterdesign/headerHelp.js"
+    },
+    {
       "from": "src/components/bankroll/BankrollImageHeader.jsx",
       "to": "src/components/bankroll/BankrollHelp.jsx"
     },
@@ -86731,6 +86795,10 @@
     {
       "from": "src/components/ui/WorldCommandMenuBoundary.jsx",
       "to": "src/config/worldMenuNavigation.js"
+    },
+    {
+      "from": "src/components/vip/VipKit.jsx",
+      "to": "src/components/smarterdesign/headerHelp.js"
     },
     {
       "from": "src/components/vip/VipKit.jsx",
@@ -87645,6 +87713,7 @@
     "src/components/seo/SmarterConversionCta.jsx",
     "src/components/seo/SmarterQuickSignupSheet.jsx",
     "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+    "src/components/smarterdesign/headerHelp.js",
     "src/components/store/DiamondWalletModal.jsx",
     "src/components/store/StoreToast.jsx",
     "src/components/training/BlockerScorePanel.jsx",
@@ -92832,11 +92901,11 @@
       "effectRef": "pages/hub/training/weakness-scanner.js"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:46:1",
+      "id": "src/components/bankroll/BankrollHelp.jsx:47:1",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "`Help For ${title}`",
-      "line": 46,
+      "line": 47,
       "handler": "() => { if (!dialog.current.open) dialog.current.showModal(); }",
       "destination": null,
       "type": "button",
@@ -92845,11 +92914,11 @@
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:52:2",
+      "id": "src/components/bankroll/BankrollHelp.jsx:55:2",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "Close Help",
-      "line": 52,
+      "line": 55,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -92858,17 +92927,30 @@
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:56:3",
+      "id": "src/components/bankroll/BankrollHelp.jsx:59:3",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "Page Tutorial",
-      "line": 56,
+      "line": 59,
       "handler": "() => { launchTutorial.current = true; close(); }",
       "destination": null,
       "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
+    },
+    {
+      "id": "src/components/bankroll/BankrollImageHeader.jsx:46:1",
+      "file": "src/components/bankroll/BankrollImageHeader.jsx",
+      "element": "link",
+      "name": "<dynamic>",
+      "line": 46,
+      "handler": null,
+      "destination": "back.href",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/bankroll/BankrollImageHeader.jsx"
     },
     {
       "id": "src/components/diamonds/CapHitPopup.jsx:53:1",
@@ -96329,11 +96411,11 @@
       "effectRef": "src/components/ui/WorldCommandMenuBoundary.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:64:1",
+      "id": "src/components/vip/VipKit.jsx:65:1",
       "file": "src/components/vip/VipKit.jsx",
       "element": "a",
       "name": "helpLabel || `${title} Help And Frequently Asked Questions`",
-      "line": 64,
+      "line": 65,
       "handler": null,
       "destination": "helpHref",
       "type": null,
@@ -96342,11 +96424,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:118:2",
+      "id": "src/components/vip/VipKit.jsx:119:2",
       "file": "src/components/vip/VipKit.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 118,
+      "line": 119,
       "handler": "onClick",
       "destination": "href",
       "type": null,
@@ -96355,11 +96437,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:120:3",
+      "id": "src/components/vip/VipKit.jsx:121:3",
       "file": "src/components/vip/VipKit.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 120,
+      "line": 121,
       "handler": "onClick",
       "destination": null,
       "type": "button",
@@ -96368,11 +96450,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:449:4",
+      "id": "src/components/vip/VipKit.jsx:450:4",
       "file": "src/components/vip/VipKit.jsx",
       "element": "button",
       "name": "closeLabel",
-      "line": 449,
+      "line": 450,
       "handler": "onClose",
       "destination": null,
       "type": "button",
@@ -104053,6 +104135,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/seo/SEOHead.js",
+        "src/components/smarterdesign/headerHelp.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
@@ -105421,6 +105504,7 @@
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -105822,6 +105906,7 @@
         "src/components/seo/AiPromptLauncher.js",
         "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/SEOHead.js",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/training/VerifiedToolGateway.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useOnlineStatus.js",
@@ -108105,6 +108190,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/LevelSelector.tsx",
@@ -108770,6 +108856,7 @@
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/training/BlockerScorePanel.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/PreflopChartStats.jsx",
@@ -114405,7 +114492,8 @@
     {
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "reachableFiles": [
-        "src/components/bankroll/BankrollHelp.jsx"
+        "src/components/bankroll/BankrollHelp.jsx",
+        "src/components/smarterdesign/headerHelp.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -114416,7 +114504,8 @@
       "file": "src/components/bankroll/BankrollImageHeader.jsx",
       "reachableFiles": [
         "src/components/bankroll/BankrollHelp.jsx",
-        "src/components/bankroll/BankrollImageHeader.jsx"
+        "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/smarterdesign/headerHelp.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -114942,6 +115031,16 @@
           }
         }
       ],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/components/smarterdesign/headerHelp.js",
+      "reachableFiles": [
+        "src/components/smarterdesign/headerHelp.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
       "realtime": [],
       "tests": []
     },
@@ -115857,6 +115956,7 @@
     {
       "file": "src/components/training/LevelSelector.tsx",
       "reachableFiles": [
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/training/LevelSelector.tsx",
         "src/components/training/TrainingGameArt.jsx",
         "src/components/ui/VIPGateModal.js",
@@ -117561,6 +117661,7 @@
     {
       "file": "src/components/ui/VIPGateModal.js",
       "reachableFiles": [
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/ui/VIPGateModal.js",
         "src/components/vip/VipKit.jsx",
         "src/lib/authUtils.js",
@@ -117631,6 +117732,7 @@
     {
       "file": "src/components/vip/VipKit.jsx",
       "reachableFiles": [
+        "src/components/smarterdesign/headerHelp.js",
         "src/components/vip/VipKit.jsx",
         "src/lib/authUtils.js",
         "src/lib/store/checkoutAuthorization.js",
@@ -130077,7 +130179,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipPhoneOfferGate",
-        "line": 242,
+        "line": 243,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130093,7 +130195,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipPlanPanel",
-        "line": 318,
+        "line": 319,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130108,7 +130210,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipFacts",
-        "line": 338,
+        "line": 339,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130123,7 +130225,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipLead",
-        "line": 352,
+        "line": 353,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -142326,7 +142428,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipPhoneOfferGate",
-        "line": 242,
+        "line": 243,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -142342,7 +142444,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipPlanPanel",
-        "line": 318,
+        "line": 319,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -142357,7 +142459,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipFacts",
-        "line": 338,
+        "line": 339,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -142372,7 +142474,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipLead",
-        "line": 352,
+        "line": 353,
         "references": 1,
         "exported": true,
         "defaultExport": false,

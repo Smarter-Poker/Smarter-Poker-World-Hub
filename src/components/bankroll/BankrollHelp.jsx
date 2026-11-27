@@ -1,6 +1,7 @@
 import { useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import styles from './BankrollHelp.module.css';
+import { SD_HEADER_HELP_ICON } from '../smarterdesign/headerHelp';
 
 const guides = {
   jarvis: ['Select 7, 30 or 90 days to compare recorded gaming sessions. Refresh Analysis reads the current ledger for that window.', 'Open How These Figures Are Calculated for the definitions and exclusions.'],
@@ -43,8 +44,10 @@ export default function BankrollHelp({ title, section, faqs = [], children, onTu
   const steps = guides[section] || (children ? [] : [`Review your ${title.toLowerCase()} here. Use the top actions to add supported records or return to the dashboard.`]);
   return (
     <>
-      <button ref={trigger} type="button" className={styles.help} aria-label={`Help For ${title}`} aria-haspopup="dialog" aria-controls={id}
-        onClick={() => { if (!dialog.current.open) dialog.current.showModal(); }}>?</button>
+      <button ref={trigger} type="button" className="sd-header-help" data-focus-custom="" aria-label={`Help For ${title}`} aria-haspopup="dialog" aria-controls={id}
+        onClick={() => { if (!dialog.current.open) dialog.current.showModal(); }}>
+        <img src={SD_HEADER_HELP_ICON} alt="" width="36" height="37" draggable={false} />
+      </button>
       <dialog id={id} ref={dialog} className={styles.dialog} aria-labelledby={id + '-heading'}
         onClose={() => { trigger.current?.focus({ preventScroll: true }); if (launchTutorial.current) { launchTutorial.current = false; onTutorial?.(); } }}>
         <div className={styles.heading}>

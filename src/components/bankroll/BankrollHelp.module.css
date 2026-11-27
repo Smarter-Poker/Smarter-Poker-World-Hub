@@ -1,11 +1,10 @@
-.help, .close {
+.close {
   display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0;
   border: 1px solid #9bbad4; border-radius: 50%; color: #f0f8ff; background: linear-gradient(150deg,#36516c,#101f30 48%,#06111c);
   box-shadow: inset 0 1px #d4e6ef7a, 0 2px 6px #020a14; cursor: pointer; font: 700 24px/1 system-ui;
 }
-.help { position: absolute; z-index: 1; right: 10px; top: 9px; }
-.help:hover, .close:hover { background: #194573; }
-.help:focus-visible, .close:focus-visible, .body summary:focus-visible { outline: 2px solid #94deff; outline-offset: 2px; }
+.close:hover { background: #194573; }
+.close:focus-visible, .body summary:focus-visible { outline: 2px solid #94deff; outline-offset: 2px; }
 .dialog { position: fixed; inset: 0; margin: auto; width: min(520px,calc(100% - 28px)); max-height: 82dvh; box-sizing: border-box; overflow: auto; padding: 0;
   border: 4px solid #8198ab; border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 7px stretch;
   color: #e7f1fb; background: linear-gradient(145deg,#142b42,#081625 62%); font: 400 15px/1.5 system-ui; }

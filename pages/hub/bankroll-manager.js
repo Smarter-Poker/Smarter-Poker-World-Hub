@@ -7,7 +7,6 @@ import dynamic from 'next/dynamic';
  */
 
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { VipUpgradePrompt } from '../../src/components/vip/VipKit';
 import layout from '../../styles/BankrollManager.module.css';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -1552,6 +1551,7 @@ export default function BankrollManagerPage() {
             art={headerSection === 'dashboard' ? 'bankroll' : headerSection} section={headerSection}
             parent={sectionTitle !== 'Bankroll Manager' ? 'Bankroll Manager' : undefined}
             onTutorial={requestPageTutorial}
+            back={isDashboard ? undefined : { href: '/hub/bankroll-manager', shallow: true }}
             helpContent={
               <>
                 {isDashboard && <HubPageSummary page="bankroll-manager" />}
@@ -1559,7 +1559,6 @@ export default function BankrollManagerPage() {
               </>
             }>
             <div className={layout.headerActions} ref={setActionTarget}>
-              {!isDashboard && <Link href="/hub/bankroll-manager" shallow className="sd-button">Back To Dashboard</Link>}
               {activeSection === 'receipts' && (
                 <button type="button" className="bankroll-log-btn sd-button sd-primary" onClick={() => handleSidebarClick('scan-receipt')} aria-label="Add + · Scan Receipt">Add +</button>
               )}
