@@ -40,11 +40,12 @@ const absolute = (path, site = SITE) => {
  * always starts at the site root, because a crawler that arrives on a deep
  * page from a sitemap has no other way to learn where it is.
  */
-export function breadcrumbSchema(trail, site = SITE) {
+export function breadcrumbSchema(trail, site = SITE, idPath = null) {
   const items = [['Smarter.Poker', '/'], ...trail];
+  const resolvedIdPath = idPath || items[items.length - 1][1];
   return {
     '@type': 'BreadcrumbList',
-    '@id': `${absolute(items[items.length - 1][1], site)}#breadcrumb`,
+    '@id': `${absolute(resolvedIdPath, site)}#breadcrumb`,
     itemListElement: items.map(([name, path], index) => ({
       '@type': 'ListItem',
       position: index + 1,
@@ -204,7 +205,7 @@ export function hubProductSchema({
       ...(resolvedSameAs.length > 0 ? { sameAs: resolvedSameAs } : {}),
     },
     imageNode,
-    ...(withBreadcrumb ? [breadcrumbSchema(trail)] : []),
+    ...(withBreadcrumb ? [breadcrumbSchema(trail, SITE, path)] : []),
   ];
 
   if (Array.isArray(faqs) && faqs.length > 0) {
@@ -277,7 +278,7 @@ export function hubCollectionSchema({
       breadcrumb: { '@id': `${url}#breadcrumb` },
     },
     imageNode,
-    breadcrumbSchema(trail),
+    breadcrumbSchema(trail, SITE, path),
   ];
 
   if (dataset || path === '/hub/events-calendar') {
@@ -338,8 +339,11 @@ export function datasetSchema({
     publisher: {
       '@id': ORGANIZATION_ID,
     },
-    isPartOf: {
-      '@id': WEBSITE_ID,
+    includedInDataCatalog: {
+      '@type': 'DataCatalog',
+      '@id': `${SITE}/research#datacatalog`,
+      name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
+      url: `${SITE}/research`,
     },
   };
 }
@@ -542,7 +546,7 @@ export function freerollEventSchema({
     eventSeriesNode,
     webPageNode,
     imageNode,
-    breadcrumbSchema(trail),
+    breadcrumbSchema(trail, SITE, path),
   ];
 
   if (Array.isArray(faqs) && faqs.length > 0) {
