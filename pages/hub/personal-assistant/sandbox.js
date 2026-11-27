@@ -831,7 +831,15 @@ export default function VirtualSandboxPage() {
   const { user, initializing: authInitializing } = useAvatar();
   const userId = user?.id || null;
   const haptic = useHaptics();
-  const { enabled: soundEnabled, toggle: toggleSound, play: playSound } = useSandboxSounds();
+  const { soundEnabled, toggleSound, playCardDeal, playChipClick } = useSandboxSounds();
+  const playSound = useCallback((kind) => {
+    if (kind === 'card' || kind === 'cardDeal') playCardDeal?.();
+    else playChipClick?.();
+  }, [playCardDeal, playChipClick]);
+  const [workerReady, setWorkerReady] = useState(false);
+  useEffect(() => {
+    setWorkerReady(Boolean(isEquityWorkerAvailable()));
+  }, []);
 
   // ── Navigation & Active-Play Gate State ──
   const [showMenu, setShowMenu] = useState(false);
@@ -1661,7 +1669,7 @@ export default function VirtualSandboxPage() {
                 <span style={pill('accent')}>Ungraded Exploration Workspace</span>
                 <span style={pill('neutral')}>No Fabricated GTO Grades Or EV</span>
                 <span style={pill('neutral')}>
-                  {isEquityWorkerAvailable() ? 'Worker Equity Ready' : 'Local Equity Engine'}
+                  {workerReady ? 'Worker Equity Ready' : 'Local Equity Engine'}
                 </span>
               </div>
               <p className="honesty-copy">

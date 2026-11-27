@@ -580,7 +580,7 @@ export default function PersonalAssistantReviewPage() {
             bottomLinks={menuConfig.bottomLinks}
           />
 
-          <main className={styles.main}>
+          <div className={styles.main}>
             <header className={styles.headerRow}>
               <div className={styles.headerCopy}>
                 <span className={styles.eyebrow}>Personal Assistant · Saved Hand Review</span>
@@ -1118,7 +1118,7 @@ export default function PersonalAssistantReviewPage() {
                 </div>
               </>
             )}
-          </main>
+          </div>
         </div>
       </HubPageShell>
     </PageTransition>
