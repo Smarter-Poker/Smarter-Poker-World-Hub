@@ -460,7 +460,7 @@ const styles = {
   actionLink: { color: '#38bdf8', fontWeight: 700, textDecoration: 'none' },
   cardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))',
     gap: 18,
   },
   card: {

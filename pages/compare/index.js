@@ -8,6 +8,7 @@ import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
@@ -127,49 +128,27 @@ export default function CompareHubPage() {
         </nav>
 
         {/* Hero Section */}
-        <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            padding: '6px 16px', 
-            borderRadius: 0, 
-            backgroundColor: 'rgba(78, 156, 255, 0.12)', 
-            border: '1px solid rgba(78, 156, 255, 0.3)', 
-            color: '#4E9CFF', 
-            fontSize: '13px', 
-            fontWeight: 700, 
-            letterSpacing: '0.04em',
-            marginBottom: '16px'
-          }}>
-            <Sparkles size={16} />
-            <span>INDUSTRY BENCHMARKS & VALUE COMPARISONS</span>
-          </div>
-
-          <h1 style={{ 
-            fontSize: 'clamp(28px, 5vw, 44px)', 
-            fontWeight: 800, 
-            lineHeight: 1.15, 
-            margin: '0 0 16px', 
-            color: '#FFFFFF',
-            letterSpacing: '-0.02em'
-          }}>
-            Smarter.Poker Vs. Legacy Poker Sites & Paid Software
-          </h1>
-
-          <p style={{ 
-            fontSize: 'clamp(16px, 2.5vw, 19px)', 
-            color: '#94AFCC', 
-            maxWidth: '820px', 
-            margin: '0 auto 28px', 
-            lineHeight: 1.5 
-          }}>
-            Compare Smarter.Poker Against Traditional Poker Sites, Expensive Subscription Calculators, And Legacy Desktop Software. Learn How Our Free-To-Play Model, Five Free Daily Tournaments, And Browser-Based GTO Tools Provide Superior Value.
-          </p>
-
-          <p className="cmp-checked" style={{ fontSize: '14px', color: '#7E9BB8', margin: '0 0 8px' }}>{CHECKED_LABEL}</p>
-          <p className="cmp-disclosure" style={{ fontSize: '13px', color: '#BACCDD', maxWidth: '780px', margin: '0 auto 24px', lineHeight: 1.5 }}>{PLAY_CREDIT_DISCLOSURE.value}</p>
-        </header>
+        <div style={{ marginBottom: '32px' }}>
+          <SmarterSeoMasthead
+            vertical="compare"
+            eyebrow="Industry Benchmarks & Value Comparisons"
+            title="Smarter.Poker Vs. Legacy Poker Sites & Paid Software"
+            lead="Compare Smarter.Poker Against Traditional Poker Sites, Paid Subscription Solvers, And Legacy Cardroom Tools."
+            stats={[
+              { label: 'Side-By-Side Audits', value: `${COMPARE_PAGES.length} Guides` },
+              { label: 'Daily Freerolls', value: '5 Per Day' },
+              { label: 'Browser Tools', value: '52 Free' },
+              { label: 'Subscription Cost', value: '$0 Core' },
+            ]}
+            redirectPath="/compare"
+            unlockKey="masthead-compare"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/compare/decision-matrix"
+            secondaryLabel="20-Scenario Matrix"
+          />
+          <p className="cmp-checked" style={{ fontSize: '14px', color: '#7E9BB8', margin: '14px 0 6px', textAlign: 'center' }}>{CHECKED_LABEL}</p>
+          <p className="cmp-disclosure" style={{ fontSize: '13px', color: '#BACCDD', maxWidth: '780px', margin: '0 auto 12px', lineHeight: 1.5, textAlign: 'center' }}>{PLAY_CREDIT_DISCLOSURE.value}</p>
+        </div>
 
         {/* AI Citation Summary Box */}
         <aside 

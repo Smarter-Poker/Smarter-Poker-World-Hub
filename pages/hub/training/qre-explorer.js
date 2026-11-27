@@ -13,6 +13,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -551,6 +552,13 @@ export default function QREExplorerPage() {
           </div>
 
         </div>
+      </div>
+      <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context="training-qre-explorer"
+          redirectPath="/hub/training/qre-explorer"
+        />
       </div>
       <HubPageSummary page="training-qre-explorer" />
     </>

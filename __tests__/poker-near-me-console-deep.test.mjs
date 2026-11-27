@@ -42,6 +42,7 @@ function seriesHydrationFixture() {
     '../../src/lib/seo/hubPageSchema': { datasetSchema: () => [], faqSchema: () => [], breadcrumbSchema: () => null },
     '../../src/components/seo/SEOHead': { __esModule: true, default: empty, normalizeJsonLdGraph: (graph) => graph },
     '../../src/components/seo/FaqSection': empty,
+    '../../src/components/seo/SmarterAccountUnlockGate': empty,
   };
   const mod = { exports: {} };
   new Function('require', 'module', 'exports', code)(name => {

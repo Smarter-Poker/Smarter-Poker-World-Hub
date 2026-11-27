@@ -15,6 +15,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
@@ -667,9 +668,25 @@ export default function PokerToolsDirectoryPage() {
           <span>Poker Tools &amp; Calculators</span>
         </nav>
 
-        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
-          Free Interactive Poker Calculators, GTO Solvers &amp; Tournament Math Tools
-        </h1>
+        <div style={{ marginBottom: 22 }}>
+          <SmarterSeoMasthead
+            vertical="tools"
+            eyebrow="Smarter.Poker GTO & Tournament Math Suite"
+            title="Free Interactive Poker Calculators, GTO Solvers & Tournament Math Tools"
+            lead="52 Free Browser-Native Poker Calculators, 13x13 GTO Preflop Ranges, ICM Solvers & Bankroll Math - Zero Paywalls."
+            stats={[
+              { label: 'Free Calculators', value: '52 Tools' },
+              { label: 'Preflop Ranges', value: '169 Hands' },
+              { label: 'AI MCP Endpoints', value: '70 Tools' },
+              { label: 'Account Tier', value: '100% Free' },
+            ]}
+            redirectPath="/tools"
+            unlockKey="masthead-tools"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/tools/poker-odds-calculator"
+            secondaryLabel="Open Odds Calculator"
+          />
+        </div>
 
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 24px 0' }}>
           <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>52 Free Browser-Native Tools (51 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4, Risk Of Ruin Bankroll Math, Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, PLO Wrap &amp; Nut-Out Analyzer, Tournament Late-Reg ICM EV Calculator, Winrate Confidence-Interval Calculator, Poker Trip &amp; Series Budget Planner, WPT/Triton Poker Action Shot Clock, GTO Geometric 2e/3e Bet-Sizing Planner, Live Table-Selection Grader, MTT Session &amp; ABI Grind Planner, Multiway All-In EV Calculator, Mystery Bounty Envelope Tracker, Final Table Bubble Factor Matrix, River Bluff-Catching Solver, Multi-Street Barrel EV Solver, Heads-Up Push/Fold Nash Solver, Blind-Vs-Blind SB Vs. BB Explorer, Bankroll Shot-Taking Planner, Pre-Session Warmup &amp; Cooldown Routine, Home Game Tournament Director, And 10-Question Poker IQ Test.

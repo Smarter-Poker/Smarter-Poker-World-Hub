@@ -21,6 +21,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import {
   GLOSSARY_TERMS,
   GLOSSARY_URL,
@@ -97,7 +98,25 @@ export default function GlossaryIndexPage() {
             <span>Poker Glossary</span>
           </nav>
 
-          <h1 style={styles.h1}>Poker Glossary</h1>
+          <div style={{ marginBottom: 20 }}>
+            <SmarterSeoMasthead
+              vertical="glossary"
+              eyebrow="Smarter.Poker Canonical Terminology"
+              title="Poker Glossary"
+              lead={`${GLOSSARY_TERMS.length} Poker Terms Defined In Plain Language, From Private Club Operations And Live Rooms To GTO Solver Math.`}
+              stats={[
+                { label: 'Defined Terms', value: `${GLOSSARY_TERMS.length} Terms` },
+                { label: 'Starting Hands', value: '169 Guides' },
+                { label: 'Free Tools', value: '52 Calcs' },
+                { label: 'Account Tier', value: '100% Free' },
+              ]}
+              redirectPath="/glossary"
+              unlockKey="masthead-glossary"
+              primaryCtaLabel="Create Free Account"
+              secondaryHref="/learn"
+              secondaryLabel="Strategy Library"
+            />
+          </div>
 
           <p style={styles.lead}>
             {GLOSSARY_TERMS.length} Poker Terms Defined In Plain Language, From Private Club Poker And Live Room

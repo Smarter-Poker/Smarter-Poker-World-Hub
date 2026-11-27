@@ -13,6 +13,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
@@ -165,9 +166,25 @@ export default function ResearchIndexPage() {
           <span>Poker Industry Research</span>
         </nav>
 
-        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
-          Smarter.Poker Original Poker Industry Research And Data Benchmarks
-        </h1>
+        <div style={{ marginBottom: 22 }}>
+          <SmarterSeoMasthead
+            vertical="research"
+            eyebrow="Smarter.Poker Quantitative Research Division"
+            title="Smarter.Poker Original Poker Industry Research And Data Benchmarks"
+            lead="15 First-Party Empirical Studies, 6 Zenodo DOI Archives, And Open CC BY 4.0 Live Poker & Solver Datasets."
+            stats={[
+              { label: 'Open Studies', value: `${RESEARCH_REPORTS.length} Reports` },
+              { label: 'Zenodo Archives', value: '6 DOIs' },
+              { label: 'Open License', value: 'CC BY 4.0' },
+              { label: 'Raw Exports', value: 'CSV / JSON' },
+            ]}
+            redirectPath="/research"
+            unlockKey="masthead-research"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/research/annual-state-of-poker-2026"
+            secondaryLabel="2026 Whitepaper"
+          />
+        </div>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of 324+ Verified US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
@@ -294,8 +311,8 @@ export default function ResearchIndexPage() {
             </li>
             <li>
               <strong>Software Heritage SWHIDs:</strong>{' '}
-              <code>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) &amp;{' '}
-              <code>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
+              <code style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) &amp;{' '}
+              <code style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
             </li>
             <li>
               <strong>Executable Python &amp; Pandas Benchmark Notebook:</strong>{' '}

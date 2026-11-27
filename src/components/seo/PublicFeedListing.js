@@ -145,7 +145,7 @@ const styles = {
   list: {
     listStyle: 'none',
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
     gap: 10,
     margin: 0,
     padding: 0,
@@ -155,9 +155,9 @@ const styles = {
     flexDirection: 'column',
     gap: 4,
     padding: '12px 14px',
-    borderRadius: 10,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 0,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
   },
   link: {
     color: '#ffffff',

@@ -25,6 +25,7 @@ import { homeGameUrl } from '../../src/lib/home-games/urls';
 import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
 import { datasetSchema, faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 const DAILY_TOURNAMENTS_FAQS = [
     {
@@ -690,6 +691,13 @@ export default function DailyTournaments() {
 
                     
                 </div>
+                <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+                    <SmarterAccountUnlockGate
+                        variant="live-venue-intel"
+                        context="daily-tournaments"
+                        redirectPath="/hub/daily-tournaments"
+                    />
+                </div>
                 <FaqSection faqs={DAILY_TOURNAMENTS_FAQS} />
                 </main>
 
@@ -1237,7 +1245,7 @@ export default function DailyTournaments() {
                     .time-icon.afternoon {
                         background: rgba(245,158,11,0.2);
                         border-color: rgba(245,158,11,0.4);
-                        color: #f59e0b;
+                        color: #38bdf8;
                     }
                     .time-icon.evening {
                         background: rgba(139,92,246,0.2);

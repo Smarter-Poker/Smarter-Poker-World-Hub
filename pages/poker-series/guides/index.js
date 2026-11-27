@@ -14,6 +14,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../../src/components/seo/SmarterSeoMasthead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   SERIES_GUIDES,
@@ -134,9 +135,25 @@ export default function PokerSeriesGuidesIndexPage() {
             <span style={styles.emeraldBadge}>VERIFIED STRUCTURE &amp; BANKROLL ANALYTICS</span>
           </div>
 
-          <h1 style={styles.h1}>
-            Major Live Poker Series, Tour &amp; Festival Strategy Guides
-          </h1>
+          <div style={{ marginBottom: 18 }}>
+            <SmarterSeoMasthead
+              vertical="series"
+              eyebrow="Major North American Live Poker Tours"
+              title="Major Live Poker Series, Tour & Festival Strategy Guides"
+              lead="Complete Bankroll, Structure, Late-Reg & Satellite Strategy Guides For WSOP, WPT, WSOPC, MSPT, RGPS & SHRPO."
+              stats={[
+                { label: 'Major Series', value: `${SERIES_GUIDES.length} Guides` },
+                { label: 'Weekly MTTs', value: '4,500+ Events' },
+                { label: 'Live Venues', value: '715+ Rooms' },
+                { label: 'Schedule Sync', value: 'Free Account' },
+              ]}
+              redirectPath="/poker-series/guides"
+              unlockKey="masthead-series"
+              primaryCtaLabel="Unlock Live Series Alerts"
+              secondaryHref="/hub/poker-series"
+              secondaryLabel="Live Series Calendar"
+            />
+          </div>
 
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Maximizing Return On Investment (ROI) At A Major Live Poker Festival Requires Matching Your Bankroll And Schedule To Each Venue&apos;S Exact Blind Structure, Late-Registration Window, Milestone Satellite Format, And Cash Game Spillover. Explore Our <strong>10 Comprehensive Poker Series Strategy Guides</strong> Covering The <strong>WSOP</strong>, <strong>WPT World Championship</strong>, <strong>WSOP Circuit</strong>, <strong>MSPT</strong>, <strong>RunGood (RGPS)</strong>, <strong>Seminole Hard Rock (SHRPO)</strong>, <strong>Borgata</strong>, <strong>Wynn</strong>, <strong>Venetian</strong>, And <strong>Texas Major Card Club Championships</strong>.

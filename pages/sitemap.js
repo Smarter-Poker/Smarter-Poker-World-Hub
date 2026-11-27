@@ -13,6 +13,8 @@
 import Link from 'next/link';
 import SEOHead from '../src/components/seo/SEOHead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
+import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 import { US_POKER_STATES, stateGuidePath } from '../src/content/guides/states';
 import { POKER_MARKET_GUIDES, marketGuidePath } from '../src/content/guides/markets';
 import { LESSONS } from '../src/content/learn/lessons';
@@ -110,7 +112,7 @@ export async function getStaticProps() {
 
 function SitemapSection({ title, items }) {
   return (
-    <section style={{ marginBottom: 32, padding: 22, background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10 }}>
+    <section style={{ marginBottom: 32, padding: 22, background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0 }}>
       <h2 style={{ fontSize: 19, fontWeight: 700, color: '#f8fafc', margin: '0 0 14px 0' }}>
         {title} ({items.length})
       </h2>
@@ -120,7 +122,7 @@ function SitemapSection({ title, items }) {
           padding: 0,
           margin: 0,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
           gap: '8px 16px',
         }}
       >
@@ -192,9 +194,25 @@ export default function HtmlSitemapPage({
           <span>HTML Sitemap</span>
         </nav>
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 12px 0' }}>
-          Smarter.Poker Complete HTML Sitemap Directory
-        </h1>
+        <div style={{ marginBottom: 22 }}>
+          <SmarterSeoMasthead
+            vertical="learn"
+            eyebrow="Complete Smarter.Poker Directory"
+            title="Smarter.Poker Complete HTML Sitemap Directory"
+            lead="Direct Two-Click Navigation Across All 51 US State Guides, 52 Free Calculators, 169 Starting Hands, 30 Rules & 15 Studies."
+            stats={[
+              { label: 'US State Guides', value: `${states.length} States` },
+              { label: 'Free Tools', value: '52 Calcs' },
+              { label: 'Strategy Guides', value: `${lessons.length} Lessons` },
+              { label: 'Account Tier', value: '100% Free' },
+            ]}
+            redirectPath="/sitemap"
+            unlockKey="masthead-sitemap"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/search"
+            secondaryLabel="Search Full Corpus"
+          />
+        </div>
 
         <p id="sitemap-intro" style={{ fontSize: 15, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
           Navigate Every Major Smarter.Poker Hub, All 51 US State &amp; DC Poker Legality Guides, Regional Market Briefs, Free Poker Calculators, GTO Strategy Lessons, Official Rules, Game Variants, Platform Comparisons, And Open Industry Research Studies. Machine-Readable XML Sitemaps Are Published At{' '}
@@ -210,6 +228,14 @@ export default function HtmlSitemapPage({
         <SitemapSection title="Official Poker Rules & Floor Rulings" items={rules} />
         <SitemapSection title="Poker Game Variants & Formats" items={variants} />
         <SitemapSection title="Poker Platform & Room Comparisons" items={comparisons} />
+
+        <div style={{ marginTop: 28 }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="html-sitemap"
+            redirectPath="/sitemap"
+          />
+        </div>
       </main>
     </div>
   );

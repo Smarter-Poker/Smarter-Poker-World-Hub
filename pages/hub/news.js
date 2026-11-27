@@ -19,6 +19,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 // AEO phase 3 (2026-09-17). The page already emits an ItemList of the
 // headlines on screen; this is the page itself, which had nothing.
@@ -1972,7 +1973,7 @@ function NewsHub() {
                                                                             <span style={{ color: SOURCE_COLORS[article.source_name] || '#00d4ff' }}>{article.source_name || 'Source'}</span>
                                                                             <span>•</span>
                                                                             <span>{hasMounted ? timeAgo(article.published_at) : ''}</span>
-                                                                            {article.category && <span className="category-pill" style={{ background: `rgba(${article.category === 'tournament' ? '251,191,36' : article.category === 'strategy' ? '124,58,237' : article.category === 'industry' ? '34,197,94' : '59,130,246'}, 0.2)`, color: article.category === 'tournament' ? '#fbbf24' : article.category === 'strategy' ? '#a78bfa' : article.category === 'industry' ? '#22c55e' : '#3b82f6' }}>{article.category}</span>}
+                                                                            {article.category && <span className="category-pill" style={{ background: `rgba(${article.category === 'tournament' ? '251,191,36' : article.category === 'strategy' ? '124,58,237' : article.category === 'industry' ? '34,197,94' : '59,130,246'}, 0.2)`, color: article.category === 'tournament' ? '#86daff' : article.category === 'strategy' ? '#a78bfa' : article.category === 'industry' ? '#22c55e' : '#3b82f6' }}>{article.category}</span>}
                                                                             {(article.views || 0) > 0 && <><span>•</span><span><Eye size={10} /> {formatViews(article.views)}</span></>}
                                                                         </div>
                                                                     </div>
@@ -2201,7 +2202,7 @@ function NewsHub() {
                                                 {(event.buy_in || event.guarantee) && (
                                                     <div className="event-meta" style={{ textAlign: 'right' }}>
                                                         {event.buy_in && <div className="buy-in" style={{ color: '#22c55e', fontWeight: 'bold' }}>{event.buy_in}</div>}
-                                                        {event.guarantee && <div className="guarantee" style={{ color: '#fbbf24', fontSize: '12px' }}>{event.guarantee}</div>}
+                                                        {event.guarantee && <div className="guarantee" style={{ color: '#86daff', fontSize: '12px' }}>{event.guarantee}</div>}
                                                     </div>
                                                 )}
                                                 {event.registration_url && (
@@ -2276,6 +2277,13 @@ function NewsHub() {
                                     </div>
                                 </section>
                             )}
+                            <div style={{ margin: '24px 0' }}>
+                                <SmarterAccountUnlockGate
+                                    variant="editorial-wire"
+                                    context="hub-news"
+                                    redirectPath="/hub/news"
+                                />
+                            </div>
                         </main>
 
                         {/* Right Sidebar */}
@@ -2634,7 +2642,7 @@ function NewsHub() {
                         background: rgba(251, 191, 36, 0.1);
                         border: 1px solid rgba(251, 191, 36, 0.35);
                         border-radius: 10px;
-                        color: #fbbf24;
+                        color: #86daff;
                         font-size: 12px;
                         font-weight: 600;
                         text-align: center;
@@ -3058,7 +3066,7 @@ function NewsHub() {
                         flex-shrink: 0;
                     }
                     .rank.rank-medal.medal-1 {
-                        background: linear-gradient(135deg, #fbbf24, #d97706);
+                        background: linear-gradient(135deg, #86daff, #d97706);
                         color: #1a1c1e;
                     }
                     .rank.rank-medal.medal-2 {

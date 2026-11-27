@@ -14,6 +14,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -758,6 +759,13 @@ export default function QuizBuilderPage() {
             </div>
           </details>
         </div>
+      </div>
+      <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context="training-quiz-builder"
+          redirectPath="/hub/training/quiz-builder"
+        />
       </div>
       <HubPageSummary page="training-quiz-builder" />
     </>
