@@ -296,8 +296,11 @@
     filter 0.12s ease;
 }
 .cta {
-  border-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png') 36 44 fill / 15px
-    20px stretch;
+  /* The blue plate is cut to its own painted octagon, so it needs no clip:
+     a clip drawn over the painted chamfer broke the chrome at every corner. */
+  clip-path: none;
+  border-width: 15px 22px;
+  border-image: url('/images/smarterdesign/plates/vip-button-primary.png') 30 44 fill / 15px 22px stretch;
   text-shadow:
     0 1px 2px #001230,
     0 0 12px rgb(124 200 255 / 60%);

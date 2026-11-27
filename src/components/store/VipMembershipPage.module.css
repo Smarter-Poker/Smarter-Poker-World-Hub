@@ -85,8 +85,9 @@
   flex-direction: column;
   gap: 2px;
   min-height: 64px;
-  border-width: 15px 20px;
-  border-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png') 36 44 fill / 15px 20px stretch;
+  clip-path: none;
+  border-width: 15px 22px;
+  border-image: url('/images/smarterdesign/plates/vip-button-primary.png') 30 44 fill / 15px 22px stretch;
   color: #fff;
   font-size: 19px;
   font-weight: 800;
