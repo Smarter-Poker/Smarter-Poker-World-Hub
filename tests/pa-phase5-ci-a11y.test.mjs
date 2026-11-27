@@ -102,13 +102,15 @@ test('scripts/ci/pa-browser-smoke.mjs preserves core contract and adds a11y & SS
     '/api/assistant/coaching',
     '/api/assistant/stats',
     '/api/sandbox/custom-drill',
+    '/api/sandbox/save-hand',
+    '/api/poker/saved-hands',
     '/api/assistant/leaks/claim-live-fix',
     '/api/assistant/maintenance-jobs',
     '/api/training/audit-hand-history',
   ]);
   assert.deepEqual([...smoke.RETIRED_API_PATHS], [
     '/api/sandbox/equity-snapshot',
-    '/api/sandbox/save-hand',
+    '/api/assistant/sandbox/analyze',
   ]);
 
   // Checks include both existing and new a11y/SSR checks
@@ -151,7 +153,7 @@ test('pa-browser-smoke --check-only executes cleanly via child process', () => {
     cwd: ROOT,
     encoding: 'utf8',
   });
-  assert.match(stdout, /pa-browser-smoke contract ok: 6 routes x 2 viewports, 7 private APIs, 11 checks/);
+  assert.match(stdout, /pa-browser-smoke contract ok: 6 routes x 2 viewports, 9 private APIs, 11 checks/);
 });
 
 test('computeAccessibleName correctly derives accessible names and catches empty controls', async () => {

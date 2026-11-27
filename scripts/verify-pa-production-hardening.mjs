@@ -143,9 +143,9 @@ export async function runProductionHardeningProbe() {
     publicChecks.push({ route, status: result.status, durationMs: result.durationMs });
   }
 
-  // Verify retired sandbox endpoints stay 410 Gone and unauth Phase 5 mutations fail closed (401)
+  // Verify retired sandbox endpoints stay 410 Gone and unauth PA/Sandbox mutations fail closed (401)
   const boundaryChecks = [];
-  for (const retiredRoute of ['/api/sandbox/equity-snapshot', '/api/sandbox/save-hand']) {
+  for (const retiredRoute of ['/api/sandbox/equity-snapshot', '/api/assistant/sandbox/analyze']) {
     const result = await request(`${baseUrl}${retiredRoute}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -154,7 +154,7 @@ export async function runProductionHardeningProbe() {
     if (result.status !== 410) throw new Error(`${retiredRoute} returned ${result.status}, expected 410.`);
     boundaryChecks.push({ route: retiredRoute, status: result.status });
   }
-  for (const unauthMutation of ['/api/assistant/leaks/claim-live-fix', '/api/assistant/maintenance-jobs']) {
+  for (const unauthMutation of ['/api/assistant/leaks/claim-live-fix', '/api/assistant/maintenance-jobs', '/api/sandbox/save-hand', '/api/poker/saved-hands']) {
     const result = await request(`${baseUrl}${unauthMutation}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
