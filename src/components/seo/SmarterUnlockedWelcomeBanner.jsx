@@ -167,7 +167,7 @@ export default function SmarterUnlockedWelcomeBanner() {
         <div className={styles.unlockedBannerActions}>
           <Link
             href="/hub/verify-phone?welcome=1"
-            className={styles.btnPrimary}
+            className={styles.ctaPrimary}
             data-testid="unlocked-banner-claim-vip"
             onClick={() => dismiss('claim-vip')}
           >
@@ -175,7 +175,7 @@ export default function SmarterUnlockedWelcomeBanner() {
           </Link>
           <Link
             href="/hub/training"
-            className={styles.btnSecondary}
+            className={styles.ctaSecondary}
             data-testid="unlocked-banner-launch-training"
             onClick={() => dismiss('launch-training')}
           >
