@@ -11,9 +11,9 @@ Acceptance: large chrome Review My Play hero; shorter Virtual Sandbox row; compa
 - Owner: root agent, with bounded primary-art, utility-art, and existing-test assistance.
 - Repository: Smarter-Poker/Smarter-Poker-World-Hub.
 - Checkout: `/workspace/scratch/266d416187ac/smarter-poker-design-worktree`, a linked private worktree. The initial private clone and its staged patch are preserved separately.
-- Branch: `agent/codex/personal-assistant-approved-design-release`.
+- Remote Branch: `agent/codex/personal-assistant-approved-design-release`. Local verification branch: `agent/codex/personal-assistant-verified-publication`.
 - Starting main: `304fadec43e8a20180d1c8de1c257c64cea1cecc`.
-- Integrated main: `3ef4e637b799e16ad84f778656be03eb4c72aaf3`. Its added AST/import/route gate is retained. No landing or shared-chrome changes occurred in this integration.
+- Integrated main: `26345b22319f2328d28b658989bc2f372643be98`. Its AST/import/route gate, build parity, VIP/SEO fixes and realtime transport hardening are retained. No landing or shared-chrome changes occurred in this integration.
 - Component: World Hub UI/assets. No engine or database delivery.
 - Publication: ordinary hooks, protected PR/squash merge, existing Vercel Git project hub-vanguard, deployed identity and affected behavior verification.
 
@@ -60,4 +60,25 @@ Production-mode click-through reproduced a connected Settings defect: Leaks cons
 
 ## Next Action
 
-Commit the final Settings correction and this evidence through normal hooks, transport the exact tested tree through configured authenticated GitHub Git-data access, fetch and inspect the actual candidate, run the unmodified pre-push gate on that revision, then create the owned branch/PR. Continue required hosted checks, protected squash merge, existing hub-vanguard Git publication, and deployed identity/behavior proof. No publication claim has been made.
+Finish the demonstrated gate repairs below, commit the integrated candidate through normal hooks, transport its exact tree through configured authenticated GitHub Git-data access, fetch and inspect the actual candidate, run the unmodified pre-push gate on that revision, and fast-forward the existing PR branch. Continue required hosted checks, protected squash merge, existing hub-vanguard Git publication, and deployed identity/behavior proof. No publication claim has been made.
+
+## Hosted Submission And Gate Recovery
+
+PR #3153 is open at https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/3153. Its initial head is d2794371357bcd7a40f6fc9d3dd02630b46a6d78. Every transported blob and the complete source tree ed358c9c240c857d1afd35a646d32c260e30b7a9 matched the locally committed, tested source. The actual GitHub commit was fetched, its author and committer verified as Smarter-Poker, and the unmodified pre-push hook passed on that candidate before its branch was created. No hook, required check, credential boundary or protected merge was bypassed.
+
+On resumption the four full policy sources were read through the policy reader at 2026-11-27T17:53:34.946Z from the linked worktree, revision d2794371357bcd7a40f6fc9d3dd02630b46a6d78, with the same version and hashes above. The full repository CLAUDE.md, AGENTS.md, AGENT-PLAYBOOK.md, PUBLISHING.md, EGRESS-AND-DEPLOY-ACCESS.md, binding/protection/host rules, SmarterDesign references and this checkpoint were also read. The installed Next.js matcher and unit-test guidance was read for the routing assertion repair.
+
+Initial hosted results: Personal Assistant Browser Smoke and Unit Gates, No Conflict Markers, Audit Marker Guard, Safe-Area Top Guard, Undefined Identifier Guard and Supabase Invariants passed. Two actual failures are being repaired:
+
+- Global Footer E2E run 46044589213, job 140660542502, failed during the build's prebuild tests at 17:49:31 UTC, before browser execution. The old shared-game-links test prohibited every occurrence of /api/og in middleware, incorrectly rejecting the public AUTH_ALWAYS_ALLOW entry intentionally added by PR #3103. Its test-only correction evaluates the actual Next matcher patterns and auth prefixes, retains rewrite/redirect assertions, and includes positive controls for private routes. No middleware behavior changes. The existing failure was reproduced locally; the repaired shared-game, static-file and native-CORS suites pass all 18 tests. Independent review found no material issue. A previous successful comparable Footer run was unavailable in the bounded provider lookup; it is not assumed green.
+- Build Safety Gate run 46044589267, job 140660543528, failed at 17:55:21 UTC because the maintained Training source inventory was stale after the landing page stopped importing old utility icons. The existing generator was run after integrating main26345b223. Relative to that main, the generated difference removes precisely two references to the Personal Assistant landing source. No classifications, invariants or checks were weakened. The generator's --check passes.
+
+The private checkout now includes all tracked public assets and rule-book files needed by the full prebuild suite. A task-owned Python test environment supplies requests and the exact numerical requirements already specified by the hosted workflow. The complete npm prebuild passes: JavaScript selections of 421, 103 and 1217 tests, plus 54 Python tests, all successful with no skips.
+
+The wider required Leak Engine suite exposed one pre-existing isolated fixture failure: it set an unsupported PA_AUDIT_JOB_SECRET while the signer reads NEXTAUTH_SECRET or SUPABASE_SERVICE_ROLE_KEY. A child-process reproduction confirmed a deliberate 503 without a supported key and a 202 with a synthetic test key, using only a fetch mock. The existing test now sets and restores a supported synthetic NEXTAUTH_SECRET and asserts the response before the forwarded body. Runtime signing and fail-closed behavior are unchanged. All 473 Leak Engine tests now pass.
+
+The remaining full-build tests exposed a local fixture isolation defect in Poker Near Me phase13: its synthetic dispatcher test isolated HOME but left persistent alert state at the system default. The test now scopes OPENCLAW_ALERT_STATE to its existing temporary directory, which its existing finally block removes. All runtime code and assertions are unchanged, and independent review confirmed the correction. This is necessary for repeatable required prechecks and does not alter business schedules or notifications.
+
+The full build's precompile test sequence now succeeds: 67 V31 tests, then the maintained PNM, training, Leak Engine, Marketplace and Trivia sequence. One existing Marketplace PostgreSQL17 integration test is explicitly skipped because that local database runtime is unavailable; it is not counted as passing. Hosted database/check requirements remain authoritative. Local numerical tests use the locked requirements under Python3.13. The default local Python3.12 produces a different ast.dump digest for a frozen algorithm, while Python3.13 passes the unchanged 12-test continuation contract; the hosted workflow provides its own pinned Python3.14.2. No algorithm, frozen digest or test assertion was changed for that environment difference.
+
+Ordinary commit/pre-push, revised hosted checks and production publication remain pending. The initial live health baseline at 17:44:01 UTC was still commit304fadec43e8a20180d1c8de1c257c64cea1cecc, deployment dpl_AT6W4NopGYRA3YcGxj5Wzrt5rWn2; that is not this correction.

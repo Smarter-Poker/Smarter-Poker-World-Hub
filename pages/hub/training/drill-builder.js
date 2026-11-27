@@ -25,12 +25,16 @@ import { encodeSharedDrillPack } from '../../../src/lib/training/trainingPresets
 
 
 
+import { createResilientWebSocketTransport, hardenSupabaseRealtime } from '../../../src/lib/realtimeTransportGuard';
+
 let _supabase = null;
 function getSupabase() {
   if (typeof window === 'undefined') return null;
   if (!_supabase) {
     const { createClient } = require('@supabase/supabase-js');
-    _supabase = typeof window !== 'undefined' ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) : null;
+    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    _supabase = typeof window !== 'undefined' ? hardenSupabaseRealtime(createClient(url, key, { realtime: { transport: createResilientWebSocketTransport() } })) : null;
   }
   return _supabase;
 }

@@ -11,6 +11,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
+import pathPatterns from 'next/dist/compiled/path-to-regexp/index.js';
 import {
     buyInRangeWords,
     chipAmount,
@@ -449,6 +451,22 @@ test('next.config.js, vercel.json, and middleware.ts do not intercept /g/*, /l/*
     assert.doesNotMatch(nextCfg, /source:\s*['"]\/api\/og\/club-game/);
     assert.doesNotMatch(vercelCfg, /"source":\s*"\/(?:g|l)(?:\/|:)/);
     assert.doesNotMatch(vercelCfg, /"source":\s*"\/api\/og\/club-game/);
-    // /api/og/club-game must not be in middleware's auth-required or explicit API matchers.
-    assert.doesNotMatch(middleware, /\/api\/og/);
+    // Public OG images may appear in AUTH_ALWAYS_ALLOW. Check the actual
+    // matcher and auth-prefix scopes, not an unrelated allowlist or comment.
+    const configSource = middleware.match(/export const config\s*=\s*(\{[\s\S]*?\});\s*$/);
+    const authSource = middleware.match(/const requiresAuthPrefix\s*=\s*(\[[\s\S]*?\]);/);
+    assert.ok(configSource, 'middleware config must be inspected');
+    assert.ok(authSource, 'middleware auth prefixes must be inspected');
+    const config = runInNewContext(`(${configSource[1]})`, {}, { timeout: 1000 });
+    const authPrefixes = runInNewContext(authSource[1], {}, { timeout: 1000 });
+    assert.ok(Array.isArray(config.matcher) && config.matcher.length > 0);
+    assert.ok(Array.isArray(authPrefixes) && authPrefixes.length > 0);
+    const matchers = config.matcher.map(source => pathPatterns.pathToRegexp(source));
+    for (const pathname of ['/api/og/club-game', '/api/og/club-game/']) {
+        assert.equal(matchers.some(pattern => pattern.test(pathname)), false, `${pathname} must bypass middleware`);
+        assert.equal(authPrefixes.some(prefix => pathname.startsWith(prefix)), false, `${pathname} must remain public`);
+    }
+    // Positive controls prevent an empty or unparsed guard from passing.
+    assert.equal(matchers.some(pattern => pattern.test('/api/admin/status')), true);
+    assert.equal(authPrefixes.some(prefix => '/api/user/profile'.startsWith(prefix)), true);
 });

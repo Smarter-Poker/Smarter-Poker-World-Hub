@@ -125,18 +125,22 @@ export default function PreflopRangeMatrixHub({
 
   const faqs = useMemo(() => preflopRangeFaqs(posData, stats), [posData, stats]);
 
+  const isPositionalRoute = canonicalPath !== '/tools/preflop-ranges';
+
   const schema = useMemo(() => {
+    const trail = [
+      ['Hub', '/hub'],
+      ['Poker Tools', '/tools/poker-odds-calculator'],
+      ['Preflop Ranges', '/tools/preflop-ranges'],
+      ...(isPositionalRoute ? [[`${posData.name} (${posData.abbrev})`, canonicalPath]] : []),
+    ];
     return hubProductSchema({
       path: canonicalPath,
       name: `Smarter.Poker ${posData.abbrev} GTO Preflop Range Matrix`,
       description: pageDesc,
       applicationCategory: 'GameApplication',
       applicationSubCategory: 'Poker Strategy',
-      trail: [
-        ['Hub', '/hub'],
-        ['Poker Tools', '/tools/poker-odds-calculator'],
-        ['Preflop Ranges', '/tools/preflop-ranges'],
-      ],
+      trail,
       faqs,
       howTo: {
         name: 'How To Read And Apply GTO Preflop Range Charts',
@@ -175,7 +179,7 @@ export default function PreflopRangeMatrixHub({
         canonical={canonicalUrl}
         jsonLd={schema}
         ogImage={`/api/og/tool-card?tool=ranges&title=${encodeURIComponent(pageTitle)}&subtitle=${encodeURIComponent(`100BB 6-Max Opening Matrix (${stats.percent}% Open Frequency)`)}&statLabel=OPENING+FREQUENCY&statValue=${encodeURIComponent(`${stats.percent}%`)}`}
-        markdownUrl="https://smarter.poker/tools/preflop-ranges.md"
+        markdownUrl={`https://smarter.poker${markdownPath}`}
       />
       <Head>
         <style
@@ -202,7 +206,14 @@ export default function PreflopRangeMatrixHub({
           <div style={{ fontSize: 13, color: '#8B949E', marginBottom: 12 }}>
             <Link href="/hub" style={{ color: '#58A6FF', textDecoration: 'none' }}>Hub</Link> &gt;{' '}
             <Link href="/tools/poker-odds-calculator" style={{ color: '#58A6FF', textDecoration: 'none' }}>Tools</Link> &gt;{' '}
-            <span>GTO Preflop Ranges</span>
+            {isPositionalRoute ? (
+              <>
+                <Link href="/tools/preflop-ranges" style={{ color: '#58A6FF', textDecoration: 'none' }}>GTO Preflop Ranges</Link> &gt;{' '}
+                <span>{posData.name} ({posData.abbrev})</span>
+              </>
+            ) : (
+              <span>GTO Preflop Ranges</span>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>

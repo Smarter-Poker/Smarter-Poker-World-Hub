@@ -738,11 +738,11 @@ test('Stripe VIP webhook admits, atomically projects, reconciles, and only then 
 
   assert.match(
     webhook,
-    /async function handleInvoicePaymentSucceeded\(invoice\)[\s\S]*handleStripeSubscriptionEvent\(invoice\.subscription, \{ triggerInvoice: invoice \}\)/
+    /async function handleInvoicePaymentSucceeded\(eventInvoice\)[\s\S]*const subscriptionId = eventInvoiceSubscriptionId\(eventInvoice\);[\s\S]*const invoice = await pinnedEventInvoice\(eventInvoice\);[\s\S]*handleStripeSubscriptionEvent\(subscriptionId, \{ triggerInvoice: invoice \}\)/
   );
   assert.match(
     webhook,
-    /async function handleInvoicePaymentFailed\(invoice\)[\s\S]*handleStripeSubscriptionEvent\(invoice\.subscription\)/
+    /async function handleInvoicePaymentFailed\(eventInvoice\)[\s\S]*const subscriptionId = eventInvoiceSubscriptionId\(eventInvoice\);[\s\S]*const invoice = await pinnedEventInvoice\(eventInvoice\);[\s\S]*handleStripeSubscriptionEvent\(subscriptionId\)/
   );
   assert.match(
     webhook,

@@ -190,6 +190,19 @@ jobs:
           node scripts/ci/check-module-parse-and-bindings.mjs --merge-against "origin/${{ github.base_ref || 'main' }}"
           node --test __tests__/module-parse-and-bindings.law.test.mjs
 
+      # CHECK 29 (incident 86bcafc1 / VercelDeploymentFailed): Every pre-build
+      # test executed by Vercel (`scripts["build:vercel"]`) must also gate PRs
+      # inside Pre-Deploy Safety Checks under Vercel's NODE_ENV=production outer
+      # environment so a broken marketplace/intro/digest test can never pass PR
+      # CI and crash production deployment (as #3143 / dpl_2pRjXxa8k9EEux3XV79KQAALAy2Y did).
+      - name: "CHECK 29: build:vercel pre-build test parity"
+        env:
+          NODE_ENV: production
+        run: |
+          NODE_ENV=test node --test __tests__/cinematic-intro-playback.test.mjs
+          NODE_ENV=test npm run test:marketplace
+          NODE_ENV=test node --test __tests__/daily-digest.test.mjs __tests__/welcome-back.test.mjs
+
       - name: Operational Alert Delivery Contracts
         run: node --test __tests__/tournament-critical-pager-chat-only.test.mjs __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs __tests__/operational-notification-destination.test.mjs __tests__/operational-push-routing.test.mjs __tests__/operational-push-metadata.test.mjs __tests__/notifications-send-operational-persistence.test.mjs
 
@@ -306,6 +319,9 @@ jobs:
 
       - name: Fabricated Test Sessions Stay Off Live Realtime
         run: node --test __tests__/a-fabricated-session-never-reaches-live-realtime.law.test.mjs
+
+      - name: Refused WebSocket Never Crashes The App
+        run: node --test __tests__/a-refused-websocket-never-crashes-the-app.law.test.mjs
 
       - name: Messenger Live Probe Safety
         run: node scripts/ci/messenger-live-check.mjs --self-test

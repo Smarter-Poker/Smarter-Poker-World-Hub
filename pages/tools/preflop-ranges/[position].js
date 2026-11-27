@@ -42,6 +42,7 @@ export async function getServerSideProps({ req, res, params, query }) {
     props: {
       initialPosition: rawPos,
       canonicalPath: `/tools/preflop-ranges/${rawPos.toLowerCase()}`,
+      markdownPath: `/tools/preflop-ranges/${rawPos.toLowerCase()}.md`,
     },
   };
 }
@@ -49,11 +50,13 @@ export async function getServerSideProps({ req, res, params, query }) {
 export default function PositionalPreflopRangeMatrixPage({
   initialPosition = 'UTG',
   canonicalPath = '/tools/preflop-ranges/utg',
+  markdownPath = '/tools/preflop-ranges/utg.md',
 }) {
   return (
     <PreflopRangeMatrixHub
       initialPosition={initialPosition}
       canonicalPath={canonicalPath}
+      markdownPath={markdownPath}
     />
   );
 }

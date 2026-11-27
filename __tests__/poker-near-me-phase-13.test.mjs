@@ -195,7 +195,7 @@ assert len(attempts) == 2
 `;
     execFileSync('python3', ['-c', code], {
       cwd: fileURLToPath(root),
-      env: { ...process.env, HOME: home, PNM_DIRECTORY_WARN_MS: 'invalid', PNM_SNAPSHOT_WARN_DAYS: '40', PNM_SNAPSHOT_MAX_DAYS: '30' },
+      env: { ...process.env, HOME: home, OPENCLAW_ALERT_STATE: join(home, 'alert-state.json'), PNM_DIRECTORY_WARN_MS: 'invalid', PNM_SNAPSHOT_WARN_DAYS: '40', PNM_SNAPSHOT_MAX_DAYS: '30' },
       stdio: 'pipe',
     });
   } finally {
