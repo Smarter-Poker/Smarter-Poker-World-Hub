@@ -126,8 +126,8 @@ test('six strict product routes each publish exactly one canonical Product and o
     assert.equal(item.offers.price, String(catalog[plan].price));
     assert.equal(item.additionalProperty.value, Math.round(catalog[plan].price * 100));
     assert.equal(item.description.includes(gift ? vipGiftTerms(plan) : vipMembershipTerms(plan)), true);
-    const result = vipProductPageProps({ params: { plan }, res: { setHeader() {} }, query: { plan: 'vip-lifetime' } }, gift);
-    assert.deepEqual(result.props.vipProduct, { plan, gift });
+    const result = vipProductPageProps({ params: { plan }, res: { setHeader() {} }, query: { plan: 'vip-lifetime' } }, gift, {});
+    assert.deepEqual(result.props.vipProduct, { plan, gift, introOffer: true });
     for (const file of ['pages/sitemap.xml.js', 'src/lib/seo/sitemapBuilders.mjs']) assert.ok(read(file).includes(`path: '${path}'`));
   }
   for (const plan of ['daily', 'toString', '__proto__', '', undefined, ['monthly']]) {
@@ -208,4 +208,22 @@ test('related offer links cover the other five canonical pages without overridin
   assert.match(store, /vipProductCopy\.relatedLinks\.map/);
   assert.match(store, /href="\/hub\/training"/);
   assert.match(store, /href="\/hub\/club-arena\/"/);
+});
+
+/* The search copy names the $1 first month only while checkout sells it
+   (VIP_INTRO_OFFER_DISABLED). An unreadable switch never advertises it. */
+test('the monthly search description follows the first-month switch', async () => {
+  const { vipProductPageProps, vipProductContent } = await import('../src/lib/store/vipStructuredData.mjs');
+  const catalog = { monthly: { price: 20 }, yearly: { price: 200 }, lifetime: { price: 500 } };
+  const res = { setHeader() {} };
+  const on = vipProductPageProps({ params: { plan: 'monthly' }, res }, false, {});
+  const off = vipProductPageProps({ params: { plan: 'monthly' }, res }, false, { VIP_INTRO_OFFER_DISABLED: 'true' });
+  const odd = vipProductPageProps({ params: { plan: 'monthly' }, res }, false, { VIP_INTRO_OFFER_DISABLED: 'maybe' });
+  assert.equal(on.props.vipProduct.introOffer, true);
+  assert.equal(off.props.vipProduct.introOffer, false);
+  assert.equal(odd.props.vipProduct.introOffer, false);
+  assert.match(vipProductContent(catalog, 'monthly', false).description, /\$1 First Month/);
+  const plain = vipProductContent(catalog, 'monthly', false, { introOffer: false }).description;
+  assert.doesNotMatch(plain, /\$1/);
+  assert.match(plain, /\$20\/Month/);
 });

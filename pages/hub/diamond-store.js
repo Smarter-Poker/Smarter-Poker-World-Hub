@@ -3551,7 +3551,7 @@ export default function DiamondStorePage({
   const clubShopBuyArt = clubShopBuyTarget ? resolveClubShopProductArt(clubShopBuyTarget) : null;
 
   const productSchema = vipProduct ? vipProductStructuredData(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift) : null;
-  const vipProductCopy = vipProduct ? vipProductContent(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift) : null;
+  const vipProductCopy = vipProduct ? vipProductContent(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift, { introOffer: vipProduct.introOffer !== false }) : null;
   const pageMeta = productSchema ? productSchema['@graph'].find(item => item['@type'] === 'WebPage') : (TAB_META[activeTab] || TAB_META.diamonds);
   const pageTitle = productSchema ? pageMeta.name : pageMeta.title;
   const pagePath = vipProduct ? vipProductPath(vipProduct.plan, vipProduct.gift) : TAB_ROUTES[activeTab];
