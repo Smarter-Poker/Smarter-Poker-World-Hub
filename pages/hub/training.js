@@ -299,10 +299,11 @@ export default function TrainingPage() {
     if (focus?.bettingStructure && !userPickedVariant) query.bettingStructure = focus.bettingStructure;
     const normalizedFocusFormat = normalizeLaunchFormat(focus?.format) || focus?.format;
     if (normalizedFocusFormat) query.format = normalizedFocusFormat;
+    if (focus?.targetStreet) query.targetStreet = focus.targetStreet;
     const effectiveStreet = focus?.street || focus?.targetStreet;
     if (effectiveStreet) {
       query.street = effectiveStreet;
-      query.targetStreet = effectiveStreet;
+      if (!query.targetStreet) query.targetStreet = effectiveStreet;
     }
     if (focus?.position || focus?.heroPosition || focus?.targetPositions) {
       query.position = focus.position || focus.heroPosition || focus.targetPositions;
