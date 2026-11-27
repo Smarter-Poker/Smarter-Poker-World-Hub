@@ -121,6 +121,8 @@ import './phone-verification-uptake.test.mjs';
 import './horses-tournament-intent-storage.test.mjs';
 // API/server @vercel/nft static-page trace guard (incident 86bcafc1, 2026-11-26).
 import './api-routes-never-trace-static-pages.law.test.mjs';
+// Full-tree AST parse, duplicate-binding/export, local-import, route-collision & merge-tree guard (incident 86bcafc1, 2026-11-27).
+import './module-parse-and-bindings.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
@@ -785,6 +787,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs',
     '__tests__/smarter-poker-magazine.law.test.mjs',
     '__tests__/api-routes-never-trace-static-pages.law.test.mjs',
+    '__tests__/module-parse-and-bindings.law.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {

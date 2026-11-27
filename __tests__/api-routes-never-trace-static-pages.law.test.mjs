@@ -269,14 +269,6 @@ test('build:vercel isolates pre-build unit tests under NODE_ENV=test without aff
         const isTestCommand = /\bnpm run test:/.test(seg) || /\bnode\b[^&]*\s--test\b/.test(seg);
         if (!isTestCommand) continue;
         if (/^NODE_ENV=test\s+/.test(seg)) continue;
-
-        // Allow a single-file `node --test <file>` only when that file explicitly sets NODE_ENV = 'test'.
-        const singleFileMatch = seg.match(/^node\s+--test\s+([^\s]+\.mjs)$/);
-        if (singleFileMatch) {
-            const fullPath = path.join(ROOT, singleFileMatch[1]);
-            const source = fs.existsSync(fullPath) ? fs.readFileSync(fullPath, 'utf8') : '';
-            if (/process\.env\.NODE_ENV\s*=\s*['"]test['"]/.test(source)) continue;
-        }
         unprotected.push(seg);
     }
 
