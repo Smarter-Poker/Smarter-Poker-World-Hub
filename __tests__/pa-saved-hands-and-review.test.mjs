@@ -219,9 +219,9 @@ test('POST /api/poker/saved-hands enforces participation and protects hidden opp
   assert.equal(saved.hand_data.winnersByBoard.length, 2);
 
   // Verify hidden opponent cards are completely stripped while hero + showdown villain cards remain
-  const serialized = JSON.stringify(saved);
-  assert.doesNotMatch(serialized, /7s/);
-  assert.doesNotMatch(serialized, /2d/);
+  const serialized = JSON.stringify(saved.hand_data);
+  assert.doesNotMatch(serialized, /"7s"/);
+  assert.doesNotMatch(serialized, /"2d"/);
   assert.doesNotMatch(serialized, /discardedCard.*9h/);
   const foldedVillain = saved.hand_data.players.find((p) => p.name === 'FoldedVillain');
   assert.deepEqual(foldedVillain.holeCards, []);

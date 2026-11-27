@@ -173,11 +173,15 @@ test('canonical auth, active-play gate, deadlines, cancellation, and persistence
   const listRoute = read('pages/api/sandbox/_routes/saved-hands.js');
   const kit = read('src/components/sandbox/paKit.jsx');
 
-  // Canonical auth
+  // Canonical auth + hydration safety (never branch SSR render on Worker availability)
   assert.match(sandbox, /useAvatar\(\)/);
   assert.match(sandbox, /getFreshAccessToken/);
   assert.match(sandbox, /!authInitializing/);
   assert.doesNotMatch(sandbox, /supabase\.auth\.getSession\s*\(/);
+  assert.match(sandbox, /const \[workerReady, setWorkerReady\] = useState\(false\)/);
+  assert.doesNotMatch(sandbox, /\{isEquityWorkerAvailable\(\)/);
+  assert.match(sandbox, /soundEnabled,\s*toggleSound/);
+  assert.doesNotMatch(read('pages/hub/personal-assistant/review.js'), /<main\b/);
   assert.match(saveModal, /getFreshAccessToken/);
   assert.match(folders, /getFreshAccessToken/);
   assert.match(shareModal, /getFreshAccessToken/);
