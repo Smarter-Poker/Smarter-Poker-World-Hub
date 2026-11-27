@@ -14,6 +14,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -351,7 +352,7 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
                 color: isMastered
                   ? 'var(--sp-accent-green)'
                   : accuracy >= node.threshold * 0.8
-                    ? 'var(--sp-accent-amber)'
+                    ? '#38bdf8'
                     : 'var(--sp-fg-dim)',
               }}
             >
@@ -469,13 +470,15 @@ export default function SkillTreePage() {
             aria-label="Back To Training"
             style={{
               background: 'rgba(255,255,255,0.05)',
-              border: 'none',
               color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
-              width: 36,
-              height: 36,
+              minWidth: 44,
+              minHeight: 44,
+              width: 44,
+              height: 44,
               borderRadius: 8,
+              border: '1px solid rgba(148, 184, 224, 0.28)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -499,8 +502,8 @@ export default function SkillTreePage() {
           </button>
           <div style={{ flex: 1 }}>
             {/* TRAIN-SKILL-TREE-A11Y-1: page heading uses semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Skill Tree</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#ffffff' }}>Skill Tree</h1>
+            <div style={{ fontSize: 12, color: '#cbd5e1' }}>
               Mastery From Sealed Training Sessions
             </div>
           </div>
@@ -515,14 +518,14 @@ export default function SkillTreePage() {
             style={{
               padding: '6px 12px',
               borderRadius: 8,
-              background: 'rgba(251,191,36,0.08)',
-              border: '1px solid rgba(251,191,36,0.2)',
+              background: '#081121',
+              border: '1px solid rgba(148, 184, 224, 0.28)',
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#86daff', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#38bdf8', fontVariantNumeric: 'tabular-nums' }}>
               {stats ? `${masteredCount}/${totalNodes}` : '-'}
             </span>
-            <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginLeft: 4 }}>
+            <span style={{ fontSize: 12, color: '#cbd5e1', marginLeft: 4 }}>
               Verified Mastery
             </span>
           </div>
@@ -541,8 +544,8 @@ export default function SkillTreePage() {
               borderRadius: 14,
               marginBottom: 20,
               background:
-                'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(139,92,246,0.04) 100%)',
-              border: '1px solid rgba(0,212,255,0.12)',
+                'linear-gradient(135deg, rgba(29, 78, 216, 0.14) 0%, rgba(8, 17, 33, 0.92) 100%)',
+              border: '1px solid rgba(148, 184, 224, 0.28)',
             }}
           >
             <div
@@ -557,14 +560,14 @@ export default function SkillTreePage() {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
+                  color: '#94a3b8',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                 }}
               >
                 Nodes Mastered
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#38bdf8' }}>
                 {masteredCount}/{totalNodes}
               </div>
             </div>
@@ -583,7 +586,7 @@ export default function SkillTreePage() {
                 style={{
                   height: '100%',
                   borderRadius: 3,
-                  background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
+                  background: 'linear-gradient(90deg, #1d4ed8 0%, #38bdf8 100%)',
                 }}
               />
             </div>
@@ -690,6 +693,19 @@ export default function SkillTreePage() {
                 </div>
               </motion.div>
             ))}
+
+          <div style={{ marginTop: 20 }}>
+            <SmarterConversionCta
+              compact
+              eyebrow="Free Smarter.Poker Account"
+              title="Create Free Account To Save Custom Ranges & Track Skill Tree Mastery"
+              description="Sign Up Free To Record Sealed Training Sessions, Unlock All 16 Skill Tree Nodes, And Track Verified GTO Mastery."
+              primaryLabel="Create Free Account"
+              primaryHref="/auth/signup?redirect=/hub/training/skill-tree&src=skill-tree"
+              secondaryLabel="Sign In"
+              secondaryHref="/auth/login?redirect=/hub/training/skill-tree"
+            />
+          </div>
         </div>
       </div>
       <ConnectionToast />

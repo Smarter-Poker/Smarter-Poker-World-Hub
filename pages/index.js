@@ -377,9 +377,21 @@ export default function LandingPage() {
         <LandingProductSummary />
 
         {/* ── FOOTER ──────────────────────────────────────────── */}
-        <footer style={styles.footer}>
+        <footer className="landing-footer" style={styles.footer}>
           <span style={styles.footerText}>© {new Date().getFullYear()} Smarter.Poker - The Future Of The Game</span>
         </footer>
+
+        {/* ── STICKY MOBILE CONVERSION BAR (<= 768px, hidden when modal overlay open) ── */}
+        {!overlay && (
+          <aside className="landing-mobile-cro-bar" aria-label="Create Free Account">
+            <span className="landing-mobile-cro-bar__copy">
+              715+ Live Rooms &amp; 107 Free GTO Games
+            </span>
+            <Link href={signupHref} className="landing-mobile-cro-bar__cta">
+              Join Free
+            </Link>
+          </aside>
+        )}
       </div>
 
       <style>{`
@@ -392,6 +404,54 @@ export default function LandingPage() {
         ::-webkit-scrollbar-thumb:hover { background: #00c6ff; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .landing-phone-art { display: none; }
+        .landing-mobile-cro-bar { display: none; }
+        @media (max-width: 768px) {
+          .landing-footer {
+            padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+          .landing-mobile-cro-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+            background: rgba(6, 13, 26, 0.96);
+            border-top: 1px solid rgba(148, 184, 224, 0.28);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45);
+          }
+          .landing-mobile-cro-bar__copy {
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.3;
+            font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+            min-width: 0;
+          }
+          .landing-mobile-cro-bar__cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 18px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%);
+            border: 1px solid rgba(148, 184, 224, 0.36);
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+          }
+        }
         @media (max-width: 480px) {
           .landing-desktop-art { display: none; }
           .landing-phone-art { display: flex; flex-direction: column; align-items: center; gap: 16px; }

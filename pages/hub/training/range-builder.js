@@ -17,6 +17,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -94,8 +95,8 @@ function getCombos(hand) {
 const DIFF_COLORS = {
   match: 'var(--sp-accent-green)',
   extra: 'var(--sp-accent-red)',
-  omitted: 'var(--sp-accent-amber)',
-  partial: 'var(--sp-accent-orange)',
+  omitted: '#38bdf8',
+  partial: '#0284c7',
   neutral: 'var(--sp-bg-elev2)',
 };
 
@@ -106,12 +107,12 @@ const GRADE_COLORS = {
   'B+': 'var(--sp-accent-blue)',
   B: 'var(--sp-accent-blue)',
   'B-': 'var(--sp-accent-blue)',
-  'C+': 'var(--sp-accent-amber)',
-  C: 'var(--sp-accent-amber)',
-  'C-': 'var(--sp-accent-amber)',
-  'D+': 'var(--sp-accent-orange)',
-  D: 'var(--sp-accent-orange)',
-  'D-': 'var(--sp-accent-orange)',
+  'C+': '#38bdf8',
+  C: '#38bdf8',
+  'C-': '#38bdf8',
+  'D+': '#cbd5e1',
+  D: '#cbd5e1',
+  'D-': '#cbd5e1',
   F: 'var(--sp-accent-red)',
 };
 
@@ -177,7 +178,7 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
             left: 0,
             right: 0,
             height: 2,
-            background: isPair ? 'var(--sp-accent-purple)' : isSuited ? 'var(--sp-accent-blue)' : 'transparent',
+            background: isPair ? '#38bdf8' : isSuited ? 'var(--sp-accent-blue)' : 'transparent',
             borderRadius: '0 0 2px 2px',
             opacity: 0.5,
           }}
@@ -417,9 +418,7 @@ export default function RangeBuilder() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#ffffff',
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
@@ -428,12 +427,12 @@ export default function RangeBuilder() {
             <span
               style={{
                 fontSize: 12,
-                color: '#86daff',
-                background: 'rgba(249,115,22,0.1)',
+                color: '#38bdf8',
+                background: 'rgba(56, 189, 248, 0.12)',
                 padding: '3px 8px',
                 borderRadius: 12,
                 fontWeight: 700,
-                border: '1px solid rgba(249,115,22,0.2)',
+                border: '1px solid rgba(148, 184, 224, 0.28)',
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
@@ -478,13 +477,16 @@ export default function RangeBuilder() {
                   fontSize: 13,
                   fontWeight: 800,
                   cursor: 'pointer',
-                  border: 'none',
                   transition: 'all 0.2s',
+                  minHeight: 44,
                   background:
                     position === pos
-                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
-                      : 'rgba(255,255,255,0.06)',
-                  color: position === pos ? '#fff' : 'var(--sp-fg-muted)',
+                      ? 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)'
+                      : 'rgba(8, 17, 33, 0.85)',
+                  border: position === pos
+                    ? '1px solid rgba(148, 184, 224, 0.45)'
+                    : '1px solid rgba(148, 184, 224, 0.22)',
+                  color: position === pos ? '#ffffff' : '#cbd5e1',
                   fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
@@ -499,10 +501,10 @@ export default function RangeBuilder() {
               maxWidth: 680,
               margin: '12px auto 0',
               padding: '8px 12px',
-              border: '1px solid rgba(251,191,36,0.28)',
+              border: '1px solid rgba(148, 184, 224, 0.28)',
               borderRadius: 8,
-              background: 'rgba(251,191,36,0.07)',
-              color: 'var(--sp-fg-muted)',
+              background: '#081121',
+              color: '#cbd5e1',
               textAlign: 'center',
               fontSize: 12,
               fontWeight: 700,
@@ -637,16 +639,16 @@ export default function RangeBuilder() {
                     role="note"
                     style={{
                       padding: '8px 10px',
-                      border: '1px solid rgba(251,191,36,0.24)',
+                      border: '1px solid rgba(148, 184, 224, 0.28)',
                       borderRadius: 8,
-                      background: 'rgba(251,191,36,0.06)',
-                      color: 'var(--sp-fg-muted)',
+                      background: '#081121',
+                      color: '#cbd5e1',
                       fontSize: 12,
                       lineHeight: 1.5,
                       marginBottom: 12,
                     }}
                   >
-                    <strong style={{ color: '#86daff' }}>Authored Practice Reference</strong>
+                    <strong style={{ color: '#38bdf8' }}>Authored Practice Reference</strong>
                     <br />
                     {result.reference?.label}
                     <br />
@@ -785,7 +787,7 @@ export default function RangeBuilder() {
                         style={{
                           height: '100%',
                           borderRadius: 3,
-                          background: 'linear-gradient(90deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
+                          background: 'linear-gradient(90deg, #1d4ed8 0%, #38bdf8 100%)',
                         }}
                       />
                     </div>
@@ -847,14 +849,17 @@ export default function RangeBuilder() {
                     disabled={selectedHands.size === 0 || grading}
                     style={{
                       width: '100%',
+                      minHeight: 44,
                       padding: '12px 0',
                       background:
                         selectedHands.size > 0
-                          ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
+                          ? 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)'
                           : 'rgba(255,255,255,0.06)',
-                      border: 'none',
+                      border: selectedHands.size > 0
+                        ? '1px solid rgba(148, 184, 224, 0.36)'
+                        : '1px solid rgba(148, 184, 224, 0.16)',
                       borderRadius: 10,
-                      color: selectedHands.size > 0 ? '#fff' : 'var(--sp-fg-faint)',
+                      color: selectedHands.size > 0 ? '#ffffff' : 'var(--sp-fg-faint)',
                       cursor: selectedHands.size > 0 ? 'pointer' : 'default',
                       fontSize: 14,
                       fontWeight: 800,
@@ -868,6 +873,19 @@ export default function RangeBuilder() {
               )}
             </AnimatePresence>
           </div>
+        </div>
+
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px 24px' }}>
+          <SmarterConversionCta
+            compact
+            eyebrow="Free Smarter.Poker Account"
+            title="Create Free Account To Save Custom Ranges & Track Skill Tree Mastery"
+            description="Save Your Custom 13x13 Preflop Ranges, Review Practice Sessions By Position, And Unlock All 107 Free GTO Training Games."
+            primaryLabel="Create Free Account"
+            primaryHref="/auth/signup?redirect=/hub/training/range-builder&src=range-builder"
+            secondaryLabel="Sign In"
+            secondaryHref="/auth/login?redirect=/hub/training/range-builder"
+          />
         </div>
 
       </div>
