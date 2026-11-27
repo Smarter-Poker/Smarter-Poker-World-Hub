@@ -37,7 +37,7 @@ const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const SITE = 'https://smarter.poker';
 const ENDPOINT = 'https://api.indexnow.org/indexnow';
 
-const PAGE_FILE_SKIP = new Set(['_app', '_document', '_error', '404', '500', 'sitemap.xml', 'USRobots']);
+const PAGE_FILE_SKIP = new Set(['_app', '_document', '_error', '404', '500', 'sitemap.xml']);
 
 /** Map a changed repository path to a public route, or null when it has none. */
 export function routeForChangedFile(file) {
