@@ -144,10 +144,10 @@ export function PAStyles() {
                 pointer-events: none;
             }
             .pa-disclosure {
-                border: 1px solid ${T.border};
-                border-top-color: ${T.borderHi};
+                border: 3px solid transparent;
+                border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
                 border-radius: ${R.md}px;
-                background: linear-gradient(145deg, #091727, #030B14 74%);
+                background: linear-gradient(155deg, #162b40 0%, #0b1c2c 46%, #050e18 90%);
                 overflow: clip;
             }
             .pa-disclosure > summary {
@@ -208,29 +208,35 @@ export function PAStyles() {
                 text-transform: uppercase; white-space: nowrap;
             }
             .pa-sheet-telemetry span:last-child { color: ${T.textDim}; letter-spacing: .08em; }
-            .pa-sheet-header { background: linear-gradient(180deg, #13253A, #07111C); }
+            .pa-sheet-header {
+                background: radial-gradient(ellipse at 20% 110%, rgba(25, 129, 236, 0.28), transparent 62%), linear-gradient(180deg, #182d43, #0a1829);
+                border-bottom: 1px solid #445e77 !important;
+            }
             .pa-sheet-title {
                 font-family: 'Arial Narrow','Rajdhani',Arial,sans-serif;
                 font-size: clamp(19px, 4vw, 23px) !important;
                 letter-spacing: 0;
+                text-shadow: 0 2px 0 #243951, 0 3px 6px #020914;
             }
             .pa-sheet-scroll { scrollbar-color: ${T.borderHi} transparent; scrollbar-width: thin; }
             .pa-sheet-scroll :is(input, select, textarea) {
                 border-radius: 6px !important;
-                border-color: ${T.border} !important;
-                background-color: #07111C !important;
+                border: 2px solid #445e77 !important;
+                border-top-color: #8ea6bd !important;
+                background-color: #06111e !important;
                 color: ${T.text} !important;
+                box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45);
             }
             .pa-sheet-scroll :is(input, select, textarea):focus-visible {
                 outline: 2px solid #83DEFF; outline-offset: 1px;
             }
             .pa-chart-panel {
                 position: relative; overflow: hidden;
-                border: 1px solid ${T.border} !important;
-                border-top-color: ${T.borderHi} !important;
+                border: 5px solid transparent !important;
+                border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
                 border-radius: ${R.md}px !important;
-                background: linear-gradient(145deg, #091727, #030B14 74%) !important;
-                box-shadow: none !important;
+                background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42) !important;
             }
             .pa-range-grid {
                 min-width: 0; width: 100%; max-width: 100%;
@@ -280,7 +286,7 @@ export function PAStyles() {
             }
             @media (min-width: 769px) {
                 .pa-sheet-backdrop { align-items: center; }
-                .pa-sheet { border-radius: ${R.lg}px !important; max-height: 88dvh; border-bottom: 1px solid ${T.border} !important; }
+                .pa-sheet { border-radius: ${R.lg}px !important; max-height: 88dvh; }
                 .pa-sheet-telemetry { padding-inline: 24px; }
             }
             @media (max-width: 768px) {
@@ -590,16 +596,16 @@ export function SignInState({
    ═══════════════════════════════════════════════════════════════════════ */
 export function Segmented({ options, value, onChange, label, tone = 'accent', columns = null, idPrefix = 'seg' }) {
     const activeBg = {
-        accent: 'linear-gradient(180deg, #087CFA 0%, #0044AC 55%, #002B68 100%)',
-        purple: 'linear-gradient(180deg, #5B42B8 0%, #322274 60%, #1F154A 100%)',
+        accent: 'linear-gradient(180deg, #1981EC, #0C55C0 26%, #07377E 76%, #125BBA)',
+        purple: 'linear-gradient(180deg, #1981EC, #0C55C0 26%, #07377E 76%, #125BBA)',
         success: 'linear-gradient(180deg, #16865A 0%, #0B4D33 60%, #073121 100%)',
-        warn: 'linear-gradient(180deg, #A16A14 0%, #5F3D0A 60%, #3E2705 100%)',
-    }[tone] || 'linear-gradient(180deg, #087CFA 0%, #0044AC 55%, #002B68 100%)';
+        warn: 'linear-gradient(180deg, #1269C9 0%, #0A469B 55%, #062C63 100%)',
+    }[tone] || 'linear-gradient(180deg, #1981EC, #0C55C0 26%, #07377E 76%, #125BBA)';
     const activeBorder = {
         accent: '#56D8FF',
-        purple: '#B9A7FF',
+        purple: '#63E7FF',
         success: '#4DE0A5',
-        warn: '#FFC66D',
+        warn: '#86DAFF',
     }[tone] || '#56D8FF';
 
     return (
@@ -622,14 +628,13 @@ export function Segmented({ options, value, onChange, label, tone = 'accent', co
                             aria-pressed={on}
                             onClick={() => onChange?.(opt.value)}
                             style={{
-                                ...btn('secondary'),
+                                ...(on ? btn('primary') : btn('secondary')),
                                 padding: '6px 10px',
                                 minHeight: 44,
                                 flex: columns ? undefined : '1 1 auto',
-                                background: on ? activeBg : 'linear-gradient(180deg, #152639 0%, #06111E 65%)',
-                                color: on ? '#FFFFFF' : '#DCE5EF',
-                                borderColor: on ? activeBorder : T.border,
-                                borderTopColor: on ? '#B3EAFF' : T.borderHi,
+                                background: on ? activeBg : 'linear-gradient(180deg, #263F58, #112338 39%, #071420 77%, #12283C)',
+                                color: on ? '#FFFFFF' : '#E4EEF7',
+                                ...(on && tone === 'success' ? { border: `1px solid ${activeBorder}`, borderImage: 'none' } : {}),
                                 fontSize: F.caption,
                             }}
                         >

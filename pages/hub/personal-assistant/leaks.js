@@ -533,7 +533,7 @@ function ReviewQueueCard({
           the REAL total · exactly ten due leaks must not read as "10+". */}
       <p style={styles.reviewCount}>
         <span style={{ ...numeric, color: T.accent, fontWeight: 800 }}>{total}</span>
-        {' '}leak{total === 1 ? '' : 's'} Ready To Drill
+        {` ${total === 1 ? 'Leak' : 'Leaks'} Ready To Drill`}
       </p>
 
       <div style={styles.reviewTop}>
@@ -884,9 +884,9 @@ function BleedSummary({ leaks, isDemo }) {
   return (
     <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="EV Bleed Summary">
       <h2 style={styles.bleedHeadline}>
-        {isDemo ? 'Sample data: ' : 'You are bleeding '}
+        {isDemo ? 'Sample Data: ' : 'You Are Bleeding '}
         <span style={{ ...numeric, color: T.danger, fontWeight: 800 }}>~{total.toFixed(1)} BB</span>
-        {' '}across {leaks.length} Active leak{leaks.length === 1 ? '' : 's'}
+        {` Across ${leaks.length} Active ${leaks.length === 1 ? 'Leak' : 'Leaks'}`}
       </h2>
       <p style={styles.bleedSub}>Ranked By Total EV Lost (Per-Occurrence Loss X Occurrences).</p>
 
@@ -1314,7 +1314,7 @@ function LeakCard({
           <span style={styles.leakCardEv}>{priced ? `-${ev.toFixed(2)} BB` : 'Unpriced'}</span>
           <span style={styles.leakCardMetricDim}>{priced ? 'Per Spot' : 'No EV Claim'}</span>
           <span style={styles.leakCardMetricDim}>
-            {mistakes} Mistake{mistakes === 1 ? '' : 's'} / {opportunities} Spot{opportunities === 1 ? '' : 's'}
+            {`${mistakes} ${mistakes === 1 ? 'Mistake' : 'Mistakes'} / ${opportunities} ${opportunities === 1 ? 'Spot' : 'Spots'}`}
           </span>
           <span style={styles.leakCardMetricStrong}>{priced ? `~${total.toFixed(1)} BB Total` : 'Training Signal'}</span>
         </span>
@@ -1649,8 +1649,7 @@ function LeakDetail({
           <div style={styles.evidenceSummaryRow}>
             <dt style={styles.evidenceSummaryLabel}>Sample &amp; Opportunities</dt>
             <dd style={styles.evidenceSummaryValue}>
-              {detailMistakes} Mistake{detailMistakes === 1 ? '' : 's'} / {detailOpportunities} Eligible Spot{detailOpportunities === 1 ? '' : 's'}
-              {detailSamples.minRequiredSamples ? ` (Min ${detailSamples.minRequiredSamples})` : ''}
+              {`${detailMistakes} ${detailMistakes === 1 ? 'Mistake' : 'Mistakes'} / ${detailOpportunities} Eligible ${detailOpportunities === 1 ? 'Spot' : 'Spots'}${detailSamples.minRequiredSamples ? ` (Min ${detailSamples.minRequiredSamples})` : ''}`}
             </dd>
           </div>
           {detailRepHand.handId && (
@@ -4378,7 +4377,7 @@ export default function LeakFinderPage() {
                       }}
                     >
                       <span style={{ fontSize: F.caption, color: T.textMuted }}>
-                        {hiddenCrossFormatCount} Cross-Format Or Aggregate Leak{hiddenCrossFormatCount === 1 ? '' : 's'} Hidden By Format Filter.
+                        {`${hiddenCrossFormatCount} Cross-Format Or Aggregate ${hiddenCrossFormatCount === 1 ? 'Leak' : 'Leaks'} Hidden By Format Filter.`}
                       </span>
                       <button
                         type="button"
@@ -5235,8 +5234,9 @@ const styles = {
     minHeight: 44,
     padding: S.md,
     boxSizing: 'border-box',
-    background: T.surface2,
-    border: `1px solid ${T.border}`,
+    background: 'linear-gradient(180deg, #1d3249, #0e1e30 45%, #071320 82%, #102438)',
+    border: '3px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
     borderRadius: R.sm,
     cursor: 'pointer',
     font: 'inherit',
@@ -5282,7 +5282,7 @@ const styles = {
     padding: S.sm,
     borderRadius: R.sm,
     background: T.warnSoft,
-    border: '1px solid rgba(255,198,109,0.4)',
+    border: '1px solid rgba(86,216,255,0.45)',
     fontSize: F.caption,
     color: T.warn,
     lineHeight: 1.45,
@@ -5317,7 +5317,7 @@ const styles = {
   demoBanner: {
     ...card,
     background: T.warnSoft,
-    borderColor: 'rgba(255,198,109,0.45)',
+    borderColor: 'rgba(86,216,255,0.48)',
     marginBottom: S.md,
     display: 'flex',
     flexDirection: 'column',
@@ -5522,8 +5522,6 @@ const styles = {
     flexDirection: 'column',
     gap: S.md,
     padding: S.md,
-    border: '1px solid rgba(140, 161, 180, 0.24)',
-    background: 'linear-gradient(180deg, #080d14 0%, #05080c 100%)',
   },
   leakCardBody: {
     display: 'flex',
@@ -5547,7 +5545,7 @@ const styles = {
   },
   leakCardDemo: {
     borderStyle: 'dashed',
-    borderColor: 'rgba(255,198,109,0.45)',
+    borderColor: 'rgba(86,216,255,0.48)',
   },
   leakCardHeader: {
     display: 'flex',
@@ -5631,9 +5629,10 @@ const styles = {
     height: 44,
     padding: 0,
     borderRadius: R.sm,
-    border: '1px solid rgba(140, 161, 180, 0.28)',
-    background: '#08111B',
-    color: '#DCE5EF',
+    border: '3px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+    background: 'linear-gradient(180deg, #263F58, #112338 39%, #071420 77%, #12283C)',
+    color: '#E4EEF7',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -5641,13 +5640,11 @@ const styles = {
     flexShrink: 0,
   },
   sheetOptionCard: {
+    ...cardCompact,
     display: 'flex',
     flexDirection: 'column',
     gap: S.sm,
     padding: S.md,
-    borderRadius: R.md,
-    border: '1px solid rgba(140, 161, 180, 0.24)',
-    background: '#070D15',
   },
   sheetActionBtn: {
     ...btn('secondary', { block: true }),

@@ -136,3 +136,64 @@ test('4. pages/features/virtual-poker-sandbox.js enforces >=12px button/link tex
   assert.match(feature, /\.virtual-sandbox-lander button,[\s\S]*font-size:\s*12px\s*!important/);
   assert.match(feature, /\.virtual-sandbox-lander a:focus-visible,\s*\.virtual-sandbox-lander button:focus-visible\s*\{\s*outline:\s*2px solid #83deff;\s*outline-offset:\s*2px;\s*\}/);
 });
+
+test('5. Personal Assistant subpages, sheets, buttons, whole-card clickability, and Poker Arena Sandbox enforce #SMARTERDESIGN', () => {
+  const home = read('pages/hub/personal-assistant/index.js');
+  const homeCss = read('src/styles/worlds/PersonalAssistantHub.module.css');
+  const tokens = read('src/components/sandbox/paTokens.js');
+  const kit = read('src/components/sandbox/paKit.jsx');
+  const toolsCss = read('src/styles/worlds/PersonalAssistantTools.module.css');
+  const coachCss = read('src/components/personal-assistant/CoachingWorkspace.module.css');
+  const reviewCss = read('src/styles/worlds/PersonalAssistantReview.module.css');
+  const sandbox = read('pages/hub/personal-assistant/sandbox.js');
+  const table = read('src/components/sandbox/SandboxPokerTable.jsx');
+  const leaks = read('pages/hub/personal-assistant/leaks.js');
+  const quickEntry = read('src/components/personal-assistant/LiveSpotQuickEntry.jsx');
+
+  // Whole-card and artwork clickability on landing page
+  assert.match(home, /data-card-href="\/hub\/personal-assistant\/review"/);
+  assert.match(home, /data-card-href="\/hub\/personal-assistant\/sandbox"/);
+  assert.match(home, /data-card-href="\/hub\/personal-assistant\/leaks"/);
+  assert.match(home, /event\.target\.closest\('a, button'\)/);
+  assert.match(homeCss, /\.featureCard\s*\{[\s\S]*cursor:\s*pointer;/);
+
+  // Authentic #SMARTERDESIGN nine-slice metallic chrome across PA tokens, subpages, sheets, and buttons
+  for (const [label, src] of [
+    ['paTokens.js', tokens],
+    ['PersonalAssistantTools.module.css', toolsCss],
+    ['CoachingWorkspace.module.css', coachCss],
+    ['PersonalAssistantReview.module.css', reviewCss],
+    ['sandbox.js', sandbox],
+  ]) {
+    assert.match(src, /chrome-readout\.webp/, `${label} must use chrome-readout.webp nine-slice frame`);
+    assert.match(src, /chrome-row\.webp/, `${label} must use chrome-row.webp nine-slice controls`);
+    assert.match(src, /chrome-active\.webp/, `${label} must use chrome-active.webp cobalt active frame`);
+    assert.match(src, /chrome-stat\.webp/, `${label} must use chrome-stat.webp readout tiles`);
+  }
+
+  // Zero forbidden gold/amber/purple font or border colors in upgraded PA stylesheets & primitives
+  for (const [label, src] of [
+    ['paTokens.js', tokens],
+    ['paKit.jsx', kit],
+    ['PersonalAssistantTools.module.css', toolsCss],
+    ['CoachingWorkspace.module.css', coachCss],
+    ['PersonalAssistantReview.module.css', reviewCss],
+  ]) {
+    assert.doesNotMatch(src, /#ffc66d|#b9a7ff|#d2c6ff|#fde68a|#ddd6fe/i, `${label} must not use forbidden gold, amber, or purple colors`);
+  }
+
+  // Authentic Club Arena / Poker Arena table, room background, 4-color Arena cards, card backs, and dealer button
+  assert.match(table, /data-arena-table="true"/);
+  assert.match(table, /data-arena-table-skin="true"/);
+  assert.match(table, /resolveArenaSkinUrl/);
+  assert.match(table, /resolveArenaBackgroundLayers/);
+  assert.match(table, /\/hub\/club-arena\/cards\/4color\//);
+  assert.match(table, /data-arena-dealer-button="true"/);
+  assert.doesNotMatch(table, /poker-table-black-gold-nobg\.png/);
+
+  // Zero detached JSX plural suffixes that render as "LeakS" / "HandS" / "MistakeS" under PersonalAssistantCopyPolicy
+  assert.doesNotMatch(leaks, /\bleak\{[^}]*=== 1 \? '' : 's'\}/i);
+  assert.doesNotMatch(leaks, /\bMistake\{[^}]*=== 1 \? '' : 's'\}/);
+  assert.doesNotMatch(leaks, /\bSpot\{[^}]*=== 1 \? '' : 's'\}/);
+  assert.doesNotMatch(quickEntry, /\bHand\{[^}]*=== 1 \? '' : 's'\}/);
+});

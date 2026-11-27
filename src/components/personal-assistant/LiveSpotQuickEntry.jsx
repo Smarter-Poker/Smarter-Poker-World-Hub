@@ -178,7 +178,7 @@ function AuditResult({ result, onDismiss }) {
         {result.message}
         {result.summary?.reviewHref && (
           <a href={result.summary.reviewHref} className="pa-btn" style={{ ...btn('primary', { block: true }), marginTop: 10, textDecoration: 'none' }}>
-            Review {result.summary.savedHandCount} Saved Hand{result.summary.savedHandCount === 1 ? '' : 's'}
+            {`Review ${result.summary.savedHandCount} Saved ${result.summary.savedHandCount === 1 ? 'Hand' : 'Hands'}`}
           </a>
         )}
       </div>
@@ -195,7 +195,7 @@ function AuditResult({ result, onDismiss }) {
           {summary.verifiedCount} Solver Verified
         </span>
         <span style={pill('neutral')}>{summary.unpricedCount} Unpriced</span>
-        <span style={pill('neutral')}>{summary.handsParsed} Hand{summary.handsParsed === 1 ? '' : 's'} Read</span>
+        <span style={pill('neutral')}>{`${summary.handsParsed} ${summary.handsParsed === 1 ? 'Hand' : 'Hands'} Read`}</span>
         {summary.unsupportedCount > 0 && (
           <span style={pill('warn')}>{summary.unsupportedCount} Unsupported</span>
         )}
@@ -205,12 +205,12 @@ function AuditResult({ result, onDismiss }) {
       </div>
       {summary.savedForReview && (
         <p role="status" style={noteStyle}>
-          {summary.savedHandCount} Hand{summary.savedHandCount === 1 ? '' : 's'} Saved To Review My Play.
+          {`${summary.savedHandCount} ${summary.savedHandCount === 1 ? 'Hand' : 'Hands'} Saved To Review My Play.`}
         </p>
       )}
       {summary.reviewHref && (
         <a href={summary.reviewHref} className="pa-btn" style={{ ...btn('primary', { block: true }), textDecoration: 'none' }}>
-          Review Saved Hand{summary.savedHandCount === 1 ? '' : 's'}
+          {`Review Saved ${summary.savedHandCount === 1 ? 'Hand' : 'Hands'}`}
         </a>
       )}
       {!summary.hasVerifiedAdvice && (
@@ -1224,7 +1224,7 @@ export default function LiveSpotQuickEntry({
                   {detected.variantLabel}
                 </span>
                 {detected.handCount > 0 && (
-                  <span style={pill('neutral')}>{detected.handCount} Hand{detected.handCount === 1 ? '' : 's'} Found</span>
+                  <span style={pill('neutral')}>{`${detected.handCount} ${detected.handCount === 1 ? 'Hand' : 'Hands'} Found`}</span>
                 )}
               </div>
             )}

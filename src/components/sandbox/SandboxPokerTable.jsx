@@ -22,7 +22,17 @@ import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion';
 import { RotateCcw, Pencil, X as XIcon, Check } from 'lucide-react';
 import { T, F, R, Z, usePrefersReducedMotion } from './paTokens';
-import { getClubArenaTheme, onClubArenaThemeChange } from '../../lib/clubArenaTheme';
+import {
+    getClubArenaTheme,
+    onClubArenaThemeChange,
+    resolveArenaSkinUrl,
+    resolveArenaBackgroundLayers,
+    resolveArenaCardBackUrl,
+    resolveArenaDealerButton,
+    ARENA_BACKGROUND_SIZE,
+    ARENA_BACKGROUND_REPEAT,
+    ARENA_BACKDROP_COLOR,
+} from '../../lib/clubArenaTheme';
 
 /* ═══════════════════════════════════════════════════════════════════════
    LONG PRESS · with movement cancellation + pending feedback
@@ -106,16 +116,19 @@ const RANK_MAP = {
     'J': 'j', 'Q': 'q', 'K': 'k'
 };
 
-// Red suits for the text fallback
-const RED_SUITS = { h: true, d: true };
-const SUIT_LETTER = { s: 'S', h: 'H', d: 'D', c: 'C' };
+// 4-color suit tokens matching Club Arena's 4-color deck
+const FOUR_COLOR_SUIT = { s: '#111827', h: '#C81E2B', d: '#0F52BA', c: '#16794B' };
+const SUIT_SYMBOL = { s: '♠', h: '♥', d: '♦', c: '♣' };
 
 export function TableCard({ card, style = {} }) {
-    const [imgFailed, setImgFailed] = useState(false);
+    // Tier 0: Club Arena 4-color WebP deck (/hub/club-arena/cards/4color/...)
+    // Tier 1: World Hub bundled PNG deck (/cards/...)
+    // Tier 2: Crisp 4-color typography fallback
+    const [fallbackTier, setFallbackTier] = useState(0);
     const raw = typeof card === 'string' ? card.trim() : '';
 
-    // Reset the failure flag whenever the card itself changes
-    useEffect(() => { setImgFailed(false); }, [raw]);
+    // Reset the fallback tier whenever the card itself changes
+    useEffect(() => { setFallbackTier(0); }, [raw]);
 
     if (!raw) return null;
 
@@ -123,45 +136,84 @@ export function TableCard({ card, style = {} }) {
     const suitChar = raw[raw.length - 1]?.toLowerCase();
     const suitName = SUIT_MAP[suitChar];
     const rankName = RANK_MAP[rankChar];
-    const isRed = !!RED_SUITS[suitChar];
-    const showFallback = imgFailed || !suitName || !rankName;
+    const suitColor = FOUR_COLOR_SUIT[suitChar] || '#111827';
+    const showTextFallback = fallbackTier >= 2 || !suitName || !rankName;
 
     const wrapperStyle = {
-        width: 40, height: 56,
-        background: '#fff', borderRadius: R.sm,
-        boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
-        overflow: 'hidden', border: '1px solid #ddd',
+        width: 42, height: 59,
+        background: '#ffffff', borderRadius: 6,
+        boxShadow: '0 6px 14px rgba(0,0,0,0.62), 0 1px 2px rgba(0,0,0,0.45)',
+        overflow: 'hidden', border: '1px solid rgba(255,255,255,0.42)',
         boxSizing: 'border-box',
         ...style,
     };
 
-    if (showFallback) {
-        const h = Number(wrapperStyle.height) || 56;
+    if (showTextFallback) {
+        const h = Number(wrapperStyle.height) || 59;
         return (
             <span style={{
                 ...wrapperStyle,
                 display: 'inline-flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                color: isRed ? '#d32029' : '#1a1a1a',
-                fontWeight: 800, lineHeight: 1,
+                color: suitColor,
+                fontWeight: 900, lineHeight: 1,
                 fontFamily: "'Inter',-apple-system,sans-serif",
-            }} aria-label={raw}>
-                <span style={{ fontSize: Math.max(12, Math.round(h * 0.32)) }}>{rankChar || '?'}</span>
-                <span style={{ fontSize: Math.max(12, Math.round(h * 0.24)) }}>{SUIT_LETTER[suitChar] || '?'}</span>
+            }} aria-label={raw} data-arena-card={raw}>
+                <span style={{ fontSize: Math.max(12, Math.round(h * 0.34)) }}>{rankChar || '?'}</span>
+                <span style={{ fontSize: Math.max(12, Math.round(h * 0.28)) }}>{SUIT_SYMBOL[suitChar] || '?'}</span>
             </span>
         );
     }
 
-    const imagePath = `/cards/${suitName}_${rankName}.png`;
+    const imagePath = fallbackTier === 0
+        ? `/hub/club-arena/cards/4color/${suitName}_${rankName}.webp`
+        : `/cards/${suitName}_${rankName}.png`;
     return (
-        <span style={{ ...wrapperStyle, display: 'inline-block' }}>
+        <span style={{ ...wrapperStyle, display: 'inline-block' }} data-arena-card={raw}>
             <img
                 src={imagePath}
                 alt={raw}
-                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                onError={() => setImgFailed(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onError={() => setFallbackTier((prev) => prev + 1)}
                 decoding="async"
             />
+        </span>
+    );
+}
+
+function ArenaCardBackPair({ cardBackUrl, w = 18, h = 25 }) {
+    const [useFallback, setUseFallback] = useState(false);
+    useEffect(() => { setUseFallback(false); }, [cardBackUrl]);
+    const src = useFallback ? '/cards/back.webp' : (cardBackUrl || resolveArenaCardBackUrl());
+    const cardStyle = (rot, ml) => ({
+        width: w, height: h, borderRadius: 3, overflow: 'hidden',
+        border: '1px solid rgba(201, 223, 240, 0.45)',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.65)',
+        transform: `rotate(${rot}deg)`,
+        marginLeft: ml,
+        background: '#0b1e3b',
+        flexShrink: 0,
+    });
+    return (
+        <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', pointerEvents: 'none' }}>
+            <span style={cardStyle(-8, 0)}>
+                <img
+                    src={src}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={() => { if (!useFallback) setUseFallback(true); }}
+                    decoding="async"
+                />
+            </span>
+            <span style={cardStyle(8, -Math.round(w * 0.35))}>
+                <img
+                    src={src}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={() => { if (!useFallback) setUseFallback(true); }}
+                    decoding="async"
+                />
+            </span>
         </span>
     );
 }
@@ -311,6 +363,7 @@ export default function SandboxPokerTable({
     heroStack = 100,
     villains = [],
     street = 'flop',
+    tableSkinId = null,
     boardTexture,
     equity,
     equityLabel = null,
@@ -425,18 +478,28 @@ export default function SandboxPokerTable({
     const cornerBtn = (extra) => ({
         position: 'absolute', zIndex: Z.feltCards,
         width: 44, height: 44, borderRadius: '50%', padding: 0,
-        background: 'rgba(36,37,38,0.9)', border: `1px solid ${T.border}`,
-        color: T.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'radial-gradient(circle at 32% 28%, #263F58 0%, #0B1C2C 62%, #050E18 100%)',
+        border: '2px solid rgba(174, 192, 208, 0.58)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.28), 0 4px 12px rgba(0,0,0,0.62)',
+        color: '#E4EEF7', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', WebkitBackdropFilter: 'blur(4px)', backdropFilter: 'blur(4px)',
         touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
         ...extra,
     });
 
     const hasAnyCard = heroCards.length > 0 || communityCards.length > 0;
+    const resolvedTableSkinUrl = arenaTheme?.fromCache
+        ? arenaTheme.feltUrl
+        : resolveArenaSkinUrl(tableSkinId || arenaTheme?.tableId || 'classic_green', arenaTheme?.themeId);
+    const resolvedRoomBg = arenaTheme?.backgroundLayers || resolveArenaBackgroundLayers('midnight');
+    const resolvedCardBackUrl = arenaTheme?.cardBackUrl || resolveArenaCardBackUrl();
+    const resolvedDealerButton = arenaTheme?.dealerButton || resolveArenaDealerButton();
+    const dealerSeatIndex = seatArr.findIndex((s) => String(s.name || '').toUpperCase() === 'BTN');
 
     return (
         <div
             ref={rootRef}
+            data-arena-table="true"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
@@ -444,16 +507,22 @@ export default function SandboxPokerTable({
             style={{
                 position: 'relative',
                 width: '100%',
-                maxWidth: 'min(100%, 380px)',
+                maxWidth: 'min(100%, 400px)',
                 margin: '0 auto',
-                aspectRatio: '341 / 609',
-                overflow: 'visible',
+                aspectRatio: '605 / 1000',
+                overflow: 'hidden',
                 // Nothing inside the felt may ever paint over a page overlay.
                 zIndex: 0,
                 isolation: 'isolate',
                 touchAction: 'pan-y',
-                background: arenaTheme ? arenaTheme.feltLayers : 'radial-gradient(ellipse at 50% 45%, #1d7a4f 0%, #12603c 38%, #0d4a2e 70%, #08301e 100%)',
+                backgroundColor: ARENA_BACKDROP_COLOR,
+                backgroundImage: resolvedRoomBg,
+                backgroundSize: ARENA_BACKGROUND_SIZE,
+                backgroundRepeat: ARENA_BACKGROUND_REPEAT,
+                backgroundPosition: 'center',
                 borderRadius: R.lg,
+                border: '1px solid rgba(174, 192, 208, 0.28)',
+                boxShadow: 'inset 0 0 40px rgba(0, 0, 0, 0.72), 0 12px 28px rgba(0, 0, 0, 0.55)',
             }}>
             <style>{`
                 @keyframes paCardHold { from { transform: scale(1); opacity: .35 } to { transform: scale(1.06); opacity: 1 } }
@@ -462,20 +531,50 @@ export default function SandboxPokerTable({
                 }
             `}</style>
 
-            {/* Poker table · official Smarter.Poker brand table.
+            {/* Authentic Club Arena / Poker Arena wood & felt table skin.
                 This is the LCP element on a cold mobile load, so it is eager. */}
             <img
-                src="/images/poker-table-black-gold-nobg.png"
+                src={resolvedTableSkinUrl}
                 alt=""
                 aria-hidden="true"
+                data-arena-table-skin="true"
                 style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                    position: 'absolute',
+                    top: '4%',
+                    left: '5%',
+                    width: '90%',
+                    height: '92%',
+                    objectFit: 'contain',
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                    filter: 'drop-shadow(0 18px 28px rgba(0, 0, 0, 0.78))',
                 }}
                 loading="eager"
                 fetchpriority="high"
                 decoding="async"
             />
+
+            {/* Subtle Club Arena felt table watermark */}
+            <div
+                aria-hidden="true"
+                style={{
+                    position: 'absolute',
+                    top: '27%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 1,
+                    pointerEvents: 'none',
+                    color: 'rgba(255, 255, 255, 0.14)',
+                    fontSize: Math.max(11, Math.round(12 * u)),
+                    fontWeight: 900,
+                    letterSpacing: '0.22em',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    fontFamily: "'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+                }}
+            >
+                SMARTER.POKER
+            </div>
 
             {/* Reset · 44x44, lucide glyph, excluded from the swipe surface */}
             {onReset && (
@@ -483,7 +582,7 @@ export default function SandboxPokerTable({
                     type="button"
                     data-no-swipe="true"
                     onClick={() => { try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onReset(); }}
-                    style={cornerBtn({ top: 2, right: 2 })}
+                    style={cornerBtn({ top: 8, right: 8 })}
                     aria-label="Reset hand"
                 >
                     <RotateCcw size={18} strokeWidth={2} aria-hidden="true" />
@@ -500,9 +599,12 @@ export default function SandboxPokerTable({
                     aria-pressed={editMode}
                     aria-label={editMode ? 'Done editing cards' : 'Edit cards'}
                     style={cornerBtn({
-                        top: 2, left: 2,
-                        color: editMode ? T.accent : T.textMuted,
-                        borderColor: editMode ? T.accent : T.border,
+                        top: 8, left: 8,
+                        color: editMode ? '#ffffff' : '#E4EEF7',
+                        borderColor: editMode ? '#56D8FF' : 'rgba(174, 192, 208, 0.58)',
+                        background: editMode
+                            ? 'linear-gradient(180deg, #1981EC, #0C55C0 40%, #07377E 100%)'
+                            : 'radial-gradient(circle at 32% 28%, #263F58 0%, #0B1C2C 62%, #050E18 100%)',
                     })}
                 >
                     {editMode
@@ -575,28 +677,34 @@ export default function SandboxPokerTable({
                 </button>
             ) : null}
 
-            {/* Center info · moved from 62% to 55% so it clears the hero cards */}
+            {/* Center info · authentic Club Arena pot pill & telemetry */}
             <div style={{
                 position: 'absolute', top: '55%', left: '50%',
                 transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
-                width: '80%',
+                width: '74%',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
             }}>
                 <div style={{
-                    fontSize: fs(16, 14), fontWeight: 800, color: 'rgba(255,255,255,0.92)',
-                    letterSpacing: 0.4, marginBottom: 2, lineHeight: 1.2,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '4px 12px', borderRadius: R.pill,
+                    background: 'linear-gradient(180deg, rgba(16, 33, 52, 0.9), rgba(5, 13, 24, 0.94))',
+                    border: '1px solid rgba(174, 192, 208, 0.48)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                    fontSize: fs(15, 13), fontWeight: 800, color: '#FFFFFF',
+                    letterSpacing: 0.3, lineHeight: 1.2,
                     fontVariantNumeric: 'tabular-nums',
-                    textShadow: '0 1px 6px rgba(0,0,0,0.7)',
                 }}>
                     Pot {potValue.toFixed(1)} BB
                 </div>
 
                 <div style={{
-                    fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.55)',
-                    textTransform: 'uppercase', letterSpacing: 1.2, lineHeight: 1.2,
+                    fontSize: 12, fontWeight: 700, color: 'rgba(226, 238, 248, 0.85)',
+                    textTransform: 'uppercase', letterSpacing: 1.1, lineHeight: 1.2,
+                    textShadow: '0 1px 4px rgba(0, 0, 0, 0.85)',
                 }}>
                     {streetLabel.charAt(0).toUpperCase() + streetLabel.slice(1)}
                     {spr != null && Number.isFinite(Number(spr)) && (
-                        <span style={{ color: T.accent, marginLeft: 6, fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ color: '#86DAFF', marginLeft: 6, fontVariantNumeric: 'tabular-nums' }}>
                             SPR {spr}
                         </span>
                     )}
@@ -604,18 +712,21 @@ export default function SandboxPokerTable({
 
                 {hasEquity && (
                     <div style={{
-                        marginTop: 4, fontSize: 13, fontWeight: 700, lineHeight: 1.2,
+                        padding: '2px 10px', borderRadius: R.pill,
+                        background: 'rgba(5, 13, 24, 0.78)',
+                        border: `1px solid ${equityValue >= 50 ? 'rgba(77, 224, 165, 0.5)' : equityValue < 35 ? 'rgba(255, 107, 122, 0.5)' : 'rgba(86, 216, 255, 0.5)'}`,
+                        fontSize: 13, fontWeight: 800, lineHeight: 1.25,
                         color: equityValue >= 50 ? T.success : equityValue < 35 ? T.danger : T.accent,
                         fontVariantNumeric: 'tabular-nums',
-                        textShadow: '0 1px 4px rgba(0,0,0,0.6)',
                     }}>
                         {equityValue.toFixed(1)}% Equity
                     </div>
                 )}
                 {hasEquity && equityLabel && (
                     <div style={{
-                        fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 1,
+                        fontSize: 12, color: 'rgba(214, 228, 240, 0.78)', marginTop: 1,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        textShadow: '0 1px 4px rgba(0, 0, 0, 0.85)',
                     }}>
                         {equityLabel}
                     </div>
@@ -625,97 +736,145 @@ export default function SandboxPokerTable({
             {/* Swipe affordance · the gesture is otherwise invisible */}
             {showDealHint && (
                 <div style={{
-                    position: 'absolute', bottom: '4%', left: '50%', transform: 'translateX(-50%)',
-                    zIndex: Z.felt, padding: '4px 10px', borderRadius: R.pill,
-                    background: 'rgba(24,25,26,0.8)', border: `1px solid ${T.border}`,
-                    color: T.textMuted, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                    position: 'absolute', bottom: '3.5%', left: '50%', transform: 'translateX(-50%)',
+                    zIndex: Z.felt, padding: '4px 12px', borderRadius: R.pill,
+                    background: 'linear-gradient(180deg, rgba(16, 33, 52, 0.9), rgba(5, 13, 24, 0.92))',
+                    border: '1px solid rgba(174, 192, 208, 0.42)',
+                    color: '#DCE5EF', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
                     pointerEvents: 'none',
                 }}>
                     Swipe Left To Deal · Right To Undo
                 </div>
             )}
 
-            {/* Seat badges */}
+            {/* Seat badges · Club Arena brushed-steel metallic seat pods */}
             {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
                 const pos = seatPositions[idx];
                 const leftPct = parseFloat(pos.left);
                 const isLeftSide = leftPct < 25;
                 const isRightSide = leftPct > 75;
+                const isDealer = idx === dealerSeatIndex;
 
                 let badgeTransform = 'translate(-50%, -50%)';
                 if (isLeftSide) badgeTransform = 'translate(-10px, -50%)';
                 else if (isRightSide) badgeTransform = 'translate(calc(-100% + 10px), -50%)';
 
                 return (
-                    <motion.div key={`${seat.name}-${idx}`}
-                        initial={reduce ? { opacity: 0 } : { scale: 0, opacity: 0 }}
-                        animate={reduce ? { opacity: 1 } : { scale: 1, opacity: 1 }}
-                        transition={reduce ? { duration: 0 } : { delay: idx * 0.05 }}
+                    <div
+                        key={`${seat.name}-${idx}`}
                         style={{
-                            position: 'absolute', top: pos.top, left: pos.left,
-                            transform: badgeTransform, zIndex: 2,
-                            display: 'flex', alignItems: 'center', gap: compact ? 0 : 5,
-                            background: 'rgba(36,37,38,0.95)',
-                            borderRadius: R.sm,
-                            padding: compact ? 2 : '3px 6px 3px 3px',
-                            border: `2px solid ${seat.isHero ? 'rgba(99,231,255,0.7)' : T.border}`,
-                            WebkitBackdropFilter: 'blur(6px)', backdropFilter: 'blur(6px)',
-                            maxWidth: Math.round(tw * 0.52),
-                        }}>
-                        <div style={{
-                            width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
-                            overflow: 'hidden',
-                            border: `2px solid ${seat.isHero ? T.accentPress : 'rgba(255,255,255,0.15)'}`,
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                            background: 'rgba(0,0,0,0.3)',
-                        }}>
-                            <img
-                                src={SANDBOX_AVATARS[idx % SANDBOX_AVATARS.length]}
-                                alt=""
-                                aria-hidden="true"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                                loading="lazy"
-                                decoding="async"
-                            />
-                        </div>
-                        {compact ? (
-                            <span className="pa-vh-inline" style={{
-                                position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)',
-                                fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
-                                color: seat.isHero ? T.accent : T.textMuted,
-                                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                            position: 'absolute',
+                            top: pos.top,
+                            left: pos.left,
+                            transform: badgeTransform,
+                            zIndex: 2,
+                            maxWidth: Math.round(tw * 0.58),
+                        }}
+                    >
+                        <motion.div
+                            initial={reduce ? { opacity: 0 } : { scale: 0, opacity: 0 }}
+                            animate={reduce ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+                            transition={reduce ? { duration: 0 } : { delay: idx * 0.05 }}
+                            style={{
+                                position: 'relative',
+                                display: 'flex', alignItems: 'center', gap: compact ? 0 : 6,
+                                background: seat.isHero
+                                    ? 'linear-gradient(160deg, rgba(22, 46, 72, 0.96) 0%, rgba(9, 22, 36, 0.96) 60%, rgba(4, 12, 22, 0.98) 100%)'
+                                    : 'linear-gradient(160deg, rgba(24, 41, 60, 0.94) 0%, rgba(10, 21, 34, 0.95) 60%, rgba(5, 11, 19, 0.96) 100%)',
+                                borderRadius: 12,
+                                padding: compact ? 2 : '4px 8px 4px 4px',
+                                border: `2px solid ${seat.isHero ? '#56D8FF' : 'rgba(174, 192, 208, 0.48)'}`,
+                                boxShadow: seat.isHero
+                                    ? '0 6px 18px rgba(0,0,0,0.68), 0 0 14px rgba(86,216,255,0.28), inset 0 1px 0 rgba(255,255,255,0.24)'
+                                    : '0 6px 16px rgba(0,0,0,0.62), inset 0 1px 0 rgba(255,255,255,0.18)',
+                                WebkitBackdropFilter: 'blur(6px)', backdropFilter: 'blur(6px)',
                             }}>
-                                {seat.name} · {Number(seat.stack) || 0}
-                            </span>
-                        ) : (
-                            <div style={{ overflow: 'hidden', minWidth: 0 }}>
-                                <div style={{
-                                    fontSize: 12, fontWeight: 700, lineHeight: 1.2,
-                                    color: seat.isHero ? T.accent : T.text,
-                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                    maxWidth: Math.round(tw * 0.32),
-                                }}>
-                                    {seat.isHero ? `You (${seat.name})` : seat.name}
-                                </div>
-                                <div style={{
-                                    fontSize: 12, fontWeight: 700, color: T.textMuted, lineHeight: 1.2,
-                                    fontVariantNumeric: 'tabular-nums',
-                                }}>
-                                    {Number(seat.stack) || 0} BB
-                                </div>
-                                {!seat.isHero && seat.archetype && !compact && tw >= 280 && (
-                                    <div style={{
-                                        fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.45)',
-                                        lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap', maxWidth: Math.round(tw * 0.32),
-                                    }}>
-                                        {seat.archetype}
-                                    </div>
-                                )}
+                            <div style={{
+                                position: 'relative',
+                                width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
+                                overflow: 'hidden',
+                                border: `2px solid ${seat.isHero ? '#86DAFF' : 'rgba(196, 214, 230, 0.55)'}`,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                                background: 'radial-gradient(circle at 35% 30%, #203952, #07121e)',
+                            }}>
+                                <img
+                                    src={SANDBOX_AVATARS[idx % SANDBOX_AVATARS.length]}
+                                    alt=""
+                                    aria-hidden="true"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    loading="lazy"
+                                    decoding="async"
+                                />
                             </div>
-                        )}
-                    </motion.div>
+                            {compact ? (
+                                <span className="pa-vh-inline" style={{
+                                    position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)',
+                                    fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                                    color: seat.isHero ? T.accent : T.textMuted,
+                                    textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                                }}>
+                                    {seat.name} · {Number(seat.stack) || 0}
+                                </span>
+                            ) : (
+                                <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                                    <div style={{
+                                        fontSize: 12, fontWeight: 800, lineHeight: 1.2,
+                                        color: seat.isHero ? '#86DAFF' : '#F1F5FC',
+                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                        maxWidth: Math.round(tw * 0.3),
+                                    }}>
+                                        {seat.isHero ? `You (${seat.name})` : seat.name}
+                                    </div>
+                                    <div style={{
+                                        fontSize: 12, fontWeight: 800, color: '#D3E2EE', lineHeight: 1.2,
+                                        fontVariantNumeric: 'tabular-nums',
+                                    }}>
+                                        {Number(seat.stack) || 0} BB
+                                    </div>
+                                    {!seat.isHero && seat.archetype && !compact && tw >= 280 && (
+                                        <div style={{
+                                            fontSize: 12, fontWeight: 600, color: '#9EB4C8',
+                                            lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap', maxWidth: Math.round(tw * 0.3),
+                                        }}>
+                                            {seat.archetype}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {!seat.isHero && !compact && (
+                                <ArenaCardBackPair cardBackUrl={resolvedCardBackUrl} w={Math.round(clamp(18 * u, 14, 22))} h={Math.round(clamp(25 * u, 20, 31))} />
+                            )}
+                            {isDealer && (
+                                <span
+                                    aria-label="Dealer Button"
+                                    data-arena-dealer-button="true"
+                                    style={{
+                                        position: 'absolute',
+                                        top: -8,
+                                        right: -8,
+                                        width: 22,
+                                        height: 22,
+                                        borderRadius: '50%',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: resolvedDealerButton.bg,
+                                        color: resolvedDealerButton.color,
+                                        border: '2px solid rgba(10, 22, 36, 0.9)',
+                                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.72)',
+                                        fontSize: 11,
+                                        fontWeight: 900,
+                                        lineHeight: 1,
+                                        pointerEvents: 'none',
+                                    }}
+                                >
+                                    D
+                                </span>
+                            )}
+                        </motion.div>
+                    </div>
                 );
             })}
 

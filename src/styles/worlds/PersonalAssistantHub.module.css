@@ -48,7 +48,10 @@
   background: radial-gradient(ellipse at 80% 0, #13171b 0, #020304 35%, #000 70%);
   box-shadow: 0 4px 9px #0009;
   overflow: hidden;
+  cursor: pointer;
 }
+.featureCard:hover { filter: brightness(1.07); }
+.featureCard:active { transform: translateY(1px); }
 .featureCardPrimary { min-height: 262px; }
 .featureCardSandbox { min-height: 185px; }
 .featureCardLeaks { grid-template-columns: 36.36% minmax(0, 1fr) 23.45%; min-height: 117px; margin-top: -2px; }
