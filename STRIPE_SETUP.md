@@ -66,8 +66,10 @@ stripe trigger checkout.session.completed
 
 1. Go to Stripe Dashboard → Products → Add Product
 2. Create two products:
-   - **VIP Monthly**: $9.99/month recurring
-   - **VIP Annual**: $99.99/year recurring
+   - **VIP Monthly**: $20/month recurring
+   - **VIP Annual**: $200/year recurring
+   - The $1 first month is NOT a separate price: checkout attaches the one-time $19 coupon
+     `sp-vip-first-month-1usd` to the regular $20/month price (`src/lib/store/vipIntroOffer.mjs`)
 3. Copy the Price IDs (starts with `price_`)
 4. Add to environment variables:
    ```bash

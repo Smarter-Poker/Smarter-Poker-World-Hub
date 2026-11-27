@@ -154,7 +154,9 @@ ${JARVIS_KNOWLEDGE.worldHub.orbs.map(orb =>
                 knowledgeSections.push(`
 ## DIAMOND STORE
 - **Bundles**: Starter (1,000💎), Value (5,000💎), Premium (10,000💎), Ultimate (50,000💎)
-- **VIP Tiers**: Bronze, Silver, Gold
+- **VIP Membership**: Monthly $20/month by card, first month $1 for a first-time card subscriber with a verified email or phone (one time per account, card only); Yearly $200; Lifetime $500 (one payment)
+- **VIP With Diamonds**: A Diamond-funded month is 2,000 Diamonds with no first-month discount
+- **VIP Terms**: Cancel anytime. The 500 Diamond monthly stipend starts with the first full-price renewal. Purchase at /hub/vip-membership/monthly
 - **Checkout**: Add to cart → cart badge → review → Stripe payment → instant delivery
 - **Order History**: /hub/diamond-store/orders
 - **Access**: Diamond icon in header OR /hub/diamond-store
@@ -210,7 +212,7 @@ export function getPageSpecificKnowledge(page: string): string {
     const pageKnowledge: Record<string, string> = {
         '/hub/training': 'User is on Training page - emphasize GTO games, PIO solver, practice modes',
         '/hub/club-arena': 'User is in Poker Arena. Shark and joined chip clubs use their club rules; Diamond membership is automatic and funded Diamond games are not open yet.',
-        '/hub/diamond-store': 'User is on Diamond Store - emphasize bundles, VIP tiers, checkout process',
+        '/hub/diamond-store': 'User is on Diamond Store - emphasize bundles, VIP plans (Monthly $20 with a $1 first month for first-time card subscribers, Yearly $200, Lifetime $500), checkout process',
         '/hub/social-media': 'User is on Social Hub - emphasize posts, reels, stories, messenger',
         '/hub/poker-near-me/lobby': 'User is on Poker Near Me - emphasize venues, tours, live schedules',
         '/hub/settings': 'User is on Settings - emphasize profile, privacy, notifications, security',

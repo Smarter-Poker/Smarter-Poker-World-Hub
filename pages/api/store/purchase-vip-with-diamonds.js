@@ -108,7 +108,7 @@ function resolvePlan(planKey) {
   const usd = Number(plan.price);
   if (!Number.isFinite(usd) || usd <= 0) return null;
 
-  // $19.99 -> 1999, $199.99 -> 19999
+  // $20 -> 2000, $200 -> 20000, $500 -> 50000
   const cost = Math.round(usd * DIAMONDS_PER_DOLLAR);
   if (!Number.isInteger(cost) || cost < MIN_COST_DIAMONDS || cost > MAX_COST_DIAMONDS) return null;
 

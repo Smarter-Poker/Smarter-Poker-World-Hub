@@ -27,14 +27,15 @@ const DIAMOND_BUNDLES = [
 ];
 ```
 
-## VIP Membership — $19.99/month
+## VIP Membership: $20/month ($1 first month for a first-time Card subscriber)
 Unlocks ALL features with no diamond costs.
 
 ### Plans
 ```javascript
 const VIP_MEMBERSHIP = {
-  monthly: { id: 'vip-monthly', price: 19.99, interval: 'month' },
-  annual: { id: 'vip-annual', price: 199.99, interval: 'year', savings: 39.89 }
+  monthly: { id: 'vip-monthly', price: 20, interval: 'month' },  // first invoice $1 via one-time coupon, see src/lib/store/vipIntroOffer.mjs
+  yearly: { id: 'vip-yearly', price: 200, interval: 'year', savings: 40 },
+  lifetime: { id: 'vip-lifetime', price: 500, interval: 'lifetime' }
 };
 ```
 
@@ -67,7 +68,7 @@ const VIP_MEMBERSHIP = {
 **Note:** Diamond Arena tournaments require diamond buy-ins (freerolls free for VIP).
 Diamond Arcade games require diamonds to play — users gamble against the house.
 
-**Total Feature Value: $200+/mo → VIP Price: $19.99/mo**
+**Total Feature Value: $200+/mo → VIP Price: $20/mo**
 
 ## Merchandise
 ```javascript

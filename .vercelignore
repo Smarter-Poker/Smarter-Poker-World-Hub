@@ -188,5 +188,6 @@ _legacy_sql/
 
 !/__tests__/marketplace-whole-dollar-prices.test.mjs
 !/__tests__/vip-first-month-one-dollar.test.mjs
+!/__tests__/vip-intro-knowledge.test.mjs
 !/__tests__/vip-lifecycle-notices.test.mjs
 !/__tests__/vip-first-month-hardening.test.mjs

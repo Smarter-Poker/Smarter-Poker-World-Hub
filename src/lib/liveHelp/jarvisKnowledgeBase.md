@@ -288,10 +288,13 @@ Available bundles(prices may vary):
 - ** Premium Pack **: 10,000 💎
 - ** Ultimate Pack **: 50,000 💎
 
-### VIP Membership Tiers
-    - ** Bronze VIP **: Basic perks
-        - ** Silver VIP **: Enhanced features
-            - ** Gold VIP **: Premium access to all features
+### VIP Membership Plans
+- ** Monthly VIP **: $20/month by card. The first month is $1 for a first-time card subscriber with a verified email or phone (one time per account, card only)
+- ** Yearly VIP **: $200/year by card
+- ** Lifetime VIP **: $500, one payment, never renews
+- ** Diamond-funded month **: 2,000 Diamonds for 30 days, with no first-month discount
+- Cancel anytime. The 500 Diamond monthly stipend starts with the first full-price renewal
+- Purchase at `/hub/vip-membership/monthly`
 
 ### How to Purchase
 1. Click diamond icon in header OR navigate to Diamond Store

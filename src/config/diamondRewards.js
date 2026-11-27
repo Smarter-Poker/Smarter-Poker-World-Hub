@@ -4,9 +4,10 @@
  * SINGLE SOURCE OF TRUTH for every way a user can earn diamonds.
  *
  * ECONOMIC ANCHOR
- *   1 diamond = $0.01 USD. VIP = $19.99/mo ($199.99/yr).
+ *   1 diamond = $0.01 USD. VIP = $20/mo ($200/yr, $500 lifetime). A first-time
+ *   Card subscriber pays $1 for the first month (src/lib/store/vipIntroOffer.mjs).
  * A genuinely hard-working free user tops out at ~3,300 ◆/month ($33) =
- * a VIP card (1,999 ◆) + ~1,300 ◆ for the Diamond Arena.
+ * a VIP card (2,000 ◆) + ~1,300 ◆ for the Diamond Arena.
  *   Every diamond is REAL MONEY. Ceilings are mandatory, not advisory.
  *
  * HARD RULES (enforced in SQL by public.award_diamonds_v2)

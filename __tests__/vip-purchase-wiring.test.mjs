@@ -158,6 +158,7 @@ test('the obsolete image maps are gone and store actions use native buttons', ()
 
 const VIP_STYLES = readFileSync(join(ROOT, 'src/components/store/VipMembershipPage.module.css'), 'utf8');
 const VIP_NAV = await import('../src/lib/store/vipNavigation.mjs');
+const VIP_ANALYTICS = await import('../src/lib/store/vipCheckoutAnalytics.mjs');
 
 test('guest checkout preserves each selected plan through canonical sign-in', () => {
   for (const plan of ['vip-monthly', 'vip-yearly', 'vip-lifetime']) {
@@ -208,6 +209,7 @@ function checkoutHarness({ signedIn = true, responseOkay = true, vipProduct = nu
     getVerifiedCheckoutAuthorization: async () => ({ accessToken: 'isolated-test-token' }),
     getOrCreateCommerceRequestId: () => 'fixed-protected-request',
     captureStoreEvent: () => {},
+    vipCheckoutAnalytics: VIP_ANALYTICS.vipCheckoutAnalytics,
     boundedCommerceFetch: async (url, init) => {
       requests.push({ url, ...init, body: JSON.parse(init.body) });
       return { ok: responseOkay, status: responseOkay ? 200 : 503,
