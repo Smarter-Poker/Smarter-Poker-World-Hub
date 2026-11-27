@@ -33,7 +33,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
-import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import { ensureAuthReady, getAccessToken, getFreshAccessToken } from '../../src/lib/authUtils';
+import { isSafeRelativePath } from '../../src/lib/clubInvite';
 
 /* Seconds the "Resend code" button stays locked after a successful send. */
 const RESEND_COOLDOWN_SEC = 30;
@@ -81,14 +82,28 @@ export default function MfaChallengePage() {
     // [Phase 6.1.26] step-up flag — a high-risk action re-confirming the user.
     const isStepUp = router.query.stepUp === '1' || router.query.stepUp === 'true';
 
-    /* Only internal paths, to prevent open-redirect abuse. */
-    const getNextUrl = () => {
-        const n = router.query.next;
-        if (n && typeof n === 'string' && n.startsWith('/') && !n.startsWith('//')) {
-            return n;
+    /* Only safe same-origin relative paths, to prevent open-redirect abuse. */
+    const getNextUrl = useCallback(() => {
+        const rawNext = Array.isArray(router.query.next) ? router.query.next[0] : router.query.next;
+        if (isSafeRelativePath(rawNext)) {
+            return rawNext;
+        }
+        const rawRedirect = Array.isArray(router.query.redirect)
+            ? router.query.redirect[0]
+            : router.query.redirect;
+        if (isSafeRelativePath(rawRedirect)) {
+            return rawRedirect;
         }
         return '/hub';
-    };
+    }, [router.query.next, router.query.redirect]);
+
+    const getMfaLoginRedirectUrl = useCallback(() => {
+        const nextUrl = getNextUrl();
+        const mfaReturnPath = nextUrl && nextUrl !== '/hub'
+            ? `/auth/mfa?next=${encodeURIComponent(nextUrl)}`
+            : '/auth/mfa';
+        return `/auth/login?redirect=${encodeURIComponent(mfaReturnPath)}`;
+    }, [getNextUrl]);
 
     /* How many digits we expect. The server reports `codeLength` (currently 4,
        matching the shared sms_otp_codes pipeline). If it stops reporting it we
@@ -124,7 +139,7 @@ export default function MfaChallengePage() {
             if (!res.ok) {
                 setSendFailed(true);
                 if (res.status === 401) {
-                    router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);
+                    router.replace(getMfaLoginRedirectUrl());
                     return;
                 }
                 /* The server tells us when texting is not an option at all
@@ -184,18 +199,20 @@ export default function MfaChallengePage() {
         } finally {
             setIsSending(false);
         }
-    }, [router]);
+    }, [router, getMfaLoginRedirectUrl]);
 
     /* ── Gate the page, then text the code ───────────────────────────────── */
     useEffect(() => {
+        if (router.isReady === false) return undefined;
         let cancelled = false;
         async function boot() {
-            const user = getAuthUser();
-            const accessToken = getAccessToken();
-            const s = user?.id && accessToken ? { user, access_token: accessToken } : null;
+            const user = await ensureAuthReady(supabase);
             if (cancelled) return;
+            const accessToken = (await getFreshAccessToken()) || getAccessToken();
+            if (cancelled) return;
+            const s = user?.id && accessToken ? { user, access_token: accessToken } : null;
             if (!s) {
-                router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);
+                router.replace(getMfaLoginRedirectUrl());
                 return;
             }
             setSession(s);
@@ -208,7 +225,7 @@ export default function MfaChallengePage() {
         }
         boot();
         return () => { cancelled = true; };
-    }, [router, sendCode]);
+    }, [router, router.isReady, sendCode, getMfaLoginRedirectUrl]);
 
     const handleResend = () => {
         if (cooldown > 0 || isSending || isLoading) return;
@@ -265,7 +282,7 @@ export default function MfaChallengePage() {
                response shape cannot strand a user who really did verify. */
             if (!res.ok || json.success === false) {
                 if (res.status === 401) {
-                    router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);
+                    router.replace(getMfaLoginRedirectUrl());
                     return;
                 }
                 if (res.status === 429) {

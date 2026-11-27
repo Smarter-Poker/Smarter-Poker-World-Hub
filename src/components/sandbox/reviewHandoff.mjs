@@ -76,6 +76,16 @@ export function parseReviewHandoffPayload(raw, expectedRowId = null) {
 
   // Support both direct handoff shape and saved-hands API row shape (with nested hand_data / handData)
   const nested = raw.hand_data || raw.handData || raw.scenario_json || {};
+  const playersList = Array.isArray(nested.players)
+    ? nested.players
+    : (Array.isArray(raw.players) ? raw.players : []);
+  const heroPlayer = playersList.find((p) => p?.isHero === true) || null;
+
+  const bigBlindRaw = Number(
+    raw.big_blind ?? raw.bigBlind ?? nested.big_blind ?? nested.bigBlind,
+  );
+  const bigBlind = Number.isFinite(bigBlindRaw) && bigBlindRaw > 0 ? bigBlindRaw : null;
+
   const heroCards = extractCards(
     raw.heroCards
     || raw.heroHand
@@ -84,7 +94,9 @@ export function parseReviewHandoffPayload(raw, expectedRowId = null) {
     || nested.heroCards
     || nested.heroHand
     || nested.hero_cards
-    || nested.hero_hand,
+    || nested.hero_hand
+    || heroPlayer?.holeCards
+    || heroPlayer?.cards,
   );
   const boardCards = extractCards(
     raw.board
@@ -107,28 +119,63 @@ export function parseReviewHandoffPayload(raw, expectedRowId = null) {
   }
 
   const heroPosition = normalizePos(
-    raw.heroPosition || raw.hero_position || raw.position || nested.heroPosition || nested.hero_position,
+    raw.heroPosition || raw.hero_position || raw.position
+    || nested.heroPosition || nested.hero_position || heroPlayer?.position,
   ) || 'BTN';
 
-  const potCandidate = Number(
+  const explicitPotBb = Number(
     raw.potBase ?? raw.pot ?? raw.potBb ?? raw.pot_bb ?? raw.potSize
     ?? nested.potBase ?? nested.pot ?? nested.potBb ?? nested.pot_bb ?? nested.potSize,
   );
+  const rawPotTotal = Number(
+    raw.pot_total ?? raw.potTotal ?? nested.pot_total ?? nested.potTotal,
+  );
+  const potCandidate = Number.isFinite(explicitPotBb) && explicitPotBb > 0
+    ? explicitPotBb
+    : (Number.isFinite(rawPotTotal) && rawPotTotal > 0 && bigBlind ? rawPotTotal / bigBlind : NaN);
   const potBase = Number.isFinite(potCandidate) && potCandidate > 0
     ? Math.max(1, Math.min(500, Math.round(potCandidate * 10) / 10))
     : 6.5;
 
-  const stackCandidate = Number(
+  const explicitStackBb = Number(
     raw.effectiveStack ?? raw.effective_stack_bb ?? raw.heroStack ?? raw.hero_stack ?? raw.stackDepth ?? raw.stack
     ?? nested.effectiveStack ?? nested.heroStack ?? nested.stackDepth ?? nested.stack,
   );
+  const rawHeroPlayerStack = Number(
+    heroPlayer?.stack ?? heroPlayer?.startingStack ?? heroPlayer?.chips,
+  );
+  const stackCandidate = Number.isFinite(explicitStackBb) && explicitStackBb > 0
+    ? explicitStackBb
+    : (Number.isFinite(rawHeroPlayerStack) && rawHeroPlayerStack > 0 && bigBlind
+      ? rawHeroPlayerStack / bigBlind
+      : NaN);
   const heroStack = Number.isFinite(stackCandidate) && stackCandidate > 0
     ? Math.max(5, Math.min(1000, Math.round(stackCandidate)))
     : 100;
 
   const gameType = normalizeGameType(
-    raw.gameFormat || raw.gameType || raw.format || raw.game_type || nested.gameFormat || nested.gameType || nested.format,
+    raw.gameFormat || raw.gameType || raw.format || raw.game_type
+    || nested.gameFormat || nested.gameType || nested.format
+    || (nested.tournamentId || raw.tournament_id ? 'tournament' : ''),
   );
+
+  // Sanitized villains (position & stack BB only - zero opponent cards or PII)
+  const opponentPlayers = playersList.filter((p) => p && p.isHero !== true).slice(0, 5);
+  const sanitizedVillains = opponentPlayers.length > 0
+    ? opponentPlayers.map((p, idx) => {
+      const oppRawStack = Number(p?.stack ?? p?.startingStack ?? p?.chips);
+      const oppStackBb = Number.isFinite(oppRawStack) && oppRawStack > 0 && bigBlind
+        ? Math.max(5, Math.min(1000, Math.round(oppRawStack / bigBlind)))
+        : heroStack;
+      return {
+        id: idx,
+        position: normalizePos(p?.position) || (heroPosition === 'BB' ? 'BTN' : 'BB'),
+        stack: oppStackBb,
+        archetype: { id: 'gto_neutral', name: 'GTO Neutral' },
+        range: '',
+      };
+    })
+    : null;
 
   // Privacy: never forward opponent hidden cards, showdown reveals, or opponent PII.
   return {
@@ -143,6 +190,7 @@ export function parseReviewHandoffPayload(raw, expectedRowId = null) {
     potBase,
     heroStack,
     gameType,
+    villains: sanitizedVillains,
     actionHistory: [],
     authority: 'authored-sandbox-ungraded',
     nonNlhHeroCardCount: heroCards.length > 2 ? heroCards.length : null,

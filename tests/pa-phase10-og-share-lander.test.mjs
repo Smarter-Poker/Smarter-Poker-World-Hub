@@ -70,8 +70,8 @@ test('2. pages/api/og/hand-card.js enforces privacy/cache headers, case-insensit
   assert.equal(normalizeRank('kd'), 'K');
   assert.equal(normalizeRank('9c'), '9');
 
-  // Bounded/sanitized non-review params and zero fabricated defaults
-  assert.match(src, /reviewCards\(searchParams\.get\('hero'\),\s*4\)/);
+  // Bounded/sanitized params (up to 6 hero cards for PLO4/5/6) and zero fabricated defaults
+  assert.match(src, /reviewCards\(searchParams\.get\('hero'\),\s*6\)/);
   assert.match(src, /reviewCards\(searchParams\.get\('board'\),\s*5\)/);
   assert.match(src, /reviewText\(searchParams\.get\('result'\),\s*24\)/);
   assert.match(src, /reviewText\(searchParams\.get\('amount'\),\s*24\)/);

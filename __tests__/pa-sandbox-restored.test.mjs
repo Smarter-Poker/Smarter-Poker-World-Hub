@@ -179,7 +179,8 @@ test('canonical auth, active-play gate, deadlines, cancellation, and persistence
   assert.match(sandbox, /getFreshAccessToken/);
   assert.match(sandbox, /!authInitializing/);
   assert.doesNotMatch(sandbox, /supabase\.auth\.getSession\s*\(/);
-  assert.match(sandbox, /const \[workerReady, setWorkerReady\] = useState\(false\)/);
+  assert.match(sandbox, /useEquityWorker\s*\(/);
+  assert.match(read('src/hooks/useEquityWorker.js'), /const \[workerReady, setWorkerReady\] = useState\(false\)/);
   assert.doesNotMatch(sandbox, /\{isEquityWorkerAvailable\(\)/);
   assert.match(sandbox, /soundEnabled,\s*toggleSound/);
   assert.doesNotMatch(read('pages/hub/personal-assistant/review.js'), /<main\b/);

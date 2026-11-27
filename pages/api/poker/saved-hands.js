@@ -29,6 +29,14 @@ import { executeSavedHandsRequest } from '../../../src/lib/personal-assistant/sa
 
 export { SAVED_HAND_TABLE_ID, validateSavedHand, savedHandRow };
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '64kb',
+    },
+  },
+};
+
 export default async function handler(req, res) {
   return executeSavedHandsRequest(req, res, {
     getDb: getServiceSupabase,

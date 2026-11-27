@@ -345,6 +345,8 @@ export function BottomSheet({
     /** Fully hides the close button · only ever for blocking flows. Avoid. */
     hideClose = false,
     closeLabel = 'Close',
+    /** Optional hook invoked before Escape closes the sheet; return true to consume Escape without closing. */
+    onBeforeEscape = null,
     bodyStyle = null,
     sheetStyleOverride = null,
     /** Rendered between the header and the scrolling body (sticky sub-header). */
@@ -356,6 +358,8 @@ export function BottomSheet({
     const previouslyFocused = useRef(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
+    const onBeforeEscapeRef = useRef(onBeforeEscape);
+    onBeforeEscapeRef.current = onBeforeEscape;
     const closeSheet = useCallback(() => onCloseRef.current?.(), []);
 
     useEffect(() => { setMounted(true); }, []);
@@ -381,6 +385,7 @@ export function BottomSheet({
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation?.();
+                if (onBeforeEscapeRef.current?.() === true) return;
                 closeSheet();
                 return;
             }

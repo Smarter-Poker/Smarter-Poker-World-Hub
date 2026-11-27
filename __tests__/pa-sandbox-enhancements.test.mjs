@@ -541,8 +541,8 @@ test('sandbox.js wires CardPickerSheet spatial grid, ?fromReview= preload, progr
   assert.match(src, /consumeReviewHandoffFromStorage/);
   assert.match(src, /\/api\/poker\/saved-hands\?id=/);
 
-  // Progressive equity wiring
-  assert.match(src, /runProgressiveEquity/);
+  // Progressive equity wiring via useEquityWorker hook
+  assert.match(src, /useEquityWorker\s*\(/);
   assert.match(src, /DEFAULT_PREVIEW_TRIALS/);
   assert.match(src, /DEFAULT_FULL_TRIALS/);
 

@@ -107,6 +107,7 @@ const NATIVE_APP_API_PREFIXES = [
   '/api/poy/',
   '/api/avatars',
   '/api/auth/delete-account',
+  '/api/poker/saved-hands',
 ];
 
 function isNativeAppApiPath(pathname: string): boolean {
@@ -393,6 +394,7 @@ export const config = {
     '/api/poy/:path*',
     '/api/avatars',
     '/api/auth/delete-account',
+    '/api/poker/saved-hands',
     // Admin guard routes
     '/api/admin/:path*',
     '/api/debug/:path*',
