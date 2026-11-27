@@ -2836,35 +2836,8 @@ function MessengerPage() {
         enterClubWorkspace(entry.club, entry.folder);
     }, [user?.id, joinedClubs, router.query.clubId, router.query.forceIdentity, router.query.folder, router.query.conversation]);
 
-    /*
-     * ITEM 13 (2026-09-08): next.config.js redirects /hub/live-help to
-     * /hub/messenger?chat=jarvis, and nothing here read `chat` - so the
-     * redirect dropped you on the plain inbox. Jarvis is reachable only
-     * through handleSelectConversation's isJarvis branch, which nothing
-     * triggered from the URL.
-     */
-    const jarvisOpenedRef = useRef(false);
-    useEffect(() => {
-        if (router.query.chat !== 'jarvis' || jarvisOpenedRef.current) return;
-        jarvisOpenedRef.current = true;
-        // The SAME object the sidebar's Jarvis row builds. A thinner one leaves
-        // the thread header without an otherUser and leaves the active-id
-        // highlight ('jarvis-ai') pointing at nothing.
-        handleSelectConversation({
-            id: 'jarvis-ai',
-            isJarvis: true,
-            otherUser: {
-                id: 'jarvis',
-                username: 'jarvis',
-                display_name: 'Jarvis',
-                full_name: 'Jarvis',
-                avatar_url: null,
-            },
-            last_message_preview: 'Your Poker AI Assistant',
-            last_message_at: new Date().toISOString(),
-            unreadCount: 0,
-        });
-    }, [router.query.chat]);
+    // Jarvis was removed from Messenger (owner, 2026-11-27): no sidebar row
+    // and no ?chat=jarvis deep link. /hub/live-help now lands on the inbox.
 
     // Calls run app-wide in src/components/calls/CallProvider.jsx (2026-10-31):
     // they ring on every page, survive a hang-up, time out, and write exactly
@@ -3459,93 +3432,7 @@ function MessengerPage() {
                         display: 'flex',
                         flexDirection: 'column',
                     }}>
-                        {/* Jarvis AI - Locked at Bottom (above Report Bug) */}
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={spKeyActivate}
-                            onClick={() => handleSelectConversation({
-                                id: 'jarvis-ai',
-                                isJarvis: true,
-                                otherUser: {
-                                    id: 'jarvis',
-                                    username: 'jarvis',
-                                    display_name: 'Jarvis',
-                                    full_name: 'Jarvis',
-                                    avatar_url: null
-                                },
-                                last_message_preview: 'Your Poker AI Assistant',
-                                last_message_at: new Date().toISOString(),
-                                unreadCount: 0
-                            })}
-                            style={{
-                                padding: '12px 16px',
-                                cursor: 'pointer',
-                                background: activeConversation?.id === 'jarvis-ai'
-                                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.1))'
-                                    : '#2a2a2a',
-                                borderBottom: `1px solid ${C.border}`,
-                                borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #00D4FF' : '3px solid transparent',
-                                transition: 'all 0.2s',
-                                position: 'relative'
-                            }}
-                            onMouseEnter={e => {
-                                if (activeConversation?.id !== 'jarvis-ai') {
-                                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)';
-                                }
-                            }}
-                            onMouseLeave={e => {
-                                if (activeConversation?.id !== 'jarvis-ai') {
-                                    e.currentTarget.style.background = '#2a2a2a';
-                                }
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                {/* Jarvis Avatar */}
-                                <Image src="/images/jarvis-avatar.webp" alt="Jarvis AI" width={48} height={48} style={{
-                                    width: 48,
-                                    height: 48,
-                                    borderRadius: '50%',
-                                    objectFit: 'cover',
-                                    boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
-                                    border: '2px solid #00D4FF',
-                                    position: 'relative'
-                                }} />
-                                {/* Always Online Indicator */}
-                                <div style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 36,
-                                    width: 14,
-                                    height: 14,
-                                    borderRadius: '50%',
-                                    background: C.green,
-                                    border: '2px solid white'
-                                }} />
-
-                                {/* Jarvis Info */}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{
-                                        marginBottom: 4
-                                    }}>
-                                        <span style={{
-                                            fontWeight: 600,
-                                            fontSize: 15,
-                                            color: '#00D4FF'
-                                        }}>Jarvis</span>
-                                    </div>
-                                    <div style={{
-                                        fontSize: 13,
-                                        color: '#00D4FF',
-                                        lineHeight: 1.3,
-                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                    }}>
-                                        Your Personal Smarter.Poker Coach - Always Online Always Available! Ask Me Anything...
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+                        {/* Jarvis was removed from Messenger (owner, 2026-11-27). */}
                         <div style={{
                             padding: 12,
                             textAlign: 'center',
