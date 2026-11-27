@@ -40,7 +40,9 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
   assert.match(challengesWidget, /#25c8ff/i);
   assert.match(challengesWidget, /#f2b84b/i);
   assert.match(challengesWidget, /borderRadius:\s*'2px'/);
-  assert.match(trainingSignInPrompt, /borderRadius:\s*2/);
+  // TrainingSignInPrompt upgraded to #SMARTERDESIGN brushed-chrome frame & primary CTA in PR #3178
+  assert.match(trainingSignInPrompt, /className="sd-button sd-primary"/);
+  assert.match(trainingSignInPrompt, /borderRadius:\s*12/);
   assert.match(triviaPage, /trivia-daily-casino/);
   assert.match(memoryPage, /function DailyLocalPracticeCard/);
   assert.match(memoryPage, /className="preflop-daily-card/);

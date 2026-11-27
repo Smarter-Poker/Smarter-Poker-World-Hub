@@ -3,10 +3,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { getFreshAccessToken } from '../../../lib/authUtils';
 import useServerGradedRun from '../../../hooks/useServerGradedRun';
+import useTriviaKeyboardControls from '../../../hooks/useTriviaKeyboardControls';
 import { TRIVIA_INTRO_ART_PVP } from '../../../config/triviaIntroArt.mjs';
 import { createCompetitiveJourneyTracker } from '../../../lib/trivia/competitiveJourneyAnalytics.mjs';
 import ResponsiveModeArt from '../console/ResponsiveModeArt';
 import TriviaConsole, { TriviaGlassAction } from '../console/TriviaConsole';
+import TriviaCardText from '../TriviaCardText';
+import TriviaQuestionProgress from '../TriviaQuestionProgress';
 import PostSettlementReviewDrawer from '../PostSettlementReviewDrawer';
 import ShareResultCardModal from '../ShareResultCardModal';
 import {
@@ -1390,6 +1393,14 @@ export default function PvpCompetitiveExperience({
     const searchSeconds = pvpSecondsUntil(dto?.ticket?.searchExpiresAt, serverAnchor, clockNow);
     const matchSeconds = pvpSecondsUntil(dto?.match?.deadlineAt, serverAnchor, clockNow);
     const currentQuestion = questions[questionIndex] || null;
+    const pvpAnswerLocked = answerState === 'sending' || answerState === 'recorded' || finishing || matchSeconds === 0;
+    useTriviaKeyboardControls({
+        enabled: effectiveState === 'playing' && Boolean(currentQuestion),
+        optionCount: currentQuestion?.options?.length || 0,
+        canSelect: effectiveState === 'playing' && Boolean(currentQuestion) && !pvpAnswerLocked && answerState !== 'error',
+        canAdvance: false,
+        onSelectOption: handleAnswer,
+    });
     const match = dto?.match || null;
     const result = dto?.result || null;
     const isSettledResult = effectiveState === 'result'
@@ -1711,7 +1722,13 @@ export default function PvpCompetitiveExperience({
                     ) : null}
                     {currentQuestion ? (
                         <>
-                            <p className="trivia-pvp-question">{currentQuestion.question}</p>
+                            <TriviaQuestionProgress
+                                total={questions.length}
+                                currentIndex={questionIndex}
+                                outcomes={questions.map((q) => (q.state === 'answered' ? 'answered' : null))}
+                                label={`Question ${currentQuestion.position || questionIndex + 1} Of ${questions.length}`}
+                            />
+                            <p className="trivia-pvp-question"><TriviaCardText text={currentQuestion.question} /></p>
                             <div className="trivia-pvp-options" role="group" aria-label={`Question ${currentQuestion.position || questionIndex + 1} Answers`}>
                                 {currentQuestion.options.map((option, index) => (
                                     <button

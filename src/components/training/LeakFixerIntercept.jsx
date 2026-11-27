@@ -82,6 +82,10 @@ export default function LeakFixerIntercept({ onDismiss, onAccept }) {
                 style={styles.overlay}
             >
                 <motion.div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Leak Detected"
+                    className="sp-training-modal-surface"
                     initial={{ scale: 0.9, y: 20 }}
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.9, y: 20 }}
@@ -105,8 +109,8 @@ export default function LeakFixerIntercept({ onDismiss, onAccept }) {
                             <motion.div
                                 style={{
                                     ...styles.confidenceBar,
-                                    background: topLeak.confidence >= 0.9 ? '#FF4444' :
-                                        topLeak.confidence >= 0.75 ? '#FF6B35' : '#FFD700'
+                                    background: topLeak.confidence >= 0.9 ? '#ef4444' :
+                                        topLeak.confidence >= 0.75 ? '#38bdf8' : '#8de6ff'
                                 }}
                                 initial={{ width: 0 }}
                                 animate={{ width: `${topLeak.confidence * 100}%` }}
@@ -179,20 +183,21 @@ const styles = {
 
     card: {
         width: '100%',
-        maxWidth: 400,
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #0a0a15 100%)',
-        borderRadius: 20,
-        padding: '32px 24px',
-        border: '2px solid #FF6B35',
-        boxShadow: '0 0 60px rgba(255, 107, 53, 0.3)',
+        maxWidth: 420,
+        background: 'linear-gradient(165deg, #0c2031 0%, #040d18 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+        borderRadius: 18,
+        padding: '28px 24px',
+        border: '3px solid transparent',
+        boxShadow: '0 20px 64px rgba(0, 0, 0, 0.78), 0 0 36px rgba(8, 124, 250, 0.22)',
         textAlign: 'center',
-        fontFamily: 'Inter, -apple-system, sans-serif',
-        color: '#fff',
+        fontFamily: "var(--font-rajdhani, 'Rajdhani'), Inter, -apple-system, sans-serif",
+        color: '#f3f7fb',
     },
 
     warningIcon: {
-        fontSize: 48,
-        marginBottom: 16,
+        fontSize: 44,
+        color: '#8de6ff',
+        marginBottom: 12,
         animation: 'pulse 2s ease-in-out infinite',
     },
 
@@ -200,8 +205,8 @@ const styles = {
         fontSize: 24,
         fontWeight: 800,
         margin: '0 0 8px 0',
-        color: '#FF6B35',
-        letterSpacing: 2,
+        color: '#f3f7fb',
+        letterSpacing: 1.5,
     },
 
     leakName: {
@@ -273,12 +278,13 @@ const styles = {
     xpBadge: {
         display: 'inline-block',
         padding: '8px 16px',
-        background: 'linear-gradient(135deg, #FF6B35, #FF4444)',
-        borderRadius: 20,
+        background: 'linear-gradient(180deg, #102b40, #061723)',
+        border: '1px solid #56d8ff',
+        borderRadius: 10,
         fontSize: 14,
         fontWeight: 700,
-        color: '#fff',
-        marginBottom: 24,
+        color: '#8de6ff',
+        marginBottom: 22,
     },
 
     buttonRow: {
@@ -288,25 +294,27 @@ const styles = {
 
     dismissButton: {
         flex: 1,
-        padding: '16px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        minHeight: 48,
+        padding: '12px 14px',
+        background: 'linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 18%, #e6f7ff 45%, #4c6470 72%, #e6f4fa 100%) border-box',
+        border: '2px solid transparent',
         borderRadius: 12,
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 600,
+        color: '#f3f7fb',
+        fontSize: 15,
+        fontWeight: 700,
         cursor: 'pointer',
     },
 
     acceptButton: {
         flex: 2,
-        padding: '16px',
-        background: 'linear-gradient(135deg, #FF6B35, #FF4444)',
-        border: 'none',
+        minHeight: 48,
+        padding: '12px 16px',
+        background: 'linear-gradient(180deg, #51c9ff 0%, #0873ff 10%, #0648e2 38%, #022695 82%, #0b71c4 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 18%, #e6f7ff 45%, #4c6470 72%, #e6f4fa 100%) border-box',
+        border: '2px solid transparent',
         borderRadius: 12,
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 700,
+        color: '#ffffff',
+        fontSize: 15,
+        fontWeight: 800,
         cursor: 'pointer',
     },
 

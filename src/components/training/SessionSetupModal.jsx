@@ -386,10 +386,9 @@ export default function SessionSetupModal({
           maxHeight: '92dvh',
           overflowY: 'auto',
           position: 'relative',
-          background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
-          border: '1px solid #688299',
-          borderTopColor: '#aec0d0',
-          borderRadius: 7,
+          background: 'linear-gradient(165deg, #0c2031 0%, #040d18 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+          border: '2px solid transparent',
+          borderRadius: 16,
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), 0 24px 64px rgba(0,0,0,0.75)',
           padding: 18,
         }}
@@ -402,13 +401,13 @@ export default function SessionSetupModal({
           className="sp-cta sp-cta-ghost sp-setup-close"
           style={{
             position: 'absolute', top: 12, right: 12,
-            padding: '6px 12px', fontSize: 12,
-            minHeight: 38,
-            borderRadius: 7,
-            border: '1px solid #688299',
-            borderTopColor: '#aec0d0',
-            background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
-            color: '#e9f8ff',
+            padding: '6px 14px', fontSize: 13, fontWeight: 700,
+            minHeight: 44,
+            borderRadius: 10,
+            border: '2px solid transparent',
+            background: 'linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+            color: '#f3f7fb',
+            zIndex: 4,
           }}
         >
           ← Back
@@ -416,7 +415,26 @@ export default function SessionSetupModal({
 
         <div className="sp-setup-layout" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <aside className="sp-setup-identity" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div className="sp-setup-art" aria-hidden="true" style={{ borderRadius: 7, overflow: 'hidden', border: '1px solid #688299', maxHeight: 150, position: 'relative' }}>
+            <button
+              type="button"
+              className="sp-setup-art sp-setup-art-btn"
+              data-setup-art-launch={gameId}
+              onClick={handleStart}
+              aria-label={`Start ${game.name || game.title || 'Training Session'}`}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: 0,
+                borderRadius: 12,
+                overflow: 'hidden',
+                border: '2px solid transparent',
+                background: '#03111d padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+                maxHeight: 165,
+                position: 'relative',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
               <TrainingGameArt
                 gameId={gameId}
                 sizes="(max-width: 700px) 92vw, 600px"
@@ -424,7 +442,7 @@ export default function SessionSetupModal({
               />
               <div className="sp-setup-art-shade" />
               <div className="sp-setup-live"><span /> Live Training System</div>
-            </div>
+            </button>
 
             <header className="sp-stack-1 sp-setup-title">
               <div className="sp-caption" style={{ color: '#83deff', fontWeight: 700 }}>Mission Configuration</div>

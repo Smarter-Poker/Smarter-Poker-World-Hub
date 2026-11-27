@@ -8,6 +8,7 @@ import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import FriendChallengePanel from '../../../src/components/trivia/FriendChallengePanel';
 import PvpCompetitiveExperience from '../../../src/components/trivia/pvp/PvpCompetitiveExperience';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { HubPageSummarySchema } from '../../../src/components/seo/HubPageSummary';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useTriviaRealtimeSync from '../../../src/hooks/useTriviaRealtimeSync';
@@ -341,6 +342,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                 description="Play Server-Graded Head To Head Poker Trivia With A Server-Quoted Diamond Stake, Human-First Matchmaking, Shared Questions And A Durable Settlement Record."
                 canonical="/hub/trivia/pvp"
             />
+            <HubPageSummarySchema page="trivia-pvp" />
             <div
                 className="smarterdesign trivia-console-standalone trivia-pvp-page"
                 data-trivia-surface="pvp"

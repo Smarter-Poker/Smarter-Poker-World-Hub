@@ -179,6 +179,24 @@ The Footer run46052908156, job140688367336, subsequently failed at the personal-
 
 GitHub reports PR3153 merged at2026-11-27T19:03:31Z as97edb9bd9fb5445b0051fd84327266ab79257820. The approved landing, styles, artwork and route-specific Settings fix match the qualified candidate exactly. Vercel publication is tracked separately; merge is not a live-success claim.
 
+## Phase 3: Landing Artwork Cleanup And 1:1 Club Arena Virtual Sandbox Clone
+
+- Owner: Antigravity (`ecd14ca4-f801-476a-9aab-c983ac444068`), working in SSD2 worktree `/Volumes/SmarterWork/agent-work/extreme-capacity/pa-arena-clone-ecd14ca4`, branch `agent/antigravity/pa-art-fix-and-arena-table-clone` off `origin/main` (`1b67dd04362`).
+- Policy 2.9 reading receipt: freshly verified via canonical `node /Users/smarter.poker/Documents/agent-policy.mjs read` and repo parity check at `2026-11-27T23:02:10.281Z` (manifest SHA-256 `e78254a8d7b401b5e9f8fdcefa1f6f36088fa1a7128e1c2d18622c2a952ac2cb`).
+- Landing artwork fixes (`/hub/personal-assistant`):
+  - Replaced `Review My Play` illustration with standalone `960x540` `public/images/personal-assistant/review-my-play-art.webp` (matte-black & brushed-gold `A♠ K♠` + cyan-reticle magnifying glass, zero water droplet).
+  - Replaced `My Leaks` illustration with standalone `960x540` `public/images/personal-assistant/my-leaks-art.webp` (chrome droplet + complete magnifying glass over `K♥ Q♥` on clean dark obsidian, zero ghost/background cards) and updated mobile framing to `aspect-ratio: 16 / 9` in `PersonalAssistantHub.module.css`.
+- 1:1 Club Arena Poker Table clone (`/hub/personal-assistant/sandbox`):
+  - Rebuilt `SandboxPokerTable.jsx` (v4.0) mirroring Club Arena's `TablePage.css`, `SeatSlot.css`, `PotDisplay.css`, `ActionPanel.css`, `ControlThemeTokens.css`, and `tableSeatGeometry.ts`: authentic Club Arena room background + wood/felt table skins (6 skins in Setup), stacked circular avatar + frosted nameplate pods, Hero hole cards placed cleanly to the right of Hero's pod, opponent card backs tucked beside villain avatars, frosted Pot capsule with chip icon above the board, `D` dealer button and per-seat street bet chip pills on the felt, and tactile 3D beveled Red Fold / Blue Check-Call / Green Bet-Raise Action Panel with `33% | 50% | 75% | Pot | All-In` sizing wired live into `actionHistory` / `computeHandState`.
+- Local verification:
+  - `node scripts/training-surface-inventory.mjs --check`: passed (0 gaps).
+  - Unit & contract suite (`tests/pa-*.test.mjs`, `tests/personal-assistant-*.test.mjs`, `__tests__/pa-*.test.mjs`, `no-slide-to-see`, `unbatched-in-lists`, `training-authored-surface-authority`): 608/608 passed.
+  - `node scripts/ci/pa-browser-smoke.mjs --check-only`: passed.
+  - `npm run test:leak-engine`: 479/479 passed.
+  - Local Next.js 16.3.3 production webpack build (`next build --webpack`): passed (937/937 static pages).
+  - Local Playwright Chromium E2E (`scripts/qualification/personalAssistantBrowser.mjs`): 12/12 passed (desktop + mobile 390px); visual screenshots captured and inspected in `/Volumes/SmarterArchives/agent-evidence/extreme-archive/pa-ecd14ca4/phase3-visuals/` for 2-max, post-Bet chip pill, and 6-max with zero overlap.
+- Pending: hosted CI gates (including full 18-case Chromium + WebKit `Global Footer E2E`), protected squash merge, Vercel `hub-vanguard` deployment READY, and live production SHA + visual screenshot verification.
+
 The necessary browser-test correction is on the new owned branch agent/codex/personal-assistant-shared-browser-gate, based on main1bec73127fb2bca6420dda6bf82512451f51cc6c, which contains the design merge and concurrent VIP/SEO hardening. The existing playlist heading and Sign In locator are scoped to their owning article.vl-playlist-page. Exact hydrated redirect, noindex, assertions, timeouts, projects and the qualification script remain unchanged. There is no application-code change. The original failure was reproduced locally on desktop and phone against the production build. The scoped production build on latest main succeeds, and both corrected existing browser cases pass in4.3seconds, with zero retries/skips. WebKit remains part of the unchanged hosted matrix. Existing evidence is retained under pa-design-evidence/playlist-gate-*. The installed Next Playwright guide and owning test/qualification/workflow references were read before this correction.
 
 At2026-11-27T19:08:09.521Z, production /api/health reports the design merge97edb9bd9fb5445b0051fd84327266ab79257820 and deploymentdpl_2KmhfpZ37A8x4shMt6a8fTjxxPqk, with database and grading configuration healthy. The canonical Vercel reporter also reports successful publication for that exact revision. Live page/navigation proof and final hosted follow-up verification remain outstanding.

@@ -306,3 +306,86 @@ body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
         animation: none;
     }
 }
+
+/* ── Inline 4-Color #SMARTERDESIGN Playing-Card Pills ───────────────────── */
+
+.trivia-card-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    margin: 0 2px;
+    padding: 1px 6px;
+    border: 1px solid #445e77;
+    border-radius: 5px;
+    background: #0a1829;
+    font-family: var(--sd-type, 'Arial Narrow', sans-serif);
+    font-weight: 800;
+    font-variant-numeric: lining-nums;
+    line-height: 1.15;
+    vertical-align: baseline;
+    white-space: nowrap;
+}
+
+.trivia-card-pill--spades {
+    color: #f2f7ff;
+    border-color: #bdd0e2;
+}
+
+.trivia-card-pill--hearts {
+    color: #ff5b6e;
+    border-color: #ef4444;
+}
+
+.trivia-card-pill--diamonds {
+    color: #86daff;
+    border-color: #1981ec;
+}
+
+.trivia-card-pill--clubs {
+    color: #4ade80;
+    border-color: #22c55e;
+}
+
+/* ── Segmented Question Progress Strip ──────────────────────────────────── */
+
+.trivia-q-progress {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    padding: 4px 0 8px;
+}
+
+.trivia-q-progress__seg {
+    flex: 1 1 0;
+    height: 6px;
+    min-width: 4px;
+    border: 1px solid #445e77;
+    border-radius: 2px;
+    background: #0e2236;
+}
+
+.trivia-q-progress__seg--current {
+    border-color: #86daff;
+    background: #1981ec;
+}
+
+.trivia-q-progress__seg--answered {
+    border-color: #86daff;
+    background: #0c4ea9;
+}
+
+.trivia-q-progress__seg--correct {
+    border-color: #4ade80;
+    background: #22c55e;
+}
+
+.trivia-q-progress__seg--wrong {
+    border-color: #ff5b6e;
+    background: #ef4444;
+}
+
+.trivia-q-progress__seg--skipped {
+    border-color: #9ab0c7;
+    background: #445e77;
+}

@@ -373,6 +373,7 @@ import './training-request-deadline.test.mjs';
 import './training-reference-is-public-a.test.mjs';
 import './training-hub-progressive-grid.test.mjs';
 import './training-arena-lobby-ui.test.mjs';
+import './training-global-smarterdesign-click-cards.test.mjs';
 import './training-surface-inventory.test.mjs';
 // Training reference pages open to everyone (Dan, 2026-10-12: "THEY SHOULD
 // OPEN TO EVERYONE"): anonymous reads, signed-in writes, no anonymous writes.
@@ -957,12 +958,14 @@ import './smarterdesign-seo-kit-foundation.law.test.mjs';
 import './seo-aeo-geo-smarterdesign-and-conversion-fortress.law.test.mjs';
 import './phase2-seo-smarterdesign-fortress-20261127.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
+import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';
 import './trivia-ops-perf-timeout-laws.test.mjs';
 import './trivia-wave5-spectator-club-laws.test.mjs';
 import './trivia-wave5-stats-calendar-laws.test.mjs';
+import './trivia-phase3-enhancements.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

@@ -34,6 +34,7 @@ import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { HubPageSummarySchema } from '../../../src/components/seo/HubPageSummary';
 import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
 import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
 import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
@@ -561,6 +562,7 @@ export default function TimeAttackPage() {
                     description="Race the physical 30-second shot clock in server-verified Time Attack poker trivia, track your personal best and daily cap, and receive a verified settlement receipt."
                     canonical="/hub/trivia/time-attack"
                 />
+                <HubPageSummarySchema page="trivia-time-attack" />
 
                 <div
                     className="smarterdesign trivia-challenge-page trivia-challenge-page--time-attack"

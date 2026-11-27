@@ -182,13 +182,25 @@ test('5. Personal Assistant subpages, sheets, buttons, whole-card clickability, 
     assert.doesNotMatch(src, /#ffc66d|#b9a7ff|#d2c6ff|#fde68a|#ddd6fe/i, `${label} must not use forbidden gold, amber, or purple colors`);
   }
 
-  // Authentic Club Arena / Poker Arena table, room background, 4-color Arena cards, card backs, and dealer button
+  // Authentic Club Arena / Poker Arena 1:1 table clone: room backdrop, wood/felt skin, 4-color Arena cards,
+  // stacked seat pods, Hero cards beside pod, Pot capsule above board, Dealer button on felt, and 3-button Action Panel
+  const artComp = read('src/components/personal-assistant/ApprovedLandingArt.jsx');
+  assert.match(artComp, /review-my-play-art\.webp/);
+  assert.match(artComp, /my-leaks-art\.webp/);
+  assert.match(homeCss, /\.featureCardLeaks \.featureArtWrap[\s\S]*aspect-ratio:\s*16 \/ 9/);
   assert.match(table, /data-arena-table="true"/);
   assert.match(table, /data-arena-table-skin="true"/);
+  assert.match(table, /data-arena-pot="true"/);
+  assert.match(table, /data-arena-board="true"/);
+  assert.match(table, /data-arena-hero-cards="true"/);
+  assert.match(table, /data-arena-action-bar="true"/);
+  assert.match(table, /ARENA_SEAT_RINGS/);
   assert.match(table, /resolveArenaSkinUrl/);
   assert.match(table, /resolveArenaBackgroundLayers/);
   assert.match(table, /\/hub\/club-arena\/cards\/4color\//);
   assert.match(table, /data-arena-dealer-button="true"/);
+  assert.match(sandbox, /onQuickAction=\{handleTableQuickAction\}/);
+  assert.match(sandbox, /streetBets=\{tableStreetBets\}/);
   assert.doesNotMatch(table, /poker-table-black-gold-nobg\.png/);
 
   // Zero detached JSX plural suffixes that render as "LeakS" / "HandS" / "MistakeS" under PersonalAssistantCopyPolicy

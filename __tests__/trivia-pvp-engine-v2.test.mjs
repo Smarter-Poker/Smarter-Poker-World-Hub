@@ -27,17 +27,20 @@ const engineSql = migration('_trivia_p5_pvp_engine.sql');
 const capSql = migration('_trivia_p5_pvp_settlement_cap_exemption.sql');
 const quoteBindingSql = migration('_trivia_p7_pvp_quote_join_binding.sql');
 const historySql = migration('_trivia_p7_pvp_history_receipts.sql');
+const horse30sSql = migration('_trivia_pvp_30s_horse_and_full_nightly_bracket.sql');
 const handler = read('src/lib/trivia/pvpApiHandler.js');
 const ROUTES = ['quote', 'join', 'status', 'heartbeat', 'resume', 'cancel', 'history'];
 const U = '11111111-1111-4111-8111-111111111111';
 
 test('the horse window is the product contract, not configuration', () => {
-    assert.equal(PVP_HORSE_WAIT_MIN_SECONDS, 20);
-    assert.equal(PVP_HORSE_WAIT_MAX_SECONDS, 45);
+    assert.equal(PVP_HORSE_WAIT_MIN_SECONDS, 15);
+    assert.equal(PVP_HORSE_WAIT_MAX_SECONDS, 30);
     assert.match(engineSql, /horse_wait_seconds IS NOT NULL AND horse_wait_seconds BETWEEN 20 AND 45/);
+    assert.match(horse30sSql, /horse_wait_seconds IS NOT NULL AND horse_wait_seconds BETWEEN 15 AND 45/);
     assert.match(engineSql, /horse_eligible_at = joined_at \+ make_interval\(secs => horse_wait_seconds\)/);
-    // CSPRNG with rejection sampling: every value 20..45 equally likely.
-    assert.match(engineSql, /extensions\.gen_random_bytes\(4\)[\s\S]*EXIT WHEN v_n < 4294967274[\s\S]*RETURN 20 \+ \(v_n % 26\)/);
+    // CSPRNG uniform draw: every value 15..30 equally likely (2^32 divisible by 16).
+    assert.match(horse30sSql, /extensions\.gen_random_bytes\(4\)[\s\S]*RETURN 15 \+ \(v_n % 16\)::integer/);
+    assert.match(horse30sSql, /'pvp\.standard@2'/);
     // Set once: identity and deadline are immutable, only the join authority creates a ticket.
     assert.match(engineSql, /NEW\.horse_eligible_at IS DISTINCT FROM OLD\.horse_eligible_at[\s\S]{0,80}RAISE EXCEPTION 'pvp v2 ticket identity and horse deadline are immutable'/);
     assert.match(engineSql, /'ticket:' \|\| NEW\.user_id::text[\s\S]{0,200}created only by the join authority/);

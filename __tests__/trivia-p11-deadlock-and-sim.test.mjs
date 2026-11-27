@@ -101,7 +101,7 @@ test('30/90-day live-config economy simulator conserves every trajectory and com
 
     const hashes = Object.fromEntries(sim.ruleHashes.map((r) => [r.id, r.sha256]));
     assert.equal(hashes['tournament.nightly@1'], '21af11425b85ffd408e211ddaf7011885bcb9a7e2467e07a776e75ef6310b020');
-    assert.equal(hashes['pvp.standard@1'], 'febf136d436f404b734fe0de89ea02047909e23942ae03b35fb204731573144f');
+    assert.equal(hashes['pvp.standard@2'], '6cb96043bb1cf6be3d3194d28fc8868dd4cac997ae19ceacfd3da4a017e21026');
 
     assert.equal(sim.reports.filter((r) => r.sustainableAtRequestedVolume).length, 13);
     for (const r of sim.reports) {

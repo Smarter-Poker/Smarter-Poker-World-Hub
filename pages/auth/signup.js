@@ -13,6 +13,7 @@ import { isExistingSignup, isAbortedAuthRequest, signUpWithRecovery } from '../.
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
+import { promotePendingSeoUnlock } from '../../src/components/seo/SmarterUnlockedWelcomeBanner';
 import { isEmailVerificationCode } from '../../src/lib/signupExperience.mjs';
 import {
   PENDING_PROMO_KEY,
@@ -882,6 +883,10 @@ export default function SignUpPage() {
         const next = clubNext || getSafeRedirect();
         setSignupClubPath(next);
         setStep('success');
+        const rawAutoUnlock = Array.isArray(router.query?.unlock) ? router.query.unlock[0] : router.query?.unlock;
+        if (typeof promotePendingSeoUnlock === 'function') {
+          promotePendingSeoUnlock(rawAutoUnlock);
+        }
         // The first screen after signing in is the welcome package offer
         // (Verify or Skip), with or without a club invite (2026-10-23): an
         // uninvited player used to stop here on a screen whose main button
@@ -1006,6 +1011,10 @@ export default function SignUpPage() {
       const next = clubNext || getSafeRedirect();
       setSignupClubPath(next);
       setStep('success');
+      const rawOtpUnlock = Array.isArray(router.query?.unlock) ? router.query.unlock[0] : router.query?.unlock;
+      if (typeof promotePendingSeoUnlock === 'function') {
+        promotePendingSeoUnlock(rawOtpUnlock);
+      }
       // Offer the earned welcome package before entering Club Arena, invited
       // or not. Verification and Skip For Now both continue to the club.
       window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
@@ -1029,8 +1038,73 @@ export default function SignUpPage() {
   );
   const isPromoExpanded = promoOpen || Boolean(formData.promoCode) || hasQueryPromoOrRef;
 
+  const signupCompletedSteps = [
+    Boolean(formData.firstName.trim()),
+    Boolean(formData.lastName.trim()),
+    isValidEmail(formData.email),
+    formData.password.length >= PW_MIN_LENGTH,
+    Boolean(formData.birthMonth && formData.birthDay && formData.birthYear),
+    Boolean(formData.city.trim()),
+    Boolean(formData.outsideUs ? formData.country : formData.state),
+    formData.pokerAlias.length >= 3,
+  ].filter(Boolean).length;
+  const signupProgressPct = Math.round((signupCompletedSteps / 8) * 100);
+
   const signupFields = (
     <>
+                {/* Real-time Account Progress Indicator */}
+                <div
+                  data-testid="signup-progress-bar"
+                  role="progressbar"
+                  aria-label="Free Account Setup Progress"
+                  aria-valuenow={signupProgressPct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  style={{
+                    marginBottom: '10px',
+                    padding: '8px 10px',
+                    background: 'rgba(6, 13, 26, 0.9)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    borderRadius: '4px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '5px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      color: '#cbd5e1',
+                    }}
+                  >
+                    <span style={{ color: '#38bdf8' }}>Account Progress: {signupProgressPct}%</span>
+                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>
+                      {signupProgressPct === 100 ? 'Ready To Create Free Account' : '100% Free (Takes Under 30 Seconds)'}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '5px',
+                      background: 'rgba(148, 184, 224, 0.16)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${Math.max(6, signupProgressPct)}%`,
+                        height: '100%',
+                        background: signupProgressPct === 100 ? '#22c55e' : 'linear-gradient(90deg, #1d4ed8 0%, #38bdf8 100%)',
+                        transition: 'width 0.2s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+
                 {/* First Name & Last Name */}
                 <div className="auth-field-row">
                   <div className="auth-field-group">

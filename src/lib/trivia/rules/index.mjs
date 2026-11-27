@@ -192,6 +192,14 @@ const PVP_V1 = {
     wallet_kinds: { stake: 'pvp_stake', win: 'pvp_win', refund: 'pvp_refund' },
 };
 
+const PVP_V2 = {
+    ...PVP_V1,
+    horse: {
+        ...PVP_V1.horse,
+        fallback_wait_seconds: { min: 15, max: 30 },
+    },
+};
+
 const TOURNAMENT_NIGHTLY_V1 = {
     contract: TRIVIA_RULES_CONTRACT,
     family: 'tournament',
@@ -267,6 +275,8 @@ export const TRIVIA_RULE_VERSIONS = Object.freeze([
     ...SOLO_MODES.map(mode => version(`solo.${mode}`, 1, 'solo', mode, false, APPROVED_TODAY, soloRules(mode))),
     version('pvp.standard', 1, 'pvp', 'pvp', false,
         'docs/trivia/TRIVIA-COMPETITIVE-CONTRACT-V1.md (product owner, containment contract 2026-09-06)', PVP_V1),
+    version('pvp.standard', 2, 'pvp', 'pvp', false,
+        'Owner direction 2026-11-27: 1v1 Smarter Horse matches within 15 to 30 seconds', PVP_V2),
     version('tournament.nightly', 1, 'tournament', 'tournaments', true,
         'PROVISIONAL - chosen by Phase 2 (conservative); pending product-owner approval', TOURNAMENT_NIGHTLY_V1),
 ]);

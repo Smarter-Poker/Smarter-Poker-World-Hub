@@ -38,6 +38,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
+import TriviaCardText from '../../../src/components/trivia/TriviaCardText';
+import TriviaQuestionProgress from '../../../src/components/trivia/TriviaQuestionProgress';
+import useTriviaKeyboardControls from '../../../src/hooks/useTriviaKeyboardControls';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { DAILY_DIAMOND_CAPS, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
@@ -48,6 +51,7 @@ import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { HubPageSummarySchema } from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
 import {
     createAccountOperationScope,
@@ -1431,6 +1435,14 @@ export default function SurvivalGamePage() {
                     ? { label: 'Back To Lobby', onClick: backToLobby }
                     : null;
 
+    useTriviaKeyboardControls({
+        enabled: gameState === 'playing' && Boolean(currentQuestion) && !showOutOfDiamonds,
+        optionCount: currentQuestion?.options?.length || 0,
+        canSelect: gameState === 'playing' && Boolean(currentQuestion) && trivia.selectedAnswer === null && !trivia.showResult && !timeoutRetryRequired,
+        canAdvance: false,
+        onSelectOption: gradeAnswer,
+    });
+
     const accountBoundaryPending = shouldGateAccountOwnedRender({
         loading: authLoading,
         resolvedIdentity: resolvedAccountId,
@@ -1441,6 +1453,7 @@ export default function SurvivalGamePage() {
             <TriviaErrorBoundary pageName="Survival Mode">
                 <>
                     <SEOHead title="Survival Poker Trivia: One Life" description="Survival Poker Trivia On Smarter.Poker: enter one progressive server-verified run, clear ten rising checkpoints, protect limited lives, and receive a verified level ledger." canonical="/hub/trivia/survival-game" />
+                    <HubPageSummarySchema page="trivia-survival" />
                     <div className="smarterdesign trivia-challenge-page trivia-challenge-page--survival" data-trivia-family="challenge" data-trivia-surface="survival-game" data-game-state="loading">
                         <UniversalHeader pageDepth={2} />
                         <PageTransition>
@@ -1476,6 +1489,7 @@ export default function SurvivalGamePage() {
                     description="Survival Poker Trivia On Smarter.Poker: enter one progressive server-verified run, clear ten rising checkpoints, protect limited lives, and receive a verified level ledger."
                     canonical="/hub/trivia/survival-game"
                 />
+                <HubPageSummarySchema page="trivia-survival" />
 
                 <div
                     className="smarterdesign trivia-challenge-page trivia-challenge-page--survival"
@@ -1826,8 +1840,13 @@ export default function SurvivalGamePage() {
                                             </div>
                                         </dl>
 
+                                        <TriviaQuestionProgress
+                                            total={QUESTIONS_PER_LEVEL}
+                                            currentIndex={currentQuestionIndex}
+                                            label={`Question ${currentQuestionIndex + 1} Of ${QUESTIONS_PER_LEVEL}`}
+                                        />
                                         <h2 id="survival-question-title" className="trivia-challenge-question">
-                                            {toTitleCase(currentQuestion.question)}
+                                            <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} />
                                         </h2>
 
                                         <div className="trivia-challenge-options">

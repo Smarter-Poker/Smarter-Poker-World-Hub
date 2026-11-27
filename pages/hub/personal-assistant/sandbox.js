@@ -173,6 +173,8 @@ const FELT_COLORS = [
   { id: 'blue', label: 'Ocean Blue', skinId: 'ocean_blue', swatch: '#1E3A5F' },
   { id: 'red', label: 'Crimson', skinId: 'crimson', swatch: '#7F1D1D' },
   { id: 'carbon', label: 'Carbon Ion', skinId: 'carbon_ion', swatch: '#1E293B' },
+  { id: 'jade', label: 'Jade City', skinId: 'jade_city', swatch: '#134E4A' },
+  { id: 'final', label: 'Final Table', skinId: 'final_table', swatch: '#312E81' },
 ];
 const MAX_VILLAINS = 5;
 const DEFAULT_VILLAINS = [
@@ -928,12 +930,12 @@ function SetupSheet({
           </div>
         </div>
 
-        {/* Table Felt Tint */}
+        {/* Club Arena Table Skin */}
         <div>
           <div style={sectionTitle}>
-            Table Felt {arenaThemeActive ? '(Club Arena Theme Active)' : ''}
+            Club Arena Table Skin {arenaThemeActive ? '(Locked Club Arena Theme Active)' : ''}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: S.sm }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: S.sm }}>
             {FELT_COLORS.map((f) => {
               const active = tableFelt === f.id;
               return (
@@ -2000,10 +2002,47 @@ export default function VirtualSandboxPage() {
   }), [baseMenu, loadTemplates]);
 
   // ── Display Values ──
+  const activeTableState = replayState ? replayState.handState : handState;
   const tableCards = replayState ? replayState.cards : communityCards;
-  const tablePot = replayState ? replayState.handState.pot : handState.pot;
-  const tableSpr = replayState ? replayState.handState.spr : handState.spr;
+  const tablePot = activeTableState.pot;
+  const tableSpr = activeTableState.spr;
   const tableStreet = replayState ? replayState.street : currentStreet;
+  const tableStreetBets = useMemo(() => {
+    const raw = activeTableState?.streetIn || {};
+    const out = { hero: Number(raw.hero) || 0 };
+    villains.forEach((_, idx) => {
+      const val = villains.length === 1
+        ? (raw.villain_0 ?? raw.villain ?? 0)
+        : (raw[`villain_${idx}`] ?? 0);
+      out[`villain_${idx}`] = Number(val) || 0;
+    });
+    return out;
+  }, [activeTableState, villains]);
+  const heroFacingBet = Math.max(
+    0,
+    Math.round(((Number(activeTableState?.highestStreetBet) || 0) - (Number(activeTableState?.streetIn?.hero) || 0)) * 10) / 10,
+  );
+  const handleTableQuickAction = useCallback((payload) => {
+    if (activePlayBlock || handState.terminal || !payload?.action) return;
+    pushUndo();
+    setActionHistory((prev) => [
+      ...prev,
+      {
+        street: currentStreet,
+        actor: 'hero',
+        actorKey: 'hero',
+        isHero: true,
+        position: heroPosition,
+        id: payload.action,
+        action: payload.action,
+        amount: Number(payload.amount) || 0,
+        label: payload.label || payload.action,
+      },
+    ]);
+    setReplayIndex(null);
+    playSound?.('chip');
+    haptic('light');
+  }, [activePlayBlock, handState.terminal, pushUndo, currentStreet, heroPosition, playSound, haptic]);
   const canDealNext = !board.river && !activePlayBlock;
   const equityLabel = equity
     ? (villains.length >= 2
@@ -2226,10 +2265,14 @@ export default function VirtualSandboxPage() {
                     communityCards={tableCards}
                     pot={Number(tablePot) || 0}
                     heroPosition={heroPosition}
-                    heroStack={Math.round(handState.remaining.hero)}
+                    heroStack={Math.round(activeTableState.remaining.hero)}
                     villains={tableVillains}
                     street={tableStreet}
                     tableSkinId={FELT_COLORS.find((f) => f.id === tableFelt)?.skinId || 'classic_green'}
+                    streetBets={tableStreetBets}
+                    facingBet={heroFacingBet}
+                    actionsDisabled={!!activePlayBlock || Boolean(handState.terminal)}
+                    onQuickAction={handleTableQuickAction}
                     boardTexture={boardTexture}
                     showTextureBadge={false}
                     equity={equity?.heroEquity}

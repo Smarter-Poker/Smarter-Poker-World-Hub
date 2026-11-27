@@ -15,10 +15,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { busEmit } from '../../engine/EventBus';
 import { DAILY_DIAMOND_CAPS } from '../../lib/trivia/triviaEngine';
 import TriviaAnswerOption from './TriviaAnswerOption';
+import TriviaCardText from './TriviaCardText';
 import TriviaNetworkBanner from './TriviaNetworkBanner';
 import ReportQuestionButton from './ReportQuestionButton';
 import { getAccessToken } from '../../lib/authUtils';
 import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
+import useTriviaKeyboardControls from '../../hooks/useTriviaKeyboardControls';
 import usePhase9ReducedMotion from './phase9/usePhase9ReducedMotion';
 
 const GAME_DURATION = 30; // seconds
@@ -297,6 +299,14 @@ export default function TimeAttackGame({
         }
     }, [gameOver]);
 
+    useTriviaKeyboardControls({
+        enabled: !gameOver && Boolean(currentQuestion) && timeLeft > 0,
+        optionCount: currentQuestion?.options?.length || 0,
+        canSelect: !isRevealing && !answerLockRef.current && timeLeft > 0,
+        canAdvance: false,
+        onSelectOption: handleAnswer,
+    });
+
     if (!currentQuestion && !gameOver) {
         return (
             <div className="trivia-challenge-state trivia-challenge-state--loading" role="status">
@@ -354,7 +364,7 @@ export default function TimeAttackGame({
             {/* Question */}
             {!gameOver && currentQuestion && (
                 <div className="time-attack-question">
-                    <p className="trivia-challenge-question">{currentQuestion.question}</p>
+                    <p className="trivia-challenge-question"><TriviaCardText text={currentQuestion.question} /></p>
 
                     <div
                         className="trivia-challenge-options"

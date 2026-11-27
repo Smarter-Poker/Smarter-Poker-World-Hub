@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { HubPageSummarySchema } from '../../../src/components/seo/HubPageSummary';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
@@ -1112,6 +1113,7 @@ function TournamentPageExperience({ user, authLoading }) {
                     description="The Smarter.Poker Nightly Trivia Tournament Starts At 8 PM Central With Server-Timed Rounds, Disclosed Smarter Horses, Exact Diamond Terms, And Verifiable Settlement Receipts."
                     canonical={PAGE_PATH}
                 />
+                <HubPageSummarySchema page="trivia-tournaments" />
                 <div className="smarterdesign trivia-console-standalone trivia-tournaments-page" data-trivia-surface="tournaments" data-game-state={activeQuestion ? 'playing' : viewState}>
                     <UniversalHeader pageDepth={2} />
                     <main className="tt-shell" aria-labelledby="trivia-tournaments-title">

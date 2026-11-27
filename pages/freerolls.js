@@ -6,6 +6,7 @@ import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlock
 import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import { freerollEventSchema } from '../src/lib/seo/hubPageSchema';
+import { fitMetaDescription } from '../src/lib/seo/titleFit.js';
 import { FREE_BUY_SCHEDULE, FREE_BUY_GAME, FREE_BUY_SUMMARY, freeBuyPrizeLabel } from '../src/lib/freerolls/freeBuySchedule.mjs';
 import { setPublicSeoHtmlCache } from '../src/lib/seo/edgeCacheHeaders.mjs';
 import { 
@@ -247,8 +248,8 @@ export default function FreerollsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B1118', color: '#F0F4F8', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Daily Free Poker Tournaments | Smarter.Poker Freerolls"
-        description={FREE_BUY_SUMMARY}
+        title="Free Daily Poker Freerolls - 5 Free Events"
+        description={fitMetaDescription(`Play 5 Free Daily Poker Freerolls With Zero Buy-In & Zero Deposit: ${FREE_BUY_SUMMARY}`, 158)}
         canonical="/freerolls"
         jsonLd={FREEROLLS_SCHEMA}
         markdownUrl="https://smarter.poker/freerolls.md"
