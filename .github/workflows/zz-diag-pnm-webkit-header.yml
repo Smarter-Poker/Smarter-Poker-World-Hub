@@ -1,0 +1,65 @@
+name: Diag PNM WebKit Header (temporary)
+on:
+  push:
+    branches: ['diag/pnm-webkit-header-geometry']
+jobs:
+  diag:
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Restore Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            pw-wh-${{ runner.os }}-
+      - name: Install Chromium and WebKit
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
+      - name: Build production application
+        run: npm run build -- --webpack
+        env:
+          PWA_ENABLED: '1'
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+      - name: Start production server
+        run: |
+          PORT=$(node scripts/ci/e2e-port.mjs 3000)
+          echo "PORT=$PORT" >> "$GITHUB_ENV"
+          PIDS=$(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true)
+          if [ -n "$PIDS" ]; then kill -9 $PIDS 2>/dev/null || true; fi
+          nohup node_modules/.bin/next start -p $PORT > /tmp/diag-next-server.log 2>&1 &
+          echo "SERVER_PID=$!" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:$PORT/hub/install -o /dev/null && exit 0; sleep 2; done; exit 1
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+      - name: Geometry diagnostic
+        run: BASE_URL=http://127.0.0.1:$PORT RUNS=12 node scripts/diag-pnm-header.cjs
+      - name: Spec repeat
+        if: always()
+        run: npx playwright test e2e/024-world-menu-mobile-phase3.spec.ts --project=world-menu-phase3-webkit --workers=1 --grep "deep Series route" --repeat-each=10 || true
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ env.PORT }}
+      - name: Stop server
+        if: always()
+        run: kill $SERVER_PID 2>/dev/null || true; tail -50 /tmp/diag-next-server.log || true
