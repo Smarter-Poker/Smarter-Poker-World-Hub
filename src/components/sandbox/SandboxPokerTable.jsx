@@ -138,9 +138,9 @@ export function TableCard({ card, style = {} }) {
     if (showFallback) {
         const h = Number(wrapperStyle.height) || 56;
         return (
-            <div style={{
+            <span style={{
                 ...wrapperStyle,
-                display: 'flex', flexDirection: 'column',
+                display: 'inline-flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
                 color: isRed ? '#d32029' : '#1a1a1a',
                 fontWeight: 800, lineHeight: 1,
@@ -148,21 +148,21 @@ export function TableCard({ card, style = {} }) {
             }} aria-label={raw}>
                 <span style={{ fontSize: Math.max(12, Math.round(h * 0.32)) }}>{rankChar || '?'}</span>
                 <span style={{ fontSize: Math.max(12, Math.round(h * 0.24)) }}>{SUIT_LETTER[suitChar] || '?'}</span>
-            </div>
+            </span>
         );
     }
 
     const imagePath = `/cards/${suitName}_${rankName}.png`;
     return (
-        <div style={wrapperStyle}>
+        <span style={{ ...wrapperStyle, display: 'inline-block' }}>
             <img
                 src={imagePath}
                 alt={raw}
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                 onError={() => setImgFailed(true)}
                 decoding="async"
             />
-        </div>
+        </span>
     );
 }
 

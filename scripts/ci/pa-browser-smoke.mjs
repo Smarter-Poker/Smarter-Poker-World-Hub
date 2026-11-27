@@ -55,6 +55,8 @@ export const PRIVATE_API_PATHS = Object.freeze([
   '/api/assistant/coaching',
   '/api/assistant/stats',
   '/api/sandbox/custom-drill',
+  '/api/sandbox/save-hand',
+  '/api/poker/saved-hands',
   '/api/assistant/leaks/claim-live-fix',
   '/api/assistant/maintenance-jobs',
   '/api/training/audit-hand-history',
@@ -62,7 +64,7 @@ export const PRIVATE_API_PATHS = Object.freeze([
 
 export const RETIRED_API_PATHS = Object.freeze([
   '/api/sandbox/equity-snapshot',
-  '/api/sandbox/save-hand',
+  '/api/assistant/sandbox/analyze',
 ]);
 
 export const REQUIRED_PRIVATE_HEADERS = Object.freeze({

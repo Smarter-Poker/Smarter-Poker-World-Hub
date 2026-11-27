@@ -240,13 +240,22 @@ function CardSlot({ card, label, onTap, onRemove }) {
             onClick={onRemove}
             aria-label={`Remove ${card}`}
             style={{
-              position: 'absolute', top: -10, right: -10, width: 28, height: 28, minWidth: 28, minHeight: 28,
-              borderRadius: '50%', background: T.danger, border: '2px solid #040D18',
+              position: 'absolute', top: -14, right: -14, width: 36, height: 36, minWidth: 36, minHeight: 36,
+              borderRadius: '50%', background: 'transparent', border: 'none',
               color: '#F1F5FC', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', padding: 0,
             }}
           >
-            <XIcon size={12} strokeWidth={3} aria-hidden="true" />
+            <span
+              aria-hidden="true"
+              style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: T.danger, border: '2px solid #040D18',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <XIcon size={12} strokeWidth={3} aria-hidden="true" />
+            </span>
           </button>
         )}
       </span>
