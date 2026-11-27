@@ -13,6 +13,7 @@ import { getAuthUser, getSessionToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_MIXED } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
@@ -709,9 +710,20 @@ export default function MixedModePage() {
                             className="trivia-challenge-console"
                             eyebrow="Seven Category Challenge"
                             title="Mixed Trivia"
+                            titleAs="h1"
                             titleId="mixed-trivia-title"
                             subtitle="Every Poker Discipline"
                             pill={stateLabel}
+                            headerAction={(
+                                <TriviaHelpButton
+                                    ariaLabel="Mixed Trivia Help"
+                                    eyebrow="Seven Category Challenge"
+                                    title="About Mixed Trivia"
+                                    subtitle="Every Poker Discipline, Scoring And Rewards"
+                                >
+                                    <HubPageSummary page="trivia-mixed" />
+                                </TriviaHelpButton>
+                            )}
                             aria-labelledby="mixed-trivia-title"
                             primaryAction={primaryAction}
                             secondaryAction={secondaryAction}
@@ -1000,9 +1012,6 @@ export default function MixedModePage() {
                     </main>
                 </div>
             </>
-          {/* Server rendered: measured on production this page returned
-              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-          <HubPageSummary page="trivia-mixed" as="h1" />
         </TriviaErrorBoundary>
     );
 }

@@ -32,10 +32,57 @@
     min-height: 100vh;
     min-height: 100dvh;
     overflow-x: clip;
-    padding: max(76px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    padding: max(76px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(96px, calc(76px + env(safe-area-inset-bottom))) max(8px, env(safe-area-inset-left));
     color: var(--tc-ink-silver);
     background: var(--tc-black);
     font-family: var(--sd-type, 'Arial Narrow', sans-serif);
+}
+
+.tc-help-btn {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--tc-ink-white);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tc-help-btn:active {
+    filter: brightness(1.16);
+    transform: translateY(1px);
+}
+
+.tc-help-body {
+    display: grid;
+    gap: 14px;
+    max-height: min(62vh, 560px);
+    max-height: min(62dvh, 560px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px 4px 8px 2px;
+    color: var(--tc-ink-silver);
+    font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tc-help-body p {
+    margin: 0;
+}
+
+.tc-help-body section {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    background: transparent !important;
 }
 
 html:has(> body.world-trivia),

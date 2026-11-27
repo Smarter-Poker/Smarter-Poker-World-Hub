@@ -5,6 +5,7 @@ import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
@@ -1092,6 +1093,17 @@ function TournamentPageExperience({ user, authLoading }) {
         return <TournamentBracketViewport bracket={bracket} summary={summary} myRun={myRun} loading={loading.bracket} error={errors.bracket} round={bracketRound} query={bracketQuery} onQuery={setBracketQuery} onRound={selectRound} onPage={offset => loadBracket(offset)} onRetry={() => loadBracket(bracket?.offset || 0)} />;
     }
 
+    const tournamentHelpAction = (
+        <TriviaHelpButton
+            ariaLabel="Nightly Trivia Tournament Help"
+            eyebrow="8 PM CT Nightly"
+            title="About Nightly Trivia Tournaments"
+            subtitle="Server-Timed Single Elimination, Entry And Payouts"
+        >
+            <HubPageSummary page="trivia-tournaments" />
+        </TriviaHelpButton>
+    );
+
     return (
         <TriviaErrorBoundary pageName="Tournaments">
             <PageTransition>
@@ -1104,7 +1116,7 @@ function TournamentPageExperience({ user, authLoading }) {
                     <UniversalHeader pageDepth={2} />
                     <main className="tt-shell" aria-labelledby="trivia-tournaments-title">
                         {pageState === 'loading' ? (
-                            <TriviaConsole eyebrow="Nightly Bracket" title="Trivia Tournament" titleAs="h1" titleId="trivia-tournaments-title" subtitle="8 PM Central Every Night" pill="Loading" pillInk="muted">
+                            <TriviaConsole eyebrow="Nightly Bracket" title="Trivia Tournament" titleAs="h1" titleId="trivia-tournaments-title" subtitle="8 PM Central Every Night" pill="Loading" pillInk="muted" headerAction={tournamentHelpAction}>
                                 <TournamentStateBanner title="Opening Tournament Desk" message="Reading The Official Schedule And Your Active Run." tone="muted" />
                             </TriviaConsole>
                         ) : null}
@@ -1118,6 +1130,7 @@ function TournamentPageExperience({ user, authLoading }) {
                                 subtitle="No Entry Was Changed"
                                 pill={online ? 'Retry' : 'Offline'}
                                 pillInk="red"
+                                headerAction={tournamentHelpAction}
                                 secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
                                 primaryAction={{ label: 'Retry', onClick: () => bootstrap() }}
                             >
@@ -1134,6 +1147,7 @@ function TournamentPageExperience({ user, authLoading }) {
                                 subtitle="8 PM Central Every Night"
                                 pill="No Event"
                                 pillInk="muted"
+                                headerAction={tournamentHelpAction}
                                 primaryAction={{ label: 'Refresh Schedule', onClick: () => bootstrap() }}
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART_TOURNAMENTS} priority />
@@ -1151,6 +1165,7 @@ function TournamentPageExperience({ user, authLoading }) {
                                 subtitle={`Question ${activeQuestion.position} Of ${session?.questionCount || tournament.format?.questionsPerRound || ''}`}
                                 pill={Number.isFinite(questionSeconds) ? `${questionSeconds} Sec` : 'Server Time'}
                                 pillInk={Number.isFinite(questionSeconds) && questionSeconds <= 5 ? 'red' : 'blue'}
+                                headerAction={tournamentHelpAction}
                             >
                                 {!online ? <TournamentStateBanner title="Connection Lost" message="Your Answer State Remains On The Server. Reconnect And Resume Before Sending Another Action." tone="red" role="alert" /> : null}
                                 <TournamentQuestionStage
@@ -1177,6 +1192,7 @@ function TournamentPageExperience({ user, authLoading }) {
                                 subtitle="Server-Timed Single Elimination"
                                 pill={viewState.replace(/-/g, ' ')}
                                 pillInk={['open', 'entered', 'advance', 'champion', 'paid', 'refunded'].includes(viewState) ? 'green' : ['cancelled', 'refund', 'eliminated'].includes(viewState) ? 'red' : 'blue'}
+                                headerAction={tournamentHelpAction}
                             >
                                 {!myRun?.entered && !tournament.viewer?.entered ? <ResponsiveModeArt art={TRIVIA_INTRO_ART_TOURNAMENTS} priority /> : null}
                                 <NightlySpectatorBanner
@@ -1281,7 +1297,6 @@ function TournamentPageExperience({ user, authLoading }) {
                     <p className="trivia-console-copy tc-ink--muted">A Failed Or Duplicate Request Never Creates A Second Tournament Charge.</p>
                 </TriviaConsoleDialog>
             </PageTransition>
-            <HubPageSummary page="trivia-tournaments" />
         </TriviaErrorBoundary>
     );
 }

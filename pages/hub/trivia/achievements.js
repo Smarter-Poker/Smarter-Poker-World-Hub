@@ -4,6 +4,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import StreakFreezeWidget from '../../../src/components/trivia/StreakFreezeWidget';
@@ -325,6 +326,17 @@ export default function TriviaAchievements() {
                                 subtitle="Verified Criteria And Settled Receipts"
                                 pill={renderLoading ? 'Loading' : loadError ? 'Error' : signedOut ? 'Guest' : `${formatTriviaDisplayNumber(summary.credited)} Credited`}
                                 pillInk={loadError || summary.errors > 0 ? 'red' : summary.credited > 0 ? 'green' : 'blue'}
+                                headerAction={(
+                                    <TriviaHelpButton
+                                        ariaLabel="Trivia Achievements Help"
+                                        eyebrow="Player Progress"
+                                        title="About Trivia Achievements"
+                                        subtitle="Verified Criteria, Streak Freezes And Receipts"
+                                    >
+                                        <p>Every Achievement Is Evaluated Against Server-Verified Trivia Runs. Claim Eligible Awards Directly To Settle Diamonds With A Receipt And Journal Record.</p>
+                                        <p>Use Streak Freezes To Protect Your Daily Trivia Streak And Unlock 7-Day, 14-Day, 30-Day And 100-Day Milestone Rewards.</p>
+                                    </TriviaHelpButton>
+                                )}
                                 className="trivia-progress-console"
                                 secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
                                 primaryAction={!renderLoading && loadError ? { label: 'Retry', onClick: retry } : signedOut ? { label: 'Sign In', onClick: () => router.push('/auth/login?redirect=/hub/trivia/achievements') } : undefined}
@@ -349,7 +361,7 @@ export default function TriviaAchievements() {
                                             signedIn={Boolean(userId)}
                                             online={online}
                                             userId={userId}
-                                            className="trivia-progress-section"
+                                            className="trivia-progress-section trivia-progress-streak-freeze"
                                         />
                                         {items.length === 0 ? <section className="trivia-progress-empty"><p className="trivia-progress-empty-copy">No Achievement Definitions Are Available From The Server.</p></section> : categories.map(([category, categoryItems]) => (
                                             <section className="trivia-progress-section trivia-progress-achievement-category" key={category} aria-labelledby={`trivia-achievement-${category}`}>

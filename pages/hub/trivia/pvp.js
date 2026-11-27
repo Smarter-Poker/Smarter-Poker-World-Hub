@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import FriendChallengePanel from '../../../src/components/trivia/FriendChallengePanel';
 import PvpCompetitiveExperience from '../../../src/components/trivia/pvp/PvpCompetitiveExperience';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -385,6 +386,16 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         pairedMatchId={pairedMatchId}
                         settledSessionId={settledSessionId}
                         settledMatch={settledMatch}
+                        headerAction={(
+                            <TriviaHelpButton
+                                ariaLabel="Head To Head PvP Help"
+                                eyebrow="Head To Head"
+                                title="About PvP Poker Trivia"
+                                subtitle="Server-Quoted Stakes, Matchmaking And Settlement"
+                            >
+                                <HubPageSummary page="trivia-pvp" />
+                            </TriviaHelpButton>
+                        )}
                         friendChallengeSlot={!challengeCode && !matchActive ? (
                             <div ref={friendChallengeDockRef} className="sd-panel trivia-pvp-challenge-dock" data-challenge-priority="standard">
                                 <FriendChallengePanel
@@ -401,58 +412,14 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         ) : null}
                     />
                 </main>
-                <HubPageSummary page="trivia-pvp" />
             </div>
             <style jsx>{`
                 .trivia-pvp-shell {
                     min-height: 540px;
                 }
-                .trivia-pvp-elo-banner {
-                    display: flex;
-                    flex-wrap: wrap;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 12px;
-                    min-height: 54px;
-                    margin-bottom: 14px;
-                    padding: 12px 16px;
-                    border-radius: 12px;
-                    border: 1px solid var(--sd-line, var(--tc-bevel));
-                    background: var(--sd-surface, var(--tc-chassis-black));
-                }
-                .trivia-pvp-elo-banner__meta {
-                    display: flex;
-                    flex-wrap: wrap;
-                    align-items: center;
-                    gap: 10px 14px;
-                }
-                .trivia-pvp-elo-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    padding: 2px 10px;
-                    border-radius: 999px;
-                    border: 1px solid currentColor;
-                    font-size: 0.78rem;
-                    font-weight: 700;
-                    letter-spacing: 0.04em;
-                }
-                .trivia-pvp-elo-banner__score {
-                    font-size: 1rem;
-                    color: var(--sd-text, var(--tc-ink-white));
-                }
-                .trivia-pvp-elo-banner__detail {
-                    font-size: 0.85rem;
-                    color: var(--sd-silver, var(--tc-ink-silver));
-                }
-                .trivia-pvp-elo-link {
-                    display: inline-flex;
-                    align-items: center;
-                    min-height: 44px;
-                }
                 .trivia-pvp-challenge-dock {
                     margin: 14px 0;
                     padding: 14px 16px;
-                    border-radius: 12px;
                 }
             `}</style>
         </TriviaErrorBoundary>

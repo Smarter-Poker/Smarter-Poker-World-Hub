@@ -7,6 +7,7 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaHelpButton from '../../../src/components/trivia/TriviaHelpButton';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART } from '../../../src/config/triviaIntroArt.mjs';
@@ -353,6 +354,17 @@ export default function TriviaStudyDeck() {
                                             ? 'Guest'
                                             : `${formatTriviaDisplayNumber(totalMissed)} ${totalMissed === 1 ? 'Miss' : 'Misses'}`}
                                 pillInk={loadError ? 'red' : 'blue'}
+                                headerAction={(
+                                    <TriviaHelpButton
+                                        ariaLabel="Study Your Misses Help"
+                                        eyebrow="Personal Review Desk"
+                                        title="About Study Your Misses"
+                                        subtitle="Spaced-Repetition Deck And Practice Drill"
+                                    >
+                                        <p>Every Missed Poker Trivia Question Enters Your Personal Spaced-Repetition Deck Organized Across Four Leitner Boxes.</p>
+                                        <p>Launch Zero-Cost Practice Drills Or Flip Flashcards To Read Full Explanations And Jump Straight Into Targeted World Hub Training.</p>
+                                    </TriviaHelpButton>
+                                )}
                                 secondaryAction={{ label: 'Back To Stats', onClick: () => router.push('/hub/trivia/stats') }}
                                 primaryAction={!isLoading && loadError
                                     ? { label: 'Retry', onClick: () => setReloadKey((k) => k + 1) }
@@ -734,7 +746,7 @@ export default function TriviaStudyDeck() {
                     .study-deck-note {
                         margin: 0;
                         font-size: 13px;
-                        color: rgba(214, 228, 248, 0.78);
+                        color: var(--tc-ink-silver, #bdd0e2);
                         text-align: center;
                     }
                     .study-drill-launch-bar {
@@ -744,10 +756,10 @@ export default function TriviaStudyDeck() {
                         justify-content: space-between;
                         gap: 12px;
                         padding: 14px 16px;
-                        border-radius: 12px;
-                        background: linear-gradient(180deg, rgba(16, 36, 68, 0.94), rgba(9, 18, 34, 0.96));
-                        border: 1px solid rgba(134, 218, 255, 0.42);
-                        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-readout.webp') 16 / 4px stretch;
+                        background: var(--sd-navy, #0a1829);
+                        box-shadow: inset 0 1px 0 rgb(242 247 255 / 14%);
                     }
                     .study-drill-launch-bar__info {
                         display: flex;
@@ -755,8 +767,8 @@ export default function TriviaStudyDeck() {
                         gap: 4px;
                     }
                     .study-drill-launch-bar__title {
-                        font-size: 14px;
-                        font-weight: 700;
+                        font-size: 15px;
+                        font-weight: 800;
                         color: #f2f7ff;
                     }
                     .study-drill-launch-bar__meta {
@@ -779,12 +791,12 @@ export default function TriviaStudyDeck() {
                         width: 100%;
                         height: 100%;
                         padding: 10px 12px;
-                        border-radius: 10px;
-                        border: 1px solid rgba(154, 194, 242, 0.28);
-                        background: rgba(12, 22, 38, 0.88);
+                        border: 2px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+                        background: var(--sd-control, #0e2236);
                         color: #bdd0e2;
                         font-size: 13px;
-                        font-weight: 700;
+                        font-weight: 800;
                         text-align: left;
                         cursor: pointer;
                         touch-action: manipulation;
@@ -794,8 +806,8 @@ export default function TriviaStudyDeck() {
                         transform: scale(0.985);
                     }
                     .study-mode-tab--active {
-                        background: linear-gradient(180deg, rgba(25, 129, 236, 0.34), rgba(12, 85, 192, 0.44));
-                        border-color: #86daff;
+                        border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+                        background: var(--sd-cobalt, #0c4ea9);
                         color: #f2f7ff;
                     }
                     .study-mode-tab__count {
@@ -805,9 +817,10 @@ export default function TriviaStudyDeck() {
                         min-width: 24px;
                         padding: 2px 7px;
                         border-radius: 999px;
-                        background: rgba(255, 255, 255, 0.1);
+                        border: 1px solid #445e77;
+                        background: #040d18;
                         font-size: 12px;
-                        color: #e4eefc;
+                        color: #f2f7ff;
                     }
                     .study-session-bar {
                         display: flex;
@@ -816,14 +829,14 @@ export default function TriviaStudyDeck() {
                         justify-content: space-between;
                         gap: 12px;
                         padding: 12px 14px;
-                        border-radius: 10px;
-                        background: linear-gradient(180deg, rgba(16, 26, 44, 0.92), rgba(8, 13, 24, 0.94));
-                        border: 1px solid rgba(120, 166, 224, 0.28);
-                        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-stat.webp') 16 / 4px stretch;
+                        background: var(--sd-navy, #0a1829);
+                        box-shadow: inset 0 1px 0 rgb(242 247 255 / 12%);
                     }
                     .study-session-bar__count {
                         font-size: 13px;
-                        font-weight: 700;
+                        font-weight: 800;
                         color: #86daff;
                     }
                     .study-session-bar__toggle {
@@ -852,13 +865,13 @@ export default function TriviaStudyDeck() {
                         justify-content: space-between;
                         gap: 10px;
                         padding: 12px 14px;
-                        border-radius: 10px;
-                        background: rgba(12, 26, 46, 0.94);
-                        border: 1px solid rgba(134, 218, 255, 0.42);
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-readout.webp') 16 / 4px stretch;
+                        background: var(--sd-navy, #0a1829);
                     }
                     .study-drill__progress {
                         font-size: 13px;
-                        font-weight: 700;
+                        font-weight: 800;
                         color: #f2f7ff;
                     }
                     .study-drill__options {
@@ -873,9 +886,9 @@ export default function TriviaStudyDeck() {
                         width: 100%;
                         min-height: 44px;
                         padding: 11px 14px;
-                        border-radius: 8px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 1px solid rgba(164, 196, 236, 0.28);
+                        border: 2px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+                        background: var(--sd-control, #0e2236);
                         color: #f2f7ff;
                         font-size: 14px;
                         text-align: left;
@@ -886,14 +899,16 @@ export default function TriviaStudyDeck() {
                         cursor: default;
                     }
                     .study-drill__option--correct {
-                        background: rgba(34, 197, 94, 0.2);
-                        border-color: rgba(74, 222, 128, 0.72);
-                        color: #ecfdf5;
+                        border-image: none;
+                        border: 2px solid #4ade80;
+                        background: rgba(34, 197, 94, 0.22);
+                        color: #f2f7ff;
                     }
                     .study-drill__option--wrong {
-                        background: rgba(239, 68, 68, 0.2);
-                        border-color: rgba(248, 113, 113, 0.72);
-                        color: #fef2f2;
+                        border-image: none;
+                        border: 2px solid #ff5b6e;
+                        background: rgba(239, 68, 68, 0.22);
+                        color: #f2f7ff;
                     }
                     .study-drill__subcopy {
                         margin: 0;
@@ -906,10 +921,10 @@ export default function TriviaStudyDeck() {
                         flex-direction: column;
                         gap: 14px;
                         padding: 18px;
-                        border-radius: 12px;
-                        background: linear-gradient(180deg, rgba(13, 21, 36, 0.96), rgba(7, 11, 20, 0.98));
-                        border: 1px solid rgba(130, 174, 232, 0.32);
-                        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 8px 24px rgba(0, 0, 0, 0.45);
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-stat.webp') 16 / 4px stretch;
+                        background: var(--sd-navy, #0a1829);
+                        box-shadow: inset 0 1px 0 rgb(242 247 255 / 12%);
                     }
                     .study-card__meta {
                         display: flex;
@@ -927,53 +942,53 @@ export default function TriviaStudyDeck() {
                         letter-spacing: 0.03em;
                     }
                     .study-badge--category {
-                        background: rgba(56, 152, 255, 0.18);
-                        border: 1px solid rgba(90, 176, 255, 0.42);
-                        color: #9ad2ff;
+                        background: rgba(25, 129, 236, 0.22);
+                        border: 1px solid #86daff;
+                        color: #f2f7ff;
                     }
                     .study-badge--srs {
                         background: rgba(134, 218, 255, 0.14);
-                        border: 1px solid rgba(134, 218, 255, 0.38);
-                        color: #cfefff;
+                        border: 1px solid #445e77;
+                        color: #86daff;
                     }
                     .study-badge--zero-reward {
-                        background: rgba(12, 85, 192, 0.32);
-                        border: 1px solid rgba(134, 218, 255, 0.58);
+                        background: rgba(25, 129, 236, 0.28);
+                        border: 1px solid #86daff;
                         color: #f2f7ff;
                     }
                     .study-badge--easy {
-                        background: rgba(46, 204, 113, 0.16);
-                        border: 1px solid rgba(46, 204, 113, 0.4);
-                        color: #82f0ae;
+                        background: rgba(74, 222, 128, 0.16);
+                        border: 1px solid #4ade80;
+                        color: #4ade80;
                     }
                     .study-badge--medium {
                         background: rgba(134, 218, 255, 0.16);
-                        border: 1px solid rgba(134, 218, 255, 0.42);
+                        border: 1px solid #86daff;
                         color: #86daff;
                     }
                     .study-badge--hard {
-                        background: rgba(239, 98, 98, 0.18);
-                        border: 1px solid rgba(239, 98, 98, 0.42);
-                        color: #ff9c9c;
+                        background: rgba(239, 68, 68, 0.18);
+                        border: 1px solid #ff5b6e;
+                        color: #ff5b6e;
                     }
                     .study-card__counter {
                         margin-left: auto;
                         font-size: 12px;
-                        font-weight: 600;
-                        color: rgba(214, 228, 248, 0.8);
+                        font-weight: 700;
+                        color: #bdd0e2;
                     }
                     .study-card__submeta {
                         display: flex;
                         flex-wrap: wrap;
                         gap: 14px;
                         font-size: 12px;
-                        color: rgba(192, 210, 236, 0.72);
+                        color: #9ab0c7;
                     }
                     .study-card__question {
                         margin: 0;
                         font-size: 18px;
                         line-height: 1.45;
-                        color: #f4f8ff;
+                        color: #f2f7ff;
                     }
                     .study-options {
                         list-style: none;
@@ -988,28 +1003,28 @@ export default function TriviaStudyDeck() {
                         align-items: center;
                         gap: 10px;
                         padding: 11px 12px;
-                        border-radius: 8px;
-                        background: rgba(255, 255, 255, 0.04);
-                        border: 1px solid rgba(164, 196, 236, 0.18);
-                        color: #e6effc;
+                        border: 1px solid #445e77;
+                        background: #040d18;
+                        color: #f2f7ff;
                         font-size: 14px;
                     }
                     .study-option--correct {
-                        background: rgba(34, 197, 94, 0.18);
-                        border-color: rgba(74, 222, 128, 0.65);
-                        color: #ecfdf5;
+                        background: rgba(34, 197, 94, 0.2);
+                        border-color: #4ade80;
+                        color: #f2f7ff;
                     }
                     .study-option__letter {
-                        width: 24px;
-                        height: 24px;
+                        width: 26px;
+                        height: 26px;
                         flex-shrink: 0;
                         display: inline-flex;
                         align-items: center;
                         justify-content: center;
-                        border-radius: 6px;
-                        background: rgba(255, 255, 255, 0.09);
+                        border: 1px solid #445e77;
+                        background: var(--sd-control, #0e2236);
+                        color: #86daff;
                         font-size: 12px;
-                        font-weight: 700;
+                        font-weight: 800;
                     }
                     .study-option__text {
                         flex: 1;
@@ -1017,30 +1032,29 @@ export default function TriviaStudyDeck() {
                     }
                     .study-option__tag {
                         font-size: 12px;
-                        font-weight: 700;
-                        color: #86efac;
+                        font-weight: 800;
+                        color: #4ade80;
                     }
                     .study-option__tag--wrong {
-                        color: #fecaca;
+                        color: #ff5b6e;
                     }
                     .study-explanation {
                         padding: 12px 14px;
-                        border-radius: 8px;
-                        background: rgba(22, 101, 52, 0.22);
-                        border: 1px solid rgba(74, 222, 128, 0.36);
+                        border: 1px solid #4ade80;
+                        background: rgba(34, 197, 94, 0.14);
                     }
                     .study-explanation__heading {
                         margin: 0 0 6px 0;
                         font-size: 13px;
-                        font-weight: 700;
-                        color: #86efac;
+                        font-weight: 800;
+                        color: #4ade80;
                         letter-spacing: 0.04em;
                     }
                     .study-explanation__body {
                         margin: 0;
                         font-size: 14px;
                         line-height: 1.5;
-                        color: #eaf5ee;
+                        color: #f2f7ff;
                     }
                     .study-card__actions {
                         display: flex;
@@ -1053,19 +1067,19 @@ export default function TriviaStudyDeck() {
                         justify-content: center;
                         min-height: 44px;
                         padding: 10px 14px;
-                        border-radius: 8px;
                         font-size: 13px;
-                        font-weight: 700;
+                        font-weight: 800;
                         text-decoration: none;
                         cursor: pointer;
-                        border: 1px solid rgba(154, 194, 242, 0.36);
-                        background: rgba(30, 48, 78, 0.88);
-                        color: #f3f8ff;
+                        border: 2px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+                        background: var(--sd-control, #0e2236);
+                        color: #f2f7ff;
                         touch-action: manipulation;
                     }
                     .study-btn--drill-cta {
-                        background: linear-gradient(180deg, #1981ec, #0c55c0);
-                        border-color: #86daff;
+                        border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+                        background: var(--sd-cobalt, #0c4ea9);
                         color: #f2f7ff;
                     }
                     .study-btn--drill-cta:disabled {
@@ -1073,22 +1087,25 @@ export default function TriviaStudyDeck() {
                         cursor: not-allowed;
                     }
                     .study-btn--flip {
-                        background: linear-gradient(180deg, #2563eb, #1d4ed8);
-                        border-color: rgba(147, 197, 253, 0.55);
+                        border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+                        background: var(--sd-cobalt, #0c4ea9);
+                        color: #f2f7ff;
                     }
                     .study-btn--gotit {
-                        background: rgba(20, 42, 34, 0.9);
-                        border-color: rgba(74, 222, 128, 0.45);
-                        color: #b7f7cd;
+                        border-image: none;
+                        border: 2px solid #4ade80;
+                        background: #0a1829;
+                        color: #4ade80;
                     }
                     .study-btn--mastered {
-                        background: rgba(22, 163, 74, 0.28);
-                        border-color: rgba(134, 239, 172, 0.72);
-                        color: #dcfce7;
+                        border-image: none;
+                        border: 2px solid #4ade80;
+                        background: rgba(34, 197, 94, 0.24);
+                        color: #f2f7ff;
                     }
                     .study-btn--train {
-                        background: linear-gradient(180deg, #1981ec, #0c55c0);
-                        border-color: rgba(134, 218, 255, 0.58);
+                        border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+                        background: var(--sd-cobalt, #0c4ea9);
                         color: #f2f7ff;
                     }
                     .study-card__specialty {
@@ -1101,18 +1118,18 @@ export default function TriviaStudyDeck() {
                         justify-content: space-between;
                         gap: 12px;
                         padding-top: 8px;
-                        border-top: 1px solid rgba(148, 184, 230, 0.18);
+                        border-top: 1px solid #445e77;
                     }
                     .study-nav__btn {
                         flex: 1;
                         min-height: 44px;
                         padding: 10px 12px;
-                        border-radius: 8px;
-                        background: rgba(255, 255, 255, 0.06);
-                        border: 1px solid rgba(148, 184, 230, 0.26);
-                        color: #e4eefc;
+                        border: 2px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+                        background: var(--sd-control, #0e2236);
+                        color: #f2f7ff;
                         font-size: 13px;
-                        font-weight: 600;
+                        font-weight: 700;
                         cursor: pointer;
                     }
                     .study-empty-actions {

@@ -12,8 +12,6 @@
  */
 
 /* ── Shared: the engraved rule used between printed rows ─────────────────── */
-.trivia-game .options > *,
-.hint-buttons .hint-btn,
 .trivia-lb-entry,
 .review-item {
     border-top: var(--tc-rule);
@@ -30,12 +28,12 @@
     line-height: 1.3;
 }
 
-/* ── Hint controls: instrument rows on the glass ─────────────────────────── */
+/* ── Hint controls: #SMARTERDESIGN hardware plates ───────────────────────── */
 .hint-buttons {
     position: relative;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0;
+    gap: 8px;
     width: 100%;
     min-width: 0;
 }
@@ -50,11 +48,12 @@
     min-width: 0;
     min-height: 48px;
     margin: 0;
-    padding: 8px 2px;
-    border: 0;
-    border-radius: 0;
-    color: var(--tc-ink-silver);
-    background: none;
+    padding: 10px 14px;
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+    color: var(--tc-ink-white);
+    background: var(--sd-control, #0e2236);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 10%);
     font: inherit;
     text-align: left;
     cursor: pointer;
@@ -124,6 +123,11 @@
 }
 
 /* ── Answer options (TriviaAnswerOption + TriviaGame) ────────────────────── */
+.trivia-game .options {
+    display: grid;
+    gap: 10px;
+}
+
 .trivia-answer-option {
     appearance: none;
     display: grid;
@@ -132,13 +136,14 @@
     gap: 10px;
     width: 100%;
     min-width: 0;
-    min-height: 52px;
+    min-height: 54px;
     margin: 0;
-    padding: max(10px, 2cqw) 2px;
-    border: 0;
-    border-radius: 0;
-    color: var(--tc-ink-silver);
-    background: none;
+    padding: 12px 14px;
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+    color: var(--tc-ink-white);
+    background: var(--sd-control, #0e2236);
+    box-shadow: inset 0 1px 0 rgb(242 247 255 / 10%);
     font: 600 max(15px, 3.5cqw) / 1.4 Inter, system-ui, sans-serif;
     text-align: left;
     cursor: pointer;
@@ -148,7 +153,7 @@
 .trivia-answer-option .option-letter,
 .trivia-answer-option__status {
     color: var(--tc-ink-blue);
-    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-family: var(--sd-type, 'Arial Narrow', 'Roboto Condensed', Inter, system-ui, sans-serif);
     font-size: max(13px, 3cqw);
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -162,19 +167,29 @@
 }
 
 .trivia-answer-option:active:not(:disabled) {
-    filter: brightness(1.25);
+    filter: brightness(1.12);
 }
 
 .trivia-answer-option.selected,
 .trivia-answer-option[aria-pressed='true']:not(.correct):not(.wrong) {
-    color: var(--tc-ink-white);
-    text-shadow: 0 0 1cqw rgb(69 173 255 / 90%);
+    border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+    background: var(--sd-cobalt, #0c4ea9);
+    color: #fff;
+    text-shadow: none;
+}
+
+.trivia-answer-option.selected .option-letter,
+.trivia-answer-option[aria-pressed='true']:not(.correct):not(.wrong) .option-letter {
+    color: #fff;
 }
 
 .trivia-answer-option.correct,
 .trivia-answer-option[data-correct='true'] {
-    color: var(--tc-ink-green);
-    text-shadow: 0 0 1cqw rgb(53 217 90 / 80%);
+    border-image: none;
+    border: 2px solid var(--tc-ink-green);
+    background: rgb(34 197 94 / 20%);
+    color: var(--tc-ink-white);
+    text-shadow: none;
 }
 
 .trivia-answer-option.correct .option-letter,
@@ -187,8 +202,11 @@
 
 .trivia-answer-option.wrong,
 .trivia-answer-option[data-wrong='true'] {
-    color: var(--tc-ink-red);
-    text-shadow: 0 0 1cqw rgb(240 40 73 / 80%);
+    border-image: none;
+    border: 2px solid var(--tc-ink-red);
+    background: rgb(239 68 68 / 20%);
+    color: var(--tc-ink-white);
+    text-shadow: none;
 }
 
 .trivia-answer-option.wrong .option-letter,
