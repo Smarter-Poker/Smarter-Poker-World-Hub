@@ -14,6 +14,13 @@ import {
     classifyStripeSubscriptionForVip,
     resolveStripeSubscriptionVipTier,
 } from '../../../../src/lib/store/vipPurchaseGuards.mjs';
+import {
+    buildVipFirstRenewalReminderNotice,
+    buildVipIntroConfirmationNotice,
+    buildVipPaymentFailedNotice,
+    deliverVipLifecycleNotice,
+} from '../../../../src/lib/store/vipLifecycleNotices.mjs';
+import { sendTransactionalEmail } from '../../../../src/lib/email/transactionalEmail.mjs';
 const {
     buildPrintfulItems,
     cancelPrintfulOrder,
@@ -301,6 +308,13 @@ export default async function handler(req, res) {
 
               case 'invoice.payment_failed':
                   await handleInvoicePaymentFailed(event.data.object);
+                  break;
+
+              // Read-only for membership: it never admits, projects or
+              // cancels anything. Inert until `invoice.upcoming` is enabled
+              // on the Stripe endpoint.
+              case 'invoice.upcoming':
+                  await handleInvoiceUpcoming(event.data.object);
                   break;
 
               case 'charge.refunded':
@@ -1492,18 +1506,95 @@ async function handleStripeSubscriptionEvent(subscriptionReference, {
             throw finalizeError || new Error('Stripe VIP subscription admission was not finalized');
         }
     }
+
+    // Only this exit means "the VIP ledger now holds exactly this Stripe
+    // state". Every other exit (ignored, Commander, compensated) returns
+    // nothing, so a caller can never notify a member about a subscription
+    // that was not projected.
+    return { projected: true, userId, tier, status, subscription };
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
     if (stripeObjectId(invoice?.subscription)) {
-        await handleStripeSubscriptionEvent(invoice.subscription, { triggerInvoice: invoice });
+        const outcome = await handleStripeSubscriptionEvent(invoice.subscription, { triggerInvoice: invoice });
+        await sendVipLifecycleNotice(outcome, () => buildVipIntroConfirmationNotice({
+            subscription: outcome.subscription,
+            invoice,
+            tier: outcome.tier,
+            status: outcome.status,
+        }));
     }
 }
 
 async function handleInvoicePaymentFailed(invoice) {
     if (stripeObjectId(invoice?.subscription)) {
-        await handleStripeSubscriptionEvent(invoice.subscription);
+        const outcome = await handleStripeSubscriptionEvent(invoice.subscription);
+        await sendVipLifecycleNotice(outcome, () => buildVipPaymentFailedNotice({
+            subscription: outcome.subscription,
+            invoice,
+            status: outcome.status,
+        }));
     }
+}
+
+// -------------------------------------------------------------------------
+// VIP LIFECYCLE NOTICES (2026-11-27)
+//
+// The member is told three things, each once: the $1 signup terms, the first
+// full-price renewal before it happens, and a renewal that failed. A notice
+// is sent only AFTER the membership work for the event has fully succeeded,
+// and it can never fail the event: the settlement above is what Stripe's
+// retry protects, not the email.
+// -------------------------------------------------------------------------
+async function sendVipLifecycleNotice(outcome, buildNotice) {
+    try {
+        if (outcome?.projected !== true || !outcome.userId) return 'skipped';
+        const notice = buildNotice();
+        if (!notice) return 'skipped';
+        const result = await deliverVipLifecycleNotice({
+            supabase: getSupabase(),
+            userId: outcome.userId,
+            notice,
+            sendEmail: sendTransactionalEmail,
+            log: (line) => console.warn(line),
+        });
+        console.info(`[stripe-webhook] ${notice.type} for ${outcome.userId}: ${result}`);
+    } catch (error) {
+        console.warn('[stripe-webhook] VIP lifecycle notice failed:', error?.message || error);
+        return 'failed';
+    }
+    return 'done';
+}
+
+async function handleInvoiceUpcoming(invoice) {
+    const subscriptionId = stripeObjectId(invoice?.subscription);
+    if (!subscriptionId) return;
+    // The ledger row is the authority that this is a VIP subscription and who
+    // owns it. No row, or a row that is not active, means there is nobody to
+    // remind and Stripe is not called.
+    const { data: ledgerRow, error: ledgerError } = await getSupabase()
+        .from('vip_subscriptions')
+        .select('user_id, tier, status')
+        .eq('stripe_subscription_id', subscriptionId)
+        .maybeSingle();
+    if (ledgerError) throw ledgerError;
+    if (!ledgerRow?.user_id || ledgerRow.status !== 'active') return;
+
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['items.data.price', 'latest_invoice'],
+    });
+    if (!subscription || subscription.id !== subscriptionId) {
+        throw new Error('Stripe did not return the exact upcoming-invoice subscription');
+    }
+    await sendVipLifecycleNotice(
+        { projected: true, userId: ledgerRow.user_id },
+        () => buildVipFirstRenewalReminderNotice({
+            subscription,
+            upcomingInvoice: invoice,
+            tier: ledgerRow.tier,
+            userId: ledgerRow.user_id,
+        })
+    );
 }
 
 // -------------------------------------------------------------------------

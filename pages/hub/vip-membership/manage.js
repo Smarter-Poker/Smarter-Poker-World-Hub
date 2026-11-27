@@ -25,6 +25,8 @@ const EMPTY_MEMBERSHIP = {
 const MEMBERSHIP_ACTION_TIMEOUT_MS = 20_000;
 const MEMBERSHIP_READ_TIMEOUT_MS = 20_000;
 const MAX_RETAINED_MEMBERSHIP_ACTIONS = 32;
+const BILLING_PORTAL_HOST = 'billing.stripe.com';
+const CANCEL_DETAILS_MAX_LENGTH = 500;
 const membershipActionKeys = new Map();
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -58,6 +60,17 @@ function formatDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'Pending Verification';
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function verifiedBillingPortalUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'https:' && url.hostname === BILLING_PORTAL_HOST
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function sourceLabel(source) {
@@ -98,6 +111,10 @@ export default function VipManagePage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
   const [cancelReason, setCancelReason] = useState('not_using');
+  const [cancelDetails, setCancelDetails] = useState('');
+  const [portal, setPortal] = useState({ status: 'idle', message: '' });
+  const [portalOwnerId, setPortalOwnerId] = useState(null);
+  const portalBusyRef = useRef(false);
   const dialogTitleRef = useRef(null);
   const dialogRef = useRef(null);
   const cancelTriggerRef = useRef(null);
@@ -128,6 +145,10 @@ export default function VipManagePage() {
     setAction({ status: 'idle', message: '' });
     setConfirmOpen(false);
     setPendingPlan(null);
+    setCancelDetails('');
+    portalBusyRef.current = false;
+    setPortalOwnerId(committedAccountId);
+    setPortal({ status: 'idle', message: '' });
   }, [committedAccountId]);
 
   const loadMembership = useCallback(async () => {
@@ -262,7 +283,9 @@ export default function VipManagePage() {
       }
       if (event.key !== 'Tab') return;
       const focusable = Array.from(
-        dialogRef.current?.querySelectorAll('button:not(:disabled), select:not(:disabled)') || []
+        dialogRef.current?.querySelectorAll(
+          'button:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]'
+        ) || []
       );
       if (!focusable.length) return;
       const first = focusable[0];
@@ -413,12 +436,68 @@ export default function VipManagePage() {
       { tier: plan, cancelAtPeriodEnd: false, canCancel: true, canSwitch: true }
     );
 
-  const scheduleCancellation = () =>
-    runAction(
+  const scheduleCancellation = () => {
+    const details = cancelDetails.trim().slice(0, CANCEL_DETAILS_MAX_LENGTH);
+    return runAction(
       '/api/store/cancel-vip',
-      { reason: cancelReason },
+      details ? { reason: cancelReason, reasonText: details } : { reason: cancelReason },
       { cancelAtPeriodEnd: true, canCancel: false, canSwitch: false }
     );
+  };
+
+  // Opens Stripe's own card page for this member's customer. The server picks
+  // the customer from the signed-in profile; this only follows a verified
+  // billing.stripe.com address.
+  const openBillingPortal = async () => {
+    const expectedAccountId = committedAccountId;
+    if (
+      portalBusyRef.current ||
+      !expectedAccountId ||
+      activeAccountIdRef.current !== expectedAccountId ||
+      getAuthUser()?.id !== expectedAccountId
+    )
+      return;
+    portalBusyRef.current = true;
+    setPortalOwnerId(expectedAccountId);
+    setPortal({ status: 'busy', message: '' });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), MEMBERSHIP_ACTION_TIMEOUT_MS);
+    try {
+      const response = await authedFetch('/api/store/billing-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({}),
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => null);
+      if (activeAccountIdRef.current !== expectedAccountId) return;
+      if (getAuthUser()?.id !== expectedAccountId) return;
+      const url = verifiedBillingPortalUrl(payload?.url);
+      if (!response.ok || !payload?.success || !url) {
+        throw new Error(payload?.error || 'The Card Update Page Could Not Be Opened.');
+      }
+      setPortal({ status: 'leaving', message: 'Opening The Secure Card Page.' });
+      window.location.assign(url);
+    } catch (error) {
+      if (activeAccountIdRef.current !== expectedAccountId) return;
+      setPortal({
+        status: 'error',
+        message:
+          error?.name === 'AbortError'
+            ? 'The Card Update Page Timed Out. Please Try Again.'
+            : error?.message || 'The Card Update Page Could Not Be Opened.',
+      });
+    } finally {
+      clearTimeout(timer);
+      portalBusyRef.current = false;
+    }
+  };
+
+  const accountPortal =
+    portalOwnerId === committedAccountId ? portal : { status: 'idle', message: '' };
+  const accessEndLabel = formatDate(
+    accountView.membership.currentPeriodEnd || accountView.membership.expiresAt
+  );
 
   const membership = accountView.membership;
   const stateLabel =
@@ -547,6 +626,18 @@ export default function VipManagePage() {
                 <p>
                   <Link href="/hub/vip-membership">Choose A VIP Plan</Link>
                 </p>
+                <div className={styles.notice}>
+                  Did A Renewal Payment Fail? VIP From A Card Subscription Turns Off Until The
+                  Payment Succeeds. Update Your Card And VIP Returns When The Payment Goes Through.
+                </div>
+                <button
+                  className={styles.button}
+                  type="button"
+                  disabled={accountPortal.status === 'busy' || accountPortal.status === 'leaving'}
+                  onClick={openBillingPortal}
+                >
+                  {accountPortal.status === 'busy' ? 'Opening…' : 'Update Payment Card'}
+                </button>
               </>
             )}
 
@@ -571,7 +662,11 @@ export default function VipManagePage() {
                   Switching Plans Keeps Your Renewal Date. Stripe Applies Unused Paid Time As A
                   Prorated Credit To The Next Invoice.
                 </p>
-                <div className={styles.planGrid} role="group" aria-label="VIP Recurring Plan Controls">
+                <div
+                  className={styles.planGrid}
+                  role="group"
+                  aria-label="VIP Recurring Plan Controls"
+                >
                   <div
                     className={`${styles.plan} ${membership.tier === 'monthly' ? styles.planActive : ''}`}
                   >
@@ -611,6 +706,20 @@ export default function VipManagePage() {
                     </button>
                   </div>
                 </div>
+                {membership.tier === 'monthly' && !membership.cancelAtPeriodEnd && (
+                  <div className={styles.notice}>
+                    $200/Year Is Two Months Free Versus Monthly. After Your First Renewal You Can
+                    Switch To Yearly.
+                  </div>
+                )}
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  disabled={accountPortal.status === 'busy' || accountPortal.status === 'leaving'}
+                  onClick={openBillingPortal}
+                >
+                  {accountPortal.status === 'busy' ? 'Opening…' : 'Update Payment Card'}
+                </button>
                 {membership.canCancel && (
                   <button
                     ref={cancelTriggerRef}
@@ -626,6 +735,16 @@ export default function VipManagePage() {
                   Effect At The End Of The Paid Billing Period.
                 </p>
               </>
+            )}
+
+            {accountPortal.message && (
+              <div
+                className={`${styles.notice} ${accountPortal.status === 'error' ? styles.noticeError : ''}`}
+                role={accountPortal.status === 'error' ? 'alert' : 'status'}
+                aria-live="polite"
+              >
+                {marketplaceCopy(accountPortal.message)}
+              </div>
             )}
 
             {accountAction.message && (
@@ -663,6 +782,23 @@ export default function VipManagePage() {
             </p>
             {confirmOpen && (
               <>
+                <ul className={styles.dialogList}>
+                  <li>Every VIP Benefit Stays On Through {accessEndLabel}.</li>
+                  <li>
+                    After That Date VIP Turns Off And Your Account Returns To Standard Access.
+                  </li>
+                  <li>Your Card Is Not Charged Again.</li>
+                  <li>
+                    Coming Back Later Is At The Regular Price. The $1 First Month Is One Time Per
+                    Account.
+                  </li>
+                </ul>
+                <p className={styles.dialogNote}>
+                  {membership.tier === 'monthly'
+                    ? 'Staying Costs Less On Yearly: $200/Year Is Two Months Free Versus Monthly. After Your First Renewal You Can Switch To Yearly. A Diamond VIP Pass Is Another Way Back, And It Never Renews A Card.'
+                    : 'A Diamond VIP Pass Is Another Way Back Later, And It Never Renews A Card.'}{' '}
+                  <Link href="/hub/vip-membership/compare">See Every VIP Benefit</Link>
+                </p>
                 <label htmlFor="cancel-reason">Why Are You Leaving?</label>
                 <select
                   id="cancel-reason"
@@ -672,9 +808,18 @@ export default function VipManagePage() {
                   <option value="not_using">Not Using It Enough</option>
                   <option value="too_expensive">Price</option>
                   <option value="missing_features">Missing Features</option>
+                  <option value="found_alternative">Found Something Else</option>
                   <option value="technical_issues">Technical Issues</option>
                   <option value="other">Other</option>
                 </select>
+                <label htmlFor="cancel-details">Anything We Should Know? (Optional)</label>
+                <textarea
+                  id="cancel-details"
+                  value={cancelDetails}
+                  maxLength={CANCEL_DETAILS_MAX_LENGTH}
+                  rows={3}
+                  onChange={(event) => setCancelDetails(event.target.value)}
+                />
               </>
             )}
             {accountAction.status === 'error' && (
