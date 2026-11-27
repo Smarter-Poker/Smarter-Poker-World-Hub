@@ -46,6 +46,34 @@ SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
 # library, so it keeps a mirror; scripts/test_operational_alerts.py fails CI if
 # the mirror differs.
 FLEET_TASK_ID = '01a09b86-5ba8-7290-8657-1041f13dd3ca'
+# AN EXIT NAMES ITS CAUSE (2026-11-23, production alert 255584). A collector
+# exit was reported as daemon_exited_<status> whatever caused it, so the
+# PokerAtlas daemon's two exit-0 paths (writer lock already held elsewhere,
+# shutdown signal its supervisor never sent) were one indistinguishable code
+# and alerts 2026-10-09 and 255584 could not be attributed. Mirrors
+# EXIT_WRITER_LOCK_HELD in scripts/pokeratlas-live-daemon.py; this runner is
+# copied alone, so it cannot import it, and the test suite pins the two equal.
+EXIT_WRITER_LOCK_HELD = 75
+
+
+def exit_fault(code):
+    """Name a collector exit by its cause where the status records one."""
+    if code == EXIT_WRITER_LOCK_HELD:
+        return 'daemon_writer_lock_held_elsewhere'
+    if isinstance(code, int) and code < 0:
+        return 'daemon_killed_by_signal_' + _signal_name(-code)
+    if isinstance(code, int) and 128 < code < 128 + 65:
+        return 'daemon_stopped_by_signal_' + _signal_name(code - 128)
+    return 'daemon_exited_' + str(code)
+
+
+def _signal_name(number):
+    try:
+        return signal.Signals(number).name
+    except ValueError:
+        return str(number)
+
+
 RUNTIME_LOG_MAX_BYTES = 8 * 1024 * 1024
 RUNTIME_LOG_RETAIN_BYTES = 2 * 1024 * 1024
 RUNTIME_LOG_CHECK_SECONDS = 1.0
@@ -607,7 +635,7 @@ def run_logged(root, log_maintenance=None):
             if component == 'tours' and code == 0:
                 deliver_resolution(root)
                 return 0
-            raise RuntimeFault('daemon_exited_' + str(code))
+            raise RuntimeFault(exit_fault(code))
         except (OSError, ValueError, TypeError, KeyError):
             code = 'runtime_io_or_configuration_failure'
         except RuntimeFault as error:

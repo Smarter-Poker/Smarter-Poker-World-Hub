@@ -296,6 +296,47 @@ class RuntimeProof(unittest.TestCase):
         self.assertEqual(self.requests[0]['p_source'], 'local.tournaments-runtime')
         self.assertEqual(self.requests[0]['p_payload']['failure_code'], 'daemon_exited_0')
 
+    def pokeratlas_exit(self, body):
+        """Install a PokerAtlas release whose collector runs body, run it once."""
+        for name in runtime.FILES:
+            (self.repo / name).write_text(body)
+        self.git('add', 'scripts')
+        self.git('commit', '-qm', 'exit fixture')
+        self.sha = self.git('rev-parse', 'HEAD').strip()
+        self.git('update-ref', 'refs/remotes/origin/main', self.sha)
+        self.install()
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(self.root), 1)
+        self.assertEqual(self.requests[0]['p_source'], 'local.pokeratlas-runtime')
+        return self.requests[0]['p_payload']['failure_code']
+
+    # Alert 255584 (2026-11-23): the PokerAtlas daemon exits when another
+    # process already holds its writer lock. The pre-fix runner reported that
+    # as daemon_exited_0, the same code as a stop signal, so neither the
+    # 2026-10-09 nor the 2026-10-17 fault could be attributed.
+    def test_a_writer_lock_held_elsewhere_is_named_not_daemon_exited(self):
+        self.assertEqual(self.pokeratlas_exit('raise SystemExit(75)\n'),
+                         'daemon_writer_lock_held_elsewhere')
+
+    def test_a_stop_signal_the_supervisor_never_sent_is_named(self):
+        self.assertEqual(self.pokeratlas_exit('raise SystemExit(128 + 15)\n'),
+                         'daemon_stopped_by_signal_SIGTERM')
+
+    def test_a_collector_killed_by_a_signal_is_named(self):
+        self.assertEqual(
+            self.pokeratlas_exit('import os,signal\nos.kill(os.getpid(), signal.SIGKILL)\n'),
+            'daemon_killed_by_signal_SIGKILL')
+
+    def test_an_ordinary_failure_status_keeps_its_code(self):
+        self.assertEqual(runtime.exit_fault(1), 'daemon_exited_1')
+        self.assertEqual(runtime.exit_fault(0), 'daemon_exited_0')
+
+    def test_the_lock_status_mirror_matches_the_daemon(self):
+        source = Path(runtime.__file__).with_name('pokeratlas-live-daemon.py').read_text()
+        self.assertIn('EXIT_WRITER_LOCK_HELD = %d ' % runtime.EXIT_WRITER_LOCK_HELD, source)
+        self.assertIn('return EXIT_WRITER_LOCK_HELD', source)
+        self.assertIn("sys.exit(main())", source)
+
     def test_credential_reference_rejects_relative_path(self):
         runtime.atomic_write(self.root / 'credential-store.json', runtime.json_bytes({'root': '../foreign'}))
         with self.assertRaisesRegex(runtime.RuntimeFault, 'credential_store_invalid'):
