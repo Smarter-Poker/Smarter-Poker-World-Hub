@@ -105,15 +105,3 @@ export function vipIntroPromptCopy(input) {
   return VIP_INTRO_PROMPT_COPY[vipIntroPromptState(input)];
 }
 
-/**
- * What `checkout_started` reports for a VIP Card checkout: the amount due
- * today, which is $1 only when the $1 terms were the terms reviewed.
- */
-export function vipCheckoutAnalytics(plan, introReviewed) {
-  const intro = introReviewed === true && plan?.interval === VIP_INTRO_OFFER.interval && !plan?.oneTime;
-  return {
-    value_usd: intro ? VIP_INTRO_OFFER.firstPeriodCents / 100 : Number(plan?.price || 0),
-    recurring_value_usd: plan?.oneTime ? 0 : Number(plan?.price || 0),
-    intro_offer: intro,
-  };
-}

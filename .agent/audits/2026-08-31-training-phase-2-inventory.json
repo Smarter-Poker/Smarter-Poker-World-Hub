@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 194,
     "markerCandidates": 391,
-    "possibleUnwiredFunctions": 477,
+    "possibleUnwiredFunctions": 476,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -68778,21 +68778,12 @@
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
-        },
-        {
-          "name": "vipCheckoutAnalytics",
-          "line": 112,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
         }
       ],
       "possibleUnwiredFunctions": [
         "parseVipIntroOfferStatus",
         "parseVipIntroCatalogOffer",
-        "vipIntroPromptCopy",
-        "vipCheckoutAnalytics"
+        "vipIntroPromptCopy"
       ],
       "markers": []
     },
@@ -125206,21 +125197,6 @@
         ]
       },
       {
-        "file": "src/lib/store/vipIntroPrompt.mjs",
-        "name": "vipCheckoutAnalytics",
-        "line": 112,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/diamond-store.js"
-        ]
-      },
-      {
         "file": "src/lib/store/walletDescription.mjs",
         "name": "formatWalletDescriptionParts",
         "line": 40,
@@ -136511,21 +136487,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/lib/store/useVipIntroOffer.js"
-        ]
-      },
-      {
-        "file": "src/lib/store/vipIntroPrompt.mjs",
-        "name": "vipCheckoutAnalytics",
-        "line": 112,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/diamond-store.js"
         ]
       },
       {
