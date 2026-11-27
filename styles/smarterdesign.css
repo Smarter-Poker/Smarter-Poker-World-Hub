@@ -143,9 +143,14 @@
 .sd-tabs > :is(.active, [aria-current="page"], [aria-selected="true"], [aria-pressed="true"]),
 .bankroll-sidebar .bankroll-sidebar-item.sd-button.active {
   color: #fff;
-  border-image-source: url('/images/smarterdesign/chrome-active.webp');
+  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
   border-image-slice: 11;
   background: var(--sd-cobalt, #0c4ea9);
+  /* The cobalt fills inside the bevel only. chrome-active-v2 carries its glow
+     as real transparency (chrome-active.webp had it painted onto opaque navy,
+     which read as a black box over every image-header scene), so the fill
+     must not paint square corners under the rounded rim. */
+  background-clip: padding-box;
 }
 .sd-button:active, .sd-tabs > :is(a,button):active { filter: brightness(.89); }
 .sd-button:disabled { color: #a7b7c8; background: #13202c; cursor: default; }

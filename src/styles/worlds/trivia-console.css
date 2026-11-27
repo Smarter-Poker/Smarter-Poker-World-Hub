@@ -180,7 +180,7 @@ body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
 .tc-word[aria-current='true'],
 .tc-word[aria-selected='true'] {
     color: #fff;
-    border-image-source: url('/images/smarterdesign/chrome-active.webp');
+    border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
     border-image-slice: 11;
     background: var(--sd-cobalt, #0c4ea9);
 }

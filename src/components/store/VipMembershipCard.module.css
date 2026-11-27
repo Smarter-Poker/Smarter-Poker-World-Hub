@@ -26,7 +26,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .vipCardSelected {
-  border-image-source: url('/images/smarterdesign/chrome-active.webp');
+  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
   border-image-slice: 11;
   background:
     radial-gradient(120% 130px at 50% 0, #1c64b4 0, transparent 78%),
