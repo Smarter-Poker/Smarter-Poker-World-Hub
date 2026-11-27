@@ -16,6 +16,7 @@ import UniversalHeader from '../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
 import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
 
 const INDUSTRY_FAST_FACTS = [
   {
@@ -251,9 +252,25 @@ export default function PressKitMediaPage() {
             <span style={styles.emeraldBadge}>CC BY 4.0 OPEN MEDIA ATTRIBUTION</span>
           </div>
 
-          <h1 style={styles.h1}>
-            Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts &amp; Media Citations
-          </h1>
+          <div style={{ marginBottom: 18 }}>
+            <SmarterSeoMasthead
+              vertical="magazine"
+              eyebrow="Official Smarter.Poker Newsroom"
+              title="Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts & Media Citations"
+              lead="Quotable 2026 US Live & Online Poker Benchmarks, Brand Boilerplates & CC BY 4.0 Open Media Badges."
+              stats={[
+                { label: 'Verified Rooms', value: '324+ Venues' },
+                { label: 'Weekly MTTs', value: '4,500+ Events' },
+                { label: 'Zenodo Archives', value: '6 DOIs' },
+                { label: 'Media License', value: 'CC BY 4.0' },
+              ]}
+              redirectPath="/press"
+              unlockKey="masthead-press"
+              primaryCtaLabel="Create Free Account"
+              secondaryHref="/research"
+              secondaryLabel="Open Research Hub"
+            />
+          </div>
 
           <p style={styles.lead}>
             <strong>Direct Media Resource:</strong> Journalists, Podcasters, Industry Analysts, And Academic Researchers May Freely Quote And Embed All 2026 Smarter.Poker Live And Online Poker Benchmarks Under <strong>Creative Commons Attribution 4.0 (CC BY 4.0)</strong>. Use The Quotable Fast Facts Table, 1-Click Brand Boilerplates, And Authority Badge Snippets Below.
@@ -577,6 +594,8 @@ const styles = {
     borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
+    minWidth: 0,
+    maxWidth: '100%',
   },
   sectionHeader: {
     display: 'flex',
@@ -637,7 +656,8 @@ const styles = {
     padding: '12px',
     color: '#10b981',
     fontWeight: 700,
-    minWidth: '210px',
+    minWidth: '180px',
+    overflowWrap: 'anywhere',
   },
   tdContext: {
     padding: '12px',
@@ -705,6 +725,7 @@ const styles = {
   },
   badgeSnippetGrid: {
     display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
     gap: '14px',
   },
   snippetCard: {
@@ -712,6 +733,8 @@ const styles = {
     border: '1px solid #2b4663',
     borderRadius: 0,
     padding: '16px',
+    minWidth: 0,
+    maxWidth: '100%',
   },
   snippetTitle: {
     fontSize: '13.5px',
@@ -725,6 +748,7 @@ const styles = {
     padding: '12px',
     color: '#00d4ff',
     fontSize: '12px',
+    maxWidth: '100%',
     overflowX: 'auto',
     margin: 0,
   },

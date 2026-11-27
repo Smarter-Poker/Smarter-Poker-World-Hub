@@ -65,6 +65,33 @@ import { US_COUNTRY, NON_US_COUNTRIES } from '../../src/lib/countries';
 // Where a player with no club invite continues after the welcome package offer.
 const CLUB_LOBBY_PATH = '/hub/club-arena/';
 
+function formatUnlockPromise(rawUnlock) {
+  const key = String(rawUnlock || '').trim().toLowerCase();
+  if (!key) return 'Free Account Unlock Ready: Complete Below To Continue Immediately';
+  if (key.includes('solver') || key.includes('hand') || key.includes('preflop') || key.includes('range')) {
+    return 'Unlocking Free: Full Multi-Position GTO Solver Matrix & 107 Drills';
+  }
+  if (key.includes('venue') || key.includes('pnm') || key.includes('room') || key.includes('series') || key.includes('tour') || key.includes('calendar') || key.includes('weekend')) {
+    return 'Unlocking Free: Live Waitlists, Peak Hours & Tournament Seat Alerts';
+  }
+  if (key.includes('tool') || key.includes('calc') || key.includes('icm') || key.includes('odds')) {
+    return 'Unlocking Free: Cloud Scenario Saves, CSV Exports & GTO Drills';
+  }
+  if (key.includes('video') || key.includes('watch') || key.includes('channel')) {
+    return 'Unlocking Free: Interactive Video Hand Quizzes & Pro Bookmarks';
+  }
+  if (key.includes('research') || key.includes('press') || key.includes('compare') || key.includes('dataset') || key.includes('facts')) {
+    return 'Unlocking Free: Full Interactive Filter Matrix & Cloud Dataset Exports';
+  }
+  if (key.includes('wire') || key.includes('magazine') || key.includes('news') || key.includes('article')) {
+    return 'Unlocking Free: Interactive Weekly GTO Polls, Archives & Pro Alerts';
+  }
+  if (key.includes('masthead')) {
+    return 'Unlocking Free: Full Smarter.Poker Pro Console, GTO Games & Live Intel';
+  }
+  return 'Unlocking Free: Study Deck Bookmarks, Cheat Sheets & 107 GTO Games';
+}
+
 // US States for dropdown
 const US_STATES = [
   'AL',
@@ -1506,7 +1533,7 @@ export default function SignUpPage() {
                 }}
               />
 
-                            {/* Dynamic Blank Space Form Area */}
+              {/* Dynamic Blank Space Form Area */}
               <div
                 style={{
                   position: "absolute",
@@ -1522,6 +1549,24 @@ export default function SignUpPage() {
                   boxSizing: "border-box",
                 }}
               >
+                {typeof router?.query?.unlock === 'string' && router.query.unlock.trim() && (
+                  <div
+                    data-testid="signup-unlock-context-desktop"
+                    style={{
+                      padding: '6px 10px',
+                      border: '1px solid #3a7fbd',
+                      background: 'linear-gradient(180deg, #12406f 0%, #082341 100%)',
+                      color: '#86daff',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      letterSpacing: '0.03em',
+                      textAlign: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {formatUnlockPromise(router.query.unlock)}
+                  </div>
+                )}
                 <style dangerouslySetInnerHTML={{ __html: `
                   /* Scrollbar styling for the form area */
                   .dynamic-auth-form div::-webkit-scrollbar {
@@ -1828,7 +1873,7 @@ export default function SignUpPage() {
                     textAlign: 'center',
                   }}
                 >
-                  Free Account Unlock Ready: Complete Below To Continue Immediately
+                  {formatUnlockPromise(router.query.unlock)}
                 </div>
               )}
               <div style={phoneStyles.trustStrip}>

@@ -15,6 +15,8 @@
 import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
+import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 
 const SITE_URL = 'https://smarter.poker';
 const CANONICAL_PATH = '/verification-methodology';
@@ -130,7 +132,25 @@ export default function VerificationMethodologyPage() {
             <span>Verification Methodology</span>
           </nav>
 
-          <h1 style={styles.h1}>{title}</h1>
+          <div style={{ marginBottom: 20 }}>
+            <SmarterSeoMasthead
+              vertical="research"
+              eyebrow="Primary-Source Provenance & Audit Rules"
+              title={title}
+              lead="Every Live Venue Profile, Software Comparison Matrix & GTO Calculation Verified Against Primary Sources & Zenodo DOIs."
+              stats={[
+                { label: 'Verified Venues', value: '324+ Rooms' },
+                { label: 'Zenodo Deposits', value: '6 Archives' },
+                { label: 'CFR Precision', value: '<= 0.05% Pot' },
+                { label: 'Open License', value: 'CC BY 4.0' },
+              ]}
+              redirectPath="/verification-methodology"
+              unlockKey="masthead-verification"
+              primaryCtaLabel="Create Free Account"
+              secondaryHref="/research"
+              secondaryLabel="Open Research Hub"
+            />
+          </div>
 
           <p style={styles.lead}>
             Smarter.Poker Is Operated By Smarter Software Inc. Every Live Venue Directory Entry, Software Comparison
@@ -232,11 +252,19 @@ export default function VerificationMethodologyPage() {
               </li>
               <li>
                 <strong>Software Heritage SWHIDs:</strong>{' '}
-                <code>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) And{' '}
-                <code>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
+                <code style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) And{' '}
+                <code style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
               </li>
             </ul>
           </section>
+
+          <div style={{ margin: '28px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="dataset-export"
+              context="verification-methodology"
+              redirectPath="/verification-methodology"
+            />
+          </div>
 
           <CitationBacklinkBox
             title="Smarter.Poker Data Provenance And Verification Methodology"

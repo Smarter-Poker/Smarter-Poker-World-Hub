@@ -393,7 +393,7 @@ const styles = {
   tdEmerald: { padding: '11px 12px', color: '#34d399', fontWeight: 700 },
   tableLink: { color: '#f2f7ff', textDecoration: 'none' },
   smallActionLink: { color: '#38bdf8', textDecoration: 'none', fontWeight: 700 },
-  cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 18 },
+  cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(340px, 100%), 1fr))', gap: 18 },
   card: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   cardHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   cardCodeBadge: { fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 0, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8' },

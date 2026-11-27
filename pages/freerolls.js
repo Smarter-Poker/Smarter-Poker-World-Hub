@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../src/components/seo/SEOHead';
 import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import { freerollEventSchema } from '../src/lib/seo/hubPageSchema';
 import { FREE_BUY_SCHEDULE, FREE_BUY_GAME, FREE_BUY_SUMMARY, freeBuyPrizeLabel } from '../src/lib/freerolls/freeBuySchedule.mjs';
@@ -288,16 +289,25 @@ export default function FreerollsPage() {
             <span>FIVE FREE TOURNAMENTS EVERY DAY</span>
           </div>
 
-          <h1 style={{ 
-            fontSize: 'clamp(28px, 5vw, 44px)', 
-            fontWeight: 800, 
-            lineHeight: 1.15, 
-            margin: '0 0 16px', 
-            color: '#FFFFFF',
-            letterSpacing: '-0.02em'
-          }}>
-            Daily Free Poker Tournaments
-          </h1>
+          <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+            <SmarterSeoMasthead
+              vertical="series"
+              eyebrow="Five Free Tournaments Every Day"
+              title="Daily Free Poker Tournaments"
+              lead="Compete In Five Daily Free Poker Tournaments With Guaranteed Rewards, Zero Entry Fees & Instant Browser Play."
+              stats={[
+                { label: 'Daily Schedule', value: `${DAILY_SCHEDULE.length} Events` },
+                { label: 'Entry Buy-In', value: '$0 Free' },
+                { label: 'Starting Stack', value: '3,000 Chips' },
+                { label: 'Platform', value: 'Browser Native' },
+              ]}
+              redirectPath="/freerolls"
+              unlockKey="masthead-freerolls"
+              primaryCtaLabel="Create Free Account To Play"
+              secondaryHref="/hub/club-arena?mode=tournament"
+              secondaryLabel="Enter Tournament Lobby"
+            />
+          </div>
 
           <p style={{ 
             fontSize: 'clamp(16px, 2.5vw, 19px)', 

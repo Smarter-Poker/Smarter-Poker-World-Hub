@@ -18,6 +18,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -873,6 +874,14 @@ export default function RangeBuilder() {
               )}
             </AnimatePresence>
           </div>
+        </div>
+
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px 20px' }}>
+          <SmarterAccountUnlockGate
+            variant="solver-matrix"
+            context="training-range-builder"
+            redirectPath="/hub/training/range-builder"
+          />
         </div>
 
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px 24px' }}>

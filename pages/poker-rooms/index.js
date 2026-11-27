@@ -22,6 +22,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
@@ -223,9 +224,25 @@ export default function PokerRoomsMasterHubPage() {
             <span style={styles.emeraldBadge}>CORRIDORS, GAME FORMATS, RAKE, TAX &amp; FLOOR RULINGS</span>
           </div>
 
-          <h1 style={styles.h1}>
-            Live Poker Room Guides, Border Travel Corridors &amp; Game-Format Directories
-          </h1>
+          <div style={{ marginBottom: 18 }}>
+            <SmarterSeoMasthead
+              vertical="poker-rooms"
+              eyebrow="Smarter.Poker Live Room Intelligence"
+              title="Live Poker Room Guides, Border Travel Corridors & Game-Format Directories"
+              lead="Verified Live Cash Games, Rake Benchmarks, State Legality Profiles & Travel Corridors Across 715+ Poker Rooms."
+              stats={[
+                { label: 'Live Venues', value: '715+ Rooms' },
+                { label: 'US State Guides', value: '51 Profiles' },
+                { label: 'Metro Markets', value: '12 Guides' },
+                { label: 'Waitlist Alerts', value: 'Free Account' },
+              ]}
+              redirectPath="/poker-rooms"
+              unlockKey="masthead-poker-rooms"
+              primaryCtaLabel="Unlock Live Room Intel"
+              secondaryHref="/hub/poker-near-me/lobby"
+              secondaryLabel="Open Live Map"
+            />
+          </div>
 
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Smarter.Poker Provides The Most Comprehensive Quantitative Live Poker Intelligence Network On The Web: Compare <strong>10 Border-State &amp; Airport Travel Corridors</strong>, <strong>6 National Game-Format Venue Directories (PLO, Bomb Pots, Dailies, Bad Beat Jackpots, Time-Rake Clubs, And High-Stakes Cash)</strong>, <strong>12 US Regional Metro Guides</strong>, <strong>51 US State &amp; DC Tax &amp; Legality Profiles</strong>, <strong>10 International Poker Capitals</strong>, A <strong>12-Month Seasonal Migration Calendar</strong>, And <strong>Live Casino Floor Security &amp; Dispute Protocols</strong>.
