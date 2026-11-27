@@ -467,7 +467,7 @@ function FrontCoverLayout({ page, issueMeta, mode, onSelectPage }) {
                 {deck ? <p className="spm-deck">{deck}</p> : null}
             </div>
             <div className="spm-cover-foot">
-                <span>smarter.poker</span>
+                <span>Smarter.Poker</span>
                 <span>{MAGAZINE_TAGLINE.split(',')[0]}</span>
             </div>
         </>
@@ -1280,7 +1280,7 @@ function BackCoverLayout({ page, mode }) {
                 <QrBlock page={page} mode={mode} />
             </div>
             <div className="spm-cover-foot">
-                <span>smarter.poker</span>
+                <span>Smarter.Poker</span>
                 <span className="spm-cover-foot__address">{MAGAZINE_POSTAL_ADDRESS}</span>
             </div>
         </>
